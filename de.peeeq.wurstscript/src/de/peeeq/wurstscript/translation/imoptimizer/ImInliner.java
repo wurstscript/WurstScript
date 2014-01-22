@@ -106,7 +106,7 @@ public class ImInliner {
 		for (int pi =0; pi < called.getParameters().size(); pi++) {
 			ImVar param = called.getParameters().get(pi);
 			ImExpr arg = args.get(pi);
-			ImVar tempVar = JassIm.ImVar(param.getType(), param.getName(), false);
+			ImVar tempVar = JassIm.ImVar(arg.attrTrace(), param.getType(), param.getName(), false);
 			f.getLocals().add(tempVar);
 			varSubtitutions.put(param, tempVar);
 			// set temp var
@@ -114,7 +114,7 @@ public class ImInliner {
 		}
 		// add locals
 		for (ImVar l : called.getLocals()) {
-			ImVar newL = JassIm.ImVar(l.getType(), l.getName(), false);
+			ImVar newL = JassIm.ImVar(l.getTrace(), l.getType(), l.getName(), false);
 			f.getLocals().add(newL);
 			varSubtitutions.put(l, newL);
 		}
@@ -220,6 +220,9 @@ public class ImInliner {
 				// do not inline natives
 				continue;
 			}
+			if (f == translator.getGlobalInitFunc()) {
+				continue;
+			}
 			if (maxOneReturn(f)) {
 				inlinableFunctions.add(f);
 			}
@@ -251,6 +254,7 @@ public class ImInliner {
 	private boolean hasReturn(final ImStmt s) {
 		final boolean[] r = new boolean[]{false};		
 		s.accept(new ImStmt.DefaultVisitor() {
+			@Override
 			public void visit(ImReturn rs) {
 				r[0] = true;
 			}

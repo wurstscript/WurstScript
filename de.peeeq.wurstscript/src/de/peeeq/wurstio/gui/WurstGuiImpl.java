@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import com.google.common.collect.Lists;
@@ -11,13 +12,12 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 
-public class WurstGuiImpl implements WurstGui {
+public class WurstGuiImpl extends WurstGui {
 
-
-	private List<CompileError> errors = Lists.newArrayList(); // this is not concurrent, because we only use this list from the main thread
 
 	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
@@ -95,14 +95,28 @@ public class WurstGuiImpl implements WurstGui {
 
 	@Override
 	public void sendError(CompileError err) {
-		errorQueue.add(err);
-		errors.add(err);
+		super.sendError(err);
+		if (err.getErrorType() == ErrorType.ERROR) {
+			errorQueue.add(err);
+		}
 	}
 
+	boolean show = true;
 
 	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
-		progress = percent;
+		if (whatsRunningNow != null) {
+			WLogger.info("progress: " + whatsRunningNow);
+		}
+		if (percent >= progress) {
+			progress = percent;
+		} else {
+			if (show) {
+				WLogger.info("Progress bar going backwards: \n " +
+						"changed from " + progress + " to " + percent + "\n" + whatsRunningNow + "\n " + Utils.printStackTrace(Thread.currentThread().getStackTrace()));
+				show = false;
+			}
+		}
 		this.currentlyWorkingOn = whatsRunningNow;
 	}
 
@@ -114,27 +128,17 @@ public class WurstGuiImpl implements WurstGui {
 
 
 	@Override
-	public int getErrorCount() {
-		return errors.size();
+	public void showInfoMessage(final String message) {
+		try {
+			SwingUtilities.invokeLater(new Runnable() {
+				@Override
+				public void run() {
+					JOptionPane.showMessageDialog(null, message);
+				}
+			});
+		} catch (Exception e) {
+			throw new Error(e);
+		}
 	}
-
-
-	@Override
-	public String getErrors() {
-		return Utils.join(errors, "\n");
-	}
-
-
-	@Override
-	public List<CompileError> getErrorList() {
-		return Lists.newArrayList(errors);
-	}
-
-
-	@Override
-	public void clearErrors() {
-		errors.clear();
-	}
-
 
 }

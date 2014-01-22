@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript;
 
 import static de.peeeq.wurstscript.ast.Ast.Arguments;
-import static de.peeeq.wurstscript.ast.Ast.ExprMemberMethod;
 import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
 import static de.peeeq.wurstscript.ast.Ast.NoTypeExpr;
 import static de.peeeq.wurstscript.ast.Ast.WStatements;
@@ -24,6 +23,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprMemberVarDot;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -74,7 +74,8 @@ public class SyntacticSugar {
 	private void replaceTypeIdUse(CompilationUnit root) {
 		final Map<Expr, Expr> replacements = Maps.newLinkedHashMap();
 		root.accept(new WurstModel.DefaultVisitor() {
-			public void visit(ExprMemberVar e) {
+			@Override
+			public void visit(ExprMemberVarDot e) {
 				if (e.getVarName().equals("typeId")) {
 					replacements.put(e, Ast.ExprTypeId(e.getSource(), (Expr) e.getLeft().copy()));
 				}
@@ -90,6 +91,7 @@ public class SyntacticSugar {
 	private void rewriteNegatedInts(CompilationUnit root) {
 		final Map<Expr, Expr> replacements = Maps.newLinkedHashMap();
 		root.accept(new WurstModel.DefaultVisitor() {
+			@Override
 			public void visit(ExprUnary e) {
 				if (e.getOpU() == WurstOperator.UNARY_MINUS
 						&& e.getRight() instanceof ExprIntVal) {
@@ -224,19 +226,19 @@ public class SyntacticSugar {
 								loopInPos, 
 								Ast.Modifiers(), 
 								NoTypeExpr(), iteratorName, 
-									Ast.ExprMemberMethod(loopInPos, (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
+									Ast.ExprMemberMethodDot(loopInPos, (Expr) loop.getIn().copy(), "iterator", Ast.TypeExprList(), Arguments())));
 				WStatements body = WStatements(
 							Ast.LocalVarDef(loopVarPos, 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
-									ExprMemberMethod(loopInPos, 
+									Ast.ExprMemberMethodDot(loopInPos, 
 											ExprVarAccess(loopVarPos, iteratorName), "next", Ast.TypeExprList(), Arguments()))
 						);
 				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
 				parent.add(position + 1, Ast.StmtWhile(
 						loop.getSource(), 
-						ExprMemberMethod(loopInPos, 
+						Ast.ExprMemberMethodDot(loopInPos, 
 								ExprVarAccess(loopVarPos, iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
 				parent.add(position+2, 
@@ -274,13 +276,13 @@ public class SyntacticSugar {
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
 									loop.getLoopVar().getName(), 
-									ExprMemberMethod(loopInPos, 
+									Ast.ExprMemberMethodDot(loopInPos, 
 											ExprVarAccess(loopVarPos, iteratorName), "next", Ast.TypeExprList(), Arguments()))
 						);
 				body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
 				parent.add(position + 0, Ast.StmtWhile(
 						loop.getSource(), 
-						ExprMemberMethod(loopInPos, 
+						Ast.ExprMemberMethodDot(loopInPos, 
 								ExprVarAccess(loopVarPos, iteratorName), "hasNext", Ast.TypeExprList(), Arguments()),
 						body));
 			} else {
@@ -291,7 +293,7 @@ public class SyntacticSugar {
 
 
 	private ExprMemberMethod closeIteratorStatement(String iteratorName, WPos loopVarPos, WPos loopInPos) {
-		return ExprMemberMethod(loopInPos, 
+		return Ast.ExprMemberMethodDot(loopInPos, 
 				ExprVarAccess(loopVarPos, iteratorName), "close", Ast.TypeExprList(), Arguments());
 	}
 	

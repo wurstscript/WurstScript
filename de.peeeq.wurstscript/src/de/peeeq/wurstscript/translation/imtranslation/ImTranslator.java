@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -36,9 +35,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
-import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
@@ -63,12 +64,10 @@ import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TranslatedToImFunction;
 import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
@@ -77,18 +76,14 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
-import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
@@ -107,7 +102,6 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -121,6 +115,7 @@ public class ImTranslator {
 
 	private Multimap<ImFunction, ImFunction> callRelations = null;
 	private Set<ImVar> usedVariables = null;
+	private Set<ImVar> readVariables = null;
 	private Set<ImFunction> usedFunctions = null;
 
 	private ImFunction debugPrintFunction;
@@ -170,7 +165,7 @@ public class ImTranslator {
 
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
-		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(ImVar(WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
+		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE));
 
 
 
@@ -197,6 +192,7 @@ public class ImTranslator {
 
 
 	private void translateCompilationUnit(CompilationUnit cu) {
+		// TODO can we make this smarter? Only translate functions which are actually called...
 		for (WPackage p : cu.getPackages()) {
 			p.imTranslateTLD(this);
 		}
@@ -210,7 +206,7 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false));
+		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -232,7 +228,7 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
-		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false));
+		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void addFunction(ImFunction f) {
@@ -305,7 +301,7 @@ public class ImTranslator {
 		
 		@Override
 		ImFunction initFor(StructureDef classDef) {
-			ImVars params = ImVars(JassIm.ImVar(TypesHelper.imInt(), "this", false));
+			ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			addFunction(f);
 			return f;
@@ -344,7 +340,7 @@ public class ImTranslator {
 
 		@Override
 		ImFunction initFor(ImClass c) {
-			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
+			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}
 		
@@ -363,6 +359,9 @@ public class ImTranslator {
 		if (isBJ(funcDef.getSource())) {
 			flags.add(IS_BJ);
 		}
+		if (isExtern(funcDef)) {
+			flags.add(FunctionFlag.IS_EXTERN);
+		}
 		if (funcDef instanceof FuncDef) {
 			FuncDef funcDef2 = (FuncDef) funcDef;
 			if (funcDef2.attrIsCompiletime()) {
@@ -380,6 +379,22 @@ public class ImTranslator {
 		addFunction(f);
 		functionMap.put(funcDef, f);
 		return f;
+	}
+
+
+	private boolean isExtern(TranslatedToImFunction funcDef) {
+		if (funcDef instanceof AstElementWithModifiers) {
+			AstElementWithModifiers f = (AstElementWithModifiers) funcDef;
+			for (Modifier m: f.getModifiers()) {
+				if (m instanceof Annotation) {
+					Annotation a = (Annotation) m;
+					if (a.getAnnotationType().equals("@extern")) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 
@@ -457,7 +472,7 @@ public class ImTranslator {
 		if (thisVarMap.containsKey(f)) {
 			return thisVarMap.get(f);
 		}
-		ImVar v = ImVar(ImSimpleType("integer"), "this", false);
+		ImVar v = JassIm.ImVar(f, ImSimpleType("integer"), "this", false);
 		thisVarMap.put(f, v);
 		return v ;
 	}
@@ -507,7 +522,7 @@ public class ImTranslator {
 				name = varDef.attrNearestNamedScope().getName() + "_" + name;
 			}
 			boolean isBj = isBJ(varDef.getSource());
-			v = JassIm.ImVar(type, name, isBj);
+			v = JassIm.ImVar(varDef, type, name, isBj);
 			varMap.put(varDef, v);
 		}
 		return v;
@@ -577,6 +592,7 @@ public class ImTranslator {
 	public void calculateCallRelationsAndUsedVariables() {
 		callRelations = HashMultimap.create();
 		usedVariables = Sets.newLinkedHashSet();
+		readVariables = Sets.newLinkedHashSet();
 		usedFunctions = Sets.newLinkedHashSet();
 		calculateCallRelations(getMainFunc());
 		calculateCallRelations(getConfFunc());
@@ -592,11 +608,11 @@ public class ImTranslator {
 			return;
 		}
 		usedFunctions.add(f);
-		Set<ImVar> usedVars = f.calcUsedVariables();
-//		WLogger.info("Function " + f.getName() + " uses vars: " + usedVars);
-		usedVariables.addAll(usedVars);
-		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
+
+		usedVariables.addAll(f.calcUsedVariables());
+		readVariables.addAll(f.calcReadVariables());
 		
+		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		for (ImFunction called : calledFuncs) {
 //			WLogger.info("Function " + f.getName() + " calls: " + called.getName());
 			callRelations.put(f, called);
@@ -818,14 +834,14 @@ public class ImTranslator {
 				result = Collections.singletonList(v);
 			} else {
 				result = Lists.newArrayList();
-				addVarsForType(result, v.getName(), v.getType(), false);
+				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
 			}
 			varsForTupleVar.put(v, result);
 		}
 		return result;
 	}
 
-	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array) {
+	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, AstElement tr) {
 		Preconditions.checkNotNull(type);
 		Preconditions.checkNotNull(result);
 		// TODO handle names
@@ -833,13 +849,13 @@ public class ImTranslator {
 			ImTupleType tt = (ImTupleType) type;
 			int i=0;
 			for (ImType t : tt.getTypes()) {
-				addVarsForType(result, name + "_" + tt.getNames().get(i), t, false);
+				addVarsForType(result, name + "_" + tt.getNames().get(i), t, false, tr);
 				i++;
 			}
 		} else if (type instanceof ImTupleArrayType) {
 			ImTupleArrayType tt = (ImTupleArrayType) type;
 			for (ImType t : tt.getTypes()) {
-				addVarsForType(result, name, t, true);
+				addVarsForType(result, name, t, true, tr);
 			}
 		} else if (type instanceof ImVoid) {
 
@@ -848,7 +864,7 @@ public class ImTranslator {
 				ImSimpleType st = (ImSimpleType) type;
 				type = JassIm.ImArrayType(st.getTypename());
 			}
-			result.add(JassIm.ImVar(type, name, false));
+			result.add(JassIm.ImVar(tr, type, name, false));
 		}
 
 	}
@@ -858,7 +874,7 @@ public class ImTranslator {
 		List<ImVar> result = tempReturnVars.get(f);
 		if (result == null) {
 			result = Lists.newArrayList();
-			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false);
+			addVarsForType(result, f.getName() +  "_return", getOriginalReturnValue(f), false, f.getTrace());
 			if (result.size() > 1) {
 				imProg.getGlobals().addAll(result);
 				// if we only have one return var it will never get used
@@ -938,6 +954,13 @@ public class ImTranslator {
 		}
 		return usedVariables;
 	}
+	
+	public Set<ImVar> getReadVariables() {
+		if (readVariables == null) {
+			calculateCallRelationsAndUsedVariables();
+		}
+		return readVariables;
+	}
 
 	public Set<ImFunction> getUsedFunctions() {
 		if (usedFunctions == null) {
@@ -1008,6 +1031,9 @@ public class ImTranslator {
 	}
 
 
+	public ImFunction getGlobalInitFunc() {
+		return globalInitFunc;
+	}
 	
 	
 }

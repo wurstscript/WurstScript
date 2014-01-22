@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethods;
 import de.peeeq.wurstscript.jassIm.ImSet;
+import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -27,10 +28,12 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeClosure;
+import de.peeeq.wurstscript.types.WurstTypeCode;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeVoid;
 
 public class ClosureTranslator {
 	private final ExprClosure e;
@@ -50,20 +53,63 @@ public class ClosureTranslator {
 
 
 	public ImExpr translate() {
-		ImClass c = createClass();
-		ImVar clVar = JassIm.ImVar(WurstTypeInt.instance().imTranslateType(), "clVar", false);
-		f.getLocals().add(clVar);
-		ImStmts stmts = JassIm.ImStmts();
-		// allocate closure
-		stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
-		// set closure vars
-		for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
-			ImVar orig = entry.getKey();
-			ImVar v = entry.getValue();
-			WLogger.info(orig + " ---> " + v);
-			stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
+		if (e.attrExpectedTyp() instanceof WurstTypeCode) {
+			return translateAnonFunc();
+		} else {
+			ImClass c = createClass();
+			ImVar clVar = JassIm.ImVar(e, WurstTypeInt.instance().imTranslateType(), "clVar", false);
+			f.getLocals().add(clVar);
+			ImStmts stmts = JassIm.ImStmts();
+			// allocate closure
+			stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
+			// set closure vars
+			for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
+				ImVar orig = entry.getKey();
+				ImVar v = entry.getValue();
+				WLogger.info(orig + " ---> " + v);
+				stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
+			}
+			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
 		}
-		return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
+	}
+
+
+
+	private ImExpr translateAnonFunc() {
+		impl = tr.getFuncFor(e);
+		impl.getParameters().clear();
+		ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
+		
+		verifyTranslatedAnonfunc(translated);
+		
+		if (e.getImplementation().attrTyp() instanceof WurstTypeBool) {
+			impl.getBody().add(JassIm.ImReturn(e, translated));
+			impl.setReturnType(WurstTypeBool.instance().imTranslateType());
+		} else {
+			impl.getBody().add(translated);
+			impl.setReturnType(WurstTypeVoid.instance().imTranslateType());
+		}
+		return JassIm.ImFuncRef(impl);
+	}
+
+
+	/** checks that there are  no captured variables */
+	private void verifyTranslatedAnonfunc(ImExpr translated) {
+		translated.accept(new ImExpr.DefaultVisitor() {
+			@Override
+			public void visit(ImVarAccess va) {
+				if (isLocalToOtherFunc(va.getVar())) {
+					throw new CompileError(va.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + va.getVar().getName());
+				}
+			}
+			
+			@Override
+			public void visit(ImSet s) {
+				if (isLocalToOtherFunc(s.getLeft())) {
+					throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft().getName());
+				}
+			}
+		});
 	}
 
 
@@ -117,6 +163,7 @@ public class ClosureTranslator {
 	private void transformTranslated(ImExpr t) {
 		final List<ImVarAccess> vas = Lists.newArrayList();
 		final List<ImSet> sets = Lists.newArrayList();
+		final List<ImSetTuple> tupleSets = Lists.newArrayList();
 		t.accept(new ImExpr.DefaultVisitor() {
 			@Override
 			public void visit(ImVarAccess va) {
@@ -131,6 +178,13 @@ public class ClosureTranslator {
 					sets.add(s);
 				}
 			}
+			
+			@Override
+			public void visit(ImSetTuple s) {
+				if (isLocalToOtherFunc(s.getLeft())) {
+					tupleSets.add(s);
+				}
+			}
 		});
 		
 		for (ImVarAccess va : vas) {
@@ -143,6 +197,12 @@ public class ClosureTranslator {
 			right.setParent(null);
 			s.replaceWith(JassIm.ImSetArray(e, v, closureThis(), right));
 		}
+		for (ImSetTuple s : tupleSets) {
+			ImVar v = getClosureVarFor(s.getLeft());
+			ImExpr right = s.getRight();
+			right.setParent(null);
+			s.replaceWith(JassIm.ImSetArrayTuple(e, v, closureThis(), s.getTupleIndex(), right));
+		}
 	}
 
 	private ImExpr closureThis() {
@@ -154,7 +214,7 @@ public class ClosureTranslator {
 	private ImVar getClosureVarFor(ImVar var) {
 		ImVar v = closureVars.get(var);
 		if (v == null) {
-			v = JassIm.ImVar(arrayType(var.getType()), var.getName(), false);
+			v = JassIm.ImVar(e, arrayType(var.getType()), var.getName(), false);
 			tr.imProg().getGlobals().add(v);
 			closureVars.put(var, v);
 		}
@@ -177,6 +237,10 @@ public class ClosureTranslator {
 
 
 	private boolean isLocalToOtherFunc(ImVar imVar) {
+		if (imVar.getParent() == null
+				|| imVar.getParent().getParent() == null) {
+			return false;
+		}
 		if (imVar.getParent().getParent() instanceof ImFunction) {
 			boolean r = imVar.getParent().getParent() != impl;
 			return r;
@@ -187,7 +251,7 @@ public class ClosureTranslator {
 
 
 	private FuncDef getSuperMethod() {
-		NameLink nl = ((WurstTypeClosure) e.attrTyp()).findAbstractMethod(e.attrExpectedTyp());
+		NameLink nl = e.attrClosureAbstractMethod();
 		return (FuncDef) nl.getNameDef();
 	}
 

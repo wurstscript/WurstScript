@@ -21,6 +21,7 @@ public abstract class DefinitionMap<K,V> extends LinkedHashMap<K, V> {
 //		super.putAll(m);
 	}
 	
+	@Override
 	public V put(K key, V value) {
 		if (containsKey(key)) {
 			onElementRedefined(get(key), value, key);

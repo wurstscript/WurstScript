@@ -1,6 +1,34 @@
 package de.peeeq.eclipsewurstplugin;
 
-import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_CONSTRUCTOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_DATATYPE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FIELD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FUNCTION;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_INTERFACE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_JASSTYPE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_KEYWORD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_PARAM;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_COMMENT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_CONSTRUCTOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_DATATYPE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FIELD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FUNCTION;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_INTERFACE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_JASSTYPE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_KEYWORD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_PARAM;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_STRING;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_TEXT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_VAR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_TEXT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_VAR;
 
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -12,9 +40,8 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
 import org.eclipse.swt.graphics.RGB;
-import org.eclipse.ui.IEditorPart;
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorReference;
-import org.eclipse.ui.IEditorSite;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
@@ -24,6 +51,7 @@ import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
 import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.WinRegistry;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -82,9 +110,15 @@ public class WurstPlugin extends AbstractUIPlugin {
 		WLogger.setHandler(new PluginLogHandler(getLog()));
 		WLogger.setLevel(Level.INFO);
 		plugin = this;
-		initializePreferenceStore();
-		scanners = new ScannerFactory();
-		WurstPerspective.findConsole();
+		
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				initializePreferenceStore();
+				scanners = new ScannerFactory();
+				WurstPerspective.findConsole();
+			}
+		});;
 		
 	}
 
@@ -188,6 +222,22 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(WurstConstants.WURST_AUTOCOMPLETION_DELAY, "0.5");
 		setDefaultValue(WurstConstants.WURST_ENABLE_RECONCILING, true);
 		setDefaultValue(WurstConstants.WURST_RECONCILATION_DELAY, "0.5");
+		setDefaultValue(WurstConstants.WURST_MPQEDIT_PATH, "C:\\mpqedit\\MPQEditor.exe");
+		setDefaultValue(WurstConstants.WURST_WC3_PATH, "C:\\Warcraft III\\");
+		try {
+			// try to use the registry to find wc3 path
+			WinRegistry reg = new WinRegistry();
+			String installPath = reg.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+			if (installPath != null) {
+				setDefaultValue(WurstConstants.WURST_WC3_PATH, installPath);
+			}
+		} catch (NoSuchMethodException e) {
+			// ignore, registry not supported
+			WLogger.info("Registry not supported");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 		
 	}
 	

@@ -66,6 +66,9 @@ public class ImAttributes {
 		return f.getFlags().contains(FunctionFlag.IS_BJ);
 	}
 	
+	public static boolean isExtern(ImFunction f) {
+		return f.getFlags().contains(FunctionFlag.IS_EXTERN);
+	}
 
 	public static boolean isNative(ImFunction f) {
 		return f.getFlags().contains(FunctionFlag.IS_NATIVE);
@@ -75,7 +78,7 @@ public class ImAttributes {
 		return f.getFlags().contains(FunctionFlag.IS_COMPILETIME);
 	}
 
-
+	
 	public static AstElement getTrace(JassImElementWithTrace t) {
 		return t.getTrace();
 	}
@@ -108,4 +111,8 @@ public class ImAttributes {
 	public static ImClass attrClass(ImMethod m) {
 		return (ImClass) m.getParent().getParent();
 	}
+
+
+	
+	
 }

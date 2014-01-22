@@ -17,62 +17,52 @@ public function createImage(string path, vec2 pos, real sizeX, real sizeY, Layer
 	return CreateImage(path, sizeX, sizeY, 0, pos.x, pos.y, 0, sizeX / 2, sizeY / 2, 0, layer castTo int + 1)
 			
 /** Shows the image */
-public function image.show() returns image
+public function image.show()
 	SetImageRenderAlways(this, true)
-	return this
 
 /** Hides the image */
-public function image.hide() returns image
+public function image.hide()
 	SetImageRenderAlways(this, false)
-	return this
 	
 /** Shows the image for a specific player  */
-public function image.showForPlayer(player p) returns image
+public function image.showForPlayer(player p)
 	if GetLocalPlayer() == p
 		SetImageRenderAlways(this, true)
-	return this
 	
 /** Hides the image for a specific player */
-public function image.hideForPlayer(player p) returns image
+public function image.hideForPlayer(player p)
 	if GetLocalPlayer() == p
 		SetImageRenderAlways(this, true)
-	return this
 		
 /** Set the image 2D position */
-public function image.setPos(vec2 pos) returns image
+public function image.setPos(vec2 pos)
 	SetImagePosition(this, pos.x, pos.y, 0)
-	return this
 
 /** Set the image 3D position */	
-public function image.setPos(vec3 pos) returns image
+public function image.setPos(vec3 pos)
 	SetImagePosition(this, pos.x, pos.y, 0)
 	SetImageConstantHeight(this, true, pos.z)
-	return this
 	
 /** Set the image height */	
-public function image.setHeight(real z) returns image
+public function image.setHeight(real z)
 	SetImageConstantHeight(this, true, z)
-	return this
 	
 /** Set the image color by using the colorA tuple */		
-public function image.setColor(colorA col) returns image
+public function image.setColor(colorA col)
 	SetImageColor(this, col.red, col.green, col.blue, col.alpha)
-	return this
 	
 /** Set the image color by using the color tuple */		
-public function image.setColor(color col) returns image
+public function image.setColor(color col)
 	SetImageColor(this, col.red, col.green, col.blue, 255)
-	return this
 	
 /** Set the image layer (use the constants) */		
-public function image.setLevel(Layer layer) returns image
+public function image.setLevel(Layer layer)
 	SetImageType(this, layer castTo int + 1)
-	return this
 	
 /** Destroy the image */		
 public function image.remove()
 	if this != null
 		DestroyImage(this)
 	else
-		printError("Nullpointer exeption by destroying an image")
+		error("Nullpointer exeption by destroying an image")
 

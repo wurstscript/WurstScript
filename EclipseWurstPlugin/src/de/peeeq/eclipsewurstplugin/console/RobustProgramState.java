@@ -9,6 +9,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImVar;
 
 /**
@@ -29,6 +30,7 @@ public class RobustProgramState extends ProgramState {
 	}
 	
 	
+	@Override
 	public void setVal(ImVar v, ILconst val) {
 		values.put(key(v), val);
 	}
@@ -43,6 +45,7 @@ public class RobustProgramState extends ProgramState {
 	}
 
 
+	@Override
 	public ILconst getVal(ImVar v) {
 		return values.get(key(v));
 	}
@@ -56,14 +59,17 @@ public class RobustProgramState extends ProgramState {
 		return r;
 	}
 
+	@Override
 	public void setArrayVal(ImVar v, int index, ILconst val) {
 		getArray(key(v)).put(index, val);
 	}
 
+	@Override
 	public ILconst getArrayVal(ImVar v, int index) {
 		return getArray(key(v)).get(index);
 	}
 	
+	@Override
 	public ILconst getVarValue(String varName) {
 		for (Entry<String, ILconst> e : values.entrySet()) {
 			if (e.getKey().endsWith("^"+varName)) {
@@ -71,5 +77,10 @@ public class RobustProgramState extends ProgramState {
 			}
 		}
 		return null;
+	}
+	
+	@Override
+	protected Object classKey(ImClass clazz) {
+		return clazz.getTrace().attrPathDescription() + "^" + clazz.getName();
 	}
 }

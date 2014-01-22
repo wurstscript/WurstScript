@@ -247,7 +247,7 @@ public class ClassesTests extends WurstScriptTest {
 				"package test",
 				"	native testSuccess()",
 				"	native println(string msg)",
-				"	native I2S(int i) returns string",
+				"	@extern native I2S(int i) returns string",
 				"	class C",
 				"		int i",
 				"",
@@ -259,7 +259,7 @@ public class ClassesTests extends WurstScriptTest {
 				"			destroy cs[j]",
 				"		for int k = 0 to 6000",
 				"			cs[k] = new C()",
-				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
+//				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
 				"		if cs[6000] castTo int <= 6001",
 				"			testSuccess()",
 				"endpackage"
@@ -286,6 +286,41 @@ public class ClassesTests extends WurstScriptTest {
 //				"		println(\"###### \" + I2S(a castTo int) + \" -- \" + I2S(b castTo int))",
 				"		if a != b",
 				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void recyling_random() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native println(string msg)",
+				"	native testFail(string msg)",
+				"	@extern native I2S(int i) returns string",
+				"	@extern native GetRandomReal(real a, real b) returns real",
+				"	@extern native GetRandomInt(int a, int b) returns int",
+				"	class C",
+				"		int alive",
+				"		construct()",
+				"			if alive == 1",
+				"				testFail(\"already alive\")",
+				"			alive = 1",
+				"		ondestroy",
+				"			alive = 2",
+				"	C array cs",
+				"	int count = 0",
+				"	init",
+				"		for i = 0 to 1000",
+				"			if count < 100 and GetRandomReal(0,1) <= 0.5",
+				"				cs[count] = new C",
+				"				count++",
+				"			if count > 0 and GetRandomReal(0,1) <= 0.1",
+				"				let j = GetRandomInt(0,count-1)",
+				"				destroy cs[j]",
+				"				count--",
+				"				cs[j] = cs[count]",
+				"		testSuccess()",
 				"endpackage"
 			);
 	}
@@ -339,6 +374,29 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void big_instanceof() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"	class B extends A",
+				"	class B1 extends B",
+				"	class B2 extends B",
+				"	class B2a extends B2",
+				"	class B2b extends B2",
+				"	class B2c extends B2",
+				"	class B3 extends B",
+				"	class B4 extends B",
+				"	class B5 extends B",
+				"	init",
+				"		A a = new B2a()",
+				"		if a instanceof B",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 	
 	@Test
 	public void override() {
@@ -667,6 +725,28 @@ public class ClassesTests extends WurstScriptTest {
 				"	init",
 				"		let a = new A",
 				"		if a.i == 1",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void dotdotOperator() { 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		int i",
+				"		function plus(int x)",
+				"			i += x",
+				"		function minus(int x)",
+				"			i -= x",
+				"	init",
+				"		A a = new A",
+				"			..plus(3)",
+				"			..minus(4)",
+				"			..plus(5)",
+				"		if a.i == 4",
 				"			testSuccess()",
 				"endpackage"
 			);

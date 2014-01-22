@@ -114,6 +114,84 @@ if havewurst then
 end
 -- ##EndWurstScript##
 
+-- ## Jasshelper ##
+--Here I'll add the custom menu to jasshelper. moyack
+jh_path = ""
+havejh = grim.exists("cohadarjasshelper\\jasshelper.exe") or grim.exists("vexorianjasshelper\\jasshelper.exe")
+if havejh then
+	jhmenu = wehack.addmenu("JassHelper")
+	jh_enable = TogMenuEntry:New(jhmenu,"Enable JassHelper",nil,true)
+	wehack.addmenuseparator(jhmenu)
+	
+	jh_iscohadar = TogMenuEntry:New(jhmenu,"Enable Cohadar's JassHelper",nil,true)
+	jh_isvexorian = TogMenuEntry:New(jhmenu,"Enable Vexorian's JassHelper",nil,false)
+	
+	wehack.addmenuseparator(jhmenu)
+	jh_debug = TogMenuEntry:New(jhmenu,"Debug Mode",nil,false)
+	jh_disable = TogMenuEntry:New(jhmenu,"Disable vJass syntax",nil,false)
+    jh_disableopt = TogMenuEntry:New(jhmenu,"Disable script optimization",nil,false)
+
+	wehack.addmenuseparator(jhmenu)
+	
+	function jhsetpath()
+		if jh_isvexorian.checked then
+			jh_path = "vexorian"
+		else
+			jh_path = "cohadar" -- Default
+		end
+	end
+	
+	jhsetpath()
+	
+	function jhshowerr()
+	  	wehack.execprocess(jh_path.."jasshelper\\jasshelper.exe --showerrors")
+	end
+	
+	function jhabout()
+	  	wehack.execprocess(jh_path.."jasshelper\\jasshelper.exe --about")
+	end
+	
+	jhshowerrm = MenuEntry:New(jhmenu,"Show previous errors",jhshowerr)
+	jhaboutm = MenuEntry:New(jhmenu,"About JassHelper ...",jhabout)
+	
+    function jhsetcohadar()
+		jh_iscohadar.checked = true
+		jh_iscohadar:redraw(jh_iscohadar)
+		jh_isvexorian.checked = false
+		jh_isvexorian:redraw(jh_isvexorian)
+		jhsetpath()
+	end
+	
+	function jhsetvexorian()
+		jh_isvexorian.checked = true
+		jh_isvexorian:redraw(jh_isvexorian)
+		jh_iscohadar.checked = false
+		jh_iscohadar:redraw(jh_iscohadar)
+		jhsetpath()
+	end
+	
+	jh_iscohadar.cb = jhsetcohadar
+	jh_isvexorian.cb = jhsetvexorian
+	
+	function jhshowhelp()
+		jhsetpath()
+		wehack.execprocess("starter.bat ./"..jh_path.."jasshelper\\jasshelpermanual.html")
+	end
+	
+	jhhelp = MenuEntry:New(jhmenu, "JassHelper Documentation...", jhshowhelp)
+end
+-- # end jasshelper #
+
+-- # begin sharpcraft #
+haveSharpCraft = grim.exists("SharpCraft\\SharpCraft.exe")
+if haveSharpCraft then
+	sharpCraftMenu = wehack.addmenu("SharpCraft")
+	sharpCraftEnable = TogMenuEntry:New(sharpCraftMenu,"Run with ShapCraft",nil,true)
+end
+-- # end sharpcraft #
+
+
+
 function initshellext()
     local first, last = string.find(grim.getregpair("HKEY_CLASSES_ROOT\\WorldEdit.Scenario\\shell\\open\\command\\", ""),"NewGen",1)
     if first then
@@ -372,6 +450,14 @@ function testmap(cmdline)
 	--mappath = strsplit(" ",cmdline)[2]
 	--compilemap_path(mappath)
 	
+	if haveSharpCraft and sharpCraftEnable.checked then
+		-- remove default .exe
+		local pos = string.find(cmdline, ".exe")
+		cmdline = string.sub(cmdline, 4 + pos)
+		-- replace with SharpCraft exe
+		cmdline = "SharpCraft\\SharpCraft.exe -game " .. cmdline
+	end
+	
 	if wh_opengl.checked then
 		cmdline = cmdline .. " -opengl"
 	end
@@ -389,6 +475,8 @@ function compilemap_path(mappath)
 	map = wehack.openarchive(mappath,15)
 	wehack.extractfile("wurstscript\\common.j","scripts\\common.j")
 	wehack.extractfile("wurstscript\\Blizzard.j","scripts\\Blizzard.j")
+	wehack.extractfile(jh_path.."jasshelper\\common.j","scripts\\common.j")
+	wehack.extractfile(jh_path.."jasshelper\\Blizzard.j","scripts\\Blizzard.j")
 	wehack.extractfile("war3map.j","war3map.j")
 	wehack.closearchive(map)
 	if cmdargs ~= "" then
@@ -402,6 +490,28 @@ grim.log("running tool on save: "..cmdargs)
 		wehack.runprocess(cmdargs)
 		cmdargs = ""
 	end
+	
+	if havejh and jh_enable.checked then
+		cmdline = jh_path .. "jasshelper\\jasshelper.exe"
+		if jh_debug.checked then
+			cmdline = cmdline .. " --debug"
+		end
+		if jh_disable.checked then
+			cmdline = cmdline .. " --nopreprocessor"
+		end
+		if jh_disableopt.checked then
+			cmdline = cmdline .. " --nooptimize"
+		end
+		cmdline = cmdline .. " "..jh_path.."jasshelper\\common.j "..jh_path.."jasshelper\\blizzard.j \"" .. mappath .."\""
+		toolresult = 0
+		toolresult = wehack.runprocess2(cmdline)
+		if toolresult == 0 then 
+			mapvalid = true
+		else
+			mapvalid = false
+		end
+	end
+	
 	if havewurst and wurst_enable.checked then
 		cmdline = "wurstscript\\wurstscript.exe"
 		cmdline = cmdline .. " -gui"
@@ -486,5 +596,7 @@ if haveext then
 	wehack.addmenuseparator(utils)
   aboutextensions = MenuEntry:New(utils,"About Grimex ...",extabout)
 end
+
+
 
 isstartup = false

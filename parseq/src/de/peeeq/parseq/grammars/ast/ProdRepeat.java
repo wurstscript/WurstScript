@@ -22,34 +22,44 @@ public class ProdRepeat extends Production {
 			return p;
 		}
 		RepeatType repType;
-		if (mod.getText() == "+") {
+		switch (mod.getText()) {
+		case "+":
 			repType = RepeatType.AT_LEAST_ONCE;
-		} else if (mod.getText() == "*") {
+			break;
+		case "*":
 			repType = RepeatType.ARBITRARY;
-		} else if (mod.getText() == "?") {
+			break;
+		case "?":
 			repType = RepeatType.ZERO_OR_ONCE;
-		} else {
+			break;
+		default:
 			throw new Error(mod.getText());
 		}
 		return new ProdRepeat(p, repType);
 	}
 
 	@Override
-	public void print(GrammarTranslation tr) {
-		tr.print("(");
+	public void print(StringBuilder tr) {
+		tr.append("(");
 		prod.print(tr);
-		tr.print(")");
+		tr.append(")");
 		switch (repType) {
 		case ARBITRARY:
-			tr.print("*");
+			tr.append("*");
 			break;
 		case AT_LEAST_ONCE:
-			tr.print("+");
+			tr.append("+");
 			break;
 		case ZERO_OR_ONCE:
-			tr.print("+");
+			tr.append("+");
 			break;
 		}
+	}
+
+	@Override
+	public ProdType getType() {
+		// TODO add repeat- and optional- types?
+		return prod.getType();
 	}
 	
 	

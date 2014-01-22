@@ -21,11 +21,21 @@ public class ProdSequence extends Production {
 
 
 	@Override
-	public void print(GrammarTranslation tr) {
+	public void print(StringBuilder tr) {
 		for (Production c : prods) {
-			tr.print(" ");
+			tr.append(" ");
 			c.print(tr);
 		}
+	}
+
+
+	@Override
+	public ProdType getType() {
+		ProdType r = new ProdType();
+		for (Production p : prods) {
+			r = r.sequence(p.getType());
+		}
+		return r;
 	}
 	
 	

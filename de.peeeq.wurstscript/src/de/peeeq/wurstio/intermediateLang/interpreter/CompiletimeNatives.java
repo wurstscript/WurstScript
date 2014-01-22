@@ -18,8 +18,6 @@ import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
-import de.peeeq.wurstscript.jassinterpreter.TestFailException;
-import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
 	private ProgramStateIO globalState;

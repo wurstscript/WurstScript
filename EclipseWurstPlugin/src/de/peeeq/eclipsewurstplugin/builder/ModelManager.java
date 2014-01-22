@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 
 public interface ModelManager {
 
-	 void removeCompilationUnit(IResource resource);
+	 boolean removeCompilationUnit(IResource resource);
 
 	 boolean needsFullBuild();
 
@@ -39,5 +39,7 @@ public interface ModelManager {
 	WurstNature getNature();
 
 	void removeCompilationUnitByName(String replDummyFilename);
+
+	void resolveImports(WurstGui gui);
 
 }

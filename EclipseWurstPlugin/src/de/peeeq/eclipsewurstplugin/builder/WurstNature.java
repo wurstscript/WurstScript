@@ -1,5 +1,7 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.util.List;
+
 import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
@@ -16,6 +18,7 @@ import org.eclipse.jface.text.IDocumentExtension;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 
 import org.eclipse.ui.IEditorPart;
@@ -99,7 +102,11 @@ public class WurstNature implements IProjectNature {
 		try {
 			IMarker marker = file.createMarker(markerType);
 			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
-			marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+			if (e.getErrorType() == ErrorType.ERROR) {
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+			} else {
+				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
+			}
 
 			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
 			marker.setAttribute(WurstConstants.START_POS, e.getSource().getLeftPos());
@@ -122,13 +129,18 @@ public class WurstNature implements IProjectNature {
 	}
 	
 	public void addErrorMarkers(WurstGui gui, String markerType) {
-		for (CompileError e : gui.getErrorList()) {
+		addMarkers(markerType, gui.getErrorList());
+		addMarkers(markerType, gui.getWarningList());
+//		gui.clearErrors();
+	}
+
+	private void addMarkers(String markerType, List<CompileError> list) {
+		for (CompileError e : list) {
 			IFile file = getProject().getFile(e.getSource().getFile());
 			if (file != null) {
 				addErrorMarker(file, e, markerType);
 			}
 		}
-//		gui.clearErrors();
 	}
 	
 	public static void deleteMarkers(IFile file, String markerType) {

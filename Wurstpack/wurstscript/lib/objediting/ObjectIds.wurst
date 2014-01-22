@@ -21,7 +21,7 @@ public function idInteger2IdString(int value) returns string
 public function idString2IdInteger(string value) returns int
 	var result = 0
 	if value.length() != 4
-		printError("idInteger2IdString: value must be 4 chars long")
+		error("idInteger2IdString: value must be 4 chars long")
 	else
 		var factor = 1
 		for i=0 to 3

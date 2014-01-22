@@ -84,7 +84,7 @@ public class StackTraceInjector {
 			if (isMainOrConfig(f)) {
 				continue;
 			}
-			f.getParameters().add(JassIm.ImVar(WurstTypeString.instance().imTranslateType(), WURST_STACK_TRACE, false));
+			f.getParameters().add(JassIm.ImVar(f.getTrace(), WurstTypeString.instance().imTranslateType(), WURST_STACK_TRACE, false));
 		}
 	}
 
@@ -131,8 +131,8 @@ public class StackTraceInjector {
 			bridgeFunc.getParameters().remove(getStackTraceVar(bridgeFunc));
 			
 			ImStmt stmt;
-			ImExprs args = JassIm.ImExprs(str("\\n   " + fr.attrTrace().attrSource().printShort()));
-			ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true);
+			ImExprs args = JassIm.ImExprs(str("\n   " + fr.attrTrace().attrSource().printShort()));
+			ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true, CallType.NORMAL);
 			if (bridgeFunc.getReturnType() instanceof ImVoid) {
 				stmt = call; 
 			} else {

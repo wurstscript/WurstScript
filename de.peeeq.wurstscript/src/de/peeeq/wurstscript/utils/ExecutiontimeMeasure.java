@@ -1,11 +1,8 @@
 package de.peeeq.wurstscript.utils;
 
-import java.io.Closeable;
-import java.io.IOException;
-
 import de.peeeq.wurstscript.WLogger;
 
-public class ExecutiontimeMeasure implements Closeable {
+public class ExecutiontimeMeasure implements AutoCloseable {
 
 	private String message;
 	private long startTime;
@@ -16,7 +13,7 @@ public class ExecutiontimeMeasure implements Closeable {
 	}
 	
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		long time = System.currentTimeMillis() - startTime;
 		WLogger.info("Executed " + message + " in " + time + "ms.");
 	}

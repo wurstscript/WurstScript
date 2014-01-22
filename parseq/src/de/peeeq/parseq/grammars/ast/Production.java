@@ -1,10 +1,16 @@
 package de.peeeq.parseq.grammars.ast;
 
-import de.peeeq.parseq.grammars.GrammarTranslation;
 
 public abstract class Production extends AstElement {
 
-	public abstract void print(GrammarTranslation grammarTranslation);
+	public abstract void print(StringBuilder sb);
 	
+	public abstract ProdType getType();
 	
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		print(sb);
+		return getClass().getSimpleName() + "{" + sb.toString() +"}";
+	}
 }

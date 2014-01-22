@@ -29,6 +29,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class ErrorReportingIO extends ErrorReporting {
 		
 	
+	@Override
 	public void handleSevere(Throwable t, String sourcecode) {
 		WLogger.severe(t);
 		
@@ -96,6 +97,7 @@ public class ErrorReportingIO extends ErrorReporting {
 		parent.dispose();
 	}
 	
+	@Override
 	public boolean sendErrorReport(Throwable t, String sourcecode) {
 		
 		HttpURLConnection connection = null;

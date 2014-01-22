@@ -52,6 +52,8 @@ public class WurstConstants {
 	public static final String WURST_ENABLE_AUTOCOMPLETE = "WURST_ENABLE_AUTOCOMPLETE";
 	public static final String WURST_ENABLE_RECONCILING = "WURST_ENABLE_RECONCILING";
 	public static final String WURST_RECONCILATION_DELAY = "WURST_RECONCILATION_DELAY";
+	public static final String WURST_WC3_PATH = "WURST_WC3_PATH";
+	public static final String WURST_MPQEDIT_PATH = "WURST_MPQEDIT_PATH";
 	
 	
 	//Partition Scanner

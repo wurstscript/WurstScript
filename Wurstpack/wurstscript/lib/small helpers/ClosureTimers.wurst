@@ -67,8 +67,8 @@ public abstract class CallbackSingle
 	
 	function start(real time)
 		getTimer()
-		.setData(this castTo int)
-		.start(time, function staticCallback)
+			..setData(this castTo int)
+			..start(time, function staticCallback)
 			
 	private static function staticCallback()
 		timer t = GetExpiredTimer()
@@ -85,7 +85,8 @@ public abstract class CallbackPeriodic
 
 	function start(real time)
 		this.t = getTimer()
-		t.start(time, function staticCallback)
+		t.setData(this castTo int)
+		t.startPeriodic(time, function staticCallback)
 		
 	private static function staticCallback()
 		let cb = (GetExpiredTimer().getData() castTo thistype)
@@ -103,8 +104,9 @@ public abstract class CallbackCounted
 
 	function start(real time, int callAmount)
 		this.t = getTimer()
+		t.setData(this castTo int)
 		maxCount = callAmount
-		t.start(time, function staticCallback)
+		t.startPeriodic(time, function staticCallback)
 		
 	private static function staticCallback()
 		(GetExpiredTimer().getData() castTo thistype).callAndCount()

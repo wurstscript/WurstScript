@@ -1,10 +1,8 @@
 package de.peeeq.wurstscript.types;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -129,6 +127,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	
 
 
+	@Override
 	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		
 		if (getDef() instanceof AstElementWithTypeParameters) {
@@ -186,6 +185,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		return t;
 	}
 
+	@Override
 	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
 		List<WurstType> newTypes = Lists.newArrayList();
 		for (WurstType t : typeParameters) {

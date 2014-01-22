@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
@@ -221,6 +220,7 @@ public class ImPrinter {
 		sb.append("{\n");
 		p.getStatements().print(sb, indent+1);
 		indent(sb, indent+1);
+		sb.append(">>>  ");
 		p.getExpr().print(sb, indent);
 		sb.append("}");
 	}
@@ -320,7 +320,7 @@ public class ImPrinter {
 		for (ImStmt s : ss) {
 			indent(sb, indent);
 			s.print(sb, indent);
-			sb.append("\n");
+			sb.append(";\n");
 		}
 	}
 

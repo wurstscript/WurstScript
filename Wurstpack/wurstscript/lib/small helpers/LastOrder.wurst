@@ -49,7 +49,7 @@ public class Order
 
 //******************************************************************************
 
-public function unit.clearLastOrders() returns unit
+public function unit.clearLastOrders()
 	let hid = this.getHandleId()
 	for i = ORDERS_TO_HOLD downto 1
 		//If any of the N orders exist for this handle id, kill them all
@@ -57,7 +57,6 @@ public function unit.clearLastOrders() returns unit
 			debugPrint("clearing order id: " + ht.loadInt(hid, i).toString() , 3)
 			destroy (ht.loadInt(hid, i)castTo Order)
 			RemoveSavedInteger(ht, hid, i)
-	return this
 
 public function unit.getPastOrder( int whichOrder ) returns Order
 	return ht.loadInt( GetHandleId(this), whichOrder) castTo Order
@@ -144,7 +143,7 @@ function actions()
 	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER
 		new Order(u, oid, ORDER_TYPE.IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
 	else
-		printError("invalid Ordertype")
+		error("invalid Ordertype")
 
 //**********************************************************
 

@@ -104,14 +104,17 @@ public class TempVarRemover {
 				this.value = value;
 				final boolean[] callsFunc = new boolean[] { false };
 				value.accept(new ImExpr.DefaultVisitor() {
+					@Override
 					public void visit(ImVarAccess e) {
 						usedVars.add(e.getVar());
 					}
 					
+					@Override
 					public void visit(ImVarArrayAccess e) {
 						usedVars.add(e.getVar());
 					}
 					
+					@Override
 					public void visit(ImFunctionCall e) {
 						callsFunc[0] = true;
 					}

@@ -1,12 +1,15 @@
 package de.peeeq.eclipsewurstplugin.console;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -19,17 +22,28 @@ import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.Files;
 
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.mpq.WinMpq;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstConfig;
@@ -37,20 +51,26 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
+import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.intermediateLang.interpreter.LocalState;
+import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -94,7 +114,11 @@ public class WurstREPL {
 		@Override
 		public void sendError(CompileError err) {
 			super.sendError(err);
-			throw err;
+			if (err.getErrorType() == ErrorType.ERROR) {
+				throw err;
+			} else {
+				println("Warning: " + err);
+			}
 		}
 
 	}
@@ -126,9 +150,13 @@ public class WurstREPL {
 			WLogger.severe(e);
 		}
 	}
+	private void println(String msg) {
+		print(msg+"\n");
+	}
 
 	
 	Pattern asignmentPattern = Pattern.compile("^\\s*([a-zA-Z0-9_]*\\s+)?([a-zA-Z][a-zA-Z0-9_]*)\\s*=.*");
+	private ImProg imProg;
 	
 	public void putLine(String line) {
 		
@@ -153,8 +181,17 @@ public class WurstREPL {
 			} else if (line.startsWith("compile")) {
 				compileProject(line.substring("compile".length()));
 				return;
+			} else if (line.startsWith("run")) {
+				runMap(line.substring("run".length()));
+				return;
 			} else if (line.startsWith("printClasses")) {
 				printClasses();
+				return;
+			} else if (line.equals("clean")) {
+				cleanProject();
+				return;
+			} else if (line.equals("about")) {
+				printAbout();
 				return;
 			}
 			
@@ -164,6 +201,9 @@ public class WurstREPL {
 			// import packages from current compilation unit
 			for (WPackage p : editorCu.getPackages()) {
 				importedPackages.add(p.getName());
+				for (WImport imp : p.getImports()) {
+					importedPackages.add(imp.getPackagename());
+				}
 			}
 			for (String pName : importedPackages) {
 				code.append("import " + pName + "\n");
@@ -217,16 +257,20 @@ public class WurstREPL {
 				
 				// if there was no comile error
 				// this is probably a bug
-				if (t instanceof InterpreterException) {
+				if (t instanceof InterpreterException
+						|| t instanceof DebugPrintError) {
 					print(t.getMessage() + "\n");
 				}  else {
 					print("You discovered a bug in the interpreter: \n");
 					print(t+"\n");
 				}
 				
-				
-				WPos source = interpreter.getLastStatement().attrTrace().attrSource();
-				print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+				try {
+					WPos source = interpreter.getLastStatement().attrTrace().attrSource();
+					print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
 				
 				for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
 					print(sf.getMessage() + "\n");
@@ -256,8 +300,22 @@ public class WurstREPL {
 						return;
 					}
 				}
+				String valueToString = value.toString();
+				Collection<NameLink> toStringFuncs = assignment.lookupMemberFuncs(typ, "toString");
+				if (!toStringFuncs.isEmpty()) {
+					NameLink toStringFunc = Utils.getFirst(toStringFuncs);
+					NameDef f = toStringFunc.getNameDef();
+					for (ImFunction imFunc : imProg.getFunctions()) {
+						if (imFunc.getTrace() == f) {
+							ProgramState globalState = interpreter.getGlobalState();
+							LocalState result = ILInterpreter.runFunc(globalState, imFunc, value);
+							valueToString = ((ILconstString) result.getReturnVal()).getVal();
+							break;
+						}
+					}
+				}
 				
-				print(varName + " = " + value + "     // " + typ + "\n");
+				print(varName + " = " + valueToString + "     // " + typ + "\n");
 				
 				
 				
@@ -286,7 +344,122 @@ public class WurstREPL {
 		} finally {
 			// remove repl file again
 			modelManager.removeCompilationUnitByName(REPL_DUMMY_FILENAME);
+			imProg = null;
 		}
+	}
+
+	
+
+	private void printAbout() {
+		print("version = " + About.version);
+	}
+
+	private void runMap(String args) {
+		try {
+			ArrayList<String> runArgs = getArgs(args);
+			
+			if (runArgs.size() == 0) {
+				println("Must give map as first argument");
+				return;
+			}
+			println("args = " + runArgs);
+			
+			String mapFile = runArgs.get(0);
+			File originalMap = new File(mapFile);
+			runArgs.remove(0);
+			
+			runMap(originalMap, runArgs, new NullProgressMonitor());
+			
+			
+		} catch (Exception e) {
+			throw new Error(e);
+		}
+		
+	}
+
+	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) {
+		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
+		try {
+			String wc3Path = WurstPlugin.config().wc3Path();
+			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
+			File mpqEditorExe = new File(WurstPlugin.config().mpqEditorPath());
+
+
+			if (!map.exists()) {
+				println(map.getAbsolutePath() + " does not exist.");
+				return;
+			}
+
+			// first compile the script:
+			monitor.beginTask("Compiling Script", 100);
+			IFile compiledScript = compileScript(compileArgs);
+
+
+			monitor.beginTask("Preparing testmap", 100);
+			
+			// now copy the map so that we do not corrupt the original
+			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
+			String testMapName = "wurstTestMap.w3x";
+			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
+			if (testMap.exists()) {
+				testMap.delete();
+			}
+			testMap.delete();
+			Files.copy(map, testMap);
+
+			// then inject the script into the map
+			File outputMapscript = new File(compiledScript.getRawLocationURI());
+			MpqEditorFactory.setFilepath(mpqEditorExe.getAbsolutePath());
+			MpqEditor mpqEditor = MpqEditorFactory.getEditor();
+			//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
+			mpqEditor.deleteFile(testMap, "war3map.j");
+			mpqEditor.insertFile(testMap, "war3map.j", outputMapscript);
+			mpqEditor.compactArchive(testMap);
+
+			// TODO compile & inject object-editor data
+
+			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
+			
+			// now start the map
+			List<String> cmd = Lists.newArrayList(
+					frozenThroneExe.getAbsolutePath(),
+					"-window",
+					"-loadfile",
+					"Maps/"+ testMapName);
+			
+			if (!System.getProperty("os.name").startsWith("Windows")) {
+				// run with wine
+				cmd.add(0, "wine");
+			}
+			
+			println("running " + cmd);
+			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+		} catch (CompileError e) {
+			e.printStackTrace();
+			showMessage("There was an error when compiling the map: \n" + e.getMessage());
+			print(e.getMessage() + "\n");
+		} catch (final Exception e) {
+			WLogger.severe(e);
+			final String message = "Could not start the map.\n\nPlease check the configuration in Window>Preferences>Wurst. \n\n"
+					+ "The exact error message is:\n " + e.getMessage();
+			showMessage(message);
+		}
+	}
+
+	private void showMessage(final String message) {
+		final Display display = Display.getDefault();
+		display.syncExec(new Runnable() {
+			
+			@Override
+			public void run() {
+				MessageBox dialog = 
+						  new MessageBox(display.getActiveShell(), SWT.ICON_INFORMATION | SWT.OK);
+						dialog.setText("Could not start map");
+						dialog.setMessage(message);
+
+						dialog.open(); 
+			}
+		});
 	}
 
 	private void printClasses() {
@@ -322,7 +495,6 @@ public class WurstREPL {
 		
 		
 		
-		ImProg imProg;
 		try (ExecutiontimeMeasure t = new ExecutiontimeMeasure("translation")) {
 			imProg = translate(model);
 		}
@@ -337,39 +509,62 @@ public class WurstREPL {
 
 	private void compileProject(String args) {
 		try {
-			args = args.trim();
-			String[] runArgs = args.split("\\s+");
-			modelManager.clean();
-			IProject project = modelManager.getNature().getProject();
-			print("compiling project "+project.getName()+", please wait ...\n");
-			project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
-			WurstConfig config = new WurstConfig();
-			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, new RunArgs(runArgs));
-			WurstModel root = modelManager.getModel();
-			comp.checkAndTranslate(root);
-			JassProg jassProg = comp.getProg();
-			if (jassProg == null) {
-				print("Could not compile project\n");
-				return;
-			}
-
-
-			JassPrinter printer = new JassPrinter(true);
-			String mapScript = printer.printProg(jassProg);
-
-			IFile f = project.getFile("compiled.j");
-			if (f.exists()) {
-				f.delete(true, null);
-			}
-			InputStream source = new ByteArrayInputStream(mapScript.getBytes());
-
-			f.create(source, true, null);
-			
-			print("Output created in " + f.getFullPath() + "\n");
+			ArrayList<String> runArgs = getArgs(args);
+			compileScript(runArgs);
 		} catch (CoreException e) {
 			e.printStackTrace();
 			print(e.getMessage()+ "\n");
 		}
+	}
+
+	private ArrayList<String> getArgs(String args) {
+		args = args.trim();
+		String[] runArgs = args.split("\\s+");
+		ArrayList<String> result = Lists.newArrayList();
+		for (int i = 0; i < runArgs.length; i++) {
+			if (runArgs[i].length() > 0) {
+				result.add(runArgs[i]);
+			}
+		}
+		return result;
+	}
+
+	private void cleanProject() {
+		modelManager.clean();
+	}
+	
+	private IFile compileScript(List<String> compileArgs) throws CoreException {
+		if (compileArgs.contains("-clean")) {
+			cleanProject();
+			compileArgs.remove("-clean");
+		}
+		IProject project = modelManager.getNature().getProject();
+		print("compiling project "+project.getName()+", please wait ...\n");
+		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+		WurstConfig config = new WurstConfig();
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, new RunArgs(compileArgs));
+		WurstModel root = modelManager.getModel();
+		comp.checkAndTranslate(root);
+		JassProg jassProg = comp.getProg();
+		if (jassProg == null) {
+			print("Could not compile project\n");
+			return null;
+		}
+
+
+		JassPrinter printer = new JassPrinter(true);
+		String mapScript = printer.printProg(jassProg);
+
+		IFile f = project.getFile("compiled.j.txt");
+		if (f.exists()) {
+			f.delete(true, null);
+		}
+		InputStream source = new ByteArrayInputStream(mapScript.getBytes());
+
+		f.create(source, true, null);
+		
+		print("Output created in " + f.getFullPath() + "\n");
+		return f;
 	}
 
 	private void runTests() {
@@ -477,6 +672,7 @@ public class WurstREPL {
 	private CompilationUnit parse(StringBuilder code) {
 		Reader source = new StringReader(code.toString());
 		CompilationUnit cu = modelManager.parse(gui, REPL_DUMMY_FILENAME, source);
+		modelManager.resolveImports(gui);
 		return cu;
 	}
 

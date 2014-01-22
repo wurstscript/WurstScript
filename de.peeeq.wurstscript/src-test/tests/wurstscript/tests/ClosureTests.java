@@ -256,4 +256,138 @@ public class ClosureTests extends WurstScriptTest {
 				"	f.apply()"
 			);
 	}
+	
+	@Test
+	public void closure_void_call() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply()",
+				"function foo() returns int",
+				"	testSuccess()",
+				"	return 4",
+				"init",
+				"	SimpleFunc f = () -> foo()",
+				"	f.apply()"
+			);
+	}
+	
+	@Test
+	public void code_anonfunc1() {
+		testAssertOkLines(false, 
+				"package test",
+				"function foo(code c)",
+				"function bar()",
+				"init",
+				"	foo(() -> bar())"
+			);
+	}
+	
+	@Test
+	public void code_anonfunc2() {
+		testAssertOkLines(false, 
+				"package test",
+				"function foo(code c)",
+				"function bar() returns int",
+				"	return 3",
+				"init",
+				"	foo(() -> bar())"
+			);
+	}
+	
+	@Test
+	public void code_anonfunc_mixed() {
+		testAssertOkLines(false, 
+				"package test",
+				"interface I",
+				"	function f()",
+				"function foo(code c)",
+				"function bar(I i)",
+				"init",
+				"	foo(() -> begin",
+				"		let x = 3",
+				"		bar(() -> begin",
+				"			let y = x + 1",
+				"		end)",
+				"	end)"
+			);
+	}
+	
+	@Test
+	public void code_anonfunc_mixed_err1() {
+		testAssertErrorsLines(false, "Cannot capture local variable 'z'", 
+				"package test",
+				"interface I",
+				"	function f()",
+				"function foo(code c)",
+				"function bar(I i)",
+				"init",
+				"	let z = 1",
+				"	foo(() -> begin",
+				"		let x = 3",
+				"		bar(() -> begin",
+				"			let y = x + z",
+				"		end)",
+				"	end)"
+			);
+	}
+	
+	@Test
+	public void code_anonfuncErr() {
+		testAssertErrorsLines(false, "Cannot capture local variable 'x'", 
+				"package test",
+				"function foo(code c)",
+				"function bar(int x)",
+				"init",
+				"	let x = 4",
+				"	foo(() -> bar(x))"
+			);
+	}
+	
+	@Test
+	public void code_anonfuncErr2() {
+		testAssertErrorsLines(false, "Cannot capture local variable 'this'", 
+				"package test",
+				"function foo(code c)",
+				"class C",
+				"	function bar()",
+				"	function fuz()",
+				"		foo(() -> bar())"
+			);
+	}
+	
+	@Test
+	public void tryCaptureArray() {
+		testAssertErrorsLines(true, "cannot capture local array", 
+				"package test",
+				"native testSuccess()",
+				"interface SimpleFunc",
+				"	function apply(int x, int y) returns int",
+				"init",
+				"	int array bar",
+				"	SimpleFunc f = (int x, int y) -> bar[1] + bar[2]",
+				"	if f.apply(3,4) == 7",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void tryCaptureTuple() {
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"tuple vec2(real x, real y)",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	vec2 v = vec2(1,2)",
+				"	SimpleFunc f = () -> begin",
+				"		v.x = v.y",
+				"		if v.x == v.y",
+				"			testSuccess()",
+				"	end",
+				"	f.call()"
+			);
+	}
 }

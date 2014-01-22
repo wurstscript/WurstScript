@@ -14,6 +14,7 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
+import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
@@ -25,7 +26,6 @@ import de.peeeq.wurstio.objectreader.ObjectModificationString;
 import de.peeeq.wurstio.objectreader.ObjectTable;
 import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -49,14 +49,17 @@ public class ProgramStateIO extends ProgramState {
 		this.mapFile = mapFile;
 	}
 
+	@Override
 	public void setLastStatement(ImStmt s) {
 		lastStatement = s;		
 	}
 
+	@Override
 	public ImStmt getLastStatement() {
 		return lastStatement;
 	}
 
+	@Override
 	public WurstGui getGui() {
 		return gui;
 	}
@@ -72,7 +75,7 @@ public class ProgramStateIO extends ProgramState {
 			return;
 		}
 		try {
-			LadikMpq editor = MpqEditorFactory.getEditor();
+			MpqEditor editor = MpqEditorFactory.getEditor();
 			File wts = editor.extractFile(mapFile, "war3map.wts");
 			trigStrings = WTSFile.parse(wts);
 		} catch (Exception e) {
@@ -99,7 +102,7 @@ public class ProgramStateIO extends ProgramState {
 		try {
 			// extract specific object file:
 			try {
-				LadikMpq editor = MpqEditorFactory.getEditor();
+				MpqEditor editor = MpqEditorFactory.getEditor();
 				File w3_ = editor.extractFile(mapFile, "war3map."+filetype.getExt());
 				dataStore = new ObjectFile(w3_, filetype);
 				replaceTrigStrings(dataStore);
@@ -182,6 +185,7 @@ public class ProgramStateIO extends ProgramState {
 		return objDefinitions.get(key);
 	}
 
+	@Override
 	public void writeBack() {
 		gui.sendProgress("Writing back generated objects", 0.9);
 
@@ -230,7 +234,7 @@ public class ProgramStateIO extends ProgramState {
 			Files.write(dataStore.exportToWurst(fileType),  new File(folder, "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
 
 			if (injectObjectFilesIntoMap) {
-				LadikMpq editor = MpqEditorFactory.getEditor();
+				MpqEditor editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
 				editor.deleteFile(mapFile, filenameInMpq);
 				int tries = 1;
@@ -270,10 +274,12 @@ public class ProgramStateIO extends ProgramState {
 		return folder;
 	}
 
+	@Override
 	public PrintStream getOutStream() {
 		return outStream ;
 	}
 
+	@Override
 	public void setOutStream(PrintStream os) {
 		outStream = os;
 	}

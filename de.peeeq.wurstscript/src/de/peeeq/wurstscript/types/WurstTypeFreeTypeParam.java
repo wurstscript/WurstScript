@@ -40,10 +40,12 @@ public class WurstTypeFreeTypeParam extends WurstType {
 		return def;
 	}
 
+	@Override
 	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
 
+	@Override
 	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
 		if (typeParamBounds.containsKey(def)) {
 			WurstType t = typeParamBounds.get(def);

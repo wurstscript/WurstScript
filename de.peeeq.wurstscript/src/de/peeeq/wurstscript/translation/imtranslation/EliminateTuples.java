@@ -6,12 +6,10 @@ import java.util.ListIterator;
 import com.google.common.base.Preconditions;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
-import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -21,8 +19,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
-import de.peeeq.wurstscript.jassIm.ImMemberAccess;
-import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -126,6 +122,15 @@ public class EliminateTuples {
 		while (it.hasNext()) {
 			ImStmt s = it.next();
 			ImStmt newS = s.eliminateTuples(translator, f);
+			if (newS instanceof ImStatementExpr) {
+				ImStatementExpr se = (ImStatementExpr) newS;
+				if (se.getExpr() instanceof ImTupleExpr) {
+					ImTupleExpr t = (ImTupleExpr) se.getExpr();
+					ImStmts tupleExprs = JassIm.ImStmts();
+					tupleExprs.addAll(t.getExprs().removeAll());
+					newS = JassIm.ImStatementExpr(tupleExprs, JassIm.ImNull());
+				}
+			}
 			if (newS != s) {
 				// element changed, replace it
 				it.set(newS);
@@ -298,7 +303,7 @@ public class EliminateTuples {
 			}
 		}
 		// assign index to temporary variable
-		ImVar tempIndex = JassIm.ImVar(JassIm.ImSimpleType("integer"), "tempIndex", false);
+		ImVar tempIndex = JassIm.ImVar(e.getTrace(), JassIm.ImSimpleType("integer"), "tempIndex", false);
 		f.getLocals().add(tempIndex);
 		statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
 		
@@ -369,7 +374,7 @@ public class EliminateTuples {
 		// TODO use tuple index
 		ImStmts statements = JassIm.ImStmts();
 		// assign index to temporary variable
-		ImVar tempIndex = JassIm.ImVar(JassIm.ImSimpleType("integer"), "tempIndex", false);
+		ImVar tempIndex = JassIm.ImVar(e.getTrace(), JassIm.ImSimpleType("integer"), "tempIndex", false);
 		f.getLocals().add(tempIndex);
 		statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
 		
@@ -477,7 +482,7 @@ public class EliminateTuples {
 		
 		
 		
-		ImVar tempVar = JassIm.ImVar(tupleExpr.attrTyp(), "tempTupleSelectionResult", false);
+		ImVar tempVar = JassIm.ImVar(e.attrTrace(), tupleExpr.attrTyp(), "tempTupleSelectionResult", false);
 		f.getLocals().addAll(translator.getVarsForTuple(tempVar));
 		
 		ImStmts statements = JassIm.ImStmts();
@@ -569,7 +574,7 @@ public class EliminateTuples {
 		ImVar v = e.getVar();
 		List<ImVar> varsForTuple = translator.getVarsForTuple(v);
 		if (varsForTuple.size() > 1 || varsForTuple.get(0) != v) {
-			ImVar tempIndex = JassIm.ImVar(e.getIndex().attrTyp(), "tempIndex", false);
+			ImVar tempIndex = JassIm.ImVar(e.attrTrace(), e.getIndex().attrTyp(), "tempIndex", false);
 			f.getLocals().add(tempIndex);
 			
 			ImStmts statements = JassIm.ImStmts(JassIm.ImSet(e.attrTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));

@@ -14,7 +14,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -94,12 +93,12 @@ public class Pjass {
 			Process p;
 			WLogger.info("Starting pjass");
 			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-				p = Runtime.getRuntime().exec("resources/pjass.exe resources/common.j resources/debugnatives.j resources/blizzard.j " + outputFile.getPath());
+				p = Runtime.getRuntime().exec("resources/pjass.exe resources/common.j resources/blizzard.j " + outputFile.getPath());
 			} else {
 				WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
 				WLogger.info("Trying to run with wine ...");
 				// try to run with wine
-				p = Runtime.getRuntime().exec("wine resources/pjass.exe resources/common.j resources/debugnatives.j resources/blizzard.j " + outputFile.getPath());
+				p = Runtime.getRuntime().exec("wine resources/pjass.exe resources/common.j resources/blizzard.j " + outputFile.getPath());
 			}
 			BufferedReader input =
 					new BufferedReader

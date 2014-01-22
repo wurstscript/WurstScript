@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.gui;
 
 import de.peeeq.wurstio.UtilsIO;
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;

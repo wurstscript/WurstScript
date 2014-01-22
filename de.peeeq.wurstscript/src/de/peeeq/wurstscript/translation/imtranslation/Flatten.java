@@ -3,45 +3,30 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImExitwhen;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImLoop;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSetTuple;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Stack;
 
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
-import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImFlatExpr;
-import de.peeeq.wurstscript.jassIm.ImFlatExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
-import de.peeeq.wurstscript.jassIm.ImMemberAccess;
-import de.peeeq.wurstscript.jassIm.ImMethodCall;
-import de.peeeq.wurstscript.jassIm.ImNoExpr;
-import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -59,8 +44,6 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassinterpreter.TestFailException;
-import de.peeeq.wurstscript.translation.imtranslation.Flatten.Result;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
@@ -239,7 +222,7 @@ public class Flatten {
 
 	public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
 		MultiResult r = flattenExprs(t, f, e.getArguments());
-		return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated()));
+		return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
 	}
 
 	public static Result flatten(ImOperatorCall e, ImTranslator t,	ImFunction f) {
@@ -253,7 +236,7 @@ public class Flatten {
 				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
 			} else {
 				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(), "andLeft", false);
 				f.getLocals().add(tempVar);
 				ImStmts thenBlock = JassIm.ImStmts();
 				// if left is true then check right
@@ -272,7 +255,7 @@ public class Flatten {
 				return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
 			} else {
 				ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-				ImVar tempVar = JassIm.ImVar(WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+				ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
 				f.getLocals().add(tempVar);
 				// if left is true then result is ture
 				ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
@@ -368,7 +351,7 @@ public class Flatten {
 					|| i >= withStmts) {
 				newExprs.add(r.expr);
 			} else {
-				ImVar tempVar = JassIm.ImVar(r.expr.attrTyp(), "temp", false);
+				ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
 				f.getLocals().add(tempVar);
 				stmts.add(JassIm.ImSet(e.attrTrace(), tempVar, r.expr));
 				newExprs.add(JassIm.ImVarAccess(tempVar));

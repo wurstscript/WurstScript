@@ -1,5 +1,9 @@
 package de.peeeq.wurstscript.utils;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -665,7 +669,7 @@ public class Utils {
 		return true;
 	}
 
-	public static boolean isSubsequence(String a, String b) {
+	public static boolean isSubsequenceIgnoreCase(String a, String b) {
 		int bPos = -1;
 		for (int i = 0; i < a.length(); i++) {
 			char c = Character.toLowerCase(a.charAt(i));
@@ -675,6 +679,20 @@ public class Utils {
 					return false;
 				}
 			} while (Character.toLowerCase(b.charAt(bPos)) != c);
+		}
+		return true;
+	}
+	
+	public static boolean isSubsequence(String a, String b) {
+		int bPos = -1;
+		for (int i = 0; i < a.length(); i++) {
+			char c = a.charAt(i);
+			do {
+				bPos++;
+				if (bPos >= b.length()) {
+					return false;
+				}
+			} while (b.charAt(bPos) != c);
 		}
 		return true;
 	}
@@ -709,6 +727,20 @@ public class Utils {
 
 	public static double averageSubsequenceLength(String a, String b) {
 		// TODO performance
+		List<Integer> subseqLength = subsequenceLengthes(a, b);
+		return average(subseqLength);
+	}
+
+	public static double combinedSubsequenceLength(String a, String b) {
+		List<Integer> subseqLength = subsequenceLengthes(a, b);
+		int result = 0;
+		for (int len : subseqLength) {
+			result += len*len;
+		}
+		return Math.sqrt(result);
+	}
+	
+	public static List<Integer> subsequenceLengthes(String a, String b) {
 		List<Integer> subseqLength = Lists.newArrayList();
 		while (!a.isEmpty()) {
 			int prefixlen = a.length();
@@ -725,7 +757,7 @@ public class Utils {
 			a = a.substring(prefixlen);
 
 		}
-		return average(subseqLength);
+		return subseqLength;
 	}
 
 	/**
@@ -908,5 +940,35 @@ public class Utils {
 			}
 		};
 	}
+
+	public static <T> String arrayToString(T[] ar) {
+		StringBuilder sb = new StringBuilder("[");
+		boolean first = true;
+		for (Object o : ar) {
+			if (!first) {
+				sb.append(", ");
+			}
+			sb.append(o);
+			first = false;
+		}
+		sb.append("]");
+		return sb.toString();
+	}
+
+	public static String readWholeStream(BufferedReader r) throws IOException {
+		StringBuilder sb = new StringBuilder();
+		String line;
+		while ((line = r.readLine()) != null) {
+			sb.append(line);
+		}
+		return sb.toString();
+	}
+
+	public static String readWholeStream(InputStream inputStream) throws IOException {
+		BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
+		return readWholeStream(r);
+	}
+
+	
 
 }

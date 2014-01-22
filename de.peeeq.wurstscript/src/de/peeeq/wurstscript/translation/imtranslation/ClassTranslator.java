@@ -2,26 +2,18 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImIf;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImReturn;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -37,7 +29,6 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
@@ -48,18 +39,14 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
-import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class ClassTranslator {
 
@@ -145,7 +132,7 @@ public class ClassTranslator {
 		ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
 		f.getBody().add(ImFunctionCall(trace, 
 				scOnDestroy, 
-				ImExprs(ImVarAccess(thisVar)), false));
+				ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 		
 		// deallocate
 		f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
@@ -190,7 +177,7 @@ public class ClassTranslator {
 				ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
 				addTo.add(ImFunctionCall(c, 
 						onDestroy, 
-						ImExprs(ImVarAccess(thisVar)), false));
+						ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 			}
 		}
 	}
@@ -200,30 +187,35 @@ public class ClassTranslator {
 			return;
 		}
 		DefaultVisitor replacer = new ImStmt.DefaultVisitor() {
+			@Override
 			public void visit(ImVarAccess v) {
 				if (v.getVar() == oldThis) {
 					v.setVar(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSet v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetArray v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetTuple v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
 				}
 			}
 			
+			@Override
 			public void visit(ImSetArrayTuple v) {
 				if (v.getLeft() == oldThis) {
 					v.setLeft(newThis);
@@ -322,13 +314,13 @@ public class ClassTranslator {
 		Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 		
 		for (WParameter p : constr.getParameters()) {
-			ImVar imP = ImVar(p.attrTyp().imTranslateType(), p.getName(), false);
+			ImVar imP = ImVar(p, p.attrTyp().imTranslateType(), p.getName(), false);
 			varReplacements.put(translator.getVarFor(p), imP);
 			f.getParameters().add(imP);
 		}
 		
 		
-		ImVar thisVar = JassIm.ImVar(TypesHelper.imInt(), "this", false);
+		ImVar thisVar = JassIm.ImVar(constr, TypesHelper.imInt(), "this", false);
 		varReplacements.put(translator.getThisVar(constr), thisVar);
 		f.getLocals().add(thisVar);
 		
@@ -341,7 +333,7 @@ public class ClassTranslator {
 		for (ImVar a : f.getParameters()) {
 			arguments.add(ImVarAccess(a));
 		}
-		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false));
+		f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false, CallType.NORMAL));
 		
 		
 		// return this
@@ -363,7 +355,7 @@ public class ClassTranslator {
 			for (Expr a : constr.getSuperArgs()) {
 				arguments.add(a.imTranslateExpr(translator, f));
 			}
-			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false));
+			f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
 		}
 		// initialize vars
 		for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {

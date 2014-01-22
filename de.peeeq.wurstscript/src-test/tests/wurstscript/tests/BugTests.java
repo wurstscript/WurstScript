@@ -116,9 +116,9 @@ public class BugTests extends WurstScriptTest {
 		testAssertOkLines(false,
 				"type unit extends handle",
 				"type group extends handle",
-				"native FirstOfGroup takes group g returns unit",
-				"native GroupRemoveUnit takes group g, unit u returns nothing",
 				"package test",
+				"	@extern native FirstOfGroup(group g) returns unit",
+				"	@extern native GroupRemoveUnit(group g, unit u)",
 				"	function group.hasNext() returns boolean",
 				"		return FirstOfGroup(this) != null",
 				"	function group.next() returns unit",
@@ -140,9 +140,9 @@ public class BugTests extends WurstScriptTest {
 		testAssertOkLines(false,
 				"type unit extends handle",
 				"type group extends handle",
-				"native FirstOfGroup takes group g returns unit",
-				"native GroupRemoveUnit takes group g, unit u returns nothing",
 				"package test",
+				"	@extern native FirstOfGroup(group g) returns unit",
+				"	@extern native GroupRemoveUnit(group g, unit u)",
 				"	function group.iterator() returns group",
                 "		// a correct implementation would return a copy",
                 "		return this",
@@ -412,8 +412,8 @@ public class BugTests extends WurstScriptTest {
 		testAssertOkLines(true, 
 				"package test",
 				"native testSuccess()",
-				"native Cos(real x) returns real",
-				"native Sin(real x) returns real",
+				"@extern native Cos(real x) returns real",
+				"@extern native Sin(real x) returns real",
 				"public tuple angle(real radians)",
 				"public function angle.toVec(real len) returns vec2",
 				"	return vec2(Cos(this.radians)*len, Sin(this.radians)*len)",
@@ -430,4 +430,18 @@ public class BugTests extends WurstScriptTest {
 				"endpackage"
 				);
 	}
+	
+	@Test
+	public void inlineBug() {
+		testAssertOkLines(false, 
+				"package test",
+				"tuple vec2(real x, real y)",
+				"tuple vec3(real x, real y, real z)",
+				"public function vec2.withZ(real z) returns vec3",
+				"	return vec3(this.x, this.y, z)",
+				"init",
+				"	vec2(3,4).withZ(5)",
+				"endpackage");
+	}
+	
 }

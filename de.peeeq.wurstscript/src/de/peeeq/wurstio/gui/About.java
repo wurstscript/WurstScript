@@ -18,6 +18,8 @@ import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import de.peeeq.wurstscript.CompileTimeInfo;
+
 /**
  *
  * @author Frotty
@@ -25,7 +27,7 @@ import java.util.logging.Logger;
 public class About extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
-    public final static String version = "1.1.0.6";
+    public final static String version = CompileTimeInfo.version;
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */
@@ -74,7 +76,8 @@ public class About extends javax.swing.JDialog {
         homepageButton.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
         homepageButton.setName("homepageButton"); // NOI18N
         homepageButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
+            @Override
+			public void mouseClicked(java.awt.event.MouseEvent evt) {
                 homepageButtonMouseClicked(evt);
             }
         });
@@ -205,21 +208,21 @@ public class About extends javax.swing.JDialog {
         /* Create and display the dialog */
         java.awt.EventQueue.invokeLater(new Runnable() {
 
-            public void run() {
-                About dialog = null;
+            @Override
+			public void run() {
                 try {
-                    dialog = new About(new javax.swing.JFrame(), true);
-                } catch (URISyntaxException ex) {
-                    Logger.getLogger(About.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+                	About dialog = new About(new javax.swing.JFrame(), true);
+                	dialog.addWindowListener(new java.awt.event.WindowAdapter() {
 
-                    @Override
-                    public void windowClosing(java.awt.event.WindowEvent e) {
-                        System.exit(0);
-                    }
-                });
-                dialog.setVisible(true);
+                		@Override
+                		public void windowClosing(java.awt.event.WindowEvent e) {
+                			System.exit(0);
+                		}
+                	});
+                	dialog.setVisible(true);
+                } catch (URISyntaxException ex) {
+                	Logger.getLogger(About.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
     }

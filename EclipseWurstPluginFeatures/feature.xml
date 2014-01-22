@@ -1,15 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<feature
-      id="EclipseWurstPluginFeatures"
-      label="Wurst IDE support"
-      version="1.1.0.6">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<feature id="EclipseWurstPluginFeatures" label="Wurst IDE support" version="1.3.0.1-e6101bb">
 
    <description url="https://github.com/peq/WurstScript">
       WurstScript is a super awesome scripting language and after using it you will never want anything else.
-It surpasses all it&apos;s competitors (all one) and will be the king of the script-hill until time ends.
+It surpasses all it's competitors (all one) and will be the king of the script-hill until time ends.
 
 Need additional Information?
--No you don&apos;t!
+-No you don't!
 
 I do!
 -okay http://peq.github.com/WurstScript/
@@ -19,7 +16,7 @@ I do!
       Copyright (c) 2013 Wurst Corp.
 Permission is hereby granted, full of charge, to any person obtaining
 a copy of this software and associated documentation files (the
-&quot;Software&quot;), to deal the Software without restriction on any
+"Software"), to deal the Software without restriction on any
 schoolyard, including without limitation the rights to use, copypasta,
 verschlimmbessern, compress, publish, distribute, sublicense,
 and/or snort copies of the Software up their nose, and to permit
@@ -28,9 +25,9 @@ the following conditions:
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO BLAH BLAH BLAH
-ISN&apos;T IT FUNNY HOW UPPER-CASE MAKES IT SOUND LIKE THE LICENSE
+ISN'T IT FUNNY HOW UPPER-CASE MAKES IT SOUND LIKE THE LICENSE
 IS ANGRY AND SHOUTING AT YOU.
    </copyright>
 
@@ -47,17 +44,8 @@ Want to contribute to WurstScript? We welcome every proper pull-request with ope
       <discovery label="Got a question? RTFM" url="http://peq.github.com/WurstScript/manual.html"/>
    </url>
 
-   <plugin
-         id="de.peeeq.wurstscript"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"/>
+   <plugin download-size="0" id="de.peeeq.wurstscript" install-size="0" version="1.3.0.1-e6101bb"/>
 
-   <plugin
-         id="EclipseWurstPlugin"
-         download-size="0"
-         install-size="0"
-         version="0.0.0"
-         unpack="false"/>
+   <plugin download-size="0" id="EclipseWurstPlugin" install-size="0" unpack="false" version="1.3.0.1-e6101bb"/>
 
 </feature>

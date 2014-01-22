@@ -1,14 +1,20 @@
 package de.peeeq.eclipsewurstplugin.console;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.console.IOConsole;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
+import com.google.common.collect.Lists;
+
+import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.WLogger;
 
@@ -87,5 +93,14 @@ public class WurstConsole extends IOConsole implements Runnable {
 				locked.wait();
 			}
 		}
+	}
+
+	public void launchMap(File file, List<String> args, IProgressMonitor monitor) {
+		repl.runMap(file, args, monitor);
+		
+	}
+
+	public void setModelManager(ModelManager modelManager) {
+		repl.setModelManager(modelManager);
 	}
 }

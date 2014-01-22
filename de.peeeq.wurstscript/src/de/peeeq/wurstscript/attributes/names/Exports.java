@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes.names;
 
 
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.google.common.collect.HashMultimap;

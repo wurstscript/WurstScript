@@ -10,10 +10,8 @@ import java.util.PriorityQueue;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class ForwardExecution<T> {
 
@@ -61,11 +59,11 @@ public class ForwardExecution<T> {
 	}
 
 	private void checkStmt(WStatement s) {
-		debug("statement " +Utils.printElement(s) +"  in line " + s.attrSource().getLine());
+//		debug("statement " +Utils.printElement(s) +"  in line " + s.attrSource().getLine());
 		T incoming = method.merge(get(s.attrPreviousStatements()));
 		T oldR = currentValues.get(s);
 		T r = method.calculate(s, incoming);
-		debug("	from " + method.print(oldR) + " to " + method.print(r));
+//		debug("	from " + method.print(oldR) + " to " + method.print(r));
 		if (oldR == null || !method.equality(oldR, r)) {
 			// value changed...
 			currentValues.put(s, r);
@@ -82,18 +80,18 @@ public class ForwardExecution<T> {
 		}
 		Collection<T> result = Lists.newArrayList();
 		for (WStatement s : previousStatements) {
-			debug("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine() 
-					+ " " + method.print(currentValues.get(s)));
+//			debug("	prev: " + Utils.printElement(s) +"  in line " + s.attrSource().getLine() 
+//					+ " " + method.print(currentValues.get(s)));
 			result.add(get(s));			
 		}
 		return result;
 	}
 
-	private void debug(String msg) {
-		if (method.debug) {
-			WLogger.info(msg);
-		}
-	}
+//	private void debug(String msg) {
+//		if (method.debug) {
+//			WLogger.info(msg);
+//		}
+//	}
 
 
 	private T get(WStatement s) {

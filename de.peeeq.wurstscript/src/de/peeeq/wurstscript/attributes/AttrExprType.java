@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
-import java.util.Map;
 
 import com.google.common.collect.Lists;
 
@@ -15,15 +14,18 @@ import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
-import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
+import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
-import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprMemberVarDot;
+import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
 import de.peeeq.wurstscript.ast.ExprNull;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -42,39 +44,27 @@ import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NamedScope;
-import de.peeeq.wurstscript.ast.NoTypeExpr;
-import de.peeeq.wurstscript.ast.OptExpr;
-import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.StmtCall;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.translation.imtranslation.StmtTranslation;
-import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
-import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeJassInt;
 import de.peeeq.wurstscript.types.WurstTypeModule;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeNull;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstTypeTuple;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -90,11 +80,7 @@ public class AttrExprType {
 
 
 	public static  WurstType calculate(ExprIntVal term)  {
-		if (Utils.isJassCode(term)) {
-			return WurstTypeJassInt.instance();
-		} else {
-			return WurstTypeIntLiteral.instance();
-		}
+		return WurstTypeIntLiteral.instance();
 	}
 
 
@@ -157,9 +143,6 @@ public class AttrExprType {
 			term.addError("Missing parantheses for function call");
 		}
 		WurstType typ = varDef.attrTyp();
-		if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
-			return WurstTypeInt.instance();
-		}
 		return typ;
 	}
 
@@ -183,9 +166,6 @@ public class AttrExprType {
 		WurstType varDefType = varDef.attrTyp().dynamic();
 		if (varDefType instanceof WurstTypeArray) {
 			WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
-			if (typ instanceof WurstTypeJassInt && !Utils.isJassCode(term)) {
-				return WurstTypeInt.instance();
-			}
 			return typ;
 		} else {
 			term.addError("Variable " + varDef.getName() + " is no array variable.");
@@ -295,8 +275,15 @@ public class AttrExprType {
 			if (Utils.isJassCode(term)) {
 				if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
 					if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
+						// in jass code it is allowed to compare reals and ints
 						return  WurstTypeBool.instance();									
 					}
+				}
+				
+				if (leftType.isSubtypeOf(WurstTypeNull.instance(), term) && rightType.isSubtypeOf(WurstTypeInt.instance(), term)
+					|| leftType.isSubtypeOf(WurstTypeInt.instance(), term) && rightType.isSubtypeOf(WurstTypeNull.instance(), term)) {
+					// in jass code it is allowed to compare an integer with 'null'. wat?
+					return  WurstTypeBool.instance();		
 				}
 			}
 
@@ -442,7 +429,7 @@ public class AttrExprType {
 	}
 
 
-	public static  WurstType calculate(ExprMemberVar term)
+	public static  WurstType calculate(ExprMemberVarDot term)
 	{
 		NameDef varDef = term.attrNameDef();
 		if (varDef == null) {
@@ -458,7 +445,7 @@ public class AttrExprType {
 	}
 
 
-	public static  WurstType calculate(ExprMemberArrayVar term)  {
+	public static  WurstType calculate(ExprMemberArrayVarDot term)  {
 		NameDef varDef = term.attrNameDef();
 		if (varDef == null) {
 			return WurstTypeUnknown.instance();
@@ -591,6 +578,28 @@ public class AttrExprType {
 			}
 		}
 		return WurstTypeVoid.instance();
+	}
+
+
+	public static WurstType calculate(ExprDestroy e) {
+		return WurstTypeVoid.instance();
+	}
+
+
+	public static WurstType calculate(ExprMemberArrayVarDotDot e) {
+		e.addError("The dot-dot-operator can only be used with methods.");
+		return WurstTypeUnknown.instance();
+	}
+
+
+	public static WurstType calculate(ExprMemberVarDotDot e) {
+		e.addError("The dot-dot-operator can only be used with methods.");
+		return WurstTypeUnknown.instance();
+	}
+	
+	public static WurstType calculate(ExprMemberMethodDotDot e) {
+		e.attrFunctionSignature();
+		return e.getLeft().attrTyp();
 	}
 
 }

@@ -5,8 +5,6 @@ import java.util.Random;
 
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
@@ -25,6 +23,8 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
  */
 public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements NativesProvider {
 
+	private Random r = new Random(0);
+	
 	@Native
 	public void testSuccess() {
 		throw TestSuccessException.instance;
@@ -170,4 +170,11 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		outStream.println(msg.getVal());
 	}
 	
+	
+	public ILconstReal GetRandomReal(ILconstReal a, ILconstReal b) {
+		return new ILconstReal(a.getVal() + r.nextFloat()*(b.getVal()-a.getVal()));
+	}
+	public ILconstInt GetRandomInt(ILconstInt a, ILconstInt b) {
+		return new ILconstInt(a.getVal() + r.nextInt(1+b.getVal()-a.getVal()));
+	}
 }

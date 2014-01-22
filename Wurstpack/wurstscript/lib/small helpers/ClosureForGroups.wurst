@@ -1,0 +1,66 @@
+package ClosureForGroups
+import TempGroups
+
+public interface ForGroupCallback
+	function callback(unit u)
+		
+function filter() returns boolean
+	currentCallback().callback(GetFilterUnit())
+	return false
+		
+ForGroupCallback array tempCallbacks
+int tempCallbacksCount = 0
+constant filter = Condition(function filter)
+
+function pushCallback(ForGroupCallback c)
+	tempCallbacks[tempCallbacksCount] = c
+	tempCallbacksCount++
+	
+function popCallback() returns ForGroupCallback
+	tempCallbacksCount--
+	return tempCallbacks[tempCallbacksCount]
+
+function currentCallback() returns ForGroupCallback
+	return tempCallbacks[tempCallbacksCount - 1]
+		
+public function forUnitsOfType(string unitname, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsOfType(ENUM_GROUP, unitname, filter)
+	popCallback()
+
+public function forUnitsOfPlayer(player p, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsOfPlayer(ENUM_GROUP, p, filter)
+	popCallback()
+
+public function forUnitsOfTypeCounted(string unitname, int count, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsOfTypeCounted(ENUM_GROUP, unitname, filter, count)
+	popCallback()
+
+public function forUnitsInRect(rect r, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsInRect(ENUM_GROUP, r, filter)
+	popCallback()
+
+public function forUnitsInRectCounted(rect r, int count, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsInRectCounted(ENUM_GROUP, r, filter, count)
+	popCallback()
+
+public function forUnitsInRange(vec2 pos, real radius, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsInRange(ENUM_GROUP, pos.x, pos.y, radius, filter)
+	popCallback()
+
+public function forUnitsInRangeCounted(vec2 pos, real radius, int count, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsInRangeCounted(ENUM_GROUP, pos.x, pos.y, radius, filter, count)
+	popCallback()
+
+public function forUnitsSelected(player p, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsSelected(ENUM_GROUP, p, filter)
+	popCallback()
+
+

@@ -17,7 +17,6 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 	protected T data;
 
 	public ObjectModification(ObjectDefinition parent, String modificationId, int variableType, int levelCount, int dataPointer, T data) {
-		WLogger.info("parent " + parent + ", modificationId " + modificationId + ", variableType " + variableType + ", levelCount " + levelCount + ", dataPointer " + dataPointer + ", data " +  data);
 		this.parent = parent;
 		this.modificationId = modificationId;
 		this.variableType = variableType;
@@ -100,7 +99,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 			out.writeInt(dataPointer);
 		}
 		writeDataToStream(out, fileType);
-		out.writeInt(parent.getNewObjectId());
+		out.writeIntReverse(parent.getNewObjectId());
 	}
 
 	

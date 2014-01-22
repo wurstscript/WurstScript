@@ -26,15 +26,15 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 		ImStmts body = f.getBody();
 		AstElement tr = c.getTrace();
 		
-		ImVar thisVar = JassIm.ImVar(TypesHelper.imInt(), "this", false);
+		ImVar thisVar = JassIm.ImVar(tr, TypesHelper.imInt(), "this", false);
 		locals.add(thisVar);
 		
 		ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
-		// if firstFree == null then
+		// if freeCount == 0 then
 		ImStmts elseBlock = JassIm.ImStmts();
 		ImStmts thenBlock = JassIm.ImStmts();
 		body.add(JassIm.ImIf(tr, 
-				JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(mVars.firstFree), JassIm.ImIntVal(0))), 
+				JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0))), 
 				thenBlock, elseBlock));
 		// maxIndex = maxIndex + 1
 		thenBlock.add(JassIm.ImSet(tr, mVars.maxIndex, 
@@ -42,12 +42,10 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 		// this = maxIndex
 		thenBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.maxIndex)));
 		// else:
-		// this = firstFree
-		elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.firstFree)));
-		// firstFree = nextFree[firstFree]
-		elseBlock.add(JassIm.ImSet(tr, mVars.firstFree, JassIm.ImVarArrayAccess(mVars.nextFree, JassIm.ImVarAccess(mVars.firstFree))));
-		// nextFree[this] = 0
-		elseBlock.add(JassIm.ImSetArray(tr, mVars.nextFree, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)));
+		// freeCount = freeCount - 1
+		elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(1)))));
+		// this = free[freeCount]
+		elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
 		// endif
 		// typeId[this] = ...
 		body.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
@@ -76,18 +74,10 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 				JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Double free: object of type " + c.getName()))),
 				// else
 				JassIm.ImStmts(
-						// nextFree[lastFree] = this
-						JassIm.ImSetArray(tr, mVars.nextFree, JassIm.ImVarAccess(mVars.lastFree), JassIm.ImVarAccess(thisVar)),
-						// lastFree = this 
-						JassIm.ImSet(tr, mVars.lastFree, JassIm.ImVarAccess(thisVar)),
-						// if firstFree = 0
-						JassIm.ImIf(tr, JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(mVars.firstFree), JassIm.ImIntVal(0))), 
-						// 		then firstFree = this
-								JassIm.ImStmts(
-										JassIm.ImSet(tr, mVars.firstFree, JassIm.ImVarAccess(thisVar)),
-								// nextFree[this] = 0
-										JassIm.ImSetArray(tr, mVars.nextFree, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
-								), JassIm.ImStmts()),
+						// free[freeCount] = this
+						JassIm.ImSetArray(tr, mVars.free, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImVarAccess(thisVar)),
+						// freeCount++
+						JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(1)))),
 						// typeId[this] = 0
 						JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
 						)));

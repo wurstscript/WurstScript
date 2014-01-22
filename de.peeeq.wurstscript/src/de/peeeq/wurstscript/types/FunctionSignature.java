@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class FunctionSignature {
 	public static final FunctionSignature empty = new FunctionSignature(null, Collections.<WurstType>emptyList(), WurstTypeUnknown.instance());

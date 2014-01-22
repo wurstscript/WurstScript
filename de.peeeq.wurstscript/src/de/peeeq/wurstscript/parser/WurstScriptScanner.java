@@ -20,8 +20,8 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 	@Override
 	public java_cup.runtime.Symbol next_token() throws java.io.IOException {
 		if (eof != null) {
-			// finish unindents...
 			if (indent > 0) {
+				// finish unindents...
 				indent--;
 				return new Symbol(TokenType.UNINDENT, eof.left, eof.right);
 			} else {
@@ -45,12 +45,10 @@ public class WurstScriptScanner extends WurstScriptScannerIntern {
 		} else if (token.sym == TokenType.UNINDENT) {
 			indent--;
 		} else if (token.sym == TokenType.EOF) {
-			if (indent > 0) {
-				// when we encounter an end of file and still have indentation then we add
-				// artificial newlines and unindents
-				eof = token;
-				return new Symbol(TokenType.NL, eof.left, eof.right);
-			}
+			// when we encounter an end of file, then we add
+			// artificial newlines and unindents
+			eof = token;
+			return new Symbol(TokenType.NL, eof.left, eof.right);
 		}
 		
 		

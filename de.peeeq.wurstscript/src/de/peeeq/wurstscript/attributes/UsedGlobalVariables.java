@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprOrStatements;
 import de.peeeq.wurstscript.ast.FuncRef;
@@ -17,7 +18,6 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.StmtDestroy;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.WurstType;
@@ -40,8 +40,8 @@ public class UsedGlobalVariables {
 			if (constr != null) {
 				result.addAll(constr.getBody().attrUsedGlobalVariables());
 			}
-		} else if (e instanceof StmtDestroy) {
-			StmtDestroy stmtDestroy = (StmtDestroy) e;
+		} else if (e instanceof ExprDestroy) {
+			ExprDestroy stmtDestroy = (ExprDestroy) e;
 			WurstType t = stmtDestroy.getDestroyedObj().attrTyp();
 			if (t instanceof WurstTypeClass) {
 				WurstTypeClass ct = (WurstTypeClass) t;

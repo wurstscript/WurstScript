@@ -3,20 +3,16 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
@@ -32,11 +28,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
 import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.ImVarAccess;
-import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -73,7 +66,7 @@ public class EliminateClasses {
 		// for each field, create a global array variable
 		for (ImVar f : c.getFields()) {
 			ImVar v = JassIm
-					.ImVar(toArrayType(f.getType()), f.getName(), false);
+					.ImVar(f.getTrace(), toArrayType(f.getType()), f.getName(), false);
 			prog.getGlobals().add(v);
 			fieldToArray.put(f, v);
 		}
@@ -123,7 +116,7 @@ public class EliminateClasses {
 		if (df.getReturnType() instanceof ImVoid) {
 			resultVar = null;
 		} else {
-			resultVar = JassIm.ImVar(df.getReturnType(), m.getName()
+			resultVar = JassIm.ImVar(df.getTrace(), df.getReturnType(), m.getName()
 					+ "_result", false);
 			df.getLocals().add(resultVar);
 		}
@@ -175,7 +168,7 @@ public class EliminateClasses {
 			}
 			// only one method, call it
 			ImFunctionCall call = JassIm.ImFunctionCall(df.getTrace(), ranges
-					.get(start).getB().getImplementation(), arguments, false);
+					.get(start).getB().getImplementation(), arguments, false, CallType.NORMAL);
 			if (resultVar == null) {
 				stmts.add(call);
 			} else {
@@ -271,10 +264,12 @@ public class EliminateClasses {
 		final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
 		final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
 		f.getBody().accept(new ImStmts.DefaultVisitor() {
+			@Override
 			public void visit(ImMemberAccess e) {
 				mas.add(e);
 			};
 
+			@Override
 			public void visit(ImMethodCall e) {
 				mcs.add(e);
 			}
@@ -342,6 +337,7 @@ public class EliminateClasses {
 		ImFunction f = e.getNearestFunc();
 		List<ImClass> allSubClasses = getAllSubclasses(e.getClazz()); 
 		List<Integer> subClassIds = Lists.transform(allSubClasses, new Function<ImClass, Integer>() {
+			@Override
 			public Integer apply(ImClass c) {
 				return c.attrTypeId();
 			}
@@ -358,7 +354,7 @@ public class EliminateClasses {
 		ImExpr objTypeIdExpr = objTypeId;
 		if (useTempVar) {
 			// use temporary variable
-			tempVar = JassIm.ImVar(TypesHelper.imInt(), "instanceOfTemp", false);
+			tempVar = JassIm.ImVar(e.attrTrace(), TypesHelper.imInt(), "instanceOfTemp", false);
 			f.getLocals().add(tempVar);
 			objTypeIdExpr = JassIm.ImVarAccess(tempVar);
 		}
@@ -408,13 +404,13 @@ public class EliminateClasses {
 		ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
 		ImExpr obj = e.getObj();
 		obj.setParent(null);
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false));
+		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
 		
 	}
 
 	private void replaceAlloc(ImAlloc e) {
 		ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false));
+		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void replaceMethodCall(ImMethodCall mc) {
@@ -425,7 +421,7 @@ public class EliminateClasses {
 		arguments.addAll(mc.getArguments().removeAll());
 
 		mc.replaceWith(JassIm.ImFunctionCall(mc.getTrace(),
-				dispatchFuncs.get(mc.getMethod()), arguments, false));
+				dispatchFuncs.get(mc.getMethod()), arguments, false, CallType.NORMAL));
 
 	}
 

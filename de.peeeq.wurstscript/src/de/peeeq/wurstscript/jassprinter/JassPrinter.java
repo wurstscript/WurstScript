@@ -8,6 +8,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassConstantVar;
@@ -42,6 +43,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class JassPrinter {
 
+	public static final String WURST_COMMENT = "// this script was compiled with wurst " + About.version;
 	private boolean withSpace;
 	private JassProg prog;
    
@@ -55,6 +57,7 @@ public class JassPrinter {
 		Preconditions.checkNotNull(prog);
 		this.prog = prog;
 		
+		sb.append(WURST_COMMENT + "\n");
 		printTypes(sb, prog.getDefs());
 		printGlobals(sb, prog.getGlobals());
 		printNatives(sb, prog.getNatives());

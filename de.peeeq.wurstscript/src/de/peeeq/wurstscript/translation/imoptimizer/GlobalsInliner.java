@@ -19,7 +19,6 @@ import de.peeeq.wurstscript.jassIm.ImVarWrite;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 
 public class GlobalsInliner {
 	
@@ -46,7 +45,6 @@ public class GlobalsInliner {
 //			WLogger.info("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {
 //				WLogger.info(">>>>>only 1 write");
-				boolean valid = false;
 				ImExpr right = null;
 				ImVarWrite obs = null;
 				for ( ImVarWrite v2 : v.attrWrites()) {
@@ -54,46 +52,46 @@ public class GlobalsInliner {
 //					WLogger.info(">>>>>checking write..");
 					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
 //						WLogger.info(">>>>>in init or main");
-						valid = true;
 						right = v2.getRight();
 						obs = v2;
 //						WLogger.info(">>>>>set");
 						break;
 					}
 				}
-				if( valid ) {
-					ImExpr replacement;
-					if (right instanceof ImIntVal) {
-						ImIntVal val = (ImIntVal)right;
-						replacement = (JassIm.ImIntVal(val.getValI()));
-						if (obs.getParent() != null)
-							obs.replaceWith(JassIm.ImNull());
-					}else if (right instanceof ImRealVal) {
-						ImRealVal val = (ImRealVal)right;
-						replacement = (JassIm.ImRealVal(val.getValR()));
-						if (obs.getParent() != null)
-							obs.replaceWith(JassIm.ImNull());
-					}else if (right instanceof ImStringVal) {
-						ImStringVal val = (ImStringVal)right;
-						replacement = (JassIm.ImStringVal(val.getValS()));
-						if (obs.getParent() != null)
-							obs.replaceWith(JassIm.ImNull());
-					}else if (right instanceof ImBoolVal) {
-						ImBoolVal val = (ImBoolVal)right;
-						replacement = (JassIm.ImBoolVal(val.getValB()));
-						if (obs.getParent() != null)
-							obs.replaceWith(JassIm.ImNull());
-					} else {
-						replacement = null;
+				if( obs == null ) {
+					continue;
+				}
+				ImExpr replacement;
+				if (right instanceof ImIntVal) {
+					ImIntVal val = (ImIntVal)right;
+					replacement = (JassIm.ImIntVal(val.getValI()));
+					if (obs.getParent() != null)
+						obs.replaceWith(JassIm.ImNull());
+				}else if (right instanceof ImRealVal) {
+					ImRealVal val = (ImRealVal)right;
+					replacement = (JassIm.ImRealVal(val.getValR()));
+					if (obs.getParent() != null)
+						obs.replaceWith(JassIm.ImNull());
+				}else if (right instanceof ImStringVal) {
+					ImStringVal val = (ImStringVal)right;
+					replacement = (JassIm.ImStringVal(val.getValS()));
+					if (obs.getParent() != null)
+						obs.replaceWith(JassIm.ImNull());
+				}else if (right instanceof ImBoolVal) {
+					ImBoolVal val = (ImBoolVal)right;
+					replacement = (JassIm.ImBoolVal(val.getValB()));
+					if (obs.getParent() != null)
+						obs.replaceWith(JassIm.ImNull());
+				} else {
+					replacement = null;
+				}
+				if (replacement != null) {
+					for ( ImVarRead v3 : v.attrReads()) {
+						v3.replaceWith(replacement.copy());
 					}
-					if (replacement != null) {
-						for ( ImVarRead v3 : v.attrReads()) {
-							v3.replaceWith(replacement.copy());
-						}
-					}
-					if (replacement != null || v.attrReads().size() == 0) {
-						obsoleteVars.add(v);
-					}
+				}
+				if (replacement != null || v.attrReads().size() == 0) {
+					obsoleteVars.add(v);
 				}
 			}
 		}

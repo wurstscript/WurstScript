@@ -10,6 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -69,12 +70,12 @@ public class UtilsTest {
   
   @Test
   public void testSubseq() {
-	  Assert.assertFalse(Utils.isSubsequence("aaa", "aa"));
-	  Assert.assertTrue(Utils.isSubsequence("abc", "1a2b3c45"));
-	  Assert.assertTrue(Utils.isSubsequence("aaa", "aaaa"));
-	  Assert.assertTrue(Utils.isSubsequence("aaa", "aaa"));
-	  Assert.assertTrue(Utils.isSubsequence("aaa", "abaa"));
-	  Assert.assertTrue(Utils.isSubsequence("d", "OrderId2StringBJ"));
+	  Assert.assertFalse(Utils.isSubsequenceIgnoreCase("aaa", "aa"));
+	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("abc", "1a2b3c45"));
+	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("aaa", "aaaa"));
+	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("aaa", "aaa"));
+	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("aaa", "abaa"));
+	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("d", "OrderId2StringBJ"));
   }
   
   
@@ -89,6 +90,22 @@ public class UtilsTest {
 	  
   }
   
+  @Test
+  public void testSubseqLen() {
+	  
+	  Assert.assertEquals(Utils.list(3, 2), 
+			  Utils.subsequenceLengthes("KilUn", "KillUnit"));
+	  
+	  Assert.assertEquals(Utils.list(6), 
+			  Utils.subsequenceLengthes("abc123", "abcfabc123"));
+	  
+	  Assert.assertEquals(Utils.list(3,1), 
+			  Utils.subsequenceLengthes("illu", "getkillingunit"));
+	  
+	  Assert.assertEquals(Utils.list(4), 
+			  Utils.subsequenceLengthes("illu", "isunitillusion"));
+	  
+  }
   
   
 /* TODO utils unit tests

@@ -53,22 +53,22 @@ public class ModelManagerImpl implements ModelManager {
 	}
 	
 	@Override
-	public synchronized void removeCompilationUnit(IResource resource) {
+	public synchronized boolean removeCompilationUnit(IResource resource) {
 		if (model == null) {
-			return;
+			return false;
 		}
 		if (!(resource instanceof IFile)) {
-			return;
+			return false;
 		}
 		ListIterator<CompilationUnit> it = model.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
 			if (cu.getFile().equals(resource.getProjectRelativePath().toString())) {
 				it.remove();
-				break;
+				return true;
 			}
 		}
-
+		return false;
 	}
 
 	@Override
@@ -81,6 +81,7 @@ public class ModelManagerImpl implements ModelManager {
 		model = null;
 		dependencies.clear();
 		needsFullBuild = true;
+		WLogger.info("Clean done.");
 	}
 	
 	
@@ -100,9 +101,11 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
+		// this line is not synchronized, because it can trigger a build in a different thread
+		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
-			WLogger.info("#typechecking with refresh = " + refreshAttributes);
 			long time = System.currentTimeMillis();
+			WLogger.info("#typechecking with refresh = " + refreshAttributes);
 			if (gui.getErrorCount() > 0) {
 				if (addErrorMarkers) {
 					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
@@ -116,10 +119,6 @@ public class ModelManagerImpl implements ModelManager {
 			if (refreshAttributes) {
 				model.clearAttributes();
 			}
-			WurstConfig config = new WurstConfig();
-			config.setSetting("lib", Utils.join(dependencies, ";"));
-			WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
-			comp.setHasCommonJ(true);
 			
 			try {
 				comp.addImportedLibs(model);		
@@ -133,6 +132,22 @@ public class ModelManagerImpl implements ModelManager {
 				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
 			}
 		}
+	}
+
+	private WurstCompilerJassImpl getCompiler(WurstGui gui) {
+		try {
+			nature.getProject().build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new Error(e);
+		}
+		WurstConfig config = new WurstConfig();
+		WLogger.info("dependencies = " + dependencies);
+		config.setSetting("lib", Utils.join(dependencies, ";"));
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
+		comp.setHasCommonJ(true);
+		return comp;
 	}
 
 	
@@ -234,6 +249,7 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void fullBuildDone() {
 		needsFullBuild = false;
+		WLogger.info("Full build done.");
 	}
 
 	@Override
@@ -264,6 +280,17 @@ public class ModelManagerImpl implements ModelManager {
 				it.remove();
 				break;
 			}
+		}
+	}
+
+	@Override
+	public void resolveImports(WurstGui gui) {
+		WurstCompilerJassImpl comp = getCompiler(gui);
+		
+		try {
+			comp.addImportedLibs(model);		
+		} catch (CompileError e) {
+			gui.sendError(e);
 		}
 	}
 

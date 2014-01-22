@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -164,6 +165,8 @@ public class AttrFuncDef {
 	
 			funcs = filterByParameters(node, argumentTypes, funcs);
 	
+			funcs = useLocalPackageIfPossible(node, funcs);
+			
 			node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n " 
 						+ Utils.printAlternatives(funcs));
 			return firstFunc(funcs);
@@ -173,6 +176,33 @@ public class AttrFuncDef {
 	}
 	
 	
+	private static List<NameLink> useLocalPackageIfPossible(FuncRef node,
+			List<NameLink> funcs) throws EarlyReturn {
+		int localCount = 0;
+		NameLink local = null;
+		PackageOrGlobal myPackage = node.attrNearestPackage();
+		for (NameLink n : funcs) {
+			if (n.getNameDef().attrNearestPackage() == myPackage) {
+				local = n;
+				localCount++;
+			}
+		}
+		if (localCount == 0) {
+			return funcs;
+		} else if (localCount == 1) {
+			if (local == null) throw new Error("impossible");
+			throw new EarlyReturn((FunctionDefinition) local.getNameDef());
+		}
+		List<NameLink> result = Lists.newArrayList();
+		for (NameLink n : funcs) {
+			if (n.getNameDef().attrNearestPackage() == myPackage) {
+				result.add(n);
+			}
+		}
+		return result;
+	}
+
+
 	private static FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
 		Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
 		if (funcs1.size() == 0) {

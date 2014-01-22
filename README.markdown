@@ -75,7 +75,7 @@ Building this project with eclipse is recommended.
 
 To build the project from the commandline you need ant installed on your system.
 
-- run "ant compile" to compile the project
+- run "ant -buildfile build-wurst.xml compile" to compile the project
 - run "ant -buildfile build-jar.xml make_for_wurstpack"
 
 The effects should be the same as when invoking ant from eclipse.

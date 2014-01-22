@@ -77,6 +77,13 @@
             icon="resources/icons/WurstFile16.gif"> 
         </perspective> 
     </extension> 
+    <!-- add launch buttons to perspective -->
+    <extension point="org.eclipse.ui.perspectiveExtensions">
+      <perspectiveExtension targetID="de.peeeq.eclipsewurstplugin.wurstperspective">
+         <actionSet id="org.eclipse.debug.ui.launchActionSet">
+         </actionSet>
+      </perspectiveExtension>
+   </extension>
    <!-- Wizards -->
 	<extension
 	      point = "org.eclipse.ui.newWizards">
@@ -267,5 +274,57 @@
 	     class="de.peeeq.eclipsewurstplugin.console.ConsoleFactory"
 	     icon="resources/icons/WurstFile16.gif">
 	  </consoleFactory>
+	</extension>
+	<!-- run -->
+	<extension point = "org.eclipse.debug.core.launchConfigurationTypes">
+	   <launchConfigurationType
+	   	   id="de.peeeq.eclipsewurstplugin.wustlauchconfig"
+		   name="Lauch Wurst"
+		   delegate="de.peeeq.eclipsewurstplugin.launch.LaunchDelegate"
+		   modes= "run" >
+		   <!--sourceLocatorId="org.eclipse.jdt.launching.sourceLocator.JavaSourceLookupDirector"
+	       sourcePathComputerId="org.eclipse.jdt.launching.sourceLookup.javaSourcePathComputer">-->
+	   </launchConfigurationType>
+	</extension>
+	<extension point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+    <launchConfigurationTypeImage
+        icon="resources/icons/WurstFile16.gif"
+        configTypeID="de.peeeq.eclipsewurstplugin.wustlauchconfig"
+        id="de.peeeq.eclipsewurstplugin.wustlauchconfig.image">
+    </launchConfigurationTypeImage>
+	</extension>
+    <extension point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+	    <launchConfigurationTabGroup
+	        type="de.peeeq.eclipsewurstplugin.wustlauchconfig"
+	        class="de.peeeq.eclipsewurstplugin.launch.TabGroup"
+	        id="de.peeeq.eclipsewurstplugin.launch.TabGroup.tabgroup">
+	    </launchConfigurationTabGroup>
+	</extension>
+	<extension point="org.eclipse.debug.ui.launchShortcuts">
+	    <shortcut
+	        id="de.peeeq.eclipsewurstplugin.launch.Shortcut"
+	        class="de.peeeq.eclipsewurstplugin.launch.Shortcut"
+	        label="Wurst"
+	        icon="resources/icons/WurstFile16.gif"
+	        modes="run">
+	        <contextualLaunch>
+	           <enablement>
+	             <with variable="selection">
+	               <count value="1"/>
+	               <iterate>
+	                 <or>
+	                   <test property="org.eclipse.debug.ui.matchesPattern" value="*.wurst"/>
+	                   <test property="org.eclipse.debug.ui.matchesPattern" value="*.w3x"/>
+	                   <adapt type="org.eclipse.core.resources.IProject"/>
+	                   <!--<instanceof value="org.eclipse.jdt.core.IJavaElement"/>-->
+	                 </or>
+	                 <!--<test property="org.eclipse.debug.ui.projectNature"
+                           value="de.peeeq.eclipsewurstplugin.builder.WurstNature" />-->
+	                 <!--<test property="org.eclipse.jdt.debug.ui.hasMainType"/>-->
+	               </iterate>
+	             </with>
+	           </enablement>
+	  		 </contextualLaunch>
+	    </shortcut>
 	</extension>
 </plugin>

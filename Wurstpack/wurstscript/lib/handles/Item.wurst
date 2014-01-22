@@ -2,6 +2,9 @@ package Item
 import NoWurst
 import public Vectors
 
+public function createItem(int itemId, vec2 pos) returns item
+	return CreateItem(itemId, pos.x, pos.y)
+
 public function item.getName() returns string
 	return GetItemName( this )
 	
@@ -11,13 +14,11 @@ public function item.getX() returns real
 public function item.getY() returns real
 	return GetItemY( this )
 
-public function item.setPos( real x, real y ) returns item
+public function item.setPos( real x, real y )
 	SetItemPosition( this, x, y )
-	return this
 	
-public function item.setPos( vec2 pos ) returns item
+public function item.setPos( vec2 pos )
 	SetItemPosition( this, pos.x, pos.y )
-	return this
 	
 public function item.getPos() returns vec2
 	return vec2(this.getX(), this.getY())

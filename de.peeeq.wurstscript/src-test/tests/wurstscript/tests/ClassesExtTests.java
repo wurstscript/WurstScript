@@ -1,12 +1,6 @@
 package tests.wurstscript.tests;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
 import org.junit.Test;
-
-import com.google.common.collect.Lists;
 
 public class ClassesExtTests extends WurstScriptTest {
 	

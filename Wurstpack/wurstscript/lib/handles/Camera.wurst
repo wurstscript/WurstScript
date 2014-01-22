@@ -12,7 +12,9 @@ public function setCameraNoiseTimed(player owner, real value, real velocity, rea
 	if TimerGetRemaining(noiseTimer[id]) < 0.15
 		noiseTimer[id] = getTimer()
 		CameraSetSourceNoiseForPlayer( owner, value, velocity)
-		noiseTimer[id].setData(id).start(time, function resetCam)
+		noiseTimer[id]
+			..setData(id)
+			..start(time, function resetCam)
 	else
 		CameraSetSourceNoiseForPlayer( owner, value, velocity)
 		noiseTimer[id].start(time, function resetCam)
@@ -24,7 +26,9 @@ public function releaseCameraNoise(int owner)
 
 public function shakeCameraTimed( player p, real value, real time )
 	CameraSetEQNoiseForPlayer(p, value)
-	getTimer().setData(GetPlayerId(p)).start(time, function resetCam)
+	getTimer()
+		..setData(GetPlayerId(p))
+		..start(time, function resetCam)
 
 function resetCam()
 	var t = GetExpiredTimer()

@@ -5,18 +5,13 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.jassAst.JassExpr;
-import de.peeeq.wurstscript.jassAst.JassVar;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.utils.Utils;
 
 
 public class WurstTypeTuple extends WurstType {

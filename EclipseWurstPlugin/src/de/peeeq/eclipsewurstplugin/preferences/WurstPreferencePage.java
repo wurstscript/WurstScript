@@ -26,6 +26,8 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 	private FieldEditor recDelay;
 	private FieldEditor enableAutocomplete;
 	private FieldEditor autocompleteDelay;
+	private FieldEditor wc3Path;
+	private FieldEditor mpqeditPath;
 
 	@Override
 	public void init(IWorkbench workbench) {
@@ -43,8 +45,51 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		
 		createReconcilationControls(comp);
 		createAutocompleteControls(comp);
+		createPathControls(comp);
+		
+		loadSettings();
 		
 		return comp;
+	}
+
+
+
+	private void createPathControls(Composite comp) {
+		GridData gridData = new GridData();
+		gridData.grabExcessHorizontalSpace = true;
+		gridData.horizontalAlignment = SWT.FILL;
+		
+		Group g = new Group(comp, SWT.NONE);
+		g.setLayoutData(gridData);
+		GridLayout layout = new GridLayout(2, false);
+		g.setLayout(layout);
+		
+		g.setText("External Tool Paths");
+		
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.horizontalSpan = 2;
+		gridData.grabExcessHorizontalSpace = true;
+		gridData.verticalAlignment = SWT.FILL;
+		
+		
+//		Label t = new Label(g, SWT.WRAP);
+//		t.setText("Reconcilation is the ability of the editor to check your code while typing. " +
+//				"When you stop typing the editor will wait for the given delay " +
+//				"and then trigger the checking procedure in the background.");
+//		t.setLayoutData(gridData);
+		
+		
+		Composite c1 = new Composite(g, SWT.NONE);
+		wc3Path = new StringFieldEditor(WurstConstants.WURST_WC3_PATH, "Warcraft installation path: ", c1);
+		wc3Path.setPreferenceStore(getPreferenceStore());
+		c1.setLayoutData(gridData);
+		
+		Composite c2 = new Composite(g, SWT.NONE);
+		mpqeditPath = new StringFieldEditor(WurstConstants.WURST_MPQEDIT_PATH, "Path to MPQEditor.exe", c2);
+		mpqeditPath.setPreferenceStore(getPreferenceStore());
+		c1.setLayoutData(gridData);
+		
 	}
 
 
@@ -121,11 +166,17 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		autocompleteDelay.setPreferenceStore(getPreferenceStore());
 		c1.setLayoutData(gridData);
 		
-		
+	}
+
+
+
+	private void loadSettings() {
 		enableAutocomplete.load();
 		enableReconciling.load();
 		autocompleteDelay.load();
 		recDelay.load();
+		wc3Path.load();
+		mpqeditPath.load();
 	}
 	
 	
@@ -135,6 +186,8 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		enableReconciling.loadDefault();
 		autocompleteDelay.loadDefault();
 		recDelay.loadDefault();
+		wc3Path.loadDefault();
+		mpqeditPath.loadDefault();
 		super.performDefaults();
 	}
 	
@@ -144,6 +197,8 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		enableReconciling.store();
 		autocompleteDelay.store();
 		recDelay.store();
+		wc3Path.store();
+		mpqeditPath.store();
 		return super.performOk();
 	}
 	

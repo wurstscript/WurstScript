@@ -14,9 +14,18 @@ public class ProdLex extends ProdNamed {
 	}
 	
 	@Override
-	public void print(GrammarTranslation tr) {
+	public void print(StringBuilder tr) {
 		super.printName(tr);
-		tr.print("'" + lex + "'");
+		tr.append("'" + lex + "'");
+	}
+
+	@Override
+	public ProdType getType() {
+		String n = name;
+		if (n == null) {
+			n = "anon";
+		}
+		return new ProdType(n, new SimpleTypeString());
 	}
 
 }

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 public class WurstTypeInt extends WurstTypePrimitive {
@@ -19,7 +20,9 @@ public class WurstTypeInt extends WurstTypePrimitive {
 		if (other instanceof WurstTypeFreeTypeParam) {
 			return true;
 		}
-		return other instanceof WurstTypeInt;
+		return other instanceof WurstTypeInt
+				// in jass code we can use an int where a real is expected
+				|| other instanceof WurstTypeReal && Utils.isJassCode(location);
 	}
 
 

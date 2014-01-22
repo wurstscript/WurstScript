@@ -50,7 +50,7 @@ public class NullSetter {
 	}
 
 	private void optimizeFunc(final ImFunction f) {
-		if (f.isBj() || f.isNative() || f.isCompiletime()) {
+		if (f.isBj() || f.isNative() || f.isCompiletime() || f.isExtern()) {
 			return;
 		}
 		final List<ImVar> handleVars = Lists.newArrayList();
@@ -130,7 +130,7 @@ public class NullSetter {
 			if (exprContainsVar(returnExpr, handleVars)) {
 				// if the returnExpr contains some handleVar, we have to add a temporary var
 				
-				ImVar tempReturn = JassIm.ImVar(returnExpr.attrTyp(), f.getName() + "tempReturn", false);
+				ImVar tempReturn = JassIm.ImVar(trace, returnExpr.attrTyp(), f.getName() + "tempReturn", false);
 				if (isHandleType(returnExpr.attrTyp())) {
 					// use global variables for handle types
 					prog.getGlobals().add(tempReturn);
@@ -152,6 +152,7 @@ public class NullSetter {
 	private boolean exprContainsVar(ImExpr returnExpr, final List<ImVar> handleVars) {
 		final boolean[] result = { false };
 		returnExpr.accept(new ImExpr.DefaultVisitor() {
+			@Override
 			public void visit(ImVarAccess e) {
 				if (handleVars.contains(e.getVar())) {
 					result[0] = true;

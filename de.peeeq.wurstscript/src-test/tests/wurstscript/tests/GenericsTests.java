@@ -441,4 +441,28 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	
+	@Test
+	public void generic_method1() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class Blub<T>",
+				"function bla<T>(Blub<T> t)",
+				"init",
+				"	bla(new Blub<int>)"
+				);
+	}
+	
+	@Test
+	public void generic_extension_method1() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class Blub<T>",
+				"function Blub<T>.bla<T>()",
+				"	skip",
+				"init",
+				"	new Blub<int>.bla()"
+				);
+	}
+	
 }
