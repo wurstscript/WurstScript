@@ -2,7 +2,6 @@ package PrintingHelper
 import NoWurst
 import Trigger
 import Player
-import FileIO
 import TimerUtils
 
 public boolean array wantDebug
@@ -49,12 +48,6 @@ public function boolean.toString() returns string
 function activateDebug()
 	let p = GetTriggerPlayer()
 	let id = p.getId()
-	if msgcount > 150
-		if File.isEnabled()
-			var debugFile = File.open("EBR", "debug", Flag.WRITE)
-			for i = msgcount - 150 to msgcount
-				debugFile.write( "  " + texts[msgcount] + "\n" )
-			debugFile.close()
 	if wantDebug[id]
 		wantDebug[id] = false
 		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cffB55208deactivated")
@@ -62,8 +55,6 @@ function activateDebug()
 		wantDebug[id] = true
 		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
 		
-	
-
 	
 init
 	let t = CreateTrigger()
