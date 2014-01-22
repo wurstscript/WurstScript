@@ -2,50 +2,57 @@ package PrintingHelper
 import NoWurst
 import Trigger
 import Player
-import TimerUtils
 
 public boolean array wantDebug
 
 int DEBUG_LEVEL = 0
 real DEBUG_MSG_DURATION = 45.
-int msgcount = 0
-string array texts
 
+/** All calls to debugPrint with a level lower than the debugLevel won't print anything*/
 public function setDebugLvl( int value )
 	DEBUG_LEVEL = value
-	
+
+/** Sets how long Messages are displayed (Affects all except printTimed) */
 public function setDebugMsgDuration( real value )
 	DEBUG_MSG_DURATION = value
 
+/** Prints a specialized debug Message that is only shown if:
+		- it's level is greater or equal than DEBUG_LEVEL
+		- the player has Debug-View activated */
 public function debugPrint(string msg, int level)
 	if level >= DEBUG_LEVEL
-		texts[msgcount] = msg
-		msgcount++
 		for i = 0 to 11
 			if wantDebug[i]
 				DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
 		
+/** Prints a simple message */
 public function print(string msg)		
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
 
+/** Prints a special Notification-Message */
 public function printNote(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
-
+	
+/** Prints a special Warning-Message */
 public function printWarning(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
-
+	
+/** Prints a special Error-Message */
 public function printError(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
 	
+/** Prints a simple message that is shown for the given duration */
 public function printTimed(string msg, real duration)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
 
+/** Converts a boolean into a string */
 public function boolean.toString() returns string
 	if this
 		return "true"
 	return "false"
 	
-function activateDebug()
+/** Function used to switch the debugstate of a player */
+function switchDebug()
 	let p = GetTriggerPlayer()
 	let id = p.getId()
 	if wantDebug[id]
@@ -55,10 +62,10 @@ function activateDebug()
 		wantDebug[id] = true
 		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
 		
-	
+// Players can type "-d" ingame to turn on debugmode 
 init
 	let t = CreateTrigger()
-	t.addAction(function activateDebug)
+	t.addAction(function switchDebug)
 	for i = 0 to 11
 		wantDebug[i] = false
 		t.registerPlayerChatEvent(Player(i), "-d", true)
