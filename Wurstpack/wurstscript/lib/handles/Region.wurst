@@ -1,0 +1,25 @@
+package Region
+import NoWurst
+import Table
+import Vectors
+
+Table regionData = new Table()
+
+public function vec2.isInRegion(region r) returns boolean
+	return IsPointInRegion(r, this.x, this.y)
+	
+public function region.addRect(rect r)
+	RegionAddRect(this, r)
+	
+public function region.setRegionData(int data)
+	regionData.saveInt(GetHandleId(this), data)
+
+public function region.loadRegionData() returns int
+	return regionData.loadInt(GetHandleId(this))
+	
+public function region.removeRegionData()
+	regionData.removeInt(GetHandleId(this))
+	
+public function region.destr()
+	RemoveRegion(this)
+

@@ -85,361 +85,302 @@
 // *************************************************************
 
 package CustomBar
-	import TimerUtils
-	import Colors
-	import Vectors
-	import Texttag
-
-
-	// TTBar
-	constant	int		 DEFAULT_BACKGROUND  = 0xFF000000 // 0xAARRGGBB // alpha channel is non-functional (blame blizzard for that)
-
-	// TTBar and TTGradBar
-	constant	int	 	DEFAULT_FOREGROUND  = 0xFFFFFFFF // 0xAARRGGBB
-
-	// TTGradBar
-	constant	int	 	MAX_GRADIENTS	   = 10 // Maximum number of gradients you can add
-
-
-	// I dont recommend to change anything below this line
-
-
-	force 		tempForce
-	CustomBar 	array bars
-	int 		count = 0
-	timer 		animationTimer = CreateTimer()
-
-
-	public class CustomBar
-		texttag t
-		// background color
-		colorA bg_color
-		// foreground color
-		colorA fg_color
-		// Position
-		vec3 position
-		// Text
-		string txt
-		real textsize
-		// locking to units
-		integer lockindex
-		boolean locked
-		unit u
-		
-		real xOffset
-		real yOffset
-		// misc
-		force disp
-		real value // value
-		integer NUM_CHARS // number of chars this bar uses
-		string char // primitive char/string
-		string ptext // primitive text without colors
-		
-		construct( vec3 pos, string char, integer numochars, real size )
-			t=CreateTextTag()
-			if t==null
-				error("TTBARS: TextTag limit reached!")
-				
-			position = pos
-			bg_color = makeColor(DEFAULT_BACKGROUND)
-			
-			textsize = size
-			fg_color = makeColor(DEFAULT_FOREGROUND)
-			NUM_CHARS = numochars
-			setChar(char)
-
-			locked = false
-			setValue(.0)
-			
-			if t != null
-				t..setAge(0.)
-					..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-					..setFadepoint(0.)
-					..setLifespan(0.)
-					..setPermanent(true)
-					..setPos( position )
-					..setSuspended(false)
-					..setText( txt, textsize)
-
-			rebuildText()
-
-		static function copyForce()
-			ForceAddPlayer(tempForce, GetEnumPlayer())
-
-
-		static function lockCallback()
-			CustomBar s
-			for i = count-1 downto 0
-				s = bars[i]
-				s.position.x = GetUnitX(s.u)
-				s.position.y = GetUnitY(s.u)
-				SetTextTagPos(s.t, s.position.x+s.xOffset, s.position.y+s.yOffset, s.position.z)
-
-
-		function getSize() returns real
-			return textsize/0.0023
-
-
-		function setSize( real size )
-			textsize = TextTagSize2Height(size)
-
-
-		function getValue() returns real
-			return value * 100.
-
-
-		function setValue( real val )
-			int chars = 0
-			int i = 0
-			var newval = val
-			// keep newval inside possible boundaries
-			if newval > 100.
-				newval = 100.
-			else if newval < 0.
-				newval = 0.
-				
-			value = newval / 100. // the new value
-			txt = fg_color.toColorString()
-			chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
-			txt += ptext.substring( 0, chars)
-			
-
-			txt += "|r"
-			txt += ptext.substring( 0, ptext.length()-chars)
-
-			if t != null
-				t.setText( txt, textsize)
-
-
-		function getX() returns real
-			return position.x
-
-		function setX( real x )
-			position.x = x
-			if t != null and not locked
-				t.setPos( position )
-
-
-		function getY() returns real
-			return position.y
-
-		function  setY( real y )
-			position.y = y
-			if t != null and not locked
-				t.setPos( position )
-
-
-		function getZ() returns real
-			return position.z
-
-		function setZ( real z )
-			position.z = z
-			if t != null
-				t.setPos( position )
-
-
-		function isLocked() returns boolean
-			return locked
-
-		private function rebuildText()
-			ptext = ""
-			for i = 0 to NUM_CHARS
-				ptext = ptext + char
-
-		function getChar() returns string
-			return char
-
-
-		function setChar( string newStr )
-			var newString = newStr
-			if newString == "|"
-				newString = "||"
-
-			char = newString
-			rebuildText()
-			setValue(value)
-
-
-		function getWidth() returns int
-			return NUM_CHARS
-
-		function setWidth( int width )
-			NUM_CHARS = width
-			rebuildText()
-			setValue(value)
-
-		function setPosXY( real x, real y ) // added for speed reasons
-			position.x = x
-			position.y = y
-			if t != null and not locked
-				t.setPos( position )
-
-
-		function setBackground( colorA col )
-			bg_color = col
-			if t != null
-				t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-
-
-		function setForeground( colorA col )
-			fg_color = col
-			setValue(value)
-
-
-		function setForegroundString( colorA col )
-			fg_color = col
-			setValue(value)
-
-
-		function changeVisibility( force dsp )
-			force disp = dsp
-			if disp != null
-				if disp == null
-					disp = CreateForce()
-				else
-					ForceClear(disp)
-
-				tempForce = disp
-				ForForce(disp, function CustomBar.copyForce)
-				if IsPlayerInForce(GetLocalPlayer(), disp) and t == null
-					t = CreateTextTag()
-					if t != null
-						t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-							..setText( txt, textsize)
-							..setPos( position)
-					else
-						error("CustomBar: TextTag limit reached!")
-
-				else if t != null and not IsPlayerInForce(GetLocalPlayer(), disp)
-					DestroyTextTag(t)
-					t = null
-
-			else
-				if t == null
-					t = CreateTextTag()
-					if t != null
-						t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
-							..setText( txt, textsize)
-							..setPos( position)
-					else
-						error("CustomBar: TextTag limit reached!")
-
-
-		function lockToUnit( unit u, real xOffset, real yOffset, real zOff )
-			if not locked
-				bars[count] = this
-				this.u = u
-				locked = true
-				lockindex = count
-				this.xOffset = xOffset
-				this.yOffset = yOffset
-				position.z = zOff
-				if count == 0
-					animationTimer.startPeriodic( ANIMATION_PERIOD, function CustomBar.lockCallback)
-
-				count++
-
-
-		function unlock()
-			int i = 0
-			if not locked
-				return
-
-			count--
-			if count == 0
-				PauseTimer(animationTimer)
-
-			bars[lockindex] = bars[count]
-			bars[count].lockindex = lockindex
-			locked=false
-
-
-		ondestroy
-			if t != null
-				DestroyTextTag(t)
-
-			if locked
-				unlock()
-
-
-		static function fadeOutCallback()
-			thistype bar = GetExpiredTimer().getData() castTo thistype
-			bar.t = null
-			destroy bar
-			GetExpiredTimer().release()
-
-
-		function fadeOut( real overTime, boolean followThrough, real xVel, real yVel )
-			if t != null
-				t..setLifespan(overTime)
-					..setAge(0)
-					..setFadepoint(0)
-				.setPermanent(false)
-				if not locked
-					t.setVelocity(TextTagSpeed2Velocity(xVel), TextTagSpeed2Velocity(yVel))
-
-			if followThrough
-				getTimer()
-					..setData( this castTo int )
-					..start( overTime, function CustomBar.fadeOutCallback)
-			else
-				t = null
-				destroy this
-
-/*
+import TimerUtils
+import Colors
+import Vectors
+import Texttag
+
+
+// TTBar
+constant	int		 DEFAULT_BACKGROUND  = 0xFF000000 // 0xAARRGGBB // alpha channel is non-functional (blame blizzard for that)
+
+// TTBar and TTGradBar
+constant	int	 	DEFAULT_FOREGROUND  = 0xFFFFFFFF // 0xAARRGGBB
+
+// TTGradBar
+constant	int	 	MAX_GRADIENTS	   = 10 // Maximum number of gradients you can add
+
+
+force 		tempForce
+CustomBar 	array bars
+int 		count = 0
+timer 		animationTimer = CreateTimer()
+
+
+public class CustomBar
+	texttag t
+	// background color
+	colorA bg_color
+	// foreground color
+	colorA fg_color
+	// Position
+	vec3 position
+	// Text
+	string txt
+	real textsize
+	// locking to units
+	integer lockindex
+	boolean locked
+	unit u
 	
-	class CustomGradBar extends CustomBar
-		Table gradientTable
-		int gradCnt
+	real xOffset
+	real yOffset
+	// misc
+	force disp
+	real value // value
+	integer NUM_CHARS // number of chars this bar uses
+	string char // primitive char/string
+	string ptext // primitive text without colors
+	
+	construct( vec3 pos, string char, integer numochars, real size )
+		t=CreateTextTag()
+		if t==null
+			error("TTBARS: TextTag limit reached!")
+			
+		position = pos
+		bg_color = makeColor(DEFAULT_BACKGROUND)
+		
+		textsize = size
+		fg_color = makeColor(DEFAULT_FOREGROUND)
+		NUM_CHARS = numochars
+		setChar(char)
 
-		construct( vec3 position, string char, integer numochars, real size )
-			super(position, char, numochars, size)
-			gradientTable = new Table()
-			gradCnt = 0
-			fg_color=makeColor(DEFAULT_FOREGROUND)
+		locked = false
+		setValue(.0)
+		
+		if t != null
+			t..setAge(0.)
+				..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+				..setFadepoint(0.)
+				..setLifespan(0.)
+				..setPermanent(true)
+				..setPos( position )
+				..setSuspended(false)
+				..setText( txt, textsize)
+
+		rebuildText()
+
+	static function copyForce()
+		ForceAddPlayer(tempForce, GetEnumPlayer())
 
 
-		function addGradient( real pthreshold, colorA col )
-			var threshold = pthreshold
-			if gradCnt >= MAX_GRADIENTS
-				printError("TTGradBar: Cannot add any more Gradients to TTGradBar " + I2S(this castTo int) + "!")
-				return
-
-			if threshold > 100
-				threshold=100
-			else if threshold < 0
-				threshold = 0
-
-			gradientTable.saveReal(gradCnt, threshold)
-			gradientTable.saveString( gradCnt, col.toColorString().substring(2, 16) )
-			gradCnt++
+	static function lockCallback()
+		CustomBar s
+		for i = count-1 downto 0
+			s = bars[i]
+			s.position.x = GetUnitX(s.u)
+			s.position.y = GetUnitY(s.u)
+			SetTextTagPos(s.t, s.position.x+s.xOffset, s.position.y+s.yOffset, s.position.z)
 
 
-		override function setValue( real val )
-			real k
-			int j = 0
-			int l=0
-			real newval = 0
-			// keep newval inside possible boundaries
-			if val > 100
-				newval=100
-			else if val < 0
-				newval=0
+	function getSize() returns real
+		return textsize/0.0023
 
-			k=110 // some value above 100 will work just as well
-			// find appropriate gradient
-			for i = 0 to gradCnt -1
-				if newval <= gradientTable.loadReal(i) and ((gradientTable.loadReal(i)-newval) < k)
-					k = gradientTable.loadReal(i)-newval
-					j=i
-					l++ // count how many gradients have been considered for use
 
-			// colorize the bar
-			if l > 0
-				setForeground(fromHexString(gradientTable.loadString(j)))
+	function setSize( real size )
+		textsize = TextTagSize2Height(size)
+
+
+	function getValue() returns real
+		return value * 100.
+
+
+	function setValue( real val )
+		int chars = 0
+		int i = 0
+		var newval = val
+		// keep newval inside possible boundaries
+		if newval > 100.
+			newval = 100.
+		else if newval < 0.
+			newval = 0.
+			
+		value = newval / 100. // the new value
+		txt = fg_color.toColorString()
+		chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
+		txt += ptext.substring( 0, chars)
+		
+
+		txt += "|r"
+		txt += ptext.substring( 0, ptext.length()-chars)
+
+		if t != null
+			t.setText( txt, textsize)
+
+
+	function getX() returns real
+		return position.x
+
+	function setX( real x )
+		position.x = x
+		if t != null and not locked
+			t.setPos( position )
+
+
+	function getY() returns real
+		return position.y
+
+	function  setY( real y )
+		position.y = y
+		if t != null and not locked
+			t.setPos( position )
+
+
+	function getZ() returns real
+		return position.z
+
+	function setZ( real z )
+		position.z = z
+		if t != null
+			t.setPos( position )
+
+
+	function isLocked() returns boolean
+		return locked
+
+	private function rebuildText()
+		ptext = ""
+		for i = 0 to NUM_CHARS
+			ptext = ptext + char
+
+	function getChar() returns string
+		return char
+
+
+	function setChar( string newStr )
+		var newString = newStr
+		if newString == "|"
+			newString = "||"
+
+		char = newString
+		rebuildText()
+		setValue(value)
+
+
+	function getWidth() returns int
+		return NUM_CHARS
+
+	function setWidth( int width )
+		NUM_CHARS = width
+		rebuildText()
+		setValue(value)
+
+	function setPosXY( real x, real y ) // added for speed reasons
+		position.x = x
+		position.y = y
+		if t != null and not locked
+			t.setPos( position )
+
+
+	function setBackground( colorA col )
+		bg_color = col
+		if t != null
+			t.setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+
+
+	function setForeground( colorA col )
+		fg_color = col
+		setValue(value)
+
+
+	function setForegroundString( colorA col )
+		fg_color = col
+		setValue(value)
+
+
+	function changeVisibility( force dsp )
+		force disp = dsp
+		if disp != null
+			if disp == null
+				disp = CreateForce()
 			else
-				setForeground(fg_color)
+				ForceClear(disp)
 
-			setValue(newval)
-*/
-endpackage
+			tempForce = disp
+			ForForce(disp, function CustomBar.copyForce)
+			if IsPlayerInForce(GetLocalPlayer(), disp) and t == null
+				t = CreateTextTag()
+				if t != null
+					t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+						..setText( txt, textsize)
+						..setPos( position)
+				else
+					error("CustomBar: TextTag limit reached!")
+
+			else if t != null and not IsPlayerInForce(GetLocalPlayer(), disp)
+				DestroyTextTag(t)
+				t = null
+
+		else
+			if t == null
+				t = CreateTextTag()
+				if t != null
+					t..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
+						..setText( txt, textsize)
+						..setPos( position)
+				else
+					error("CustomBar: TextTag limit reached!")
+
+
+	function lockToUnit( unit u, real xOffset, real yOffset, real zOff )
+		if not locked
+			bars[count] = this
+			this.u = u
+			locked = true
+			lockindex = count
+			this.xOffset = xOffset
+			this.yOffset = yOffset
+			position.z = zOff
+			if count == 0
+				animationTimer.startPeriodic( ANIMATION_PERIOD, function CustomBar.lockCallback)
+
+			count++
+
+
+	function unlock()
+		int i = 0
+		if not locked
+			return
+
+		count--
+		if count == 0
+			PauseTimer(animationTimer)
+
+		bars[lockindex] = bars[count]
+		bars[count].lockindex = lockindex
+		locked=false
+
+
+	ondestroy
+		if t != null
+			DestroyTextTag(t)
+
+		if locked
+			unlock()
+
+
+	static function fadeOutCallback()
+		thistype bar = GetExpiredTimer().getData() castTo thistype
+		bar.t = null
+		destroy bar
+		GetExpiredTimer().release()
+
+
+	function fadeOut( real overTime, boolean followThrough, real xVel, real yVel )
+		if t != null
+			t..setLifespan(overTime)
+				..setAge(0)
+				..setFadepoint(0)
+			.setPermanent(false)
+			if not locked
+				t.setVelocity(TextTagSpeed2Velocity(xVel), TextTagSpeed2Velocity(yVel))
+
+		if followThrough
+			getTimer()
+				..setData( this castTo int )
+				..start( overTime, function CustomBar.fadeOutCallback)
+		else
+			t = null
+			destroy this
+
+

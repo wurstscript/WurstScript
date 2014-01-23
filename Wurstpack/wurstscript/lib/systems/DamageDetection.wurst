@@ -1,0 +1,74 @@
+package DamageDetection
+import MapBounds
+    
+// Creating threads off of this that last longer than the timeout below will likely cause issues, like everything blowing up (handle stack corruption)
+// It seems that threads created by timers, rather than executefunc / .evaluate / .execute are not affected. Any threads created from the timer thread are fine.
+// This being safe with even the usage laid out above isn't guarenteed. Use at own risk.
+// If you start getting random bugs, see if commenting out the timer line below (see comments) helps
+// If it does, report it in the thread for this script at [url]www.wc3campaigns.net[/url]
+    
+constant SWAP_TIMEOUT = 600. // keep high; 600 should be about the right balance.
+
+    
+conditionfunc array func
+integer funcNext = 0
+trigger current = null
+trigger toDestroy = null
+group swapGroup
+
+/** CONFIGURATION: Add any conditions before the Register-Call 
+	to keep units from being registered to the damage event. */
+function unit.detectAddFilter()
+	TriggerRegisterUnitEvent(current, this, EVENT_UNIT_DAMAGED)
+
+/** Add a Condition(Action) to the damage Event. */
+public function conditionfunc.addOnDamageFunc()
+	current.addCondition(this)
+	func[funcNext] = this
+	funcNext++
+
+/** Disables the damage events */
+function disableDamageDetect()
+	DisableTrigger(current)
+
+/** Enables the damage events */
+function enableDamageDetect()
+	EnableTrigger(current)
+
+
+/** Periodic Cleanup-Function */
+function swap()
+	boolean b = IsTriggerEnabled(current)
+	
+	current.disable()
+	if toDestroy != null
+		DestroyTrigger(toDestroy)
+
+	toDestroy = current
+	current = CreateTrigger()
+	
+	if not(b)
+		DisableTrigger(current)
+
+	
+	GroupEnumUnitsInRect(swapGroup, mapRect, Filter(() -> GetFilterUnit().detectAddFilter()))
+	
+	for i = 0 to funcNext-1
+		current.addCondition(func[i])
+
+    
+init
+	trigger t = CreateTrigger()
+	t.registerEnterRegion(mapRegion, null)
+	t.addCondition(Condition(() -> GetTriggerUnit().detectAddFilter()))
+    
+	swapGroup = CreateGroup()
+    
+	current = CreateTrigger()
+	for i = 0 to funcNext-1
+		current.addCondition(func[i])
+
+	GroupEnumUnitsInRect(swapGroup, mapRect, Filter(() -> GetFilterUnit().detectAddFilter()))
+    
+	TimerStart(CreateTimer(), SWAP_TIMEOUT, true, function swap)
+

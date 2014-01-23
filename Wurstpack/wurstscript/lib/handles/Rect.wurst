@@ -4,7 +4,7 @@ import Table
 import Vectors
 
 Table sourceTable = new Table()
-Table regionData = new Table()
+
 
 public function vec2.isInRect(rect r)returns boolean
 	return this.x > r.getMinX() and this.x < r.getMaxX() and this.y > r.getMinY() and this.y < r.getMaxY()
@@ -53,14 +53,6 @@ public function trigger.registerRectLeaveEventSource( rect r )
 public function trigger.getSourceRect() returns rect
 	return sourceTable.loadRect(GetHandleId(this))
 
-public function region.setRegionData(int data)
-	regionData.saveInt(GetHandleId(this), data)
-
-public function region.loadRegionData() returns int
-	return regionData.loadInt(GetHandleId(this))
-	
-public function region.removeRegionData()
-	regionData.removeInt(GetHandleId(this))
 	
 public function region.destr()
 	RemoveRegion(this)

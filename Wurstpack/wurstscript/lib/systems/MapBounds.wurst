@@ -1,25 +1,26 @@
 package MapBounds
-	import Vectors
+import Vectors
+import Region
  
-	public rect mapRect
-	public real mapMinX
-	public real mapMinY
-	public real mapMaxX
-	public real mapMaxY
-	public vec2 mapCenter
+public rect mapRect
+public region mapRegion
+public real mapMinX
+public real mapMinY
+public real mapMaxX
+public real mapMaxY
+public vec2 mapCenter
  
-	public function vec2.inBounds() returns boolean
-		return this.x > mapMinX and this.x < mapMaxX and this.y > mapMinY and  this.y < mapMaxY
+public function vec2.inBounds() returns boolean
+	return this.x > mapMinX and this.x < mapMaxX and this.y > mapMinY and  this.y < mapMaxY
  
-	public function randomPointOnMap() returns vec2
-		return vec2(GetRandomReal(mapMinX,mapMaxX), GetRandomReal(mapMinY, mapMaxY))
+public function randomPointOnMap() returns vec2
+	return vec2(GetRandomReal(mapMinX,mapMaxX), GetRandomReal(mapMinY, mapMaxY))
 		
-	init
-		mapRect = GetPlayableMapRect()
-		mapMinX = GetRectMinX( mapRect )
-		mapMinY = GetRectMinY( mapRect )
-		mapMaxX = GetRectMaxX( mapRect )
-		mapMaxY = GetRectMaxY( mapRect )
-		mapCenter = vec2(((mapMaxX+mapMinX)/2),((mapMinY+mapMaxY)/2))
- 
-endpackage
+init
+	mapRect = GetPlayableMapRect()
+	mapRegion.addRect(mapRect)
+	mapMinX = GetRectMinX( mapRect )
+	mapMinY = GetRectMinY( mapRect )
+	mapMaxX = GetRectMaxX( mapRect )
+	mapMaxY = GetRectMaxY( mapRect )
+	mapCenter = vec2(((mapMaxX+mapMinX)/2),((mapMinY+mapMaxY)/2))
