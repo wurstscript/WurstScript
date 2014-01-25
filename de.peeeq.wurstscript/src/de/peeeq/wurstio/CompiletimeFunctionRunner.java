@@ -34,6 +34,7 @@ public class CompiletimeFunctionRunner {
 	private FunctionFlag functionFlag;
 	private List<ImFunction> successTests = Lists.newArrayList();
 	private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+	private boolean injectObjects;
 
 	
 
@@ -70,7 +71,7 @@ public class CompiletimeFunctionRunner {
 				}
 			}
 			if (functionFlag == FunctionFlag.IS_COMPILETIME) {
-				interpreter.writebackGlobalState();
+				interpreter.writebackGlobalState(isInjectObjects());
 			}
 		} catch (Throwable e) {
 			WLogger.severe(e);
@@ -98,6 +99,16 @@ public class CompiletimeFunctionRunner {
 
 	public Map<ImFunction, Pair<ImStmt, String>> getFailTests() {
 		return failTests;
+	}
+
+
+	public boolean isInjectObjects() {
+		return injectObjects;
+	}
+
+
+	public void setInjectObjects(boolean injectObjects) {
+		this.injectObjects = injectObjects;
 	}
 
 }

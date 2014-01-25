@@ -94,6 +94,7 @@ if havewurst then
 	wurst_stacktraces = TogMenuEntry:New(wurstmenu, "Enable stack-traces",nil,false)
 	wurst_nodebug = TogMenuEntry:New(wurstmenu, "Disable debug messages",nil,false)
 	wurst_compiletimefunctions  = TogMenuEntry:New(wurstmenu, "Run compiletime functions",nil,false)
+	wurst_injectObjects  = TogMenuEntry:New(wurstmenu, "Inject compiletime objects",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	
@@ -538,6 +539,9 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_compiletimefunctions.checked then
 			cmdline = cmdline .. " -runcompiletimefunctions"
+		end
+		if wurst_injectObjects.checked then
+			cmdline = cmdline .. " -injectobjects"
 		end
 		
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""

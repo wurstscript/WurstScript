@@ -118,8 +118,8 @@ public class ILInterpreter {
 		return globalState.getLastStatement();
 	}
 
-	public void writebackGlobalState() {
-		globalState.writeBack();
+	public void writebackGlobalState(boolean injectObjects) {
+		globalState.writeBack(injectObjects);
 		
 	}
 
