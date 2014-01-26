@@ -14,11 +14,7 @@ public class MpqEditorFactory {
 	}
 	
 	static public MpqEditor getEditor() throws Exception {
-		if ( filepath.equals("")){
-			throw new Exception("mpqeditor filepath not set");
-		}else {
-			return new JmpqBasedEditor();
-		}
+		return new JmpqBasedEditor();
 	}
 
 	public static String getTempfolder() {

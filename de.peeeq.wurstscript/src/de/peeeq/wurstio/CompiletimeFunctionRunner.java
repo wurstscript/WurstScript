@@ -1,9 +1,11 @@
 package de.peeeq.wurstio;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -40,6 +42,7 @@ public class CompiletimeFunctionRunner {
 
 
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, WurstGui gui, FunctionFlag flag) {
+		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
 		this.mapFile = mapFile;
 		ProgramStateIO globalState = new ProgramStateIO(mapFile, gui);
@@ -76,7 +79,7 @@ public class CompiletimeFunctionRunner {
 		} catch (Throwable e) {
 			WLogger.severe(e);
 			ImStmt s = interpreter.getLastStatement();
-			AstElement origin = s.attrTrace();
+			AstElement origin = s == null ? null : s.attrTrace();
 			if (origin != null) { 
 				gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
 				
@@ -86,7 +89,7 @@ public class CompiletimeFunctionRunner {
 				}
 				
 			} else {
-				throw new Error("could not get origin");
+				throw new Error("could not get origin", e);
 			}
 		}
 		
@@ -109,6 +112,11 @@ public class CompiletimeFunctionRunner {
 
 	public void setInjectObjects(boolean injectObjects) {
 		this.injectObjects = injectObjects;
+	}
+
+
+	public void setOutputStream(PrintStream printStream) {
+		interpreter.getGlobalState().setOutStream(printStream);
 	}
 
 }

@@ -632,6 +632,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		this.runArgs = runArgs;
 	}
 
+	public void setMapFile(File mapFile) {
+		this.mapFile = mapFile;
+	}
+
 
 	
 }

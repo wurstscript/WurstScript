@@ -36,6 +36,7 @@ import com.google.common.io.Files;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
+import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
@@ -117,7 +118,7 @@ public class WurstREPL {
 			if (err.getErrorType() == ErrorType.ERROR) {
 				throw err;
 			} else {
-				println("Warning: " + err);
+//				println("Warning: " + err);
 			}
 		}
 
@@ -389,13 +390,6 @@ public class WurstREPL {
 				println(map.getAbsolutePath() + " does not exist.");
 				return;
 			}
-
-			// first compile the script:
-			monitor.beginTask("Compiling Script", 100);
-			IFile compiledScript = compileScript(compileArgs);
-
-
-			monitor.beginTask("Preparing testmap", 100);
 			
 			// now copy the map so that we do not corrupt the original
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
@@ -406,7 +400,23 @@ public class WurstREPL {
 			}
 			testMap.delete();
 			Files.copy(map, testMap);
+			
+			
+			
 
+			// first compile the script:
+			monitor.beginTask("Compiling Script", 100);
+			IFile compiledScript = compileScript(compileArgs, testMap);
+			RunArgs runArgs = new RunArgs(compileArgs);
+
+
+			monitor.beginTask("Preparing testmap", 100);
+			
+			
+
+			
+			
+			
 			// then inject the script into the map
 			File outputMapscript = new File(compiledScript.getRawLocationURI());
 			MpqEditorFactory.setFilepath(mpqEditorExe.getAbsolutePath());
@@ -416,7 +426,7 @@ public class WurstREPL {
 			mpqEditor.insertFile(testMap, "war3map.j", outputMapscript);
 			mpqEditor.compactArchive(testMap);
 
-			// TODO compile & inject object-editor data
+			
 
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
 			
@@ -510,7 +520,7 @@ public class WurstREPL {
 	private void compileProject(String args) {
 		try {
 			ArrayList<String> runArgs = getArgs(args);
-			compileScript(runArgs);
+			compileScript(runArgs, null);
 		} catch (CoreException e) {
 			e.printStackTrace();
 			print(e.getMessage()+ "\n");
@@ -533,7 +543,7 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private IFile compileScript(List<String> compileArgs) throws CoreException {
+	private IFile compileScript(List<String> compileArgs, File mapFile) throws CoreException {
 		if (compileArgs.contains("-clean")) {
 			cleanProject();
 			compileArgs.remove("-clean");
@@ -542,10 +552,39 @@ public class WurstREPL {
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
 		WurstConfig config = new WurstConfig();
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, new RunArgs(compileArgs));
-		WurstModel root = modelManager.getModel();
-		comp.checkAndTranslate(root);
-		JassProg jassProg = comp.getProg();
+		RunArgs runArgs = new RunArgs(compileArgs);
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config, gui, runArgs);
+		compiler.setMapFile(mapFile);
+		WurstModel model = modelManager.getModel();
+		
+		compiler.checkProg(model);
+		
+		if (gui.getErrorCount() > 0) {
+			print("Could not compile project\n");
+			return null;
+		}
+		
+		compiler.translateProgToIm(model);
+
+		if (gui.getErrorCount() > 0) {
+			print("Could not compile project\n");
+			return null;
+		}
+		
+		
+		if (runArgs.runCompiletimeFunctions()) {
+			// compile & inject object-editor data
+			// TODO run optimizations later?
+			gui.sendProgress("Running compiletime functions", 0.91);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+			ctr.setInjectObjects(runArgs.isInjectObjects());
+			ctr.setOutputStream(new PrintStream(out));
+			ctr.run();
+		}
+		
+		
+		compiler.checkAndTranslate(model);
+		JassProg jassProg = compiler.getProg();
 		if (jassProg == null) {
 			print("Could not compile project\n");
 			return null;
