@@ -20,44 +20,27 @@ public function boolean.sync(player source) returns boolean
 */
 public function int.sync(player source) returns int
 	Thread t = new Thread()
-	debugPrint("sync 1", 1)
 	let localKey = "message" + GetLocalPlayer().getId().toString()
-	debugPrint("sync 2", 1)
 	let sourceKey = "message" + source.getId().toString()
-	debugPrint("sync 3", 1)
 	let missionKey = messageCount.toString()
-	debugPrint("sync 4", 1)
 	messageCount++
-	debugPrint("sync 5", 1)
 	StoreInteger(gc, missionKey, localKey, this)
-	debugPrint("sync 6", 1)
 	SyncStoredInteger(gc, missionKey, localKey)
-	debugPrint("sync 7", 1)
 	var localSynced = false
-	debugPrint("sync 8", 1)
 	// wait until message is there for source
 	while true
-		debugPrint("sync loop 1", 1)
 		if HaveStoredInteger(gc, missionKey, sourceKey)
-			debugPrint("sync loop 2", 1)
 			if not localSynced
-				debugPrint("sync loop 3", 1)
 				t.sync()
-				debugPrint("sync loop 4", 1)
 				localSynced = true
-				debugPrint("sync loop 5", 1)
 			if t.isSynced()
 				// end loop when all other threads are finished
 				break
 		TriggerSyncStart()
 		TriggerSyncReady()
-	debugPrint("sync 9", 1)
 	var result = GetStoredInteger(gc, missionKey, sourceKey)
-	debugPrint("sync 10", 1)
 	FlushStoredMission(gc, missionKey)
-	debugPrint("sync 11", 1)
 	destroy t
-	debugPrint("sync 12", 1)
 	return result
 
 /**
@@ -65,7 +48,6 @@ public function int.sync(player source) returns int
 	synced message
 */
 public function string.sync(player source) returns string
-	int ch = 0
 	HashList<int> ints = new HashList<int>()
 	int slen = 0
 	string result = ""

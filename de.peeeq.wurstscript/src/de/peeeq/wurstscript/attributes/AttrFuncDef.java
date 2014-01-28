@@ -35,7 +35,7 @@ public class AttrFuncDef {
 	public final static String overloadingPlus = "op_plus";
 	public final static String overloadingMinus = "op_minus";
 	public final static String overloadingMult = "op_mult";
-	public final static String overloadingDiv = "op_div";
+	public final static String overloadingDiv = "op_divReal";
 
 	public static  FunctionDefinition calculate(final ExprFuncRef node) {
 
