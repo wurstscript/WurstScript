@@ -1,8 +1,24 @@
 
 #content pre {
-	background-color: transparent;
+	background-color: #E6E6FA;
 	border: none;
 }
+
+.bg {
+	background: -prefix-linear-gradient(right, #282828, white 50%, #282828);
+	background: linear-gradient(to left, #282828, white 50%, #282828); 
+	min-height:100%;
+}
+body, html {
+    margin:0;
+    height:100%;
+}
+div#content {
+    padding: 20px 20px 600px 20px;
+}
+
+
+
 
 h1.giant {
 	font-size: 80px;
@@ -58,6 +74,9 @@ pre .typename {
 pre .string
 {color:#55CC55;
 }
+pre .git
+{color:#000000;
+}
 pre .comment
 {color:#999;
 	font-style: italic;
@@ -95,7 +114,7 @@ display:list-item;
 }
 code
 {
-	font-family:Consolas, monospace,Corier New,Verdana,Tahoma,Arial;
+	font-family:Consolas, monospace,Courier New,Verdana,Tahoma,Arial;
 	color:#000000;
 	line-height: 110%;
     white-space:pre-wrap;

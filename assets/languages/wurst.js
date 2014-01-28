@@ -31,6 +31,7 @@ hljs.LANGUAGES.wurst = function(){
         hljs.C_LINE_COMMENT_MODE,
         hljs.C_BLOCK_COMMENT_MODE,
         hljs.QUOTE_STRING_MODE,
+		
         {
           className: 'string',
           begin: '\'', end: '[^\\\\]\'',
