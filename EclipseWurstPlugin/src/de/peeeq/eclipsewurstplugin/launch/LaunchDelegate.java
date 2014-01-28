@@ -32,7 +32,7 @@ public class LaunchDelegate implements ILaunchConfigurationDelegate {
 	private void launchMap(IProject project, File file, IProgressMonitor monitor) {
 		WurstConsole console = WurstPerspective.findConsole();
 		console.setModelManager(WurstNature.get(project).getModelManager());
-		List<String> args = Lists.newArrayList("-stacktraces");
+		List<String> args = Lists.newArrayList("-stacktraces","-runcompiletimefunctions","-injectobjects");
 		console.launchMap(file, args, monitor);
 	}
 

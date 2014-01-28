@@ -40,7 +40,6 @@ public class ProgramStateIO extends ProgramState {
 	private int id = 0;
 	private Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
 	private PrintStream outStream = System.out;
-	private boolean injectObjectFilesIntoMap = false;
 	private Map<Integer, String> trigStrings = null;
 
 	public ProgramStateIO(File mapFile, WurstGui gui) {
@@ -186,13 +185,13 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	@Override
-	public void writeBack() {
+	public void writeBack(boolean inject) {
 		gui.sendProgress("Writing back generated objects", 0.9);
 
 		for (ObjectFileType fileType : ObjectFileType.values()) {
 			ObjectFile dataStore = getDataStore(fileType);
 			if (!dataStore.isEmpty()) {
-				writebackObjectFile(dataStore, fileType);
+				writebackObjectFile(dataStore, fileType, inject);
 			}
 		}
 		writeW3oFile();
@@ -220,7 +219,7 @@ public class ProgramStateIO extends ProgramState {
 		}
 	}
 
-	private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType) throws Error {
+	private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType, boolean inject) throws Error {
 
 
 		try {
@@ -233,30 +232,21 @@ public class ProgramStateIO extends ProgramState {
 			dataStore.writeTo(w3u);
 			Files.write(dataStore.exportToWurst(fileType),  new File(folder, "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
 
-			if (injectObjectFilesIntoMap) {
+			if (inject) {
 				MpqEditor editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
 				editor.deleteFile(mapFile, filenameInMpq);
-				int tries = 1;
-				while (tries < 20) {
-					editor.insertFile(mapFile, filenameInMpq, w3u);
+				editor.insertFile(mapFile, filenameInMpq, w3u);
 
-					File extr;
-					try {
-						extr = editor.extractFile(mapFile, filenameInMpq);
-					} catch (Error e) {
-						extr = null;
-					}
-					if (extr != null && extr.exists()) {
-						break;
-					}
-					System.gc();
-					tries++;
+				File extr;
+				try {
+					extr = editor.extractFile(mapFile, filenameInMpq);
+				} catch (Error e) {
+					extr = null;
 				}
-				if (tries >= 20) {
-					JOptionPane.showMessageDialog(null, "Could not insert " + fileType.getExt());
+				if (extr == null || !extr.exists()) {
+					JOptionPane.showMessageDialog(null, "Could not inject " + filenameInMpq + ".");
 				}
-
 			}
 		} catch (IOException e) {
 			WLogger.severe(e);

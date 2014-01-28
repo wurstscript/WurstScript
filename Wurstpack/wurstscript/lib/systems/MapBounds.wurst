@@ -18,7 +18,7 @@ public function randomPointOnMap() returns vec2
 		
 init
 	mapRect = GetPlayableMapRect()
-	mapRegion.addRect(mapRect)
+	mapRegion = CreateRegion()..addRect(mapRect)
 	mapMinX = GetRectMinX( mapRect )
 	mapMinY = GetRectMinY( mapRect )
 	mapMaxX = GetRectMaxX( mapRect )

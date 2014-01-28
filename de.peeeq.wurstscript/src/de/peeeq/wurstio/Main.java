@@ -137,6 +137,7 @@ public class Main {
 					if (runArgs.runCompiletimeFunctions()) {
 						gui.sendProgress("Running compiletime functions", 0.91);
 						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+						ctr.setInjectObjects(runArgs.isInjectObjects());
 						ctr.run();
 					}
 

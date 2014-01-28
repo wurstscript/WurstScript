@@ -1,9 +1,11 @@
 package de.peeeq.wurstio;
 
 import java.io.File;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -34,11 +36,13 @@ public class CompiletimeFunctionRunner {
 	private FunctionFlag functionFlag;
 	private List<ImFunction> successTests = Lists.newArrayList();
 	private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+	private boolean injectObjects;
 
 	
 
 
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, WurstGui gui, FunctionFlag flag) {
+		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
 		this.mapFile = mapFile;
 		ProgramStateIO globalState = new ProgramStateIO(mapFile, gui);
@@ -70,12 +74,12 @@ public class CompiletimeFunctionRunner {
 				}
 			}
 			if (functionFlag == FunctionFlag.IS_COMPILETIME) {
-				interpreter.writebackGlobalState();
+				interpreter.writebackGlobalState(isInjectObjects());
 			}
 		} catch (Throwable e) {
 			WLogger.severe(e);
 			ImStmt s = interpreter.getLastStatement();
-			AstElement origin = s.attrTrace();
+			AstElement origin = s == null ? null : s.attrTrace();
 			if (origin != null) { 
 				gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
 				
@@ -85,7 +89,7 @@ public class CompiletimeFunctionRunner {
 				}
 				
 			} else {
-				throw new Error("could not get origin");
+				throw new Error("could not get origin", e);
 			}
 		}
 		
@@ -98,6 +102,21 @@ public class CompiletimeFunctionRunner {
 
 	public Map<ImFunction, Pair<ImStmt, String>> getFailTests() {
 		return failTests;
+	}
+
+
+	public boolean isInjectObjects() {
+		return injectObjects;
+	}
+
+
+	public void setInjectObjects(boolean injectObjects) {
+		this.injectObjects = injectObjects;
+	}
+
+
+	public void setOutputStream(PrintStream printStream) {
+		interpreter.getGlobalState().setOutStream(printStream);
 	}
 
 }
