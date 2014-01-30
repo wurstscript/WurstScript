@@ -5,9 +5,9 @@ title: Wurst-Script
 _by peq & Frotty_ 
 
 
-A programming language which compiles to Jass (the language to create Warcraft III Maps).
+WurstScript is programming language which compiles to Jass (the language to create Warcraft III Maps).
 
-Wurstscript is an imperative, object-oriented, statically-typed, beginner-friendly 		programming language with significant whitespace and a readable syntax.
+It is an imperative, object-oriented, statically-typed, beginner-friendly programming language with significant whitespace and a readable syntax.
 
 
 
