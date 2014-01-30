@@ -16,6 +16,8 @@ Of course we know, that most advanced vJass-coders like to program/use their own
 and we also know that the packages in the stdlib aren't always the best solutions or most performant,
 but they offer a great and quick start into coding with wurstscript, and can be enhanced with your feedback [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
+<div id="tableofcontents">loading TOC ...</div>
+
 ## Collections 
 
 ### Lists 

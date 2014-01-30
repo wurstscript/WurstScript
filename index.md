@@ -2,6 +2,8 @@
 layout: simple
 title: Wurst-Script
 ---
+_by peq & Frotty_ 
+
 
 A programming language which compiles to Jass (the language to create Warcraft III Maps).
 
