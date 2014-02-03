@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.ListIterator;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -255,8 +256,21 @@ public class EliminateTuples {
 			if (exprsSize != varsSize) {
 				throw new Error(exprsSize + " != " + varsSize + " in " + e);
 			}
+			// TODO only use tempvars, when left hand side is used in the expression
+			List<ImVar> tempVars = Lists.newArrayList();
+			for (ImVar v : vars) {
+				ImVar tempVar = v.copy();
+				tempVar.setName("temp_"+tempVar.getName());
+				tempVars.add(tempVar);
+			}
+			f.getLocals().addAll(tempVars);
+			
 			for (int i=0; i<varsSize; i++) {
-				statements.add(JassIm.ImSet(e.getTrace(), vars.get(i), copyExpr(exprs.get(i))));
+				statements.add(JassIm.ImSet(e.getTrace(), tempVars.get(i), copyExpr(exprs.get(i))));
+			}
+			
+			for (int i=0; i<tempVars.size(); i++) {
+				statements.add(JassIm.ImSet(e.getTrace(), vars.get(i), JassIm.ImVarAccess(tempVars.get(i))));
 			}	
 		} else {
 			throw new Error("unhandled case: " + right1.getClass());
@@ -358,8 +372,19 @@ public class EliminateTuples {
 			if (exprsSize != rangeSize) {
 				throw new Error(exprsSize + " != " + rangeSize);
 			}
+			List<ImVar> tempVars = Lists.newArrayList();
+			for (ImVar v : vars) {
+				ImVar tempVar = v.copy();
+				tempVars.add(tempVar);
+			}
+			f.getLocals().addAll(tempVars);
+			
 			for (int i : range) {
-				statements.add(JassIm.ImSet(e.attrTrace(), vars.get(i), exprs.get(i-range.start)));
+				ImExpr right = exprs.get(i-range.start);
+				statements.add(JassIm.ImSet(e.attrTrace(), tempVars.get(i), right));
+			}
+			for (int i : range) {
+				statements.add(JassIm.ImSet(e.attrTrace(), vars.get(i), JassIm.ImVarAccess(tempVars.get(i))));
 			}
 		} else {
 			if (rangeSize > 1) {
