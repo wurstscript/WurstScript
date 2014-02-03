@@ -131,9 +131,9 @@ public class ILconstReal extends ILconstAbstract implements ILconstNum {
 	@Override
 	public boolean isEqualTo(ILconst other) {
 		if (other instanceof ILconstInt) {
-			return (val >= ((ILconstInt) other).getVal());
+			return (val == ((ILconstInt) other).getVal());
 		} else if (other instanceof ILconstReal) {
-			return (val >= ((ILconstReal) other).getVal());
+			return (val == ((ILconstReal) other).getVal());
 		} else {
 			return false;
 		}
