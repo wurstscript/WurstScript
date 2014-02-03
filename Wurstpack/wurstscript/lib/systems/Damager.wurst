@@ -1,34 +1,14 @@
 package Damager
-//===========================================================================================================
-constant int   MAX_SUB_OPTIONS = 3
 
-constant real	  FACTOR_TEST_DAMAGE = 0.01 
-// a low damage to do on units to test their damage factors for specific
-// attacktype/damagetype combos.
-// You'll need something as high as 20.0 to make it work well with armor resistances.
-// (Yes, you read it correctly, 20 ...
-//
-// If you use such a large value, there may be conflicts with some things relying on damage
-// (ie they are not away of the isDummyDamage tag that xedamage posseses.) which may be quite bad if you think about it...
-//  maybe it is better to change it to 0.01 ...  will work fine, just fine - but it will generally ignore armor - 
-// I am leaving it as 0.01 by default, because honestly, I'd rather make it ignore armor than have a lot of people sending me
-// rants about how they detect 20.0 damage where none is visible...
-constant real	  MAX_DAMAGE_FACTOR = 3.00
-// The maximum damage factor in the map. I think 3 is fine.
-
-//=======================================================
-constant real	  EPSILON = 0.000000001
+constant MAX_SUB_OPTIONS = 3
+/** Needs to be around 20 if armor is not wanted to be ignored */
+constant FACTOR_TEST_DAMAGE = 0.01 
+/** Maximum damage factor */
+constant MAX_DAMAGE_FACTOR = 3.00
+constant EPSILON = 0.000000001
 unit	 dmger
-constant int   MAX_SPACE = 8190 // MAX_SPACE/MAX_SUB_OPTIONS is the instance limit for xedamage, usually big enough...
 
 public class Damager
-
-	//----
-	// fields and methods for a xedamage object, they aid determining valid targets and special
-	// damage factor conditions.
-	//
-	// Notice the default values.
-	//
 	boolean damageSelf	= false  	// the damage and factor methods  usually have a source unit parameter
 									// xedamage would consider this unit as immune unless you damageSelf to true
 
@@ -547,7 +527,5 @@ init
 	UnitAddAbility(dmger,'Aloc')
 	Damager.initD()
 
-
-endpackage
 
 

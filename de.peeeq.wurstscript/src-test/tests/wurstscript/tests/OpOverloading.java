@@ -70,7 +70,7 @@ public class OpOverloading extends WurstScriptTest {
 				"	class A ",
 				"		int i = 2",
 				"		",
-				"		function op_div(A a) returns real",
+				"		function op_divReal(A a) returns real",
 				"			return this.i / a.i",
 				"	init",
 				"		A a1 = new A()",
