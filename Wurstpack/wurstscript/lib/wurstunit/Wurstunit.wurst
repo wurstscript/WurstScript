@@ -17,3 +17,7 @@ public function string.assertEquals(string other)
 public function real.assertEquals(real other)
 	if this != other
 		testFail("expected " + other.toString() + " but was " + this.toString())
+		
+public function real.assertEquals(real other, real delta)
+	if (this - other > delta) or (other - this > delta)
+		testFail("expected " + other.toString() + " but was " + this.toString() + " with delta " + delta.toString())
