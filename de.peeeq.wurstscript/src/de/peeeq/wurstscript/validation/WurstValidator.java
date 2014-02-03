@@ -539,6 +539,10 @@ public class WurstValidator {
 			// if a function is overridden it is ok to ignore parameters
 			return;
 		}
+		if (f.attrIsAbstract()) {
+			// if a function is abstract, then parameter vars are not used
+			return;
+		}
 		if (f.attrHasAnnotation("compiletimenative")) {
 			return;
 		}
