@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprOrStatements;
@@ -18,6 +19,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.types.WurstType;
@@ -79,6 +81,72 @@ public class UsedGlobalVariables {
 	public static List<VarDef> getUsedGlobals(TupleDef tupleDef) {
 		return Collections.emptyList();
 	}
+
+	
+	// ----
+	
+	public static List<VarDef> getReadGlobals(ExprOrStatements e) {
+		List<VarDef> result = Lists.newArrayList();
+		if (e instanceof FuncRef) {
+			FuncRef funcRef = (FuncRef) e;
+			FunctionDefinition f = funcRef.attrFuncDef();
+			if (f != null) {
+				result.addAll(f.attrReadGlobalVariables());
+			}
+		
+		} else if (e instanceof ExprNewObject) {
+			ExprNewObject exprNewObject = (ExprNewObject) e;
+			ConstructorDef constr = exprNewObject.attrConstructorDef();
+			if (constr != null) {
+				result.addAll(constr.getBody().attrReadGlobalVariables());
+			}
+		} else if (e instanceof ExprDestroy) {
+			ExprDestroy stmtDestroy = (ExprDestroy) e;
+			WurstType t = stmtDestroy.getDestroyedObj().attrTyp();
+			if (t instanceof WurstTypeClass) {
+				WurstTypeClass ct = (WurstTypeClass) t;
+				OnDestroyDef ondestr = ct.getClassDef().getOnDestroy();
+				result.addAll(ondestr.getBody().attrReadGlobalVariables());
+			}
+		} else if (e instanceof NameRef) {
+			NameRef nameRef = (NameRef) e;
+			if (e.getParent() instanceof StmtSet) {
+				// write access
+			} else {
+				NameDef def = nameRef.attrNameDef();
+				if (def instanceof GlobalVarDef) {
+					GlobalVarDef varDef = (GlobalVarDef) def;
+					result.add(varDef);
+				}
+			}
+		}
+		// check children:
+		for (int i=0; i<e.size(); i++) {
+			AstElement child = e.get(i);
+			if (child instanceof ExprOrStatements) {
+				ExprOrStatements child2 = (ExprOrStatements) child;
+				result.addAll(child2.attrReadGlobalVariables());
+			}
+		}
+		return result;
+	}
+	
+
+	public static List<VarDef> getReadGlobals(FunctionImplementation func) {
+		return func.getBody().attrReadGlobalVariables();
+	}
+
+	public static List<VarDef> getReadGlobals(NativeFunc nativeFunc) {
+		return Collections.emptyList();
+	}
+
+	public static List<VarDef> getReadGlobals(TupleDef tupleDef) {
+		return Collections.emptyList();
+	}
+
+
+
+
 	
 	
 

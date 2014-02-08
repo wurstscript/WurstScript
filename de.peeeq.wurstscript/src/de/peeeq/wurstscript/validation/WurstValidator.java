@@ -1731,7 +1731,7 @@ public class WurstValidator {
 					if (f == null) {
 						return true;
 					}
-					for (VarDef used : f.attrUsedGlobalVariables()) {
+					for (VarDef used : f.attrReadGlobalVariables()) {
 						if (!used.attrIsDynamicClassMember()) {
 							checkUsedIsInitializedBefore(e, initPart, v_definedIn, used);
 						}

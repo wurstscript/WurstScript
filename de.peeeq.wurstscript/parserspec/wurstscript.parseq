@@ -805,6 +805,14 @@ FunctionDefinition.attrUsedGlobalVariables
 	returns java.util.List<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
 	
+ExprOrStatements.attrReadGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+	
+FunctionDefinition.attrReadGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+	
 WurstModel.attrPackageLevels
 	returns java.util.Map<WPackage, Integer>
 	implemented by de.peeeq.wurstscript.attributes.PackageLevels.calculate
