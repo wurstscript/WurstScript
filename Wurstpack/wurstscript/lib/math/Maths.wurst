@@ -34,6 +34,22 @@ public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) return
 /** Returns the distance between two points */
 public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 	return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+	
+/** 
+ * Returns the length of the hypotenuse of a right-angle triangle with the 
+ * given side lengths. Does not overflow or underflow as fast as
+ * SquareRoot(x^2 + y^2) does.
+ */
+public function hypot(real dx, real dy) returns real
+	real x = dx.abs()
+	real y = dy.abs()
+	real t
+	if (x > y)
+		t = y / x
+	else
+		t = x / y
+		x = y
+	return x * SquareRoot(1 + t * t)
 
 /** Returns the angle of a height-slope */	
 public function getSlopeAngle( real z1, real z2, real dist ) returns angle
