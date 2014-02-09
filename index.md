@@ -31,7 +31,7 @@ The Wurst Pack contains a version of the editor with the Wurst compiler built in
 
 You can always download the [latest build from our build server](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/).
 		
-* [Complete Pack](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip) 
+* [Complete Pack](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_complete.zip) 
 			This is the complete pack. You usually should download this, but you can use the other downloads if you only want to update
 			parts of the Wurst Pack.
 * [Compiler](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip): 
