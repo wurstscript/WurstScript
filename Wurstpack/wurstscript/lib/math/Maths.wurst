@@ -3,6 +3,8 @@ import NoWurst
 import Vectors
 import Angle
 import Wurstunit
+import Real
+import Integer
 
 /** PI constant */
 public constant real PI			=  3.141592654
@@ -43,10 +45,10 @@ public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) ret
 public function hypot(real dx, real dy) returns real
 	real x = dx.abs()
 	real y = dy.abs()
-	real t
-	if (x > y)
+	real t = 0
+	if x > y
 		t = y / x
-	else
+	else if x < y
 		t = x / y
 		x = y
 	return x * SquareRoot(1 + t * t)
@@ -105,4 +107,16 @@ public function min(real x, real y) returns real
 	min(three,4)	.assertEquals(3)
 	max(3.,4.)		.assertEquals(4.)
 	min(3.,4.)		.assertEquals(3.)
+	
+@test function test_hypot()
+	test_hypot_help(5,6)
+	test_hypot_help(5000000.,6)
+	test_hypot_help(3.,123456789.)
+	test_hypot_help(543532403425324.,123456789.)
+	test_hypot_help(0.0000001,0.0000000000023)
+	test_hypot_help(0,0)
+	
+	
+function test_hypot_help(real x, real y)
+	hypot(x,y).assertEquals(SquareRoot(x*x + y*y), 0.0001)
 	
