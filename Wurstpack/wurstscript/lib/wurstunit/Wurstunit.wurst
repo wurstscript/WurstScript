@@ -21,3 +21,13 @@ public function real.assertEquals(real other)
 public function real.assertEquals(real other, real delta)
 	if (this - other > delta) or (other - this > delta)
 		testFail("expected " + other.toString() + " but was " + this.toString() + " with delta " + delta.toString())
+
+public function boolean.assertEquals(boolean other)
+	if this != other
+		testFail("expected " + other.toString() + " but was " + this.toString())
+
+public function boolean.assertTrue()
+	this.assertEquals(true)
+		
+public function boolean.assertFalse()
+	this.assertEquals(false)
