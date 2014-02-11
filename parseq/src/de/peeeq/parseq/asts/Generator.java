@@ -304,19 +304,47 @@ public class Generator {
 			
 			if (hasAttribute(c, attr)) {
 				if (attr.parameters == null) {
-					sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
-					sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
-					sb.append("/** " + attr.comment + "*/\n");
-					sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
-					sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
-					sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
-					sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(("+c.getName()+")this);\n");
-					sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
-					sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
-					sb.append("			throw new CyclicDependencyError(this, \""+attr.attr+"\");\n");
-					sb.append("		}\n");
-					sb.append("		return zzattr_" + attr.attr +"_cache;\n");
-					sb.append("	}\n");
+					sb.append("// circular = " + attr.circular + "\n");
+					if (attr.circular == null) {
+						sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
+						sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
+						sb.append("/** " + attr.comment + "*/\n");
+						sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
+						sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
+						sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
+						sb.append("			zzattr_" + attr.attr +"_cache = "+attr.implementedBy+"(("+c.getName()+")this);\n");
+						sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
+						sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
+						sb.append("			throw new CyclicDependencyError(this, \""+attr.attr+"\");\n");
+						sb.append("		}\n");
+						sb.append("		return zzattr_" + attr.attr +"_cache;\n");
+						sb.append("	}\n");
+					} else {
+						// circular attribute
+						sb.append("	private int zzattr_" + attr.attr + "_state = 0;\n");
+						sb.append("	private " + attr.returns + " zzattr_" + attr.attr + "_cache;\n");
+						sb.append("/** " + attr.comment + "*/\n");
+						sb.append("	public " + attr.returns + " " + attr.attr + "() {\n");
+						sb.append("		if (zzattr_" + attr.attr + "_state == 0) {\n");
+						sb.append("			zzattr_" + attr.attr +"_state = 1;\n");
+						sb.append("			zzattr_" + attr.attr +"_cache = "+attr.circular+"();\n");
+						sb.append("			while (true) {\n");
+						sb.append("				" + attr.returns +" r = "+attr.implementedBy+"(("+c.getName()+")this);\n");
+						sb.append("				if (zzattr_" + attr.attr + "_state == 3) {\n");
+						sb.append("					if (!zzattr_" + attr.attr + "_cache.equals(r)) {\n");
+						sb.append("						continue;\n");
+						sb.append("					}\n");
+						sb.append("				}\n");
+						sb.append("				zzattr_" + attr.attr + "_cache = r;\n");	
+						sb.append("				break;\n");
+						sb.append("			}\n");
+						sb.append("			zzattr_" + attr.attr +"_state = 2;\n");
+						sb.append("		} else if (zzattr_" + attr.attr + "_state == 1) {\n");
+						sb.append("			zzattr_" + attr.attr +"_state = 3;\n");
+						sb.append("		}\n");
+						sb.append("		return zzattr_" + attr.attr +"_cache;\n");
+						sb.append("	}\n");
+					}
 				} else {
 					sb.append("/** " + attr.comment + "*/\n");
 					sb.append("	public " + attr.returns + " " + attr.attr + "("+printParams(attr.parameters)+") {\n");

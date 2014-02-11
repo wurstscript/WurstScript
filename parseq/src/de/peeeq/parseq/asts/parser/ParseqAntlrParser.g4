@@ -74,6 +74,7 @@ choice[Program prog, CaseDef cd]:
 attributeDef[Program prog]:
 	{
 		List<Parameter> parameters = null;
+		String circ = null;
 	}
 	elem=ID '.' attrName=ID
 	 (
@@ -94,9 +95,11 @@ attributeDef[Program prog]:
 		')'
 	 )?
 	 (doc=STRVAL)? 'returns' returnType=javaType 'implemented' 'by' implementedBy=qID
+	 ('circular' circ1=qID {circ=$circ1.s;} )?
 	{
-		prog.addAttribute(parameters, $elem.text, $attrName.text, $returnType.name, $implementedBy.s, $doc.text);	
+		prog.addAttribute(parameters, $elem.text, $attrName.text, $returnType.name, $implementedBy.s, $doc.text, circ);	
 	}
+	
 	;
 	
 javaType returns [String name]: 

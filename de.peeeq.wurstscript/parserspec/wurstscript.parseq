@@ -800,18 +800,26 @@ Documentable.attrComment
 ExprOrStatements.attrUsedGlobalVariables
 	returns java.util.List<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
+	circular java.util.Collections.emptyList
 	
 FunctionDefinition.attrUsedGlobalVariables
 	returns java.util.List<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
+	circular java.util.Collections.emptyList
 	
 ExprOrStatements.attrReadGlobalVariables
 	returns java.util.List<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+	circular java.util.Collections.emptyList
 	
 FunctionDefinition.attrReadGlobalVariables
 	returns java.util.List<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+	circular java.util.Collections.emptyList
+
+AstElement.attrUsedPackages
+	returns java.util.Collection<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.UsedPackages.usedPackages
 	
 WurstModel.attrPackageLevels
 	returns java.util.Map<WPackage, Integer>

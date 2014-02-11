@@ -444,4 +444,21 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void cyclicDepReadVars() {
+		testAssertOkLines(false, 
+				"package test",
+				"function self(int n) returns int",
+				"	if n > 0",
+				"		return self(n-1)",
+				"	return n",
+				"init",
+				"	self(5)",
+				"endpackage");
+	}
+	
+	
+	
+
+	
 }

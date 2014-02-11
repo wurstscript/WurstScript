@@ -75,9 +75,9 @@ public class Program {
 		return packageName;
 	}
 	
-	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, String doc) {
+	public void addAttribute(List<Parameter> parameters, String typ, String attr, String returnType, String implementedBy, String doc, String circular) {
 		String docStr = doc != null ? doc : "";
-		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy));
+		attrDefs.add(new AttributeDef(parameters, typ, attr, docStr, returnType, implementedBy, circular));
 	}
 
 	

@@ -28,7 +28,7 @@
 		</javac>
 	</target>
 
-	<target name="create_run_jar" depends="clean, compile">
+	<target name="create_run_jar" depends="compile">
 		<jar destfile="../de.peeeq.wurstscript/tools/parseq.jar" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.parseq.Main" />
