@@ -117,7 +117,7 @@ public class LinkedList<T>
 	function toString() returns string
 		string s="["
 		var first = true
-		for e from iterator()
+		for e in this
 			if not first
 				s += ", "
 			s += I2S(e castTo int)

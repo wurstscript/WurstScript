@@ -1,0 +1,279 @@
+package ArrayList
+import Wurstunit
+
+
+class FreeNode
+	/** start of the free data cell */
+	int dataPos
+	/** size of the free data cell */
+	int size
+	/** next free data cell */
+	FreeNode next
+	
+	construct(int dataPos, int size, FreeNode next)
+		this.dataPos = dataPos
+		this.size = size
+		this.next = next
+		
+	construct(int dataPos, int size)
+		this.dataPos = dataPos
+		this.size = size
+		this.next = null
+		
+	function destr(FreeNode prev)
+		prev.next = next
+		destroy this
+
+/** prints the free nodes list (for debugging) */
+function printFreeNodes() returns string
+	var f = freeList
+	string s = ""
+	while f != null
+		s = s + "[" + f.dataPos.toString() + ", " + f.size.toString() + "] -> " 
+		f = f.next
+	return s
+
+/** try to repair the freenode list (for debugging) */	
+function repairFreeNodes()
+	var f = freeList
+	while f.next != null
+		f = tryJoin(f,f.next)
+
+/** join to join a node and its next node, returns the a if the join was successful and b if it was not */
+function tryJoin(FreeNode a, FreeNode b) returns FreeNode
+	if a.dataPos + a.size == b.dataPos
+		a.size += b.size
+		b.destr(a)
+		return a
+	return b 
+
+/** stores free memory locations in a simple linked list,
+  the list is sorted by dataPos starting with the smallest */
+FreeNode freeList = new FreeNode(0,8191)
+
+/** the data of the arrays is stored here */
+int array data
+
+public class ArrayList<T>
+	
+	private int pos
+	private int size = 0
+	private int capacity
+	
+	/** create a new arraylist */
+	construct()
+		alloc(4)
+		
+	/** create a new arraylist with a given initial capacity 
+		(can give better performance if you alredy know the size of the list) */
+	construct(int initialCapacity)
+		alloc(initialCapacity)
+		
+	/** allocate new memory for this list */
+	private function alloc(int allocCapacity)
+		FreeNode f = freeList
+		while true
+			if f.size >= allocCapacity
+				alloc(f, allocCapacity)
+				return		
+			f = f.next
+			if f == freeList
+				break 
+		// could try to optimize memory layout before giving up
+		error("Could not allocate enough space.")
+	
+	/** allocate new memory at FreeNode f */
+	private function alloc(FreeNode f, int allocCapacity)
+		pos = f.dataPos
+		capacity = allocCapacity
+		f.dataPos += allocCapacity
+		f.size -= allocCapacity
+		// TODO remove blocks with size 0 ?
+		
+	/** reallocate memory. Allocates new memory and copies elements */
+	private function realloc(int allocCapacity)
+		int oldPos = pos
+		int oldCapacity = capacity
+		alloc(allocCapacity)
+		copy(oldPos, size, pos)
+		dealloc(oldPos, oldCapacity)
+		
+	ondestroy
+		dealloc(pos, capacity)
+	
+	/** deallocate memory */	
+	private function dealloc(int pos, int capacity)
+		FreeNode d = new FreeNode(pos, capacity)
+		if pos < freeList.dataPos
+			// insert at beginning
+			d.next = freeList
+			freeList = d
+			tryJoin(d, d.next)
+		else
+			var f = freeList
+			while f.next != null and pos > f.next.dataPos
+				f = f.next
+			// insert after f
+			d.next = f.next
+			f.next = d
+			d = tryJoin(f, d)
+			tryJoin(d, d.next)
+		
+	/** copy memory from source to target, starting from left to right */	
+	private function copy(int source, int size, int target)
+		for i = 0 to size - 1
+			data[target + i] = data[source + i]
+	
+	/** copy memory from source to target, starting from right to left */
+	private function copyRev(int source, int size, int target)
+		for i = size-1 downto 0
+			data[target + i] = data[source + i]		
+	
+	/** add an element to the list */		
+	function add(T t)
+		if size >= capacity
+			realloc(size*2)
+		data[pos+size] = t castTo int
+		size++
+			
+	/** adds an element at the given index */
+	function add(int index, T t)
+		if index < 0
+			error("index must be >= 0")
+		if index > size
+			error("index must be <= size")
+		if size >= capacity
+			realloc(size*2)
+		// move data to right
+		copyRev(pos+index-1, size-index, pos+index)
+		data[pos+index] = t castTo int
+		size++
+		
+	/** removes the element at the given index */
+	function removeAt(int index)
+		if index < 0
+			error("index must be >= 0")
+		if index > size
+			error("index must be <= size")
+		// move data to the left
+		copy(pos+index+1, size-index, pos+index)
+		size--
+		
+	/** get the elemt at the given index */
+	function get(int index) returns T
+		if index < 0
+			error("index must be >= 0")
+		if index >= size
+			error("index must be < size")
+		return data[pos+index] castTo T
+		
+	/** set the elemt at the given index */
+	function set(int index, T t)
+		if index < 0
+			error("index must be >= 0")
+		if index >= size
+			error("index must be < size")
+		data[pos+index] = t castTo int
+	
+	/** returns a string representation of this list */	
+	function toString() returns string
+		string s="["
+		var first = true
+		for e in this
+			if not first
+				s += ", "
+			s += I2S(e castTo int)
+			first = false
+		return s + "]"
+		
+	/** returns the number of elements in the list */
+	function getSize() returns int
+		return size
+		
+	/** an iterator to iterate over the list */
+	function iterator() returns ArrayListIterator<T>
+		return new ArrayListIterator<T>(pos, size)
+		
+		
+public class ArrayListIterator<Q>
+	private int pos
+	private int endPos
+	
+	construct(int pos, int size)
+		this.pos = pos - 1
+		this.endPos = pos + size - 1
+		
+	function hasNext() returns boolean
+		return pos < endPos
+
+	function next() returns Q
+		pos++
+		return data[pos] castTo Q
+ 		
+	function close() 
+		destroy this
+
+
+
+function assertDataInvariants()
+	assertNotNull(freeList)
+	var f = freeList
+	while f.next != null
+		assertTrue(f.size >= 0, "wrong size")
+		assertTrue(f.dataPos + f.size < f.next.dataPos, "not ordered")
+		f = f.next
+			
+	
+@test function testAlloc()
+	let a = new ArrayList<int>(1001)
+	assertDataInvariants()
+	let b = new ArrayList<int>(4002)
+	assertDataInvariants()
+	let c = new ArrayList<int>(2003)
+	assertDataInvariants()
+	destroy b
+	assertDataInvariants()
+	let d = new ArrayList<int>(1999)
+	assertDataInvariants()
+	let e = new ArrayList<int>(1998)
+	assertDataInvariants()
+	destroy a
+	assertDataInvariants()
+	destroy c
+	assertDataInvariants()
+	destroy d
+	assertDataInvariants()
+	destroy e
+	assertDataInvariants()
+	
+function testList() returns ArrayList<int>
+	return new ArrayList<int>()
+		..add(1)
+		..add(2)
+		..add(3)
+		..add(4)
+		..add(5)
+
+@test function testAdd()
+	let l = testList()
+	l.toString().assertEquals("[1, 2, 3, 4, 5]")
+	destroy l
+
+
+@test function testRemove()
+	let l = testList()
+		..removeAt(2)
+	l.toString().assertEquals("[1, 2, 4, 5]")
+	destroy l
+	
+@test function testSet()
+	let l = testList()
+		..set(2,77)
+	l.toString().assertEquals("[1, 2, 77, 4, 5]")
+	destroy l
+	
+@test function testGet()
+	let l = testList()
+	l.get(2).assertEquals(3)
+	destroy l
+	
