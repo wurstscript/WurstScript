@@ -39,7 +39,7 @@ function repairFreeNodes()
 	while f.next != null
 		f = tryJoin(f,f.next)
 
-/** join to join a node and its next node, returns the a if the join was successful and b if it was not */
+/** try to join a node and its next node, returns a if the join was successful and b if it was not */
 function tryJoin(FreeNode a, FreeNode b) returns FreeNode
 	if a.dataPos + a.size == b.dataPos
 		a.size += b.size

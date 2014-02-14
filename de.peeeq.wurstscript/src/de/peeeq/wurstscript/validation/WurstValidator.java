@@ -491,6 +491,11 @@ public class WurstValidator {
 	}
 
 	private void checkIfRead(VarDef s) {
+		if (s.getName().startsWith("_")) {
+			// variables starting with an underscore are not read
+			// (same convention as in Erlang)
+			return;
+		}
 		if (Utils.isJassCode(s)) {
 			return;
 		}
@@ -507,7 +512,7 @@ public class WurstValidator {
 	private void checkVarName(VarDef s, boolean isConstant) {
 		String varName = s.getName(); 
 		
-		if (!Character.isLowerCase(varName.charAt(0)) // first letter not lower case
+		if (!isValidVarnameStart(varName) // first letter not lower case
 				&& !Utils.isJassCode(s) // not in jass code
 				&& !varName.matches("[A-Z0-9_]+") // not a constant
 				) {
@@ -519,6 +524,11 @@ public class WurstValidator {
 			s.addError("\"code\" is not a valid variable name");
 		}
 
+	}
+
+	private boolean isValidVarnameStart(String varName) {
+		return Character.isLowerCase(varName.charAt(0))
+				|| varName.startsWith("_");
 	}
 
 	private void visit(WParameter p) {
@@ -586,7 +596,7 @@ public class WurstValidator {
 
 	private void checkFunctionName(FunctionDefinition f) {
 		if (!Utils.isJassCode(f)) {
-			if (Character.isUpperCase(f.getName().charAt(0))) {
+			if (!isValidVarnameStart(f.getName())) {
 				f.addError("Function names must start with an lower case character.");
 			}
 		}
