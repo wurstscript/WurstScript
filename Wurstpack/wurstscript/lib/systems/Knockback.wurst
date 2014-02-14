@@ -152,7 +152,6 @@ public class Knockback
 	construct( unit caster, unit target, real distance, real time, angle xyangle )
 		real speed = 2 * distance / ((time / ANIMATION_PERIOD) + 1)
 		real deceleration = speed / (time / ANIMATION_PERIOD)
-		int i = 0
 					
 		//variables
 		this.caster = caster

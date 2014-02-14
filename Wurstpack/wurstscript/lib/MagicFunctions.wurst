@@ -7,7 +7,7 @@ Outputs an error message and terminates the current thread.
 There is a compiler flag to augment the error messages with stack traces.
 Error messages can also be disabled. 
 */
-public function error(string msg)
+public function error(string _msg)
 
 
 

@@ -101,7 +101,6 @@ public class Thread
 	private static function syncThread() returns boolean
 		var thread = GetTriggerUnit().getUserData() castTo Thread
 		int playerId = GetPlayerId(GetTriggerPlayer())
-		int val
 		
 		if (thread.threadSyncer != GetTriggerUnit())
 			return false

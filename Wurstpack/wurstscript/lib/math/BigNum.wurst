@@ -2,7 +2,6 @@ package BigNum
 
 //prefer algebraic approach because of real subtraction issues
 public function log( real py, real pbase ) returns real
-	real x
 	real y = py
 	real base = pbase
 	real factor = 1.0
@@ -100,7 +99,6 @@ public class BigNum
 	//fails if bignum is null
 	//BASE() + carry must be less than MAXINT()
 	function addSmall( int pcarry )
-		BigNum_l next
 		BigNum_l cur = list
 		int sum
 		int carry = pcarry

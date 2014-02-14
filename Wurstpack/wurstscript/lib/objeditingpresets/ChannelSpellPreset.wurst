@@ -102,7 +102,7 @@ public class ChannelSpellPreset extends SpellPreset
 			
 	function setFollowThroughTime(real time)
 		for i = 1 to lvl
-			def.setLvlDataUnreal("Ncl1", lvl, 1, 0.0)
+			def.setLvlDataUnreal("Ncl1", lvl, 1, time)
 
 			
 

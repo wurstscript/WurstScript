@@ -187,7 +187,6 @@ public class CustomBar
 
 	function setValue( real val )
 		int chars = 0
-		int i = 0
 		var newval = val
 		// keep newval inside possible boundaries
 		if newval > 100.
@@ -338,7 +337,6 @@ public class CustomBar
 
 
 	function unlock()
-		int i = 0
 		if not locked
 			return
 
