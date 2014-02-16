@@ -1,83 +1,88 @@
 package Trackable
 
-/* 
-If you need invisible Trackable models here are a few downloadlinks:
-8x8 	"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
-16x16	"https://dl.dropbox.com/u/103859688/Trackables/16x16Track.mdx"
-32x32	"https://dl.dropbox.com/u/103859688/Trackables/32x32Track.mdx"
-64x64	"https://dl.dropbox.com/u/103859688/Trackables/64x64Track.mdx"
-128x128 "https://dl.dropbox.com/u/103859688/Trackables/128x128Track.mdx"
-256x256 "https://dl.dropbox.com/u/103859688/Trackables/256x256Track.mdx"
-512x512	"https://dl.dropbox.com/u/103859688/Trackables/512x512Track.mdx"
-*/
-
-hashtable trackData = InitHashtable()
-
-/** Creates a Trackable at the target location */
-public function createTrackable(string path, vec2 pos) returns trackable
-	trackable t = CreateTrackable(path, pos.x, pos.y, 0)
-	int hID = GetHandleId(t)
-	trackData.saveReal(hID, 1, pos.x)
-	trackData.saveReal(hID, 2, pos.y)
-	trackData.saveString(hID, 3, path)
-	return t
+	import HashMap
+	import TypeCasting
 	
-/** Creates a Trackable at the target location which is just click and trackable for a specific player */
-public function createTrackableForPlayer(string path, vec2 pos, player p) returns trackable
-	string newPath = ""
-	if GetLocalPlayer() == p
-		newPath = path
-	trackable t = CreateTrackable(newPath, pos.x, pos.y, 0)
-	int hID = GetHandleId(t)
-	trackData.saveReal(hID, 1, pos.x)
-	trackData.saveReal(hID, 2, pos.y)
-	trackData.saveString(hID, 3, path)
-	trackData.savePlayerHandle(hID, 4, p)
-	return t
-
-/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
-public function trackable.getPosition() returns vec2
-	int hID = GetHandleId(this)
-	real x = trackData.loadReal(hID, 1)
-	real y = trackData.loadReal(hID, 2)
-	return vec2(x, y)
+	/*
+	If you need invisible trackable models here are a few downloadlinks:
+	8x8 			"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
+	16x16		"https://dl.dropbox.com/u/103859688/Trackables/16x16Track.mdx"
+	32x32		"https://dl.dropbox.com/u/103859688/Trackables/32x32Track.mdx"
+	64x64		"https://dl.dropbox.com/u/103859688/Trackables/64x64Track.mdx"
+	128x128 	"https://dl.dropbox.com/u/103859688/Trackables/128x128Track.mdx"
+	256x256 	"https://dl.dropbox.com/u/103859688/Trackables/256x256Track.mdx"
+	512x512	"https://dl.dropbox.com/u/103859688/Trackables/512x512Track.mdx"
+	*/
 	
-/** Returns the modelpath of the trackable */
-public function trackable.getPath() returns string
-	int hID = GetHandleId(this)
-	return trackData.loadString(hID, 3)
+	public interface TrackableAction
 	
-/** Returns the owner of the trackable. This just works if the trackable was created with the "createTrackableForPlayer" function */
-public function trackable.getOwner() returns player
-	int hID = GetHandleId(this)
-	return trackData.loadPlayerHandle(hID, 4)
-
-/** Returns the right handle if you use the "registerTrackableHit/TrackEventForAllPlayers" function */
-public function trackable.getCentralHandleId() returns int
-	return trackData.loadInt(GetHandleId(this), 5)
+		function run(TrackableEx clickedTrackable, player clickingPlayer)
 	
-/* This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
-Keep in mind, that this function is not realy performant!!! */
-/* TODO commented out because of comments in https://github.com/peq/WurstScript/pull/100#discussion_r2923090 
-public function trigger.registerTrackableTrackEventForAllPlayers(trackable t)
-	vec2 pos = t.getPosition()
-	string path = t.getPath()
-	int centralHID = GetHandleId(t)
-	for int i = 0 to 11
-		trackable tempT = createTrackableForPlayer(path, pos, Player(i))
-		int hID = GetHandleId(tempT)
-		trackData.saveInt(hID, 5, centralHID)
-		this.registerTrackableTrackEvent(tempT)
-*/
+	public class TrackableEx
+		private static constant real doubleClickSpeed = 0.5
+	
+		private static timer array playerDoubleClickTimer
+		private static boolean array playerClickBefore
+		private static HashMap<trackable, player> trackableOwner= new HashMap<trackable, player>()
+		private static HashMap<trackable, thistype> trackableObjects = new HashMap<trackable, thistype>()
+		private static trigger trackTrigger = CreateTrigger()..addAction(() -> trackableObjects.get(GetTriggeringTrackable()).trackHandler(trackableOwner.get(GetTriggeringTrackable())))
+		private static trigger clickTrigger = CreateTrigger()..addAction(() -> trackableObjects.get(GetTriggeringTrackable()).clickHandler(trackableOwner.get(GetTriggeringTrackable())))
 		
-/** This function creates 12 trackables (one for each player) so you can get the triggering player: GetTriggeringTrackable.getOwner()
-Keep in mind, that this function is not realy performant!!! */
-public function trigger.registerTrackableHitEventForAllPlayers(trackable t)
-	vec2 pos = t.getPosition()
-	string path = t.getPath()
-	int centralHID = GetHandleId(t)
-	for int i = 0 to 11
-		trackable tempT = createTrackableForPlayer(path, pos, Player(i))
-		int hID = GetHandleId(tempT)
-		trackData.saveInt(hID, 5, centralHID)
-		this.registerTrackableHitEvent(tempT)
+		private TrackableAction onTrack = null
+		private TrackableAction onClick = null
+		private TrackableAction onDoubleClick = null
+		
+		/** Creates a trackable at the target location. The trackable is clickable for all players */
+		construct(vec2 pos, string path)
+			for int i = 0 to 11
+				if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER
+					string newPath = ""
+					if GetLocalPlayer() == Player(i)
+						newPath = path
+					trackable t = CreateTrackable(newPath, pos.x, pos.y, 0)
+					trackableOwner.put(t, Player(i))
+					trackableObjects.put(t, this)
+					trackTrigger.registerTrackableTrackEvent(t)
+					clickTrigger.registerTrackableHitEvent(t)
+					
+		private function trackHandler(player p)
+			if onTrack != null
+				onTrack.run(this, p)
+		
+		private function clickHandler(player p)
+			if onDoubleClick != null
+				if playerClickBefore[p.getId()]
+					onDoubleClick.run(this, p)
+					playerClickBefore[p.getId()] = false
+					playerDoubleClickTimer[p.getId()].pause()
+				else
+					playerDoubleClickTimer[p.getId()].start(doubleClickSpeed, () -> begin
+						playerClickBefore[GetExpiredTimer().getData()] = false
+					end)
+					playerClickBefore[p.getId()] = true
+					onClick.run(this, p)
+			else
+				if onClick != null
+					onClick.run(this, p)
+		
+		/** Sets the action that is executed when the trackable gets hovered */
+		function onTrack(TrackableAction action)
+			onTrack = action
+			
+		/** Sets the action that is executed when the trackable gets clicked */
+		function onClick(TrackableAction action)
+			onClick = action
+			
+		/** Sets the action that is executed when the trackable gets doubleclicked */
+		function onDoubleClick(TrackableAction action)
+			if onDoubleClick == null
+				for int i = 0 to 11
+					if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER
+						playerDoubleClickTimer[i] = getTimer()..setData(i)
+			onDoubleClick = action
+					
+	/** Creates a Trackable at the target location*/
+	public function createTrackable(vec2 pos, angle ang, string path) returns trackable
+		return CreateTrackable(path, pos.x, pos.y, ang.degrees())
+		
+endpackage
