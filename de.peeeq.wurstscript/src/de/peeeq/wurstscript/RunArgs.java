@@ -3,6 +3,7 @@ package de.peeeq.wurstscript;
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -208,5 +209,11 @@ public class RunArgs {
 
 	public List<File> getAdditionalLibDirs() {
 		return Collections.unmodifiableList(libDirs);
+	}
+
+	public void addLibs(Set<String> dependencies) {
+		for (String dep : dependencies) {
+			libDirs.add(new File(dep));
+		}
 	}
 }

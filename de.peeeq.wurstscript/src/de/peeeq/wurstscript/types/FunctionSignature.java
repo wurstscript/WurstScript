@@ -89,5 +89,10 @@ public class FunctionSignature {
 	public static FunctionSignature fromNameLink(NameLink f) {
 		return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), f.getReturnType());
 	}
+
+
+	public boolean isEmpty() {
+		return receiverType == null && paramTypes.isEmpty() && returnType instanceof WurstTypeUnknown;
+	}
 	
 }

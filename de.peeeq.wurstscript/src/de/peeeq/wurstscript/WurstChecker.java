@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import com.google.common.base.Preconditions;
+
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -17,6 +19,7 @@ public class WurstChecker {
 	}
 
 	public void checkProg(WurstModel root) {
+		Preconditions.checkNotNull(root);
 		gui.sendProgress("Checking Files", 0.2);
 		
 		if (errorHandler.getErrorCount() > 0) return;

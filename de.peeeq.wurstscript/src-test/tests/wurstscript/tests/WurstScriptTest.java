@@ -158,6 +158,11 @@ public class WurstScriptTest {
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
+		
+		if (!gui.getErrorList().isEmpty()) {
+			throw gui.getErrorList().get(0);
+		}
+		
 		// check prog
 		compiler.checkProg(model);
 		if (!gui.getErrorList().isEmpty()) {

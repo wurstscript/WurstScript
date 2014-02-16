@@ -144,7 +144,9 @@ public class ModelManagerImpl implements ModelManager {
 		WLogger.info("dependencies = " + dependencies);
 //		config.setSetting("lib", Utils.join(dependencies, ";"));
 		// TODO set dependencies
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		RunArgs runArgs = RunArgs.defaults();
+		runArgs.addLibs(dependencies);
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, runArgs);
 		comp.setHasCommonJ(true);
 		return comp;
 	}

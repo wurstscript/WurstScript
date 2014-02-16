@@ -114,6 +114,11 @@ public class Main {
 						compiler.loadFiles(file);
 					}
 					WurstModel model = compiler.parseFiles();
+					
+					if (gui.getErrorCount() > 0) {
+						break compilation;
+					}
+					
 					compiler.checkProg(model);
 					
 					if (gui.getErrorCount() > 0) {
@@ -209,11 +214,14 @@ public class Main {
 			}
 
 			ErrorReporting.instance.handleSevere(t, source);
-
-
+			System.exit(2);
 		} finally {
 			if (gui != null) {
 				gui.sendFinished();
+				if (gui.getErrorCount() > 0) {
+					// signal that there was an error when compiling
+					System.exit(1);
+				}
 			}
 		}
 	}
