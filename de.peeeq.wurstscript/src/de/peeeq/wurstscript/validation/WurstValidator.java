@@ -18,7 +18,10 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithExtendedClass;
+import de.peeeq.wurstscript.ast.AstElementWithExtendsList;
 import de.peeeq.wurstscript.ast.AstElementWithFuncName;
+import de.peeeq.wurstscript.ast.AstElementWithImplementsList;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -130,6 +133,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -253,6 +257,7 @@ public class WurstValidator {
 			if (e instanceof StmtSet) checkStmtSet((StmtSet) e);
 			if (e instanceof StmtWhile) visit((StmtWhile) e);
 			if (e instanceof SwitchStmt) checkSwitch((SwitchStmt) e);
+			if (e instanceof TypeExpr) checkTypeExpr((TypeExpr) e);
 			if (e instanceof TypeExprArray) chechCodeArrays((TypeExprArray) e);
 			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
 			if (e instanceof VarDef) checkVarDef((VarDef) e);
@@ -268,6 +273,34 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkTypeExpr(TypeExpr e) {
+		if (e.attrTypeDef() instanceof TypeParamDef) {
+			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
+			if (tp.getParent().getParent() instanceof StructureDef) { // typeParamDef is for structureDef
+				StructureDef sDef = (StructureDef) tp.getParent().getParent();
+				if (sDef instanceof AstElementWithExtendedClass) {
+					if (Utils.isSubtree(e, ((AstElementWithExtendedClass) sDef).getExtendedClass())) {
+						return;
+					}
+				}
+				if (sDef instanceof AstElementWithExtendsList) {
+					if (Utils.isSubtree(e, ((AstElementWithExtendsList) sDef).getExtendsList())) {
+						return;
+					}
+				}
+				if (sDef instanceof AstElementWithImplementsList) {
+					if (Utils.isSubtree(e, ((AstElementWithImplementsList) sDef).getImplementsList())) {
+						return;
+					}
+				}
+				
+				if (!e.attrIsDynamicContext()) {
+					e.addError("Type variables must not be used in static contexts.");
+				}
+			}
 		}
 	}
 
