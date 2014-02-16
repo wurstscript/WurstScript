@@ -81,6 +81,13 @@ public class RunArgs {
 				return null;
 			}
 		});
+		addOptionWithArg("out", "Outputs the compiled script to this file.", new Function<String, Void>() {
+			@Override
+			public Void apply(String arg) {
+				outFile = arg;
+				return null;
+			}
+		});
 		
 		nextArg: for (int i=0; i<args.length; i++) {
 			String a = args[i];

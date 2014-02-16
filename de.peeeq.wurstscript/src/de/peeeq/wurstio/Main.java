@@ -174,6 +174,7 @@ public class Main {
 						//outputMapscript = File.createTempFile("outputMapscript", ".j");
 						outputMapscript = new File("./temp/output.j");
 					}
+					outputMapscript.getParentFile().mkdirs();
 					Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
 					Result pJassResult = Pjass.runPjass(outputMapscript);
