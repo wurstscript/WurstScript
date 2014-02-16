@@ -28,7 +28,6 @@ import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -142,10 +141,10 @@ public class ModelManagerImpl implements ModelManager {
 			e.printStackTrace();
 			throw new Error(e);
 		}
-		WurstConfig config = new WurstConfig();
 		WLogger.info("dependencies = " + dependencies);
-		config.setSetting("lib", Utils.join(dependencies, ";"));
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
+//		config.setSetting("lib", Utils.join(dependencies, ";"));
+		// TODO set dependencies
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		comp.setHasCommonJ(true);
 		return comp;
 	}
@@ -193,8 +192,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	private CompilationUnit compileFromBundle(WurstGui gui, Bundle bundle, String fileName) throws IOException {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
-		WurstConfig config = new WurstConfig();
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		InputStreamReader reader = new InputStreamReader(source);
 
 		URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
@@ -228,8 +226,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
-		WurstConfig config = new WurstConfig();
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, gui, RunArgs.defaults());
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(fileName, source);
 		

@@ -17,7 +17,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-import de.peeeq.wurstio.mpq.LadikMpq;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.FileReading;
@@ -26,7 +25,6 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstChecker;
 import de.peeeq.wurstscript.WurstCompiler;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.WurstParser;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -65,14 +63,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private Map<String, File> libCache = null;
 	private ImProg imProg;
 	private List<File> parsedFiles = Lists.newArrayList();
-	private WurstConfig config;
 	private final WurstParser parser;
 	private final WurstChecker checker;
 	private ImTranslator imTranslator;
 
 	
-	public WurstCompilerJassImpl(WurstConfig config, WurstGui gui, RunArgs runArgs) {
-		this.config = config;
+	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
 		this.gui = gui;
 		this.runArgs = runArgs;
 		this.errorHandler = new ErrorHandler(gui);
@@ -140,13 +136,26 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			}
 		}
 		
+		// add directories:
+		List<File> dirs = Lists.newArrayList();
+		for (File file : files) {
+			if (file.isDirectory()) {
+				dirs.add(file);
+			}
+		}
+		for (File dir : dirs) {
+			loadWurstFilesInDir(dir);
+		}
+		
 		
 		gui.sendProgress("Parsing Files", 0.02);
 		// parse all the files:
 		List<CompilationUnit> compilationUnits = new NotNullList<CompilationUnit>();
 		
 		for (File file : files) {
-			if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
+			if (file.isDirectory()) {
+				// ignore dirs
+			} else if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
 				CompilationUnit r = processMap(file);
 				compilationUnits.add(r );				
 			} else {
@@ -262,12 +271,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public Map<String, File> getLibs() {
 		if (libCache == null) {
 			libCache = Maps.newLinkedHashMap();
-			String[] libFolders = config.getSetting("lib").split(";");
-			for (String libDirName : libFolders) {
-				if (libDirName.length() == 0) { 
-					continue;
-				}
-				File libDir = new File(libDirName);
+			for (File libDir: runArgs.getAdditionalLibDirs()) {
 				addLibDir(libDir);
 			}
 		}
@@ -535,6 +539,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private CompilationUnit parseFile(File file) {
+		if (file.isDirectory()) {
+			throw new Error("Is a directory: " + file);
+		}
 		parsedFiles .add(file);
 		
 		gui.sendProgress("Parsing File " + file.getName(), 0.05);

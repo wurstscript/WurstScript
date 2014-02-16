@@ -24,7 +24,6 @@ import de.peeeq.wurstscript.BackupController;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -61,7 +60,6 @@ public class Main {
 		WurstCompilerJassImpl compiler = null;
 		try {
 			RunArgs runArgs = new RunArgs(args);
-			WurstConfig config = new WurstConfig().initFromStandardFiles();
 
 			if (runArgs.showAbout()) {
 				About about = new About(null, false);
@@ -70,7 +68,7 @@ public class Main {
 			}
 
 			if (runArgs.createHotDoc()) {
-				HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
+				HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
 				hg.generateDoc();
 			}
 
@@ -111,7 +109,7 @@ public class Main {
 				compilation : do {
 
 
-					compiler = new WurstCompilerJassImpl(config, gui, runArgs);
+					compiler = new WurstCompilerJassImpl(gui, runArgs);
 					for (String file: runArgs.getFiles()) {
 						compiler.loadFiles(file);
 					}

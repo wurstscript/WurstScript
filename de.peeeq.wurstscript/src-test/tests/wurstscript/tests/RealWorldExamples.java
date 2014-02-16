@@ -11,7 +11,6 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 
 public class RealWorldExamples extends WurstScriptTest {
@@ -120,9 +119,9 @@ public class RealWorldExamples extends WurstScriptTest {
 	public void test_stdlib() throws IOException {
 		List<File> inputs = Lists.newLinkedList();
 //		settings.put("lib", "./wurstscript/lib/");
-		WurstConfig config = new WurstConfig();
-		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(config, new WurstGuiCliImpl(), RunArgs.defaults());
+//		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
+		// TODO set config
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), RunArgs.defaults());
 		for (File f : comp.getLibs().values()) {
 			WLogger.info("Adding file: " + f);
 			inputs.add(f);
