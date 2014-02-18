@@ -58,8 +58,9 @@ public class Main {
 
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
+		RunArgs runArgs = null;
 		try {
-			RunArgs runArgs = new RunArgs(args);
+			runArgs = new RunArgs(args);
 
 			if (runArgs.showAbout()) {
 				About about = new About(null, false);
@@ -215,11 +216,13 @@ public class Main {
 			}
 
 			ErrorReporting.instance.handleSevere(t, source);
-			System.exit(2);
+			if (!runArgs.isGui()) {
+				System.exit(2);
+			}
 		} finally {
 			if (gui != null) {
 				gui.sendFinished();
-				if (gui.getErrorCount() > 0) {
+				if (!runArgs.isGui() && gui.getErrorCount() > 0) {
 					// signal that there was an error when compiling
 					System.exit(1);
 				}

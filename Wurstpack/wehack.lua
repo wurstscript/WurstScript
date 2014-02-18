@@ -544,7 +544,9 @@ grim.log("running tool on save: "..cmdargs)
 			cmdline = cmdline .. " -injectobjects"
 		end
 		
+		cmdline = cmdline .. " -lib ./wurstscript/lib/"
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""
+		
 		toolresult = 0
 --		if wurst_fast ~= nil and wurst_fast.checked then
 --			toolresult = wehack.runjasshelper(wurst_debug.checked, wurst_disable.checked, "jasshelper\\common.j", "jasshelper\\blizzard.j", mappath, "")
