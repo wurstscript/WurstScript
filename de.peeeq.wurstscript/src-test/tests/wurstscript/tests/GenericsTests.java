@@ -465,4 +465,28 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void genericReturnOverride() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"interface I<T>",
+				"	function f() returns T",
+				"class C<T> implements I<T>",
+				"	function f() returns T",
+				"		return null"
+				);
+	}
+	
+	@Test
+	public void genericReturnOverride2() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"interface I<S>",
+				"	function f(S t) returns S",
+				"class C<T> implements I<T>",
+				"	function f(T t) returns T",
+				"		return t"
+				);
+	}
+	
 }
