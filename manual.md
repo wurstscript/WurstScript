@@ -1006,7 +1006,6 @@ from its superclass, it has to be abstract, too.
             
 # Interfaces 
 
-*NOTE:* Interfaces are an experimental feature and might be removed from the language later.
 
 	interface Listener
 		function onClick()
