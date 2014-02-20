@@ -24,7 +24,6 @@ import de.peeeq.wurstscript.BackupController;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -59,9 +58,9 @@ public class Main {
 
 		WurstGui gui = null;
 		WurstCompilerJassImpl compiler = null;
+		RunArgs runArgs = null;
 		try {
-			RunArgs runArgs = new RunArgs(args);
-			WurstConfig config = new WurstConfig().initFromStandardFiles();
+			runArgs = new RunArgs(args);
 
 			if (runArgs.showAbout()) {
 				About about = new About(null, false);
@@ -70,7 +69,7 @@ public class Main {
 			}
 
 			if (runArgs.createHotDoc()) {
-				HotdocGenerator hg = new HotdocGenerator(config, runArgs.getFiles());
+				HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
 				hg.generateDoc();
 			}
 
@@ -111,11 +110,16 @@ public class Main {
 				compilation : do {
 
 
-					compiler = new WurstCompilerJassImpl(config, gui, runArgs);
+					compiler = new WurstCompilerJassImpl(gui, runArgs);
 					for (String file: runArgs.getFiles()) {
 						compiler.loadFiles(file);
 					}
 					WurstModel model = compiler.parseFiles();
+					
+					if (gui.getErrorCount() > 0) {
+						break compilation;
+					}
+					
 					compiler.checkProg(model);
 					
 					if (gui.getErrorCount() > 0) {
@@ -171,6 +175,7 @@ public class Main {
 						//outputMapscript = File.createTempFile("outputMapscript", ".j");
 						outputMapscript = new File("./temp/output.j");
 					}
+					outputMapscript.getParentFile().mkdirs();
 					Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
 					Result pJassResult = Pjass.runPjass(outputMapscript);
@@ -211,11 +216,16 @@ public class Main {
 			}
 
 			ErrorReporting.instance.handleSevere(t, source);
-
-
+			if (!runArgs.isGui()) {
+				System.exit(2);
+			}
 		} finally {
 			if (gui != null) {
 				gui.sendFinished();
+				if (!runArgs.isGui() && gui.getErrorCount() > 0) {
+					// signal that there was an error when compiling
+					System.exit(1);
+				}
 			}
 		}
 	}

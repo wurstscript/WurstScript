@@ -20,7 +20,6 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
@@ -45,10 +44,8 @@ public class HotdocGenerator {
 	private Template variableTemplate;
 	private Template navbarTemplate;
 	private Template structureTemplate;
-	private final WurstConfig config;
 
-	public HotdocGenerator(WurstConfig config, List<String> files) {
-		this.config = config;
+	public HotdocGenerator(List<String> files) {
 		this.files = Lists.newArrayList(files);
 		this.outputfolder = new File(this.files.remove(files.size()-1));
 	}
@@ -76,8 +73,7 @@ public class HotdocGenerator {
 			
 			RunArgs runArgs = new RunArgs(new String[] {});
 			WurstGui gui = new WurstGuiCliImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config, gui, runArgs);
-			config.setSetting("lib", "");
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 			compiler.loadFiles("resources/common.j");
 			compiler.loadFiles("resources/blizzard.j");
 			for (String file: files) {

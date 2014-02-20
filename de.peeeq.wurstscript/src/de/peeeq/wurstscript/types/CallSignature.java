@@ -28,7 +28,7 @@ public class CallSignature {
 	}
 	
 	public void checkSignatureCompatibility(FunctionSignature sig, String funcName, AstElement pos) {
-		if (sig == FunctionSignature.empty) {
+		if (sig.isEmpty()) {
 			return;
 		}
 		if (receiver != null) {

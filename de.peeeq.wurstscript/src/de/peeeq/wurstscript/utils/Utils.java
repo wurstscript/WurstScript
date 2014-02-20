@@ -34,6 +34,7 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -967,6 +968,17 @@ public class Utils {
 	public static String readWholeStream(InputStream inputStream) throws IOException {
 		BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
 		return readWholeStream(r);
+	}
+
+	/**
+	 * checks whether b is a subtree of a 
+	 */
+	public static boolean isSubtree(AstElement b, AstElement a) {
+		while (b!= null) {
+			if (b == a) return true;
+			b = b.getParent();
+		}
+		return false;
 	}
 
 	

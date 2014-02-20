@@ -337,7 +337,6 @@ public class CustomBar
 
 
 	function unlock()
-		int i = 0
 		if not locked
 			return
 

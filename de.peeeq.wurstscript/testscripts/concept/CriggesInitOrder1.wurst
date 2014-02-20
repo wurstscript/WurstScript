@@ -1,11 +1,11 @@
 package RacerControll
 
 	import Raceengine
-    
+	
 	init
-    
-        new Racer(1) 
-        
+	
+		new Racer(1) 
+		
 endpackage 
 
 package Raceengine
@@ -22,8 +22,8 @@ package Raceengine
 		construct(int i)
 			this.i = i
 			print("1")
-            error++
-            print("2")
+			error++
+			print("2")
 			
 endpackage
 		

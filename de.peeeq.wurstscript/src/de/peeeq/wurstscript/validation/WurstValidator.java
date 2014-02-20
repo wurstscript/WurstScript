@@ -18,7 +18,10 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithExtendedClass;
+import de.peeeq.wurstscript.ast.AstElementWithExtendsList;
 import de.peeeq.wurstscript.ast.AstElementWithFuncName;
+import de.peeeq.wurstscript.ast.AstElementWithImplementsList;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -130,6 +133,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -253,6 +257,7 @@ public class WurstValidator {
 			if (e instanceof StmtSet) checkStmtSet((StmtSet) e);
 			if (e instanceof StmtWhile) visit((StmtWhile) e);
 			if (e instanceof SwitchStmt) checkSwitch((SwitchStmt) e);
+			if (e instanceof TypeExpr) checkTypeExpr((TypeExpr) e);
 			if (e instanceof TypeExprArray) chechCodeArrays((TypeExprArray) e);
 			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
 			if (e instanceof VarDef) checkVarDef((VarDef) e);
@@ -268,6 +273,34 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkTypeExpr(TypeExpr e) {
+		if (e.attrTypeDef() instanceof TypeParamDef) {
+			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
+			if (tp.getParent().getParent() instanceof StructureDef) { // typeParamDef is for structureDef
+				StructureDef sDef = (StructureDef) tp.getParent().getParent();
+				if (sDef instanceof AstElementWithExtendedClass) {
+					if (Utils.isSubtree(e, ((AstElementWithExtendedClass) sDef).getExtendedClass())) {
+						return;
+					}
+				}
+				if (sDef instanceof AstElementWithExtendsList) {
+					if (Utils.isSubtree(e, ((AstElementWithExtendsList) sDef).getExtendsList())) {
+						return;
+					}
+				}
+				if (sDef instanceof AstElementWithImplementsList) {
+					if (Utils.isSubtree(e, ((AstElementWithImplementsList) sDef).getImplementsList())) {
+						return;
+					}
+				}
+				
+				if (!e.attrIsDynamicContext()) {
+					e.addError("Type variables must not be used in static contexts.");
+				}
+			}
 		}
 	}
 
@@ -491,6 +524,11 @@ public class WurstValidator {
 	}
 
 	private void checkIfRead(VarDef s) {
+		if (s.getName().startsWith("_")) {
+			// variables starting with an underscore are not read
+			// (same convention as in Erlang)
+			return;
+		}
 		if (Utils.isJassCode(s)) {
 			return;
 		}
@@ -507,7 +545,7 @@ public class WurstValidator {
 	private void checkVarName(VarDef s, boolean isConstant) {
 		String varName = s.getName(); 
 		
-		if (!Character.isLowerCase(varName.charAt(0)) // first letter not lower case
+		if (!isValidVarnameStart(varName) // first letter not lower case
 				&& !Utils.isJassCode(s) // not in jass code
 				&& !varName.matches("[A-Z0-9_]+") // not a constant
 				) {
@@ -519,6 +557,11 @@ public class WurstValidator {
 			s.addError("\"code\" is not a valid variable name");
 		}
 
+	}
+
+	private boolean isValidVarnameStart(String varName) {
+		return Character.isLowerCase(varName.charAt(0))
+				|| varName.startsWith("_");
 	}
 
 	private void visit(WParameter p) {
@@ -586,7 +629,7 @@ public class WurstValidator {
 
 	private void checkFunctionName(FunctionDefinition f) {
 		if (!Utils.isJassCode(f)) {
-			if (Character.isUpperCase(f.getName().charAt(0))) {
+			if (!isValidVarnameStart(f.getName())) {
 				f.addError("Function names must start with an lower case character.");
 			}
 		}

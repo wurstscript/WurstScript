@@ -25,7 +25,6 @@ import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -154,13 +153,16 @@ public class WurstScriptTest {
 	}
 	
 	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-		RunArgs runArgs = new RunArgs(new String[] {});
+		RunArgs runArgs = new RunArgs(new String[] {"-lib", "../Wurstpack/wurstscript/lib/"});
 		WurstGui gui = new WurstGuiCliImpl();
-		WurstConfig config = new WurstConfig();
-		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
+		
+		if (!gui.getErrorList().isEmpty()) {
+			throw gui.getErrorList().get(0);
+		}
+		
 		// check prog
 		compiler.checkProg(model);
 		if (!gui.getErrorList().isEmpty()) {
@@ -187,20 +189,6 @@ public class WurstScriptTest {
 		
 	}
 	
-	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests, RunArgs runArgs) {
-		WurstGui gui = new WurstGuiCliImpl();
-		WurstConfig config = new WurstConfig();
-		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config , gui, runArgs);
-		compiler.getErrorHandler().enableUnitTestMode();
-		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
-		
-		compiler.checkProg(model);
-		
-		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
-
-	}
-
 	private void translateAndTest(String name, boolean executeProg,
 			boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
 			WurstModel model) throws CompileError, Error, TestFailException {

@@ -60,6 +60,7 @@ public class WLoggerDefault implements WLoggerI {
 	 */
 	@Override
 	public void setHandler(Handler handler) {
+		logger.setUseParentHandlers(false);
 		logger.addHandler(handler);
 	}
 	

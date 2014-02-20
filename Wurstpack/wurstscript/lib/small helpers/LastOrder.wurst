@@ -134,7 +134,6 @@ function actions()
 	unit	u   = GetTriggerUnit()
 	widget  t   = GetOrderTarget()
 	int oid = GetIssuedOrderId()
-	int oty = 0
 	debugPrint("actions: " + OrderId2String(oid), 3)
 	if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER
 		new Order(u, oid, ORDER_TYPE.TARGET, t, GetWidgetX(t), GetWidgetY(t))
@@ -171,8 +170,6 @@ function onAdd() returns boolean
 
 init
 	trigger trg = CreateTrigger()
-	region  re  = CreateRegion()
-	rect	m   = GetWorldBounds()
 	
 	//Main order catching trigger
 	TriggerAddAction(trg, function actions)

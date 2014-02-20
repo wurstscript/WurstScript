@@ -457,8 +457,33 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+
 	
+	@Test
+	public void staticGenerics1() {
+		testAssertErrorsLines(false, "Type variables must not be used in static contexts", 
+				"package test",
+				"class C<T>",
+				"	static T t",
+				"endpackage");
+	}
+	@Test
+	public void staticGenerics2() {
+		testAssertErrorsLines(false, "Type variables must not be used in static contexts", 
+				"package test",
+				"class C<T>",
+				"	static function foo(T t)",
+				"endpackage");
+	}
 	
+	@Test
+	public void staticGenerics3() {
+		testAssertOkLines(false,  
+				"package test",
+				"class C<T>",
+				"	static function foo<T>(T t)",
+				"endpackage");
+	}
 
 	
 }

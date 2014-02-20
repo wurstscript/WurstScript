@@ -6,30 +6,71 @@ package Wurstunit
 @compiletimenative public function testFail(string msg)
 @compiletimenative public function testSuccess()
 
+/**
+ * Asserts that two ints are equal. If they are not, an error is thrown with a message.
+ *
+ * int other - the expected value
+ */
 public function int.assertEquals(int other)
 	if this != other
 		testFail("expected " + other.toString() + " but was " + this.toString())
-		
+
+/**
+ * Asserts that two strings are equal. If they are not, an error is thrown with a message.
+ *
+ * string other - the expected value
+ */		
 public function string.assertEquals(string other)
 	if this != other
 		testFail("expected " + other + " but was " + this)
-		
+
+/**
+ * Asserts that two reals are equal. If they are not, an error is thrown with a message.
+ *
+ * real other - the expected value
+ */		
 public function real.assertEquals(real other)
 	if this != other
 		testFail("expected " + other.toString() + " but was " + this.toString())
-		
+
+/**
+ * Asserts that two reals are equal to within a positive delta. If they are not, an error is thrown
+ * with a message.
+ *
+ * real other - the expected value
+ * real delta - the maximum delta between this value and the expected value
+ */		
 public function real.assertEquals(real other, real delta)
 	if (this - other > delta) or (other - this > delta)
 		testFail("expected " + other.toString() + " but was " + this.toString() + " with delta " + delta.toString())
 
+/**
+ * Asserts that two booleans are equal. If they are not, an error is thrown with a message.
+ *
+ * boolean other - the expected value
+ */
+public function boolean.assertEquals(boolean other)
+	if this != other
+		testFail("expected " + other.toString() + " but was " + this.toString())
+
+/** Asserts that this booleans is true. If it is not, an error is thrown with a message. */
+public function boolean.assertTrue()
+	this.assertEquals(true)
+
+/** Asserts that this booleans is false. If it is not, an error is thrown with a message. */		
+public function boolean.assertFalse()
+	this.assertEquals(false)
+
+
 public function assertTrue(boolean b)
 	if not b
 		testFail("assertion failed")
-		
+
 public function assertTrue(boolean b, string msg)
 	if not b
 		testFail("assertion failed: " + msg)
-		
+
+/** Asserts that the reference t is not null */		
 public function assertNotNull<T>(T t)
 	if t == null
 		testFail("assertion failed: Reference was null.")

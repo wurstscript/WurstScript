@@ -232,7 +232,7 @@ public class NameLink {
 		if (binding.isEmpty()) {
 			return this;
 		}
-		WurstType newReturnType = adjustType(returnType, binding);
+		WurstType newReturnType = adjustType(getReturnType(), binding);
 		boolean changed = newReturnType != returnType;
 		List<WurstType> newParamTypes;
 		if (getParameterTypes().isEmpty()) {

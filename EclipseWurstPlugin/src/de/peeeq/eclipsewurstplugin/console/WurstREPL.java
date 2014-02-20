@@ -47,7 +47,6 @@ import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.mpq.WinMpq;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstConfig;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -551,9 +550,8 @@ public class WurstREPL {
 		IProject project = modelManager.getNature().getProject();
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
-		WurstConfig config = new WurstConfig();
 		RunArgs runArgs = new RunArgs(compileArgs);
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(config, gui, runArgs);
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
 		
