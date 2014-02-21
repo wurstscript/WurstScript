@@ -46,5 +46,23 @@ public class GenericsModuleTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void genericInception() {
+		testAssertOkLines(false,  
+				"type unit extends handle",
+				"package test",
+				"	native testSuccess()",
+				"	module M<T>",
+				"		T t",
+				"	class C<S>",
+				"		use M<S>",
+				"	class D",
+				"	init",
+				"		C<D> c = new C<D>",
+				"		c.t = new D",
+				"endpackage"
+			);
+	}
 		
 }

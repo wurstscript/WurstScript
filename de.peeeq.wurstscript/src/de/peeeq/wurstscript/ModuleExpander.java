@@ -1,25 +1,21 @@
 package de.peeeq.wurstscript;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -65,9 +61,9 @@ public class ModuleExpander {
 						 + moduleUse.getModuleName() + ".");
 			}
 
-			List<Pair<WurstType, TypeExpr>> typeReplacements = Lists.newArrayList(); 
+			List<Pair<WurstType, WurstType>> typeReplacements = Lists.newArrayList(); 
 			for (int i=0; i<numTypeArgs; i++) {
-				typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i)));
+				typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i).attrTyp()));
 			}
 			
 			m.getModuleInstanciations().add(
@@ -83,7 +79,7 @@ public class ModuleExpander {
 		
 	}
 
-	private <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, TypeExpr>> typeReplacements) {
+	private <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, WurstType>> typeReplacements) {
 		List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
 		calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
 		
@@ -108,12 +104,13 @@ public class ModuleExpander {
 		}
 	}
 
-	private void calcReplacementsByPath(List<Pair<WurstType, TypeExpr>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
+	private void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
 		if (e instanceof TypeExpr) {
 			TypeExpr typeExpr = (TypeExpr) e;
-			for (Pair<WurstType, TypeExpr> rep : typeReplacements) {
+			for (Pair<WurstType, WurstType> rep : typeReplacements) {
 				if (typeExpr.attrTyp().equalsType(rep.getA(), e)) {
-					replacementsByPath.add(Pair.create(pos, rep.getB()));
+					WPos source = typeExpr.getSource();
+					replacementsByPath.add(Pair.create(pos, (TypeExpr) Ast.TypeExprResolved(source, rep.getB())));
 				}
 			}
 		}

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -148,6 +149,10 @@ public abstract class WurstType {
 				|| t instanceof WurstTypeTypeParam
 				|| t instanceof WurstTypeFreeTypeParam
 				|| t instanceof WurstTypeIntLiteral;
+	}
+
+	public TypeDef tryGetTypeDef() {
+		throw new Error("not implemented");
 	}
 
 

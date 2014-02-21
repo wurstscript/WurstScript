@@ -96,6 +96,7 @@ import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -278,6 +279,12 @@ public class WurstValidator {
 	}
 
 	private void checkTypeExpr(TypeExpr e) {
+		if (e instanceof TypeExprResolved) {
+			return;
+		}
+		if (e.getParent().getParent() instanceof ModuleUse) {
+			return;
+		}
 		if (e.attrTypeDef() instanceof TypeParamDef) {
 			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
 			if (tp.getParent().getParent() instanceof StructureDef) { // typeParamDef is for structureDef
@@ -297,9 +304,15 @@ public class WurstValidator {
 						return;
 					}
 				}
+				if (sDef instanceof ModuleUse) {
+					return;
+				}
+				
 				
 				if (!e.attrIsDynamicContext()) {
-					e.addError("Type variables must not be used in static contexts.");
+					if (!(e.attrNearestStructureDef() instanceof ModuleDef)) {
+						e.addError("Type variables must not be used in static contexts.");
+					}
 				}
 			}
 		}
