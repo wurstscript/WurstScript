@@ -74,6 +74,7 @@ import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -955,7 +956,7 @@ public class WurstValidator {
 	private void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
 			WurstType typ = t.getValue();
-			if (!typ.isTranslatedToInt()) {
+			if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
 				Collection<NameLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);

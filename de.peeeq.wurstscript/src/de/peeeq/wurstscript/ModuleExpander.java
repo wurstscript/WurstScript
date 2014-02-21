@@ -1,14 +1,27 @@
 package de.peeeq.wurstscript;
 
-import com.google.common.base.Preconditions;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.utils.Pair;
 
 public class ModuleExpander {
 
@@ -43,13 +56,71 @@ public class ModuleExpander {
 			expandModules(usedModule);
 
 			
+			int numTypeArgs = moduleUse.getTypeArgs().size();
+			if (numTypeArgs < usedModule.getTypeParameters().size()) {
+				moduleUse.addError("Missing type arguments for module " 
+						 + moduleUse.getModuleName() + ".");
+			} else if (numTypeArgs > usedModule.getTypeParameters().size()) {
+				moduleUse.addError("Too many type arguments for module " 
+						 + moduleUse.getModuleName() + ".");
+			}
+
+			List<Pair<WurstType, TypeExpr>> typeReplacements = Lists.newArrayList(); 
+			for (int i=0; i<numTypeArgs; i++) {
+				typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i)));
+			}
 			
 			m.getModuleInstanciations().add(
 					Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(), 
-							usedModule.getName(), usedModule.getMethods().copy(), usedModule.getVars().copy(), usedModule.getConstructors().copy(), 
-							usedModule.getModuleInstanciations().copy(), usedModule.getModuleUses().copy(), usedModule.getOnDestroy().copy()));
+							usedModule.getName(), 
+							smartCopy(usedModule.getMethods(), typeReplacements), 
+							smartCopy(usedModule.getVars(), typeReplacements),  
+							smartCopy(usedModule.getConstructors(), typeReplacements), 
+							smartCopy(usedModule.getModuleInstanciations(), typeReplacements), 
+							smartCopy(usedModule.getModuleUses(), typeReplacements), 
+							smartCopy(usedModule.getOnDestroy(), typeReplacements)));
 		}
 		
+	}
+
+	private <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, TypeExpr>> typeReplacements) {
+		List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
+		calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
+		
+		
+		AstElement copy = e.copy();
+		
+		// Do the type replacements
+		for (Pair<ImmutableList<Integer>, TypeExpr> rep : replacementsByPath) {
+			doReplacement(copy, rep.getA(), (TypeExpr) rep.getB().copy());
+		}
+		
+		@SuppressWarnings("unchecked")
+		T t = (T) copy;
+		return t;
+	}
+	
+	private void doReplacement(AstElement e, ImmutableList<Integer> a, TypeExpr newTypeExpr) {
+		if (a.size() == 1) {
+			e.set(a.head(), newTypeExpr);
+		} else if (a.size() > 1) {
+			doReplacement(e.get(a.head()), a.tail(), newTypeExpr);
+		}
+	}
+
+	private void calcReplacementsByPath(List<Pair<WurstType, TypeExpr>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
+		if (e instanceof TypeExpr) {
+			TypeExpr typeExpr = (TypeExpr) e;
+			for (Pair<WurstType, TypeExpr> rep : typeReplacements) {
+				if (typeExpr.attrTyp().equalsType(rep.getA(), e)) {
+					replacementsByPath.add(Pair.create(pos, rep.getB()));
+				}
+			}
+		}
+		// children:
+		for (int i=0; i<e.size(); i++) {
+			calcReplacementsByPath(typeReplacements, replacementsByPath, e.get(i), pos.appBack(i));
+		}
 	}
 
 	
