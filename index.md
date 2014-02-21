@@ -53,7 +53,9 @@ by clicking on the "Previous Build" arrow on the [download page](http://peeeq.de
 ## Intro video
 
 <div>
-<iframe width="640" height="360" src="//www.youtube.com/embed/JYhUkRsQe-o" frameborder="0" allowfullscreen="true"></iframe>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/JYhUkRsQe-o" frameborder="0" allowfullscreen="true">
+Please enable iframes to see the video.
+</iframe>
 </div>
 
 
