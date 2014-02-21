@@ -22,7 +22,7 @@ You can find more detailed installation notes here: [Installation Notes](./insta
 
 Update site: `http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/`
 
-In Eclipse go to "Help - Install New Software" and add the update site mentioned above. You should then be able to install the Wurst plugin from that pagei.
+In Eclipse go to "Help - Install New Software" and add the update site mentioned above. You should then be able to install the Wurst plugin from that page.
 
 
 ### Wurst Pack
