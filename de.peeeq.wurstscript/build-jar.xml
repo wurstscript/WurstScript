@@ -47,6 +47,7 @@
 		<copy todir="../downloads/eclipseUpdateSite/">
 			<fileset dir="../EclipseWurstPluginUpdateSite/target/site" />
 		</copy>
+		<copy file="../Wurst Updater v2/WurstUpdater.jar" todir="../downloads/" />
 		<!-- create checksums -->
 		<mkdir dir="../Checksums/bin"/>
 		<javac srcdir="../Checksums/src" destdir="../Checksums/bin"
