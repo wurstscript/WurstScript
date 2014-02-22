@@ -282,37 +282,14 @@ public class WurstValidator {
 		if (e instanceof TypeExprResolved) {
 			return;
 		}
-		if (e.getParent().getParent() instanceof ModuleUse) {
+		if (e.isModuleUseTypeArg()) {
 			return;
 		}
-		if (e.attrTypeDef() instanceof TypeParamDef) {
+		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
 			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
-			if (tp.getParent().getParent() instanceof StructureDef) { // typeParamDef is for structureDef
-				StructureDef sDef = (StructureDef) tp.getParent().getParent();
-				if (sDef instanceof AstElementWithExtendedClass) {
-					if (Utils.isSubtree(e, ((AstElementWithExtendedClass) sDef).getExtendedClass())) {
-						return;
-					}
-				}
-				if (sDef instanceof AstElementWithExtendsList) {
-					if (Utils.isSubtree(e, ((AstElementWithExtendsList) sDef).getExtendsList())) {
-						return;
-					}
-				}
-				if (sDef instanceof AstElementWithImplementsList) {
-					if (Utils.isSubtree(e, ((AstElementWithImplementsList) sDef).getImplementsList())) {
-						return;
-					}
-				}
-				if (sDef instanceof ModuleUse) {
-					return;
-				}
-				
-				
+			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
 				if (!e.attrIsDynamicContext()) {
-					if (!(e.attrNearestStructureDef() instanceof ModuleDef)) {
-						e.addError("Type variables must not be used in static contexts.");
-					}
+					e.addError("Type variables must not be used in static contexts.");
 				}
 			}
 		}

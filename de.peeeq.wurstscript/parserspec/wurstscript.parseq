@@ -841,3 +841,15 @@ AstElement.description()
 AstElement.descriptionHtml()
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.DescriptionHtml.description
+	
+TypeExpr.isModuleUseTypeArg()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isModuleUseTypeArg
+
+AstElement.isSubtreeOf(AstElement other)
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isSubtreeOf
+	
+TypeParamDef.isStructureDefTypeParam()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isStructureDefTypeParam
