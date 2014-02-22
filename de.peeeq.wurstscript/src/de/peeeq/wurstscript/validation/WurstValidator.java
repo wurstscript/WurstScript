@@ -588,7 +588,7 @@ public class WurstValidator {
 		if (f == null) {
 			return;
 		}
-		if (f.getParent().getParent() instanceof ExprClosure) {
+		if (p.getParent().getParent() instanceof ExprClosure) {
 			// closures can ignore parameters
 			return;
 		}
