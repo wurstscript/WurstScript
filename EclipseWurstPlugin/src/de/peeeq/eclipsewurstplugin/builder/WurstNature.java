@@ -1,5 +1,7 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.core.resources.ICommand;
@@ -13,6 +15,7 @@ import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.text.IDocumentExtension;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
@@ -21,11 +24,14 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
 
+import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
 import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
+
+import com.google.common.collect.Lists;
 public class WurstNature implements IProjectNature {
 
 	/**
@@ -158,7 +164,7 @@ public class WurstNature implements IProjectNature {
 		
 	}
 
-	public static WurstNature get(IProject p) {
+	public static WurstNature get(final IProject p) {
 		if (p == null) {
 			return null;
 		}
@@ -166,11 +172,31 @@ public class WurstNature implements IProjectNature {
 			IProjectNature nat = p.getNature(NATURE_ID);
 			if (nat instanceof WurstNature) {
 				return (WurstNature) nat;
+			} else {
+				final boolean answer[] = new boolean[] {false};
+				Display.getDefault().syncExec(new Runnable() {
+					public void run() {
+						answer[0] = MessageDialog.openQuestion(null, "No Wurst nature", "No Wurst nature was found for the project " + p.getName() + ".\n"
+								+ "Do you want to add the Wurst nature?");
+					}
+				});
+				if (answer[0]) {
+					addNatureToProject(p);
+					return get(p);
+				}
 			}
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	public static void addNatureToProject(IProject  p) throws CoreException {
+		IProjectDescription desc = p.getDescription();
+		ArrayList<String> natureIds = Lists.newArrayList(Arrays.asList(desc.getNatureIds()));
+		natureIds.add(NATURE_ID);
+		desc.setNatureIds(natureIds.toArray(new String[0]));
+		p.setDescription(desc, null);
 	}
 
 	public static void open(IProject p, String fileName, int offset) {

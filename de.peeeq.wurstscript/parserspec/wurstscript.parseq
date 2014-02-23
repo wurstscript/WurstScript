@@ -41,6 +41,7 @@ TypeExpr =
 	  TypeExprSimple(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs)
 	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base)
 	| TypeExprThis(de.peeeq.wurstscript.parser.WPos source)
+	| TypeExprResolved(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.types.WurstType resolvedType)
 	
 	
 OptTypeExpr = NoTypeExpr() | TypeExpr
@@ -840,3 +841,15 @@ AstElement.description()
 AstElement.descriptionHtml()
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.DescriptionHtml.description
+	
+TypeExpr.isModuleUseTypeArg()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isModuleUseTypeArg
+
+AstElement.isSubtreeOf(AstElement other)
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isSubtreeOf
+	
+TypeParamDef.isStructureDefTypeParam()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isStructureDefTypeParam

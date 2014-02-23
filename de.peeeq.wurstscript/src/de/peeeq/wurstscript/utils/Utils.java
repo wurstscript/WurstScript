@@ -33,6 +33,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -970,15 +971,15 @@ public class Utils {
 		return readWholeStream(r);
 	}
 
-	/**
-	 * checks whether b is a subtree of a 
-	 */
-	public static boolean isSubtree(AstElement b, AstElement a) {
-		while (b!= null) {
-			if (b == a) return true;
-			b = b.getParent();
+	@SuppressWarnings("unchecked")
+	public static <T extends AstElement> T getNearestByType(AstElement e, Class<T> clazz) {
+		while (e != null) {
+			if (clazz.isInstance(e)) {
+				return (T) e;
+			}
+			e = e.getParent();
 		}
-		return false;
+		return null;
 	}
 
 	

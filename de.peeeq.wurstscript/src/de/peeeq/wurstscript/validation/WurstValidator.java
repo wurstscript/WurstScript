@@ -74,6 +74,7 @@ import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -95,6 +96,7 @@ import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -277,26 +279,15 @@ public class WurstValidator {
 	}
 
 	private void checkTypeExpr(TypeExpr e) {
-		if (e.attrTypeDef() instanceof TypeParamDef) {
+		if (e instanceof TypeExprResolved) {
+			return;
+		}
+		if (e.isModuleUseTypeArg()) {
+			return;
+		}
+		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
 			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
-			if (tp.getParent().getParent() instanceof StructureDef) { // typeParamDef is for structureDef
-				StructureDef sDef = (StructureDef) tp.getParent().getParent();
-				if (sDef instanceof AstElementWithExtendedClass) {
-					if (Utils.isSubtree(e, ((AstElementWithExtendedClass) sDef).getExtendedClass())) {
-						return;
-					}
-				}
-				if (sDef instanceof AstElementWithExtendsList) {
-					if (Utils.isSubtree(e, ((AstElementWithExtendsList) sDef).getExtendsList())) {
-						return;
-					}
-				}
-				if (sDef instanceof AstElementWithImplementsList) {
-					if (Utils.isSubtree(e, ((AstElementWithImplementsList) sDef).getImplementsList())) {
-						return;
-					}
-				}
-				
+			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
 				if (!e.attrIsDynamicContext()) {
 					e.addError("Type variables must not be used in static contexts.");
 				}
@@ -574,7 +565,7 @@ public class WurstValidator {
 		if (f == null) {
 			return;
 		}
-		if (f.getParent().getParent() instanceof ExprClosure) {
+		if (p.getParent().getParent() instanceof ExprClosure) {
 			// closures can ignore parameters
 			return;
 		}
@@ -955,7 +946,7 @@ public class WurstValidator {
 	private void checkTypeBinding(HasTypeArgs e) {
 		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
 			WurstType typ = t.getValue();
-			if (!typ.isTranslatedToInt()) {
+			if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
 				Collection<NameLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);

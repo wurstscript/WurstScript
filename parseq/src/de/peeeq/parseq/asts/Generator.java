@@ -959,6 +959,7 @@ public class Generator {
 		
 		sb.append("public interface "+getCommonSupertypeType()+" {\n" +
 				"	"+getCommonSupertypeType()+" getParent();\n" +
+				"	"+getCommonSupertypeType()+" copy();\n" +
 				"	int size();\n" +
 				"	void clearAttributes();\n" +
 				"	"+getCommonSupertypeType()+" get(int i);\n"+

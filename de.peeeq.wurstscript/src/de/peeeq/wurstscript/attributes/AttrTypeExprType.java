@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
+import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.types.NativeTypes;
@@ -96,6 +97,10 @@ public class AttrTypeExprType {
 
 	public static WurstType normalizedType(OptTypeExpr e) {
 		return e.attrTypRaw().normalize();
+	}
+
+	public static WurstType calculate(TypeExprResolved e) {
+		return e.getResolvedType();
 	}
 
 }

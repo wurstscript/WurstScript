@@ -28,6 +28,7 @@ import tests.wurstscript.utils.UtilsTest;
 	InterfaceTests.class,
 	InterfaceExtendedTests.class,
 	GenericsTests.class,
+	GenericsModuleTests.class,
 	TupleTests.class,
 	BugTests.class,
 	ScopingTests.class,
