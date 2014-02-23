@@ -220,3 +220,6 @@ public function unit.issueImmediateOrderById(int id)
 	
 public function unit.removeItem(item itm)
 	UnitRemoveItem(this, itm)
+	
+public function unit.revive(vec2 pos, boolean doEyecandy)
+	ReviveHero(this, pos.x, pos.y, doEyecandy)
