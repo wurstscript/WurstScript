@@ -288,6 +288,11 @@ public class WurstValidator {
 		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
 			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
 			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
+				if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+					// in modules we can also type-params in static contexts
+					return;
+				}
+				
 				if (!e.attrIsDynamicContext()) {
 					e.addError("Type variables must not be used in static contexts.");
 				}
