@@ -1,5 +1,7 @@
 package Player
 import NoWurst
+import Colors
+import Unit
 
 public enum PlayerId
 	RED
@@ -48,6 +50,9 @@ public function player.getState(playerstate state) returns int
 public function player.getName() returns string
 	return GetPlayerName(this)
 	
+public function player.getNameColored() returns string
+	return playercolors[this.getId()].toColorString() + GetPlayerName(this) + "|r"
+	
 public function player.getSlotState() returns playerslotstate
 	return GetPlayerSlotState(this)
 	
@@ -56,4 +61,20 @@ public function player.getController() returns mapcontrol
 	
 public function player.isEnemyOf(player p) returns boolean
 	return IsPlayerEnemy(this, p)
+	
+public function player.isAllyOf(player p) returns boolean
+	return IsPlayerAlly(this, p)
+	
+public function player.select(unit u)
+	if GetLocalPlayer() == this
+		SelectUnit(u, true)
+		
+public function player.unselect(unit u)
+	if GetLocalPlayer() == this
+		SelectUnit(u, false)
+		
+public function player.panCamToTimed(unit u, real time)
+	if GetLocalPlayer() == this
+		PanCameraToTimed(u.getX(), u.getY(), time)
+		
 	
