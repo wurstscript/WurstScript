@@ -206,6 +206,28 @@ public function vec2.op_mult(real factor) returns vec2
 public function real.op_mult(vec2 v) returns vec2
 	return vec2(v.x*this, v.y*this) 
 
+/** * Operator */	
+public function vec2.op_div(real factor) returns vec2
+	return vec2(this.x/factor, this.y/factor) 
+
+/** * Operator */	
+public function real.op_div(vec2 v) returns vec2
+	return vec2(v.x/this, v.y/this) 
+
+/** Rotate this vector */
+public function vec2.rotate( real radians ) returns vec2 //angle is taken in radians
+
+	var c = Cos(radians)
+	var s = Sin(radians)
+
+	real px = this.x * c - this.y * s
+	real py = this.x * s + this.y * c
+	return vec2(px,py )
+
+/** Rotate this vector around an axis */
+public function vec2.rotate( angle ang ) returns vec2
+	return this.rotate(ang.radians)
+
 /** Add two reals to the coordiantes of this vector */	
 public function vec2.addReals( real x, real y )	returns vec2
 	return vec2(this.x + x, this.y + y)
