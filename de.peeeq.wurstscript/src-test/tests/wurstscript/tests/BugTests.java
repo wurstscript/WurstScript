@@ -486,4 +486,19 @@ public class BugTests extends WurstScriptTest {
 	}
 
 	
+	@Test
+	public void recursive() {
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"function f(int n) returns int",
+				"	if n <= 0",
+				"		return 0",
+				"	return n + f(n-1)",
+				"init",
+				"	if 5050 == f(100)",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
 }

@@ -163,7 +163,7 @@ public class ImInliner {
 		
 		double callCount = getCallCount(f);
 		double size = getFuncSize(f);
-		double rating = size * callCount;
+		double rating = size * (callCount-1);
 		return rating;
 	}
 
