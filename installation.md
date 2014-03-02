@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: simple
 title: WurstScript Installation & Setup
 ---
 This tells you how to use the WurstEditor and Eclipse plugin correctly in order to develop your map.
