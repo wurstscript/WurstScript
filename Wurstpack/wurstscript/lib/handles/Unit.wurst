@@ -73,7 +73,7 @@ public function unit.setOwner(player p, boolean changeColor)
 	SetUnitOwner(this, p, changeColor)
 	
 public function unit.setColor( playercolor c )
-		SetUnitColor(this, c)
+	SetUnitColor(this, c)
 	
 public function unit.setScale(real scale)
 	SetUnitScale(this, scale, scale, scale)

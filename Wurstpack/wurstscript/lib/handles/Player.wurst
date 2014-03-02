@@ -81,5 +81,5 @@ public function player.setAbilityAvailable(integer abilityId, boolean avail)
 	SetPlayerAbilityAvailable(this, abilityId, avail)
 		
 public function player.getColor() returns playercolor
-		return GetPlayerColor(this)
+	return GetPlayerColor(this)
 	
