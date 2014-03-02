@@ -255,6 +255,21 @@ public function hashtable.saveUnitPoolHandle( integer parentKey, integer childKe
 	
 public function hashtable.saveWidgetHandle( integer parentKey, integer childKey, widget value )
 	SaveWidgetHandle( this, parentKey, childKey, value )
+	
+public function hashtable.removeBoolean(integer parentKey, integer childKey)
+	RemoveSavedBoolean(this, parentKey, childKey)
+	
+public function hashtable.removeHandle(integer parentKey, integer childKey)
+	RemoveSavedHandle(this, parentKey, childKey)
+	
+public function hashtable.removeInt(integer parentKey, integer childKey)
+	RemoveSavedInteger(this, parentKey, childKey)
+	
+public function hashtable.removeReal(integer parentKey, integer childKey)
+	RemoveSavedReal(this, parentKey, childKey)
+	
+public function hashtable.removeString(integer parentKey, integer childKey)
+	RemoveSavedString(this, parentKey, childKey)
 
 public function hashtable.flushChild(int parentKey)
 	FlushChildHashtable(this, parentKey)

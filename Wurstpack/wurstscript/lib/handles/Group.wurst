@@ -12,6 +12,9 @@ public function group.clear()
 public function group.addUnit(unit u)
 	GroupAddUnit(this, u)
 	
+public function group.removeUnit(unit u)
+	GroupRemoveUnit(this, u)
+	
 public function group.destr()
 	DestroyGroup(this)	
 
