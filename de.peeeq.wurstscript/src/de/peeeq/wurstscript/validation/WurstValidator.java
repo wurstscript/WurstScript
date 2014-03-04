@@ -567,24 +567,31 @@ public class WurstValidator {
 
 	private void checkIfParameterIsRead(WParameter p) {
 		FunctionImplementation f = p.attrNearestFuncDef();
-		if (f == null) {
-			return;
+		if (f != null) {
+			if (p.getParent().getParent() instanceof ExprClosure) {
+				// closures can ignore parameters
+				return;
+			}
+			if (f.attrIsOverride()) {
+				// if a function is overridden it is ok to ignore parameters
+				return;
+			}
+			if (f.attrIsAbstract()) {
+				// if a function is abstract, then parameter vars are not used
+				return;
+			}
+			if (f.attrHasAnnotation("compiletimenative")) {
+				return;
+			}
+		} else {
+			
+			if (p.getParent().getParent() instanceof TupleDef) {
+				// ignore tuples
+				return;
+			}
 		}
-		if (p.getParent().getParent() instanceof ExprClosure) {
-			// closures can ignore parameters
-			return;
-		}
-		if (f.attrIsOverride()) {
-			// if a function is overridden it is ok to ignore parameters
-			return;
-		}
-		if (f.attrIsAbstract()) {
-			// if a function is abstract, then parameter vars are not used
-			return;
-		}
-		if (f.attrHasAnnotation("compiletimenative")) {
-			return;
-		}
+		
+		
 		checkIfRead(p);
 	}
 
