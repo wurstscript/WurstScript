@@ -31,7 +31,7 @@ Wurstpack/war3map.j
 de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
 de.peeeq.wurstscript/junitTestResults/
-
+de.peeeq.wurstscript/version2.properties
 
 WurstWeb/gwt-unitCache/*
 WurstWeb/war/WEB-INF/classes/*

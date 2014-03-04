@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -184,9 +185,30 @@ public class ImInliner {
 //		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
 //		WLogger.info("	rating: " + getRating(f));
 		return  inlinableFunctions.contains(f) 
-				&& getRating(f) < inlineTreshold;
+				&& getRating(f) < inlineTreshold
+				&& !isRecursive(f);
 	}
 	
+	private boolean isRecursive(ImFunction f) {
+		return containsCallTo(f, f.getBody());
+	}
+
+	private boolean containsCallTo(ImFunction f, JassImElement e) {
+		if (e instanceof ImFunctionCall) {
+			ImFunctionCall call = (ImFunctionCall) e;
+			if (call.getFunc() == f) {
+				return true;
+			}
+		}
+		// children
+		for (int i=0; i<e.size(); i++) {
+			if (containsCallTo(f, e.get(i))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private int estimateSize(ImFunction f) {
 		int[] r = new int[]{0};
 		estimateSize(f.getBody(), r);

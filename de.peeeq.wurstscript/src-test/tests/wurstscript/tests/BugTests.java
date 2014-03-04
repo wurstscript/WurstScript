@@ -501,4 +501,23 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void recursive2() {
+		testAssertOkLines(false,  
+				"package test",
+				"native testSuccess()",
+				"enum Stat",
+				"	A",
+				"	B",
+				"int array statSubstat",
+				"function getStat(Stat s) returns int",
+				"	if statSubstat[s castTo int] != -1",
+				"		let a = getStat(1 castTo Stat)",
+				"	return 0",
+				"init",
+				"	if getStat(Stat.A) == 0",
+				"		testSuccess()",
+				"endpackage");
+	}
+	
 }
