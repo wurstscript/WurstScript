@@ -1,5 +1,6 @@
 package ui;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
@@ -7,10 +8,8 @@ import java.util.LinkedList;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
 
-import rest.CheckChanges;
-import rest.Download;
-import rest.FileChecksum;
-import rest.FileEx;
+import file.FileChecksum;
+import file.FileEx;
 
 public class UpdateThread extends SwingWorker<Void, Void> {
 
@@ -40,9 +39,9 @@ public class UpdateThread extends SwingWorker<Void, Void> {
 		        	toChange.remove(f);
 		        }
 			}
-			ui.Init.setProgress("Downloading...");
-			ui.Init.setMaxProgress(toChange.size());
-			ui.Init.setProgress(0);
+			Init.setProgress("Downloading...");
+			Init.setMaxProgress(toChange.size());
+			Init.setProgress(0);
 			int c = 0;
 			for(FileEx f: toChange){
 				try {
@@ -51,7 +50,7 @@ public class UpdateThread extends SwingWorker<Void, Void> {
 					new File(temp.getParent()).mkdirs();
 					Download.downloadFile("Wurstpack" + f.file, temp);
 					c++;
-					ui.Init.setProgress(c);
+					Init.setProgress(c);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 					throw new RuntimeException(e1);
@@ -64,18 +63,18 @@ public class UpdateThread extends SwingWorker<Void, Void> {
 				}
 			}
 			Download.downloadFile("wurstpack.md5", new File("Wurstpack/wurstpack.md5"));
-			ui.Init.setProgress("Wurstpack is now uptodate!");
-			ui.Init.setMaxProgress(1);
-			ui.Init.setProgress(1);
+			Init.setProgress("Wurstpack is now uptodate!");
+			Init.setMaxProgress(1);
+			Init.setProgress(1);
 		}else{
 	        int antwort = JOptionPane.showConfirmDialog(null, "There is no Wurstpack, so a new folder containing the Wurstpack will be created next to the updater", "Meldung", JOptionPane.YES_NO_OPTION, 
 	                JOptionPane.INFORMATION_MESSAGE, null); 
 	        if (antwort == JOptionPane.OK_OPTION) { 
 	        	new File("Wurstpack").mkdir();
 				LinkedList<FileEx> toDl =  FileChecksum.readChecksums(Download.downloadFile("wurstpack.md5", File.createTempFile("newChecksums", "md5")));
-				ui.Init.setProgress("Downloading...");
-				ui.Init.setMaxProgress(toDl.size());
-				ui.Init.setProgress(0);
+				Init.setProgress("Downloading...");
+				Init.setMaxProgress(toDl.size());
+				Init.setProgress(0);
 				int c = 0;
 				try {
 					for(FileEx f : toDl){
@@ -83,15 +82,15 @@ public class UpdateThread extends SwingWorker<Void, Void> {
 						new File(temp.getParent()).mkdirs();
 						Download.downloadFile("Wurstpack" + f.file, temp);
 						c++;
-						ui.Init.setProgress(c);
+						Init.setProgress(c);
 					}
 				} catch (IOException e1) {
 					e1.printStackTrace();
 					throw new RuntimeException(e1);
 				}
-				ui.Init.setProgress("Wurstpack is now uptodate!");
-				ui.Init.setMaxProgress(1);
-				ui.Init.setProgress(1);
+				Init.setProgress("Wurstpack is now uptodate!");
+				Init.setMaxProgress(1);
+				Init.setProgress(1);
 	        }
 		}
 		return null;

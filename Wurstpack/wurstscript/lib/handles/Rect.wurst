@@ -52,10 +52,6 @@ public function trigger.registerRectLeaveEventSource( rect r )
 
 public function trigger.getSourceRect() returns rect
 	return sourceTable.loadRect(GetHandleId(this))
-
-	
-public function region.destr()
-	RemoveRegion(this)
 	
 public function trigger.unregisterRectEvent()
 	sourceTable.removeHandle(GetHandleId(this))

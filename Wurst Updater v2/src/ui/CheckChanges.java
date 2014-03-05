@@ -1,10 +1,15 @@
-package rest;
+package ui;
+
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+
+import file.FileChecksum;
+import file.FileEx;
+import file.FileList;
 
 public class CheckChanges {
 	

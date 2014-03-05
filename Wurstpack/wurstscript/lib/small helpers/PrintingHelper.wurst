@@ -44,6 +44,16 @@ public function printError(string msg)
 /** Prints a simple message that is shown for the given duration */
 public function printTimed(string msg, real duration)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
+	
+/** Prints a simple message that is shown to the player for the given duration */
+public function printTimedToPlayer(string msg, real duration, player p)
+	DisplayTimedTextToPlayer(p, 0., 0., duration, msg)
+	
+/** Prints a simple message after clearing all messages that is shown to the player for the given duration */
+public function printTimedToPlayerClear(string msg, real duration, player p)
+	if GetLocalPlayer() == p
+		ClearTextMessages()
+	DisplayTimedTextToPlayer(p, 0., 0., duration, msg)
 
 /** Converts a boolean into a string */
 public function boolean.toString() returns string

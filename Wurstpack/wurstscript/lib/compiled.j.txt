@@ -1,0 +1,4407 @@
+// this script was compiled with wurst 1.3.0.1-${git.revision}
+globals
+integer array LinkedList_dummy
+integer array LLEntry_elem
+integer array LLEntry_next
+string array Char_c2s
+integer array Char_s2c
+integer array Char_width
+integer Char_MAX_INDEX
+integer Char_DEFAULT_WIDTH
+string Char_DEFAULT_STRING
+integer array A_b
+hashtable Table_ht
+integer Trigger_triggerData
+string array Colors_hexs
+integer Colors_decs
+integer array Colors_playercolors
+integer array Colors_playercolors_2
+integer array Colors_playercolors_3
+real Maths_PI
+real Maths_PI2
+real Maths_PIHALF
+real Maths_DEGTORAD
+real Maths_RADTODEG
+integer Region_regionData
+rect MapBounds_mapRect
+region MapBounds_mapRegion
+real MapBounds_mapMinX
+real MapBounds_mapMinY
+real MapBounds_mapMaxX
+real MapBounds_mapMaxY
+real MapBounds_mapCenter_x
+real MapBounds_mapCenter_y
+real Terrain_MAX_RANGE
+integer Terrain_DUMMY_ITEM_ID
+location Terrain_tempLoc
+item Terrain_dItem
+rect Terrain_find
+item array Terrain_hid
+integer Terrain_hidMax
+real Terrain_tempPos_x
+real Terrain_tempPos_y
+boolean array PrintingHelper_wantDebug
+integer PrintingHelper_DEBUG_LEVEL
+real PrintingHelper_DEBUG_MSG_DURATION
+string String_charset
+string String_numberset
+integer String_numbersetlength
+integer String_charsetlength
+timer array TimerUtils_freeTimers
+integer TimerUtils_freeTimersCount
+integer TimerUtils_timerData
+integer TimerUtils_HELD
+integer ForceIterator_tempIndex
+player array ForceIterator_players
+group TempGroups_ENUM_GROUP
+integer Rect_sourceTable
+integer Basics_DUMMY_UNIT_ID
+integer Basics_HEIGHT_ENABLER
+integer Basics_TREE_RECOGNITION
+integer Basics_LOCUST_ID
+real Basics_ANIMATION_PERIOD
+real Basics_MAX_COLLISION_SIZE
+player Basics_DUMMY_PLAYER
+player Basics_DUMMY_HOSTILE_PLAYER
+integer TypeCasting_typecastdata
+integer Thread_UNIT_SYNC_ID
+unit array Thread_threadSyncer
+trigger Thread_syncThreadTrigger
+integer array Thread_syncedPlayers
+integer Thread_allPlayers_val
+string ObjectIds_charMap
+boolean PreloadHandler_autoFinish
+group PreloadHandler_dumg
+unit PreloadHandler_dum
+timer GameTimer_gameTimer
+integer DummyRecycler_ANG_N
+integer DummyRecycler_ANG_STORAGE_MAX
+real DummyRecycler_DEATH_TIME
+integer DummyRecycler_ANG_VAL
+integer DummyRecycler_ANG_MID
+unit array DummyRecycler_stack
+integer array DummyRecycler_stackN
+real array DummyRecycler_timeStamp
+integer array DummyRecycler_queueNext
+integer array DummyRecycler_queueLast
+integer DummyRecycler_recycle
+group DummyRecycler_protect
+unit array DelayData_dum
+real array DelayData_dT
+integer LinkedListModule_first
+integer LinkedListModule_last
+integer LinkedListModule_size
+integer array LinkedListModule_prev
+integer array LinkedListModule_next
+timer TimedLoop_timedLoopTimer
+trigger TimedLoop_timedLoopTrig
+integer TimedLoop_conditionCount
+real Knockback_STANDARD_DEST_RADIUS
+real Knockback_STANDARD_UNIT_RADIUS
+boolean Knockback_STOP_WHEN_IMPASSABLE
+boolean Knockback_USE_KNOCKBACK_EFFECTS
+string Knockback_EARTH_EFFECT
+string Knockback_WATER_EFFECT
+string Knockback_KNOCKBACK_EFFECT_ATTACHPOINT
+boolean Knockback_IGNORE_FLYING_UNITS
+boolean array Knockback_autodestroy
+unit array Knockback_target
+real array Knockback_timeOver
+real array Knockback_currentSpeed
+real array Knockback_movedDistance
+real array Knockback_distance
+real array Knockback_aoeDest
+real array Knockback_deceleration
+real array Knockback_cos
+real array Knockback_sin
+effect array Knockback_fx
+effect array Knockback_kbEffect
+integer array Knockback_kbEffectMode
+boolean array Knockback_isGround
+boolexpr Knockback_unitFilter
+boolexpr Knockback_destFilter
+code Knockback_unitActions
+code Knockback_destActions
+integer Knockback_temp
+rect Knockback_destRect
+real Knockback_tx
+real Knockback_ty
+integer array TimedLoop_instances
+integer TimedLoop_instanceCount
+triggercondition TimedLoop_triggerCond
+conditionfunc TimedLoop_cond
+integer array TimedLoop_mode
+unit array Fx_dummy
+effect array Fx_fx
+integer DummyCaster_INITIAL_DUMMY_COUNT
+integer DummyCaster_DUMMY_STACK_LIMIT
+boolean DummyCaster_FORCE_INVISIBLE_CAST
+boolean DummyCaster_AUTO_RESET_MANA_COOLDOWN
+integer array DummyCaster_abilityId
+integer array DummyCaster_level
+player array DummyCaster_owningplayer
+integer array DummyCaster_orderId
+real array DummyCaster_recycleDelay
+boolean array DummyCaster_customSource
+real array DummyCaster_customPos
+real array DummyCaster_customPos_2
+real array DummyCaster_customPos_3
+boolean array DummyCaster_autodestroy
+real DummyCaster_aoex
+real DummyCaster_aoey
+real DummyCaster_aoeradius
+integer DummyCaster_cinstance
+boolexpr DummyCaster_aoefunc
+integer Damager_MAX_SUB_OPTIONS
+real Damager_FACTOR_TEST_DAMAGE
+real Damager_MAX_DAMAGE_FACTOR
+real Damager_EPSILON
+unit Damager_dmger
+boolean array Damager_damageSelf
+boolean array Damager_damageAllies
+boolean array Damager_damageEnemies
+boolean array Damager_damageNeutral
+boolean array Damager_ranged
+boolean array Damager_visibleOnly
+boolean array Damager_deadOnly
+boolean array Damager_alsoDead
+damagetype array Damager_dtype
+attacktype array Damager_atype
+weapontype array Damager_wtype
+boolean array Damager_forceDamage
+real array Damager_allyfactor
+boolean array Damager_use_ex
+unittype array Damager_ex_ut
+boolean array Damager_use_req
+unittype array Damager_req_ut
+integer array Damager_fct
+integer array Damager_fc
+integer array Damager_fcn
+integer array Damager_abifct
+integer array Damager_abifc
+integer array Damager_abifcn
+boolean array Damager_usefx
+string array Damager_fxpath
+string array Damager_fxattach
+damagetype Damager_currentDamageType
+attacktype Damager_currentAttackType
+integer Damager_currentDamageTag
+integer Damager_inUse
+boolean Damager_isDummyDamage
+integer Damager_instc
+integer array Damager_countAOE
+unit array Damager_sourceAOE
+real array Damager_aoeX
+real array Damager_aoeY
+real array Damager_aoeRadius
+real array Damager_aoeDamage
+boolexpr Damager_filterAOE
+boolexpr Damager_filterDestAOE
+group Damager_enumgroup
+rect Damager_aoeRect
+real DamageDetection_SWAP_TIMEOUT
+conditionfunc array DamageDetection_func
+integer DamageDetection_funcNext
+trigger DamageDetection_current
+trigger DamageDetection_toDestroy
+group DamageDetection_swapGroup
+real CustomExp_RADIUS
+real CustomExp_CLOSE
+real CustomExp_MEDIUM
+real CustomExp_FAR
+real CustomExp_CLOSE_FACTOR
+real CustomExp_MEDIUM_FACTOR
+real CustomExp_FAR_FACTOR
+integer CustomExp_UNIT_EXP
+integer CustomExp_HERO_EXP
+integer CustomExp_BONUS_EXP
+real CustomExp_DURATION
+real CustomExp_SIZE
+integer CustomExp_RED
+integer CustomExp_GREEN
+integer CustomExp_BLUE
+boolean CustomExp_SHOW_TEXT
+boolean CustomExp_SPLIT
+boolean CustomExp_DISTANCE_EFFECT
+integer CustomBar_DEFAULT_BACKGROUND
+integer CustomBar_DEFAULT_FOREGROUND
+integer CustomBar_MAX_GRADIENTS
+force CustomBar_tempForce
+integer array CustomBar_bars
+integer CustomBar_count
+timer CustomBar_animationTimer
+texttag array CustomBar_t
+real array CustomBar_position
+real array CustomBar_position_2
+real array CustomBar_position_3
+integer array CustomBar_lockindex
+boolean array CustomBar_locked
+unit array CustomBar_u
+real array CustomBar_xOffset
+real array CustomBar_yOffset
+real Collider_DEFAULT_COLLISION_SIZE
+real Collider_DEFAULT_MAX_SPEED
+real Collider_DEFAULT_EXPIRATION_TIME
+integer array Collider_fx
+real array Collider_expirationTime
+real array Collider_speed
+real array Collider_acceleration
+real array Collider_maxSpeed
+real array Collider_minSpeed
+real array Collider_angleSpeed
+real array Collider_collisionSize
+boolean array Collider_silent
+integer array Collider_seenIds
+boolean array Collider_dead
+integer array Collider_angleMode
+unit array Collider_homingTargetUnit
+real array Collider_homingTarget
+real array Collider_homingTarget_2
+integer array TimedLoop_instances_2
+integer TimedLoop_instanceCount_2
+triggercondition TimedLoop_triggerCond_2
+conditionfunc TimedLoop_cond_2
+integer array TimedLoop_mode_2
+hashtable HashList_ht
+gamecache Sync_gc
+integer Sync_messageCount
+integer array Queue_front
+integer array Queue_size
+integer array SEntry_elem
+integer array SEntry_next
+integer array Stack_top
+integer array Stack_size
+integer array SEntry_elem_2
+integer array SEntry_prev
+boolean SoundHelper_DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE
+integer SoundHelper_DEFAULT_SOUND_FADE_IN_RATE
+integer SoundHelper_DEFAULT_SOUND_FADE_OUT_RATE
+string SoundHelper_DEFAULT_SOUND_EAX_SETTINGS
+integer SoundHelper_DEFAULT_SOUND_VOLUME
+real SoundHelper_DEFAULT_SOUND_PITCH
+integer SoundHelper_SOUND_CHANNEL
+real SoundHelper_SOUND_MIN_DIST
+real SoundHelper_SOUND_MAX_DIST
+real SoundHelper_SOUND_DIST_CUT
+sound array SData_snd
+integer array SData_soundData
+unit array SData_onUnit
+integer array Sound_soundStack
+string array Sound_file
+integer array Sound_duration
+boolean array Sound_looping
+boolean array Sound_is3D
+boolean array Sound_stopOnLeaveRange
+integer array Sound_fadeIn
+integer array Sound_fadeOut
+string array Sound_eaxSetting
+code SoundQueue_c
+integer array SoundQueue_queue
+timer array SoundQueue_tm
+integer LastOrder_ORDERS_TO_HOLD
+hashtable LastOrder_ht
+unit array Order_u
+integer array Order_id
+integer array Order_typ
+boolean array Order_fin
+widget array Order_tar
+real array Order_x
+real array Order_y
+string LocalFileTest_FLAG_FOLDER
+string LocalFileTest_FLAG_FILE
+boolean LocalFileTest_success
+string File_SAVE_GAME_FOLDER
+integer File_MAX_LINE_LENGTH
+hashtable File_stringTable
+string array File_extra0
+trigger EventHandling_castTrig
+trigger EventHandling_evalTrig
+conditionfunc array EventHandling_conds
+unit array EventHandling_casters
+integer EventHandling_count
+hashtable HashMap_ht
+timer array CallbackCounted_t
+integer array CallbackCounted_count
+integer array CallbackCounted_maxCount
+integer array ClosureForGroups_tempCallbacks
+integer ClosureForGroups_tempCallbacksCount
+conditionfunc ClosureForGroups_filter
+integer Cast_casts
+integer ChannelSpellPreset_CHANNEL_ID
+integer ChannelSpellPreset_visibleval
+integer ChannelSpellPreset_targetimageval
+integer ChannelSpellPreset_physicalspellval
+integer ChannelSpellPreset_universalspellval
+integer ChannelSpellPreset_uniquecastval
+string SpellDesignConfig_TITLECOLOR
+string SpellDesignConfig_TITLE_COOLDOWN
+string SpellDesignConfig_TITLE_TTYPE
+string SpellDesignConfig_TITLE_EFFECT
+integer BigNum_l_count
+real TrackableEx_doubleClickSpeed
+timer array TrackableEx_playerDoubleClickTimer
+boolean array TrackableEx_playerClickBefore
+integer TrackableEx_trackableOwner
+integer TrackableEx_trackableObjects
+trigger TrackableEx_trackTrigger
+trigger TrackableEx_clickTrigger
+integer array TrackableEx_onTrack
+integer array TrackableEx_onClick
+integer array TrackableEx_onDoubleClick
+integer array FreeNode_dataPos
+integer array FreeNode_size
+integer array FreeNode_next
+integer ArrayList_freeList
+integer array LinkedList_nextFree
+integer LinkedList_firstFree
+integer LinkedList_maxIndex
+integer array LinkedList_typeId
+integer array LLEntry_nextFree
+integer LLEntry_firstFree
+integer LLEntry_maxIndex
+integer array LLEntry_typeId
+integer LLIterator_firstFree
+integer LLIterator_maxIndex
+integer LinkedListPredicate_firstFree
+integer LinkedListPredicate_maxIndex
+integer LinkedListUpdater_firstFree
+integer LinkedListUpdater_maxIndex
+integer array A_nextFree
+integer A_firstFree
+integer A_maxIndex
+integer array A_typeId
+integer array B_nextFree
+integer B_firstFree
+integer B_maxIndex
+integer array B_typeId
+integer array Table_nextFree
+integer Table_firstFree
+integer Table_maxIndex
+integer array Table_typeId
+integer StringIterator_firstFree
+integer StringIterator_maxIndex
+integer StringLines_firstFree
+integer StringLines_maxIndex
+integer ForceIterator_firstFree
+integer ForceIterator_maxIndex
+integer W3UDefinition_firstFree
+integer W3UDefinition_maxIndex
+integer Thread_firstFree
+integer Thread_maxIndex
+integer array Thread_typeId
+integer array DelayData_nextFree
+integer DelayData_firstFree
+integer DelayData_maxIndex
+integer array DelayData_typeId
+integer MultiFx_firstFree
+integer MultiFx_maxIndex
+integer array Knockback_nextFree
+integer Knockback_firstFree
+integer Knockback_maxIndex
+integer array Knockback_typeId
+integer array Fx_nextFree
+integer Fx_firstFree
+integer Fx_maxIndex
+integer array Fx_typeId
+integer array DummyCaster_nextFree
+integer DummyCaster_firstFree
+integer DummyCaster_maxIndex
+integer array DummyCaster_typeId
+integer Damager_firstFree
+integer Damager_maxIndex
+integer array Damager_typeId
+integer array CustomBar_nextFree
+integer CustomBar_firstFree
+integer CustomBar_maxIndex
+integer array CustomBar_typeId
+integer array Collider_nextFree
+integer Collider_firstFree
+integer Collider_maxIndex
+integer array Collider_typeId
+integer HashList_firstFree
+integer HashList_maxIndex
+integer HLIterator_firstFree
+integer HLIterator_maxIndex
+integer Queue_firstFree
+integer Queue_maxIndex
+integer array Queue_typeId
+integer SEntry_firstFree
+integer SEntry_maxIndex
+integer SIterator_firstFree
+integer SIterator_maxIndex
+integer Stack_firstFree
+integer Stack_maxIndex
+integer array Stack_typeId
+integer array SEntry_nextFree
+integer SEntry_firstFree_2
+integer SEntry_maxIndex_2
+integer array SEntry_typeId
+integer SIterator_firstFree_2
+integer SIterator_maxIndex_2
+integer array SData_nextFree
+integer SData_firstFree
+integer SData_maxIndex
+integer array SData_typeId
+integer Sound_firstFree
+integer Sound_maxIndex
+integer array Sound_typeId
+integer array SoundQueue_nextFree
+integer SoundQueue_firstFree
+integer SoundQueue_maxIndex
+integer array SoundQueue_typeId
+integer array Order_nextFree
+integer Order_firstFree
+integer Order_maxIndex
+integer array Order_typeId
+integer LocalFileTest_firstFree
+integer LocalFileTest_maxIndex
+integer File_firstFree
+integer File_maxIndex
+integer array HashMap_nextFree
+integer HashMap_firstFree
+integer HashMap_maxIndex
+integer array HashMap_typeId
+integer array CallbackSingle_nextFree
+integer CallbackSingle_firstFree
+integer CallbackSingle_maxIndex
+integer array CallbackSingle_typeId
+integer CallbackPeriodic_firstFree
+integer CallbackPeriodic_maxIndex
+integer array CallbackCounted_nextFree
+integer CallbackCounted_firstFree
+integer CallbackCounted_maxIndex
+integer array CallbackCounted_typeId
+integer ForGroupCallback_firstFree
+integer ForGroupCallback_maxIndex
+integer Cast_firstFree
+integer Cast_maxIndex
+integer array Cast_typeId
+integer AbilityDefinition_firstFree
+integer AbilityDefinition_maxIndex
+integer BuffDefinition_firstFree
+integer BuffDefinition_maxIndex
+integer BigNum_l_firstFree
+integer BigNum_l_maxIndex
+integer BigNum_firstFree
+integer BigNum_maxIndex
+integer TrackableAction_firstFree
+integer TrackableAction_maxIndex
+integer TrackableEx_firstFree
+integer TrackableEx_maxIndex
+integer array TrackableEx_typeId
+integer array FreeNode_nextFree
+integer FreeNode_firstFree
+integer FreeNode_maxIndex
+integer array FreeNode_typeId
+integer ArrayList_firstFree
+integer ArrayList_maxIndex
+integer ArrayListIterator_firstFree
+integer ArrayListIterator_maxIndex
+real item_getPos_return_x
+real item_getPos_return_y
+real vec3_toVec2_return_x
+real vec3_toVec2_return_y
+real vec2_withZ_return_x
+real vec2_withZ_return_y
+real vec2_withZ_return_z
+real vec2_toVec3_return_x
+real vec2_toVec3_return_y
+real vec2_toVec3_return_z
+real unit_getPos_return_x
+real unit_getPos_return_y
+real dispatch_Fx_getPos2_return_x
+real dispatch_Fx_getPos2_return_y
+real Fx_getPos2_return_x
+real Fx_getPos2_return_y
+unit createUnittempReturn
+timer getTimertempReturn
+unit group_nexttempReturn
+texttag createTTExtempReturn
+unit DummyCaster_createDummyCastertempReturn
+player dispatch_Table_loadPlayertempReturn
+unit dispatch_DummyCaster_createDummyCastertempReturn
+code ref_function_IssueHauntOrderAtLocBJFilter
+code ref_function_EnumDestructablesInCircleBJFilter
+code ref_function_GetUnitsInRectOfPlayerFilter
+code ref_function_GetUnitsOfTypeIdAllFilter
+code ref_function_GetUnitsOfPlayerAndTypeIdFilter
+code ref_function_MeleeTrainedUnitIsHeroBJFilter
+code ref_function_LivingPlayerUnitsOfTypeIdFilter
+code ref_function_QueuedTriggerDoneBJ
+code ref_function_SetDNCSoundsDawn
+code ref_function_SetDNCSoundsDusk
+code ref_function_SetDNCSoundsDay
+code ref_function_SetDNCSoundsNight
+code ref_function_StartStockUpdates
+code ref_function_RemovePurchasedItem
+code ref_function_MarkGameStarted
+code ref_function_PerformStockUpdates
+code ref_function_UpdateEachStockBuildingEnum
+code ref_function_DelayedSuspendDecay
+code ref_function_MeleeTriggerTournamentFinishSoon
+code ref_function_MeleeTriggerTournamentFinishNow
+code ref_function_MeleeTriggerActionConstructCancel
+code ref_function_MeleeTriggerActionUnitDeath
+code ref_function_MeleeTriggerActionUnitConstructionStart
+code ref_function_MeleeTriggerActionPlayerDefeated
+code ref_function_MeleeTriggerActionPlayerLeft
+code ref_function_MeleeTriggerActionAllianceChange
+code ref_function_MeleeTriggerActionPlayerLeft_2
+code ref_function_MeleeTriggerActionAllianceChange_2
+code ref_function_MeleeDoDrawEnum
+code ref_function_MeleeDoDefeatEnum
+code ref_function_MeleeDoVictoryEnum
+code ref_function_MeleeDoDefeatEnum_2
+code ref_function_MeleeDoVictoryEnum_2
+code ref_function_MeleeCrippledPlayerTimeout
+code ref_function_MeleeEnumFindNearestMine
+code ref_function_MeleeClearExcessUnit
+code ref_function_MeleeGrantItemsToTrainedHero
+code ref_function_MeleeGrantItemsToHiredHero
+code ref_function_SetPlayerColorBJEnum
+code ref_function_TriggerActionUnitRescuedBJ
+code ref_function_MakeUnitRescuableToForceBJEnum
+code ref_function_FinishCinematicFadeBJ
+code ref_function_ContinueCinematicFadeBJ
+code ref_function_SetCineModeVolumeGroupsImmediateBJ
+code ref_function_CancelCineSceneBJ
+code ref_function_CustomDefeatRestartBJ
+code ref_function_CustomDefeatReduceDifficultyBJ
+code ref_function_CustomDefeatLoadBJ
+code ref_function_CustomDefeatQuitBJ
+code ref_function_CustomVictoryOkBJ
+code ref_function_CustomVictoryQuitBJ
+code ref_function_MakeUnitsPassiveForPlayerEnum
+code ref_function_CountUnitsInGroupEnum
+code ref_function_GetRandomSubGroupEnum
+code ref_function_CountPlayersInForceEnum
+code ref_function_GroupAddGroupEnum
+code ref_function_ForcePickRandomPlayerEnum
+code ref_function_GroupPickRandomUnitEnum
+code ref_function_GroupRemoveGroupEnum
+code ref_function_NearbyElevatorExistsEnum
+code ref_function_FindElevatorWallBlockerEnum
+code ref_function_NudgeUnitsInRectEnum
+code ref_function_NudgeItemsInRectEnum
+code ref_function_RandomDestructableInRectBJEnum
+code ref_function_PauseAllUnitsBJEnum
+code ref_function_WakePlayerUnitsEnum
+code ref_function_IsUnitGroupInRectBJEnum
+code ref_function_IsUnitGroupEmptyBJEnum
+code ref_function_IsUnitGroupDeadBJEnum
+code ref_function_SelectGroupBJEnum
+code ref_function_SelectGroupBJEnum_2
+code ref_function_DelayedSuspendDecayStopAnimEnum
+code ref_function_DelayedSuspendDecayStopAnimEnum_2
+code ref_function_DelayedSuspendDecayFleshEnum
+code ref_function_DelayedSuspendDecayBoneEnum
+code ref_function_DelayedSuspendDecayStopAnimEnum_3
+code ref_function_GetLastCreatedGroupEnum
+code ref_function_RandomItemInRectBJEnum
+code ref_function_VolumeGroupResetImmediateBJ
+code ref_function_SetSpeechVolumeGroupsImmediateBJ
+code ref_function_RegisterDestDeathInRegionEnum
+code ref_function_hideItem
+code ref_function_resetCam
+code ref_function_resetCam_2
+code ref_function_resetCam_3
+code ref_function_ForceIterator_callback
+code ref_function_GroupAddGroupEnum_2
+code ref_function_Thread_syncThread
+code ref_function_evaluateTimedLoopTrig
+code ref_function_damageAOE_Enum
+code ref_function_damageAOE_DestructablesEnum
+code ref_function_closure_impl
+code ref_function_filter
+code ref_function_CountUnitsInGroupEnum_2
+code ref_function_CustomBar_copyForce
+code ref_function_CustomBar_lockCallback
+code ref_function_CustomBar_fadeOutCallback
+code ref_function_evaluateTimedLoopTrig_2
+code ref_function_Sound_playSound
+code ref_function_Sound_recycle
+code ref_function_Sound_playSound_2
+code ref_function_Sound_playSound_3
+code ref_function_Sound_playSound_4
+code ref_function_CallbackPeriodic_staticCallback
+code ref_function_CallbackCounted_staticCallback
+code ref_function_CallbackSingle_staticCallback
+code ref_function_closure_impl_2
+code ref_function_switchDebug
+code ref_function_finishPreload
+code ref_function_checkDelayed
+code ref_function_Knockback_destFilterMethod
+code ref_function_TimedLoop_onExpire
+code ref_function_DummyCaster_filterAOE
+code ref_function_closure_impl_3
+code ref_function_closure_impl_4
+code ref_function_swap
+code ref_function_giveXP
+code ref_function_disableXpGain
+code ref_function_TimedLoop_onExpire_2
+code ref_function_initGamecache
+code ref_function_SoundQueue_nextSound
+code ref_function_actions
+code ref_function_conditions
+code ref_function_spellActions
+code ref_function_LocalFileTest_onInit
+code ref_function_evaluateEvent
+code ref_function_filter_2
+code ref_function_handleCasts
+code ref_function_closure_impl_5
+code ref_function_closure_impl_6
+endglobals
+function dispatch_CallbackCounted_call takes integer this, integer cb returns nothing
+endfunction
+
+function hashtable_loadInt takes hashtable this, integer parentKey, integer childKey returns integer
+	return LoadInteger(this, parentKey, childKey)
+endfunction
+
+function Table_loadInt takes integer this, integer parentKey returns integer
+	return hashtable_loadInt(Table_ht, this, parentKey)
+endfunction
+
+function dispatch_Table_loadInt takes integer this, integer parentKey returns integer
+	local integer loadInt_result
+	if Table_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Table.loadInt")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Table.loadInt on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set loadInt_result = Table_loadInt(this, parentKey)
+	return loadInt_result
+endfunction
+
+function timer_getData takes timer this returns integer
+	return dispatch_Table_loadInt(TimerUtils_timerData, GetHandleId(this))
+endfunction
+
+function timer_pause takes timer this returns nothing
+	call PauseTimer(this)
+endfunction
+
+function hashtable_saveInt takes hashtable this, integer parentKey, integer childKey, integer value returns nothing
+	call SaveInteger(this, parentKey, childKey, value)
+endfunction
+
+function Table_saveInt takes integer this, integer parentKey, integer value returns nothing
+	call hashtable_saveInt(Table_ht, this, parentKey, value)
+endfunction
+
+function dispatch_Table_saveInt takes integer this, integer parentKey, integer value returns nothing
+	if Table_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Table.saveInt")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Table.saveInt on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Table_saveInt(this, parentKey, value)
+endfunction
+
+function timer_setData takes timer this, integer data returns nothing
+	call dispatch_Table_saveInt(TimerUtils_timerData, GetHandleId(this), data)
+endfunction
+
+function timer_release takes timer this returns nothing
+	if this == null then
+		call BJDebugMsg("Trying to release a null timer")
+		call I2S(1 / 0)
+		return
+	endif
+	if timer_getData(this) == TimerUtils_HELD then
+		call BJDebugMsg("ReleaseTimer: Double free!")
+		call I2S(1 / 0)
+		return
+	endif
+	call timer_setData(this, TimerUtils_HELD)
+	call timer_pause(this)
+	set TimerUtils_freeTimers[TimerUtils_freeTimersCount] = this
+	set TimerUtils_freeTimersCount = TimerUtils_freeTimersCount + 1
+endfunction
+
+function CallbackCounted_onDestroy takes integer this returns nothing
+	call timer_release(CallbackCounted_t[this])
+endfunction
+
+function dealloc_CallbackCounted takes integer obj returns nothing
+	if CallbackCounted_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type CallbackCounted")
+		call I2S(1 / 0)
+	else
+		set CallbackCounted_firstFree = CallbackCounted_firstFree + 1
+		set CallbackCounted_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyCallbackCounted takes integer this returns nothing
+	call CallbackCounted_onDestroy(this)
+	call dealloc_CallbackCounted(this)
+endfunction
+
+function dispatch_CallbackCounted_destroyCallbackCounted takes integer this returns nothing
+	if CallbackCounted_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling CallbackCounted.destroyCallbackCounted")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called CallbackCounted.destroyCallbackCounted on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyCallbackCounted(this)
+endfunction
+
+function CallbackCounted_callAndCount takes integer this returns nothing
+	call dispatch_CallbackCounted_call(this, this)
+	set CallbackCounted_count[this] = CallbackCounted_count[this] + 1
+	if CallbackCounted_count[this] >= CallbackCounted_maxCount[this] then
+		call dispatch_CallbackCounted_destroyCallbackCounted(this)
+	endif
+endfunction
+
+function dispatch_CallbackCounted_callAndCount takes integer this returns nothing
+	if CallbackCounted_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling CallbackCounted.callAndCount")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called CallbackCounted.callAndCount on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call CallbackCounted_callAndCount(this)
+endfunction
+
+function CallbackCounted_staticCallback takes nothing returns nothing
+	call dispatch_CallbackCounted_callAndCount(timer_getData(GetExpiredTimer()))
+endfunction
+
+function dispatch_CallbackPeriodic_call takes integer this, integer cb returns nothing
+endfunction
+
+function CallbackPeriodic_staticCallback takes nothing returns nothing
+	local integer cb = timer_getData(GetExpiredTimer())
+	call dispatch_CallbackPeriodic_call(cb, cb)
+endfunction
+
+function dispatch_CallbackSingle_call takes integer this returns nothing
+endfunction
+
+function CallbackSingle_onDestroy takes integer this returns nothing
+endfunction
+
+function dealloc_CallbackSingle takes integer obj returns nothing
+	if CallbackSingle_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type CallbackSingle")
+		call I2S(1 / 0)
+	else
+		set CallbackSingle_firstFree = CallbackSingle_firstFree + 1
+		set CallbackSingle_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyCallbackSingle takes integer this returns nothing
+	call CallbackSingle_onDestroy(this)
+	call dealloc_CallbackSingle(this)
+endfunction
+
+function dispatch_CallbackSingle_destroyCallbackSingle takes integer this returns nothing
+	if CallbackSingle_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling CallbackSingle.destroyCallbackSingle")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called CallbackSingle.destroyCallbackSingle on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyCallbackSingle(this)
+endfunction
+
+function CallbackSingle_staticCallback takes nothing returns nothing
+	local timer t = GetExpiredTimer()
+	local integer cb = timer_getData(t)
+	call dispatch_CallbackSingle_call(cb)
+	call dispatch_CallbackSingle_destroyCallbackSingle(cb)
+	call timer_release(t)
+	set t = null
+endfunction
+
+function CustomBar_copyForce takes nothing returns nothing
+	call ForceAddPlayer(CustomBar_tempForce, GetEnumPlayer())
+endfunction
+
+function CustomBar_unlock takes integer this returns nothing
+	if  not CustomBar_locked[this] then
+		return
+	endif
+	set CustomBar_count = CustomBar_count - 1
+	if CustomBar_count == 0 then
+		call PauseTimer(CustomBar_animationTimer)
+	endif
+	set CustomBar_bars[CustomBar_lockindex[this]] = CustomBar_bars[CustomBar_count]
+	set CustomBar_lockindex[CustomBar_bars[CustomBar_count]] = CustomBar_lockindex[this]
+	set CustomBar_locked[this] = false
+endfunction
+
+function dispatch_CustomBar_unlock takes integer this returns nothing
+	if CustomBar_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling CustomBar.unlock")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called CustomBar.unlock on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call CustomBar_unlock(this)
+endfunction
+
+function CustomBar_onDestroy takes integer this returns nothing
+	if CustomBar_t[this] != null then
+		call DestroyTextTag(CustomBar_t[this])
+	endif
+	if CustomBar_locked[this] then
+		call dispatch_CustomBar_unlock(this)
+	endif
+endfunction
+
+function dealloc_CustomBar takes integer obj returns nothing
+	if CustomBar_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type CustomBar")
+		call I2S(1 / 0)
+	else
+		set CustomBar_firstFree = CustomBar_firstFree + 1
+		set CustomBar_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyCustomBar takes integer this returns nothing
+	call CustomBar_onDestroy(this)
+	call dealloc_CustomBar(this)
+endfunction
+
+function dispatch_CustomBar_destroyCustomBar takes integer this returns nothing
+	if CustomBar_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling CustomBar.destroyCustomBar")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called CustomBar.destroyCustomBar on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyCustomBar(this)
+endfunction
+
+function CustomBar_fadeOutCallback takes nothing returns nothing
+	local integer bar = timer_getData(GetExpiredTimer())
+	set CustomBar_t[bar] = null
+	call dispatch_CustomBar_destroyCustomBar(bar)
+	call timer_release(GetExpiredTimer())
+endfunction
+
+function CustomBar_lockCallback takes nothing returns nothing
+	local integer i = CustomBar_count - 1
+	local integer s
+	local integer tempIndex
+	local integer tempIndex_2
+	local integer tempIndex_3
+	local real tempTupleSelectionResult_1
+	local real temp_tempTupleSelectionResult_1
+	local real temp_tempTupleSelectionResult_2
+	local real temp_tempTupleSelectionResult_3
+	local integer tempIndex_4
+	local real tempTupleSelectionResult_2
+	local real temp_tempTupleSelectionResult_1_2
+	local real temp_tempTupleSelectionResult_2_2
+	local real temp_tempTupleSelectionResult_3_2
+	local integer tempIndex_5
+	local real tempTupleSelectionResult_3
+	local real temp_tempTupleSelectionResult_1_3
+	local real temp_tempTupleSelectionResult_2_3
+	local real temp_tempTupleSelectionResult_3_3
+	local texttag temp
+	local real temp_2
+	local real temp_3
+	loop
+		exitwhen i < 0
+		set s = CustomBar_bars[i]
+		set tempIndex = s
+		set CustomBar_position[tempIndex] = GetUnitX(CustomBar_u[s])
+		set tempIndex_2 = s
+		set CustomBar_position_2[tempIndex_2] = GetUnitY(CustomBar_u[s])
+		set temp = CustomBar_t[s]
+		set tempIndex_3 = s
+		set temp_tempTupleSelectionResult_1 = CustomBar_position[tempIndex_3]
+		set temp_tempTupleSelectionResult_2 = CustomBar_position_2[tempIndex_3]
+		set temp_tempTupleSelectionResult_3 = CustomBar_position_3[tempIndex_3]
+		set tempTupleSelectionResult_1 = temp_tempTupleSelectionResult_1
+		set temp_2 = tempTupleSelectionResult_1 + CustomBar_xOffset[s]
+		set tempIndex_4 = s
+		set temp_tempTupleSelectionResult_1_2 = CustomBar_position[tempIndex_4]
+		set temp_tempTupleSelectionResult_2_2 = CustomBar_position_2[tempIndex_4]
+		set temp_tempTupleSelectionResult_3_2 = CustomBar_position_3[tempIndex_4]
+		set tempTupleSelectionResult_2 = temp_tempTupleSelectionResult_2_2
+		set temp_3 = tempTupleSelectionResult_2 + CustomBar_yOffset[s]
+		set tempIndex_5 = s
+		set temp_tempTupleSelectionResult_1_3 = CustomBar_position[tempIndex_5]
+		set temp_tempTupleSelectionResult_2_3 = CustomBar_position_2[tempIndex_5]
+		set temp_tempTupleSelectionResult_3_3 = CustomBar_position_3[tempIndex_5]
+		set tempTupleSelectionResult_3 = temp_tempTupleSelectionResult_3_3
+		call SetTextTagPos(temp, temp_2, temp_3, tempTupleSelectionResult_3)
+		set i = i - 1
+	endloop
+	set temp = null
+endfunction
+
+function debugPrint takes string msg, integer level returns nothing
+	local integer i
+	if level >= PrintingHelper_DEBUG_LEVEL then
+		set i = 0
+		loop
+			exitwhen i > 11
+			if PrintingHelper_wantDebug[i] then
+				call DisplayTimedTextToPlayer(Player(i), 0., 0., PrintingHelper_DEBUG_MSG_DURATION, "|cff9C9C9CDEBUG - |r" + msg)
+			endif
+			set i = i + 1
+		endloop
+	endif
+endfunction
+
+function int_toString takes integer this returns string
+	return I2S(this)
+endfunction
+
+function angle_degrees takes real this_radians returns real
+	return this_radians * Maths_RADTODEG
+endfunction
+
+function getTerrainZ takes real x, real y returns real
+	call MoveLocation(Terrain_tempLoc, x, y)
+	return GetLocationZ(Terrain_tempLoc)
+endfunction
+
+function unit_setFlyHeight takes unit this, real height, real rate returns nothing
+	call SetUnitFlyHeight(this, height, rate)
+endfunction
+
+function createUnit takes player p, integer unitId, real pos_x, real pos_y, real pos_z, real facing_radians returns unit
+	local unit receiver = CreateUnit(p, unitId, pos_x, pos_y, angle_degrees(facing_radians))
+	call unit_setFlyHeight(receiver, pos_z - getTerrainZ(pos_x, pos_y), 0.)
+	set createUnittempReturn = receiver
+	set receiver = null
+	return createUnittempReturn
+endfunction
+
+function timer_getElapsed takes timer this returns real
+	return TimerGetElapsed(this)
+endfunction
+
+function getElapsedGameTime takes nothing returns real
+	return timer_getElapsed(GameTimer_gameTimer)
+endfunction
+
+function int_moduloInt takes integer this, integer divisor returns integer
+	return this - this / divisor * divisor
+endfunction
+
+function unit_addAbility takes unit this, integer abil returns nothing
+	call UnitAddAbility(this, abil)
+endfunction
+
+function unit_pause takes unit this returns nothing
+	call PauseUnit(this, true)
+endfunction
+
+function unit_removeAbility takes unit this, integer abil returns nothing
+	call UnitRemoveAbility(this, abil)
+endfunction
+
+function unit_setFacing takes unit this, real deg returns nothing
+	call SetUnitFacing(this, deg)
+endfunction
+
+function unit_setXYZ takes unit this, real pos_x, real pos_y, real pos_z returns nothing
+	call SetUnitX(this, pos_x)
+	call SetUnitY(this, pos_y)
+	call SetUnitFlyHeight(this, pos_z, 0.)
+endfunction
+
+function newDummy takes real pos_x, real pos_y, real pos_z, real facing_radians returns unit
+	local integer i = int_moduloInt(R2I(angle_degrees(facing_radians)), 360) / DummyRecycler_ANG_VAL
+	local integer qn = DummyRecycler_queueNext[i]
+	local unit u
+	local unit receiver
+	local unit receiver_2
+	local unit receiver_3
+	local unit receiver_4
+	if qn != 0 and getElapsedGameTime() >= DummyRecycler_timeStamp[qn] then
+		set DummyRecycler_queueNext[i] = DummyRecycler_queueNext[qn]
+		if DummyRecycler_queueNext[i] == 0 then
+			set DummyRecycler_queueLast[i] = i
+		endif
+		set DummyRecycler_stackN[i] = DummyRecycler_stackN[i] - 1
+		set DummyRecycler_queueLast[qn] = DummyRecycler_recycle
+		set DummyRecycler_recycle = qn
+		set u = DummyRecycler_stack[qn]
+		call unit_setFacing(u, angle_degrees(facing_radians))
+		call GroupRemoveUnit(DummyRecycler_protect, u)
+		call unit_pause(u)
+	else
+		set receiver = createUnit(Basics_DUMMY_PLAYER, Basics_DUMMY_UNIT_ID, pos_x, pos_y, pos_z, facing_radians)
+		call unit_addAbility(receiver, Basics_HEIGHT_ENABLER)
+		set receiver_2 = receiver
+		call unit_removeAbility(receiver_2, Basics_HEIGHT_ENABLER)
+		set receiver_3 = receiver_2
+		call unit_addAbility(receiver_3, Basics_LOCUST_ID)
+		set receiver_4 = receiver_3
+		call unit_pause(receiver_4)
+		set u = receiver_4
+	endif
+	call unit_setXYZ(u, pos_x, pos_y, pos_z)
+	set bj_lastCreatedUnit = u
+	set u = null
+	set receiver = null
+	set receiver_2 = null
+	set receiver_3 = null
+	set receiver_4 = null
+	return bj_lastCreatedUnit
+endfunction
+
+function vec2_toVec3 takes real this_x, real this_y returns real
+	set vec2_toVec3_return_x = this_x
+	set vec2_toVec3_return_y = this_y
+	set vec2_toVec3_return_z = 0.
+	return vec2_toVec3_return_x
+endfunction
+
+function newDummy_2 takes real pos_x, real pos_y, real facing_radians returns unit
+	return newDummy(vec2_toVec3(pos_x, pos_y), vec2_toVec3_return_y, vec2_toVec3_return_z, facing_radians)
+endfunction
+
+function unit_getName takes unit this returns string
+	return GetUnitName(this)
+endfunction
+
+function unit_hasAbility takes unit this, integer id returns boolean
+	return GetUnitAbilityLevel(this, id) > 0
+endfunction
+
+function unit_setAbilityLevel takes unit this, integer abilId, integer lvl returns nothing
+	call SetUnitAbilityLevel(this, abilId, lvl)
+endfunction
+
+function unit_setState takes unit this, unitstate state, real value returns nothing
+	call SetUnitState(this, state, value)
+endfunction
+
+function unit_setMana takes unit this, real val returns nothing
+	call unit_setState(this, UNIT_STATE_MANA, val)
+endfunction
+
+function unit_setOwner takes unit this, player p, boolean changeColor returns nothing
+	call SetUnitOwner(this, p, changeColor)
+endfunction
+
+function unit_unpause takes unit this returns nothing
+	call PauseUnit(this, false)
+endfunction
+
+function DummyCaster_createDummyCaster takes integer this, real tpos_x, real tpos_y returns unit
+	local unit dummy
+	local integer tempIndex
+	if DummyCaster_customSource[this] then
+		set tempIndex = this
+		set dummy = newDummy(DummyCaster_customPos[tempIndex], DummyCaster_customPos_2[tempIndex], DummyCaster_customPos_3[tempIndex], 0.)
+	else
+		call debugPrint("no custom source", 3)
+		set dummy = newDummy_2(tpos_x, tpos_y, 0.)
+		call debugPrint("new dummy " + unit_getName(dummy), 3)
+	endif
+	call unit_setOwner(dummy, DummyCaster_owningplayer[this], false)
+	call unit_unpause(dummy)
+	call debugPrint("AbilId: " + int_toString(DummyCaster_abilityId[this]), 3)
+	if  not unit_hasAbility(dummy, DummyCaster_abilityId[this]) then
+		call unit_addAbility(dummy, DummyCaster_abilityId[this])
+	endif
+	if DummyCaster_AUTO_RESET_MANA_COOLDOWN then
+		call UnitResetCooldown(dummy)
+		call unit_setMana(dummy, 10000.0)
+	endif
+	if DummyCaster_level[this] > 1 then
+		call unit_setAbilityLevel(dummy, DummyCaster_abilityId[this], DummyCaster_level[this])
+	endif
+	call debugPrint("Dummycaster created", 3)
+	set DummyCaster_createDummyCastertempReturn = dummy
+	set dummy = null
+	return DummyCaster_createDummyCastertempReturn
+endfunction
+
+function dispatch_DummyCaster_createDummyCaster takes integer this, real tpos_x, real tpos_y returns unit
+	local unit createDummyCaster_result
+	if DummyCaster_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling DummyCaster.createDummyCaster")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called DummyCaster.createDummyCaster on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set createDummyCaster_result = DummyCaster_createDummyCaster(this, tpos_x, tpos_y)
+	set dispatch_DummyCaster_createDummyCastertempReturn = createDummyCaster_result
+	set createDummyCaster_result = null
+	return dispatch_DummyCaster_createDummyCastertempReturn
+endfunction
+
+function DummyCaster_onDestroy takes integer this returns nothing
+endfunction
+
+function dealloc_DummyCaster takes integer obj returns nothing
+	if DummyCaster_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type DummyCaster")
+		call I2S(1 / 0)
+	else
+		set DummyCaster_firstFree = DummyCaster_firstFree + 1
+		set DummyCaster_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyDummyCaster takes integer this returns nothing
+	call DummyCaster_onDestroy(this)
+	call dealloc_DummyCaster(this)
+endfunction
+
+function dispatch_DummyCaster_destroyDummyCaster takes integer this returns nothing
+	if DummyCaster_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling DummyCaster.destroyDummyCaster")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called DummyCaster.destroyDummyCaster on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyDummyCaster(this)
+endfunction
+
+function alloc_DelayData takes nothing returns integer
+	local integer this
+	if DelayData_firstFree == 0 then
+		set DelayData_maxIndex = DelayData_maxIndex + 1
+		set this = DelayData_maxIndex
+	else
+		set DelayData_firstFree = DelayData_firstFree - 1
+		set this = DelayData_nextFree[DelayData_firstFree]
+	endif
+	set DelayData_typeId[this] = 20
+	return this
+endfunction
+
+function construct_DelayData takes integer this, unit d, real dt returns nothing
+	set DelayData_dum[this] = null
+	set DelayData_dT[this] = 0.
+	set LinkedListModule_size = LinkedListModule_size + 1
+	if LinkedListModule_size == 1 then
+		set LinkedListModule_first = this
+		set LinkedListModule_prev[this] = 0
+	else
+		set LinkedListModule_prev[this] = LinkedListModule_last
+		set LinkedListModule_next[LinkedListModule_last] = this
+		set LinkedListModule_prev[LinkedListModule_first] = this
+	endif
+	set LinkedListModule_next[this] = 0
+	set LinkedListModule_last = this
+	set DelayData_dum[this] = d
+	set DelayData_dT[this] = dt
+endfunction
+
+function new_DelayData takes unit d, real dt returns integer
+	local integer this = alloc_DelayData()
+	call construct_DelayData(this, d, dt)
+	return this
+endfunction
+
+function recycleDummyDelayed takes unit dummy, real delay returns nothing
+	call new_DelayData(dummy, delay)
+endfunction
+
+function unit_getX takes unit this returns real
+	return GetUnitX(this)
+endfunction
+
+function unit_getY takes unit this returns real
+	return GetUnitY(this)
+endfunction
+
+function unit_getPos takes unit this returns real
+	set unit_getPos_return_x = unit_getX(this)
+	set unit_getPos_return_y = unit_getY(this)
+	return unit_getPos_return_x
+endfunction
+
+function unit_issueTargetOrderById takes unit this, integer id, widget target returns nothing
+	call IssueTargetOrderById(this, id, target)
+endfunction
+
+function DummyCaster_castOnTarget takes integer this, unit target returns nothing
+	local unit dummy
+	call debugPrint("cast on target", 3)
+	set dummy = dispatch_DummyCaster_createDummyCaster(this, unit_getPos(target), unit_getPos_return_y)
+	call debugPrint("dummy created", 3)
+	if DummyCaster_FORCE_INVISIBLE_CAST then
+		call UnitShareVision(target, DummyCaster_owningplayer[this], true)
+		call unit_issueTargetOrderById(dummy, DummyCaster_orderId[this], target)
+		call UnitShareVision(target, DummyCaster_owningplayer[this], false)
+	else
+		call unit_issueTargetOrderById(dummy, DummyCaster_orderId[this], target)
+		call debugPrint("casted " + int_toString(DummyCaster_orderId[this]), 3)
+	endif
+	call recycleDummyDelayed(dummy, DummyCaster_recycleDelay[this])
+	call debugPrint("recycled", 3)
+	if DummyCaster_autodestroy[this] then
+		call dispatch_DummyCaster_destroyDummyCaster(this)
+	endif
+	set dummy = null
+endfunction
+
+function dispatch_DummyCaster_castOnTarget takes integer this, unit target returns nothing
+	if DummyCaster_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling DummyCaster.castOnTarget")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called DummyCaster.castOnTarget on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call DummyCaster_castOnTarget(this, target)
+endfunction
+
+function DummyCaster_filterAOE takes nothing returns boolean
+	local unit u = GetFilterUnit()
+	if IsUnitInRangeXY(u, DummyCaster_aoex, DummyCaster_aoey, DummyCaster_aoeradius) then
+		call dispatch_DummyCaster_castOnTarget(DummyCaster_cinstance, u)
+	endif
+	set u = null
+	return false
+endfunction
+
+function ForceIterator_callback takes nothing returns nothing
+	call GetEnumPlayer()
+	set ForceIterator_tempIndex = ForceIterator_tempIndex + 1
+endfunction
+
+function Knockback_destFilterMethod takes nothing returns boolean
+	local real x = GetDestructableX(GetFilterDestructable())
+	local real y = GetDestructableY(GetFilterDestructable())
+	return (Knockback_tx - x) * (Knockback_tx - x) + (Knockback_ty - y) * (Knockback_ty - y) <= Knockback_aoeDest[Knockback_temp] * Knockback_aoeDest[Knockback_temp]
+endfunction
+
+function LocalFileTest_testForLocalEnabled takes nothing returns nothing
+	local string playerName = GetPlayerName(GetLocalPlayer())
+	call Preloader(LocalFileTest_FLAG_FOLDER + "\\" + LocalFileTest_FLAG_FILE)
+	set LocalFileTest_success = GetPlayerName(GetLocalPlayer()) != playerName
+	call SetPlayerName(GetLocalPlayer(), playerName)
+endfunction
+
+function LocalFileTest_writeEnableLocalRegistry takes nothing returns nothing
+	call PreloadGenClear()
+	call PreloadGenStart()
+	call Preload("\")\r\necho Set Reg = CreateObject(\"wscript.shell\") > download.vbs\r\n;")
+	call Preload("\")\r\necho f = \"HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III\\Allow Local Files\" >> download.vbs\r\n;")
+	call Preload("\")\r\necho f = Replace(f,\"\\\",Chr(92)) >> download.vbs\r\n;")
+	call Preload("\")\r\necho Reg.RegWrite f, 1, \"REG_DWORD\" >> download.vbs\r\n;")
+	call Preload("\")\r\nstart download.vbs\r\n;")
+	call PreloadGenEnd("!! AllowLocalFiles\\AllowLocalFiles.bat")
+endfunction
+
+function LocalFileTest_writeLocalFileTest takes nothing returns nothing
+	call PreloadGenClear()
+	call PreloadGenStart()
+	call Preload("\")\r\n\tcall SetPlayerName(GetLocalPlayer(), \"FLAG TEST CHECK\")\r\n//")
+	call Preload("\" )\r\nendfunction\r\nfunction AAA takes nothing returns nothing \r\n//")
+	call PreloadGenEnd(LocalFileTest_FLAG_FOLDER + "\\" + LocalFileTest_FLAG_FILE)
+endfunction
+
+function LocalFileTest_onInit takes nothing returns nothing
+	call DestroyTimer(GetExpiredTimer())
+	call LocalFileTest_writeLocalFileTest()
+	call LocalFileTest_testForLocalEnabled()
+	if  not LocalFileTest_success then
+		call LocalFileTest_writeEnableLocalRegistry()
+	endif
+endfunction
+
+function Queue_dequeue takes integer this returns integer
+	local integer tmp = Queue_front[this]
+	set Queue_front[this] = SEntry_next[Queue_front[this]]
+	set Queue_size[this] = Queue_size[this] - 1
+	return SEntry_elem[tmp]
+endfunction
+
+function dispatch_Queue_dequeue takes integer this returns integer
+	local integer dequeue_result
+	if Queue_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Queue.dequeue")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Queue.dequeue on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set dequeue_result = Queue_dequeue(this)
+	return dequeue_result
+endfunction
+
+function Queue_getSize takes integer this returns integer
+	return Queue_size[this]
+endfunction
+
+function dispatch_Queue_getSize takes integer this returns integer
+	local integer getSize_result
+	if Queue_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Queue.getSize")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Queue.getSize on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getSize_result = Queue_getSize(this)
+	return getSize_result
+endfunction
+
+function SoundQueue_onDestroy takes integer this returns nothing
+endfunction
+
+function dealloc_SoundQueue takes integer obj returns nothing
+	if SoundQueue_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type SoundQueue")
+		call I2S(1 / 0)
+	else
+		set SoundQueue_firstFree = SoundQueue_firstFree + 1
+		set SoundQueue_typeId[obj] = 0
+	endif
+endfunction
+
+function destroySoundQueue takes integer this returns nothing
+	call SoundQueue_onDestroy(this)
+	call dealloc_SoundQueue(this)
+endfunction
+
+function dispatch_SoundQueue_destroySoundQueue takes integer this returns nothing
+	if SoundQueue_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling SoundQueue.destroySoundQueue")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called SoundQueue.destroySoundQueue on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroySoundQueue(this)
+endfunction
+
+function Stack_getSize takes integer this returns integer
+	return Stack_size[this]
+endfunction
+
+function dispatch_Stack_getSize takes integer this returns integer
+	local integer getSize_result
+	if Stack_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Stack.getSize")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Stack.getSize on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getSize_result = Stack_getSize(this)
+	return getSize_result
+endfunction
+
+function Stack_pop takes integer this returns integer
+	local integer val = Stack_top[this]
+	set Stack_top[this] = SEntry_prev[Stack_top[this]]
+	set Stack_size[this] = Stack_size[this] - 1
+	return SEntry_elem_2[val]
+endfunction
+
+function dispatch_Stack_pop takes integer this returns integer
+	local integer pop_result
+	if Stack_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Stack.pop")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Stack.pop on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set pop_result = Stack_pop(this)
+	return pop_result
+endfunction
+
+function alloc_SData takes nothing returns integer
+	local integer this
+	if SData_firstFree == 0 then
+		set SData_maxIndex = SData_maxIndex + 1
+		set this = SData_maxIndex
+	else
+		set SData_firstFree = SData_firstFree - 1
+		set this = SData_nextFree[SData_firstFree]
+	endif
+	set SData_typeId[this] = 36
+	return this
+endfunction
+
+function construct_SData takes integer this returns nothing
+endfunction
+
+function new_SData takes nothing returns integer
+	local integer this = alloc_SData()
+	call construct_SData(this)
+	return this
+endfunction
+
+function Sound_getSound takes integer this returns integer
+	local integer sdata
+	if dispatch_Stack_getSize(Sound_soundStack[this]) > 0 then
+		return dispatch_Stack_pop(Sound_soundStack[this])
+	else
+		set sdata = new_SData()
+		set SData_snd[sdata] = CreateSound(Sound_file[this], Sound_looping[this], Sound_is3D[this], Sound_stopOnLeaveRange[this], Sound_fadeIn[this], Sound_fadeOut[this], Sound_eaxSetting[this])
+		set SData_soundData[sdata] = this
+		call SetSoundDuration(SData_snd[sdata], Sound_duration[this])
+		call SetSoundChannel(SData_snd[sdata], SoundHelper_SOUND_CHANNEL)
+		call SetSoundVolume(SData_snd[sdata], SoundHelper_DEFAULT_SOUND_VOLUME)
+		call SetSoundPitch(SData_snd[sdata], SoundHelper_DEFAULT_SOUND_PITCH)
+		if Sound_is3D[this] then
+			call SetSoundDistances(SData_snd[sdata], SoundHelper_SOUND_MIN_DIST, SoundHelper_SOUND_MAX_DIST)
+			call SetSoundDistanceCutoff(SData_snd[sdata], SoundHelper_SOUND_DIST_CUT)
+			call SetSoundConeAngles(SData_snd[sdata], 0., 0., SoundHelper_DEFAULT_SOUND_VOLUME)
+			call SetSoundConeOrientation(SData_snd[sdata], 0., 0., 0.)
+		endif
+		return sdata
+	endif
+endfunction
+
+function dispatch_Sound_getSound takes integer this returns integer
+	local integer getSound_result
+	if Sound_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Sound.getSound")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Sound.getSound on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getSound_result = Sound_getSound(this)
+	return getSound_result
+endfunction
+
+function getTimer takes nothing returns timer
+	local timer receiver
+	if TimerUtils_freeTimersCount > 0 then
+		set TimerUtils_freeTimersCount = TimerUtils_freeTimersCount - 1
+		call timer_setData(TimerUtils_freeTimers[TimerUtils_freeTimersCount], 0)
+		set receiver = null
+		return TimerUtils_freeTimers[TimerUtils_freeTimersCount]
+	else
+		set receiver = CreateTimer()
+		call timer_setData(receiver, 0)
+		set getTimertempReturn = receiver
+		set receiver = null
+		return getTimertempReturn
+	endif
+endfunction
+
+function timer_start takes timer this, real time, code timerCallBack returns nothing
+	call TimerStart(this, time, false, timerCallBack)
+endfunction
+
+function Sound_play takes integer this returns nothing
+	local timer receiver = getTimer()
+	local timer receiver_2
+	call timer_setData(receiver, dispatch_Sound_getSound(this))
+	set receiver_2 = receiver
+	call timer_start(receiver_2, 0., ref_function_Sound_playSound)
+	set receiver = null
+	set receiver_2 = null
+endfunction
+
+function dispatch_Sound_play takes integer this returns nothing
+	if Sound_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Sound.play")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Sound.play on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Sound_play(this)
+endfunction
+
+function SoundQueue_startQueue takes integer this returns nothing
+	local integer snd
+	if dispatch_Queue_getSize(SoundQueue_queue[this]) > 0 then
+		set snd = dispatch_Queue_dequeue(SoundQueue_queue[this])
+		call dispatch_Sound_play(snd)
+		call debugPrint("playing Sound " + int_toString(snd), 1)
+		call timer_start(SoundQueue_tm[this], Sound_duration[snd] + 0.001, SoundQueue_c)
+	else
+		call timer_release(SoundQueue_tm[this])
+		call dispatch_SoundQueue_destroySoundQueue(this)
+	endif
+endfunction
+
+function dispatch_SoundQueue_startQueue takes integer this returns nothing
+	if SoundQueue_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling SoundQueue.startQueue")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called SoundQueue.startQueue on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call SoundQueue_startQueue(this)
+endfunction
+
+function SoundQueue_nextSound takes nothing returns nothing
+	local timer tm = GetExpiredTimer()
+	local integer sndq = timer_getData(tm)
+	call dispatch_SoundQueue_startQueue(sndq)
+	set tm = null
+endfunction
+
+function Sound_playSound takes nothing returns nothing
+	local timer tm = GetExpiredTimer()
+	local integer sdata = timer_getData(tm)
+	local timer receiver
+	local timer receiver_2
+	if SData_onUnit[sdata] != null then
+		call AttachSoundToUnit(SData_snd[sdata], SData_onUnit[sdata])
+	endif
+	call SetSoundVolume(SData_snd[sdata], 100)
+	call StartSound(SData_snd[sdata])
+	call timer_release(tm)
+	set receiver = getTimer()
+	call timer_setData(receiver, sdata)
+	set receiver_2 = receiver
+	call timer_start(receiver_2, Sound_duration[SData_soundData[sdata]] * 0.001, ref_function_Sound_recycle)
+	set tm = null
+	set receiver = null
+	set receiver_2 = null
+endfunction
+
+function SData_onDestroy takes integer this returns nothing
+endfunction
+
+function dealloc_SData takes integer obj returns nothing
+	if SData_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type SData")
+		call I2S(1 / 0)
+	else
+		set SData_nextFree[SData_firstFree] = obj
+		set SData_firstFree = SData_firstFree + 1
+		set SData_typeId[obj] = 0
+	endif
+endfunction
+
+function destroySData takes integer this returns nothing
+	call SData_onDestroy(this)
+	call dealloc_SData(this)
+endfunction
+
+function dispatch_SData_destroySData takes integer this returns nothing
+	if SData_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling SData.destroySData")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called SData.destroySData on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroySData(this)
+endfunction
+
+function alloc_SEntry takes nothing returns integer
+	local integer this
+	if SEntry_firstFree_2 == 0 then
+		set SEntry_maxIndex_2 = SEntry_maxIndex_2 + 1
+		set this = SEntry_maxIndex_2
+	else
+		set SEntry_firstFree_2 = SEntry_firstFree_2 - 1
+		set this = SEntry_nextFree[SEntry_firstFree_2]
+	endif
+	return this
+endfunction
+
+function construct_SEntry takes integer this, integer elem, integer prev returns nothing
+	set SEntry_elem_2[this] = elem
+	set SEntry_prev[this] = prev
+endfunction
+
+function new_SEntry takes integer elem, integer prev returns integer
+	local integer this = alloc_SEntry()
+	call construct_SEntry(this, elem, prev)
+	return this
+endfunction
+
+function Stack_push takes integer this, integer elem returns nothing
+	set Stack_top[this] = new_SEntry(elem, Stack_top[this])
+	set Stack_size[this] = Stack_size[this] + 1
+endfunction
+
+function dispatch_Stack_push takes integer this, integer elem returns nothing
+	if Stack_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Stack.push")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Stack.push on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Stack_push(this, elem)
+endfunction
+
+function Sound_recycle takes nothing returns nothing
+	local timer tm = GetExpiredTimer()
+	local integer sdata = timer_getData(tm)
+	if dispatch_Stack_getSize(Sound_soundStack[SData_soundData[sdata]]) < 4 then
+		call dispatch_Stack_push(Sound_soundStack[SData_soundData[sdata]], sdata)
+	else
+		call StopSound(SData_snd[sdata], true, true)
+		call dispatch_SData_destroySData(sdata)
+	endif
+	call timer_release(tm)
+	set tm = null
+endfunction
+
+function bitset_containsPow takes integer this_val, integer pow returns boolean
+	return ModuloInteger(this_val, pow * 2) >= pow
+endfunction
+
+function int_pow takes integer this, integer x returns integer
+	local integer result = 1
+	local integer i = 1
+	local integer temp = x
+	loop
+		exitwhen i > temp
+		set result = result * this
+		set i = i + 1
+	endloop
+	return result
+endfunction
+
+function bitset_add takes integer this_val, integer v returns integer
+	local integer pow = int_pow(2, v)
+	if  not bitset_containsPow(this_val, pow) then
+		return this_val + pow
+	else
+		return this_val
+	endif
+endfunction
+
+function Thread_addOfflinePlayers takes integer this returns nothing
+	local integer i = 0
+	local integer tempIndex
+	local integer temp
+	loop
+		exitwhen i > 11
+		if GetPlayerSlotState(Player(i)) != PLAYER_SLOT_STATE_PLAYING or GetPlayerController(Player(i)) != MAP_CONTROL_USER then
+			set temp = this
+			set tempIndex = this
+			set Thread_syncedPlayers[temp] = bitset_add(Thread_syncedPlayers[tempIndex], i)
+		endif
+		set i = i + 1
+	endloop
+endfunction
+
+function dispatch_Thread_addOfflinePlayers takes integer this returns nothing
+	if Thread_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Thread.addOfflinePlayers")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Thread.addOfflinePlayers on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Thread_addOfflinePlayers(this)
+endfunction
+
+function unit_getUserData takes unit this returns integer
+	return GetUnitUserData(this)
+endfunction
+
+function Thread_syncThread takes nothing returns boolean
+	local integer thread = unit_getUserData(GetTriggerUnit())
+	local integer playerId = GetPlayerId(GetTriggerPlayer())
+	local integer tempIndex
+	local integer temp
+	if Thread_threadSyncer[thread] != GetTriggerUnit() then
+		return false
+	endif
+	set temp = thread
+	set tempIndex = thread
+	set Thread_syncedPlayers[temp] = bitset_add(Thread_syncedPlayers[tempIndex], playerId)
+	call dispatch_Thread_addOfflinePlayers(thread)
+	return false
+endfunction
+
+function TimedLoop_stopTimedLoop takes integer this returns nothing
+	set TimedLoop_mode[this] = 2
+endfunction
+
+function dispatch_Knockback_stopTimedLoop takes integer this returns nothing
+	if Knockback_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Knockback.stopTimedLoop")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Knockback.stopTimedLoop on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call TimedLoop_stopTimedLoop(this)
+endfunction
+
+function printWarning takes string msg returns nothing
+	call DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., PrintingHelper_DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
+endfunction
+
+function Knockback_onDestroy takes integer this returns nothing
+	if Knockback_fx[this] != null then
+		call DestroyEffect(Knockback_fx[this])
+	endif
+	if Knockback_USE_KNOCKBACK_EFFECTS then
+		call DestroyEffect(Knockback_kbEffect[this])
+	endif
+	if TimedLoop_mode[this] != 1 then
+		call dispatch_Knockback_stopTimedLoop(this)
+		call printWarning("Destroyed Instance using TimedLoop before stopping the Loop")
+	endif
+endfunction
+
+function dealloc_Knockback takes integer obj returns nothing
+	if Knockback_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type Knockback")
+		call I2S(1 / 0)
+	else
+		set Knockback_firstFree = Knockback_firstFree + 1
+		set Knockback_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyKnockback takes integer this returns nothing
+	call Knockback_onDestroy(this)
+	call dealloc_Knockback(this)
+endfunction
+
+function dispatch_Knockback_destroyKnockback takes integer this returns nothing
+	if Knockback_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Knockback.destroyKnockback")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Knockback.destroyKnockback on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyKnockback(this)
+endfunction
+
+function TimedLoop_stopTimedLoopAndDestroy takes integer this returns nothing
+	set TimedLoop_mode[this] = 3
+endfunction
+
+function dispatch_Knockback_stopTimedLoopAndDestroy takes integer this returns nothing
+	if Knockback_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Knockback.stopTimedLoopAndDestroy")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Knockback.stopTimedLoopAndDestroy on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call TimedLoop_stopTimedLoopAndDestroy(this)
+endfunction
+
+function isTerrainLand takes real x, real y returns boolean
+	return IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY)
+endfunction
+
+function isTerrainShallowWater takes real x, real y returns boolean
+	return ( not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY)) and ( not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)) and IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
+endfunction
+
+function item_getX takes item this returns real
+	return GetItemX(this)
+endfunction
+
+function item_getY takes item this returns real
+	return GetItemY(this)
+endfunction
+
+function item_getPos takes item this returns real
+	set item_getPos_return_x = item_getX(this)
+	set item_getPos_return_y = item_getY(this)
+	return item_getPos_return_x
+endfunction
+
+function isTerrainWalkable takes real x, real y returns boolean
+	local real temp_Terrain_tempPos_x
+	local real temp_Terrain_tempPos_y
+	call MoveRectTo(Terrain_find, x, y)
+	call EnumItemsInRect(Terrain_find, null, ref_function_hideItem)
+	call SetItemPosition(Terrain_dItem, x, y)
+	set temp_Terrain_tempPos_x = item_getPos(Terrain_dItem)
+	set temp_Terrain_tempPos_y = item_getPos_return_y
+	set Terrain_tempPos_x = temp_Terrain_tempPos_x
+	set Terrain_tempPos_y = temp_Terrain_tempPos_y
+	call SetItemVisible(Terrain_dItem, false)
+	loop
+		exitwhen  not (Terrain_hidMax > 0)
+		set Terrain_hidMax = Terrain_hidMax - 1
+		call SetItemVisible(Terrain_hid[Terrain_hidMax], true)
+		set Terrain_hid[Terrain_hidMax] = null
+	endloop
+	return (Terrain_tempPos_x - x) * (Terrain_tempPos_x - x) + (Terrain_tempPos_y - y) * (Terrain_tempPos_y - y) <= Terrain_MAX_RANGE * Terrain_MAX_RANGE and ( not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY))
+endfunction
+
+function Knockback_onTimedLoop takes integer this returns nothing
+	local real x
+	local real y
+	set Knockback_timeOver[this] = Knockback_timeOver[this] + Basics_ANIMATION_PERIOD
+	set Knockback_currentSpeed[this] = Knockback_currentSpeed[this] - Knockback_deceleration[this]
+	set Knockback_movedDistance[this] = Knockback_movedDistance[this] + Knockback_currentSpeed[this]
+	set x = GetUnitX(Knockback_target[this]) + Knockback_currentSpeed[this] * Knockback_cos[this]
+	set y = GetUnitY(Knockback_target[this]) + Knockback_currentSpeed[this] * Knockback_sin[this]
+	set Knockback_tx = x
+	set Knockback_ty = y
+	call SetRect(Knockback_destRect,  - Knockback_aoeDest[this],  - Knockback_aoeDest[this], Knockback_aoeDest[this], Knockback_aoeDest[this])
+	call MoveRectTo(Knockback_destRect, x, y)
+	call EnumDestructablesInRect(Knockback_destRect, Knockback_destFilter, Knockback_destActions)
+	if isTerrainWalkable(x, y) then
+		call SetUnitX(Knockback_target[this], x)
+		call SetUnitY(Knockback_target[this], y)
+	elseif Knockback_STOP_WHEN_IMPASSABLE then
+		call dispatch_Knockback_stopTimedLoop(this)
+	endif
+	if Knockback_USE_KNOCKBACK_EFFECTS then
+		if Knockback_isGround[this] or ( not Knockback_IGNORE_FLYING_UNITS) then
+			if Knockback_kbEffectMode[this] == 2 and isTerrainLand(x, y) then
+				call DestroyEffect(Knockback_kbEffect[this])
+				set Knockback_kbEffect[this] = AddSpecialEffectTarget(Knockback_EARTH_EFFECT, Knockback_target[this], Knockback_KNOCKBACK_EFFECT_ATTACHPOINT)
+			elseif Knockback_kbEffectMode[this] == 1 and isTerrainShallowWater(x, y) then
+				call DestroyEffect(Knockback_kbEffect[this])
+				set Knockback_kbEffect[this] = AddSpecialEffectTarget(Knockback_WATER_EFFECT, Knockback_target[this], Knockback_KNOCKBACK_EFFECT_ATTACHPOINT)
+			endif
+		endif
+	endif
+	if Knockback_currentSpeed[this] <= 0. or Knockback_movedDistance[this] >= Knockback_distance[this] then
+		if Knockback_autodestroy[this] then
+			call dispatch_Knockback_stopTimedLoopAndDestroy(this)
+		else
+			call dispatch_Knockback_stopTimedLoop(this)
+		endif
+	endif
+endfunction
+
+function dispatch_Knockback_onTimedLoop takes integer this returns nothing
+	if Knockback_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Knockback.onTimedLoop")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Knockback.onTimedLoop on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Knockback_onTimedLoop(this)
+endfunction
+
+function TimedLoop_onExpire takes nothing returns boolean
+	local integer i = TimedLoop_instanceCount - 1
+	local integer t
+	loop
+		exitwhen  not (i >= 0)
+		set t = TimedLoop_instances[i]
+		call dispatch_Knockback_onTimedLoop(t)
+		if TimedLoop_mode[t] != 0 then
+			set TimedLoop_instanceCount = TimedLoop_instanceCount - 1
+			set TimedLoop_instances[i] = TimedLoop_instances[TimedLoop_instanceCount]
+			if TimedLoop_mode[t] == 3 then
+				set TimedLoop_mode[t] = 1
+				call dispatch_Knockback_destroyKnockback(t)
+			else
+				set TimedLoop_mode[t] = 1
+			endif
+		endif
+		set i = i - 1
+	endloop
+	if TimedLoop_instanceCount == 0 then
+		call TriggerRemoveCondition(TimedLoop_timedLoopTrig, TimedLoop_triggerCond)
+		set TimedLoop_triggerCond = null
+		set TimedLoop_conditionCount = TimedLoop_conditionCount - 1
+	endif
+	return false
+endfunction
+
+function TimedLoop_stopTimedLoop_2 takes integer this returns nothing
+	set TimedLoop_mode_2[this] = 2
+endfunction
+
+function dispatch_Collider_stopTimedLoop takes integer this returns nothing
+	if Collider_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Collider.stopTimedLoop")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Collider.stopTimedLoop on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call TimedLoop_stopTimedLoop_2(this)
+endfunction
+
+function effect_destr takes effect this returns nothing
+	call DestroyEffect(this)
+endfunction
+
+function int_toReal takes integer this returns real
+	return I2R(this)
+endfunction
+
+function unit_getTypeId takes unit this returns integer
+	return GetUnitTypeId(this)
+endfunction
+
+function unit_remove takes unit this returns nothing
+	call RemoveUnit(this)
+endfunction
+
+function recycleDummy takes unit u returns nothing
+	local integer rc = DummyRecycler_recycle
+	local integer i
+	if unit_getTypeId(u) == Basics_DUMMY_UNIT_ID and ( not IsUnitInGroup(u, DummyRecycler_protect)) then
+		if rc == 0 then
+			call unit_remove(u)
+			return
+		endif
+		set DummyRecycler_recycle = DummyRecycler_queueLast[rc]
+		set i = R2I(GetUnitFacing(u)) / DummyRecycler_ANG_VAL
+		if DummyRecycler_stackN[i] < DummyRecycler_ANG_STORAGE_MAX then
+			set i = DummyRecycler_ANG_N
+			loop
+				exitwhen  not (DummyRecycler_stackN[i] > DummyRecycler_ANG_STORAGE_MAX)
+				set i = i - 1
+			endloop
+		endif
+		set DummyRecycler_queueNext[DummyRecycler_queueLast[i]] = rc
+		set DummyRecycler_queueLast[i] = rc
+		set DummyRecycler_queueNext[rc] = 0
+		set DummyRecycler_stackN[i] = DummyRecycler_stackN[i] + 1
+		set DummyRecycler_timeStamp[rc] = getElapsedGameTime() + DummyRecycler_DEATH_TIME
+		set DummyRecycler_stack[rc] = u
+		call GroupAddUnit(DummyRecycler_protect, u)
+		call unit_setFacing(u, int_toReal(i * DummyRecycler_ANG_VAL + DummyRecycler_ANG_MID))
+		call SetUnitVertexColor(u, 255, 255, 255, 255)
+		call SetUnitAnimationByIndex(u, 90)
+		call SetUnitScale(u, 1., 1., 1.)
+		call unit_setOwner(u, Basics_DUMMY_PLAYER, true)
+	else
+		call BJDebugMsg("[DummyRecycler] Error: Attempt to recycle invalid unit.")
+		call I2S(1 / 0)
+	endif
+endfunction
+
+function Fx_onDestroy takes integer this returns nothing
+	if Fx_fx[this] != null then
+		call effect_destr(Fx_fx[this])
+	endif
+	call recycleDummy(Fx_dummy[this])
+endfunction
+
+function dealloc_Fx takes integer obj returns nothing
+	if Fx_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type Fx")
+		call I2S(1 / 0)
+	else
+		set Fx_firstFree = Fx_firstFree + 1
+		set Fx_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyFx takes integer this returns nothing
+	call Fx_onDestroy(this)
+	call dealloc_Fx(this)
+endfunction
+
+function dispatch_Fx_destroyFx takes integer this returns nothing
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.destroyFx")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.destroyFx on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyFx(this)
+endfunction
+
+function unit_setPos takes unit this, real x, real y returns nothing
+	call SetUnitPosition(this, x, y)
+endfunction
+
+function Fx_hiddenDestroy takes integer this returns nothing
+	call unit_setPos(Fx_dummy[this], 2147483647., 2147483647.)
+	call dispatch_Fx_destroyFx(this)
+endfunction
+
+function dispatch_Fx_hiddenDestroy takes integer this returns nothing
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.hiddenDestroy")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.hiddenDestroy on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Fx_hiddenDestroy(this)
+endfunction
+
+function LLEntry_onDestroy takes integer this returns nothing
+endfunction
+
+function dealloc_LLEntry takes integer obj returns nothing
+	if LLEntry_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type LLEntry")
+		call I2S(1 / 0)
+	else
+		set LLEntry_firstFree = LLEntry_firstFree + 1
+		set LLEntry_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyLLEntry takes integer this returns nothing
+	call LLEntry_onDestroy(this)
+	call dealloc_LLEntry(this)
+endfunction
+
+function dispatch_LLEntry_destroyLLEntry takes integer this returns nothing
+	if LLEntry_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling LLEntry.destroyLLEntry")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called LLEntry.destroyLLEntry on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyLLEntry(this)
+endfunction
+
+function LinkedList_onDestroy takes integer this returns nothing
+	local integer current = LLEntry_next[LinkedList_dummy[this]]
+	local integer temp
+	loop
+		exitwhen  not (current != LinkedList_dummy[this])
+		set temp = current
+		set current = LLEntry_next[current]
+		call dispatch_LLEntry_destroyLLEntry(temp)
+	endloop
+	call dispatch_LLEntry_destroyLLEntry(LinkedList_dummy[this])
+endfunction
+
+function dealloc_LinkedList takes integer obj returns nothing
+	if LinkedList_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type LinkedList")
+		call I2S(1 / 0)
+	else
+		set LinkedList_firstFree = LinkedList_firstFree + 1
+		set LinkedList_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyLinkedList takes integer this returns nothing
+	call LinkedList_onDestroy(this)
+	call dealloc_LinkedList(this)
+endfunction
+
+function dispatch_LinkedList_destroyLinkedList takes integer this returns nothing
+	if LinkedList_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling LinkedList.destroyLinkedList")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called LinkedList.destroyLinkedList on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyLinkedList(this)
+endfunction
+
+function Collider_onDestroy takes integer this returns nothing
+	call dispatch_LinkedList_destroyLinkedList(Collider_seenIds[this])
+	if Collider_silent[this] then
+		call dispatch_Fx_hiddenDestroy(Collider_fx[this])
+	else
+		call dispatch_Fx_destroyFx(Collider_fx[this])
+	endif
+	call dispatch_Collider_stopTimedLoop(this)
+	if TimedLoop_mode_2[this] != 1 then
+		call dispatch_Collider_stopTimedLoop(this)
+		call printWarning("Destroyed Instance using TimedLoop before stopping the Loop")
+	endif
+endfunction
+
+function dealloc_Collider takes integer obj returns nothing
+	if Collider_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type Collider")
+		call I2S(1 / 0)
+	else
+		set Collider_firstFree = Collider_firstFree + 1
+		set Collider_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyCollider takes integer this returns nothing
+	call Collider_onDestroy(this)
+	call dealloc_Collider(this)
+endfunction
+
+function dispatch_Collider_destroyCollider takes integer this returns nothing
+	if Collider_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Collider.destroyCollider")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Collider.destroyCollider on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyCollider(this)
+endfunction
+
+function real_asAngleRadians takes real this returns real
+	return this
+endfunction
+
+function angleBetweenCoords takes real x1, real y1, real x2, real y2 returns real
+	return real_asAngleRadians(Atan2(y2 - y1, x2 - x1))
+endfunction
+
+function angle_cos takes real this_radians returns real
+	return Cos(this_radians)
+endfunction
+
+function angle_op_minus takes real this_radians, real other_radians returns real
+	return this_radians - other_radians
+endfunction
+
+function angle_radians takes real this_radians returns real
+	return this_radians
+endfunction
+
+function angle_sin takes real this_radians returns real
+	return Sin(this_radians)
+endfunction
+
+function dispatch_Collider_loopControl takes integer this returns nothing
+endfunction
+
+function dispatch_Collider_onUnitHit takes integer this, unit hitTarget returns nothing
+endfunction
+
+function Fx_getX takes integer this returns real
+	return unit_getX(Fx_dummy[this])
+endfunction
+
+function dispatch_Fx_getX takes integer this returns real
+	local real getX_result
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.getX")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.getX on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getX_result = Fx_getX(this)
+	return getX_result
+endfunction
+
+function Fx_getY takes integer this returns real
+	return unit_getY(Fx_dummy[this])
+endfunction
+
+function dispatch_Fx_getY takes integer this returns real
+	local real getY_result
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.getY")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.getY on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getY_result = Fx_getY(this)
+	return getY_result
+endfunction
+
+function Fx_getPos2 takes integer this returns real
+	set Fx_getPos2_return_x = dispatch_Fx_getX(this)
+	set Fx_getPos2_return_y = dispatch_Fx_getY(this)
+	return Fx_getPos2_return_x
+endfunction
+
+function dispatch_Fx_getPos2 takes integer this returns real
+	local real getPos2_result_x
+	local real getPos2_result_y
+	local real temp_getPos2_result_x
+	local real temp_getPos2_result_y
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.getPos2")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.getPos2 on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set temp_getPos2_result_x = Fx_getPos2(this)
+	set temp_getPos2_result_y = Fx_getPos2_return_y
+	set getPos2_result_x = temp_getPos2_result_x
+	set getPos2_result_y = temp_getPos2_result_y
+	set dispatch_Fx_getPos2_return_x = getPos2_result_x
+	set dispatch_Fx_getPos2_return_y = getPos2_result_y
+	return dispatch_Fx_getPos2_return_x
+endfunction
+
+function real_asAngleDegrees takes real this returns real
+	return this * Maths_DEGTORAD
+endfunction
+
+function unit_getFacing takes unit this returns real
+	return GetUnitFacing(this)
+endfunction
+
+function Fx_getXYAngle takes integer this returns real
+	return real_asAngleDegrees(unit_getFacing(Fx_dummy[this]))
+endfunction
+
+function dispatch_Fx_getXYAngle takes integer this returns real
+	local real getXYAngle_result_radians
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.getXYAngle")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.getXYAngle on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getXYAngle_result_radians = Fx_getXYAngle(this)
+	return getXYAngle_result_radians
+endfunction
+
+function Fx_setPos takes integer this, real pos_x, real pos_y returns nothing
+	call unit_setPos(Fx_dummy[this], pos_x, pos_y)
+endfunction
+
+function dispatch_Fx_setPos takes integer this, real pos_x, real pos_y returns nothing
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.setPos")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.setPos on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Fx_setPos(this, pos_x, pos_y)
+endfunction
+
+function unit_setFacing_2 takes unit this, real a_radians returns nothing
+	call SetUnitFacing(this, angle_degrees(a_radians))
+endfunction
+
+function Fx_setXYAngle takes integer this, real value_radians returns nothing
+	call unit_setFacing_2(Fx_dummy[this], value_radians)
+endfunction
+
+function dispatch_Fx_setXYAngle takes integer this, real value_radians returns nothing
+	if Fx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Fx.setXYAngle")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Fx.setXYAngle on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Fx_setXYAngle(this, value_radians)
+endfunction
+
+function LinkedList_contains takes integer this, integer elem returns boolean
+	local integer r = LLEntry_next[LinkedList_dummy[this]]
+	loop
+		exitwhen  not (r != LinkedList_dummy[this])
+		if LLEntry_elem[r] == elem then
+			return true
+		endif
+		set r = LLEntry_next[r]
+	endloop
+	return false
+endfunction
+
+function dispatch_LinkedList_contains takes integer this, integer elem returns boolean
+	local boolean contains_result
+	if LinkedList_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling LinkedList.contains")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called LinkedList.contains on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set contains_result = LinkedList_contains(this, elem)
+	return contains_result
+endfunction
+
+function group_clear takes group this returns nothing
+	call GroupClear(this)
+endfunction
+
+function group_close takes group this returns nothing
+	call DestroyGroup(this)
+endfunction
+
+function group_hasNext takes group this returns boolean
+	return FirstOfGroup(this) != null
+endfunction
+
+function group_iterator takes group this returns group
+	set bj_groupAddGroupDest = CreateGroup()
+	call ForGroup(this, ref_function_GroupAddGroupEnum_2)
+	return bj_groupAddGroupDest
+endfunction
+
+function group_next takes group this returns unit
+	local unit u = FirstOfGroup(this)
+	call GroupRemoveUnit(this, u)
+	set group_nexttempReturn = u
+	set u = null
+	return group_nexttempReturn
+endfunction
+
+function handle_getHandleId takes handle this returns integer
+	return GetHandleId(this)
+endfunction
+
+function Collider_onTimedLoop takes integer this returns nothing
+	local real anglexy_radians
+	local real df1
+	local real df2
+	local real ns
+	local real d
+	local real dt
+	local real newP_x
+	local real newP_y
+	local group itr
+	local unit u
+	local real tempTupleSelectionResult_1
+	local real temp_tempTupleSelectionResult_1
+	local real temp_tempTupleSelectionResult_2
+	local real tempTupleSelectionResult_2
+	local real temp_tempTupleSelectionResult_1_2
+	local real temp_tempTupleSelectionResult_2_2
+	local integer tempIndex
+	local real tempTupleSelectionResult_1_2
+	local real temp_tempTupleSelectionResult_1_3
+	local real temp_tempTupleSelectionResult_2_3
+	local integer tempIndex_2
+	local real tempTupleSelectionResult_2_2
+	local real temp_tempTupleSelectionResult_1_4
+	local real temp_tempTupleSelectionResult_2_4
+	local integer tempIndex_3
+	local real temp_newP_x
+	local real temp_newP_y
+	local real temp
+	local real temp_2
+	local real temp_3
+	set Collider_expirationTime[this] = Collider_expirationTime[this] - Basics_ANIMATION_PERIOD
+	if Collider_dead[this] or Collider_expirationTime[this] <= 0.0 then
+		call dispatch_Collider_destroyCollider(this)
+	else
+		set temp_tempTupleSelectionResult_1 = dispatch_Fx_getPos2(Collider_fx[this])
+		set temp_tempTupleSelectionResult_2 = dispatch_Fx_getPos2_return_y
+		set tempTupleSelectionResult_1 = temp_tempTupleSelectionResult_1
+		set temp = tempTupleSelectionResult_1
+		set temp_tempTupleSelectionResult_1_2 = dispatch_Fx_getPos2(Collider_fx[this])
+		set temp_tempTupleSelectionResult_2_2 = dispatch_Fx_getPos2_return_y
+		set tempTupleSelectionResult_2 = temp_tempTupleSelectionResult_2_2
+		set temp_2 = tempTupleSelectionResult_2
+		set tempIndex = this
+		set temp_tempTupleSelectionResult_1_3 = Collider_homingTarget[tempIndex]
+		set temp_tempTupleSelectionResult_2_3 = Collider_homingTarget_2[tempIndex]
+		set tempTupleSelectionResult_1_2 = temp_tempTupleSelectionResult_1_3
+		set temp_3 = tempTupleSelectionResult_1_2
+		set tempIndex_2 = this
+		set temp_tempTupleSelectionResult_1_4 = Collider_homingTarget[tempIndex_2]
+		set temp_tempTupleSelectionResult_2_4 = Collider_homingTarget_2[tempIndex_2]
+		set tempTupleSelectionResult_2_2 = temp_tempTupleSelectionResult_2_4
+		set anglexy_radians = angleBetweenCoords(temp, temp_2, temp_3, tempTupleSelectionResult_2_2)
+		set df1 = angle_radians(angle_op_minus(anglexy_radians, dispatch_Fx_getXYAngle(Collider_fx[this])))
+		set df2 = Maths_PI2 + angle_radians(anglexy_radians) - angle_radians(dispatch_Fx_getXYAngle(Collider_fx[this]))
+		set ns = Collider_angleSpeed[this]
+		if ns != 0.0 then
+			if Collider_angleMode[this] == 1 then
+				if GetUnitTypeId(Collider_homingTargetUnit[this]) == 0 or IsUnitType(Collider_homingTargetUnit[this], UNIT_TYPE_DEAD) then
+					set Collider_angleMode[this] = 0
+					set Collider_homingTargetUnit[this] = null
+				else
+					set tempIndex_3 = this
+					set Collider_homingTarget[tempIndex_3] = unit_getPos(Collider_homingTargetUnit[this])
+					set Collider_homingTarget_2[tempIndex_3] = unit_getPos_return_y
+				endif
+			endif
+			if ( not (Collider_angleMode[this] == 3)) and Collider_angleMode[this] != 0 then
+				if ns <= 0. then
+					set ns =  - ns
+				endif
+				if df1 <= 0. then
+					if df2 <= 0. then
+						if df2 >= df1 then
+							set df1 = df2
+						endif
+					elseif ( - df1) >= df2 then
+						set df1 = df2
+					endif
+				elseif df2 <= 0. then
+					if ( - df2) <= df1 then
+						set df1 = df2
+					endif
+				elseif df2 <= df1 then
+					set df1 = df2
+				endif
+				if df1 <= 0. then
+					if ( - df1) >= ns then
+						set ns =  - ns
+					else
+						set ns = df1
+					endif
+				elseif df1 <= ns then
+					set ns = df1
+				endif
+				set d = angle_radians(dispatch_Fx_getXYAngle(Collider_fx[this]))
+				set d = d + ns
+				if d >= Maths_PI2 then
+					set d = d - Maths_PI2
+				elseif d < 0. then
+					set d = d + Maths_PI2
+				endif
+				call dispatch_Fx_setXYAngle(Collider_fx[this], d)
+			endif
+		else
+			set ns = 0.
+		endif
+		set ns = Collider_speed[this] + Collider_acceleration[this] * Basics_ANIMATION_PERIOD
+		if ns < Collider_minSpeed[this] then
+			set ns = Collider_minSpeed[this]
+		elseif ns > Collider_maxSpeed[this] then
+			set ns = Collider_maxSpeed[this]
+		endif
+		set dt = (Collider_speed[this] + ns) / 2. * Basics_ANIMATION_PERIOD
+		set Collider_speed[this] = ns
+		set temp_newP_x = dispatch_Fx_getX(Collider_fx[this]) + dt * angle_cos(dispatch_Fx_getXYAngle(Collider_fx[this]))
+		set temp_newP_y = dispatch_Fx_getY(Collider_fx[this]) + dt * angle_sin(dispatch_Fx_getXYAngle(Collider_fx[this]))
+		set newP_x = temp_newP_x
+		set newP_y = temp_newP_y
+		call dispatch_Fx_setPos(Collider_fx[this], newP_x, newP_y)
+		call GroupEnumUnitsInRange(TempGroups_ENUM_GROUP, newP_x, newP_y, Collider_collisionSize[this] + Basics_MAX_COLLISION_SIZE, null)
+		set itr = group_iterator(TempGroups_ENUM_GROUP)
+		loop
+			exitwhen  not group_hasNext(itr)
+			set u = group_next(itr)
+			if ( not IsUnitType(u, UNIT_TYPE_DEAD)) and ( not Collider_dead[this]) and GetUnitTypeId(u) != Basics_DUMMY_UNIT_ID and IsUnitInRangeXY(u, newP_x, newP_y, Collider_collisionSize[this]) then
+				if  not dispatch_LinkedList_contains(Collider_seenIds[this], handle_getHandleId(u)) then
+					call dispatch_Collider_onUnitHit(this, u)
+				endif
+			endif
+		endloop
+		call group_close(itr)
+		call group_clear(TempGroups_ENUM_GROUP)
+		if  not Collider_dead[this] then
+			call dispatch_Collider_loopControl(this)
+		endif
+	endif
+	set itr = null
+	set u = null
+endfunction
+
+function dispatch_Collider_onTimedLoop takes integer this returns nothing
+	if Collider_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Collider.onTimedLoop")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Collider.onTimedLoop on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Collider_onTimedLoop(this)
+endfunction
+
+function TimedLoop_onExpire_2 takes nothing returns boolean
+	local integer i = TimedLoop_instanceCount_2 - 1
+	local integer t
+	loop
+		exitwhen  not (i >= 0)
+		set t = TimedLoop_instances_2[i]
+		call dispatch_Collider_onTimedLoop(t)
+		if TimedLoop_mode_2[t] != 0 then
+			set TimedLoop_instanceCount_2 = TimedLoop_instanceCount_2 - 1
+			set TimedLoop_instances_2[i] = TimedLoop_instances_2[TimedLoop_instanceCount_2]
+			if TimedLoop_mode_2[t] == 3 then
+				set TimedLoop_mode_2[t] = 1
+				call dispatch_Collider_destroyCollider(t)
+			else
+				set TimedLoop_mode_2[t] = 1
+			endif
+		endif
+		set i = i - 1
+	endloop
+	if TimedLoop_instanceCount_2 == 0 then
+		call TriggerRemoveCondition(TimedLoop_timedLoopTrig, TimedLoop_triggerCond_2)
+		set TimedLoop_triggerCond_2 = null
+		set TimedLoop_conditionCount = TimedLoop_conditionCount - 1
+	endif
+	return false
+endfunction
+
+function alloc_Order takes nothing returns integer
+	local integer this
+	if Order_firstFree == 0 then
+		set Order_maxIndex = Order_maxIndex + 1
+		set this = Order_maxIndex
+	else
+		set Order_firstFree = Order_firstFree - 1
+		set this = Order_nextFree[Order_firstFree]
+	endif
+	set Order_typeId[this] = 39
+	return this
+endfunction
+
+function Order_onDestroy takes integer this returns nothing
+	call debugPrint("ondestroy id: " + int_toString(this), 3)
+endfunction
+
+function dealloc_Order takes integer obj returns nothing
+	if Order_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type Order")
+		call I2S(1 / 0)
+	else
+		set Order_nextFree[Order_firstFree] = obj
+		set Order_firstFree = Order_firstFree + 1
+		set Order_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyOrder takes integer this returns nothing
+	call Order_onDestroy(this)
+	call dealloc_Order(this)
+endfunction
+
+function dispatch_Order_destroyOrder takes integer this returns nothing
+	if Order_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Order.destroyOrder")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Order.destroyOrder on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyOrder(this)
+endfunction
+
+function hashtable_hasInt takes hashtable this, integer parentKey, integer childKey returns boolean
+	return HaveSavedInteger(this, parentKey, childKey)
+endfunction
+
+function construct_Order takes integer this, unit ordered, integer ordid, integer ordtyp, widget target, real ordx, real ordy returns nothing
+	local integer hid
+	local integer i
+	call debugPrint("Allocated instance of Order with id: " + int_toString(this), 3)
+	set hid = GetHandleId(ordered)
+	set i = LastOrder_ORDERS_TO_HOLD
+	loop
+		exitwhen i < 2
+		if hashtable_hasInt(LastOrder_ht, hid, i - 1) then
+			if i == LastOrder_ORDERS_TO_HOLD and hashtable_hasInt(LastOrder_ht, hid, i) then
+				call dispatch_Order_destroyOrder(hashtable_loadInt(LastOrder_ht, hid, i))
+			endif
+			call hashtable_saveInt(LastOrder_ht, hid, i, hashtable_loadInt(LastOrder_ht, hid, i - 1))
+		endif
+		set i = i - 1
+	endloop
+	call hashtable_saveInt(LastOrder_ht, hid, 1, this)
+endfunction
+
+function new_Order takes unit ordered, integer ordid, integer ordtyp, widget target, real ordx, real ordy returns integer
+	local integer this = alloc_Order()
+	call construct_Order(this, ordered, ordid, ordtyp, target, ordx, ordy)
+	return this
+endfunction
+
+function actions takes nothing returns nothing
+	local unit u = GetTriggerUnit()
+	local widget t = GetOrderTarget()
+	local integer oid = GetIssuedOrderId()
+	call debugPrint("actions: " + OrderId2String(oid), 3)
+	if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER then
+		call new_Order(u, oid, 0, t, GetWidgetX(t), GetWidgetY(t))
+	elseif GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER then
+		call new_Order(u, oid, 1, null, GetOrderPointX(), GetOrderPointY())
+	elseif GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER then
+		call new_Order(u, oid, 2, null, GetUnitX(u), GetUnitY(u))
+	else
+		call BJDebugMsg("invalid Ordertype")
+		call I2S(1 / 0)
+	endif
+	set u = null
+	set t = null
+endfunction
+
+function LinkedListModule_remove takes integer this returns nothing
+	set LinkedListModule_size = LinkedListModule_size - 1
+	if this != LinkedListModule_first then
+		set LinkedListModule_next[LinkedListModule_prev[this]] = LinkedListModule_next[this]
+	endif
+	if this != LinkedListModule_last then
+		set LinkedListModule_prev[LinkedListModule_next[this]] = LinkedListModule_prev[this]
+	endif
+	if this == LinkedListModule_last then
+		set LinkedListModule_last = LinkedListModule_prev[this]
+	endif
+	if this == LinkedListModule_first then
+		set LinkedListModule_first = LinkedListModule_next[this]
+	endif
+endfunction
+
+function dispatch_DelayData_remove takes integer this returns nothing
+	if DelayData_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling DelayData.remove")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called DelayData.remove on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call LinkedListModule_remove(this)
+endfunction
+
+function DelayData_onDestroy takes integer this returns nothing
+	call dispatch_DelayData_remove(this)
+endfunction
+
+function dealloc_DelayData takes integer obj returns nothing
+	if DelayData_typeId[obj] == 0 then
+		call BJDebugMsg("Double free: object of type DelayData")
+		call I2S(1 / 0)
+	else
+		set DelayData_nextFree[DelayData_firstFree] = obj
+		set DelayData_firstFree = DelayData_firstFree + 1
+		set DelayData_typeId[obj] = 0
+	endif
+endfunction
+
+function destroyDelayData takes integer this returns nothing
+	call DelayData_onDestroy(this)
+	call dealloc_DelayData(this)
+endfunction
+
+function dispatch_DelayData_destroyDelayData takes integer this returns nothing
+	if DelayData_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling DelayData.destroyDelayData")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called DelayData.destroyDelayData on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call destroyDelayData(this)
+endfunction
+
+function checkDelayed takes nothing returns nothing
+	local integer data = LinkedListModule_first
+	loop
+		exitwhen  not (data != 0)
+		set DelayData_dT[data] = DelayData_dT[data] -  .1
+		if DelayData_dT[data] <= 0. then
+			call recycleDummy(DelayData_dum[data])
+			call dispatch_DelayData_destroyDelayData(data)
+		endif
+		set data = LinkedListModule_next[data]
+	endloop
+endfunction
+
+function closure_impl takes nothing returns nothing
+	set TrackableEx_playerClickBefore[timer_getData(GetExpiredTimer())] = false
+endfunction
+
+function unit_detectAddFilter takes unit this returns nothing
+	call TriggerRegisterUnitEvent(DamageDetection_current, this, EVENT_UNIT_DAMAGED)
+endfunction
+
+function closure_impl_2 takes nothing returns nothing
+	call unit_detectAddFilter(GetTriggerUnit())
+endfunction
+
+function closure_impl_3 takes nothing returns nothing
+	call unit_detectAddFilter(GetFilterUnit())
+endfunction
+
+function HashMap_get takes integer this, integer key returns integer
+	return hashtable_loadInt(HashMap_ht, this, key)
+endfunction
+
+function dispatch_HashMap_get takes integer this, integer key returns integer
+	local integer get_result
+	if HashMap_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling HashMap.get")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called HashMap.get on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set get_result = HashMap_get(this, key)
+	return get_result
+endfunction
+
+function dispatch_TrackableAction_run takes integer this, integer clickedTrackable, player clickingPlayer returns nothing
+endfunction
+
+function player_getId takes player this returns integer
+	return GetPlayerId(this)
+endfunction
+
+function TrackableEx_clickHandler takes integer this, player p returns nothing
+	if TrackableEx_onDoubleClick[this] != 0 then
+		if TrackableEx_playerClickBefore[player_getId(p)] then
+			call dispatch_TrackableAction_run(TrackableEx_onDoubleClick[this], this, p)
+			set TrackableEx_playerClickBefore[player_getId(p)] = false
+			call timer_pause(TrackableEx_playerDoubleClickTimer[player_getId(p)])
+		else
+			call timer_start(TrackableEx_playerDoubleClickTimer[player_getId(p)], TrackableEx_doubleClickSpeed, ref_function_closure_impl_2)
+			set TrackableEx_playerClickBefore[player_getId(p)] = true
+			call dispatch_TrackableAction_run(TrackableEx_onClick[this], this, p)
+		endif
+	elseif TrackableEx_onClick[this] != 0 then
+		call dispatch_TrackableAction_run(TrackableEx_onClick[this], this, p)
+	endif
+endfunction
+
+function dispatch_TrackableEx_clickHandler takes integer this, player p returns nothing
+	if TrackableEx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling TrackableEx.clickHandler")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called TrackableEx.clickHandler on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call TrackableEx_clickHandler(this, p)
+endfunction
+
+function hashtable_loadPlayerHandle takes hashtable this, integer parentKey, integer childKey returns player
+	return LoadPlayerHandle(this, parentKey, childKey)
+endfunction
+
+function Table_loadPlayer takes integer this, integer parentKey returns player
+	return hashtable_loadPlayerHandle(Table_ht, this, parentKey)
+endfunction
+
+function dispatch_Table_loadPlayer takes integer this, integer parentKey returns player
+	local player loadPlayer_result
+	if Table_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Table.loadPlayer")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Table.loadPlayer on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set loadPlayer_result = Table_loadPlayer(this, parentKey)
+	set dispatch_Table_loadPlayertempReturn = loadPlayer_result
+	set loadPlayer_result = null
+	return dispatch_Table_loadPlayertempReturn
+endfunction
+
+function hashtable_saveFogStateHandle takes hashtable this, integer parentKey, integer childKey, fogstate value returns nothing
+	call SaveFogStateHandle(this, parentKey, childKey, value)
+endfunction
+
+function Table_saveFogState takes integer this, integer parentKey, fogstate value returns nothing
+	call hashtable_saveFogStateHandle(Table_ht, this, parentKey, value)
+endfunction
+
+function dispatch_Table_saveFogState takes integer this, integer parentKey, fogstate value returns nothing
+	if Table_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Table.saveFogState")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Table.saveFogState on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call Table_saveFogState(this, parentKey, value)
+endfunction
+
+function playerFromIndex takes integer index returns player
+	call dispatch_Table_saveFogState(TypeCasting_typecastdata, 0, ConvertFogState(index))
+	return dispatch_Table_loadPlayer(TypeCasting_typecastdata, 0)
+endfunction
+
+function trackableToIndex takes trackable object returns integer
+	return handle_getHandleId(object)
+endfunction
+
+function closure_impl_4 takes nothing returns nothing
+	call dispatch_TrackableEx_clickHandler(dispatch_HashMap_get(TrackableEx_trackableObjects, trackableToIndex(GetTriggeringTrackable())), playerFromIndex(dispatch_HashMap_get(TrackableEx_trackableOwner, trackableToIndex(GetTriggeringTrackable()))))
+endfunction
+
+function TrackableEx_trackHandler takes integer this, player p returns nothing
+	if TrackableEx_onTrack[this] != 0 then
+		call dispatch_TrackableAction_run(TrackableEx_onTrack[this], this, p)
+	endif
+endfunction
+
+function dispatch_TrackableEx_trackHandler takes integer this, player p returns nothing
+	if TrackableEx_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling TrackableEx.trackHandler")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called TrackableEx.trackHandler on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	call TrackableEx_trackHandler(this, p)
+endfunction
+
+function closure_impl_5 takes nothing returns nothing
+	call dispatch_TrackableEx_trackHandler(dispatch_HashMap_get(TrackableEx_trackableObjects, trackableToIndex(GetTriggeringTrackable())), playerFromIndex(dispatch_HashMap_get(TrackableEx_trackableOwner, trackableToIndex(GetTriggeringTrackable()))))
+endfunction
+
+function closure_impl_6 takes nothing returns nothing
+	call unit_detectAddFilter(GetFilterUnit())
+endfunction
+
+function badOrderList takes integer id returns boolean
+	return id == 852055 or id == 852056 or id == 852064 or id == 852065 or id == 852067 or id == 852068 or id == 852076 or id == 852077 or id == 852090 or id == 852091 or id == 852100 or id == 852102 or id == 852103 or id == 852107 or id == 852108 or id == 852129 or id == 852130 or id == 852133 or id == 852134 or id == 852136 or id == 852137 or id == 852150 or id == 852151 or id == 852174 or id == 852158 or id == 852159 or id == 852162 or id == 852163 or id == 852174 or id == 852175 or id == 852177 or id == 852178 or id == 852191 or id == 852192 or id == 852198 or id == 852199 or id == 852203 or id == 852204 or id == 852212 or id == 852213 or id == 852244 or id == 852245 or id == 852249 or id == 852250 or id == 852255 or id == 852256 or id == 852458 or id == 852459 or id == 852478 or id == 852479 or id == 852484 or id == 852485 or id == 852515 or id == 852516 or id == 852522 or id == 852523 or id == 852540 or id == 852541 or id == 852543 or id == 852544 or id == 852546 or id == 852547 or id == 852549 or id == 852550 or id == 852552 or id == 852553 or id == 852562 or id == 852563 or id == 852571 or id == 852578 or id == 852579 or id == 852589 or id == 852590 or id == 852602 or id == 852603 or id == 852671 or id == 852672
+endfunction
+
+function unit_orderFilter takes unit this, integer id returns boolean
+	return (id == 851971 or id == 851986 or id == 851983 or id == 851984 or id == 851990 or id == 851993 or id >= 852055 and id <= 852762) and ( not badOrderList(id))
+endfunction
+
+function conditions takes nothing returns boolean
+	return unit_orderFilter(GetTriggerUnit(), GetIssuedOrderId())
+endfunction
+
+function damageAOE_DestructablesEnum takes nothing returns boolean
+	local destructable target = GetFilterDestructable()
+	local integer dmg = Damager_instc
+	local real dx = Damager_aoeX[dmg] - GetDestructableX(target)
+	local real dy = Damager_aoeY[dmg] - GetDestructableY(target)
+	if dx * dx + dy * dy >= Damager_aoeRadius[dmg] + Damager_EPSILON then
+		set target = null
+		set target = null
+		return false
+	endif
+	set Damager_countAOE[dmg] = Damager_countAOE[dmg] + 1
+	if Damager_usefx[dmg] then
+		call DestroyEffect(AddSpecialEffectTarget(Damager_fxpath[dmg], target, Damager_fxattach[dmg]))
+	endif
+	call UnitDamageTarget(Damager_sourceAOE[dmg], target, Damager_aoeDamage[dmg], true, Damager_ranged[dmg], Damager_atype[dmg], Damager_dtype[dmg], Damager_wtype[dmg])
+	set Damager_instc = dmg
+	set target = null
+	set target = null
+	return false
+endfunction
+
+function Damager_getDamageTypeFactor takes unit u, attacktype a, damagetype d returns real
+	local real hp = GetWidgetLife(u)
+	local real mana = GetUnitState(u, UNIT_STATE_MANA)
+	local real fc = Damager_FACTOR_TEST_DAMAGE
+	local real r
+	call SetUnitX(Damager_dmger, GetUnitX(u))
+	call SetUnitY(Damager_dmger, GetUnitY(u))
+	call SetUnitOwner(Damager_dmger, GetOwningPlayer(u), false)
+	set r = hp
+	if hp < Damager_FACTOR_TEST_DAMAGE * Damager_MAX_DAMAGE_FACTOR then
+		call SetWidgetLife(u, hp + Damager_FACTOR_TEST_DAMAGE * Damager_MAX_DAMAGE_FACTOR)
+		set r = hp + Damager_FACTOR_TEST_DAMAGE * Damager_MAX_DAMAGE_FACTOR
+		set fc = GetWidgetLife(u) - hp + Damager_EPSILON
+	endif
+	call UnitDamageTarget(Damager_dmger, u, fc, false, false, a, d, null)
+	if IsUnitType(u, UNIT_TYPE_DEAD) and hp > 0.405 then
+		call BJDebugMsg("xedamage: For some reason, the unit being tested by getDamageTypeFactor has died. Verify MAX_DAMAGE_FACTOR is to a correct value. ")
+		call I2S(1 / 0)
+	endif
+	call SetUnitOwner(Damager_dmger, Player(15), false)
+	if mana > GetUnitState(u, UNIT_STATE_MANA) then
+		call SetUnitState(u, UNIT_STATE_MANA, mana)
+		set r = 1.
+	else
+		set r = (r - GetWidgetLife(u)) / fc
+	endif
+	call SetWidgetLife(u, hp)
+	return r
+endfunction
+
+function hashtable_loadReal takes hashtable this, integer parentKey, integer childKey returns real
+	return LoadReal(this, parentKey, childKey)
+endfunction
+
+function Table_loadReal takes integer this, integer parentKey returns real
+	return hashtable_loadReal(Table_ht, this, parentKey)
+endfunction
+
+function dispatch_Table_loadReal takes integer this, integer parentKey returns real
+	local real loadReal_result
+	if Table_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Table.loadReal")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Table.loadReal on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set loadReal_result = Table_loadReal(this, parentKey)
+	return loadReal_result
+endfunction
+
+function Damager_getTargetFactorCore takes integer this, unit source, unit target, boolean usetypes returns real
+	local player p = GetOwningPlayer(source)
+	local boolean allied = IsUnitAlly(target, p)
+	local boolean enemy = IsUnitEnemy(target, p)
+	local boolean neutral = allied
+	local real negf = 1.0
+	local real f
+	local integer i
+	if Damager_damageAllies[this] != Damager_damageNeutral[this] then
+		set neutral = allied and ( not GetPlayerAlliance(GetOwningPlayer(target), p, ALLIANCE_HELP_REQUEST))
+		set allied = allied and ( not neutral)
+	endif
+	if ( not Damager_damageAllies[this]) and allied then
+		set p = null
+		return 0.0
+	elseif ( not Damager_damageEnemies[this]) and enemy then
+		set p = null
+		return 0.0
+	elseif ( not Damager_damageSelf[this]) and source == target then
+		set p = null
+		return 0.0
+	elseif ( not Damager_damageNeutral[this]) and neutral then
+		set p = null
+		return 0.0
+	elseif Damager_use_ex[this] and IsUnitType(target, Damager_ex_ut[this]) then
+		set p = null
+		return 0.0
+	elseif Damager_visibleOnly[this] and ( not IsUnitVisible(target, p)) then
+		set p = null
+		return 0.0
+	elseif Damager_deadOnly[this] and ( not IsUnitType(target, UNIT_TYPE_DEAD)) then
+		set p = null
+		return 0.0
+	elseif ( not Damager_alsoDead[this]) and IsUnitType(target, UNIT_TYPE_DEAD) then
+		set p = null
+		return 0.0
+	endif
+	set f = 1.0
+	if IsUnitAlly(target, p) then
+		set f = f * Damager_allyfactor[this]
+		if f <= ( - Damager_EPSILON) then
+			set f =  - f
+			set negf =  - 1.0
+		endif
+	endif
+	if Damager_use_req[this] and ( not IsUnitType(target, Damager_req_ut[this])) then
+		set p = null
+		return 0.0
+	endif
+	set i = Damager_fcn[this] - 1
+	loop
+		exitwhen  not (i > 0)
+		if IsUnitType(target, ConvertUnitType(dispatch_Table_loadInt(Damager_fct[this], i))) then
+			set f = f * dispatch_Table_loadReal(Damager_fc[this], i)
+			if f <= ( - Damager_EPSILON) then
+				set f =  - f
+				set negf =  - 1.0
+			endif
+		endif
+		set i = i - 1
+	endloop
+	set i = Damager_abifcn[this] - 1
+	loop
+		exitwhen  not (i > 0)
+		if GetUnitAbilityLevel(target, dispatch_Table_loadInt(Damager_abifct[this], i)) > 0 then
+			set f = f * dispatch_Table_loadReal(Damager_abifc[this], i)
+			if f <= ( - Damager_EPSILON) then
+				set f =  - f
+				set negf =  - 1.0
+			endif
+		endif
+		set i = i - 1
+	endloop
+	set f = f * negf
+	if f < Damager_EPSILON and f > ( - Damager_EPSILON) then
+		set p = null
+		return 0.0
+	endif
+	if Damager_forceDamage[this] or ( not usetypes) then
+		set p = null
+		return f
+	endif
+	set f = f * Damager_getDamageTypeFactor(target, Damager_atype[this], Damager_dtype[this])
+	if f < Damager_EPSILON and f > ( - Damager_EPSILON) then
+		set p = null
+		return 0.0
+	endif
+	set p = null
+	return f
+endfunction
+
+function dispatch_Damager_getTargetFactorCore takes integer this, unit source, unit target, boolean usetypes returns real
+	local real getTargetFactorCore_result
+	if Damager_typeId[this] == 0 then
+		if this == 0 then
+			call BJDebugMsg("Nullpointer exception when calling Damager.getTargetFactorCore")
+			call I2S(1 / 0)
+		else
+			call BJDebugMsg("Called Damager.getTargetFactorCore on invalid object.")
+			call I2S(1 / 0)
+		endif
+	endif
+	set getTargetFactorCore_result = Damager_getTargetFactorCore(this, source, target, usetypes)
+	return getTargetFactorCore_result
+endfunction
+
+function damageAOE_Enum takes nothing returns boolean
+	local unit target = GetFilterUnit()
+	local integer dmg = Damager_instc
+	local real hp = 0.
+	local real f
+	if  not IsUnitInRangeXY(target, Damager_aoeX[dmg], Damager_aoeY[dmg], Damager_aoeRadius[dmg]) then
+		set target = null
+		set target = null
+		return false
+	endif
+	set f = dispatch_Damager_getTargetFactorCore(dmg, Damager_sourceAOE[dmg], target, false)
+	if f != 0.0 then
+		set Damager_countAOE[dmg] = Damager_countAOE[dmg] + 1
+		if Damager_usefx[dmg] then
+			set hp = GetWidgetLife(target)
+		endif
+		call UnitDamageTarget(Damager_sourceAOE[dmg], target, f * Damager_aoeDamage[dmg], true, Damager_ranged[dmg], Damager_atype[dmg], Damager_dtype[dmg], Damager_wtype[dmg])
+		if Damager_usefx[dmg] and hp > GetWidgetLife(target) then
+			call DestroyEffect(AddSpecialEffectTarget(Damager_fxpath[dmg], target, Damager_fxattach[dmg]))
+		endif
+	endif
+	set Damager_instc = dmg
+	set target = null
+	set target = null
+	return false
+endfunction
+
+function disableXpGain takes nothing returns nothing
+	local integer i = 0
+	loop
+		exitwhen i > 12
+		call SetPlayerHandicapXP(Player(i), 0.00)
+		set i = i + 1
+	endloop
+	call DestroyTimer(GetExpiredTimer())
+endfunction
+
+function trigger_addCondition takes trigger this, boolexpr condition returns nothing
+	call TriggerAddCondition(this, condition)
+endfunction
+
+function trigger_clearConditions takes trigger this returns nothing
+	call TriggerClearConditions(this)
+endfunction
+
+function trigger_evaluate takes trigger this returns nothing
+	call TriggerEvaluate(this)
+endfunction
+
+function evaluateEvent takes nothing returns boolean
+	local unit caster = GetSpellAbilityUnit()
+	local integer i
+	local integer temp
+	call debugPrint(unit_getName(caster), 2)
+	set i = 0
+	set temp = EventHandling_count - 1
+	loop
+		exitwhen i > temp
+		call debugPrint(int_toString(i), 2)
+		if EventHandling_casters[i] == caster then
+			call trigger_addCondition(EventHandling_evalTrig, EventHandling_conds[i])
+			call trigger_evaluate(EventHandling_evalTrig)
+			call trigger_clearConditions(EventHandling_evalTrig)
+		endif
+		set i = i + 1
+	endloop
+	set caster = null
+	return false
+endfunction
+
+function evaluateTimedLoopTrig takes nothing returns nothing
+	call TriggerEvaluate(TimedLoop_timedLoopTrig)
+	if TimedLoop_conditionCount == 0 then
+		call timer_pause(TimedLoop_timedLoopTimer)
+	endif
+endfunction
+
+function filter takes nothing returns boolean
+	local unit u = GetFilterUnit()
+	local boolean b1 = IsUnitType(u, UNIT_TYPE_DEAD) == false
+	local boolean b2 = IsUnitType(u, UNIT_TYPE_HERO) == true
+	local boolean b3 = IsUnitAlly(u, GetOwningPlayer(GetKillingUnit())) == true
+	set u = null
+	return b1 and b2 and b3
+endfunction
+
+function currentCallback takes nothing returns integer
+	return ClosureForGroups_tempCallbacks[ClosureForGroups_tempCallbacksCount - 1]
+endfunction
+
+function dispatch_ForGroupCallback_callback takes integer this, unit u returns nothing
+endfunction
+
+function filter_2 takes nothing returns boolean
+	call dispatch_ForGroupCallback_callback(currentCallback(), GetFilterUnit())
+	return false
+endfunction
+
+function group_destr takes group this returns nothing
+	call DestroyGroup(this)
+endfunction
+
+function finishPreload takes nothing returns nothing
+	local group wurst__iterator0
+	local unit u
+	call RemoveUnit(PreloadHandler_dum)
+	set wurst__iterator0 = group_iterator(PreloadHandler_dumg)
+	loop
+		exitwhen  not group_hasNext(wurst__iterator0)
+		set u = group_next(wurst__iterator0)
+		call unit_remove(u)
+	endloop
+	call group_close(wurst__iterator0)
+	call group_destr(PreloadHandler_dumg)
+	if GetExpiredTimer() != null then
+		call DestroyTimer(GetExpiredTimer())
+	endif
+	set wurst__iterator0 = null
+	set u = null
+endfunction
+
+function texttag_setColor takes texttag this, integer col_red, integer col_green, integer col_blue, integer col_alpha returns nothing
+	call SetTextTagColor(this, col_red, col_green, col_blue, col_alpha)
+endfunction
+
+function texttag_setFadepoint takes texttag this, real fadepoint returns nothing
+	call SetTextTagFadepoint(this, fadepoint)
+endfunction
+
+function texttag_setLifespan takes texttag this, real span returns nothing
+	call SetTextTagLifespan(this, span)
+endfunction
+
+function texttag_setPermanent takes texttag this, boolean flag returns nothing
+	call SetTextTagPermanent(this, flag)
+endfunction
+
+function texttag_setPos takes texttag this, real pos_x, real pos_y, real pos_z returns nothing
+	call SetTextTagPos(this, pos_x, pos_y, pos_z)
+endfunction
+
+function texttag_setText takes texttag this, string text, real size returns nothing
+	call SetTextTagText(this, text, size * 0.0023)
+endfunction
+
+function texttag_setVelocity takes texttag this, real xvel, real yvel returns nothing
+	call SetTextTagVelocity(this, xvel, yvel)
+endfunction
+
+function vec2_withZ takes real this_x, real this_y, real z returns real
+	set vec2_withZ_return_x = this_x
+	set vec2_withZ_return_y = this_y
+	set vec2_withZ_return_z = z
+	return vec2_withZ_return_x
+endfunction
+
+function vec3_toVec2 takes real this_x, real this_y, real this_z returns real
+	set vec3_toVec2_return_x = this_x
+	set vec3_toVec2_return_y = this_y
+	return vec3_toVec2_return_x
+endfunction
+
+function createTTEx takes real pos_x, real pos_y, real pos_z, real vel_x, real vel_y, string message, real size, real duration, integer col_red, integer col_green, integer col_blue, integer col_alpha returns texttag
+	local texttag receiver = CreateTextTag()
+	local texttag receiver_2
+	local texttag receiver_3
+	local texttag receiver_4
+	local texttag receiver_5
+	local texttag receiver_6
+	local texttag receiver_7
+	call texttag_setPos(receiver, vec2_withZ(vec3_toVec2(pos_x, pos_y, pos_z), vec3_toVec2_return_y, 20.), vec2_withZ_return_y, vec2_withZ_return_z)
+	set receiver_2 = receiver
+	call texttag_setText(receiver_2, message, size)
+	set receiver_3 = receiver_2
+	call texttag_setColor(receiver_3, col_red, col_green, col_blue, col_alpha)
+	set receiver_4 = receiver_3
+	call texttag_setVelocity(receiver_4, vel_x, vel_y)
+	set receiver_5 = receiver_4
+	call texttag_setLifespan(receiver_5, duration)
+	set receiver_6 = receiver_5
+	call texttag_setFadepoint(receiver_6, .1)
+	set receiver_7 = receiver_6
+	call texttag_setPermanent(receiver_7, false)
+	set createTTExtempReturn = receiver_7
+	set receiver = null
+	set receiver_2 = null
+	set receiver_3 = null
+	set receiver_4 = null
+	set receiver_5 = null
+	set receiver_6 = null
+	set receiver_7 = null
+	return createTTExtempReturn
+endfunction
+
+function distanceBetweenCoords takes real x1, real y1, real x2, real y2 returns real
+	return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
+endfunction
+
+function expFilter takes integer exp, unit u returns integer
+	return exp
+endfunction
+
+function formula takes integer xPfactor, integer unitlevel, integer heroesinradius, integer bonus returns integer
+	return xPfactor * unitlevel + heroesinradius * bonus
+endfunction
+
+function unit_getOwner takes unit this returns player
+	return GetOwningPlayer(this)
+endfunction
+
+function giveXP takes nothing returns nothing
+	local unit deadUnit = GetTriggerUnit()
+	local real dx = unit_getX(deadUnit)
+	local real dy = unit_getY(deadUnit)
+	local unit killer = GetKillingUnit()
+	local player killerPlayer = unit_getOwner(killer)
+	local integer add = 0
+	local integer unitNum = 0
+	local real kx = unit_getX(killer)
+	local real ky = unit_getY(killer)
+	local integer killedUnitLevel
+	local group wurst__iterator0
+	local unit f
+	local real distance
+	local group wurst__iterator1
+	local unit f_2
+	call GroupEnumUnitsInRange(TempGroups_ENUM_GROUP, kx, ky, CustomExp_RADIUS, Condition(ref_function_filter))
+	call ForGroup(TempGroups_ENUM_GROUP, ref_function_CountUnitsInGroupEnum_2)
+	set unitNum = bj_groupCountUnits
+	if IsUnitAlly(deadUnit, killerPlayer) == false then
+		if IsUnitType(deadUnit, UNIT_TYPE_HERO) == true then
+			set killedUnitLevel = GetHeroLevel(deadUnit)
+			set add = formula(CustomExp_HERO_EXP, killedUnitLevel, unitNum, CustomExp_BONUS_EXP)
+		else
+			set killedUnitLevel = GetUnitLevel(deadUnit)
+			set add = formula(CustomExp_UNIT_EXP, killedUnitLevel, unitNum, CustomExp_BONUS_EXP)
+		endif
+	endif
+	if CustomExp_SPLIT then
+		set add = R2I(add * 1. / unitNum)
+	endif
+	if CustomExp_DISTANCE_EFFECT then
+		set add = expFilter(add, deadUnit)
+		set wurst__iterator0 = group_iterator(TempGroups_ENUM_GROUP)
+		loop
+			exitwhen  not group_hasNext(wurst__iterator0)
+			set f = group_next(wurst__iterator0)
+			set distance = distanceBetweenCoords(dx, dy, kx, ky)
+			if distance > CustomExp_MEDIUM * CustomExp_MEDIUM and distance <= CustomExp_FAR * CustomExp_FAR then
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				set add = R2I(add * CustomExp_FAR_FACTOR)
+				call AddHeroXP(f, add, true)
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+			elseif distance > CustomExp_CLOSE * CustomExp_CLOSE and distance <= CustomExp_MEDIUM * CustomExp_MEDIUM then
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				set add = R2I(add * CustomExp_MEDIUM_FACTOR)
+				call AddHeroXP(f, add, true)
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+			elseif distance <= CustomExp_CLOSE * CustomExp_CLOSE then
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
+				set add = R2I(add * CustomExp_CLOSE_FACTOR)
+				call AddHeroXP(f, add, true)
+				call SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
+			endif
+			if CustomExp_SHOW_TEXT and add > 0 then
+				call createTTEx(vec2_toVec3(unit_getPos(f), unit_getPos_return_y), vec2_toVec3_return_y, vec2_toVec3_return_z, 0., 0., "+ " + I2S(add), CustomExp_SIZE, CustomExp_DURATION, CustomExp_RED, CustomExp_GREEN, CustomExp_BLUE, 255)
+			endif
+		endloop
+		call group_close(wurst__iterator0)
+	else
+		set add = expFilter(add, deadUnit)
+		set wurst__iterator1 = group_iterator(TempGroups_ENUM_GROUP)
+		loop
+			exitwhen  not group_hasNext(wurst__iterator1)
+			set f_2 = group_next(wurst__iterator1)
+			if CustomExp_SHOW_TEXT and add > 0 then
+				call createTTEx(vec2_toVec3(unit_getPos(f_2), unit_getPos_return_y), vec2_toVec3_return_y, vec2_toVec3_return_z, 0., 0., "+ " + I2S(add), CustomExp_SIZE, CustomExp_DURATION, CustomExp_RED, CustomExp_GREEN, CustomExp_BLUE, 255)
+			endif
+			call SetPlayerHandicapXP(GetOwningPlayer(f_2), 1.00)
+			call AddHeroXP(f_2, add, true)
+			call SetPlayerHandicapXP(GetOwningPlayer(f_2), 0.00)
+		endloop
+		call group_close(wurst__iterator1)
+	endif
+	call group_clear(TempGroups_ENUM_GROUP)
+	set deadUnit = null
+	set killer = null
+	set killerPlayer = null
+	set wurst__iterator0 = null
+	set f = null
+	set wurst__iterator1 = null
+	set f_2 = null
+endfunction
+
+function dispatch_OnCast_run takes integer this, unit caster, integer lvl returns nothing
+endfunction
+
+function dispatch_OnPointCast_run takes integer this, unit caster, integer lvl, real pos_x, real pos_y returns nothing
+endfunction
+
+function dispatch_OnUnitCast_run takes integer this, unit caster, integer lvl, unit target returns nothing
+endfunction
+
+function handleCasts takes nothing returns nothing
+	local unit caster = GetTriggerUnit()
+	local integer lvl = GetUnitAbilityLevel(caster, GetSpellAbilityId())
+	local integer c = dispatch_HashMap_get(Cast_casts, GetSpellAbilityId())
+	if c != 0 then
+		if Cast_typeId[c] == 48 then
+			call dispatch_OnCast_run(c, caster, lvl)
+		endif
+		if Cast_typeId[c] == 49 then
+			call dispatch_OnPointCast_run(c, caster, lvl, GetSpellTargetX(), GetSpellTargetY())
+		endif
+		if Cast_typeId[c] == 50 then
+			call dispatch_OnUnitCast_run(c, caster, lvl, GetSpellTargetUnit())
+		endif
+	endif
+	set caster = null
+endfunction
+
+function hideItem takes nothing returns nothing
+	if IsItemVisible(GetEnumItem()) then
+		set Terrain_hid[Terrain_hidMax] = GetEnumItem()
+		call SetItemVisible(Terrain_hid[Terrain_hidMax], false)
+		set Terrain_hidMax = Terrain_hidMax + 1
+	endif
+endfunction
+
+function initGamecache takes nothing returns nothing
+	call InitGameCache("sync")
+	call DestroyTimer(GetExpiredTimer())
+endfunction
+
+function resetCam takes nothing returns nothing
+	local timer t = GetExpiredTimer()
+	call CameraClearNoiseForPlayer(Player(timer_getData(t)))
+	call timer_release(t)
+	set t = null
+endfunction
+
+function spellActions takes nothing returns nothing
+	if hashtable_hasInt(LastOrder_ht, GetHandleId(GetTriggerUnit()), 1) then
+	endif
+endfunction
+
+function trigger_disable takes trigger this returns nothing
+	call DisableTrigger(this)
+endfunction
+
+function swap takes nothing returns nothing
+	local boolean b = IsTriggerEnabled(DamageDetection_current)
+	local integer i
+	local integer temp
+	call trigger_disable(DamageDetection_current)
+	if DamageDetection_toDestroy != null then
+		call DestroyTrigger(DamageDetection_toDestroy)
+	endif
+	set DamageDetection_toDestroy = DamageDetection_current
+	set DamageDetection_current = CreateTrigger()
+	if  not b then
+		call DisableTrigger(DamageDetection_current)
+	endif
+	call GroupEnumUnitsInRect(DamageDetection_swapGroup, MapBounds_mapRect, Filter(ref_function_closure_impl))
+	set i = 0
+	set temp = DamageDetection_funcNext - 1
+	loop
+		exitwhen i > temp
+		call trigger_addCondition(DamageDetection_current, DamageDetection_func[i])
+		set i = i + 1
+	endloop
+endfunction
+
+function switchDebug takes nothing returns nothing
+	local player p = GetTriggerPlayer()
+	local integer id = player_getId(p)
+	if PrintingHelper_wantDebug[id] then
+		set PrintingHelper_wantDebug[id] = false
+		call DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cffB55208deactivated")
+	else
+		set PrintingHelper_wantDebug[id] = true
+		call DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
+	endif
+	set p = null
+endfunction
+
+function initGlobals takes nothing returns nothing
+	set LinkedList_firstFree = 0
+	set LLEntry_firstFree = 0
+	set A_firstFree = 0
+	set A_maxIndex = 0
+	set B_firstFree = 0
+	set B_maxIndex = 0
+	set Table_firstFree = 0
+	set Table_maxIndex = 0
+	set DelayData_firstFree = 0
+	set DelayData_maxIndex = 0
+	set Knockback_firstFree = 0
+	set Fx_firstFree = 0
+	set DummyCaster_firstFree = 0
+	set CustomBar_firstFree = 0
+	set Collider_firstFree = 0
+	set SEntry_firstFree_2 = 0
+	set SEntry_maxIndex_2 = 0
+	set SData_firstFree = 0
+	set SData_maxIndex = 0
+	set SoundQueue_firstFree = 0
+	set Order_firstFree = 0
+	set Order_maxIndex = 0
+	set HashMap_firstFree = 0
+	set HashMap_maxIndex = 0
+	set CallbackSingle_firstFree = 0
+	set CallbackCounted_firstFree = 0
+	set FreeNode_firstFree = 0
+	set FreeNode_maxIndex = 0
+	set ref_function_PerformStockUpdates = function PerformStockUpdates
+	set ref_function_UpdateEachStockBuildingEnum = function UpdateEachStockBuildingEnum
+	set ref_function_MeleeDoDrawEnum = function MeleeDoDrawEnum
+	set ref_function_MeleeDoDefeatEnum = function MeleeDoDefeatEnum
+	set ref_function_MeleeDoVictoryEnum = function MeleeDoVictoryEnum
+	set ref_function_MeleeDoDefeatEnum_2 = function MeleeDoDefeatEnum
+	set ref_function_MeleeDoVictoryEnum_2 = function MeleeDoVictoryEnum
+	set ref_function_MeleeCrippledPlayerTimeout = function MeleeCrippledPlayerTimeout
+	set ref_function_TriggerActionUnitRescuedBJ = function TriggerActionUnitRescuedBJ
+	set ref_function_MakeUnitsPassiveForPlayerEnum = function MakeUnitsPassiveForPlayerEnum
+	set ref_function_DelayedSuspendDecayStopAnimEnum = function DelayedSuspendDecayStopAnimEnum
+	set ref_function_DelayedSuspendDecayStopAnimEnum_2 = function DelayedSuspendDecayStopAnimEnum
+	set ref_function_DelayedSuspendDecayFleshEnum = function DelayedSuspendDecayFleshEnum
+	set ref_function_DelayedSuspendDecayBoneEnum = function DelayedSuspendDecayBoneEnum
+	set ref_function_DelayedSuspendDecayStopAnimEnum_3 = function DelayedSuspendDecayStopAnimEnum
+	set ref_function_hideItem = function hideItem
+	set ref_function_GroupAddGroupEnum_2 = function GroupAddGroupEnum
+	set ref_function_Thread_syncThread = function Thread_syncThread
+	set ref_function_damageAOE_Enum = function damageAOE_Enum
+	set ref_function_damageAOE_DestructablesEnum = function damageAOE_DestructablesEnum
+	set ref_function_closure_impl = function closure_impl_3
+	set ref_function_filter = function filter
+	set ref_function_CountUnitsInGroupEnum_2 = function CountUnitsInGroupEnum
+	set ref_function_Sound_playSound = function Sound_playSound
+	set ref_function_Sound_recycle = function Sound_recycle
+	set ref_function_closure_impl_2 = function closure_impl
+	set ref_function_switchDebug = function switchDebug
+	set ref_function_finishPreload = function finishPreload
+	set ref_function_checkDelayed = function checkDelayed
+	set ref_function_Knockback_destFilterMethod = function Knockback_destFilterMethod
+	set ref_function_TimedLoop_onExpire = function TimedLoop_onExpire
+	set ref_function_DummyCaster_filterAOE = function DummyCaster_filterAOE
+	set ref_function_closure_impl_3 = function closure_impl_2
+	set ref_function_closure_impl_4 = function closure_impl_6
+	set ref_function_swap = function swap
+	set ref_function_giveXP = function giveXP
+	set ref_function_disableXpGain = function disableXpGain
+	set ref_function_TimedLoop_onExpire_2 = function TimedLoop_onExpire_2
+	set ref_function_initGamecache = function initGamecache
+	set ref_function_SoundQueue_nextSound = function SoundQueue_nextSound
+	set ref_function_actions = function actions
+	set ref_function_conditions = function conditions
+	set ref_function_spellActions = function spellActions
+	set ref_function_LocalFileTest_onInit = function LocalFileTest_onInit
+	set ref_function_evaluateEvent = function evaluateEvent
+	set ref_function_filter_2 = function filter_2
+	set ref_function_handleCasts = function handleCasts
+	set ref_function_closure_impl_5 = function closure_impl_5
+	set ref_function_closure_impl_6 = function closure_impl_4
+endfunction
+
+function alloc_FreeNode takes nothing returns integer
+	local integer this
+	if FreeNode_firstFree == 0 then
+		set FreeNode_maxIndex = FreeNode_maxIndex + 1
+		set this = FreeNode_maxIndex
+	else
+		set FreeNode_firstFree = FreeNode_firstFree - 1
+		set this = FreeNode_nextFree[FreeNode_firstFree]
+	endif
+	return this
+endfunction
+
+function construct_FreeNode takes integer this, integer dataPos, integer size returns nothing
+endfunction
+
+function new_FreeNode takes integer dataPos, integer size returns integer
+	local integer this = alloc_FreeNode()
+	call construct_FreeNode(this, dataPos, size)
+	return this
+endfunction
+
+function init_ArrayList takes nothing returns nothing
+	call new_FreeNode(0, 8191)
+endfunction
+
+function init_Basics takes nothing returns nothing
+	set Basics_DUMMY_UNIT_ID = 2019849581
+	set Basics_HEIGHT_ENABLER = 1097691750
+	set Basics_LOCUST_ID = 1097625443
+	set Basics_ANIMATION_PERIOD = 0.03
+	set Basics_MAX_COLLISION_SIZE = 197.0
+	set Basics_DUMMY_PLAYER = Player(15)
+	call Player(12)
+endfunction
+
+function init_BigNum takes nothing returns nothing
+endfunction
+
+function init_ChannelSpellPreset takes nothing returns nothing
+endfunction
+
+function c2sInit takes nothing returns nothing
+	set Char_c2s[0] = ""
+	set Char_c2s[1] = ""
+	set Char_c2s[2] = ""
+	set Char_c2s[3] = ""
+	set Char_c2s[4] = ""
+	set Char_c2s[5] = ""
+	set Char_c2s[6] = ""
+	set Char_c2s[7] = ""
+	set Char_c2s[8] = ""
+	set Char_c2s[9] = "\t"
+	set Char_c2s[10] = "\n"
+	set Char_c2s[11] = ""
+	set Char_c2s[12] = ""
+	set Char_c2s[13] = "\r"
+	set Char_c2s[14] = ""
+	set Char_c2s[15] = ""
+	set Char_c2s[16] = ""
+	set Char_c2s[17] = ""
+	set Char_c2s[18] = ""
+	set Char_c2s[19] = ""
+	set Char_c2s[20] = ""
+	set Char_c2s[21] = ""
+	set Char_c2s[22] = ""
+	set Char_c2s[23] = ""
+	set Char_c2s[24] = ""
+	set Char_c2s[25] = ""
+	set Char_c2s[26] = ""
+	set Char_c2s[27] = ""
+	set Char_c2s[28] = ""
+	set Char_c2s[29] = ""
+	set Char_c2s[30] = ""
+	set Char_c2s[31] = ""
+	set Char_c2s[32] = " "
+	set Char_c2s[33] = "!"
+	set Char_c2s[34] = "\""
+	set Char_c2s[35] = "#"
+	set Char_c2s[36] = "$"
+	set Char_c2s[37] = "%"
+	set Char_c2s[38] = "&"
+	set Char_c2s[39] = "'"
+	set Char_c2s[40] = "("
+	set Char_c2s[41] = ")"
+	set Char_c2s[42] = "*"
+	set Char_c2s[43] = "+"
+	set Char_c2s[44] = ","
+	set Char_c2s[45] = "-"
+	set Char_c2s[46] = "."
+	set Char_c2s[47] = "/"
+	set Char_c2s[48] = "0"
+	set Char_c2s[49] = "1"
+	set Char_c2s[50] = "2"
+	set Char_c2s[51] = "3"
+	set Char_c2s[52] = "4"
+	set Char_c2s[53] = "5"
+	set Char_c2s[54] = "6"
+	set Char_c2s[55] = "7"
+	set Char_c2s[56] = "8"
+	set Char_c2s[57] = "9"
+	set Char_c2s[58] = ":"
+	set Char_c2s[59] = ";"
+	set Char_c2s[60] = "<"
+	set Char_c2s[61] = "="
+	set Char_c2s[62] = ">"
+	set Char_c2s[63] = "?"
+	set Char_c2s[64] = "@"
+	set Char_c2s[65] = "A"
+	set Char_c2s[66] = "B"
+	set Char_c2s[67] = "C"
+	set Char_c2s[68] = "D"
+	set Char_c2s[69] = "E"
+	set Char_c2s[70] = "F"
+	set Char_c2s[71] = "G"
+	set Char_c2s[72] = "H"
+	set Char_c2s[73] = "I"
+	set Char_c2s[74] = "J"
+	set Char_c2s[75] = "K"
+	set Char_c2s[76] = "L"
+	set Char_c2s[77] = "M"
+	set Char_c2s[78] = "N"
+	set Char_c2s[79] = "O"
+	set Char_c2s[80] = "P"
+	set Char_c2s[81] = "Q"
+	set Char_c2s[82] = "R"
+	set Char_c2s[83] = "S"
+	set Char_c2s[84] = "T"
+	set Char_c2s[85] = "U"
+	set Char_c2s[86] = "V"
+	set Char_c2s[87] = "W"
+	set Char_c2s[88] = "X"
+	set Char_c2s[89] = "Y"
+	set Char_c2s[90] = "Z"
+	set Char_c2s[91] = "["
+	set Char_c2s[92] = "\\"
+	set Char_c2s[93] = "]"
+	set Char_c2s[94] = "^"
+	set Char_c2s[95] = "_"
+	set Char_c2s[96] = "`"
+	set Char_c2s[97] = "a"
+	set Char_c2s[98] = "b"
+	set Char_c2s[99] = "c"
+	set Char_c2s[100] = "d"
+	set Char_c2s[101] = "e"
+	set Char_c2s[102] = "f"
+	set Char_c2s[103] = "g"
+	set Char_c2s[104] = "h"
+	set Char_c2s[105] = "i"
+	set Char_c2s[106] = "j"
+	set Char_c2s[107] = "k"
+	set Char_c2s[108] = "l"
+	set Char_c2s[109] = "m"
+	set Char_c2s[110] = "n"
+	set Char_c2s[111] = "o"
+	set Char_c2s[112] = "p"
+	set Char_c2s[113] = "q"
+	set Char_c2s[114] = "r"
+	set Char_c2s[115] = "s"
+	set Char_c2s[116] = "t"
+	set Char_c2s[117] = "u"
+	set Char_c2s[118] = "v"
+	set Char_c2s[119] = "w"
+	set Char_c2s[120] = "x"
+	set Char_c2s[121] = "y"
+	set Char_c2s[122] = "z"
+	set Char_c2s[123] = "{"
+	set Char_c2s[124] = "|"
+	set Char_c2s[125] = "}"
+	set Char_c2s[126] = "~"
+	set Char_c2s[127] = ""
+endfunction
+
+function string_toUpperCase takes string this returns string
+	return StringCase(this, true)
+endfunction
+
+function s2cInit takes nothing returns nothing
+	local integer i = 0
+	local integer temp = Char_MAX_INDEX
+	loop
+		exitwhen i > temp
+		if string_toUpperCase(Char_c2s[i]) == Char_c2s[i] then
+		endif
+		set i = i + 1
+	endloop
+endfunction
+
+function widthInit takes nothing returns nothing
+endfunction
+
+function init_Char takes nothing returns nothing
+	set Char_MAX_INDEX = 126 + 1
+	call c2sInit()
+	call s2cInit()
+	call widthInit()
+endfunction
+
+function alloc_HashMap takes nothing returns integer
+	local integer this
+	if HashMap_firstFree == 0 then
+		set HashMap_maxIndex = HashMap_maxIndex + 1
+		set this = HashMap_maxIndex
+	else
+		set HashMap_firstFree = HashMap_firstFree - 1
+		set this = HashMap_nextFree[HashMap_firstFree]
+	endif
+	set HashMap_typeId[this] = 42
+	return this
+endfunction
+
+function construct_HashMap takes integer this returns nothing
+endfunction
+
+function new_HashMap takes nothing returns integer
+	local integer this = alloc_HashMap()
+	call construct_HashMap(this)
+	return this
+endfunction
+
+function trigger_addAction takes trigger this, code actionFunc returns nothing
+	call TriggerAddAction(this, actionFunc)
+endfunction
+
+function trigger_registerAnyUnitEvent takes trigger this, playerunitevent whichEvent returns nothing
+	call TriggerRegisterAnyUnitEventBJ(this, whichEvent)
+endfunction
+
+function init_ClosureEvents takes nothing returns nothing
+	local trigger receiver = CreateTrigger()
+	local trigger receiver_2
+	call trigger_registerAnyUnitEvent(receiver, EVENT_PLAYER_UNIT_SPELL_CAST)
+	set receiver_2 = receiver
+	call trigger_addAction(receiver_2, ref_function_handleCasts)
+	set Cast_casts = new_HashMap()
+	set receiver = null
+	set receiver_2 = null
+endfunction
+
+function init_ClosureForGroups takes nothing returns nothing
+	set ClosureForGroups_tempCallbacksCount = 0
+	call Condition(ref_function_filter_2)
+endfunction
+
+function init_Collider takes nothing returns nothing
+	set TimedLoop_instanceCount_2 = 0
+	set TimedLoop_triggerCond_2 = null
+	call Condition(ref_function_TimedLoop_onExpire_2)
+endfunction
+
+function alloc_Table takes nothing returns integer
+	local integer this
+	if Table_firstFree == 0 then
+		set Table_maxIndex = Table_maxIndex + 1
+		set this = Table_maxIndex
+	else
+		set Table_firstFree = Table_firstFree - 1
+		set this = Table_nextFree[Table_firstFree]
+	endif
+	set Table_typeId[this] = 8
+	return this
+endfunction
+
+function construct_Table takes integer this returns nothing
+endfunction
+
+function new_Table takes nothing returns integer
+	local integer this = alloc_Table()
+	call construct_Table(this)
+	return this
+endfunction
+
+function init_Colors takes nothing returns nothing
+	local integer i = 0
+	local integer i2
+	local integer tempIndex
+	local integer tempIndex_2
+	local integer tempIndex_3
+	local integer tempIndex_4
+	local integer tempIndex_5
+	local integer tempIndex_6
+	local integer tempIndex_7
+	local integer tempIndex_8
+	local integer tempIndex_9
+	local integer tempIndex_10
+	local integer tempIndex_11
+	local integer tempIndex_12
+	local integer tempIndex_13
+	loop
+		exitwhen i > 9
+		call int_toString(i)
+		set i = i + 1
+	endloop
+	set Colors_decs = new_Table()
+	set i2 = 0
+	loop
+		exitwhen i2 > 9
+		call dispatch_Table_saveInt(Colors_decs, StringHash(int_toString(i2)), i2)
+		set i2 = i2 + 1
+	endloop
+	call dispatch_Table_saveInt(Colors_decs, StringHash("A"), 10)
+	call dispatch_Table_saveInt(Colors_decs, StringHash("B"), 11)
+	call dispatch_Table_saveInt(Colors_decs, StringHash("C"), 12)
+	call dispatch_Table_saveInt(Colors_decs, StringHash("D"), 13)
+	call dispatch_Table_saveInt(Colors_decs, StringHash("E"), 14)
+	call dispatch_Table_saveInt(Colors_decs, StringHash("F"), 15)
+	set tempIndex = 0
+	set tempIndex_2 = 1
+	set tempIndex_3 = 2
+	set tempIndex_4 = 3
+	set tempIndex_5 = 4
+	set tempIndex_6 = 5
+	set tempIndex_7 = 6
+	set tempIndex_8 = 7
+	set tempIndex_9 = 8
+	set tempIndex_10 = 9
+	set tempIndex_11 = 10
+	set tempIndex_12 = 11
+	set tempIndex_13 = 12
+endfunction
+
+function init_CustomBar takes nothing returns nothing
+	set CustomBar_count = 0
+	set CustomBar_animationTimer = CreateTimer()
+endfunction
+
+function init_CustomExp takes nothing returns nothing
+	local trigger t
+	set CustomExp_RADIUS = 650.
+	set CustomExp_CLOSE = 200.
+	set CustomExp_MEDIUM = 400.
+	set CustomExp_FAR = 650.
+	set CustomExp_CLOSE_FACTOR = 1.
+	set CustomExp_MEDIUM_FACTOR =  .5
+	set CustomExp_FAR_FACTOR =  .25
+	set CustomExp_UNIT_EXP = 30
+	set CustomExp_HERO_EXP = 45
+	set CustomExp_BONUS_EXP = 9
+	set CustomExp_DURATION = 5.
+	set CustomExp_SIZE = 12.
+	set CustomExp_RED = 0
+	set CustomExp_GREEN = 74
+	set CustomExp_BLUE = 255
+	set CustomExp_SHOW_TEXT = true
+	set CustomExp_SPLIT = true
+	set CustomExp_DISTANCE_EFFECT = false
+	set t = CreateTrigger()
+	call TriggerRegisterAnyUnitEventBJ(t, EVENT_PLAYER_UNIT_DEATH)
+	call TriggerAddAction(t, ref_function_giveXP)
+	call TimerStart(CreateTimer(),  .04, false, ref_function_disableXpGain)
+	set t = null
+endfunction
+
+function trigger_registerEnterRegion takes trigger this, region whichRegion, boolexpr filter_3 returns nothing
+	call TriggerRegisterEnterRegion(this, whichRegion, filter_3)
+endfunction
+
+function init_DamageDetection takes nothing returns nothing
+	local trigger t
+	local integer i
+	local integer temp
+	set DamageDetection_SWAP_TIMEOUT = 600.
+	set DamageDetection_funcNext = 0
+	set DamageDetection_current = null
+	set DamageDetection_toDestroy = null
+	set t = CreateTrigger()
+	call trigger_registerEnterRegion(t, MapBounds_mapRegion, null)
+	call trigger_addCondition(t, Condition(ref_function_closure_impl_3))
+	set DamageDetection_swapGroup = CreateGroup()
+	set DamageDetection_current = CreateTrigger()
+	set i = 0
+	set temp = DamageDetection_funcNext - 1
+	loop
+		exitwhen i > temp
+		call trigger_addCondition(DamageDetection_current, DamageDetection_func[i])
+		set i = i + 1
+	endloop
+	call GroupEnumUnitsInRect(DamageDetection_swapGroup, MapBounds_mapRect, Filter(ref_function_closure_impl_4))
+	call TimerStart(CreateTimer(), DamageDetection_SWAP_TIMEOUT, true, ref_function_swap)
+	set t = null
+endfunction
+
+function Damager_initD takes nothing returns nothing
+	call Rect(0., 0., 0., 0.)
+	call Condition(ref_function_damageAOE_Enum)
+	call Condition(ref_function_damageAOE_DestructablesEnum)
+	call CreateGroup()
+endfunction
+
+function init_Damager takes nothing returns nothing
+	set Damager_FACTOR_TEST_DAMAGE = 0.01
+	set Damager_MAX_DAMAGE_FACTOR = 3.00
+	set Damager_EPSILON = 0.000000001
+	set Damager_dmger = CreateUnit(Player(15), Basics_DUMMY_UNIT_ID, 0., 0., 0.)
+	call UnitAddAbility(Damager_dmger, 1097625443)
+	call Damager_initD()
+endfunction
+
+function init_DummyCaster takes nothing returns nothing
+	set DummyCaster_FORCE_INVISIBLE_CAST = false
+	set DummyCaster_AUTO_RESET_MANA_COOLDOWN = true
+	call Condition(ref_function_DummyCaster_filterAOE)
+endfunction
+
+function init_DummyRecycler takes nothing returns nothing
+	local integer endPos
+	local integer n
+	local real angl
+	local real x
+	local real y
+	local integer i
+	local unit receiver
+	local unit receiver_2
+	local unit receiver_3
+	local unit receiver_4
+	set DummyRecycler_ANG_N = 8
+	set DummyRecycler_ANG_STORAGE_MAX = 12
+	set DummyRecycler_DEATH_TIME = 2.
+	set DummyRecycler_ANG_VAL = 360 / DummyRecycler_ANG_N
+	set DummyRecycler_ANG_MID = DummyRecycler_ANG_VAL / 2
+	set DummyRecycler_recycle = 0
+	set DummyRecycler_protect = CreateGroup()
+	set LinkedListModule_first = 0
+	set LinkedListModule_last = 0
+	set LinkedListModule_size = 0
+	set n = DummyRecycler_ANG_N
+	set x = MapBounds_mapMaxX
+	set y = MapBounds_mapMaxY
+	set i = DummyRecycler_ANG_N
+	loop
+		exitwhen i < 0
+		set DummyRecycler_stackN[i] = DummyRecycler_ANG_STORAGE_MAX
+		set DummyRecycler_queueNext[i] = n
+		set angl = int_toReal(i * DummyRecycler_ANG_VAL + DummyRecycler_ANG_MID)
+		set endPos = n + DummyRecycler_ANG_STORAGE_MAX
+		set DummyRecycler_queueLast[i] = endPos - 1
+		loop
+			exitwhen  not (n < endPos)
+			set DummyRecycler_queueNext[n] = n + 1
+			set DummyRecycler_stack[n] = CreateUnit(Basics_DUMMY_PLAYER, Basics_DUMMY_UNIT_ID, x, y, angl)
+			set receiver = DummyRecycler_stack[n]
+			call unit_addAbility(receiver, Basics_HEIGHT_ENABLER)
+			set receiver_2 = receiver
+			call unit_removeAbility(receiver_2, Basics_HEIGHT_ENABLER)
+			set receiver_3 = receiver_2
+			call unit_addAbility(receiver_3, Basics_LOCUST_ID)
+			set receiver_4 = receiver_3
+			call unit_pause(receiver_4)
+			set n = n + 1
+		endloop
+		set DummyRecycler_queueNext[n - 1] = 0
+		set i = i - 1
+	endloop
+	call TimerStart(CreateTimer(), 0.1, true, ref_function_checkDelayed)
+	set receiver = null
+	set receiver_2 = null
+	set receiver_3 = null
+	set receiver_4 = null
+endfunction
+
+function init_EventHandling takes nothing returns nothing
+	set EventHandling_count = 0
+	set EventHandling_castTrig = CreateTrigger()
+	call trigger_addCondition(EventHandling_castTrig, Condition(ref_function_evaluateEvent))
+	set EventHandling_evalTrig = CreateTrigger()
+endfunction
+
+function File_doInit takes nothing returns nothing
+	call InitHashtable()
+endfunction
+
+function init_FileIO takes nothing returns nothing
+	call TimerStart(CreateTimer(), 0., false, ref_function_LocalFileTest_onInit)
+	set LocalFileTest_FLAG_FOLDER = "Flag"
+	set LocalFileTest_FLAG_FILE = "flag"
+	set LocalFileTest_success = false
+	call File_doInit()
+endfunction
+
+function init_GameTimer takes nothing returns nothing
+	set GameTimer_gameTimer = CreateTimer()
+	call timer_start(GameTimer_gameTimer, 100000., null)
+endfunction
+
+function init_HashList takes nothing returns nothing
+	call InitHashtable()
+endfunction
+
+function init_HashMap takes nothing returns nothing
+	set HashMap_ht = InitHashtable()
+endfunction
+
+function init_Knockback takes nothing returns nothing
+	set Knockback_STOP_WHEN_IMPASSABLE = false
+	set Knockback_USE_KNOCKBACK_EFFECTS = false
+	set Knockback_EARTH_EFFECT = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+	set Knockback_WATER_EFFECT = "Abilities\\Spells\\Undead\\AbsorbMana\\AbsorbManaBirthMissile.mdl"
+	set Knockback_KNOCKBACK_EFFECT_ATTACHPOINT = "origin"
+	set Knockback_IGNORE_FLYING_UNITS = true
+	set Knockback_destFilter = Condition(ref_function_Knockback_destFilterMethod)
+	set Knockback_destActions = null
+	set Knockback_temp = 0
+	set Knockback_destRect = Rect(0., 0., 1., 1.)
+	set Knockback_tx = 0.00
+	set Knockback_ty = 0.00
+	set TimedLoop_instanceCount = 0
+	set TimedLoop_triggerCond = null
+	call Condition(ref_function_TimedLoop_onExpire)
+endfunction
+
+function init_LastOrder takes nothing returns nothing
+	local trigger trg
+	set LastOrder_ORDERS_TO_HOLD = 3
+	set LastOrder_ht = InitHashtable()
+	set trg = CreateTrigger()
+	call TriggerAddAction(trg, ref_function_actions)
+	call TriggerAddCondition(trg, Condition(ref_function_conditions))
+	call TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER)
+	call TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER)
+	call TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_ORDER)
+	set trg = CreateTrigger()
+	call TriggerAddAction(trg, ref_function_spellActions)
+	call TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_SPELL_EFFECT)
+	set trg = null
+endfunction
+
+function region_addRect takes region this, rect r returns nothing
+	call RegionAddRect(this, r)
+endfunction
+
+function init_MapBounds takes nothing returns nothing
+	local region receiver
+	local real temp_MapBounds_mapCenter_x
+	local real temp_MapBounds_mapCenter_y
+	set MapBounds_mapRect = GetPlayableMapRect()
+	set receiver = CreateRegion()
+	call region_addRect(receiver, MapBounds_mapRect)
+	set MapBounds_mapRegion = receiver
+	set MapBounds_mapMinX = GetRectMinX(MapBounds_mapRect)
+	set MapBounds_mapMinY = GetRectMinY(MapBounds_mapRect)
+	set MapBounds_mapMaxX = GetRectMaxX(MapBounds_mapRect)
+	set MapBounds_mapMaxY = GetRectMaxY(MapBounds_mapRect)
+	set temp_MapBounds_mapCenter_x = (MapBounds_mapMaxX + MapBounds_mapMinX) / 2.
+	set temp_MapBounds_mapCenter_y = (MapBounds_mapMinY + MapBounds_mapMaxY) / 2.
+	set receiver = null
+endfunction
+
+function init_Maths takes nothing returns nothing
+	set Maths_PI2 = 6.28318
+	set Maths_DEGTORAD = 0.017453293
+	set Maths_RADTODEG = 57.295779513
+endfunction
+
+function init_ObjectIds takes nothing returns nothing
+	set ObjectIds_charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>.@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."
+endfunction
+
+function idInteger2IdString takes integer value returns string
+	local string result = ""
+	local integer remainingValue = value
+	local integer byteno = 0
+	local integer charValue
+	loop
+		exitwhen byteno > 3
+		set charValue = ModuloInteger(remainingValue, 256)
+		set remainingValue = remainingValue / 256
+		set result = SubString(ObjectIds_charMap, charValue, charValue + 1) + result
+		set byteno = byteno + 1
+	endloop
+	return result
+endfunction
+
+function init_PreloadHandler takes nothing returns nothing
+	set PreloadHandler_autoFinish = false
+	set PreloadHandler_dum = CreateUnit(Player(15), Basics_DUMMY_UNIT_ID, 0., 0., 0.)
+	if PreloadHandler_dum == null then
+		call BJDebugMsg("PreloadHandler : DUMMY_UNITID (" + idInteger2IdString(Basics_DUMMY_UNIT_ID) + ") not added correctly to the map.")
+		call I2S(1 / 0)
+	endif
+	if PreloadHandler_autoFinish then
+		call TimerStart(CreateTimer(), 0.0, false, ref_function_finishPreload)
+	endif
+endfunction
+
+function trigger_registerPlayerChatEvent takes trigger this, player whichPlayer, string chatMessageToDetect, boolean exactMatchOnly returns nothing
+	call TriggerRegisterPlayerChatEvent(this, whichPlayer, chatMessageToDetect, exactMatchOnly)
+endfunction
+
+function init_PrintingHelper takes nothing returns nothing
+	local trigger t
+	local integer i
+	set PrintingHelper_DEBUG_LEVEL = 0
+	set PrintingHelper_DEBUG_MSG_DURATION = 45.
+	set t = CreateTrigger()
+	call trigger_addAction(t, ref_function_switchDebug)
+	set i = 0
+	loop
+		exitwhen i > 11
+		set PrintingHelper_wantDebug[i] = false
+		call trigger_registerPlayerChatEvent(t, Player(i), "-d", true)
+		set i = i + 1
+	endloop
+	set t = null
+endfunction
+
+function init_Rect takes nothing returns nothing
+	call new_Table()
+endfunction
+
+function init_Region takes nothing returns nothing
+	call new_Table()
+endfunction
+
+function init_SoundHelper takes nothing returns nothing
+	set SoundHelper_DEFAULT_SOUND_VOLUME = 127
+	set SoundHelper_DEFAULT_SOUND_PITCH = 1.
+	set SoundHelper_SOUND_CHANNEL = 5
+	set SoundHelper_SOUND_MIN_DIST = 600.
+	set SoundHelper_SOUND_MAX_DIST = 10000.
+	set SoundHelper_SOUND_DIST_CUT = 3000.
+endfunction
+
+function init_SoundQueue takes nothing returns nothing
+	set SoundQueue_c = ref_function_SoundQueue_nextSound
+endfunction
+
+function init_SpellDesignConfig takes nothing returns nothing
+endfunction
+
+function string_length takes string this returns integer
+	return StringLength(this)
+endfunction
+
+function init_String takes nothing returns nothing
+	set String_charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	set String_numberset = "0123456789"
+	call string_length(String_numberset)
+	call string_length(String_charset)
+endfunction
+
+function init_Sync takes nothing returns nothing
+	call timer_start(CreateTimer(), .1, ref_function_initGamecache)
+endfunction
+
+function alloc_A takes nothing returns integer
+	local integer this
+	if A_firstFree == 0 then
+		set A_maxIndex = A_maxIndex + 1
+		set this = A_maxIndex
+	else
+		set A_firstFree = A_firstFree - 1
+		set this = A_nextFree[A_firstFree]
+	endif
+	return this
+endfunction
+
+function alloc_B takes nothing returns integer
+	local integer this
+	if B_firstFree == 0 then
+		set B_maxIndex = B_maxIndex + 1
+		set this = B_maxIndex
+	else
+		set B_firstFree = B_firstFree - 1
+		set this = B_nextFree[B_firstFree]
+	endif
+	return this
+endfunction
+
+function construct_B takes integer this returns nothing
+endfunction
+
+function new_B takes nothing returns integer
+	local integer this = alloc_B()
+	call construct_B(this)
+	return this
+endfunction
+
+function construct_A takes integer this returns nothing
+	call new_B()
+endfunction
+
+function new_A takes nothing returns integer
+	local integer this = alloc_A()
+	call construct_A(this)
+	return this
+endfunction
+
+function init_Table takes nothing returns nothing
+	call new_A()
+	set Table_ht = InitHashtable()
+endfunction
+
+function init_TempGroups takes nothing returns nothing
+	set TempGroups_ENUM_GROUP = CreateGroup()
+endfunction
+
+function init_Terrain takes nothing returns nothing
+	local real temp_Terrain_tempPos_x
+	local real temp_Terrain_tempPos_y
+	set Terrain_MAX_RANGE = 10.
+	set Terrain_DUMMY_ITEM_ID = 2003790951
+	set Terrain_tempLoc = Location(0., 0.)
+	set Terrain_dItem = null
+	set Terrain_find = null
+	set Terrain_hidMax = 0
+	set temp_Terrain_tempPos_x = 0.
+	set temp_Terrain_tempPos_y = 0.
+	set Terrain_tempPos_x = temp_Terrain_tempPos_x
+	set Terrain_tempPos_y = temp_Terrain_tempPos_y
+	set Terrain_find = Rect(0., 0., 128., 128.)
+	set Terrain_dItem = CreateItem(Terrain_DUMMY_ITEM_ID, 0., 0.)
+	call SetItemVisible(Terrain_dItem, false)
+endfunction
+
+function Thread_doInit takes nothing returns nothing
+	local integer i
+	set Thread_syncThreadTrigger = CreateTrigger()
+	call TriggerAddCondition(Thread_syncThreadTrigger, Condition(ref_function_Thread_syncThread))
+	set i = 11
+	loop
+		exitwhen i < 0
+		if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER then
+			call TriggerRegisterPlayerUnitEvent(Thread_syncThreadTrigger, Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
+		endif
+		set i = i - 1
+	endloop
+endfunction
+
+function init_Thread takes nothing returns nothing
+	call Thread_doInit()
+endfunction
+
+function init_TimedLoop takes nothing returns nothing
+	set TimedLoop_timedLoopTimer = CreateTimer()
+	set TimedLoop_timedLoopTrig = CreateTrigger()
+	set TimedLoop_conditionCount = 0
+endfunction
+
+function init_TimerUtils takes nothing returns nothing
+	set TimerUtils_freeTimersCount = 0
+	set TimerUtils_timerData = new_Table()
+	set TimerUtils_HELD = 679645218
+endfunction
+
+function init_Trackable takes nothing returns nothing
+	local trigger receiver
+	local trigger receiver_2
+	set TrackableEx_doubleClickSpeed = 0.5
+	set TrackableEx_trackableOwner = new_HashMap()
+	set TrackableEx_trackableObjects = new_HashMap()
+	set receiver = CreateTrigger()
+	call trigger_addAction(receiver, ref_function_closure_impl_5)
+	set receiver_2 = CreateTrigger()
+	call trigger_addAction(receiver_2, ref_function_closure_impl_6)
+	set receiver = null
+	set receiver_2 = null
+endfunction
+
+function init_Trigger takes nothing returns nothing
+	call new_Table()
+endfunction
+
+function init_TypeCasting takes nothing returns nothing
+	set TypeCasting_typecastdata = new_Table()
+endfunction
+
+function main takes nothing returns nothing
+	call initGlobals()
+	call init_Char()
+	call init_Table()
+	call init_Trigger()
+	call init_Colors()
+	call init_Maths()
+	call init_Region()
+	call init_MapBounds()
+	call init_Terrain()
+	call init_PrintingHelper()
+	call init_String()
+	call init_TimerUtils()
+	call init_TempGroups()
+	call init_Rect()
+	call init_Basics()
+	call init_TypeCasting()
+	call init_ArrayList()
+	call init_BigNum()
+	call init_ChannelSpellPreset()
+	call init_HashMap()
+	call init_ClosureEvents()
+	call init_ClosureForGroups()
+	call init_GameTimer()
+	call init_DummyRecycler()
+	call init_TimedLoop()
+	call init_Collider()
+	call init_CustomBar()
+	call init_CustomExp()
+	call init_DamageDetection()
+	call init_Damager()
+	call init_DummyCaster()
+	call init_EventHandling()
+	call init_FileIO()
+	call init_HashList()
+	call init_Knockback()
+	call init_LastOrder()
+	call init_ObjectIds()
+	call init_PreloadHandler()
+	call init_SoundHelper()
+	call init_SoundQueue()
+	call init_SpellDesignConfig()
+	call init_Thread()
+	call init_Sync()
+	call init_Trackable()
+endfunction
+
+function config takes nothing returns nothing
+endfunction
+

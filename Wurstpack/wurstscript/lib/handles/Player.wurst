@@ -69,6 +69,11 @@ public function player.select(unit u)
 	if GetLocalPlayer() == this
 		SelectUnit(u, true)
 		
+public function player.selectSingle(unit u)
+	if GetLocalPlayer() == this
+		ClearSelection()
+		SelectUnit(u, true)
+		
 public function player.unselect(unit u)
 	if GetLocalPlayer() == this
 		SelectUnit(u, false)

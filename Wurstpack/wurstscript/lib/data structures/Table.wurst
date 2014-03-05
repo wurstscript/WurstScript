@@ -2,6 +2,17 @@ package Table
 import NoWurst
 import Hashtable
 
+class A
+	B b
+	
+	construct()
+		b = new B()
+	
+class B
+	A a
+	
+	
+
 public class Table
 	private static hashtable ht = InitHashtable()
 	

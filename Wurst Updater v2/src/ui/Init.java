@@ -1,12 +1,17 @@
 package ui;
 
+
 import java.awt.Rectangle;
+import java.io.IOException;
+import java.util.LinkedList;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JProgressBar;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+
+import file.FileEx;
 
 public class Init {
 	
@@ -18,8 +23,8 @@ public class Init {
 	private static JFrame frame;
 	private static JButton updateButton;
 	private static JProgressBar progressBar;
-
-	public static void run(){
+	
+	public static void initNormal() {
 		frame = new JFrame(frameName);
 		frame.setBounds(frameBounds);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -40,6 +45,26 @@ public class Init {
 		frame.add(progressBar);
 		
 		frame.setVisible(true);
+	}
+	
+	public static void initSilent() {
+		LinkedList<FileEx> toChange = null;
+		LinkedList<FileEx> toDelete = null;
+		LinkedList<FileEx> toAsk = null;
+		try {
+			toChange = CheckChanges.getFilesToChange();
+			toDelete = CheckChanges.getFilesToDelete();
+			toAsk = CheckChanges.getFilesToAsk(toChange, toDelete);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if( toChange.size()+toDelete.size()+toAsk.size() > 0 ) {
+			initNormal();
+		}else{
+			return;
+		}
+			
 	}
 	
 	public static JButton getUpdateButton(){

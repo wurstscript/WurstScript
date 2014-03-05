@@ -4,6 +4,57 @@ import TimerUtils
 
 timer array noiseTimer
 
+public function cinematicModeForPlayer(boolean cineMode, player forPlayer, real interfaceFadeTime)
+	if (cineMode)
+		// Save the UI state so that we can restore it later.
+		if (not bj_cineModeAlreadyIn)
+			bj_cineModeAlreadyIn = true
+			bj_cineModePriorSpeed = GetGameSpeed()
+			bj_cineModePriorFogSetting = IsFogEnabled()
+			bj_cineModePriorMaskSetting = IsFogMaskEnabled()
+			bj_cineModePriorDawnDusk = IsDawnDuskEnabled()
+			bj_cineModeSavedSeed = GetRandomInt(0, 1000000)
+
+		// Perform local changes
+		if GetLocalPlayer() == forPlayer
+			// Use only local code (no net traffic) within this block to avoid desyncs.
+			ClearTextMessages()
+			//ShowInterface(false, interfaceFadeTime)
+			EnableUserControl(false)
+			EnableOcclusion(false)
+			SetCineModeVolumeGroupsBJ()
+
+		// Perform global changes
+		SetGameSpeed(bj_CINEMODE_GAMESPEED)
+		SetMapFlag(MAP_LOCK_SPEED, true)
+		FogMaskEnable(false)
+		FogEnable(false)
+		EnableWorldFogBoundary(false)
+		EnableDawnDusk(false)
+
+		// Use a fixed random seed, so that cinematics play consistently.
+		SetRandomSeed(0)
+	else
+		bj_cineModeAlreadyIn = false
+		// Perform local changes
+		if GetLocalPlayer() == forPlayer
+			// Use only local code (no net traffic) within this block to avoid desyncs.
+			ShowInterface(true, interfaceFadeTime)
+			EnableUserControl(true)
+			EnableOcclusion(true)
+			VolumeGroupReset()
+			EndThematicMusic()
+			CameraResetSmoothingFactorBJ()
+
+		// Perform global changes
+		SetMapFlag(MAP_LOCK_SPEED, false)
+		SetGameSpeed(bj_cineModePriorSpeed)
+		FogMaskEnable(bj_cineModePriorMaskSetting)
+		FogEnable(bj_cineModePriorFogSetting)
+		EnableWorldFogBoundary(true)
+		EnableDawnDusk(bj_cineModePriorDawnDusk)
+		SetRandomSeed(bj_cineModeSavedSeed)
+
 /**
 *	Shake the camera of the player for the given parameters
 */
