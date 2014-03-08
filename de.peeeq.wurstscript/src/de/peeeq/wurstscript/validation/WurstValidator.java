@@ -545,7 +545,7 @@ public class WurstValidator {
 				&& !Utils.isJassCode(s) // not in jass code
 				&& !varName.matches("[A-Z0-9_]+") // not a constant
 				) {
-			s.addError("Variable names must start with a lower case character. (" + varName + ")");
+			s.addWarning("Variable names should start with a lower case character. (" + varName + ")");
 		}
 		if (varName.equals("handle")) {
 			s.addError("\"handle\" is not a valid variable name");
@@ -633,7 +633,7 @@ public class WurstValidator {
 	private void checkFunctionName(FunctionDefinition f) {
 		if (!Utils.isJassCode(f)) {
 			if (!isValidVarnameStart(f.getName())) {
-				f.addError("Function names must start with an lower case character.");
+				f.addWarning("Function names should start with an lower case character.");
 			}
 		}
 	}
@@ -879,7 +879,7 @@ public class WurstValidator {
 
 	private void checkTypeName(AstElement source, String name) {
 		if (!Character.isUpperCase(name.charAt(0))) {
-			source.addError("Type names must start with upper case characters.");
+			source.addWarning("Type names should start with upper case characters.");
 		}
 	}
 
@@ -1359,10 +1359,11 @@ public class WurstValidator {
 	}
 
 	private void checkPackageName(CompilationUnit cu) {
-		if (cu.getPackages().size() == 1 && cu.getFile().endsWith(".wurst")) {
+		if (cu.getPackages().size() == 1 && (cu.getFile().endsWith(".wurst") || cu.getFile().endsWith(".jurst"))) {
 			// only one package in a wurst file
 			WPackage p = cu.getPackages().get(0);
-			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")) {
+			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")
+				&& !Utils.fileName(cu.getFile()).equals(p.getName()+".jurst")) {
 				p.addError("The file must have the same name as the package " + p.getName());
 			}
 		}

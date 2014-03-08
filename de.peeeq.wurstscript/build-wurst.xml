@@ -8,6 +8,8 @@
 	<property name="instrumented.dir" location="./bin_instrumented" />
 	<property name="grammarspec" location="./parserspec/wurstscript.cup" />
 	<property name="scannerspec" location="./parserspec/wurstscript.flex" />
+	<property name="jurst_grammarspec" location="./parserspec/jurst.cup" />
+	<property name="jurst_scannerspec" location="./parserspec/jurst.flex" />
 	<property name="grammarspec_antlr" location="./parserspec/Wurstscript.g" />
 	<property name="scannerspec_antlr" location="./parserspec/wurstscript_antlr.flex" />
 	<property name="javacup" location="./tools/java-cup.jar" />
@@ -31,6 +33,8 @@
 	<target name="checkForChanges">
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/WurstScriptScannerIntern.java" srcfile="${scannerspec}" property="jflexNotChanged" />
 		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/parser.java" srcfile="${grammarspec}" property="cupNotChanged" />
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/jurstparser.java" srcfile="${jurst_grammarspec}" property="jurst_cupNotChanged" />
+		<uptodate targetfile="${srcgen}/de/peeeq/wurstscript/parser/JurstScriptScannerIntern.java" srcfile="${jurst_scannerspec}" property="jurst_jflexNotChanged" />
 	</target>
 
 	
@@ -63,8 +67,22 @@
 			<arg value="TokenType" />
 			<arg value="${grammarspec}" />
 		</java>
-		<!--<move file="TokenType.java" todir="${src}/minijava/parser/" />-->
-
+	</target>
+	
+	<target name="jurst_cup" depends="checkForChanges" unless="jurst_cupNotChanged">
+		<mkdir dir="${srcgen}/de/peeeq/wurstscript/parser" />
+		<java jar="${javacup}" fork="true" failonerror="true">
+			<!--<arg value="-expect" />
+			<arg value="2" />-->
+			<!--<arg value="-dump" />-->
+			<arg value="-destdir" />
+			<arg value="${srcgen}/de/peeeq/wurstscript/parser" />
+			<arg value="-symbols" />
+			<arg value="JurstTokenType" />
+			<arg value="-parser" />
+			<arg value="JurstParser" />
+			<arg value="${jurst_grammarspec}" />
+		</java>
 	</target>
 
 	<target name="jflex" depends="cup, checkForChanges" unless="jflexNotChanged">
@@ -74,8 +92,15 @@
 			<arg value="${scannerspec}" />
 			<classpath refid="classpath" />
 		</java>
-		<!-- <move file="MiniJavaScanner.java" todir="${srcgen}/de/peeeq/wurstscript/parser/" /> -->
-
+	</target>
+	
+	<target name="jurst_jflex" depends="jurst_cup, checkForChanges" unless="jurst_jflexNotChanged">
+		<java jar="${jflex}" fork="true" failonerror="true">
+			<arg value="-d" />
+			<arg value="${srcgen}/de/peeeq/wurstscript/parser" />
+			<arg value="${jurst_scannerspec}" />
+			<classpath refid="classpath" />
+		</java>
 	</target>
 
 	<target name="parseq_ast">
@@ -104,7 +129,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="cup, jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile" >
+	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">

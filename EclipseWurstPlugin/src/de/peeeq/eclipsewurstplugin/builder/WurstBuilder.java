@@ -198,6 +198,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	private boolean isWurstOrJassFile(IFile file) {
 		return file.getName().endsWith(".wurst")
+				|| file.getName().endsWith(".jurst")
 				|| file.getName().endsWith(".j");
 	}
 	

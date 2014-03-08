@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 
@@ -109,6 +110,11 @@ public class AstHelper {
 			throw new Error("unhandled type: " + p.getClass());
 		}
 		return c;
+	}
+
+	public static WImports combine(WImports a, WImports b) {
+		a.addAll(b.removeAll());
+		return a;
 	}
 
 
