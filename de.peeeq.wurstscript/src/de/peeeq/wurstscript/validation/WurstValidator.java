@@ -36,6 +36,7 @@ import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
@@ -953,6 +954,26 @@ public class WurstValidator {
 				e.addError("Cannot reference dynamic variable " +e.getVarName() + " from static context.");
 			}
 		}
+		if (e.attrTyp() instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wtns = (WurstTypeNamedScope) e.attrTyp();
+			if (wtns.isStaticRef()) {
+				if (!isUsedAsReceiverInExprMember(e)) {
+					e.addError("Reference to " + e.getVarName() + " cannot be used as an expression.");
+				}
+			}
+		}
+		
+	}
+
+	private boolean isUsedAsReceiverInExprMember(Expr e) {
+		boolean result = false;
+		if (e.getParent() instanceof ExprMember) {
+			ExprMember em = (ExprMember) e.getParent();
+			if (em.getLeft() == e) {
+				result = true;
+			}
+		}
+		return result;
 	}
 
 	private void checkTypeBinding(HasTypeArgs e) {
@@ -1420,6 +1441,9 @@ public class WurstValidator {
 				|| typ.equalsType(WurstTypeString.instance(), null) 
 				|| (typ instanceof WurstTypeEnum) ) {
 			return true;
+		} else if (typ instanceof WurstTypeEnum) {
+			WurstTypeEnum wte = (WurstTypeEnum) typ;
+			return !wte.isStaticRef();
 
 		}else {
 			return false;
