@@ -1,11 +1,15 @@
 package de.peeeq.wurstio;
 
 import java.awt.Desktop;
+import java.awt.Dialog.ModalityType;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -13,8 +17,15 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import com.google.common.base.Charsets;
@@ -28,9 +39,8 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class ErrorReportingIO extends ErrorReporting {
 		
-	
 	@Override
-	public void handleSevere(Throwable t, String sourcecode) {
+	public void handleSevere(final Throwable t, String sourcecode) {
 		WLogger.severe(t);
 		
 		sourcecode = WLogger.getLog() + "\n\nSource Code: \n\n" + sourcecode;
@@ -67,8 +77,44 @@ public class ErrorReportingIO extends ErrorReporting {
 			options[1]); //default button titles
 		
 		if (n == 1) {
-			boolean r1 = sendErrorReport(t, "");  
-			boolean r2 = sendErrorReport(t, sourcecode);
+			final boolean results[] = new boolean[3];
+			Thread threads[] = new Thread[3];
+			
+			threads[0] = new Thread() {
+				public void run() {
+					results[0] = sendErrorReport(t, "");
+				}
+			};
+			
+			final String sourceCode2 = sourcecode;
+			threads[1] = new Thread() {
+				public void run() {
+					results[1] = sendErrorReport(t, sourceCode2);
+				}
+			};
+			
+			threads[2] = new Thread() {
+				public void run() {
+					String customMessage = showMultilineMessageDialog();
+					results[2] = sendErrorReport(t, "Custom message:\n\n" + customMessage);
+				}
+
+				
+			};
+			
+			for (Thread tr : threads) {
+				tr.start();
+			}
+			
+			for (Thread tr : threads) {
+				try {
+					tr.join();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+			
+			
 			
 			try {
 				Files.write(sourcecode, new File("errorreport_source.wurst"), Charsets.UTF_8);
@@ -76,13 +122,12 @@ public class ErrorReportingIO extends ErrorReporting {
 				WLogger.severe(e);
 			}
 			
-			if (r1 && r2) {
+			if (results[0] && results[1] && results[2]) {
 				JOptionPane.showMessageDialog(parent, "Thank you!");
-			} else if (!r1 && !r2) {
-				JOptionPane.showMessageDialog(parent, "Error report could not be sent.");
-			} else {
+			} else if (results[0]) {
 				JOptionPane.showMessageDialog(parent, "Error Report could only be sent partially.");
-				
+			} else {
+				JOptionPane.showMessageDialog(parent, "Error report could not be sent.");
 			}
 		} else if (n == 2) {
 			Desktop desk = Desktop.getDesktop();
@@ -165,5 +210,25 @@ public class ErrorReportingIO extends ErrorReporting {
 	private static void handleError(String msg) {
 		WLogger.severe(msg);
 		System.err.println(msg);
+	}
+	
+	private String showMultilineMessageDialog() {
+		final JTextArea textArea = new JTextArea();
+		textArea.setRows(8);					
+		textArea.setLineWrap(true);
+		textArea.setWrapStyleWord(true);
+		JScrollPane areaScrollPane = new JScrollPane(textArea);
+		JComponent inputs[] = {
+				new JLabel("Please add some contact information here in case we have further questions regarding this problem."),
+				new JLabel("This can be your hive user-name or your mail address."),
+				new JLabel("You can also add more information on how to reproduce the problem."),
+				areaScrollPane
+		};
+		int r = JOptionPane.showConfirmDialog(null, inputs, "My custom dialog", JOptionPane.OK_CANCEL_OPTION);
+		if (r == JOptionPane.OK_OPTION) {
+			return textArea.getText();
+		} else {
+			return "(cancel"+r+" selected) ";
+		}
 	}
 }
