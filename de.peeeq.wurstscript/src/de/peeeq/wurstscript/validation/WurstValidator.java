@@ -959,6 +959,8 @@ public class WurstValidator {
 			if (wtns.isStaticRef()) {
 				if (!isUsedAsReceiverInExprMember(e)) {
 					e.addError("Reference to " + e.getVarName() + " cannot be used as an expression.");
+				} else if (e.getParent() instanceof ExprMemberMethodDotDot) {
+					e.addError("Reference to " + e.getVarName() + " cannot be used with the cascade operator. Only dynamic objects are allowed.");
 				}
 			}
 		}
