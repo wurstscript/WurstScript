@@ -3,6 +3,7 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
@@ -12,6 +13,7 @@ import javax.swing.JOptionPane;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
+import com.google.common.io.OutputSupplier;
 
 import de.peeeq.wurstio.mpq.LadikMpq;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -189,9 +191,13 @@ public class ProgramStateIO extends ProgramState {
 		gui.sendProgress("Writing back generated objects", 0.9);
 
 		for (ObjectFileType fileType : ObjectFileType.values()) {
+			WLogger.info("Writing back " + fileType);
 			ObjectFile dataStore = getDataStore(fileType);
 			if (!dataStore.isEmpty()) {
+				WLogger.info("Writing back filetype " + fileType);
 				writebackObjectFile(dataStore, fileType, inject);
+			} else {
+				WLogger.info("Writing back empty for " + fileType);
 			}
 		}
 		writeW3oFile();
@@ -235,18 +241,37 @@ public class ProgramStateIO extends ProgramState {
 			if (inject) {
 				MpqEditor editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
-				editor.deleteFile(mapFile, filenameInMpq);
-				editor.insertFile(mapFile, filenameInMpq, w3u);
+				
+				File mapFileTemp = new File("inject_tempmap.w3x");
+				Files.copy(mapFile, mapFileTemp);
+				
+				try {
+					editor.deleteFile(mapFileTemp, filenameInMpq);
+				} catch (Throwable e) {
+					WLogger.info(e);
+				}
+				editor.compactArchive(mapFileTemp);
+				editor.insertFile(mapFileTemp, filenameInMpq, w3u);
 
+				editor.compactArchive(mapFileTemp);
+				
 				File extr;
 				try {
-					extr = editor.extractFile(mapFile, filenameInMpq);
-				} catch (Error e) {
+					extr = editor.extractFile(mapFileTemp, filenameInMpq);
+				} catch (Throwable e) {
+					WLogger.info(e);
 					extr = null;
 				}
 				if (extr == null || !extr.exists()) {
 					JOptionPane.showMessageDialog(null, "Could not inject " + filenameInMpq + ".");
+				} else {
+					Files.copy(mapFileTemp, mapFile);
+					mapFileTemp.delete();
 				}
+				
+				
+				
+				
 			}
 		} catch (IOException e) {
 			WLogger.severe(e);
