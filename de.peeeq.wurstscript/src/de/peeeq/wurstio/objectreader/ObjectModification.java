@@ -2,6 +2,8 @@ package de.peeeq.wurstio.objectreader;
 
 import java.io.IOException;
 
+import com.google.common.base.Charsets;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 
@@ -69,7 +71,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 				result = new ObjectModificationUnreal(parent, modificationId, levelCount, dataPointer, floatData2);
 				break;
 			case VariableTypes.STRING:
-				String stringData = in.readNullTerminatedString();
+				String stringData = in.readNullTerminatedString(Charsets.UTF_8);
 				result = new ObjectModificationString(parent, modificationId, levelCount, dataPointer, stringData);
 				break;
 			default:

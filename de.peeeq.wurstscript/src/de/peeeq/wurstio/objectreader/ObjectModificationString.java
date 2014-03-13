@@ -2,6 +2,8 @@ package de.peeeq.wurstio.objectreader;
 
 import java.io.IOException;
 
+import com.google.common.base.Charsets;
+
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ObjectModificationString extends ObjectModification<String> {
@@ -13,7 +15,7 @@ public class ObjectModificationString extends ObjectModification<String> {
 
 	@Override
 	void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException {
-		out.writeStringNullTerminated(data);
+		out.writeStringNullTerminated(data, Charsets.UTF_8);
 	}
 	
 	@Override

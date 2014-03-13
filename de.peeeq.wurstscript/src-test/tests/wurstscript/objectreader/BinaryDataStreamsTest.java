@@ -9,6 +9,8 @@ import java.util.Random;
 
 import org.junit.Test;
 
+import com.google.common.base.Charsets;
+
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstscript.WLogger;
@@ -71,7 +73,7 @@ public class BinaryDataStreamsTest {
 		BinaryDataOutputStream out = new BinaryDataOutputStream(outStream, true);
 		
 		String s = "Hello Wörld!";
-		out.writeStringNullTerminated(s);
+		out.writeStringNullTerminated(s, Charsets.UTF_8);
 		out.flush();
 		byte[] bytes = outStream.toByteArray();
 		
@@ -80,7 +82,7 @@ public class BinaryDataStreamsTest {
 		}
 		
 		BinaryDataInputStream in = new BinaryDataInputStream(new ByteArrayInputStream(bytes), true);
-		String s2 = in.readNullTerminatedString();
+		String s2 = in.readNullTerminatedString(Charsets.UTF_8);
 		assertEquals(s.length(), s2.length());
 		assertEquals(s, s2);
 	}

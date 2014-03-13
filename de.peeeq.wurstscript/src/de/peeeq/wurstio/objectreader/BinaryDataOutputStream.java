@@ -8,6 +8,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 public class BinaryDataOutputStream implements Closeable {
 
@@ -57,8 +58,8 @@ public class BinaryDataOutputStream implements Closeable {
 		out.write(bytes);
 	}
 	
-	public void writeStringNullTerminated(String s) throws IOException {
-		out.write(s.getBytes());
+	public void writeStringNullTerminated(String s, Charset charset) throws IOException {
+		out.write(s.getBytes(charset));
 		out.write(0);
 	}
 
