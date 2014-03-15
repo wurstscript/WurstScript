@@ -18,10 +18,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithExtendedClass;
-import de.peeeq.wurstscript.ast.AstElementWithExtendsList;
-import de.peeeq.wurstscript.ast.AstElementWithFuncName;
-import de.peeeq.wurstscript.ast.AstElementWithImplementsList;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -37,11 +33,9 @@ import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMember;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprMemberVarDot;
@@ -66,7 +60,6 @@ import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.LoopStatementWithVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
@@ -136,7 +129,6 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -194,6 +186,15 @@ public class WurstValidator {
 	 * checks done after walking the tree
 	 */
 	private void postChecks() {
+		
+		checkForCyclicFunctions();
+		
+		checkForCyclicImports();
+	}
+
+	
+
+	private void checkForCyclicFunctions() {
 		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
 		for (WScope s : calledFunctionsTr.keySet()) {
 			if (calledFunctionsTr.containsEntry(s, s)) {
@@ -202,6 +203,35 @@ public class WurstValidator {
 				}
 			}
 		}
+	}
+	
+	private void checkForCyclicImports() {
+		List<WPackage> depStack = Lists.newArrayList();
+		for (WPackage p : prog.attrPackages().values()) {
+			checkCycles(p, depStack);
+		}
+	}
+	
+
+	private void checkCycles(WPackage p, List<WPackage> depStack) {
+		if (depStack.contains(p)) {
+			StringBuilder sb = new StringBuilder("Package " + p.getName() + " has a cyclic init-dependency: ");
+			for (int i = depStack.indexOf(p); i<depStack.size(); i++) {
+				sb.append(depStack.get(i).getName());
+				sb.append(" -> ");
+			}
+			sb.append(p.getName());
+			
+			p.addError(sb.toString());
+			return;
+		}
+		// push
+		depStack.add(p);
+		for (WPackage dep : p.attrInitDependencies()) {
+			checkCycles(dep, depStack);
+		}
+		// pop
+		depStack.remove(depStack.size()-1);
 	}
 
 	private void walkTree(AstElement e) {
@@ -1769,12 +1799,22 @@ public class WurstValidator {
 	private void checkInitOrderGlobal(final GlobalVarDef v) {
 		if (v.getInitialExpr() instanceof Expr) {
 			Expr expr = (Expr) v.getInitialExpr();
-			checkInitializationElement(v, expr, v.attrIsDynamicClassMember());
+			checkInitializationElement2(v, expr.attrReadGlobalVariables(), v.attrIsDynamicClassMember());
 		}
 	}
 
+
 	private void checkInitOrderInitBlock(InitBlock ib) {
-		checkInitializationElement(ib, ib.getBody(), false);
+		checkInitializationElement2(ib, ib.attrReadGlobalVariables(), false);
+	}
+	
+	private void checkInitializationElement2(AstElement initPart, List<VarDef> attrReadGlobalVariables,	boolean attrIsDynamicClassMember) {
+		if (initPart.attrNearestPackage() instanceof WPackage) {
+			WPackage v_definedIn = (WPackage) initPart.attrNearestPackage();
+			for (VarDef varDef : attrReadGlobalVariables) {
+				checkUsedIsInitializedBefore(initPart, initPart, v_definedIn, varDef);
+			}
+		}
 	}
 
 	private void checkInitializationElement(final AstElement initPart, final AstElement expr, final boolean dynamicContext) {
@@ -1827,34 +1867,38 @@ public class WurstValidator {
 				return true;
 			}
 
-			private void checkUsedIsInitializedBefore(AstElement errorPos,
-					final AstElement initPart, final WPackage v_definedIn,
-					AstElement used) {
-				if (used == null) {
-					return;
-				}
-				if (used.attrNearestPackage() instanceof WPackage) {
-					WPackage definedIn = (WPackage) used.attrNearestPackage();
-					if (definedIn == v_definedIn) {
-						// defined in same package
-						if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
-							errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
-								"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
-									"You can probably fix this problem by moving the use below this line.");
-						}
-					} else {
-						// defined in different package
-						if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
-							errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
-									definedIn.getName() + ", because that package is not yet initialized.\n" +
-									"Try to remove cyclic imports to resolve this issue or define the initialization order manually.");							
-						}
-					}
-				}
-			}
+			
 		});
 	}
 
+	
+	private void checkUsedIsInitializedBefore(AstElement errorPos,
+			final AstElement initPart, final WPackage v_definedIn,
+			AstElement used) {
+		if (used == null) {
+			return;
+		}
+		if (used.attrNearestPackage() instanceof WPackage) {
+			WPackage definedIn = (WPackage) used.attrNearestPackage();
+			if (definedIn == v_definedIn) {
+				// defined in same package
+				if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
+					errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
+						"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
+							"You can probably fix this problem by moving the use below this line.");
+				}
+			} else {
+				// defined in different package
+//				if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
+				if (definedIn.attrInitDependenciesTransitive().contains(v_definedIn)) {
+					errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
+							definedIn.getName() + ", because the init of that package also depends on the current package.\n" +
+							"Try to remove cyclic init dependencies to resolve this issue or define the initialization order manually.");							
+				}
+			}
+		}
+	}
+	
 	private void checkLocalShadowing(LocalVarDef v) {
 		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
 		if (shadowed instanceof LocalVarDef) {

@@ -13,7 +13,6 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 
@@ -93,11 +92,8 @@ public class PackageLevels {
 			List<WPackage> packs, Partitions<WPackage> packageClusters) {
 		Multimap<WPackage, WPackage> result = HashMultimap.create();
 		for (WPackage p : packs) {
-			for (WImport imp : p.getImports()) {
-				WPackage ip = imp.attrImportedPackage();
-				if (ip != null) {
-					result.put(packageClusters.getRep(p), packageClusters.getRep(ip));
-				}
+			for (WPackage ip : p.attrInitDependencies()) {
+				result.put(packageClusters.getRep(p), packageClusters.getRep(ip));
 			}
 		}
 		return result;
@@ -126,11 +122,7 @@ public class PackageLevels {
 		}
 		visited.add(p);
 		active.push(p);
-		for (WImport imp : p.getImports()) {
-			WPackage ip = imp.attrImportedPackage();
-			if (ip == null) {
-				continue;
-			}
+		for (WPackage ip : p.attrInitDependencies()) {
 			int indexOfIp = -1;
 			for (int i=0; i<active.size(); i++) {
 				if (packageClusters.getRep(ip) == packageClusters.getRep(active.get(i))) {

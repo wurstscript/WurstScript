@@ -822,6 +822,10 @@ FunctionDefinition.attrReadGlobalVariables
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
 	circular java.util.Collections.emptyList
 
+InitBlock.attrReadGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+
 AstElement.attrUsedPackages
 	returns java.util.Collection<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.UsedPackages.usedPackages
@@ -834,6 +838,15 @@ WPackage.attrPackageLevel
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get
 	
+WPackage.attrInitDependencies
+	returns java.util.List<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependencies
+
+WPackage.attrInitDependenciesTransitive
+	returns java.util.List<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependenciesTransitive
+	
+
 ExprIntVal.getValI
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.IntVal.getValI
