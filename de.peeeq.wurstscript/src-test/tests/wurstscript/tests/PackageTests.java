@@ -278,6 +278,21 @@ public class PackageTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void test_cyclic_import_with_init2() {
+		testAssertErrorsLines(false, "cyclic init", 
+				"package B",
+				"	import A",
+				"	public int b = a",
+				"endpackage",
+				"package A",
+				"	import B",
+				"	public int a",
+				"	init",
+				"		a = b",
+				"endpackage");
+	}
+	
 	
 	@Test
 	public void test_globals_init() {

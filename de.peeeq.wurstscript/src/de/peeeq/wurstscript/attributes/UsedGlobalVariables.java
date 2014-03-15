@@ -112,7 +112,7 @@ public class UsedGlobalVariables {
 			}
 		} else if (e instanceof NameRef) {
 			NameRef nameRef = (NameRef) e;
-			if (e.getParent() instanceof StmtSet) {
+			if (e.getParent() instanceof StmtSet && ((StmtSet) e.getParent()).getUpdatedExpr() == e) {
 				// write access
 			} else {
 				NameDef def = nameRef.attrNameDef();
