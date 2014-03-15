@@ -583,8 +583,9 @@ The initialization rules for Wurst are simple:
 1. Inside a package initialization is done from top to bottom.
 	The initializer of a package is the union of all global variable static initializers
 	(including static class variables) and all init blocks.
-2. If a package A imports a package B, the initializer of package B is run before A's.
-3. If packages import each other, the order is undefined.
+2. If the initialization of package A reads a global variable from a package B, 
+	then the initializer of package B is run before A's. 
+	Cyclic dependencies are now allowed.
 
 The Wurst Checker tries to detect some initialization errors at runtime. However this approach is not sound, so 
 there can still be initialization errors happening at runtime. Those will stop the initialization of the program.
