@@ -37,13 +37,13 @@ Version 1.4.0.0
 
 ### Bugfixes:
 
-* #177 Remove FileIO dependency from Wurst.wurst
+* Fixed bug #177 Remove FileIO dependency from Wurst.wurst
 * Interpreter: Comparing two reals for equality was broken
 * Fixed a bug in tuple assignment
-* #203 - could use type parameters in static places
+* Fixed bug #203 - could use type parameters in static places
 * fixed a bug with overrides of generic functions
 * fixed hanging compiler when recursive functions were used in certain ways
-* #220, class names could be used as expressions
+* Fixed bug #220, class names could be used as expressions
 * Object-editing: Read and write strings as UTF-8.
 
 Version 1.3.0.0
