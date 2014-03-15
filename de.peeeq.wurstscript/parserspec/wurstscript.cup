@@ -123,7 +123,6 @@ non terminal ExprUnary ExprUnary;
 non terminal ExprVarAccess ExprVarAccess;
 non terminal ExprVarArrayAccess ExprVarArrayAccess;
 non terminal FuncDef FuncDef;
-non terminal FuncDef InterfaceFunctionSignature;
 non terminal FuncDef JassFuncDef;
 non terminal FuncSignature FuncSignature;
 non terminal FuncSignature JassFuncSignature;
@@ -137,7 +136,6 @@ non terminal JassGlobalBlock JassGlobalBlock;
 non terminal JassGlobalBlock JassGlobalDecls;
 non terminal JassToplevelDeclaration JassToplevelDeclaration;
 non terminal List<ClassSlot> ClassSlots;
-non terminal List<FuncDef> InterfaceFunctionSignatures;
 non terminal LocalVarDef LocalVarDef;
 non terminal LocalVarDef LocalVarDefInline;
 non terminal Modifier Modifier;
@@ -162,10 +160,8 @@ non terminal TypeExprList ExtendsList;
 non terminal TypeExprList ExtendsListOpt;
 non terminal TypeExprList ImplementsList;
 non terminal TypeExprList ImplementsListOpt;
-non terminal TypeExprList TypeExprList;
 non terminal TypeExprList TypeParamList;
 non terminal TypeExpr TypeExpr;
-non terminal TypeParamDefs TypeParamDefList;
 non terminal WEntities Entities;
 non terminal WEntity Entity;
 non terminal WImport Import;
@@ -339,20 +335,6 @@ ImplementsListOpt ::=
 	| 
 		{: RESULT = Ast.TypeExprList(); :}
 ;
-
-InterfaceFunctionSignatures ::=
-	Newlines InterfaceFunctionSignature:x InterfaceFunctionSignatures:xs
-		{: xs.add(0, x); RESULT = xs; :}
-	| Newlines
-		{: RESULT = Lists.newLinkedList();  :}
-;
-
-InterfaceFunctionSignature ::= 
-	FUNCTION:x FuncSignature:sig NL
-		{: RESULT = Ast.FuncDef(pos(xleft, sig), Ast.Modifiers(Ast.ModAbstract(pos(xleft, xright))), sig.getName()
-					, sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), Ast.WStatements()); :}
-;
-
 
 
 ClassDef ::=
