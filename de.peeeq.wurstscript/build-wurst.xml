@@ -131,7 +131,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile" >
+	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
