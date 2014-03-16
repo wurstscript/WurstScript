@@ -26,7 +26,7 @@ entity:
 
 interfaceDef:
                 modifiersWithDoc 'interface' name=ID typeParams 
-                ('extends' extends+=typeExpr (',' extends+=typeExpr)*)? 
+                ('extends' extended+=typeExpr (',' extended+=typeExpr)*)? 
                 NL STARTBLOCK
                     classSlots
                 ENDBLOCK
@@ -35,8 +35,8 @@ interfaceDef:
  
 classDef:
             modifiersWithDoc 'class' name=ID typeParams 
-            ('extends' extends=typeExpr)? 
-            ('implements' implements+=typeExpr (',' implements+=typeExpr)*)?
+            ('extends' extended=typeExpr)? 
+            ('implements' implemented+=typeExpr (',' implemented+=typeExpr)*)?
             NL STARTBLOCK
                 classSlots
             ENDBLOCK
@@ -101,6 +101,7 @@ modifier:
 		| annotation
 		;
 
+annotation: ANNOTATION;
 
 funcSignature:
 				 name=ID typeParams formalParameters
@@ -148,8 +149,16 @@ expr :
 exprList : (expr (',' expr)*)?;
 
 
+
+nativeType: 'native';
+ initBlock: 'init'; 
+nativeDef: 'native'; 
+tupleDef: 'tuple'; 
+extensionFuncDef: 'extension';
+
 NL: [\r\n]+ | '//' .*? '\n';
 ID: [a-zA-Z_][a-zA-Z0-9_]* ;
+ANNOTATION: '@' [a-zA-Z0-9_]+;
 TAB: [\t];
 WS : [ ]+ -> skip ;
 ML_COMMENT: '/*' .*? '*/' -> skip;

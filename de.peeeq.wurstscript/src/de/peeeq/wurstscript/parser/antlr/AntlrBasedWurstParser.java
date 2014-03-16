@@ -14,7 +14,7 @@ import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.antlr.WurstParser.EntityContext;
-import de.peeeq.wurstscript.antlr.WurstParser.WEnumContext;
+import de.peeeq.wurstscript.antlr.WurstParser.EnumDefContext;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class AntlrBasedWurstParser {
@@ -40,9 +40,9 @@ public class AntlrBasedWurstParser {
 		System.out.println(cu.toStringTree(parser)); // print LISP-style tree
 		System.out.println("package name = " + cu.wpackage().name.getText()); 
 		for (EntityContext e : cu.wpackage().entity()) {
-			WEnumContext enu = e.wEnum();
+			EnumDefContext enu = e.enumDef();
 			System.out.println("enum = " + enu.toStringTree(parser));
-			for (Token s : enu.enumContant) {
+			for (Token s : enu.enumMembers) {
 				System.out.println("const = " + s.getText());
 			}
 		}
