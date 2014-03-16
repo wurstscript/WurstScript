@@ -9,7 +9,8 @@ Bundle-ClassPath: wurstscript.jar,
  lib/chardet.jar,
  lib/guava-14.0-rc1.jar,
  lib/velocity-1.7-dep.jar,
- lib/jmpq.jar
+ lib/jmpq.jar,
+ lib/antlr-runtime-4.2.jar
 Export-Package: com.google.common.annotations,
  com.google.common.base,
  com.google.common.base.internal,
