@@ -10,6 +10,10 @@ public class HashMap<K,V>
 	/** Retrieves the value saved under the given key */
 	function get(K key) returns V
 		return ht.loadInt(this castTo int, key castTo int) castTo V
+	
+	/** Removes the value saved under the given key */
+	function remove(K key)
+		ht.removeInt(this castTo int, key castTo int)
 
 	/** Clears the HashMap of all entries */
 	function flush()

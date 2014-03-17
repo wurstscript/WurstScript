@@ -12,9 +12,11 @@ import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprOrStatements;
 import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
@@ -29,9 +31,9 @@ public class UsedGlobalVariables {
 
 	public static List<VarDef> getUsedGlobals(ExprOrStatements e) {
 		List<VarDef> result = Lists.newArrayList();
-		if (e instanceof FuncRef) {
-			FuncRef funcRef = (FuncRef) e;
-			FunctionDefinition f = funcRef.attrFuncDef();
+		if (e instanceof FunctionCall) {
+			FunctionCall funcCall = (FunctionCall) e;
+			FunctionDefinition f = funcCall.attrFuncDef();
 			if (f != null) {
 				result.addAll(f.attrUsedGlobalVariables());
 			}
@@ -87,8 +89,8 @@ public class UsedGlobalVariables {
 	
 	public static List<VarDef> getReadGlobals(ExprOrStatements e) {
 		List<VarDef> result = Lists.newArrayList();
-		if (e instanceof FuncRef) {
-			FuncRef funcRef = (FuncRef) e;
+		if (e instanceof FunctionCall) {
+			FunctionCall funcRef = (FunctionCall) e;
 			FunctionDefinition f = funcRef.attrFuncDef();
 			if (f != null) {
 				result.addAll(f.attrReadGlobalVariables());
@@ -110,7 +112,7 @@ public class UsedGlobalVariables {
 			}
 		} else if (e instanceof NameRef) {
 			NameRef nameRef = (NameRef) e;
-			if (e.getParent() instanceof StmtSet) {
+			if (e.getParent() instanceof StmtSet && ((StmtSet) e.getParent()).getUpdatedExpr() == e) {
 				// write access
 			} else {
 				NameDef def = nameRef.attrNameDef();
@@ -142,6 +144,11 @@ public class UsedGlobalVariables {
 
 	public static List<VarDef> getReadGlobals(TupleDef tupleDef) {
 		return Collections.emptyList();
+	}
+
+
+	public static List<VarDef> getReadGlobals(InitBlock initBlock) {
+		return initBlock.getBody().attrReadGlobalVariables();
 	}
 
 

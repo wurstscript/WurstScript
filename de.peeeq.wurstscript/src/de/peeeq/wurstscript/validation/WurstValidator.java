@@ -18,10 +18,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithExtendedClass;
-import de.peeeq.wurstscript.ast.AstElementWithExtendsList;
-import de.peeeq.wurstscript.ast.AstElementWithFuncName;
-import de.peeeq.wurstscript.ast.AstElementWithImplementsList;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -36,11 +32,10 @@ import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
+import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprMemberVarDot;
@@ -65,7 +60,6 @@ import de.peeeq.wurstscript.ast.HasTypeArgs;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.LoopStatementWithVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
 import de.peeeq.wurstscript.ast.ModConstant;
 import de.peeeq.wurstscript.ast.ModOverride;
@@ -135,7 +129,6 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -193,6 +186,15 @@ public class WurstValidator {
 	 * checks done after walking the tree
 	 */
 	private void postChecks() {
+		
+		checkForCyclicFunctions();
+		
+		checkForCyclicImports();
+	}
+
+	
+
+	private void checkForCyclicFunctions() {
 		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
 		for (WScope s : calledFunctionsTr.keySet()) {
 			if (calledFunctionsTr.containsEntry(s, s)) {
@@ -201,6 +203,35 @@ public class WurstValidator {
 				}
 			}
 		}
+	}
+	
+	private void checkForCyclicImports() {
+		List<WPackage> depStack = Lists.newArrayList();
+		for (WPackage p : prog.attrPackages().values()) {
+			checkCycles(p, depStack);
+		}
+	}
+	
+
+	private void checkCycles(WPackage p, List<WPackage> depStack) {
+		if (depStack.contains(p)) {
+			StringBuilder sb = new StringBuilder("Package " + p.getName() + " has a cyclic init-dependency: ");
+			for (int i = depStack.indexOf(p); i<depStack.size(); i++) {
+				sb.append(depStack.get(i).getName());
+				sb.append(" -> ");
+			}
+			sb.append(p.getName());
+			
+			p.addError(sb.toString());
+			return;
+		}
+		// push
+		depStack.add(p);
+		for (WPackage dep : p.attrInitDependencies()) {
+			checkCycles(dep, depStack);
+		}
+		// pop
+		depStack.remove(depStack.size()-1);
 	}
 
 	private void walkTree(AstElement e) {
@@ -288,6 +319,11 @@ public class WurstValidator {
 		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
 			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
 			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
+				if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+					// in modules we can also type-params in static contexts
+					return;
+				}
+				
 				if (!e.attrIsDynamicContext()) {
 					e.addError("Type variables must not be used in static contexts.");
 				}
@@ -540,7 +576,7 @@ public class WurstValidator {
 				&& !Utils.isJassCode(s) // not in jass code
 				&& !varName.matches("[A-Z0-9_]+") // not a constant
 				) {
-			s.addError("Variable names must start with a lower case character. (" + varName + ")");
+			s.addWarning("Variable names should start with a lower case character. (" + varName + ")");
 		}
 		if (varName.equals("handle")) {
 			s.addError("\"handle\" is not a valid variable name");
@@ -562,24 +598,31 @@ public class WurstValidator {
 
 	private void checkIfParameterIsRead(WParameter p) {
 		FunctionImplementation f = p.attrNearestFuncDef();
-		if (f == null) {
-			return;
+		if (f != null) {
+			if (p.getParent().getParent() instanceof ExprClosure) {
+				// closures can ignore parameters
+				return;
+			}
+			if (f.attrIsOverride()) {
+				// if a function is overridden it is ok to ignore parameters
+				return;
+			}
+			if (f.attrIsAbstract()) {
+				// if a function is abstract, then parameter vars are not used
+				return;
+			}
+			if (f.attrHasAnnotation("compiletimenative")) {
+				return;
+			}
+		} else {
+			
+			if (p.getParent().getParent() instanceof TupleDef) {
+				// ignore tuples
+				return;
+			}
 		}
-		if (p.getParent().getParent() instanceof ExprClosure) {
-			// closures can ignore parameters
-			return;
-		}
-		if (f.attrIsOverride()) {
-			// if a function is overridden it is ok to ignore parameters
-			return;
-		}
-		if (f.attrIsAbstract()) {
-			// if a function is abstract, then parameter vars are not used
-			return;
-		}
-		if (f.attrHasAnnotation("compiletimenative")) {
-			return;
-		}
+		
+		
 		checkIfRead(p);
 	}
 
@@ -621,7 +664,7 @@ public class WurstValidator {
 	private void checkFunctionName(FunctionDefinition f) {
 		if (!Utils.isJassCode(f)) {
 			if (!isValidVarnameStart(f.getName())) {
-				f.addError("Function names must start with an lower case character.");
+				f.addWarning("Function names should start with an lower case character.");
 			}
 		}
 	}
@@ -867,7 +910,7 @@ public class WurstValidator {
 
 	private void checkTypeName(AstElement source, String name) {
 		if (!Character.isUpperCase(name.charAt(0))) {
-			source.addError("Type names must start with upper case characters.");
+			source.addWarning("Type names should start with upper case characters.");
 		}
 	}
 
@@ -941,6 +984,28 @@ public class WurstValidator {
 				e.addError("Cannot reference dynamic variable " +e.getVarName() + " from static context.");
 			}
 		}
+		if (e.attrTyp() instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wtns = (WurstTypeNamedScope) e.attrTyp();
+			if (wtns.isStaticRef()) {
+				if (!isUsedAsReceiverInExprMember(e)) {
+					e.addError("Reference to " + e.getVarName() + " cannot be used as an expression.");
+				} else if (e.getParent() instanceof ExprMemberMethodDotDot) {
+					e.addError("Reference to " + e.getVarName() + " cannot be used with the cascade operator. Only dynamic objects are allowed.");
+				}
+			}
+		}
+		
+	}
+
+	private boolean isUsedAsReceiverInExprMember(Expr e) {
+		boolean result = false;
+		if (e.getParent() instanceof ExprMember) {
+			ExprMember em = (ExprMember) e.getParent();
+			if (em.getLeft() == e) {
+				result = true;
+			}
+		}
+		return result;
 	}
 
 	private void checkTypeBinding(HasTypeArgs e) {
@@ -1347,10 +1412,11 @@ public class WurstValidator {
 	}
 
 	private void checkPackageName(CompilationUnit cu) {
-		if (cu.getPackages().size() == 1 && cu.getFile().endsWith(".wurst")) {
+		if (cu.getPackages().size() == 1 && (cu.getFile().endsWith(".wurst") || cu.getFile().endsWith(".jurst"))) {
 			// only one package in a wurst file
 			WPackage p = cu.getPackages().get(0);
-			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")) {
+			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")
+				&& !Utils.fileName(cu.getFile()).equals(p.getName()+".jurst")) {
 				p.addError("The file must have the same name as the package " + p.getName());
 			}
 		}
@@ -1407,6 +1473,9 @@ public class WurstValidator {
 				|| typ.equalsType(WurstTypeString.instance(), null) 
 				|| (typ instanceof WurstTypeEnum) ) {
 			return true;
+		} else if (typ instanceof WurstTypeEnum) {
+			WurstTypeEnum wte = (WurstTypeEnum) typ;
+			return !wte.isStaticRef();
 
 		}else {
 			return false;
@@ -1730,12 +1799,22 @@ public class WurstValidator {
 	private void checkInitOrderGlobal(final GlobalVarDef v) {
 		if (v.getInitialExpr() instanceof Expr) {
 			Expr expr = (Expr) v.getInitialExpr();
-			checkInitializationElement(v, expr, v.attrIsDynamicClassMember());
+			checkInitializationElement2(v, expr.attrReadGlobalVariables(), v.attrIsDynamicClassMember());
 		}
 	}
 
+
 	private void checkInitOrderInitBlock(InitBlock ib) {
-		checkInitializationElement(ib, ib.getBody(), false);
+		checkInitializationElement2(ib, ib.attrReadGlobalVariables(), false);
+	}
+	
+	private void checkInitializationElement2(AstElement initPart, List<VarDef> attrReadGlobalVariables,	boolean attrIsDynamicClassMember) {
+		if (initPart.attrNearestPackage() instanceof WPackage) {
+			WPackage v_definedIn = (WPackage) initPart.attrNearestPackage();
+			for (VarDef varDef : attrReadGlobalVariables) {
+				checkUsedIsInitializedBefore(initPart, initPart, v_definedIn, varDef);
+			}
+		}
 	}
 
 	private void checkInitializationElement(final AstElement initPart, final AstElement expr, final boolean dynamicContext) {
@@ -1788,34 +1867,38 @@ public class WurstValidator {
 				return true;
 			}
 
-			private void checkUsedIsInitializedBefore(AstElement errorPos,
-					final AstElement initPart, final WPackage v_definedIn,
-					AstElement used) {
-				if (used == null) {
-					return;
-				}
-				if (used.attrNearestPackage() instanceof WPackage) {
-					WPackage definedIn = (WPackage) used.attrNearestPackage();
-					if (definedIn == v_definedIn) {
-						// defined in same package
-						if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
-							errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
-								"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
-									"You can probably fix this problem by moving the use below this line.");
-						}
-					} else {
-						// defined in different package
-						if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
-							errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
-									definedIn.getName() + ", because that package is not yet initialized.\n" +
-									"Try to remove cyclic imports to resolve this issue or define the initialization order manually.");							
-						}
-					}
-				}
-			}
+			
 		});
 	}
 
+	
+	private void checkUsedIsInitializedBefore(AstElement errorPos,
+			final AstElement initPart, final WPackage v_definedIn,
+			AstElement used) {
+		if (used == null) {
+			return;
+		}
+		if (used.attrNearestPackage() instanceof WPackage) {
+			WPackage definedIn = (WPackage) used.attrNearestPackage();
+			if (definedIn == v_definedIn) {
+				// defined in same package
+				if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
+					errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
+						"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
+							"You can probably fix this problem by moving the use below this line.");
+				}
+			} else {
+				// defined in different package
+//				if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
+				if (definedIn.attrInitDependenciesTransitive().contains(v_definedIn)) {
+					errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
+							definedIn.getName() + ", because the init of that package also depends on the current package.\n" +
+							"Try to remove cyclic init dependencies to resolve this issue or define the initialization order manually.");							
+				}
+			}
+		}
+	}
+	
 	private void checkLocalShadowing(LocalVarDef v) {
 		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
 		if (shadowed instanceof LocalVarDef) {

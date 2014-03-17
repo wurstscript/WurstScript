@@ -4,7 +4,7 @@
   <parent>
     <groupId>de.peeeq.wurstscript</groupId>
     <artifactId>WurstScript</artifactId>
-    <version>1.3.0.1-e6101bb</version>
+    <version>1.4.0.0-cdb091b</version>
   </parent>
   <groupId>de.peeeq.wurstscript</groupId>
   <artifactId>EclipseWurstPluginUpdateSite</artifactId>

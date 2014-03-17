@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 
 import com.google.common.base.Charsets;
 
@@ -88,13 +89,13 @@ public class BinaryDataInputStream {
 		return Float.intBitsToFloat(asInt);
 	}
 
-	public String readNullTerminatedString() throws IOException {
+	public String readNullTerminatedString(Charset charset) throws IOException {
 		byte[] buffer = new byte[128];
 		int pos = 0;
 		while (true) {
 			byte b = readByte();
 			if (b == 0) {
-				return new String(buffer,0,pos, Charsets.UTF_8);
+				return new String(buffer,0,pos, charset);
 			}
 			if (pos >= buffer.length) {
 				byte[] newBuffer = new byte[buffer.length*2];

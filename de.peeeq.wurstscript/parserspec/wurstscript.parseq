@@ -156,20 +156,24 @@ Expr =
 	| FunctionCall
 	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
 	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
-	| ExprMemberVar
-	| ExprMemberArrayVar
-	| ExprMemberMethod
+	| ExprMember
 	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, String funcName, TypeExprList typeArgs, Arguments args)
 	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
-	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
 	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
 	
+ExprMember = 
+	  ExprMemberVar
+	| ExprMemberArrayVar
+	| ExprMemberMethod
+	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
+	
+
 ExprMemberVar =
 	  ExprMemberVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
 	| ExprMemberVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
@@ -818,6 +822,10 @@ FunctionDefinition.attrReadGlobalVariables
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
 	circular java.util.Collections.emptyList
 
+InitBlock.attrReadGlobalVariables
+	returns java.util.List<VarDef>
+	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
+
 AstElement.attrUsedPackages
 	returns java.util.Collection<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.UsedPackages.usedPackages
@@ -830,6 +838,15 @@ WPackage.attrPackageLevel
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get
 	
+WPackage.attrInitDependencies
+	returns java.util.List<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependencies
+
+WPackage.attrInitDependenciesTransitive
+	returns java.util.List<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependenciesTransitive
+	
+
 ExprIntVal.getValI
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.IntVal.getValI

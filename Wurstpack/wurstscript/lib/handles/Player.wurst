@@ -82,4 +82,9 @@ public function player.panCamToTimed(unit u, real time)
 	if GetLocalPlayer() == this
 		PanCameraToTimed(u.getX(), u.getY(), time)
 		
+public function player.setAbilityAvailable(integer abilityId, boolean avail)
+	SetPlayerAbilityAvailable(this, abilityId, avail)
+		
+public function player.getColor() returns playercolor
+	return GetPlayerColor(this)
 	

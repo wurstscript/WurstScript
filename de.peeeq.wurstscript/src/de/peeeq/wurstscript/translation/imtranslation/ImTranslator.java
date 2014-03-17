@@ -12,7 +12,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImRealVal;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSet;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSimpleType;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_BJ;
@@ -68,7 +67,6 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
 import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WStatement;
@@ -121,8 +119,6 @@ public class ImTranslator {
 	private ImFunction debugPrintFunction;
 
 	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newLinkedHashMap();
-	private final Map<TranslatedToImFunction, ImFunction> dynamicDispatchFunctionMap = Maps.newLinkedHashMap();
-
 	private ImFunction globalInitFunc;
 
 	private final ImProg imProg;
@@ -221,8 +217,9 @@ public class ImTranslator {
 			return;
 		}
 		calledInitializers.add(p);
-		for (WImport i : p.getImports()) {
-			callInitFunc(calledInitializers, i.attrImportedPackage());
+		// first initialize all packages imported by this package:
+		for (WPackage dep : p.attrInitDependencies()) {
+			callInitFunc(calledInitializers, dep);
 		}
 		ImFunction initFunc = initFuncMap.get(p);
 		if (initFunc == null) {

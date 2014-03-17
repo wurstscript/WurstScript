@@ -332,6 +332,7 @@ public class Generator {
 						sb.append("				" + attr.returns +" r = "+attr.implementedBy+"(("+c.getName()+")this);\n");
 						sb.append("				if (zzattr_" + attr.attr + "_state == 3) {\n");
 						sb.append("					if (!zzattr_" + attr.attr + "_cache.equals(r)) {\n");
+						sb.append("						zzattr_" + attr.attr + "_cache = r;\n"); // not sure if correct
 						sb.append("						continue;\n");
 						sb.append("					}\n");
 						sb.append("				}\n");

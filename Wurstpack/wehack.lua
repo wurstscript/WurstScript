@@ -117,15 +117,13 @@ end
 
 -- ## Jasshelper ##
 --Here I'll add the custom menu to jasshelper. moyack
-jh_path = ""
-havejh = grim.exists("cohadarjasshelper\\jasshelper.exe") or grim.exists("vexorianjasshelper\\jasshelper.exe")
+jh_path = "vexorian"
+havejh = grim.exists("vexorianjasshelper\\jasshelper.exe")
 if havejh then
 	jhmenu = wehack.addmenu("JassHelper")
 	jh_enable = TogMenuEntry:New(jhmenu,"Enable JassHelper",nil,true)
-	wehack.addmenuseparator(jhmenu)
+
 	
-	jh_iscohadar = TogMenuEntry:New(jhmenu,"Enable Cohadar's JassHelper",nil,true)
-	jh_isvexorian = TogMenuEntry:New(jhmenu,"Enable Vexorian's JassHelper",nil,false)
 	
 	wehack.addmenuseparator(jhmenu)
 	jh_debug = TogMenuEntry:New(jhmenu,"Debug Mode",nil,false)
@@ -133,16 +131,6 @@ if havejh then
     jh_disableopt = TogMenuEntry:New(jhmenu,"Disable script optimization",nil,false)
 
 	wehack.addmenuseparator(jhmenu)
-	
-	function jhsetpath()
-		if jh_isvexorian.checked then
-			jh_path = "vexorian"
-		else
-			jh_path = "cohadar" -- Default
-		end
-	end
-	
-	jhsetpath()
 	
 	function jhshowerr()
 	  	wehack.execprocess(jh_path.."jasshelper\\jasshelper.exe --showerrors")
@@ -155,24 +143,6 @@ if havejh then
 	jhshowerrm = MenuEntry:New(jhmenu,"Show previous errors",jhshowerr)
 	jhaboutm = MenuEntry:New(jhmenu,"About JassHelper ...",jhabout)
 	
-    function jhsetcohadar()
-		jh_iscohadar.checked = true
-		jh_iscohadar:redraw(jh_iscohadar)
-		jh_isvexorian.checked = false
-		jh_isvexorian:redraw(jh_isvexorian)
-		jhsetpath()
-	end
-	
-	function jhsetvexorian()
-		jh_isvexorian.checked = true
-		jh_isvexorian:redraw(jh_isvexorian)
-		jh_iscohadar.checked = false
-		jh_iscohadar:redraw(jh_iscohadar)
-		jhsetpath()
-	end
-	
-	jh_iscohadar.cb = jhsetcohadar
-	jh_isvexorian.cb = jhsetvexorian
 	
 	function jhshowhelp()
 		jhsetpath()

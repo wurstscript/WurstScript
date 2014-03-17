@@ -36,7 +36,7 @@ public class W3UDefinition
 		def.setInt("ubpx", data)
 	
 
-class UnitOrBuildingOrHeroDefinition extends W3UDefinition
+public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	
 	construct(int newUnitId, int origUnitId)
 		super(newUnitId, origUnitId)
@@ -551,7 +551,7 @@ class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAcquisitionRange(real data)
 		def.setUnreal("uacq", data)
 	
-class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
+public class UnitOrHeroDefinition extends UnitOrBuildingOrHeroDefinition
 	
 	construct(int newId, int origId)
 		super(newId, origId)

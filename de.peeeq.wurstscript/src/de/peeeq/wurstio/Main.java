@@ -41,6 +41,7 @@ public class Main {
 	public static void main(String[] args) {
 		if (args.length == 0) {
 			new RunArgs("-help");
+			return;
 		}
 		setUpFileLogging();
 		WLogger.keepLogs(true);
@@ -61,6 +62,9 @@ public class Main {
 		RunArgs runArgs = null;
 		try {
 			runArgs = new RunArgs(args);
+			if (runArgs.showHelp()) {
+				return;
+			}
 
 			if (runArgs.showAbout()) {
 				About about = new About(null, false);

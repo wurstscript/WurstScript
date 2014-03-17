@@ -751,4 +751,19 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void dotdotOperatorFail() { 
+		testAssertErrorsLines(false, "cannot be used with the cascade operator",
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		static function foo(int x)",
+				"	init",
+				"		A a = A",
+				"			..foo(1)",
+				"			..foo(2)",
+				"endpackage"
+			);
+	}
 }

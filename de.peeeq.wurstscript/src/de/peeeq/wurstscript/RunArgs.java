@@ -147,7 +147,6 @@ public class RunArgs {
 			System.out.println("	" + opt.descr);
 			System.out.println();
 		}
-		System.exit(0);
 	}
 
 	public List<String> getFiles() {
@@ -222,5 +221,9 @@ public class RunArgs {
 		for (String dep : dependencies) {
 			libDirs.add(new File(dep));
 		}
+	}
+
+	public boolean showHelp() {
+		return optionHelp.isSet;
 	}
 }

@@ -72,6 +72,9 @@ public function unit.getOwner() returns player
 public function unit.setOwner(player p, boolean changeColor)
 	SetUnitOwner(this, p, changeColor)
 	
+public function unit.setColor( playercolor c )
+	SetUnitColor(this, c)
+	
 public function unit.setScale(real scale)
 	SetUnitScale(this, scale, scale, scale)
 	
@@ -131,6 +134,15 @@ public function unit.setHP( real hp )
 	
 public function unit.getHP() returns real
 	return this.getState( UNIT_STATE_LIFE )
+	
+public function unit.subHP(real val)
+	this.subState(UNIT_STATE_LIFE, val)
+	
+public function unit.addHP(real val)
+	this.addState(UNIT_STATE_LIFE, val)
+	
+public function unit.getMaxHP() returns real
+	return this.getState( UNIT_STATE_MAX_LIFE )
 	
 public function unit.addItem(int id)
 	UnitAddItemById(this, id)
@@ -212,6 +224,9 @@ public function unit.setAbilityLevel(int abilId, int lvl)
 public function unit.issueTargetOrderById(int id, widget target)
 	IssueTargetOrderById(this, id, target)
 	
+public function unit.issueTargetOrder(string order, widget targetWidget) returns boolean
+	return IssueTargetOrder(this,order,targetWidget)
+	
 public function unit.issuePointOrderById(int id, vec2 target)
 	IssuePointOrderById(this, id, target.x, target.y)
 	
@@ -223,3 +238,6 @@ public function unit.removeItem(item itm)
 	
 public function unit.revive(vec2 pos, boolean doEyecandy)
 	ReviveHero(this, pos.x, pos.y, doEyecandy)
+	
+public function unit.setPathing(boolean value)
+	SetUnitPathing(this,value)

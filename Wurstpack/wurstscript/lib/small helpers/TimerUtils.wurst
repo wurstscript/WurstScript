@@ -55,6 +55,9 @@ public function timer.resume()
 	
 public function timer.getElapsed() returns real
 	return TimerGetElapsed(this)
+	
+public function timer.getRemaining() returns real
+	return TimerGetRemaining(this)
 
 public function timer.start(real time, code timerCallBack)
 	TimerStart(this, time, false, timerCallBack)

@@ -110,7 +110,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		for (File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				loadWurstFilesInDir(f);
-			} else if (f.getName().endsWith(".wurst")) {
+			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
 				loadFile(f);
 			}
 		}
@@ -166,7 +166,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			}
 		}
 		for (Entry<String, Reader> in : otherInputs.entrySet()) {
-			compilationUnits.add(parser.parse(in.getValue(), in.getKey(), hasCommonJ));
+			compilationUnits.add(parse(in.getKey(), in.getValue()));
 		}
 		
 		try {
@@ -287,8 +287,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				// recursively scan directory
 				addLibDir(f);
 			}
-			if (f.getName().endsWith(".wurst")) {
-				String libName = f.getName().replaceAll("\\.wurst$", "");
+			if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
+				String libName = f.getName().replaceAll("\\.[jw]urst$", "");
 				libCache.put(libName, f);
 			}
 		}
@@ -571,6 +571,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	public CompilationUnit parse(String source, Reader reader) {
+		if (source.endsWith(".jurst")) {
+			return parser.parseJurst(reader, source, hasCommonJ);
+		}
 		return parser.parse(reader, source, hasCommonJ);
 	}
 

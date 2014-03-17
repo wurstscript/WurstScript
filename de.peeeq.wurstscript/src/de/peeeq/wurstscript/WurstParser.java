@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.parser.ExtendedParser;
+import de.peeeq.wurstscript.parser.JurstExtendedParser;
+import de.peeeq.wurstscript.parser.JurstScanner;
 import de.peeeq.wurstscript.parser.ScannerError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.parser.WurstScriptScanner;
@@ -29,6 +31,35 @@ public class WurstParser {
 		try {
 			WurstScriptScanner scanner = new WurstScriptScanner(reader);
 			ExtendedParser parser = new ExtendedParser(scanner, errorHandler);
+			parser.setFilename(source);
+			Symbol sym = parser.parse();
+			
+			if (sym.value instanceof CompilationUnit) {
+				CompilationUnit root = (CompilationUnit) sym.value;
+				removeSyntacticSugar(root, hasCommonJ);
+				WPos p = root.attrErrorPos();
+				p = p.withFile(source);
+				for (ScannerError err : scanner.getErrors()) {
+					CompileError ce = err.makeCompilerError(p);
+					gui.sendError(ce);
+				}
+				return root;
+			}
+			return emptyCompilationUnit();
+		} catch (CompileError e) {
+			gui.sendError(e);
+			return emptyCompilationUnit();
+		} catch (Exception e) {
+			gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "This is a bug and should not have happened.\n" + e.getMessage()));
+			WLogger.severe(e);
+			throw new Error(e);
+		}
+	}
+	
+	public CompilationUnit parseJurst(Reader reader, String source, boolean hasCommonJ) {
+		try {
+			JurstScanner scanner = new JurstScanner(reader);
+			JurstExtendedParser parser = new JurstExtendedParser(scanner, errorHandler);
 			parser.setFilename(source);
 			Symbol sym = parser.parse();
 			
