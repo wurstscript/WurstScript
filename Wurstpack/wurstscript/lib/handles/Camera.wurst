@@ -29,8 +29,8 @@ public function cinematicModeForPlayer(boolean cineMode, player forPlayer, real 
 		SetMapFlag(MAP_LOCK_SPEED, true)
 		FogMaskEnable(false)
 		FogEnable(false)
-		EnableWorldFogBoundary(false)
-		EnableDawnDusk(false)
+		//EnableWorldFogBoundary(false)
+		//EnableDawnDusk(false)
 
 		// Use a fixed random seed, so that cinematics play consistently.
 		SetRandomSeed(0)
