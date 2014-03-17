@@ -128,23 +128,171 @@ varDef:
 // line 523 TODO
 
 
-typeParams:;
+statements:
+			statement*
+		  ;
 
-statementsBlock:;
-typeArgs: ('<' '>')?;
-             
-expr : 
-     
-      expr '.' ID '(' exprList ')'
-      | expr '.' ID 
-      | expr ('*'|'/') expr
+statementsBlock:
+			   STARTBLOCK statement* ENDBLOCK;
+
+
+statement:
+			 stmtIf
+		 | stmtWhile
+		 | localVarDef
+		 | stmtSet
+		 | stmtCall
+		 | stmtReturn
+		 | exprDestroy
+		 | stmtForLoop
+		 | stmtBreak
+		 | stmtSkip
+		 | stmtSwitch
+		 ;
+
+exprDestroy:
+			   'destroy' expr
+		   ;
+
+stmtReturn:
+			  'return' expr?
+		  ;
+
+stmtIf:
+		  'if' cond=expr NL
+		  thenStatements=statementsBlock
+		  ('else' elseStatements)?
+	  ;
+
+elseStatements:
+				  stmtIf
+			  | NL statementsBlock
+			  ;
+
+stmtSwitch:
+			  'switch' expr NL (STARTBLOCK
+				switchCase*
+				switchDefaultCase?
+			  ENDBLOCK)?
+		  ;
+			
+switchCase:
+			  'case' expr NL statementsBlock
+		  ;
+
+switchDefaultCase:
+					 'default' NL statementsBlock
+				 ;
+			  
+
+stmtWhile: 
+			 'while' cond=expr NL statementsBlock
+		 ;
+
+localVarDef:
+		  ('var'|'let'|typeExpr)
+		  name=ID ('=' expr)? NL 
+	  ;	
+
+localVarDefInline:
+					 typeExpr? name=ID
+				 ;
+
+stmtSet:
+		   left=exprAssignable 
+		   (('='|'+='|'-='|'*='|'/=') right=expr
+			| '++'
+			| '--'
+			) 
+		   NL
+	   ;
+
+
+exprAssignable:
+				  exprMemberVar
+			  | exprMemberArrayVar
+			  | exprVarAccess
+			  | exprVarArrayAccess
+			  ;
+
+exprVarAccess:
+				 name=ID
+			 ;
+
+exprVarArrayAccess:
+					  name=ID indexes
+				  ;
+
+indexes:
+		   '[' expr ']'
+	   ;
+
+stmtCall:
+			exprMemberMethod NL
+		| exprFunctionCall NL
+		| exprNewObject NL
+		;
+
+expr:
+		exprPrimary
+	  | expr ('.'|'..') ID typeArgs '(' exprList ')'
+	  | expr '.' ID indexes?
+	  | '-' expr
+	  | 'not' expr
+      | expr ('*'|'/'|'div'|'mod') expr
       | expr ('+'|'-') expr
-      | '-' expr
-      | ID
+	  | expr ('<='|'<'|'>'|'>=') expr
+	  | expr ('=='|'!=') expr
+	  | expr 'and' expr
+	  | expr 'or' expr
+	  | expr 'castTo' typeExpr
+	  | expr 'instanceof' typeExpr
+	;
+
+exprPrimary:
+	  | exprFunctionCall
+      | exprNewObject
+	  | exprClosure
+	  | exprStatementsBlock
+      | ID indexes?
       | INT
       | REAL
-      | '(' expr ')'      
-     ;
+	  | STRING
+	  | 'null'
+	  | 'true'
+	  | 'false'
+	  | 'this'
+	  | exprFuncRef
+      | '(' expr ')' 
+	;
+
+exprFuncRef: 'function' (scopeName=ID '.')funcName=ID;
+
+exprStatementsBlock:
+					   'begin' NL statementsBlock 'end'
+				   ;
+
+
+exprFunctionCall:
+					ID '(' exprList ')'
+				;
+	  
+exprNewObject:'new' ID typeArgs ('(' exprList ')')?;
+
+exprClosure: formalParameters '->' expr;
+		  
+exprMemberMethod:'TODO';
+
+exprMemberVar:'TODO';
+exprMemberArrayVar:'TODO';
+typeParams:'TODO';
+stmtForLoop:'TODO';
+stmtBreak:'TODO';
+stmtSkip:'TODO';
+
+
+
+typeArgs: ('<' '>')?;
 
 exprList : (expr (',' expr)*)?;
 
@@ -156,9 +304,18 @@ nativeDef: 'native';
 tupleDef: 'tuple'; 
 extensionFuncDef: 'extension';
 
-NL: [\r\n]+ | '//' .*? '\n';
+NL: [\r\n]+;
 ID: [a-zA-Z_][a-zA-Z0-9_]* ;
 ANNOTATION: '@' [a-zA-Z0-9_]+;
+
+STRING: '"' ( EscapeSequence | ~('\\'|'"') )* '"';
+REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
+INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
+
+fragment EscapeSequence: '\\' [abfnrtvz"'\\];
+
+
 TAB: [\t];
 WS : [ ]+ -> skip ;
 ML_COMMENT: '/*' .*? '*/' -> skip;
+LINE_COMMENT: '//' ~[\r\n]* -> skip;
