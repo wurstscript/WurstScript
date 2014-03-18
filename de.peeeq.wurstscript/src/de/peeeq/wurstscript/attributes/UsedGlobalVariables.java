@@ -89,6 +89,12 @@ public class UsedGlobalVariables {
 	
 	public static List<VarDef> getReadGlobals(ExprOrStatements e) {
 		List<VarDef> result = Lists.newArrayList();
+		collectReadGlobals(e, result);
+		return result;
+	}
+
+
+	private static void collectReadGlobals(AstElement e, List<VarDef> result) {
 		if (e instanceof FunctionCall) {
 			FunctionCall funcRef = (FunctionCall) e;
 			FunctionDefinition f = funcRef.attrFuncDef();
@@ -128,9 +134,10 @@ public class UsedGlobalVariables {
 			if (child instanceof ExprOrStatements) {
 				ExprOrStatements child2 = (ExprOrStatements) child;
 				result.addAll(child2.attrReadGlobalVariables());
+			} else {
+				collectReadGlobals(child, result);
 			}
 		}
-		return result;
 	}
 	
 
