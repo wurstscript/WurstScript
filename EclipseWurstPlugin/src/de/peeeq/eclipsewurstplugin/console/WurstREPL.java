@@ -547,6 +547,7 @@ public class WurstREPL {
 			cleanProject();
 			compileArgs.remove("-clean");
 		}
+		gui.clearErrors();
 		IProject project = modelManager.getNature().getProject();
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
