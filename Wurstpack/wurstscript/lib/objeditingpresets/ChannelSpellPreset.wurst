@@ -42,22 +42,37 @@ public class ChannelSpellPreset extends SpellPreset
 	boolean UNIQUECAST
 	int optionval = 0
 	
-
-	
 	construct(int newId, int lvls)
 		super(newId, CHANNEL_ID, lvls)
 		
+	function removeChannelProperties()
+		setDisablesOther(false)
+		setFollowThroughTime(0.)
+		setArtDuration(0.)
+		
+	function setArtDuration(real value)
+		for i = 1 to lvl
+			def.setLvlDataUnreal("Ncl4", i, 4, value)
+		
+	function setBaseOrderID(string value)
+		for i = 1 to lvl
+			def.setLvlDataString("Ncl6", i, 6, value)
+				
 	function setDisablesOther(boolean flag)
 		int v = 0
 		if flag
 			v = 1 
 		for i = 1 to lvl
 			def.setLvlDataInt("Ncl5", i, 5, v)
-
-	function removeChannelProperties()
-		setDisablesOther(false)
-		setFollowThroughTime(0.)
 			
+	function setFollowThroughTime(real time)
+		for i = 1 to lvl
+			def.setLvlDataUnreal("Ncl1", i, 1, time)
+					
+	function setTargetType(Targettype ttype)			
+		for i = 1 to lvl
+			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int)+1)
+					
 	function setOption(Option opt, boolean flag)
 		switch opt
 			case Option.VISIBLE
@@ -93,16 +108,3 @@ public class ChannelSpellPreset extends SpellPreset
 
 		for i = 1 to lvl
 			def.setLvlDataInt("Ncl3", i, 3, optionval)
-
-			
-		
-	function setTargetType(Targettype ttype)			
-		for i = 1 to lvl
-			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int)+1)
-			
-	function setFollowThroughTime(real time)
-		for i = 1 to lvl
-			def.setLvlDataUnreal("Ncl1", lvl, 1, time)
-
-			
-
