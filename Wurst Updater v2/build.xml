@@ -11,7 +11,7 @@
     <target name="jar" depends="compile">
         <jar destfile="./WurstUpdater.jar" filesetmanifest="mergewithoutmain">
             <manifest>
-                <attribute name="Main-Class" value="rest.Main"/>
+                <attribute name="Main-Class" value="file.Main"/>
                 <attribute name="Class-Path" value="."/>
             </manifest>
             <fileset dir="${bin}"/>
