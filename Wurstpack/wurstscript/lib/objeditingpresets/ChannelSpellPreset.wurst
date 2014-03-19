@@ -46,6 +46,10 @@ public class ChannelSpellPreset extends SpellPreset
 	
 	construct(int newId, int lvls)
 		super(newId, CHANNEL_ID, lvls)
+	
+	function setBaseOrderID(string value)
+		for i = 1 to lvl
+			def.setLvlDataString("Ncl6", lvl, 6, value)
 		
 	function setDisablesOther(boolean flag)
 		int v = 0
