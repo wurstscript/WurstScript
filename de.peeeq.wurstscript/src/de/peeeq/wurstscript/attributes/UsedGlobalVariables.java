@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
+import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprOrStatements;
@@ -127,6 +128,9 @@ public class UsedGlobalVariables {
 					result.add(varDef);
 				}
 			}
+		} else if (e instanceof ExprClosure) {
+			// do not collect vars in closures, because closures are usually called later
+			return;
 		}
 		// check children:
 		for (int i=0; i<e.size(); i++) {

@@ -213,7 +213,8 @@ public class ImTranslator {
 	}
 
 	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p) {
-		if (p == null || calledInitializers.contains(p)) {
+		Preconditions.checkNotNull(p);
+		if (calledInitializers.contains(p)) {
 			return;
 		}
 		calledInitializers.add(p);

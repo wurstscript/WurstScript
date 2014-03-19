@@ -838,6 +838,10 @@ WPackage.attrPackageLevel
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get
 	
+WPackage.attrImportedPackagesTransitive
+	returns java.util.Collection<WPackage>
+	implemented by de.peeeq.wurstscript.attributes.InitOrder.importedPackagesTrans
+	
 WPackage.attrInitDependencies
 	returns java.util.List<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependencies

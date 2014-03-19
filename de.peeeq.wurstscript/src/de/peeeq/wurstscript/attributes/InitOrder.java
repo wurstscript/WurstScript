@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -13,6 +14,7 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 
 public class InitOrder {
@@ -27,6 +29,13 @@ public class InitOrder {
 			PackageOrGlobal pkg = v.attrNearestPackage();
 			if (pkg != p && pkg instanceof WPackage) {
 				packages.add((WPackage) pkg);
+			}
+		}
+		
+		// add all imported packages, which do not import this package again
+		for (WPackage imported : p.attrImportedPackagesTransitive()) {
+			if (!imported.attrImportedPackagesTransitive().contains(p)) {
+				packages.add(imported);
 			}
 		}
 		
@@ -70,6 +79,22 @@ public class InitOrder {
 		result.add(p);
 		for (WPackage dep : p.attrInitDependencies()) {
 			addInitDependenciesTransitive(dep, result);
+		}
+	}
+
+	public static Collection<WPackage> importedPackagesTrans(WPackage p) {
+		Collection<WPackage> result = Sets.newLinkedHashSet();
+		collectImportedPackages(p, result);
+		return result;
+	}
+
+	private static void collectImportedPackages(WPackage p,	Collection<WPackage> result) {
+		if (p == null || result.contains(p)) {
+			return;
+		}
+		result.add(p);
+		for (WImport i : p.getImports()) {
+			collectImportedPackages(i.attrImportedPackage(), result);
 		}
 	}
 
