@@ -12,7 +12,7 @@ package Raceengine
 
 	import Maths
 	import TimerUtils
-	import RacerControll
+	import initlater RacerControll
 	int error = 0
 	
 	public class Racer

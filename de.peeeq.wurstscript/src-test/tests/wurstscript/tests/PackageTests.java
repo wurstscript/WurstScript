@@ -252,7 +252,7 @@ public class PackageTests extends WurstScriptTest {
 
 	@Test
 	public void test_cyclic_import() {
-		testAssertOkLines(false, 
+		testAssertErrorsLines(false,"init dependency", 
 				"package B",
 				"	import A",
 				"endpackage",

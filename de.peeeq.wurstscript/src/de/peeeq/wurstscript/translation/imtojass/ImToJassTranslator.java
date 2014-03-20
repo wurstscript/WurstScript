@@ -26,6 +26,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
+import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctionOrNative;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -37,11 +38,13 @@ import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -251,7 +254,12 @@ public class ImToJassTranslator {
 			if (isArray) {
 				result = JassAst.JassArrayVar(type, name);
 			} else {
-				result = JassAst.JassSimpleVar(type, name);
+				if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
+					JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
+					result = JassAst.JassInitializedVar(type, name, initialVal);
+				} else {
+					result = JassAst.JassSimpleVar(type, name);
+				}
 			}
 			if (isGlobal(v) && !v.getIsBJ()) {
 				prog.getGlobals().add(result);

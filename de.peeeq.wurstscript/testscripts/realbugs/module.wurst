@@ -50,7 +50,7 @@ endpackage
 package HeroNAdept
 	import Hero
 	import Entity
-	import SpellEnergyBarrier
+	import initlater SpellEnergyBarrier
 	
 	// Angelica
 	public class HeroNAdept extends UnitEntity
