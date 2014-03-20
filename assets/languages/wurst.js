@@ -7,7 +7,7 @@ hljs.LANGUAGES.wurst = function(){
     'keyword': {
        'class' : 1, 'return' : 1, 'if' : 1, 'else' : 1, 'while' : 1, 'for' : 1, 'in' : 1, 'break' : 1,
 	   'new' : 1, 'null' : 1, 'package' : 1, 'endpackage' : 1, 'function' : 1, 'returns' : 1, 'public' : 1,
-	   'private' : 1, 'protected' : 1, 'import' : 1, 'native' : 1, 'nativetype' : 1, 'extends' : 1,
+	   'private' : 1, 'protected' : 1, 'import' : 1, 'initlater': 1, 'native' : 1, 'nativetype' : 1, 'extends' : 1,
 	   'interface' : 1, 'implements' : 1, 'module' : 1, 'use' : 1, 'abstract' : 1, 'static' : 1, 'thistype' : 1,
 	   'override' : 1, 'immutable' : 1, 'it' : 1, 'array' : 1, 'and' : 1, 'or' : 1, 'not' : 1, 'this' : 1,
 	   'construct' : 1, 'ondestroy' : 1, 'destroy' : 1, 'type' : 1, 'globals' : 1, 'endglobals' : 1, 'constant' : 1,
