@@ -576,26 +576,30 @@ current package are initialized.
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
 
 
-## Initialization 
+## Initialization and initlater
 
 The initialization rules for Wurst are simple:
 
 1. Inside a package initialization is done from top to bottom.
 	The initializer of a package is the union of all global variable static initializers
 	(including static class variables) and all init blocks.
-2. If the initialization of package A reads a global variable from a package B, 
+2. If package A imports package B and the import is not a `initlater` import, 
 	then the initializer of package B is run before A's. 
-	Cyclic dependencies are now allowed.
+	Cyclic imports without `initlater` are not allowed.
 
-The Wurst Checker tries to detect some initialization errors at runtime. However this approach is not sound, so 
-there can still be initialization errors happening at runtime. Those will stop the initialization of the program.
-The rules for the checker are as follows:
+If you get a Cyclic init dependency between packages, you have to manually define which package can be 
+initialized later.
+This is done by adding the keyword `initlater` to the import of the package:
 
-1. Inside a package you can only refer to variables which have been declared before.
-2. You can only refer to variables in other packages, when the other package does not depend on the current package (i.e. there is
-	a cyclic import).
-3. When function calls, constructor calls and destroy statements are used, the checker will try to guess the used variables and
-	base the analysis on those results.
+	package A
+	import initlater B
+	import public initlater C
+	import D
+
+Here only package `D` is guaranteed to be initialized before package `A`.
+Packages `B` and `C` are allowed to be initialized later.
+
+
 
 
 # Classes
