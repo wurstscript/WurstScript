@@ -1,4 +1,5 @@
 package Force
+import NoWurst
 
 public class ForceIterator
 	private int pos

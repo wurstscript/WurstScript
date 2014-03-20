@@ -22,7 +22,7 @@ WPackage(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String na
 WImports * WImport
 WEntities * WEntity
 
-WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, String packagename)
+WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, boolean isInitLater, String packagename)
 
 WEntity = 
 	  TypeDef

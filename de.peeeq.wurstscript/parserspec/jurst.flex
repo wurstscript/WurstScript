@@ -159,6 +159,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"package"|"library"|"scope"			{ return symbolP(JurstTokenType.PACKAGE); }
 	"endpackage"|"endlibrary"|"endscope"	{ return symbolP(JurstTokenType.ENDPACKAGE); }
 	"import"							{ return symbolP(JurstTokenType.IMPORT); }	
+	"initlater"							{ return symbolP(JurstTokenType.INITLATER); }
 	"requires"|"uses"|"needs"			{ return symbolP(JurstTokenType.REQUIRES); }
 	"init"								{ return symbolP(JurstTokenType.INIT); }
 	

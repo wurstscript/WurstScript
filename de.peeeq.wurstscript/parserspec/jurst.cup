@@ -89,7 +89,7 @@ terminal
 	TUPLE, MODULE, USE, ABSTRACT, IN, FOR, FROM, TO, DOWNTO, STEP, BREAK,
 	THISTYPE, ARROW, IT, IMMUTABLE, OVERRIDE, INSTANCE, INSTANCEOF, ENUM,
 	STATIC, PACKAGE, ENDPACKAGE, RETURNS,FUNCTION, SKIP, LET, VAR, PUBLIC,
-	PUBLICREAD, PRIVATE, PROTECTED, IMPORT, NATIVETYPE, INIT, NATIVE, 
+	PUBLICREAD, PRIVATE, PROTECTED, IMPORT, INITLATER, NATIVETYPE, INIT, NATIVE, 
 	INTERFACE, IMPLEMENTS, ARRAY, IF, ELSE, WHILE, RETURN, CLASS, NEW, NULL,
 	EXTENDS, SUPER, THIS, CONSTRUCT, ONDESTROY, SWITCH, CASE, DEFAULT,
 	TYPE, GLOBALS, ENDGLOBALS, CONSTANT, ENDFUNCTION, TAKES, NOTHING, LOCAL,
@@ -255,9 +255,9 @@ Requires ::=
 
 RequiresList ::= 
 	  RequiresList:imports COMMA IDENTIFIER:i
-	  	{: imports.add(Ast.WImport(pos(ileft, iright), true, i)); RESULT = imports; :} 
+	  	{: imports.add(Ast.WImport(pos(ileft, iright), true, false, i)); RESULT = imports; :} 
 	| IDENTIFIER:i
-		{: RESULT = Ast.WImports(Ast.WImport(pos(ileft, iright), true, i)); :}    
+		{: RESULT = Ast.WImports(Ast.WImport(pos(ileft, iright), true, false, i)); :}    
 ;
 		
 // 0 or more imports		
@@ -270,10 +270,13 @@ Imports ::=
 
 Import ::=
 	IMPORT:x IDENTIFIER:i NL
-		{: RESULT = Ast.WImport(pos(xleft, iright), false, i); :}
+		{: RESULT = Ast.WImport(pos(xleft, iright), false, false, i); :}
 	| IMPORT:x PUBLIC IDENTIFIER:i NL
-		{: RESULT = Ast.WImport(pos(xleft, iright), true, i); :}
-
+		{: RESULT = Ast.WImport(pos(xleft, iright), true, false, i); :}
+	| IMPORT:x INITLATER IDENTIFIER:i NL
+		{: RESULT = Ast.WImport(pos(xleft, iright), false, true, i); :}
+	| IMPORT:x PUBLIC INITLATER IDENTIFIER:i NL
+		{: RESULT = Ast.WImport(pos(xleft, iright), true, true, i); :}
 ;
 
 

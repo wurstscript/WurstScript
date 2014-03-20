@@ -1,5 +1,7 @@
 package Angle
+import NoWurst
 import Maths
+import initlater Vectors
 
 /** an angle is just a wrapper around a real which allows for
 typesafe APIs without the confusion between radians and degrees*/

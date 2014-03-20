@@ -1,4 +1,5 @@
 package MagicFunctions
+import NoWurst
 // this package contains functions which are 
 // implemented in the wurst compiler
 

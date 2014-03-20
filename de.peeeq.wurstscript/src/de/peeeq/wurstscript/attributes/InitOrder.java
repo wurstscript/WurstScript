@@ -2,8 +2,10 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -16,52 +18,57 @@ import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class InitOrder {
 
 	public static List<WPackage> initDependencies(WPackage p) {
-		Set<VarDef> readGlobals = Sets.newLinkedHashSet();
-		collectReadGlobals(p, readGlobals);
-		
-		
 		Set<WPackage> packages = Sets.newLinkedHashSet();
-		for (VarDef v : readGlobals) {
-			PackageOrGlobal pkg = v.attrNearestPackage();
-			if (pkg != p && pkg instanceof WPackage) {
-				packages.add((WPackage) pkg);
-			}
-		}
 		
 		// add all imported packages, which do not import this package again
 		for (WPackage imported : p.attrImportedPackagesTransitive()) {
-			if (!imported.attrImportedPackagesTransitive().contains(p)) {
-				packages.add(imported);
-			}
+			packages.add(imported);
 		}
 		
 		return Lists.newArrayList(packages);
 	}
 
-	private static void collectReadGlobals(AstElement e, Set<VarDef> result) {
-		
-		if (e instanceof GlobalVarDef) {
-			GlobalVarDef v = (GlobalVarDef) e;
-			if (v.getInitialExpr() instanceof Expr && !v.attrIsDynamicContext()) {
-				Expr expr = (Expr) v.getInitialExpr();
-				result.addAll(expr.attrReadGlobalVariables());
+	private static List<String> toStringArray(List<WPackage> importChain) {
+		return Utils.map(importChain, new Function<WPackage, String>() {
+			@Override
+			public String apply(WPackage p) {
+				return p.getName();
 			}
-			return;
-		} else if (e instanceof InitBlock) {
-			InitBlock initBlock = (InitBlock) e;
-			result.addAll(initBlock.attrReadGlobalVariables());
-			return;
-		} else if (e instanceof FunctionLike) {
-			return;
+		});
+	}
+
+	private static List<WPackage> calcImportChain(WPackage from) {
+		List<WPackage> result = Lists.newArrayList();
+		calcImportChain2(result, from);
+		return result;
+	}
+
+
+	private static boolean calcImportChain2(List<WPackage> result, WPackage from) {
+		if (result.contains(from)) {
+			result.add(from);
+			System.out.println("CYCLE1 " + toStringArray(result));
+			return true;
 		}
-		for (int i=0; i<e.size();i++) {
-			collectReadGlobals(e.get(i), result);
+		result.add(from);
+		for (WImport i : from.getImports()) {
+			if (i.attrImportedPackage() == null) {
+				continue;
+			}
+			if (!i.getIsInitLater()) {
+				boolean r = calcImportChain2(result, i.attrImportedPackage());
+				if (r) {
+					return true;
+				}
+			}
 		}
-		
+		result.remove(result.size()-1);
+		return false;
 	}
 
 	public static List<WPackage> initDependenciesTransitive(WPackage p) {
@@ -84,18 +91,36 @@ public class InitOrder {
 
 	public static Collection<WPackage> importedPackagesTrans(WPackage p) {
 		Collection<WPackage> result = Sets.newLinkedHashSet();
-		collectImportedPackages(p, result);
+		List<WPackage> callStack = Lists.newArrayList();
+		collectImportedPackages(callStack, p, result);
 		return result;
 	}
 
-	private static void collectImportedPackages(WPackage p,	Collection<WPackage> result) {
-		if (p == null || result.contains(p)) {
-			return;
-		}
-		result.add(p);
+	private static void collectImportedPackages(List<WPackage> callStack, WPackage p,	Collection<WPackage> result) {
+		callStack.add(p);
 		for (WImport i : p.getImports()) {
-			collectImportedPackages(i.attrImportedPackage(), result);
+			WPackage imported = i.attrImportedPackage();
+			
+			if (imported == null || i.getIsInitLater()) {
+				continue;
+			}
+			
+			if (imported == callStack.get(0)) {
+				WPackage problemP = callStack.get(0);
+				String packagesMsg = Utils.join(toStringArray(callStack), " -> ");
+				problemP.addError("Cyclic init dependency between packages: " + packagesMsg + " -> " + imported.getName() + 
+//						"\n" + p.getName() + " -> " + imported.getName() + 
+						"\nChange some imports to 'initlater' imports to avoid this problem.");
+				return;
+			}
+			
+			if (result.contains(imported)) {
+				continue;
+			} 
+			result.add(imported);
+			collectImportedPackages(callStack, imported, result);
 		}
+		callStack.remove(callStack.size()-1);
 	}
 
 }

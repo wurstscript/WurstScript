@@ -1,4 +1,5 @@
 package LinkedList
+import NoWurst
 
 public class LinkedList<T>
 	private LLEntry<T> dummy

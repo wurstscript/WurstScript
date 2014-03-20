@@ -1,5 +1,6 @@
 package ObjEditingNatives
-
+import NoWurst
+import Boolean
 
 
 // when this function is called at compiletime it generated a compile error with the given message 

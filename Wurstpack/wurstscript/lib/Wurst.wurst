@@ -1,5 +1,6 @@
 // This is the package which is imported into any other package ...
 package Wurst
+import NoWurst
 
 import public Primitives
 import public Handles

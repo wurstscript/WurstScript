@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -57,7 +56,6 @@ import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
-import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.ModAbstract;
@@ -186,10 +184,7 @@ public class WurstValidator {
 	 * checks done after walking the tree
 	 */
 	private void postChecks() {
-		
 		checkForCyclicFunctions();
-		
-		checkForCyclicImports();
 	}
 
 	
@@ -205,35 +200,6 @@ public class WurstValidator {
 		}
 	}
 	
-	private void checkForCyclicImports() {
-		List<WPackage> depStack = Lists.newArrayList();
-		for (WPackage p : prog.attrPackages().values()) {
-			checkCycles(p, depStack);
-		}
-	}
-	
-
-	private void checkCycles(WPackage p, List<WPackage> depStack) {
-		if (depStack.contains(p)) {
-			StringBuilder sb = new StringBuilder("Package " + p.getName() + " has a cyclic init-dependency: ");
-			for (int i = depStack.indexOf(p); i<depStack.size(); i++) {
-				sb.append(depStack.get(i).getName());
-				sb.append(" -> ");
-			}
-			sb.append(p.getName());
-			
-			p.addError(sb.toString());
-			return;
-		}
-		// push
-		depStack.add(p);
-		for (WPackage dep : p.attrInitDependencies()) {
-			checkCycles(dep, depStack);
-		}
-		// pop
-		depStack.remove(depStack.size()-1);
-	}
-
 	private void walkTree(AstElement e) {
 		lastElement = e;
 		check(e);
@@ -270,11 +236,9 @@ public class WurstValidator {
 			if (e instanceof FuncDef) visit((FuncDef) e);
 			if (e instanceof FuncRef) checkFuncRef((FuncRef) e);
 			if (e instanceof FunctionLike) checkUninitializedVars((FunctionLike) e);
-			if (e instanceof GlobalVarDef) checkInitOrderGlobal((GlobalVarDef) e);
 			if (e instanceof GlobalVarDef) visit((GlobalVarDef) e);
 			if (e instanceof HasModifier) checkModifiers((HasModifier) e);
 			if (e instanceof HasTypeArgs) checkTypeBinding((HasTypeArgs) e);
-			if (e instanceof InitBlock) checkInitOrderInitBlock((InitBlock) e);
 			if (e instanceof InterfaceDef) checkInterfaceDef((InterfaceDef) e);
 			if (e instanceof LocalVarDef) checkLocalShadowing((LocalVarDef) e);
 			if (e instanceof LocalVarDef) visit((LocalVarDef) e);
@@ -295,7 +259,7 @@ public class WurstValidator {
 			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
 			if (e instanceof VarDef) checkVarDef((VarDef) e);
 			if (e instanceof WImport) visit((WImport) e);
-			if (e instanceof WPackage) checkForDuplicateImports((WPackage) e);
+			if (e instanceof WPackage) checkPackage((WPackage) e);
 			if (e instanceof WParameter) checkParameter((WParameter) e);
 			if (e instanceof WParameter) visit((WParameter) e);
 			if (e instanceof WScope) checkForDuplicateNames((WScope) e);
@@ -307,6 +271,11 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkPackage(WPackage p) {
+		checkForDuplicateImports(p);
+		p.attrInitDependencies();
 	}
 
 	private void checkTypeExpr(TypeExpr e) {
@@ -1796,109 +1765,8 @@ public class WurstValidator {
 	}
 
 
-	private void checkInitOrderGlobal(final GlobalVarDef v) {
-		if (v.getInitialExpr() instanceof Expr) {
-			Expr expr = (Expr) v.getInitialExpr();
-			checkInitializationElement2(v, expr.attrReadGlobalVariables(), v.attrIsDynamicClassMember());
-		}
-	}
 
 
-	private void checkInitOrderInitBlock(InitBlock ib) {
-		checkInitializationElement2(ib, ib.attrReadGlobalVariables(), false);
-	}
-	
-	private void checkInitializationElement2(AstElement initPart, List<VarDef> attrReadGlobalVariables,	boolean attrIsDynamicClassMember) {
-		if (initPart.attrNearestPackage() instanceof WPackage) {
-			WPackage v_definedIn = (WPackage) initPart.attrNearestPackage();
-			for (VarDef varDef : attrReadGlobalVariables) {
-				checkUsedIsInitializedBefore(initPart, initPart, v_definedIn, varDef);
-			}
-		}
-	}
-
-	private void checkInitializationElement(final AstElement initPart, final AstElement expr, final boolean dynamicContext) {
-		if (!(expr.attrNearestPackage() instanceof WPackage)) {
-			return;
-		}
-		final WPackage v_definedIn = (WPackage) expr.attrNearestPackage();
-		Utils.visitRec(expr, new Predicate<AstElement>() {
-			@Override
-			public boolean apply(AstElement e) {
-				if (e instanceof NameRef) {
-					NameRef nameRef = (NameRef) e;
-					if (nameRef.attrNameDef() instanceof GlobalVarDef) {
-						GlobalVarDef used = (GlobalVarDef) nameRef.attrNameDef();
-						if (dynamicContext && !used.attrIsDynamicClassMember()) {
-							// this is ok, because dynamic class members are 
-							// initialized after static vars unless one does something
-							// stupid like calling constructors in static init 
-							return true;
-						}
-						checkUsedIsInitializedBefore(e, initPart, v_definedIn,	used);
-					}
-				}
-				if (e instanceof FunctionCall) {
-					FunctionCall funcRef = (FunctionCall) e;
-					FunctionDefinition f = funcRef.attrFuncDef();
-					if (f == null) {
-						return true;
-					}
-					for (VarDef used : f.attrReadGlobalVariables()) {
-						if (!used.attrIsDynamicClassMember()) {
-							checkUsedIsInitializedBefore(e, initPart, v_definedIn, used);
-						}
-					}
-				}
-				if (e instanceof ExprNewObject) {
-					ExprNewObject exprNewObject = (ExprNewObject) e;
-					ConstructorDef c = exprNewObject.attrConstructorDef();
-					checkUsedIsInitializedBefore(e, initPart, v_definedIn, c);
-				}
-				if (e instanceof ExprDestroy) {
-					ExprDestroy stmtDestroy = (ExprDestroy) e;
-					WurstType t1 = stmtDestroy.getDestroyedObj().attrTyp();
-					if (t1 instanceof WurstTypeClass) {
-						WurstTypeClass t = (WurstTypeClass) t1;
-						checkUsedIsInitializedBefore(e, initPart, v_definedIn, t.getClassDef());
-					}
-
-				}
-				return true;
-			}
-
-			
-		});
-	}
-
-	
-	private void checkUsedIsInitializedBefore(AstElement errorPos,
-			final AstElement initPart, final WPackage v_definedIn,
-			AstElement used) {
-		if (used == null) {
-			return;
-		}
-		if (used.attrNearestPackage() instanceof WPackage) {
-			WPackage definedIn = (WPackage) used.attrNearestPackage();
-			if (definedIn == v_definedIn) {
-				// defined in same package
-				if (used.attrSource().getLeftPos() > initPart.attrSource().getLeftPos()) {
-					errorPos.addError(Utils.printElement(used) + " is used before it is initialized.\n" + 
-						"It is defined in " + initPart.attrSource().getFile() + " line " + initPart.attrSource().getLine() + ".\n" +
-							"You can probably fix this problem by moving the use below this line.");
-				}
-			} else {
-				// defined in different package
-//				if (v_definedIn.attrPackageLevel() <= definedIn.attrPackageLevel()) {
-				if (definedIn.attrInitDependenciesTransitive().contains(v_definedIn)) {
-					errorPos.addError("Cannot use " + Utils.printElement(used) + " which is defined in package " + 
-							definedIn.getName() + ", because the init of that package also depends on the current package.\n" +
-							"Try to remove cyclic init dependencies to resolve this issue or define the initialization order manually.");							
-				}
-			}
-		}
-	}
-	
 	private void checkLocalShadowing(LocalVarDef v) {
 		NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
 		if (shadowed instanceof LocalVarDef) {

@@ -1,4 +1,9 @@
 package Colors
+import NoWurst
+import String
+import Integer
+import Table
+import MagicFunctions
 
 /** Tuple for your RGB color needs */
 public tuple color(int red, int green, int blue)

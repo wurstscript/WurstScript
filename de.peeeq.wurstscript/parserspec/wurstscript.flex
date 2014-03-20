@@ -275,6 +275,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 	"package"							{ return symbol(TokenType.error, "unexpected package"); }
 	"endpackage"						{ yybegin(YYINITIAL); return symbolP(TokenType.ENDPACKAGE); }
 	"import"							{ return symbolP(TokenType.IMPORT); }	
+	"initlater"							{ return symbolP(TokenType.INITLATER); }
 	"init"								{ return symbol(TokenType.INIT); }
 	
 	

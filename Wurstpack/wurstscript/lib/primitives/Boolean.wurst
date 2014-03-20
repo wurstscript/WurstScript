@@ -1,5 +1,5 @@
 package Boolean
-
+import NoWurst
 
 public function boolean.toInt() returns int
 	if this

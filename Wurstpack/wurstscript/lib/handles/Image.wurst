@@ -1,5 +1,8 @@
 package Image
+import NoWurst
 import public Colors
+import Vectors
+import MagicFunctions
 
 public enum Layer
 	L1

@@ -1,6 +1,6 @@
 package String
 import NoWurst
-import Char
+import initlater Char
 import Integer
 import Real
 import PrintingHelper

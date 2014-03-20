@@ -1,4 +1,5 @@
 package Boolexpr
+import NoWurst
 	
 public function boolexpr.or_( boolexpr operandB ) returns boolexpr
 	return Or( this, operandB )

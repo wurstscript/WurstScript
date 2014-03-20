@@ -2,7 +2,7 @@ package de.peeeq.wurstscript;
 
 public class WurstKeywords {
 	public static final String[] KEYWORDS = new String[] { "class", "return", "if", "else", "while", "for", "in", "break", "new", "null",
-		"package", "endpackage", "function", "returns", "public", "private", "protected", "import", "native", "nativetype", "extends",
+		"package", "endpackage", "function", "returns", "public", "private", "protected", "import", "initlater", "native", "nativetype", "extends",
 		"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
 		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "constant", "endfunction", "nothing", "init", "castTo",
 		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof",

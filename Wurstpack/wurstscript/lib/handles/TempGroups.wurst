@@ -1,3 +1,4 @@
 package TempGroups
+import NoWurst
 
 public group ENUM_GROUP = CreateGroup()

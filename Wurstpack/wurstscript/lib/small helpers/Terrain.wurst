@@ -1,6 +1,8 @@
 package Terrain
+import NoWurst
 import Vectors
 import MapBounds
+import Item
 
 constant real		MAX_RANGE	 	= 10.
 constant integer 	DUMMY_ITEM_ID 	= 'wolg'
