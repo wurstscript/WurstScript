@@ -245,7 +245,7 @@ public class ImToJassTranslator {
 			boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
 			int i = 0;
 			String type = v.getType().translateType();
-			String name = v.getName();
+			String name = jassifyName(v.getName());
 			if (v.getNearestFunc() != null) {
 				name = getUniqueLocalName(v.getNearestFunc(), name);
 			} else {
@@ -267,6 +267,16 @@ public class ImToJassTranslator {
 			jassVars.put(v, result);
 		}
 		return result ;
+	}
+
+	private String jassifyName(String name) {
+		while (name.startsWith("_")) {
+			name = name.substring(1);
+		}
+		if (name.isEmpty()) {
+			name = "empty";
+		}
+		return name;
 	}
 
 	private boolean isGlobal(ImVar v) {

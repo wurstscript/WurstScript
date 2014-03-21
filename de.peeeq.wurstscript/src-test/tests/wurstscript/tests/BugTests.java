@@ -520,4 +520,18 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	
+	@Test
+	public void underscore() {
+		testAssertOkLines(false,  
+				"package test",
+				"@extern native I2S(int i) returns string",
+				"init",
+				"	int _i = 1",
+				"	I2S(_i)",
+				"endpackage");
+	}
+	
+	
+	
 }
