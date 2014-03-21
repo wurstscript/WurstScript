@@ -91,11 +91,13 @@ public class ReadVariables {
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprMemberArrayVar e) {
+		ImmutableList<NameDef> r = ImmutableList.emptyList();
 		if (e.attrNameDef() != null) {
-			return ImmutableList.of(e.attrNameDef());
-		} else {
-			return ImmutableList.emptyList();
+			r = ImmutableList.of(e.attrNameDef());
 		}
+		r = r.cons(e.getLeft().attrReadVariables());
+		r = r.cons(generic(e.getIndexes()));
+		return r;
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprBinary e) {
