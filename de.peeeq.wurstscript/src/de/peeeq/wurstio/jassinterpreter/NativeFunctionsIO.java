@@ -159,11 +159,11 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		return new ILconstString(string.getVal().substring(start.getVal(), end.getVal()));
 	}
 	
-	public ILconstString StringCase(ILconstString string, ILconstBool lowerCase) {
+	public ILconstString StringCase(ILconstString string, ILconstBool upperCase) {
 		return new ILconstString(
-				lowerCase.getVal() ? 
-				string.getVal().toLowerCase()
-				: string.getVal().toUpperCase());
+				upperCase.getVal() ? 
+				string.getVal().toUpperCase()
+				: string.getVal().toLowerCase());
 	}
 	
 	public void testPrint(ILconstString msg) {
