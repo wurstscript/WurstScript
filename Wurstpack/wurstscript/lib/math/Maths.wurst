@@ -97,8 +97,19 @@ public function min(real x, real y) returns real
 	else
 		r = y
 	return r
-	
-	
+
+/** Returns the absolute value of a number */
+public function abs(int value) returns int
+	if (value >= 0)
+		return value
+	return -value
+
+/** Returns the absolute value of a number */
+public function abs(real value) returns real
+	if (value >= 0)
+		return value
+	return -value
+
 @test function minmax()
 	// better test min and max, they are difficult to implement M;D
 	int three = 3
