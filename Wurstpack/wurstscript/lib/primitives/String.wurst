@@ -4,6 +4,7 @@ import initlater Char
 import Integer
 import Real
 import PrintingHelper
+import initlater Wurstunit
 
 string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 string numberset = "0123456789"
@@ -73,15 +74,15 @@ public function string.startsWith(string s) returns boolean
 
 /** Returns the string in lowercase letters */
 public function string.toLowerCase() returns string
-	return StringCase(this, false)
+	return StringCase(this, true)
 
 /** Returns the string in uppercase letters */
 public function string.toUpperCase() returns string
-	return StringCase(this, true)
+	return StringCase(this, false)
 	
 /** True when string contains only uppercase letters */
 function string.isUpper() returns boolean
-	return this == StringCase(this,true)
+	return this == StringCase(this,false)
 
 function string.ischar() returns boolean
 	return S2I(this) == 0 and this != "0"
@@ -201,4 +202,8 @@ public function string.toLines() returns StringLines
 	return new StringLines(this, 0, this.countOccurences("\n")+1)
 		
 
-
+@test function testStringCase()
+	"a".toUpperCase()	.assertEquals("A")
+	"A".toLowerCase()	.assertEquals("a")
+	"A".isUpper()		.assertEquals(true)
+	"a".isUpper()		.assertEquals(false)
