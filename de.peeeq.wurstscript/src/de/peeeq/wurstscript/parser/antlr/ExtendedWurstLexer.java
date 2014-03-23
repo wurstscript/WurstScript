@@ -9,10 +9,12 @@ import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenFactory;
 import org.antlr.v4.runtime.TokenSource;
+import org.antlr.v4.runtime.misc.Pair;
 
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.parser.JurstTokenType;
+import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ExtendedWurstLexer implements TokenSource {
 
@@ -24,6 +26,11 @@ public class ExtendedWurstLexer implements TokenSource {
 	private Token eof = null;
 	private Token firstNewline;
 	private int numberOfTabs;
+	private LineOffsets lineOffsets = new LineOffsets();
+	public StringBuilder debugSb = new StringBuilder();
+	private boolean debug = false;
+	private Pair<TokenSource, CharStream> sourcePair;
+	
 	
 	enum State {
 		INIT, WRAP_CHAR, NEWLINES, BEGIN_LINE
@@ -32,6 +39,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	
 	public ExtendedWurstLexer(CharStream input) {
 		orig = new WurstLexer(input);
+		sourcePair = new Pair<TokenSource, CharStream>(orig, input);
 		indentationLevels.push(0);
 	}
 	
@@ -64,7 +72,9 @@ public class ExtendedWurstLexer implements TokenSource {
 	@Override
 	public Token nextToken() {
 		Token t = nextTokenIntern();
-		System.out.println("		new token: " + t);
+		
+		debugSb.append(t.getText() + " ");
+		if (debug) System.out.println("		new token: " + t);
 		return t;		
 	}
 
@@ -83,12 +93,15 @@ public class ExtendedWurstLexer implements TokenSource {
 		
 		for (;;) {
 			Token token = orig.nextToken();
-			System.out.println("orig token = " + token);
+			if (debug) System.out.println("orig token = " + token);
 			
 			if (token == null) {
 				continue;
 			}
 			
+			if (token.getType() == WurstParser.NL) {
+				lineOffsets.set(token.getLine(), token.getStartIndex());
+			}
 			
 			if (token.getType() == WurstParser.EOF) {
 				// at EOF close all blocks and return an extra newline
@@ -122,6 +135,8 @@ public class ExtendedWurstLexer implements TokenSource {
 					numberOfTabs = 1; 
 					continue;
 				} else {
+					// no tabs after newline
+					handleIndent(0, token.getStartIndex(), token.getStopIndex());
 					nextTokens.add(token);
 					state(State.INIT);
 					return firstNewline;
@@ -144,6 +159,10 @@ public class ExtendedWurstLexer implements TokenSource {
 				} else if (token.getType() == WurstParser.NL) {
 					state(State.NEWLINES);
 					continue;
+				} else if (isWrapChar(token.getType())) {
+					// ignore all the newlines when a wrap char comes after newlines
+					state(State.WRAP_CHAR);
+					return token;
 				} else {
 					handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
 					state(State.INIT);
@@ -156,12 +175,13 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
 	private void state(State s) {
-		System.out.println("state " + state + " -> " + s);
+		if (debug) System.out.println("state " + state + " -> " + s);
 		state = s;
 	}
 
 
 	private void handleIndent(int n, int start, int stop) {
+		if (debug) System.out.println("handleIndent " + n + "	 " + indentationLevels);
 		if (n > indentationLevels.peek()) {
 			indentationLevels.push(n);
 			nextTokens.add(makeToken(WurstParser.STARTBLOCK, "$begin", start, stop));
@@ -175,22 +195,44 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
 	private boolean isWrapChar(int type) {
-		return false; //type == WurstParser.
+		switch (type) {
+		case WurstParser.PAREN_LEFT: 
+		case WurstParser.BRACKET_LEFT:
+		case WurstParser.COMMA:
+		case WurstParser.DOT:
+		case WurstParser.DOTDOT:
+		case WurstParser.PLUS:
+		case WurstParser.MULT:
+		case WurstParser.MINUS:
+		case WurstParser.DIV:
+		case WurstParser.DIV_REAL:
+		case WurstParser.MOD:
+		case WurstParser.MOD_REAL:
+		case WurstParser.AND:
+		case WurstParser.OR:
+		
+			return true;
+		}
+		return false;
 	}
 
 
 
 	private Token makeToken(int type, String text, int start, int stop) {
-		CommonToken t = new CommonToken(type);
-		t.setStartIndex(start);
-		t.setStopIndex(stop);
-		t.setText(text);
+		Pair<TokenSource, CharStream> source = sourcePair;
+		int channel = 0;
+		CommonToken t = new CommonToken(source, type, channel, start, stop);
 		return t;
 	}
 
 	@Override
 	public void setTokenFactory(TokenFactory<?> factory) {
 		orig.setTokenFactory(factory);
+	}
+
+
+	public LineOffsets getLineOffsets() {
+		return lineOffsets;
 	}
 
 }
