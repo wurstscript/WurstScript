@@ -5473,8 +5473,8 @@ public class AbilityDefinitionIllidanChannel extends AbilityDefinition
 	function setFollowThroughTime(int level, real value)
 		def.setLvlDataUnreal("Ncl1", level, 1, value)
 
-	function setTargetType(int level, string value)
-		def.setLvlDataString("Ncl2", level, 2, value)
+	function setTargetType(int level, int value)
+		def.setLvlDataInt("Ncl2", level, 2, value)
 
 	function setOptions(int level, int value)
 		def.setLvlDataInt("Ncl3", level, 3, value)
