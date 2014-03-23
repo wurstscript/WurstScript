@@ -5476,8 +5476,8 @@ public class AbilityDefinitionIllidanChannel extends AbilityDefinition
 	function setTargetType(int level, string value)
 		def.setLvlDataString("Ncl2", level, 2, value)
 
-	function setOptions(int level, string value)
-		def.setLvlDataString("Ncl3", level, 3, value)
+	function setOptions(int level, int value)
+		def.setLvlDataInt("Ncl3", level, 3, value)
 
 
 
