@@ -147,6 +147,107 @@ public function string.contains(string s) returns boolean
 public function string.isWhitespace() returns boolean
 	return this == " " or this == "\n" or this == "\t" or this == "\r"
 	
+/** Returns a new string with first letter is upper */
+public function string.firstUpper() returns string
+	if (this == "")
+		return ""
+	return StringCase(this.substring(0, 1), true) + this.substring(1, this.length())
+
+/** Returns a new string in which all occurrences of a specified string in the current instance are replaced with another specified string */
+public function string.replace(string oldSubstring, string newSubstring) returns string
+	string s = this
+	
+	int i = this.indexOf(oldSubstring)
+	while (i != -1)
+		s = s.substring(0, i) + newSubstring + s.substring(i + oldSubstring.length(), s.length())
+		i = s.indexOf(oldSubstring, i + newSubstring.length())
+	return s		
+		
+/** Replaces 1 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1) returns string
+	return this.replace("{0}", par1)
+	
+/** Replaces 2 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+
+/** Replaces 3 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+
+/** Replaces 4 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+	
+/** Replaces 5 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+
+/** Replaces 6 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5, string par6) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+				.replace("{5}", par6)
+				
+/** Replaces 7 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+				.replace("{5}", par6)
+				.replace("{6}", par7)
+	
+/** Replaces 8 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7, string par8) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+				.replace("{5}", par6)
+				.replace("{6}", par7)
+				.replace("{7}", par8)
+
+/** Replaces 9 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7, string par8, string par9) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+				.replace("{5}", par6)
+				.replace("{6}", par7)
+				.replace("{7}", par8)
+				.replace("{8}", par9)
+				
+/** Replaces 10 format item in a specified string with the string representation of a specified object **/
+public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7, string par8, string par9, string par10) returns string
+	return this.replace("{0}", par1)
+				.replace("{1}", par2)
+				.replace("{2}", par3)
+				.replace("{3}", par4)
+				.replace("{4}", par5)
+				.replace("{5}", par6)
+				.replace("{6}", par7)
+				.replace("{7}", par8)
+				.replace("{8}", par9)
+				.replace("{9}", par10)
+	
 class StringIterator
 	string s
 	int currentpos
