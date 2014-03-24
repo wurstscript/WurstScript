@@ -97,8 +97,7 @@ public function min(real x, real y) returns real
 	else
 		r = y
 	return r
-	
-	
+
 @test function minmax()
 	// better test min and max, they are difficult to implement M;D
 	int three = 3
