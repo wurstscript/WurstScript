@@ -532,6 +532,14 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void hotdoc() {
+		testAssertOkLines(false,  
+				"package test",
+				"/** test */",
+				"function foo()",
+				"endpackage");
+	}
 	
 	
 }

@@ -94,6 +94,7 @@ funcDef:
 
 
 modifiersWithDoc:
+	(hotdocComment NL)?
 	modifiers+=modifier*
 ;
 
@@ -111,6 +112,8 @@ modifier:
 		;
 
 annotation: ANNOTATION;
+
+hotdocComment: HOTDOC_COMMENT;
 
 funcSignature:
 				 name=ID typeParams formalParameters ('returns' returnType=typeExpr)?
@@ -272,7 +275,8 @@ exprPrimary:
 	  | 'null'
 	  | 'true'
 	  | 'false'
-	  | 'this')
+	  | 'this'
+	  | 'super')
 	  | exprFuncRef
       | '(' expr ')' 
 	;
@@ -321,9 +325,9 @@ exprList : (exprs+=expr (',' exprs+=expr)*)?;
 
 
 
-nativeType: 'native' 'type' name=ID ('extends' extended=ID)? NL;
+nativeType: 'nativetype' name=ID ('extends' extended=ID)? NL;
 initBlock: 'init' NL statementsBlock; 
-nativeDef: 'native' funcSignature NL; 
+nativeDef: modifiersWithDoc 'native' funcSignature NL; 
 tupleDef: modifiersWithDoc 'tuple' name=ID formalParameters NL; 
 extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL statementsBlock;
 
@@ -462,5 +466,6 @@ fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
 TAB: [\t];
 WS : [ ]+ -> skip ;
-ML_COMMENT: '/*' .*? '*/' -> skip;
+HOTDOC_COMMENT: '/**' .*? '*/';
+ML_COMMENT: '/*' [^*] .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

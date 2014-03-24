@@ -2,24 +2,20 @@ package de.peeeq.wurstscript;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.util.BitSet;
+import java.io.StringReader;
 import java.util.Collections;
 import java.util.List;
 
 import java_cup.runtime.Symbol;
 
-import org.antlr.v4.runtime.ANTLRErrorListener;
+import org.junit.Assert;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
-import org.antlr.v4.runtime.TokenSource;
 import org.antlr.v4.runtime.TokenStream;
-import org.antlr.v4.runtime.atn.ATNConfigSet;
-import org.antlr.v4.runtime.dfa.DFA;
-import org.antlr.v4.runtime.misc.Interval;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
@@ -52,7 +48,14 @@ public class WurstParser {
 		if (useCup || source.endsWith(".j")) {
 			return parseWithCup(reader, source, hasCommonJ);
 		} else {
-			return parseWithAntlr(reader, source, hasCommonJ);
+			try (java.util.Scanner s = new java.util.Scanner(reader)) {
+				s.useDelimiter("\\A");
+			    String input = s.hasNext() ? s.next() : "";
+				CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
+				CompilationUnit cu2 = parseWithCup(new StringReader(input), source, hasCommonJ);
+				Assert.assertEquals(cu2.toString(), cu1.toString());
+				return cu1;
+			}
 		}
 	}
 

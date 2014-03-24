@@ -59,7 +59,7 @@ public class ExpressionTests extends WurstScriptTest {
 	
 	@Test
 	public void err_assign() {
-		assertError("unexpected '='", "x = 12");
+		assertError("'='", "x = 12");
 	}
 	
 	@Test

@@ -94,6 +94,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciations;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.ModuleUses;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -134,9 +135,14 @@ public class AntlrWurstParseTreeTransformer {
 		JassToplevelDeclarations jassDecls = Ast.JassToplevelDeclarations();
 		WPackages packages = Ast.WPackages();
 
-		packages.add(transformPackage(cu.wpackage()));
+		try {
+			packages.add(transformPackage(cu.wpackage()));
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+			// ignore
+		}
 
-		return Ast.CompilationUnit(this.file, this.cuErrorHandler, jassDecls,
+		return Ast.CompilationUnit("", this.cuErrorHandler, jassDecls,
 				packages);
 	}
 
@@ -215,6 +221,9 @@ public class AntlrWurstParseTreeTransformer {
 
 	private Modifiers transformModifiers(ModifiersWithDocContext ms) {
 		Modifiers result = Ast.Modifiers();
+		if (ms.hotdocComment() != null) {
+			result.add(Ast.WurstDoc(source(ms.hotdocComment()), ms.hotdocComment().getText()));
+		}
 		for (ModifierContext m : ms.modifiers) {
 			result.add(transformModifier(m));
 		}
@@ -250,7 +259,7 @@ public class AntlrWurstParseTreeTransformer {
 		WPos src = source(t);
 		Modifiers modifiers = transformModifiers(t.modifiersWithDoc());
 		String name = t.name.getText();
-		WParameters parameters = transformFormalParameters(t.formalParameters());
+		WParameters parameters = transformFormalParameters(t.formalParameters(), false);
 		OptTypeExpr returnTyp = Ast.NoTypeExpr();
 		return Ast.TupleDef(src, modifiers, name, parameters, returnTyp);
 	}
@@ -340,7 +349,7 @@ public class AntlrWurstParseTreeTransformer {
 	private ConstructorDef transformConstructorDef(ConstructorDefContext c) {
 		WPos source = source(c);
 		Modifiers modifiers = transformModifiers(c.modifiersWithDoc());
-		WParameters parameters = transformFormalParameters(c.formalParameters());
+		WParameters parameters = transformFormalParameters(c.formalParameters(), true);
 		WStatements body = transformStatementList(c.stmts);
 		boolean isExplicit = c.superArgs != null;
 		Arguments superArgs = transformExprs(c.superArgs);
@@ -395,9 +404,14 @@ public class AntlrWurstParseTreeTransformer {
 				slots.moduleUses, slots.onDestroy);
 	}
 
-	private WEntity transformNativeType(NativeTypeContext nativeType) {
-		// TODO Auto-generated method stub
-		throw new Error("not implemented");
+	private NativeType transformNativeType(NativeTypeContext n) {
+		OptTypeExpr extended;
+		if (n.extended != null) {
+			extended = Ast.TypeExprSimple(source(n.extended), n.extended.getText(), Ast.TypeExprList());
+		} else {
+			extended = Ast.NoTypeExpr();
+		}
+		return Ast.NativeType(source(n), Ast.Modifiers(), n.name.getText(), extended);
 	}
 
 	private FuncDef transformFuncDef(FuncDefContext f) {
@@ -820,7 +834,7 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private ExprClosure transformClosure(ExprClosureContext e) {
-		WParameters parameters = transformFormalParameters(e.formalParameters());
+		WParameters parameters = transformFormalParameters(e.formalParameters(), true);
 		Expr implementation = transformExpr(e.expr());
 		return Ast.ExprClosure(source(e), parameters, implementation);
 	}
@@ -838,7 +852,7 @@ public class AntlrWurstParseTreeTransformer {
 		} else if (a.getType() == WurstParser.REAL) {
 			return Ast.ExprRealVal(source, a.getText());
 		} else if (a.getType() == WurstParser.STRING) {
-			return Ast.ExprStringVal(source, a.getText());
+			return Ast.ExprStringVal(source, getStringVal(source, a.getText()));
 		} else if (a.getType() == WurstParser.NULL) {
 			return Ast.ExprNull(source);
 		} else if (a.getType() == WurstParser.TRUE) {
@@ -847,13 +861,38 @@ public class AntlrWurstParseTreeTransformer {
 			return Ast.ExprBoolVal(source, false);
 		} else if (a.getType() == WurstParser.THIS) {
 			return Ast.ExprThis(source);
+		} else if (a.getType() == WurstParser.SUPER) {
+			return Ast.ExprSuper(source);
 		}
 		// TODO Auto-generated method stub
 		throw new Error("not implemented: " + a.getText());
 	}
 
+	private String getStringVal(WPos source, String text) {
+		StringBuilder res = new StringBuilder();
+		for (int i=1; i<text.length()-1; i++) {
+			char c = text.charAt(i);
+			if (c == '\\') {
+				i++;
+				switch (text.charAt(i)) {
+				case '\\': res.append('\\'); break;
+				case 'n': res.append('\n'); break;
+				case 'r': res.append('\r'); break;
+				case 't': res.append('\t'); break;
+				case '"': res.append('"'); break;
+				case '\'': res.append('\''); break;
+				default: 
+					throw new CompileError(source, "Invalid escape sequence: " + text.charAt(i));
+				}
+			} else {
+				res.append(c);
+			}
+		}
+		return res.toString();
+	}
+
 	private WEntity transformNativeDef(NativeDefContext n) {
-		Modifiers modifiers = Ast.Modifiers();
+		Modifiers modifiers = transformModifiers(n.modifiersWithDoc());
 		FuncSig sig = transformFuncSig(n.funcSignature());
 		return Ast.NativeFunc(source(n), modifiers, sig.name,
 				sig.formalParameters, sig.returnType);
@@ -861,8 +900,7 @@ public class AntlrWurstParseTreeTransformer {
 
 	private FuncSig transformFuncSig(FuncSignatureContext s) {
 		TypeParamDefs typeParams = transformTypeParams(s.typeParams());
-		WParameters formalParameters = transformFormalParameters(s
-				.formalParameters());
+		WParameters formalParameters = transformFormalParameters(s.formalParameters(), true);
 		OptTypeExpr returnType = transformOptionalType(s.returnType);
 		return new FuncSig(s.name.getText(), typeParams, formalParameters,
 				returnType);
@@ -896,16 +934,19 @@ public class AntlrWurstParseTreeTransformer {
 		return result;
 	}
 
-	private WParameters transformFormalParameters(FormalParametersContext ps) {
+	private WParameters transformFormalParameters(FormalParametersContext ps, boolean makeConstant) {
 		WParameters result = Ast.WParameters();
 		for (FormalParameterContext p : ps.params) {
-			result.add(transformFormalParameter(p));
+			result.add(transformFormalParameter(p, makeConstant));
 		}
 		return result;
 	}
 
-	private WParameter transformFormalParameter(FormalParameterContext p) {
+	private WParameter transformFormalParameter(FormalParameterContext p, boolean makeConstant) {
 		Modifiers modifiers = Ast.Modifiers();
+		if (makeConstant) {
+			modifiers.add(Ast.ModConstant(source(p)));
+		}
 		return Ast.WParameter(source(p), modifiers,
 				transformTypeExpr(p.typeExpr()), p.name.getText());
 	}
@@ -930,6 +971,9 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private WPos source(ParserRuleContext p) {
+		System.out.println("p = " + p);
+		System.out.println(p.start);
+		System.out.println(p.stop);
 		return new WPos(file, lineOffsets, p.start.getStartIndex(),
 				p.stop.getStopIndex());
 	}
