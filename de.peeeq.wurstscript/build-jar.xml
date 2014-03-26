@@ -21,6 +21,7 @@
 		<copy file="./lib/chardet.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/velocity-1.7-dep.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/jmpq.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/antlr-runtime-4.2.jar" todir="./dist/wurstscript_lib" />
 	</target>
 
 	<target name="make_for_wurstpack" depends="create_run_jar">
