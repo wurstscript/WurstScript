@@ -30,7 +30,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	private int numberOfTabs;
 	private LineOffsets lineOffsets = new LineOffsets();
 	public StringBuilder debugSb = new StringBuilder();
-	private final boolean debug = false;
+	private final boolean debug = true;
 	private Pair<TokenSource, CharStream> sourcePair;
 	private boolean isWurst = false;
 
@@ -184,7 +184,7 @@ public class ExtendedWurstLexer implements TokenSource {
 				} else if (token.getType() == WurstParser.NL) {
 					state(State.NEWLINES);
 					continue;
-				} else if (isWrapChar(token.getType())) {
+				} else if (isWrapCharBeginLine(token.getType())) {
 					// ignore all the newlines when a wrap char comes after newlines
 					state(State.WRAP_CHAR);
 					return token;
