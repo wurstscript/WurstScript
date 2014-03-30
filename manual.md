@@ -64,11 +64,15 @@ brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must no
 		ifStatements
 	nextStatements
 
-A block has to be indented by exactly one tab. Using spaces for indentation is not permitted.
+A block has to be indented by one or more tabs. Using spaces for indentation is not permitted.
 
-In general newlines come at the end of a statement, with two exceptions: 
-- Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
-- Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
+In general newlines come at the end of a statement, with some exceptions: 
+- A newline is ignored after a line ending with `(` or `[`
+- A newline is ignored before a line beginning with `)` or `]`
+- A newline is ignored, when one of the following tokens comes before or after the newline: 
+    `,`, `.`, `..`, `+`, `*`, `-`, `div`, `/`, `mod`, `%`, `and`, `or`
+
+You can use this to break longer expressions or long parameter lists over several lines, or to chain method invocations:
 
 		someFunc(param1, param2,
 			param3, param4)
