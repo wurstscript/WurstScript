@@ -230,10 +230,10 @@ statement:
 			 stmtIf
 		 | stmtWhile
 		 | localVarDef
+		 | exprDestroy NL
 		 | stmtSet
 		 | stmtCall
-		 | stmtReturn
-		 | exprDestroy NL
+		 | stmtReturn		 
 		 | stmtForLoop
 		 | stmtBreak
 		 | stmtSkip
@@ -331,8 +331,8 @@ expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dots=('.'|'..') funcName=ID typeArgs '(' exprList ')'
-	  | receiver=expr dots=('.'|'..') varName=ID indexes?
+	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
+	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser
@@ -350,6 +350,7 @@ exprPrimary:
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
+	  | exprDestroy
       | varname=ID indexes?
       | atom=(INT
       | REAL

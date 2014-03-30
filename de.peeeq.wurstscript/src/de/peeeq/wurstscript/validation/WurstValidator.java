@@ -248,6 +248,7 @@ public class WurstValidator {
 			if (e instanceof ModuleDef) visit((ModuleDef) e);
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
 			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
+			if (e instanceof NameRef) checkNameRef((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
 			if (e instanceof ExprDestroy) visit((ExprDestroy) e);
 			if (e instanceof StmtForRange) checkForRange((StmtForRange) e);
@@ -272,6 +273,12 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkNameRef(NameRef e) {
+		if (e.getVarName().isEmpty()) {
+			e.addError("Missing variable name.");
 		}
 	}
 
@@ -1048,6 +1055,9 @@ public class WurstValidator {
 	}
 
 	private void checkFuncRef(FuncRef ref) {
+		if (ref.getFuncName().isEmpty()) {
+			ref.addError("Missing function name.");
+		}
 		FunctionDefinition called = ref.attrFuncDef();
 		WScope scope = ref.attrNearestFuncDef();
 		if (scope == null) {

@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.TokenStream;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
@@ -39,7 +40,8 @@ public class WurstParser {
 
 	private final ErrorHandler errorHandler;
 	private final WurstGui gui;
-	private static boolean useCup = true;
+	private static boolean useCup = false;
+	private static boolean debugParser = false;
 
 	public WurstParser(ErrorHandler errorHandler, WurstGui gui) {
 		this.errorHandler = errorHandler;
@@ -56,13 +58,20 @@ public class WurstParser {
 				CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
 
 				
-//				if (gui.getErrorList().isEmpty()) {
-//				    // backwards compatibility test
-//					CompilationUnit cu2 = parseWithCup(new StringReader(input), source, hasCommonJ);
-//					Assert.assertEquals(cu2.toString(), cu1.toString());
-//				}
+				if (debugParser) {
+				    // backwards compatibility test
+					CompilationUnit cu2 = parseWithCup(new StringReader(input), source, hasCommonJ);
+					checkEquality(cu2,cu1);
+				}
 				return cu1;
 			}
+		}
+	}
+
+	private void checkEquality(AstElement a, AstElement b) {
+		Assert.assertEquals(a.toString(), b.toString());
+		for (int i=0; i<a.size(); i++) {
+			checkEquality(a.get(i), b.get(i));
 		}
 	}
 

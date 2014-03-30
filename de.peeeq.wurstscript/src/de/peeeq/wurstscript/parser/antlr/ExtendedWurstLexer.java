@@ -135,7 +135,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
 			switch (state) {
 			case INIT:
-				if (isWrapChar(token.getType())) {
+				if (isWrapCharEndLine(token.getType())) {
 					state(State.WRAP_CHAR);
 					return token;
 				} else if (token.getType() == WurstParser.NL) {
@@ -147,7 +147,7 @@ public class ExtendedWurstLexer implements TokenSource {
 				}
 				return token;
 			case NEWLINES:
-				if (isWrapChar(token.getType())) {
+				if (isWrapCharBeginLine(token.getType())) {
 					// ignore all the newlines when a wrap char comes after newlines
 					state(State.WRAP_CHAR);
 					return token;
@@ -165,7 +165,7 @@ public class ExtendedWurstLexer implements TokenSource {
 					return firstNewline;
 				}
 			case WRAP_CHAR:
-				if (isWrapChar(token.getType())) {
+				if (isWrapCharEndLine(token.getType())) {
 					return token;
 				} else if (token.getType() == WurstParser.NL
 						|| token.getType() == WurstParser.TAB) {
@@ -195,6 +195,9 @@ public class ExtendedWurstLexer implements TokenSource {
 			}
 		}
 	}
+
+
+	
 
 
 	private boolean isWurstOnlyKeyword(Token token) {
@@ -268,6 +271,27 @@ public class ExtendedWurstLexer implements TokenSource {
 		return false;
 	}
 
+	
+	private boolean isWrapCharEndLine(int type) {
+		switch (type) {
+		case WurstParser.PAREN_LEFT: 
+		case WurstParser.BRACKET_LEFT:
+			return true;
+		default:
+			return isWrapChar(type);
+		}
+	}
+
+
+	private boolean isWrapCharBeginLine(int type) {
+		switch (type) {
+		case WurstParser.PAREN_RIGHT: 
+		case WurstParser.BRACKET_RIGHT:
+			return true;
+		default:
+			return isWrapChar(type);
+		}
+	}
 
 
 	private @NotNull Token makeToken(int type, String text, int start, int stop) {
