@@ -115,10 +115,10 @@ public class ClassesTests extends WurstScriptTest {
 	
 		@Test
 	public void constantVars() {
-		testAssertErrorsLines(false, "Grammatical error", 
+		testAssertErrorsLines(false, "assign a new value", 
 				"package test",
 				"	class C",
-				"		constant int i",
+				"		constant int i = 1",
 				"		function foo() returns int",
 				"			i++",
 				"			return i",
@@ -126,7 +126,15 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
-		
+		@Test
+		public void constantVars2() {
+			testAssertErrorsLines(false, "", // TODO "initial value", 
+					"package test",
+					"	class C",
+					"		constant int i",
+					"endpackage"
+				);
+		}	
 		
 	
 	@Test
@@ -689,10 +697,10 @@ public class ClassesTests extends WurstScriptTest {
 	
 	@Test
 	public void constant_fields2() {
-		testAssertErrorsLines(false, "unexpected newline",
+		testAssertErrorsLines(false, "Cannot assign",
 				"package test",
 				"	class A",
-				"		constant int i",
+				"		constant int i = 1",
 				"	init",
 				"		A a = new A()",
 				"		a.i = 1",

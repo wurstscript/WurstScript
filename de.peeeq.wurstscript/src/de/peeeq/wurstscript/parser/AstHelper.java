@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -25,6 +26,8 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public class AstHelper {
@@ -103,9 +106,9 @@ public class AstHelper {
 	public static CompilationUnit addFront(CompilationUnit c,	TopLevelDeclaration p) {
 		// TODO would it be important to add this to the front?
 		if (p instanceof WPackage) {
-			c.getPackages().add((WPackage) p);
+			c.getPackages().add(0, (WPackage) p);
 		} else if (p instanceof JassToplevelDeclaration) {
-			c.getJassDecls().add((JassToplevelDeclaration) p);
+			c.getJassDecls().add(0, (JassToplevelDeclaration) p);
 		} else {
 			throw new Error("unhandled type: " + p.getClass());
 		}
@@ -117,5 +120,18 @@ public class AstHelper {
 		return a;
 	}
 
+	public static WStatements stmtsErr(WPos pos) {
+//		throw new CompileError(pos, "parse error1");
+		return Ast.WStatements(Ast.StmtErr(pos));
+	}
+
+	public static WStatement stmtErr(WPos pos) {
+//		throw new CompileError(pos, "parse error2");
+		return Ast.StmtErr(pos);
+	}
+
+	public static Expr exprRealVal(WPos pos, String s) {
+		return Ast.ExprRealVal(pos, s.trim());
+	}
 
 }

@@ -74,7 +74,7 @@ public class BugTests extends WurstScriptTest {
 	
 	@Test
 	public void test_empty_escapesequence() {
-		testAssertErrorsLines(false, "Lexical error", 
+		testAssertErrorsLines(false, "error", 
 				"package test",
 				"	function foo() returns string",
 				"		return \"\\ \" ",
@@ -538,6 +538,18 @@ public class BugTests extends WurstScriptTest {
 				"package test",
 				"/** test */",
 				"function foo()",
+				"endpackage");
+	}
+	
+
+	@Test
+	public void memberMethodParens() {
+		testAssertOkLines(false,  
+				"package test",
+				"class A",
+				"	function foo()",
+				"init",
+				"	(new A()).foo()",
 				"endpackage");
 	}
 	

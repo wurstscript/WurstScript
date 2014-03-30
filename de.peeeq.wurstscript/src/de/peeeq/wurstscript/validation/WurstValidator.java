@@ -53,6 +53,7 @@ import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.FunctionLike;
+import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.HasTypeArgs;
@@ -72,6 +73,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
+import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.StmtCall;
@@ -1762,6 +1764,15 @@ public class WurstValidator {
 			v.addError("Code members not allowed as dynamic class members (variable "+v.getName()+")\n" +
 					"Try using a trigger or conditionfunc instead.");
 		}
+		
+		if (v instanceof GlobalOrLocalVarDef) {
+			GlobalOrLocalVarDef g = (GlobalOrLocalVarDef) v;
+			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr) {
+				g.addError("Constant variable " + g.getName() + " needs an initial value.");
+			}
+			
+		}
+		
 	}
 
 

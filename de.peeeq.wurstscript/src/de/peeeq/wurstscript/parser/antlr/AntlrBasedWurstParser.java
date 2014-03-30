@@ -38,14 +38,6 @@ public class AntlrBasedWurstParser {
 		WurstParser parser = new WurstParser(tokens);
 		CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
 		System.out.println(cu.toStringTree(parser)); // print LISP-style tree
-		System.out.println("package name = " + cu.wpackage().name.getText()); 
-		for (EntityContext e : cu.wpackage().entity()) {
-			EnumDefContext enu = e.enumDef();
-			System.out.println("enum = " + enu.toStringTree(parser));
-			for (Token s : enu.enumMembers) {
-				System.out.println("const = " + s.getText());
-			}
-		}
 	}
 	
 }

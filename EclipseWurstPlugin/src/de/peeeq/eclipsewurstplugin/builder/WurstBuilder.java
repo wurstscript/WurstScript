@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.Map;
 
+import org.eclipse.core.internal.resources.ResourceException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -23,6 +24,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class WurstBuilder extends IncrementalProjectBuilder {
 
@@ -186,6 +188,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			String fileName = file.getProjectRelativePath().toString();
 			getModelManager().parse(gui, fileName, reader);
 		} catch (CoreException e) {
+			WurstNature.addErrorMarker(file, new CompileError(new WPos(file.getFullPath().toString(), LineOffsets.dummy, 0, 0), e.getMessage()), MARKER_TYPE_GRAMMAR);
 			e.printStackTrace();
 		}
 

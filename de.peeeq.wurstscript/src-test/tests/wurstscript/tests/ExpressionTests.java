@@ -42,6 +42,16 @@ public class ExpressionTests extends WurstScriptTest {
 		assertOk("-4 + 5 == 1");
 	}
 	
+	@Test
+	public void unaryMinus3() {
+		assertOk("1 - 2 - - 3 + 4 == 6");
+	}
+	
+	@Test
+	public void unaryMinus4() {
+		assertOk("- 3*4 == -12");
+	}
+	
 //	@Test
 //	public void div2() {
 //		assertError("Cannot compare types", "14 / 4 == 7");

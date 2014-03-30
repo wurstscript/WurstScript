@@ -9,12 +9,14 @@ import java.util.List;
 import java_cup.runtime.Symbol;
 
 import org.junit.Assert;
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
@@ -52,8 +54,13 @@ public class WurstParser {
 				s.useDelimiter("\\A");
 			    String input = s.hasNext() ? s.next() : "";
 				CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
-				CompilationUnit cu2 = parseWithCup(new StringReader(input), source, hasCommonJ);
-				Assert.assertEquals(cu2.toString(), cu1.toString());
+
+				
+//				if (gui.getErrorList().isEmpty()) {
+//				    // backwards compatibility test
+//					CompilationUnit cu2 = parseWithCup(new StringReader(input), source, hasCommonJ);
+//					Assert.assertEquals(cu2.toString(), cu1.toString());
+//				}
 				return cu1;
 			}
 		}
@@ -68,25 +75,41 @@ public class WurstParser {
 			TokenStream tokens = new CommonTokenStream(lexer);
 			// create a parser that feeds off the tokens buffer
 			de.peeeq.wurstscript.antlr.WurstParser parser = new de.peeeq.wurstscript.antlr.WurstParser(tokens);
-			parser.addErrorListener(new BaseErrorListener() {
+			ANTLRErrorListener l = new BaseErrorListener() {
 
 				@Override
 				public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
 						String msg, RecognitionException e) {
+					
 					LineOffsets offsets = lexer.getLineOffsets();
-					int pos = offsets.get(line) + charPositionInLine;
+					int pos;
+					int posStop;
+					if (offendingSymbol instanceof Token) {
+						Token token = (Token) offendingSymbol;
+						pos = token.getStartIndex();
+						posStop = token.getStopIndex()+1;
+					} else {
+						pos = offsets.get(line) + charPositionInLine;
+						posStop = pos+1;
+					}
+					
 					//msg = msg + " || " + input.getText(new Interval(pos, pos+10));
 					
-					List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
-					Collections.reverse(stack);
-					msg += "\nrule stack: "+stack;
-					msg = "line "+line+":"+charPositionInLine+" at "+
-					offendingSymbol+": "+ msg;
+					msg = "line "+line+": "+ msg;
 					
-					gui.sendError(new CompileError(new WPos(source, offsets, pos, pos+1), msg));
+					if (recognizer instanceof Parser) {
+						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
+						Collections.reverse(stack);
+						msg += "\nrule stack: "+stack;
+					}
+					
+					
+					gui.sendError(new CompileError(new WPos(source, offsets, pos, posStop), msg));
 				}
 
-			});
+			};
+			lexer.addErrorListener(l);
+			parser.addErrorListener(l);
 
 			CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
 			CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);

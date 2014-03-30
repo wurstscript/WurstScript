@@ -37,6 +37,23 @@ import de.peeeq.wurstscript.antlr.WurstParser.FuncSignatureContext;
 import de.peeeq.wurstscript.antlr.WurstParser.IndexesContext;
 import de.peeeq.wurstscript.antlr.WurstParser.InitBlockContext;
 import de.peeeq.wurstscript.antlr.WurstParser.InterfaceDefContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassElseIfsContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassFuncDefContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassFuncSignatureContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassGlobalDeclContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassGlobalsBlockContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassLocalContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassNativeDeclContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementCallContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementExithwhenContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementIfContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementLoopContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementReturnContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementSetContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassStatementsContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassTopLevelDeclarationContext;
+import de.peeeq.wurstscript.antlr.WurstParser.JassTypeDeclContext;
 import de.peeeq.wurstscript.antlr.WurstParser.LocalVarDefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.LocalVarDefInlineContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ModifierContext;
@@ -53,7 +70,10 @@ import de.peeeq.wurstscript.antlr.WurstParser.StmtForLoopContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtIfContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtReturnContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtSetContext;
+import de.peeeq.wurstscript.antlr.WurstParser.StmtSwitchContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtWhileContext;
+import de.peeeq.wurstscript.antlr.WurstParser.SwitchCaseContext;
+import de.peeeq.wurstscript.antlr.WurstParser.TopLevelDeclarationContext;
 import de.peeeq.wurstscript.antlr.WurstParser.TupleDefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.TypeArgsContext;
 import de.peeeq.wurstscript.antlr.WurstParser.TypeExprContext;
@@ -86,6 +106,8 @@ import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDefs;
 import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
 import de.peeeq.wurstscript.ast.JassToplevelDeclarations;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -99,6 +121,8 @@ import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.SwitchCases;
+import de.peeeq.wurstscript.ast.SwitchDefaultCase;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -134,16 +158,158 @@ public class AntlrWurstParseTreeTransformer {
 	public CompilationUnit transform(CompilationUnitContext cu) {
 		JassToplevelDeclarations jassDecls = Ast.JassToplevelDeclarations();
 		WPackages packages = Ast.WPackages();
-
 		try {
-			packages.add(transformPackage(cu.wpackage()));
+			for (TopLevelDeclarationContext decl : cu.decls) {
+
+				if (decl.jassTopLevelDeclaration() != null) {
+					jassDecls.add(transformJassToplevelDecl(decl
+							.jassTopLevelDeclaration()));
+				} else if (decl.wpackage() != null) {
+					packages.add(transformPackage(decl.wpackage()));
+				}
+			}
 		} catch (NullPointerException e) {
 			e.printStackTrace();
 			// ignore
 		}
 
-		return Ast.CompilationUnit("", this.cuErrorHandler, jassDecls,
-				packages);
+		return Ast
+				.CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+	}
+
+	private JassToplevelDeclaration transformJassToplevelDecl(
+			JassTopLevelDeclarationContext d) {
+		if (d.jassFuncDef() != null) {
+			return transformJassFuncDef(d.jassFuncDef());
+		} else if (d.jassGlobalsBlock() != null) {
+			return transformJassGlobalsBlock(d.jassGlobalsBlock());
+		} else if (d.jassNativeDecl() != null) {
+			return transformJassNativeDecl(d.jassNativeDecl());
+		} else if (d.jassTypeDecl() != null) {
+			return transformJassTypeDecl(d.jassTypeDecl());
+		}
+		throw new Error("unhandled case: " + d.getText());
+	}
+
+	private JassToplevelDeclaration transformJassTypeDecl(JassTypeDeclContext t) {
+		Modifiers modifiers = Ast.Modifiers();
+		String name = t.name.getText();
+		OptTypeExpr optTyp = transformOptionalType(t.typeExpr());
+		return Ast.NativeType(source(t), modifiers, name, optTyp);
+	}
+
+	private JassToplevelDeclaration transformJassNativeDecl(
+			JassNativeDeclContext n) {
+		Modifiers modifiers = Ast.Modifiers();
+		FuncSig sig = transformFuncSig(n.jassFuncSignature());
+		return Ast.NativeFunc(source(n), modifiers, sig.name,
+				sig.formalParameters, sig.returnType);
+	}
+
+	private JassToplevelDeclaration transformJassGlobalsBlock(
+			JassGlobalsBlockContext g) {
+		JassGlobalBlock result = Ast.JassGlobalBlock();
+		for (JassGlobalDeclContext v : g.jassGlobalDecl()) {
+			Modifiers modifiers = Ast.Modifiers();
+			if (v.constant != null) {
+				modifiers.add(Ast.ModConstant(source(v.constant)));
+			}
+			OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
+			String name = v.name.getText();
+			OptExpr initialExpr = transformOptionalExpr(v.initial);
+			result.add(Ast.GlobalVarDef(source(v), modifiers, optTyp, name,
+					initialExpr));
+		}
+		return result;
+	}
+
+	private JassToplevelDeclaration transformJassFuncDef(JassFuncDefContext f) {
+		Modifiers modifiers = Ast.Modifiers();
+		FuncSig sig = transformFuncSig(f.jassFuncSignature());
+		WStatements body = transformJassLocals(f.jassLocals);
+		body.addAll(transformJassStatements(f.jassStatements()).removeAll());
+		return Ast.FuncDef(source(f), modifiers, sig.name, sig.typeParams,
+				sig.formalParameters, sig.returnType, body);
+	}
+
+	private WStatements transformJassLocals(List<JassLocalContext> jassLocals) {
+		WStatements result = Ast.WStatements();
+		for (JassLocalContext l : jassLocals) {
+			Modifiers modifiers = Ast.Modifiers();
+			OptTypeExpr optTyp = transformOptionalType(l.typeExpr());
+			String name = l.name.getText();
+			OptExpr initialExpr = transformOptionalExpr(l.initial);
+			result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
+					initialExpr));
+		}
+		return result;
+	}
+
+	private WStatements transformJassStatements(JassStatementsContext stmts) {
+		WStatements result = Ast.WStatements();
+		for (JassStatementContext s : stmts.jassStatement()) {
+			result.add(transformJassStatement(s));
+		}
+		return result;
+	}
+
+	private WStatement transformJassStatement(JassStatementContext s) {
+		if (s.jassStatementCall() != null) {
+			return transformJassStatementCall(s.jassStatementCall());
+		} else if (s.jassStatementExithwhen() != null) {
+			return transformJassStatementExitwhen(s.jassStatementExithwhen());
+		} else if (s.jassStatementIf() != null) {
+			return transformJassStatementIf(s.jassStatementIf());
+		} else if (s.jassStatementLoop() != null) {
+			return transformJassStatementLoop(s.jassStatementLoop());
+		} else if (s.jassStatementReturn() != null) {
+			return transformJassStatementReturn(s.jassStatementReturn());
+		} else if (s.jassStatementSet() != null) {
+			return transformJassStatementSet(s.jassStatementSet());
+		}
+		throw new Error("unhandled case: " + s.getText());
+	}
+
+	private WStatement transformJassStatementSet(JassStatementSetContext s) {
+		return Ast.StmtSet(source(s), transformAssignable(s.left), transformExpr(s.right));
+	}
+
+	private WStatement transformJassStatementReturn(JassStatementReturnContext s) {
+		return Ast.StmtReturn(source(s), transformOptionalExpr(s.expr()));
+	}
+
+	private WStatement transformJassStatementLoop(JassStatementLoopContext s) {
+		return Ast.StmtLoop(source(s), transformJassStatements(s.jassStatements()));
+	}
+
+	private WStatement transformJassStatementIf(JassStatementIfContext s) {
+		WStatements thenBlock = transformJassStatements(s.thenStatements);
+		WStatements elseBlock = transformJassElseIfs(s.jassElseIfs());
+		return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock);
+	}
+
+	private WStatements transformJassElseIfs(JassElseIfsContext s) {
+		if (s == null) {
+			return Ast.WStatements();
+		}
+		if (s.cond != null) {
+			return Ast.WStatements(Ast.StmtIf(source(s), 
+					transformExpr(s.cond), 
+					transformJassStatements(s.thenStatements), 
+					transformJassElseIfs(s.jassElseIfs())));
+		} else if (s.elseStmts != null) {
+			return transformJassStatements(s.elseStmts);
+		} else {
+			return Ast.WStatements();
+		}
+	}
+
+	private WStatement transformJassStatementExitwhen(JassStatementExithwhenContext s) {
+		return Ast.StmtExitwhen(source(s), transformExpr(s.cond));
+	}
+
+	private WStatement transformJassStatementCall(JassStatementCallContext s) {
+		return transformFunctionCall(s.exprFunctionCall());
 	}
 
 	private WPackage transformPackage(WpackageContext p) {
@@ -222,7 +388,8 @@ public class AntlrWurstParseTreeTransformer {
 	private Modifiers transformModifiers(ModifiersWithDocContext ms) {
 		Modifiers result = Ast.Modifiers();
 		if (ms.hotdocComment() != null) {
-			result.add(Ast.WurstDoc(source(ms.hotdocComment()), ms.hotdocComment().getText()));
+			result.add(Ast.WurstDoc(source(ms.hotdocComment()), ms
+					.hotdocComment().getText()));
 		}
 		for (ModifierContext m : ms.modifiers) {
 			result.add(transformModifier(m));
@@ -259,7 +426,8 @@ public class AntlrWurstParseTreeTransformer {
 		WPos src = source(t);
 		Modifiers modifiers = transformModifiers(t.modifiersWithDoc());
 		String name = t.name.getText();
-		WParameters parameters = transformFormalParameters(t.formalParameters(), false);
+		WParameters parameters = transformFormalParameters(
+				t.formalParameters(), false);
 		OptTypeExpr returnTyp = Ast.NoTypeExpr();
 		return Ast.TupleDef(src, modifiers, name, parameters, returnTyp);
 	}
@@ -349,7 +517,8 @@ public class AntlrWurstParseTreeTransformer {
 	private ConstructorDef transformConstructorDef(ConstructorDefContext c) {
 		WPos source = source(c);
 		Modifiers modifiers = transformModifiers(c.modifiersWithDoc());
-		WParameters parameters = transformFormalParameters(c.formalParameters(), true);
+		WParameters parameters = transformFormalParameters(
+				c.formalParameters(), true);
 		WStatements body = transformStatementList(c.stmts);
 		boolean isExplicit = c.superArgs != null;
 		Arguments superArgs = transformExprs(c.superArgs);
@@ -407,11 +576,13 @@ public class AntlrWurstParseTreeTransformer {
 	private NativeType transformNativeType(NativeTypeContext n) {
 		OptTypeExpr extended;
 		if (n.extended != null) {
-			extended = Ast.TypeExprSimple(source(n.extended), n.extended.getText(), Ast.TypeExprList());
+			extended = Ast.TypeExprSimple(source(n.extended),
+					n.extended.getText(), Ast.TypeExprList());
 		} else {
 			extended = Ast.NoTypeExpr();
 		}
-		return Ast.NativeType(source(n), Ast.Modifiers(), n.name.getText(), extended);
+		return Ast.NativeType(source(n), Ast.Modifiers(), n.name.getText(),
+				extended);
 	}
 
 	private FuncDef transformFuncDef(FuncDefContext f) {
@@ -441,8 +612,10 @@ public class AntlrWurstParseTreeTransformer {
 
 	private WStatements transformStatements(StatementsBlockContext b) {
 		WStatements result = Ast.WStatements();
-		for (StatementContext s : b.statement()) {
-			result.add(transformStatement(s));
+		if (b != null) {
+			for (StatementContext s : b.statement()) {
+				result.add(transformStatement(s));
+			}
 		}
 		return result;
 	}
@@ -470,8 +643,7 @@ public class AntlrWurstParseTreeTransformer {
 		} else if (s.stmtSkip() != null) {
 			return Ast.StmtSkip(source(s));
 		} else if (s.stmtSwitch() != null) {
-			throw new Error("not implemented: " + s.getText() + "\n"
-					+ s.toStringTree());
+			return transformSwitch(s.stmtSwitch());
 		}
 
 		if (s.exception != null) {
@@ -481,6 +653,24 @@ public class AntlrWurstParseTreeTransformer {
 		// TODO Auto-generated method stub
 		throw new Error("not implemented: " + s.getText() + "\n"
 				+ s.toStringTree());
+	}
+
+	private WStatement transformSwitch(StmtSwitchContext s) {
+		Expr expr = transformExpr(s.expr());
+		SwitchCases cases = Ast.SwitchCases();
+		for (SwitchCaseContext c : s.switchCase()) {
+			Expr e = transformExpr(c.expr());
+			WStatements stmts = transformStatements(c.statementsBlock());
+			cases.add(Ast.SwitchCase(source(c), e, stmts));
+		}
+		SwitchDefaultCase switchDefault;
+		if (s.switchDefaultCase() != null) {
+			switchDefault = Ast.SwitchDefaultCaseStatements(source(s.switchDefaultCase()), 
+					transformStatements(s.switchDefaultCase().statementsBlock()));
+		} else {
+			switchDefault = Ast.NoDefaultCase();
+		}
+		return Ast.SwitchStmt(source(s), expr, cases, switchDefault);
 	}
 
 	private WStatement transformWhile(StmtWhileContext s) {
@@ -747,6 +937,9 @@ public class AntlrWurstParseTreeTransformer {
 		} else if (e.funcName != null) {
 			return transformMemberMethodCall2(source(e), e.receiver, e.dots,
 					e.funcName, e.typeArgs(), e.exprList());
+		} else if (e.instaneofType != null) {
+			return Ast.ExprInstanceOf(source(e), transformTypeExpr(e.instaneofType), 
+					transformExpr(e.left));
 		}
 
 		if (e.exception != null) {
@@ -830,11 +1023,13 @@ public class AntlrWurstParseTreeTransformer {
 
 	private ExprStatementsBlock transformExprStatementsBlock(
 			ExprStatementsBlockContext e) {
-		return Ast.ExprStatementsBlock(source(e), transformStatements(e.statementsBlock()));
+		return Ast.ExprStatementsBlock(source(e),
+				transformStatements(e.statementsBlock()));
 	}
 
 	private ExprClosure transformClosure(ExprClosureContext e) {
-		WParameters parameters = transformFormalParameters(e.formalParameters(), true);
+		WParameters parameters = transformFormalParameters(
+				e.formalParameters(), true);
 		Expr implementation = transformExpr(e.expr());
 		return Ast.ExprClosure(source(e), parameters, implementation);
 	}
@@ -870,19 +1065,32 @@ public class AntlrWurstParseTreeTransformer {
 
 	private String getStringVal(WPos source, String text) {
 		StringBuilder res = new StringBuilder();
-		for (int i=1; i<text.length()-1; i++) {
+		for (int i = 1; i < text.length() - 1; i++) {
 			char c = text.charAt(i);
 			if (c == '\\') {
 				i++;
 				switch (text.charAt(i)) {
-				case '\\': res.append('\\'); break;
-				case 'n': res.append('\n'); break;
-				case 'r': res.append('\r'); break;
-				case 't': res.append('\t'); break;
-				case '"': res.append('"'); break;
-				case '\'': res.append('\''); break;
-				default: 
-					throw new CompileError(source, "Invalid escape sequence: " + text.charAt(i));
+				case '\\':
+					res.append('\\');
+					break;
+				case 'n':
+					res.append('\n');
+					break;
+				case 'r':
+					res.append('\r');
+					break;
+				case 't':
+					res.append('\t');
+					break;
+				case '"':
+					res.append('"');
+					break;
+				case '\'':
+					res.append('\'');
+					break;
+				default:
+					throw new CompileError(source, "Invalid escape sequence: "
+							+ text.charAt(i));
 				}
 			} else {
 				res.append(c);
@@ -900,7 +1108,19 @@ public class AntlrWurstParseTreeTransformer {
 
 	private FuncSig transformFuncSig(FuncSignatureContext s) {
 		TypeParamDefs typeParams = transformTypeParams(s.typeParams());
-		WParameters formalParameters = transformFormalParameters(s.formalParameters(), true);
+		WParameters formalParameters = transformFormalParameters(
+				s.formalParameters(), true);
+		OptTypeExpr returnType = transformOptionalType(s.returnType);
+		return new FuncSig(s.name.getText(), typeParams, formalParameters,
+				returnType);
+	}
+
+	private FuncSig transformFuncSig(JassFuncSignatureContext s) {
+		TypeParamDefs typeParams = Ast.TypeParamDefs();
+		WParameters formalParameters = Ast.WParameters();
+		for (FormalParameterContext p : s.args) {
+			formalParameters.add(transformFormalParameter(p, false));
+		}
 		OptTypeExpr returnType = transformOptionalType(s.returnType);
 		return new FuncSig(s.name.getText(), typeParams, formalParameters,
 				returnType);
@@ -934,7 +1154,8 @@ public class AntlrWurstParseTreeTransformer {
 		return result;
 	}
 
-	private WParameters transformFormalParameters(FormalParametersContext ps, boolean makeConstant) {
+	private WParameters transformFormalParameters(FormalParametersContext ps,
+			boolean makeConstant) {
 		WParameters result = Ast.WParameters();
 		for (FormalParameterContext p : ps.params) {
 			result.add(transformFormalParameter(p, makeConstant));
@@ -942,7 +1163,8 @@ public class AntlrWurstParseTreeTransformer {
 		return result;
 	}
 
-	private WParameter transformFormalParameter(FormalParameterContext p, boolean makeConstant) {
+	private WParameter transformFormalParameter(FormalParameterContext p,
+			boolean makeConstant) {
 		Modifiers modifiers = Ast.Modifiers();
 		if (makeConstant) {
 			modifiers.add(Ast.ModConstant(source(p)));
@@ -971,9 +1193,6 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private WPos source(ParserRuleContext p) {
-		System.out.println("p = " + p);
-		System.out.println(p.start);
-		System.out.println(p.stop);
 		return new WPos(file, lineOffsets, p.start.getStartIndex(),
 				p.stop.getStopIndex());
 	}

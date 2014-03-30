@@ -1,6 +1,87 @@
 grammar Wurst;
 
-compilationUnit : NL* wpackage;
+compilationUnit : NL* decls+=topLevelDeclaration*;
+
+topLevelDeclaration:
+					 wpackage
+				   | jassTopLevelDeclaration
+				   ;
+
+
+jassTopLevelDeclaration:
+						 jassGlobalsBlock
+					   | jassFuncDef
+					   | jassTypeDecl
+					   | jassNativeDecl
+					;
+
+
+jassGlobalsBlock:
+					'globals' NL vars+=jassGlobalDecl* 'endglobals' NL
+				;
+
+jassGlobalDecl:
+				  constant='constant'? typeExpr name=ID ('=' initial=expr)? NL
+			  ;
+
+jassFuncDef:
+			   constant='constant'? 'function' jassFuncSignature NL
+			   (jassLocals+=jassLocal)*
+			   jassStatements
+			   'endfunction' NL
+		   ;
+
+jassLocal: 'local' typeExpr name=ID ('=' initial=expr)? NL;
+
+jassStatements: stmts+=jassStatement*;
+
+jassStatement:
+				 jassStatementIf
+			 | jassStatementLoop
+			 | jassStatementExithwhen
+			 | jassStatementReturn
+			 | jassStatementSet
+			 | jassStatementCall
+			 ;
+
+jassStatementIf:
+				   'if' cond=expr 'then' NL thenStatements=jassStatements jassElseIfs
+;
+
+jassElseIfs:
+			   'elseif' cond=expr 'then' NL thenStatements=jassStatements jassElseIfs
+		   | 'else' NL elseStmts=jassStatements 'endif' NL
+		   | 'endif' NL
+		   ;
+
+jassStatementLoop:
+					 'loop' NL jassStatements 'endloop' NL
+				;
+jassStatementExithwhen:
+						  'exitwhen' cond=expr NL
+;
+jassStatementReturn:
+					'return' expr? NL
+;
+jassStatementSet:
+					'set' left=exprAssignable '=' right=expr NL
+;
+jassStatementCall:
+					 'call' exprFunctionCall NL
+				 ;
+
+
+jassNativeDecl:
+				  constant='constant'? 'native' jassFuncSignature NL
+			  ;
+
+jassFuncSignature:
+					 name=ID 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
+					 'returns' ('nothing'|returnType=typeExpr)
+				 ;
+
+jassTypeDecl: 'type' name=ID 'extends' extended=typeExpr NL;
+
 
 wpackage: 'package' name=ID NL 
 	(
@@ -252,8 +333,9 @@ expr:
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dots=('.'|'..') funcName=ID typeArgs '(' exprList ')'
 	  | receiver=expr dots=('.'|'..') varName=ID indexes?
-	  | op='-' right=expr
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
+	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
+		                  // currently it is here to be backwards compatible with the old wurst parser
       | left=expr op=('+'|'-') right=expr
 	  | left=expr op=('<='|'<'|'>'|'>=') right=expr
 	  | left=expr op=('=='|'!=') right=expr
@@ -398,7 +480,6 @@ ENUM: 'enum';
 SWITCH: 'switch';
 CASE: 'case';
 DEFAULT: 'default';
-TYPEID: 'typeId';
 BEGIN: 'begin';
 END: 'end';
 LIBRARY: 'library';
@@ -453,6 +534,14 @@ ARROW: '->';
 STARTBLOCK:[];
 ENDBLOCK:[];
 
+
+JASS_GLOBALS: 'globals';
+
+JASS_ENDGLOBALS: 'endglobals';
+JASS_LOCAL: 'local';
+JASS_ELSEIF: 'elseif';
+
+
 NL: [\r\n]+;
 ID: [a-zA-Z_][a-zA-Z0-9_]* ;
 ANNOTATION: '@' [a-zA-Z0-9_]+;
@@ -467,5 +556,5 @@ fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 TAB: [\t];
 WS : [ ]+ -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
-ML_COMMENT: '/*' [^*] .*? '*/' -> skip;
+ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

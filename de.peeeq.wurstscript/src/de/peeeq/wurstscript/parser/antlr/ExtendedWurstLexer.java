@@ -4,16 +4,17 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Stack;
 
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonToken;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenFactory;
 import org.antlr.v4.runtime.TokenSource;
+import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
 
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
-import de.peeeq.wurstscript.parser.JurstTokenType;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ExtendedWurstLexer implements TokenSource {
@@ -21,28 +22,28 @@ public class ExtendedWurstLexer implements TokenSource {
 	private final WurstLexer orig;
 	private Queue<Token> nextTokens = new LinkedList<>();
 	private State state = State.INIT;
-	private int currentLineTabs = 0;
 	private Stack<Integer> indentationLevels = new Stack<>();
 	private Token eof = null;
 	private Token firstNewline;
 	private int numberOfTabs;
 	private LineOffsets lineOffsets = new LineOffsets();
 	public StringBuilder debugSb = new StringBuilder();
-	private boolean debug = false;
+	private final boolean debug = false;
 	private Pair<TokenSource, CharStream> sourcePair;
-	
-	
+	private boolean isWurst = false;
+
+
 	enum State {
 		INIT, WRAP_CHAR, NEWLINES, BEGIN_LINE
 	}
-	
-	
+
+
 	public ExtendedWurstLexer(CharStream input) {
 		orig = new WurstLexer(input);
 		sourcePair = new Pair<TokenSource, CharStream>(orig, input);
 		indentationLevels.push(0);
 	}
-	
+
 
 	@Override
 	public int getCharPositionInLine() {
@@ -72,7 +73,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	@Override
 	public Token nextToken() {
 		Token t = nextTokenIntern();
-		
+
 		debugSb.append(t.getText() + " ");
 		if (debug) System.out.println("		new token: " + t);
 		return t;		
@@ -83,26 +84,45 @@ public class ExtendedWurstLexer implements TokenSource {
 		if (!nextTokens.isEmpty()) {
 			return nextTokens.poll();
 		}
-		
+
 		if (eof != null) {
 			return makeToken(WurstParser.EOF, "$EOF", eof.getStartIndex(), eof.getStopIndex());
 		}
-		
-		
-		
-		
+
+
+
+
 		for (;;) {
 			Token token = orig.nextToken();
+
 			if (debug) System.out.println("orig token = " + token);
-			
+
 			if (token == null) {
 				continue;
 			}
-			
+
+			if (isWurst) {
+				if (isJassOnlyKeyword(token)) {
+					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+				} else if (token.getType() == WurstParser.ENDPACKAGE) {
+					handleIndent(0, token.getStartIndex(), token.getStopIndex());
+					isWurst = false;
+				}
+			} else {
+				if (token.getType() == WurstParser.PACKAGE) {
+					isWurst = true;
+				} else if (isWurstOnlyKeyword(token)) {
+					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+				} else if (token.getType() == WurstParser.HOTDOC_COMMENT) {
+					continue;
+				}
+			}
+
+
 			if (token.getType() == WurstParser.NL) {
 				lineOffsets.set(token.getLine(), token.getStartIndex());
 			}
-			
+
 			if (token.getType() == WurstParser.EOF) {
 				// at EOF close all blocks and return an extra newline
 				handleIndent(0, token.getStartIndex(), token.getStopIndex());
@@ -110,6 +130,9 @@ public class ExtendedWurstLexer implements TokenSource {
 				return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
 			}
 			
+			
+			
+
 			switch (state) {
 			case INIT:
 				if (isWrapChar(token.getType())) {
@@ -174,6 +197,32 @@ public class ExtendedWurstLexer implements TokenSource {
 	}
 
 
+	private boolean isWurstOnlyKeyword(Token token) {
+		switch (token.getType()) {
+		case WurstParser.VAR: 
+		case WurstParser.LET:
+			// TODO other tokens
+			return true;
+		default:
+			return false;
+		}
+	}
+
+
+	private boolean isJassOnlyKeyword(Token token) {
+		switch (token.getType()) {
+		case WurstParser.CALL:
+		case WurstParser.SET:
+		case WurstParser.JASS_LOCAL:
+		case WurstParser.TAKES:
+			// TODO other tokens
+			return true;
+		default:
+			return false;
+		}
+	}
+
+
 	private void state(State s) {
 		if (debug) System.out.println("state " + state + " -> " + s);
 		state = s;
@@ -181,6 +230,9 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
 	private void handleIndent(int n, int start, int stop) {
+		if (!isWurst) {
+			return;
+		}
 		if (debug) System.out.println("handleIndent " + n + "	 " + indentationLevels);
 		if (n > indentationLevels.peek()) {
 			indentationLevels.push(n);
@@ -196,8 +248,8 @@ public class ExtendedWurstLexer implements TokenSource {
 
 	private boolean isWrapChar(int type) {
 		switch (type) {
-		case WurstParser.PAREN_LEFT: 
-		case WurstParser.BRACKET_LEFT:
+//		case WurstParser.PAREN_LEFT: 
+//		case WurstParser.BRACKET_LEFT:
 		case WurstParser.COMMA:
 		case WurstParser.DOT:
 		case WurstParser.DOTDOT:
@@ -210,7 +262,7 @@ public class ExtendedWurstLexer implements TokenSource {
 		case WurstParser.MOD_REAL:
 		case WurstParser.AND:
 		case WurstParser.OR:
-		
+
 			return true;
 		}
 		return false;
@@ -218,7 +270,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
 
-	private Token makeToken(int type, String text, int start, int stop) {
+	private @NotNull Token makeToken(int type, String text, int start, int stop) {
 		Pair<TokenSource, CharStream> source = sourcePair;
 		int channel = 0;
 		CommonToken t = new CommonToken(source, type, channel, start, stop);
@@ -235,4 +287,8 @@ public class ExtendedWurstLexer implements TokenSource {
 		return lineOffsets;
 	}
 
+	
+	public void addErrorListener(ANTLRErrorListener listener) {
+		orig.addErrorListener(listener);
+	}
 }
