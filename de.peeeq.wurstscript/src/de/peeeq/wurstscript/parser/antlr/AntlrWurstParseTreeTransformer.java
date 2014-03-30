@@ -1028,6 +1028,8 @@ public class AntlrWurstParseTreeTransformer {
 			return transformExprStatementsBlock(e.exprStatementsBlock());
 		} else if (e.exprFuncRef() != null) {
 			return transformExprFuncRef(e.exprFuncRef());
+		} else if (e.exprDestroy() != null) {
+			return transformExprDestroy(e.exprDestroy());
 		}
 		// TODO Auto-generated method stub
 		throw error(e, "not implemented " + text(e));
