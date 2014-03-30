@@ -324,7 +324,7 @@ stmtCall:
 		;
 
 exprMemberMethod:
-					receiver=expr dots=('.'|'..') funcName=ID typeArgs '(' exprList ')'
+					receiver=expr dots=('.'|'..') funcName=ID? typeArgs ('(' exprList ')')?
 				;
 
 expr:

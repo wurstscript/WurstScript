@@ -262,8 +262,6 @@ public class ExtendedWurstLexer implements TokenSource {
 //		case WurstParser.PAREN_LEFT: 
 //		case WurstParser.BRACKET_LEFT:
 		case WurstParser.COMMA:
-		case WurstParser.DOT:
-		case WurstParser.DOTDOT:
 		case WurstParser.PLUS:
 		case WurstParser.MULT:
 		case WurstParser.MINUS:
@@ -295,6 +293,8 @@ public class ExtendedWurstLexer implements TokenSource {
 		switch (type) {
 		case WurstParser.PAREN_RIGHT: 
 		case WurstParser.BRACKET_RIGHT:
+		case WurstParser.DOT:
+		case WurstParser.DOTDOT:
 			return true;
 		default:
 			return isWrapChar(type);
