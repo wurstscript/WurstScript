@@ -107,11 +107,11 @@ public function unit.setVertexColor(color col)
 	
 /** Returns a string that is in the wc3 hexcolor format (|caarrggbb) */
 public function colorA.toColorString() returns string
-	return "|C" + toHex(this.alpha) + toHex(this.red) + toHex(this.green) + toHex(this.blue)
+	return "|c" + toHex(this.alpha) + toHex(this.red) + toHex(this.green) + toHex(this.blue)
 
 /** Returns a string that is in the wc3 hexcolor format (|crrggbb) */
 public function color.toColorString() returns string
-	return "|C" + toHex(this.red) + toHex(this.green) + toHex(this.blue)
+	return "|cff" + toHex(this.red) + toHex(this.green) + toHex(this.blue)
 
 /** Converts and int to a hexnumber */
 public function toHex( int number ) returns string
