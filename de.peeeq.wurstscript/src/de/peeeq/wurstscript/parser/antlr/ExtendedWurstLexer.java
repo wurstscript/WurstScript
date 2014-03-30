@@ -15,6 +15,8 @@ import org.antlr.v4.runtime.misc.Pair;
 
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ExtendedWurstLexer implements TokenSource {
@@ -244,6 +246,12 @@ public class ExtendedWurstLexer implements TokenSource {
 			while (n < indentationLevels.peek()) {
 				indentationLevels.pop();
 				nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", start, stop));
+			}
+			if (n != indentationLevels.peek()) {
+				for (ANTLRErrorListener el : orig.getErrorListeners()) {
+					int line = lineOffsets.getLine(start);
+					el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level.", null);
+				}
 			}
 		}
 	}

@@ -534,6 +534,7 @@ ARROW: '->';
 
 STARTBLOCK:[];
 ENDBLOCK:[];
+INVALID:[];
 
 
 JASS_GLOBALS: 'globals';
