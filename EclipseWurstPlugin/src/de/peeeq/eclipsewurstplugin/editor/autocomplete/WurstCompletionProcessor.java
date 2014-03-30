@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprRealVal;
@@ -111,8 +112,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		WLogger.info("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
-		if (elem instanceof ExprMemberVar) {
-			ExprMemberVar e = (ExprMemberVar) elem;
+		if (elem instanceof ExprMember) {
+			ExprMember e = (ExprMember) elem;
 			leftType = e.getLeft().attrTyp();
 			isMemberAccess = true;
 			WScope scope = elem.attrNearestScope();
