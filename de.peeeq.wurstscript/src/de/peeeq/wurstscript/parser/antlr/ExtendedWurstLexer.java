@@ -30,7 +30,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	private int numberOfTabs;
 	private LineOffsets lineOffsets = new LineOffsets();
 	public StringBuilder debugSb = new StringBuilder();
-	private final boolean debug = true;
+	private final boolean debug = false;
 	private Pair<TokenSource, CharStream> sourcePair;
 	private boolean isWurst = false;
 
