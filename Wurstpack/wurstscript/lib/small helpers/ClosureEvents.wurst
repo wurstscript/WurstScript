@@ -87,33 +87,22 @@ public function onDamage(unit u, OnDamage action) returns OnDamage
 	return action
 
 public abstract class OnDamage
-	private static HashMap<unit, LinkedList<OnDamage>> damageActions = new HashMap<unit, LinkedList<OnDamage>>()
+	private static HashMap<trigger, OnDamage> damageActions = new HashMap<trigger, OnDamage>()
 	protected trigger t
-	protected unit u
 	
 	static function damageHandler() returns boolean
-		for OnDamage action in damageActions.get(GetTriggerUnit())
-			action.run(GetTriggerUnit(), GetEventDamageSource(), GetEventDamage())
+		damageActions.get(GetTriggeringTrigger()).run(GetTriggerUnit(), GetEventDamageSource(), GetEventDamage())
 		return false
 	
 	protected function register(unit u)
-		LinkedList<OnDamage> temp = damageActions.get(u)
-		if temp == null
-			temp = new LinkedList<OnDamage>()
-			damageActions.put(u, temp)
-		temp.add(this)
-		this.u = u
 		t = CreateTrigger()..addCondition(Condition(function damageHandler))..registerUnitEvent(u, EVENT_UNIT_DAMAGED)
+		damageActions.put(t, this)
 		
 	protected abstract function run(unit damaged, unit source, real amount)
 	
 	ondestroy
+		damageActions.remove(t)
 		t.clearConditions()
 		t.destr()
-		LinkedList<OnDamage> temp = damageActions.get(u)
-		temp.remove(this)
-		if temp.getSize() <= 0
-			destroy temp
-			damageActions.remove(u)
 	
 
