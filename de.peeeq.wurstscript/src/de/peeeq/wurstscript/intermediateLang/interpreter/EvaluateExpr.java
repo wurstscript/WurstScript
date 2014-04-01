@@ -141,14 +141,18 @@ public class EvaluateExpr {
 			}
 			return r;
 		} else {
-			return notNull(localState.getVal(var), var.getType(), "Local variable " + var.getName() + " is null.");
+			return notNull(localState.getVal(var), var.getType(), "Local variable " + var.getName() + " is null.", true);
 		}
 	}
 
-	private static ILconst notNull(ILconst val, ImType imType, String msg) {
+	private static ILconst notNull(ILconst val, ImType imType, String msg, boolean failOnErr) {
 		if (val == null) {
-			System.err.println(msg);
-			return imType.defaultValue();
+			if (failOnErr) {
+				throw new InterpreterException(msg);
+			} else {
+				System.err.println(msg);
+				return imType.defaultValue();
+			}
 		}
 		return val;
 	}
@@ -156,9 +160,9 @@ public class EvaluateExpr {
 	public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
 		ILconstInt index = (ILconstInt) e.getIndex().evaluate(globalState, localState);
 		if (e.getVar().isGlobal()) {
-			return notNull(globalState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.");
+			return notNull(globalState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
 		} else {
-			return notNull(localState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.");
+			return notNull(localState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
 		}
 	}
 
@@ -194,7 +198,7 @@ public class EvaluateExpr {
 		if (receiver.getVal() == 0) {
 			throw new RuntimeException("Null pointer derefenced at ...");
 		}
-		return notNull(globalState.getArrayVal(ma.getVar(), receiver.getVal()), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.");
+		return notNull(globalState.getArrayVal(ma.getVar(), receiver.getVal()), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
 	}
 
 	public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,

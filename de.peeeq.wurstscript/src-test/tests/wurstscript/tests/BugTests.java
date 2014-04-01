@@ -553,5 +553,29 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void localOptimizerFail() { // essence of #237
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"function foo(int i) returns int",
+				"	return 1",
+				"function colors_hexs(int i) returns string",
+				"	return \"a\"",
+				"init",
+				"	var aaa = foo(1)",
+				"	var bbb = foo(2)",
+				"	var fff = aaa",
+				"	var ggg = fff div 16",
+				"	var kkk = fff - ggg * 16",
+				"	var ccc = \"|cff\" + colors_hexs(ggg) + colors_hexs(kkk)",
+				"	var eee = bbb",
+				"	var hhh = eee div 16",
+				"	var iii = eee - hhh * 16",
+				"	var ddd = ccc + colors_hexs(hhh) + colors_hexs(iii)",
+				"	testSuccess()",
+				"endpackage");
+	}
+	
 	
 }

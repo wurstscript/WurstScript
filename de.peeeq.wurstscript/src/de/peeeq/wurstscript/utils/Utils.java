@@ -44,6 +44,8 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 
@@ -980,6 +982,26 @@ public class Utils {
 			e = e.getParent();
 		}
 		return null;
+	}
+
+	public static <T extends AstElementWithName> Comparator<T> compareByName() {
+		return new Comparator<T>() {
+
+			@Override
+			public int compare(T a, T b) {
+				return a.getName().compareTo(b.getName());
+			}
+		};
+	}
+	
+	public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
+		return new Comparator<T>() {
+
+			@Override
+			public int compare(T a, T b) {
+				return a.getName().compareTo(b.getName());
+			}
+		};
 	}
 
 	
