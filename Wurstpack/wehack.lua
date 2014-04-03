@@ -514,7 +514,7 @@ grim.log("running tool on save: "..cmdargs)
 			cmdline = cmdline .. " -injectobjects"
 		end
 		
-		cmdline = cmdline .. " -lib ./wurstscript/lib/"
+		-- cmdline = cmdline .. " -lib ./wurstscript/lib/"
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""
 		
 		toolresult = 0

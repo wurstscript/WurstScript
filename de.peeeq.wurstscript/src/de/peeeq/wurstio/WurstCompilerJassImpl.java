@@ -66,6 +66,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private final WurstParser parser;
 	private final WurstChecker checker;
 	private ImTranslator imTranslator;
+	private List<File> dependencies = Lists.newArrayList();
 
 	
 	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
@@ -112,10 +113,38 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				loadWurstFilesInDir(f);
 			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
 				loadFile(f);
+			} else if (f.getName().equals("wurst.dependencies")) {
+				addDependencyFile(f);
 			}
 		}
 	}
 	
+	private void addDependencyFile(File f) {
+		try (FileReader fr = new FileReader(f);
+			BufferedReader reader = new BufferedReader(fr)) {
+			while (true) {
+				String line = reader.readLine();
+				if (line == null) break;
+				addDependencyFolder(f, line);						
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new Error(e);
+		}
+	}
+
+
+	private void addDependencyFolder(File f, String folderName) {
+		File folder = new File(folderName);
+		if (!folder.exists()) {
+			gui.sendError(new CompileError(new WPos(f.getAbsolutePath(), new LineOffsets(), 0, 1), "Folder " + folderName + " not found."));
+		} else if (!folder.isDirectory()) {
+			gui.sendError(new CompileError(new WPos(f.getAbsolutePath(), new LineOffsets(), 0, 1), "" + folderName + " is not a folder."));
+		} else {
+			dependencies.add(folder);
+		}
+	}
+
 	@Override public WurstModel parseFiles() {
 
 		// search mapFile
@@ -127,13 +156,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		// import wurst folder if it exists
 		if (mapFile != null) {
-			File relativeWurstDir = new File(mapFile.getParentFile().getAbsolutePath() + "/wurst/");
+			File relativeWurstDir = new File(mapFile.getParentFile(), "wurst");
 			if (relativeWurstDir.exists()) {
 				WLogger.info("Importing wurst files from " + relativeWurstDir);
 				loadWurstFilesInDir(relativeWurstDir);
 			} else {
 				WLogger.info("No wurst folder found in " + relativeWurstDir);
 			}
+			File dependencyFile = new File(mapFile.getParentFile(), "wurst.dependencies");
+			if (dependencyFile.exists()) {
+				addDependencyFile(dependencyFile);
+			}
+			
 		}
 		
 		// add directories:
@@ -272,6 +306,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if (libCache == null) {
 			libCache = Maps.newLinkedHashMap();
 			for (File libDir: runArgs.getAdditionalLibDirs()) {
+				addLibDir(libDir);
+			}
+			for (File libDir: dependencies) {
 				addLibDir(libDir);
 			}
 		}
