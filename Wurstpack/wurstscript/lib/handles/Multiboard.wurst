@@ -15,6 +15,10 @@ public function multiboard.clear()
 
 public function multiboard.display(boolean show)
 	MultiboardDisplay(this,show)
+	
+public function multiboard.display(player p, boolean show)
+	if GetLocalPlayer() == p
+		MultiboardDisplay(this,show)
 
 public function multiboard.getColumnCount() returns integer
 	return MultiboardGetColumnCount(this)
