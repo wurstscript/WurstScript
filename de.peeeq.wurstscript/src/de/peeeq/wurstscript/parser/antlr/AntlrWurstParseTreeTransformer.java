@@ -4,6 +4,8 @@ import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
@@ -965,7 +967,71 @@ public class AntlrWurstParseTreeTransformer {
 					transformExpr(e.left));
 		}
 		
-		return Ast.ExprEmpty(source.withLeftPos(source.getLeftPos()-2));
+		ParseTree left = getLeftParseTree(e);
+		if (left != null) {
+			source = source.withLeftPos(1+stopPos(left));
+		}
+		ParseTree right = getRightParseTree(e);
+		if (right != null) {
+			source = source.withRightPos(beginPos(right));
+		}
+		return Ast.ExprEmpty(source);
+	}
+
+	private int beginPos(ParseTree left) {
+		if (left instanceof ParserRuleContext) {
+			ParserRuleContext left2 = (ParserRuleContext) left;
+			return left2.getStart().getStartIndex();
+		} else if (left instanceof TerminalNode) {
+			TerminalNode left2 = (TerminalNode) left;
+			return left2.getSymbol().getStartIndex();
+		}
+		throw new Error("unhandled case: " + left.getClass() + "  // " + left );
+	}
+
+	private int stopPos(ParseTree left) {
+		if (left instanceof ParserRuleContext) {
+			ParserRuleContext left2 = (ParserRuleContext) left;
+			return left2.getStop().getStopIndex();
+		} else if (left instanceof TerminalNode) {
+			TerminalNode left2 = (TerminalNode) left;
+			return left2.getSymbol().getStopIndex();
+		}
+		throw new Error("unhandled case: " + left.getClass() + "  // " + left );
+	}
+
+	private ParseTree getLeftParseTree(ParserRuleContext e) {
+		if (e == null || e.getParent() == null) {
+			return null;
+		}
+		ParserRuleContext parent = e.getParent();
+		for (int i=0; i<parent.getChildCount(); i++) {
+			if (parent.getChild(i) == e) {
+				if (i > 0) {
+					return parent.getChild(i-1);
+				} else {
+					return getLeftParseTree(parent);
+				}
+			}
+		}
+		return null;
+	}
+	
+	private ParseTree getRightParseTree(ParserRuleContext e) {
+		if (e == null || e.getParent() == null) {
+			return null;
+		}
+		ParserRuleContext parent = e.getParent();
+		for (int i=0; i<parent.getChildCount(); i++) {
+			if (parent.getChild(i) == e) {
+				if (i < parent.getChildCount()-1) {
+					return parent.getChild(i+1);
+				} else {
+					return getRightParseTree(parent);
+				}
+			}
+		}
+		return null;
 	}
 
 	private WurstOperator transformOp(Token op) {
