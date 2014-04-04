@@ -28,6 +28,7 @@ import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -43,6 +44,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -1008,6 +1010,15 @@ public class Utils {
 		};
 	}
 
-	
+	public static String getParameterListText(AstElementWithParameters f) {
+		StringBuilder descr = new StringBuilder();
+		for (WParameter p : f.getParameters()) {
+			if (descr.length() > 0) {
+				descr.append(", ");
+			}
+			descr.append(p.attrTyp() + " " + p.getName());
+		}
+		return descr.toString();
+	}
 
 }

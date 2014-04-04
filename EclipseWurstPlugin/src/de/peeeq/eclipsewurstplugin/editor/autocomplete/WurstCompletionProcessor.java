@@ -394,7 +394,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		IContextInformation contextInformation = null;
 		if (!f.getParameters().isEmpty()) {
 			// context information for parameters
-			contextInformation = new ContextInformation(f.getName(), getParameterListText(f));
+			contextInformation = new ContextInformation(f.getName(), Utils.getParameterListText(f));
 		}
 		
 
@@ -406,23 +406,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 
-	private String getParameterListText(AstElementWithParameters f) {
-		StringBuilder descr = new StringBuilder();
-		for (WParameter p : f.getParameters()) {
-			if (descr.length() > 0) {
-				descr.append(", ");
-			}
-			descr.append(p.attrTyp() + " " + p.getName());
-		}
-		return descr.toString();
-	}
-
-
 	private String getFunctionDescriptionShort(FunctionDefinition f) {
 		String comment = f.attrComment();
 		comment = comment.replaceAll("\n", "<br />");
 		String returnType = f.getReturnTyp().attrTyp().toString();
-		String displayString = f.getName() +"(" + getParameterListText(f) + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
+		String displayString = f.getName() +"(" + Utils.getParameterListText(f) + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
 		return displayString;
 	}
 	
@@ -441,9 +429,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		Image image = Icons.block;
 		
-		String params = getParameterListText(constr);
+		String params = Utils.getParameterListText(constr);
 		IContextInformation contextInformation = params.length() == 0 ? null : new ContextInformation(c.getName(), params);
-		String displayString = c.getName() +"(" + getParameterListText(constr) + ")";
+		String displayString = c.getName() +"(" + Utils.getParameterListText(constr) + ")";
 
 		String additionalProposalInfo2 = constr.descriptionHtml();
 		
