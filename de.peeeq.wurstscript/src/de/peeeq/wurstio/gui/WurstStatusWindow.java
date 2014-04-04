@@ -125,8 +125,6 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 //	@Override
 	public void sendProgress(String whatsRunningNow, double percent) {
 		if (whatsRunningNow != null && whatsRunningNow.length() > 1) {
-			WLogger.info(whatsRunningNow);
-			
 			currentStatus.setText(whatsRunningNow);
 		}
 		if (percent >= 0.0 && percent <= 1.0) {
