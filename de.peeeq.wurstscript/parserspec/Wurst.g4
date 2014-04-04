@@ -150,10 +150,10 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL STARTBLOCK 
+                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
 					('super' '(' superArgs=exprList ')' NL)?
 					stmts+=statement*
-                  ENDBLOCK
+                  ENDBLOCK)?
               ;
        
 moduleUse: 

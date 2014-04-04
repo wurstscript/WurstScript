@@ -577,9 +577,6 @@ public class Utils {
 	}
 
 	public static boolean elementContainsPos(AstElement e, int pos, boolean usesMouse) {
-		if (e instanceof Arguments) {
-			System.out.println(pos + "|  " + e.attrSource().getLeftPos() + "	- " + e.attrSource().getRightPos() + "	===> " + e.getClass() + " " + e.toString());
-		}
 		return e.attrSource().getLeftPos() <= pos
 				&& e.attrSource().getRightPos() >= pos + (usesMouse ? 1 : 0);
 	}

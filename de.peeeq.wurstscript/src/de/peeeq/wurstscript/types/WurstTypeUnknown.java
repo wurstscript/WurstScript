@@ -31,6 +31,9 @@ public class WurstTypeUnknown extends WurstType {
 
 	@Override
 	public String getName() {
+		if (name.equals("empty")) {
+			return "missing expression";
+		}
 		return "'unknown type'\n(the type " + name + 
 				" could not be found, the containing package might not be imported)";
 	}
