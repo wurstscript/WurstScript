@@ -205,8 +205,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private boolean isEnteringRealNumber(ITextViewer viewer, int offset) {
 		IDocument doc = viewer.getDocument();
 		try {
-			String before = doc.get(offset-2, 1);
-			if (before.matches("[0-9]")) {
+			String before = doc.get(offset-2, 2);
+			if (before.matches("[0-9]\\.")) {
 				// we are entering a real
 				return true;
 			}
