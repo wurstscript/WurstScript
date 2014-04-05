@@ -234,8 +234,8 @@ public class ExprTranslation {
 	}
 
 	public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
-		WurstType expectedType = e.attrExpectedTyp();
-		if (expectedType.isTranslatedToInt()) {
+		WurstType expectedTypeRaw = e.attrExpectedTypRaw();
+		if (expectedTypeRaw.isTranslatedToInt()) {
 			return ImIntVal(0);
 		}
 		return ImNull();

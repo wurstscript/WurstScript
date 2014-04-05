@@ -577,5 +577,20 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void genericsNull() {
+		testAssertOkLines(false,  
+				"package test",
+				"class A<T>",
+				"	function foo(T t)",
+				"function handleToIndex(handle h) returns int",
+				"	return 1",
+				"function handleFromIndex(int i) returns handle",
+				"	return null",
+				"init",
+				"	new A<handle>().foo(null)",
+				"endpackage");
+	}
+	
 	
 }
