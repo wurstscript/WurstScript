@@ -134,7 +134,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	@Override
 	protected void clean(IProgressMonitor monitor) throws CoreException {
 		super.clean(monitor);
-		WurstNature.get(getProject()).clearAllMarkers();
+		WurstNature nature = WurstNature.get(getProject());
+		if (nature != null) {
+			nature.clearAllMarkers();
+		}
 		getModelManager().clean();
 	}
 
@@ -193,7 +196,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		}
 
 		if (doChecks) {
-			WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			WurstNature wurstNature = WurstNature.get(file.getProject());
+			if (wurstNature != null) {
+				wurstNature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			}
 		}
 	}
 
