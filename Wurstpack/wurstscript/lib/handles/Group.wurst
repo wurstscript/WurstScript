@@ -6,6 +6,9 @@ import public TempGroups
 public function group.enumUnitsInRange(vec2 pos, real range)
 	GroupEnumUnitsInRange(this, pos.x, pos.y, range, null)
 
+public function group.enumUnitsInRange(vec2 pos, real range, boolexpr filter)
+	GroupEnumUnitsInRange(this, pos.x, pos.y, range, filter)
+
 public function group.clear()
 	GroupClear(this)
 	
