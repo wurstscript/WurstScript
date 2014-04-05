@@ -1,5 +1,6 @@
 package ClosureEvents
 import HashMap
+import LinkedList
 
 //CastStuff
 
@@ -81,6 +82,27 @@ function handleCasts()
 			(c castTo OnUnitCast).run(caster, lvl, GetSpellTargetUnit())
 	
 		
+public function onDamage(unit u, OnDamage action) returns OnDamage
+	action.register(u)
+	return action
 
+public abstract class OnDamage
+	private static HashMap<trigger, OnDamage> damageActions = new HashMap<trigger, OnDamage>()
+	protected trigger t
+	
+	static function damageHandler() returns boolean
+		damageActions.get(GetTriggeringTrigger()).run(GetTriggerUnit(), GetEventDamageSource(), GetEventDamage())
+		return false
+	
+	protected function register(unit u)
+		t = CreateTrigger()..addCondition(Condition(function damageHandler))..registerUnitEvent(u, EVENT_UNIT_DAMAGED)
+		damageActions.put(t, this)
+		
+	protected abstract function run(unit damaged, unit source, real amount)
+	
+	ondestroy
+		damageActions.remove(t)
+		t.clearConditions()
+		t.destr()
 	
 
