@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -233,6 +234,10 @@ public class ReadVariables {
 
 	public static ImmutableList<NameDef> calculate(WStatements e) {
 		return generic(e);
+	}
+
+	public static ImmutableList<NameDef> calculate(ExprEmpty exprEmpty) {
+		return ImmutableList.emptyList();
 	}
 
 }

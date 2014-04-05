@@ -18,6 +18,7 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
+import org.antlr.v4.runtime.misc.Interval;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
@@ -106,13 +107,14 @@ public class WurstParser {
 					
 					msg = "line "+line+": "+ msg;
 					
-					if (recognizer instanceof Parser) {
-						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
-						Collections.reverse(stack);
-						msg += "\nrule stack: "+stack;
+//					if (recognizer instanceof Parser) {
+//						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
+//						Collections.reverse(stack);
+//						msg += "\nrule stack: "+stack;
+//					}
+					while (pos>0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
+						pos--;
 					}
-					
-					
 					gui.sendError(new CompileError(new WPos(source, offsets, pos, posStop), msg));
 				}
 

@@ -198,6 +198,7 @@ ExprAtomic =
 	| ExprThis(de.peeeq.wurstscript.parser.WPos source)
 	| ExprNull(de.peeeq.wurstscript.parser.WPos source)
 	| ExprSuper(de.peeeq.wurstscript.parser.WPos source)
+	| ExprEmpty(de.peeeq.wurstscript.parser.WPos source)
 	
 	
 Indexes * Expr

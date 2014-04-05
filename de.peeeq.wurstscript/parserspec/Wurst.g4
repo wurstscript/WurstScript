@@ -61,7 +61,7 @@ jassStatementExithwhen:
 						  'exitwhen' cond=expr NL
 ;
 jassStatementReturn:
-					'return' expr? NL
+					'return' expr NL
 ;
 jassStatementSet:
 					'set' left=exprAssignable '=' right=expr NL
@@ -245,7 +245,7 @@ exprDestroy:
 		   ;
 
 stmtReturn:
-			  'return' expr? NL
+			  'return' expr NL
 		  ;
 
 stmtIf:
@@ -342,6 +342,7 @@ expr:
 	  | op='not' right=expr
 	  | left=expr op='and' right=expr
 	  | left=expr op='or' right=expr
+	  |
 	;
 
 
@@ -404,7 +405,7 @@ stmtSkip:'skip' NL;
 
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 
-exprList : (exprs+=expr (',' exprs+=expr)*)?;
+exprList : exprs+=expr (',' exprs+=expr)*;
 
 
 

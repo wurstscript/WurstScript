@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.parser.antlr;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -93,14 +92,12 @@ import de.peeeq.wurstscript.ast.EnumMembers;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncDefs;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -854,7 +851,11 @@ public class AntlrWurstParseTreeTransformer {
 		if (e == null) {
 			return Ast.NoExpr();
 		}
-		return transformExpr(e);
+		Expr r = transformExpr(e);
+		if (r instanceof ExprEmpty) {
+			return Ast.NoExpr();
+		}
+		return r;
 	}
 
 	private WStatement transformCall(StmtCallContext c) {
@@ -913,6 +914,9 @@ public class AntlrWurstParseTreeTransformer {
 				result.add(transformExpr(e));
 			}
 		}
+		if (result.size() == 1 && result.get(0) instanceof ExprEmpty) {
+			result.clear();
+		}
 		return result;
 	}
 
@@ -935,36 +939,33 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private Expr transformExpr(ExprContext e) {
+		WPos source = source(e);
 		if (e.exprPrimary() != null) {
 			return transformExprPrimary(e.exprPrimary());
 		} else if (e.left != null && e.right != null && e.op != null) {
-			return Ast.ExprBinary(source(e), transformExpr(e.left),
+			return Ast.ExprBinary(source, transformExpr(e.left),
 					transformOp(e.op), transformExpr(e.right));
 		} else if (e.op != null && e.op.getType() == WurstParser.NOT) {
-			return Ast.ExprUnary(source(e), WurstOperator.NOT,
+			return Ast.ExprUnary(source, WurstOperator.NOT,
 					transformExpr(e.right));
 		} else if (e.op != null && e.op.getType() == WurstParser.MINUS) {
-			return Ast.ExprUnary(source(e), WurstOperator.UNARY_MINUS,
+			return Ast.ExprUnary(source, WurstOperator.UNARY_MINUS,
 					transformExpr(e.right));
 		} else if (e.castToType != null) {
-			return Ast.ExprCast(source(e), transformTypeExpr(e.castToType),
+			return Ast.ExprCast(source, transformTypeExpr(e.castToType),
 					transformExpr(e.left));
 		} else if (e.dotsVar != null) {
-			return transformExprMemberVarAccess2(source(e), e.receiver, e.dotsVar,
+			return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
 					e.varName, e.indexes());
 		} else if (e.dotsCall != null) {
-			return transformMemberMethodCall2(source(e), e.receiver, e.dotsCall,
+			return transformMemberMethodCall2(source, e.receiver, e.dotsCall,
 					e.funcName, e.typeArgs(), e.exprList());
 		} else if (e.instaneofType != null) {
-			return Ast.ExprInstanceOf(source(e), transformTypeExpr(e.instaneofType), 
+			return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType), 
 					transformExpr(e.left));
 		}
 		
-		if (e.exception != null) {
-			return Ast.ExprNull(source(e));
-		}
-		// TODO Auto-generated method stub
-		throw error(e, "not implemented: " + text(e));
+		return Ast.ExprEmpty(source.withLeftPos(source.getLeftPos()-2));
 	}
 
 	private WurstOperator transformOp(Token op) {

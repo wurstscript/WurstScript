@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -600,6 +601,11 @@ public class AttrExprType {
 	public static WurstType calculate(ExprMemberMethodDotDot e) {
 		e.attrFunctionSignature();
 		return e.getLeft().attrTyp();
+	}
+
+
+	public static WurstType calculate(ExprEmpty e) {
+		return new WurstTypeUnknown("empty");
 	}
 
 }

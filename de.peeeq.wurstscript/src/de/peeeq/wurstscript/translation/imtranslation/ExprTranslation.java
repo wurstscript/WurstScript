@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
@@ -561,6 +562,10 @@ public class ExprTranslation {
 			ImFunction f, StructureDef classDef) {
 		ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
 		return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+	}
+
+	public static ImExpr translate(ExprEmpty s,	ImTranslator translator, ImFunction f) {
+		throw new CompileError(s.getSource(), "cannot translate empty expression");
 	}
 
 	
