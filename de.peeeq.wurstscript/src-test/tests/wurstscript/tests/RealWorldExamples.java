@@ -36,10 +36,10 @@ public class RealWorldExamples extends WurstScriptTest {
 		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "module.wurst"), false);
 	}
 	
-	@Test
-	public void testCyclic() throws IOException {
-		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
-	}
+//	@Test
+//	public void testCyclic() throws IOException {
+//		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
+//	}
 
 	@Test
 	public void testLists() throws IOException {

@@ -192,14 +192,14 @@ public class WurstValidator {
 	
 
 	private void checkForCyclicFunctions() {
-		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
-		for (WScope s : calledFunctionsTr.keySet()) {
-			if (calledFunctionsTr.containsEntry(s, s)) {
-				if (!calledFunctions.containsEntry(s, s)) {
-					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
-				}
-			}
-		}
+//		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
+//		for (WScope s : calledFunctionsTr.keySet()) {
+//			if (calledFunctionsTr.containsEntry(s, s)) {
+//				if (!calledFunctions.containsEntry(s, s)) {
+//					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
+//				}
+//			}
+//		}
 	}
 	
 	private void walkTree(AstElement e) {

@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.CyclicFunctionRemover;
 import de.peeeq.wurstscript.translation.imtranslation.DebugMessageRemover;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
 import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
@@ -402,9 +403,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		imTranslator.assertProperties(AssertProperty.NOTUPLES);
 		
 		printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
+
+		
+		beginPhase(7, "remove func refs");
+		new FuncRefRemover(imProg, imTranslator).run();
+		
+		// remove cycles:
+		beginPhase(8, "remove cyclic functions");
+		new CyclicFunctionRemover(imTranslator, imProg).work();;
+		
+		printDebugImProg("./test-output/im " + stage++ + "_nocyc.im");
+		
 		
 		// flatten
-		beginPhase(7, "flatten");
+		beginPhase(9, "flatten");
 		imProg.flatten(imTranslator);
 		imTranslator.assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
 		
@@ -412,26 +424,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		
 		if (runArgs.isLocalOptimizations()) {
-			beginPhase(8, "local optimizations");
+			beginPhase(10, "local optimizations");
 			optimizer.localOptimizations();
 		}
 		
 		
 		if (runArgs.isNullsetting()) {
-			beginPhase(9, "null setting");
+			beginPhase(11, "null setting");
 			optimizer.doNullsetting();
 			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
 		}
 		
 		
-		beginPhase(10, "remove func refs");
-		new FuncRefRemover(imProg, imTranslator).run();
-		
-		
 		optimizer.removeGarbage();
 		
 		if (runArgs.isOptimize()) {
-			beginPhase(11, "froptimize");
+			beginPhase(12, "froptimize");
 			optimizer.optimize();
 			
 			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
@@ -441,7 +449,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		// translate flattened intermediate lang to jass:
 		
-		beginPhase(12, "translate to jass");
+		beginPhase(13, "translate to jass");
 		imTranslator.calculateCallRelationsAndUsedVariables();
 		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
 				, imTranslator.getMainFunc(), imTranslator.getConfFunc());

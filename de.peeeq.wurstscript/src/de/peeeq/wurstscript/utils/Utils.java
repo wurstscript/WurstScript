@@ -1017,5 +1017,17 @@ public class Utils {
 		}
 		return descr.toString();
 	}
+	
+	public static <T> List<T> subList(List<T> l, int start) {
+		return subList(l, start, l.size()-1);
+	}
 
+	public static <T> List<T> subList(List<T> l, int start, int stop) {
+		List<T> result = Lists.newArrayListWithCapacity(stop-start);
+		for (int i = start; i <= stop; i++) {
+			result.add(l.get(i));
+		}
+		return result;
+	}
+	
 }
