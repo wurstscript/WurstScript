@@ -42,3 +42,7 @@ WurstWeb/war/wurstweb/*
 /WurstSetup/WurstSetup/nbproject/private/
 /WurstSetup/WurstSetup/build/
 /bin
+Wurstpack/vexorianjasshelper/Blizzard.j
+Wurstpack/vexorianjasshelper/common.j
+Wurstpack/wurstscript/Blizzard.j
+Wurstpack/wurstscript/common.j
