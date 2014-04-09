@@ -774,4 +774,27 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void arrayAttributeTest1() { 
+		testAssertOkLines(false,
+				"package test",
+				"	native testSuccess()",
+				"	class B",
+				"	class A",
+				"		int array ints[4]",
+				"		string array strings[4]",
+				"		real array reals[4]",
+				"		B array bs[4]",
+				"		A array as[4]",
+				"	init",
+				"		A a = new A()",
+				"		a.strings[0] = \"1\"",
+				"		a.reals[0] = 1.0",
+				"		a.bs[0] = new B()",
+				"		a.as[0] = new A()",
+				"		",
+				"endpackage"
+			);
+	}
 }
