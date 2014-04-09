@@ -122,7 +122,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 				if (elem instanceof ExprMemberMethod) {
 					ExprMemberMethod c = (ExprMemberMethod) elem;
-					if (offset > c.getLeft().getSource().getRightPos() + 1 + c.getFuncName().length()) {
+					if (isInParenthesis(viewer, offset, c.getLeft().getSource().getRightPos())) {
 						// cursor inside parenthesis
 						getCompletionsForExistingMemberCall(offset, completions, c);
 						break;
@@ -215,6 +215,16 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		errorMessage = null;
 		return null;
+	}
+
+
+	private boolean isInParenthesis(ITextViewer viewer, int offset, int start) {
+		try {
+			String s = viewer.getDocument().get(start, offset-start);
+			return s.contains("(");
+		} catch (BadLocationException e) {
+			return false;
+		}
 	}
 
 
