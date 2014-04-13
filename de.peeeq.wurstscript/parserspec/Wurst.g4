@@ -209,7 +209,7 @@ formalParameter:
 typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
-		| typeExpr 'array'
+		| typeExpr 'array' ('[' arraySize=expr ']')?
 		;
 
 varDef:

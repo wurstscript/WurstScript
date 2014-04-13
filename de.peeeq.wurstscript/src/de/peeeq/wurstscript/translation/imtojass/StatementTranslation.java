@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.ImNoExpr;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -103,10 +104,22 @@ public class StatementTranslation {
 
 	public static void translate(ImError s, List<JassStatement> stmts,
 			JassFunction f, ImToJassTranslator translator) {
-		stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(s.getMessage().translate(translator))));
+		if (s.getMessage().translate(translator).toString().contains("\n")) {
+			stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r\n" + s.getMessage().translate(translator)))));
+		}else{
+			stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r " + s.getMessage().translate(translator)))));
+		}
 		// crash thread (divide by zero)
 		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), JassAst.JassExprIntVal("0")))));
 		
 	}
+
+	public static void translate(ImSetArrayMulti imSetArrayMulti,
+			List<JassStatement> stmts, JassFunction f,
+			ImToJassTranslator translator) {
+		throw new Error("not implemented");
+		
+	}
+
 
 }

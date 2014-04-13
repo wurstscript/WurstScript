@@ -32,6 +32,7 @@ import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMember;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -204,6 +205,7 @@ public class WurstValidator {
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
+		System.out.println("AstElement: " + e);
 		check(e);
 		lastElement = null;
 		for (int i=0; i<e.size(); i++) {
@@ -229,6 +231,7 @@ public class WurstValidator {
 			if (e instanceof ExprFunctionCall) visit((ExprFunctionCall) e);
 			if (e instanceof ExprMemberMethod) visit((ExprMemberMethod) e);
 			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
+			if (e instanceof ExprMemberVar) checkMemberArrayVar((ExprMemberArrayVar) e);
 			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
 			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
 			if (e instanceof ExprNull) checkExprNull((ExprNull) e);
@@ -274,6 +277,11 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkMemberArrayVar(ExprMemberArrayVar e) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	private void checkNameRef(NameRef e) {
@@ -615,8 +623,8 @@ public class WurstValidator {
 
 
 		if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
-			s.addError("Array variables must be static.\n" +
-					"Hint: use Lists for dynamic stuff.");
+//			s.addError("Array variables must be static.\n" +
+//					"Hint: use Lists for dynamic stuff.");
 		}
 	}
 

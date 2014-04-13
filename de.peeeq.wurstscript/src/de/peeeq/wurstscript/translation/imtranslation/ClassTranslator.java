@@ -8,6 +8,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -254,8 +255,11 @@ public class ClassTranslator {
 		ImVar v = translator.getVarFor(s);
 		if (s.attrIsDynamicClassMember()) {
 			// for dynamic class members create an array
+			System.out.println("----> translateVar");
 			ImType t = s.attrTyp().imTranslateType();
+			System.out.println("----> translateVar type: " + t);
 			v.setType(ImHelper.toArray(t));
+			System.out.println("----> translateVar setType: " + ImHelper.toArray(t));
 			dynamicInits.add(Pair.create(v, s.getInitialExpr()));
 		} else { // static class member
 			translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());

@@ -33,6 +33,10 @@ public class TypesHelper {
 	public static ImSimpleType imInt() {
 		return intType;
 	}
+	
+	public static ImSimpleType imString() {
+		return WurstTypeString.instance().imTranslateType();
+	}
 
 	public static ImType imVoid() {
 		return WurstTypeVoid.instance().imTranslateType();

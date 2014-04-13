@@ -49,11 +49,13 @@ import de.peeeq.wurstscript.ast.WBlock;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -62,6 +64,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
@@ -204,6 +207,9 @@ public class StmtTranslation {
 		} else if (updated instanceof ImVarArrayAccess) {
 			ImVarArrayAccess va = (ImVarArrayAccess) updated;
 			return ImSetArray(s, va.getVar(), (ImExpr) va.getIndex().copy(), right);
+		} else if (updated instanceof ImVarArrayMultiAccess) {
+			ImVarArrayMultiAccess va = (ImVarArrayMultiAccess) updated;
+			return JassIm.ImSetArrayMulti(s, va.getVar(),JassIm.ImExprs((ImExpr)va.getIndex1().copy(),(ImExpr) va.getIndex2().copy()), right);
 		} else {
 			throw new CompileError(s.getSource(), "Cannot translate set statement.");
 		}

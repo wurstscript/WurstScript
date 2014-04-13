@@ -81,15 +81,15 @@ public class ClassesTests extends WurstScriptTest {
 	}
 	
 	
-	@Test
-	public void array_members() {
-		testAssertErrorsLines(false, "must be static", 
-				"package test",
-				"	class C",
-				"		int array blub",
-				"endpackage"
-			);
-	}
+//	@Test
+//	public void array_members() {
+//		testAssertErrorsLines(false, "must be static", 
+//				"package test",
+//				"	class C",
+//				"		int array blub",
+//				"endpackage"
+//			);
+//	}
 	
 	@Test
 	public void code_members() {
@@ -502,6 +502,7 @@ public class ClassesTests extends WurstScriptTest {
 		testAssertOkLines(true, 
 				"package test",
 				"	native testSuccess()",
+				"	native println(string msg)",
 				"	native testFail(string msg)",
 				"	class A",
 				"		function foo() returns int",
@@ -777,24 +778,47 @@ public class ClassesTests extends WurstScriptTest {
 	
 	@Test
 	public void arrayAttributeTest1() { 
-		testAssertOkLines(false,
+		testAssertOkLines(true,
 				"package test",
 				"	native testSuccess()",
-				"	class B",
+				"	native println(string msg)",
+				"	native testFail(string msg)",
 				"	class A",
-				"		int array ints[4]",
-				"		string array strings[4]",
-				"		real array reals[4]",
-				"		B array bs[4]",
-				"		A array as[4]",
+				"		int array[4] ints",
 				"	init",
 				"		A a = new A()",
-				"		a.strings[0] = \"1\"",
-				"		a.reals[0] = 1.0",
-				"		a.bs[0] = new B()",
-				"		a.as[0] = new A()",
+				"		a.ints[0] = 1234",
+				"		if a.ints[0] == 1234",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"wrong value\")",
 				"		",
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void arrayAttributeTest2() { 
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	native println(string msg)",
+				"	native testFail(string msg)",
+				"	class A",
+				"		string array[4] s",
+				"	init",
+				"		A a = new A()",
+				"		a.s[0] = \"a\"",
+				"		a.s[1] = \"b\"",
+				"		a.s[2] = \"c\"",
+				"		a.s[3] = \"d\"",
+				"		if a.s[0] == \"a\" and a.s[1] == \"b\" and a.s[2] == \"c\" and a.s[3] == \"d\"",
+				"			testSuccess()",
+				"		else",
+				"			testFail(\"wrong value\")",
+				"		",
+				"endpackage"
+			);
+	}
+	
 }

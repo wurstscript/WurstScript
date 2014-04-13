@@ -1,5 +1,10 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Arrays;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -15,6 +20,7 @@ public class WurstTypeArray extends WurstType {
 	private int[] sizes;
 	
 	public WurstTypeArray(WurstType baseType, int[] sizes) {
+		System.out.println("new WurstTypeArray: " + Arrays.toString(sizes));
 		if (baseType instanceof WurstTypeArray) {
 			throw new Error("cannot have array of arrays...");
 		}
@@ -75,8 +81,21 @@ public class WurstTypeArray extends WurstType {
 	@Override
 	public ImType imTranslateType() {
 		ImType bt = baseType.imTranslateType();
+		
 		if (bt instanceof ImSimpleType) {
 			String typename = ((ImSimpleType) bt).getTypename();
+			if (sizes.length > 0) {
+				if(sizes[0] == 0) {
+					return JassIm.ImArrayType(typename);
+				}
+				List<Integer> nsizes = Lists.<Integer>newArrayList();
+				for (int index = 0; index < sizes.length; index++)
+			    {
+					nsizes.add(sizes[index]);
+			    }
+				
+				return JassIm.ImArrayTypeMulti(typename, nsizes);
+			}
 			return JassIm.ImArrayType(typename);
 		} else if (bt instanceof ImTupleType) {
 			ImTupleType tt = (ImTupleType) bt;

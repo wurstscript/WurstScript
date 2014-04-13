@@ -42,6 +42,7 @@ import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.parser.WPos;
 
@@ -228,6 +229,11 @@ public class EvaluateExpr {
 			ProgramState globalState, LocalState localState) {
 		ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
 		return new ILconstInt(globalState.getTypeId(obj.getVal(), e.attrTrace()));
+	}
+
+	public static ILconst eval(ImVarArrayMultiAccess imVarArrayMultiAccess,
+			ProgramState globalState, LocalState localState) {
+		throw new Error("not implemented");
 	}
 	
 }

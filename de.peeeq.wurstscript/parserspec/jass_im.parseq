@@ -17,6 +17,7 @@ ImVar(de.peeeq.wurstscript.ast.AstElement trace, &ImType type, String name, bool
 ImType = 
 	  ImSimpleType(String typename)
 	| ImArrayType(String typename)
+	| ImArrayTypeMulti(String typename, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
@@ -54,6 +55,7 @@ ImStmt =
 	| ImSet(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr right)
 	| ImSetTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, int tupleIndex, ImExpr right)
 	| ImSetArray(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, ImExpr right)
+	| ImSetArrayMulti(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExprs indices, ImExpr right)
 	| ImSetArrayTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, int tupleIndex, ImExpr right)
 	| ImError(ImExpr message);
 	| ImExpr
@@ -77,6 +79,7 @@ ImFlatExpr =
 	  ImCall
 	| ImVarAccess(&ImVar var)
 	| ImVarArrayAccess(&ImVar var, ImExpr index)
+	| ImVarArrayMultiAccess(&ImVar var, ImExpr index1, ImExpr index2)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImClassRelatedExpr
@@ -110,8 +113,8 @@ ImConst =
 	
 ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
 	
-ImVarWrite = ImSet | ImSetArray | ImSetArrayTuple | ImSetTuple
-ImVarRead = ImVarAccess | ImVarArrayAccess	
+ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
+ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
 	
 attributes:
 	

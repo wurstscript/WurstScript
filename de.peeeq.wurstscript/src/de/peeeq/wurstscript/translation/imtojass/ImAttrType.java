@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.jassIm.ImTypeIdOfClass;
 import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstTypeBool;
@@ -178,6 +179,10 @@ public class ImAttrType {
 
 	public static ImType getType(ImTypeIdOfObj imTypeIdOfObj) {
 		return TypesHelper.imInt();
+	}
+
+	public static ImType getType(ImVarArrayMultiAccess imVarArrayMultiAccess) {
+		throw new Error("not implemented");
 	}
 
 }

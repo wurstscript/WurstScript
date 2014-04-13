@@ -39,7 +39,7 @@ WEntity =
 
 TypeExpr = 
 	  TypeExprSimple(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs)
-	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base)
+	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base, OptExpr arraySize)
 	| TypeExprThis(de.peeeq.wurstscript.parser.WPos source)
 	| TypeExprResolved(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.types.WurstType resolvedType)
 	

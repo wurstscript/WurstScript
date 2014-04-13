@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
@@ -26,6 +27,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -40,6 +42,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -577,6 +580,12 @@ public class EliminateTuples {
 				}
 				return sum;
 			}
+
+			@Override
+			public Integer case_ImArrayTypeMulti(
+					ImArrayTypeMulti imArrayTypeMulti) {
+				return 1;
+			}
 			
 			
 		});
@@ -727,6 +736,22 @@ public class EliminateTuples {
 			ImTranslator translator, ImFunction f) {
 		throw new RuntimeException("Must execute method elemination first.");
 	}
+
+
+
+	public static ImStmt eliminateTuples(ImSetArrayMulti imSetArrayMulti,
+			ImTranslator translator, ImFunction f) {
+		throw new Error("not implemented");
+	}
+
+
+
+	public static ImExpr eliminateTuplesExpr(
+			ImVarArrayMultiAccess imVarArrayMultiAccess,
+			ImTranslator translator, ImFunction f) {
+		throw new Error("not implemented");
+	}
+
 
 
 	

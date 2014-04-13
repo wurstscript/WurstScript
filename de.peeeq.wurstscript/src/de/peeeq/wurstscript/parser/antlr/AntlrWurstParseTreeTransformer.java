@@ -1228,7 +1228,7 @@ public class AntlrWurstParseTreeTransformer {
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
 			return Ast
-					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()));
+					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(t.arraySize));
 		}
 		throw error(t, "not implemented " + t.toStringTree());
 	}
