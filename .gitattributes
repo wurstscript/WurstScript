@@ -1,2 +1,4 @@
 *.java text=auto
 *.java text eol=lf
+*.wurst text=auto
+*.wurst text eol=lf
