@@ -1,4 +1,4 @@
-<project name="Compiler" default="compile" basedir=".">
+<project name="Wurst Compiler" default="compile" basedir=".">
 	<property name="root" location="." />
 	<property name="lib" location="./lib" />
 	<property name="src" location="./src" />
@@ -21,6 +21,7 @@
 	<property name="junitTestResults" location="./junitTestResults/" />
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
 	<property name="antlr4wurstgrammar" location="./parserspec/Wurst.g4" />
+	<property name="antlr4jurstgrammar" location="./parserspec/Jurst.g4" />
 
 	<import file="build-generate-mvn.xml"/>
 	
@@ -131,7 +132,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4" >
+	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
@@ -240,5 +241,17 @@
 			<arg value="${antlr4wurstgrammar}"/>
 		</java>
 	</target>
+	
+	<target name="jurst_antlr4">
+			<java jar="${antlr4}" fork="true">
+				<arg value="-o"/>
+				<arg value="./src-gen/de/peeeq/wurstscript/jurst/antlr"/>
+				<arg value="-no-listener"/>
+				<arg value="-visitor"/>
+				<arg value="-package"/>
+				<arg value="de.peeeq.wurstscript.jurst.antlr"/>
+				<arg value="${antlr4jurstgrammar}"/>
+			</java>
+		</target>
 	
 </project>
