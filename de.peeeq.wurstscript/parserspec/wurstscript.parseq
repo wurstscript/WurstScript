@@ -346,6 +346,11 @@ Expr.attrTyp
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.normalizedType
 
 
+Expr.attrConstantValue
+	returns de.peeeq.wurstscript.intermediateLang.ILconst 
+	implemented by de.peeeq.wurstscript.attributes.AttrConstantValue.calculate
+
+
 OptTypeExpr.attrTypRaw
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate

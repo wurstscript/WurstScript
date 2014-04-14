@@ -536,7 +536,7 @@ TypeExpr ::=
 	IdentifierWithTypeArgs:n
 		{: RESULT = Ast.TypeExprSimple(pos(n, n), n.getName(), n.getTypeArgs()); :}
 	| TypeExpr:e ARRAY:y
-		{: RESULT = Ast.TypeExprArray(pos(e, yright), e); :}
+		{: RESULT = Ast.TypeExprArray(pos(e, yright), e, Ast.NoExpr()); :}
 	| THISTYPE:x
 		{: RESULT = Ast.TypeExprThis(pos(xleft, xright)); :}
 ;

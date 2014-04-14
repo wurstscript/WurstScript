@@ -205,7 +205,6 @@ public class WurstValidator {
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
-		System.out.println("AstElement: " + e);
 		check(e);
 		lastElement = null;
 		for (int i=0; i<e.size(); i++) {
@@ -231,7 +230,7 @@ public class WurstValidator {
 			if (e instanceof ExprFunctionCall) visit((ExprFunctionCall) e);
 			if (e instanceof ExprMemberMethod) visit((ExprMemberMethod) e);
 			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
-			if (e instanceof ExprMemberVar) checkMemberArrayVar((ExprMemberArrayVar) e);
+			if (e instanceof ExprMemberArrayVar) checkMemberArrayVar((ExprMemberArrayVar) e);
 			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
 			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
 			if (e instanceof ExprNull) checkExprNull((ExprNull) e);

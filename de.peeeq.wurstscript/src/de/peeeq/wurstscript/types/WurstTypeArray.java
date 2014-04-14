@@ -20,7 +20,6 @@ public class WurstTypeArray extends WurstType {
 	private int[] sizes;
 	
 	public WurstTypeArray(WurstType baseType, int[] sizes) {
-		System.out.println("new WurstTypeArray: " + Arrays.toString(sizes));
 		if (baseType instanceof WurstTypeArray) {
 			throw new Error("cannot have array of arrays...");
 		}

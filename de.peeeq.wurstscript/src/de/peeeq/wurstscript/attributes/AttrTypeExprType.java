@@ -8,6 +8,8 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -17,6 +19,10 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.attributes.AttrConstantValue.ConstantValueCalculationException;
+import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.NativeTypes;
@@ -86,34 +92,24 @@ public class AttrTypeExprType {
 	public static WurstType calculate(TypeExprArray typeExprArray) {
 		if( typeExprArray.getArraySize() instanceof NoExpr) {
 			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
-		} else if ( typeExprArray.getArraySize() instanceof Expr) {
+		} else { // otherwise it must be an Expr
+			Expr arSize = (Expr) typeExprArray.getArraySize();
 			System.out.println("has getArraySize " + typeExprArray.getArraySize());
-			if ( typeExprArray.getArraySize() instanceof ExprIntVal) {
-				System.out.println("is Int Val");
-				ExprIntVal val = (ExprIntVal) typeExprArray.getArraySize().get(0);
-				ExprIntVal val2 = (ExprIntVal) typeExprArray.getArraySize().get(1);
-				System.out.println("val: " + val.toString() + " val2: " + val2.toString());
-				int[] sizes = { val.getValI() };
-				return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
-			}else if ( typeExprArray.getArraySize() instanceof ExprVarAccess) {
-				AstElement parent = typeExprArray.getParent();
-				while(!( parent instanceof ImProg)) {
-					parent = parent.getParent();
+			// default is to have no array sizes:
+			int[] sizes = {};
+			// when there is an array size given, try to evaluate it:
+			try {
+				ILconst i = arSize.attrConstantValue();
+				if (i instanceof ILconstInt) {
+					sizes = new int[] {((ILconstInt) i).getVal()};
+				} else {
+					arSize.addError("Array sizes should be integer...");
 				}
-				ImProg prog = (ImProg) parent;
-				System.out.println("is Var Access");
-				ExprVarAccess va = (ExprVarAccess) typeExprArray.getArraySize();
-				for(ImVar v : prog.getGlobals()) {
-					if (v.getName().equals(va.getVarName())){
-						sizes = { v.}
-					}
-				}
-				System.out.println("val: " + val.toString() + " val2: " + val2.toString());
-				int[] ;
-				return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
+			} catch (ConstantValueCalculationException e) {
+				arSize.addError("Array size is not a constant expressions.");
 			}
+			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
 		}
-		return null;
 	}
 
 	private static WurstType getBaseType(TypeExprSimple node) {

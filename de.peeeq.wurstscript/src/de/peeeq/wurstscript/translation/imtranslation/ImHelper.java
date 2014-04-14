@@ -51,15 +51,12 @@ public class ImHelper {
 			ImType result = JassIm.ImTupleArrayType(imTupleType.getTypes(), imTupleType.getNames());
 			return result;
 		} if(t instanceof ImArrayType) {
-			System.out.println("----> toArray t is ImArrayType");
 			return JassIm.ImArrayType(((ImArrayType) t).getTypename());
 		}else if(t instanceof ImArrayTypeMulti) {
-			System.out.println("----> toArray t is ImArrayTypeMulti");
 			ArrayList<Integer> nsize = new ArrayList<>();
 			ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
 			nsize.addAll(mat.getArraySize());
 			nsize.add(8192);
-			System.out.println("----> toArray new " + JassIm.ImArrayTypeMulti(mat.getTypename(), nsize));
 			return JassIm.ImArrayTypeMulti(mat.getTypename(), nsize);
 		}
 		throw new Error("Can't make array type from " + t);

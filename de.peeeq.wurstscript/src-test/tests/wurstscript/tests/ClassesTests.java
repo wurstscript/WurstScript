@@ -776,7 +776,7 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
-// TODO	@Test disabled until it is working
+	@Test
 	public void arrayAttributeTest1() { 
 		testAssertOkLines(true,
 				"package test",
