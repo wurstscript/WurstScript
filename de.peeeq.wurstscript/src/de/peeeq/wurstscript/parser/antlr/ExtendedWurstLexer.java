@@ -271,7 +271,7 @@ public class ExtendedWurstLexer implements TokenSource {
 		case WurstParser.MOD_REAL:
 		case WurstParser.AND:
 		case WurstParser.OR:
-
+		case WurstParser.ARROW:
 			return true;
 		}
 		return false;
