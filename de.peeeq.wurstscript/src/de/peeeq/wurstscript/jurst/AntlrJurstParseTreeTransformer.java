@@ -1269,8 +1269,7 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.TypeExprSimple(source(t), text(t.typeName),
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
-			return Ast
-					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()));
+			return Ast.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), Ast.NoExpr());
 		}
 		return Ast.TypeExprSimple(source(t), "???", Ast.TypeExprList());
 //		throw error(t, "not implemented " + t.getText());
