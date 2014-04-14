@@ -2,6 +2,7 @@ package de.peeeq.eclipsewurstplugin.ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +65,7 @@ public class ExtractJurstCommand extends AbstractHandler implements IHandler {
 			
 			for (CustomTextTrigger tr : f.getTriggers()) {
 				String contents = tr.getContents();
+				contents = processText(contents); 
 				if (contents.isEmpty()) {
 					continue;
 				}
@@ -89,6 +91,26 @@ public class ExtractJurstCommand extends AbstractHandler implements IHandler {
 		}
 		
 		return null;
+	}
+
+	private String processText(String c) {
+		c = c.trim();
+		if (c.isEmpty()) {
+			return c;
+		}
+		StringBuilder sb = new StringBuilder();
+		try (Scanner scanner = new Scanner(c)) {
+			while (scanner.hasNextLine()) {
+				String line = scanner.nextLine();
+				if (!line.startsWith("//TESH")
+						&& !line.startsWith("//UTF8")
+						&& !line.startsWith("//ENDUTF8")) {
+					sb.append(line);
+					sb.append("\n");
+				}
+			}
+		}
+		return sb.toString();
 	}
 
 	private static String extractPackageName(String contents) {

@@ -572,7 +572,7 @@ public class WurstValidator {
 	}
 
 	private boolean isValidVarnameStart(String varName) {
-		return Character.isLowerCase(varName.charAt(0))
+		return varName.length() > 0 && Character.isLowerCase(varName.charAt(0))
 				|| varName.startsWith("_");
 	}
 
@@ -1234,7 +1234,7 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				e.addError(error.toString());
+				m.addError(error.toString());
 			}
 		}
 	}

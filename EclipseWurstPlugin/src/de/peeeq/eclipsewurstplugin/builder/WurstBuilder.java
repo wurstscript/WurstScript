@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.List;
 import java.util.Map;
 
 import org.eclipse.core.internal.resources.ResourceException;
@@ -20,6 +21,8 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -30,6 +33,8 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
 		private WurstGui gui;
+		private List<IResource> removes = Lists.newArrayList();
+		private List<IResource> changes = Lists.newArrayList();
 
 		public SampleDeltaVisitor(WurstGui gui) {
 			this.gui = gui;
@@ -48,17 +53,20 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			case IResourceDelta.ADDED:
 				// handle added resource
 				WLogger.info("added " + resource.getName());
-				changed |= checkCompilatinUnit(gui, resource);
+				changes.add(resource);
+//				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
 				WLogger.info("removed " + resource.getName());
-				changed |= getModelManager().removeCompilationUnit(resource);
+//				changed |= getModelManager().removeCompilationUnit(resource);
+				removes.add(resource);
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
 				WLogger.info("changed " + resource.getName());
-				changed |= checkCompilatinUnit(gui, resource);
+				changes.add(resource);
+//				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			}
 			// return true to continue visiting children.
@@ -237,6 +245,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		try {
 			WLogger.info("full build ...");
 			WurstGui gui = new WurstGuiEclipse(monitor);
+			getModelManager().clean();
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().fullBuildDone();
 			getModelManager().typeCheckModel(gui, true, true);
@@ -250,8 +259,24 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		// the visitor does the work.
 		WLogger.info("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
-		changed = false;
-		delta.accept(new SampleDeltaVisitor(gui));
+		boolean changed = false;
+		SampleDeltaVisitor visitor = new SampleDeltaVisitor(gui);
+		delta.accept(visitor);
+		
+		if (visitor.removes.size() + visitor.changes.size() > 1) {
+			// more than one change at once, better do a full build
+			fullBuild(monitor);
+			return;
+		}
+		
+		for (IResource r : visitor.removes) {
+			getModelManager().removeCompilationUnit(r);
+			changed = true;
+		}
+		for (IResource r : visitor.changes) {
+			changed |= checkCompilatinUnit(gui, r);
+		}
+		
 		if (changed) {
 			getModelManager().typeCheckModel(gui, true, true);
 		}
