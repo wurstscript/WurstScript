@@ -727,6 +727,8 @@ other elements belong to instances of the class. So you can call static function
 
 	class Terrain
 		static real someVal = 12.
+		
+		static int array someArr
 	
 		static function getZ( real x, real y ) returns real
 			...
@@ -734,6 +736,22 @@ other elements belong to instances of the class. So you can call static function
 	function foo()
 		real z = Terrain.getZ( 0, 0 ) // call with $Classname$.$StaticFunctionName$()
 		real r = Terrain.someVal // Same with members
+		real s = Terrain.someArr[0]
+		
+## Dynamic, Sized Array-Members
+
+Wurstscript supports sized arrays as classmembers by translating it to SIZE times arrays and then resolve the array in a get/set function via binary search.
+
+Example Usage:
+
+	class Rectangle
+		Point array[4] points
+		
+		function getPoint(int index)
+			return points[index]
+			
+		function setPoint(int index, Point nP)
+			points[index] = nP
 
 
 ## Visibility Rules 
