@@ -1787,7 +1787,21 @@ public class WurstValidator {
 			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr) {
 				g.addError("Constant variable " + g.getName() + " needs an initial value.");
 			}
-			
+		}
+		
+		if (v.attrTyp() instanceof WurstTypeArray) {
+			WurstTypeArray wta = (WurstTypeArray) v.attrTyp();
+			if (wta.getDimensions() == 0) {
+				v.addError("0-dimensionals arrays are not possible");
+			} else if (wta.getDimensions() == 1) {
+				if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
+					v.addError("Sized arrays are only supported as class members.");
+				} else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
+					v.addError("Array members require a fixed size.");
+				}
+			} else {
+				v.addError("Multidimensional Arrays are not yet supported.");
+			}
 		}
 		
 	}

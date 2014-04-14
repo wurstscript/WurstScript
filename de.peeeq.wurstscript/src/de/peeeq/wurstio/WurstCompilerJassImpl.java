@@ -364,11 +364,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public JassProg transformProgToJass() {
 		int stage = 2;
 		// eliminate classes
-		System.out.println("_________0");
 		beginPhase(2, "translate classes");
-		System.out.println("_________1");
 		new EliminateClasses(imTranslator, imProg).eliminateClasses();
-		System.out.println("_________2");
 		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
 		new MultiArrayEliminator(imProg, imTranslator).run();
 		
@@ -465,14 +462,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public ImProg translateProgToIm(WurstModel root) {
 		beginPhase(1, "to intermediate lang");
-		System.out.println("_________i0");
 		// translate wurst to intermediate lang:
 		imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
-		System.out.println("_________i1");
 		imProg = imTranslator.translateProg();
-		System.out.println("_________i2");
 		int stage = 1;
-		System.out.println("_________i3");
 		printDebugImProg("./test-output/im " + stage++ + ".im");
 		return imProg;
 	}

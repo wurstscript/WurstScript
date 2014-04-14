@@ -106,7 +106,7 @@ public class AttrTypeExprType {
 					arSize.addError("Array sizes should be integer...");
 				}
 			} catch (ConstantValueCalculationException e) {
-				arSize.addError("Array size is not a constant expressions.");
+				arSize.addError("Array size is not a constant expression.");
 			}
 			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
 		}

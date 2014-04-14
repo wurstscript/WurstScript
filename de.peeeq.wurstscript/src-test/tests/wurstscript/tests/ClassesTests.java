@@ -821,4 +821,26 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void arrayAttributeFail1() { 
+		testAssertErrorsLines(true, "require a fixed size",
+				"package test",
+				"	class A",
+				"		int array s",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void arrayAttributeFail2() { 
+		testAssertErrorsLines(true, "is not a constant expression",
+				"package test",
+				"	function foo() returns int",
+				"		return 4",
+				"	class A",
+				"		int array[foo()] s",
+				"endpackage"
+			);
+	}
+	
 }
