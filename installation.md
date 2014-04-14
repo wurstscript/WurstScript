@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: simple
 title: WurstScript Installation & Setup
 ---
 This tells you how to use the WurstEditor and Eclipse plugin correctly in order to develop your map.
@@ -12,8 +12,8 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 	Many systems already have Java installed. In that case you should make sure that you have the latest version installed.
 - [Wurst Pack](http://peq.github.io/WurstScript/#Downloads)
 	Some AnitVirus programs falsely detect harmless injection-dlls. Ignore the warning and/or turn off your AV-Program for the process and add an exception. The Updater might not respond while downloading the required packages.
-- [Eclipse](http://www.eclipse.org/downloads/packages/eclipse-classic-421/junosr1)  
-	Needed for working with the Wurst-Plugin
+- [Eclipse](http://www.eclipse.org/downloads/packages/eclipse-standard-432/keplersr2)  
+	Download links for your platform are in the right sidebar. Eclipse is needed for working with the Wurst-Plugin.
 
 #Installing the Wurst-Plugin and setting up Wurst
 
@@ -21,7 +21,7 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 
 1. Start Eclipse from the directory you extracted it to
 2. Open the installation window with _Help_ -> _Install new Software_
-3. Enter _http://sunayama.de/WurstUpdt/site/_ into the "Work with:" textfield and press Enter
+3. Enter _http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/_ into the "Work with:" textfield and press Enter. 
 4. A WurstScript Eclipse Plugin Entry should appear in the list. Select it and press next.
 5. Accept the license agreement, press next and wait for the install to finish.
 6. Restart Eclipse to complete the installation
@@ -33,13 +33,13 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 3. Type in the name of your project and press finish. Now you should see your project with a file named "wurst.dependencies". The path of it is wrong and we need to correct it.
 4. Go to the folder where you extracted Wurstpack, from there go to: Wurstpack -> wurstscript -> lib
 5. Now copy the current file path. If you use windows 7 and don't know how to copy the file path take a look at [here](http://technet.microsoft.com/en-us/magazine/ff678296.aspx)
-6. Paste the path into the wurst.dependencies file in eclipse. A correct path should look similar to this: C:\User\YourUserName\Wurstpack32\wurstscript\lib
+6. Paste the path into the wurst.dependencies file in eclipse. A correct path should look similar to this: C:\User\YourUserName\Wurstpack\wurstscript\lib
 7. Save the file and restart Eclipse
 
 ###Create your first Wurst package
 
 1. To create a new Package go: File -> New -> WurstPackage
-2. Type in a name (remember naming conventions). Now you should be able to see the Console at the bottom of Eclipse. And easy way to check if everything is correct is to type tests into the Console.
+2. Type in a name (remember naming conventions). Now you should be able to see the Console at the bottom of Eclipse. And easy way to check if everything is correct is to type `1+1` into the Console.
 
 ###Importing existing projects
 

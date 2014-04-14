@@ -64,11 +64,15 @@ brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must no
 		ifStatements
 	nextStatements
 
-A block has to be indented by exactly one tab. Using spaces for indentation is not permitted.
+A block has to be indented by one or more tabs. Using spaces for indentation is not permitted.
 
-In general newlines come at the end of a statement, with two exceptions: 
-- Inside parenthesis newlines are ignored. You can use this to break longer expressions or long parameter lists over several lines.
-- Newlines are ignored when the next line starts with a dot. This can be used to chain method invocations.
+In general newlines come at the end of a statement, with some exceptions: 
+- A newline is ignored after a line ending with `(` or `[`
+- A newline is ignored before a line beginning with `)`, `]`,`.` or `..`
+- A newline is ignored, when one of the following tokens comes before or after the newline: 
+    `,`, `+`, `*`, `-`, `div`, `/`, `mod`, `%`, `and`, `or`
+
+You can use this to break longer expressions or long parameter lists over several lines, or to chain method invocations:
 
 		someFunc(param1, param2,
 			param3, param4)
@@ -576,25 +580,30 @@ current package are initialized.
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
 
 
-## Initialization 
+## Initialization and initlater
 
 The initialization rules for Wurst are simple:
 
 1. Inside a package initialization is done from top to bottom.
 	The initializer of a package is the union of all global variable static initializers
 	(including static class variables) and all init blocks.
-2. If a package A imports a package B, the initializer of package B is run before A's.
-3. If packages import each other, the order is undefined.
+2. If package A imports package B and the import is not a `initlater` import, 
+	then the initializer of package B is run before A's. 
+	Cyclic imports without `initlater` are not allowed.
 
-The Wurst Checker tries to detect some initialization errors at runtime. However this approach is not sound, so 
-there can still be initialization errors happening at runtime. Those will stop the initialization of the program.
-The rules for the checker are as follows:
+If you get a Cyclic init dependency between packages, you have to manually define which package can be 
+initialized later.
+This is done by adding the keyword `initlater` to the import of the package:
 
-1. Inside a package you can only refer to variables which have been declared before.
-2. You can only refer to variables in other packages, when the other package does not depend on the current package (i.e. there is
-	a cyclic import).
-3. When function calls, constructor calls and destroy statements are used, the checker will try to guess the used variables and
-	base the analysis on those results.
+	package A
+	import initlater B
+	import public initlater C
+	import D
+
+Here only package `D` is guaranteed to be initialized before package `A`.
+Packages `B` and `C` are allowed to be initialized later.
+
+
 
 
 # Classes
@@ -1024,7 +1033,6 @@ from its superclass, it has to be abstract, too.
             
 # Interfaces 
 
-*NOTE:* Interfaces are an experimental feature and might be removed from the language later.
 
 	interface Listener
 		function onClick()

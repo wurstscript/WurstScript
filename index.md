@@ -5,7 +5,7 @@ title: Wurst-Script
 _by peq & Frotty_ 
 
 
-WurstScript is programming language which compiles to Jass (the language to create Warcraft III Maps).
+WurstScript is a programming language which compiles to Jass (the language to create Warcraft III Maps).
 
 It is an imperative, object-oriented, statically-typed, beginner-friendly programming language with significant whitespace and a readable syntax.
 
@@ -20,18 +20,22 @@ You can find more detailed installation notes here: [Installation Notes](./insta
 
 ### Eclipse Plugin
 
-You can install the Eclipse plugin using the update site at `http://site.sunayama.de/` 
-In Eclipse go to "Help - Install New Software" and add the update site mentioned above.
+Update site: `http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/`
 
-There also is an alternative update site with current builds at `http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/`.
+In Eclipse go to "Help - Install New Software" and add the update site mentioned above. You should then be able to install the Wurst plugin from that page.
+
 
 ### Wurst Pack
 
 The Wurst Pack contains a version of the editor with the Wurst compiler built in.
-
-You can always download the [latest build from our build server](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/).
 		
-* [Complete Pack](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip) 
+* [Wurst Updater](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/WurstUpdater.jar)
+			This Java program will automatically download Wurstpack for you and you can always run it again to update to the latest version.
+
+If you prefer manual downloads over the automatic updater, you can use the links below:
+
+
+* [Complete Pack](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_complete.zip) 
 			This is the complete pack. You usually should download this, but you can use the other downloads if you only want to update
 			parts of the Wurst Pack.
 * [Compiler](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip): 
@@ -43,6 +47,16 @@ You can always download the [latest build from our build server](http://peeeq.de
 			This is only the main jar file for the compiler. For small bugfixes it is often sufficient to replace this file, but
 			to be sure you should usually choose the bigger downloads.
 
+All downloads use the latest successful build from our build-server. If you have problems with the latest version you might want to check out older versions
+by clicking on the "Previous Build" arrow on the [download page](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/).
+
+## Intro video
+
+<div>
+<iframe width="640" height="360" src="https://www.youtube.com/embed/JYhUkRsQe-o" frameborder="0" allowfullscreen="true">
+Please enable iframes to see the video.
+</iframe>
+</div>
 
 
 ## Source Code

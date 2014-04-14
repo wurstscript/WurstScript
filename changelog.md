@@ -3,6 +3,49 @@ layout: simple
 title: Changelog
 ---
 
+
+Version 1.4.0.0
+==================
+
+### Language Changes:
+
+* First version of Jurst (a Wurst dialect with a (v)jass-like syntax)
+    * not documented yet, you can create `*.jurst` files in eclipse if you want to play with it
+* Modules can now be generic
+* Operator overloading: op_div must now be named op_divReal
+* Better warnings for unused parameters (Variables starting with an underscore will be ignored for this warning)
+* The initialization order no longer depends on the imports. Instead the compiler analyses which variables are read.
+
+
+
+### Standard library:
+
+* Many smaller changes
+* More unit testing functions
+
+
+### Tools:
+
+* The recommended download for the WurstPack is now the updater made by Crigges
+* Slightly better command line interface for the compiler
+* Injecting of compiletime generated objects into the map has been enabled again but is still broken, because of MPQ-lib problems
+* wurst config file is no longer used
+* The eclipse plugin no longer crashes when the Wurst nature is missing, instead the user is asked to add it
+* Removed the option for cohadars jasshelper from WurstPack, because it was causing problems for some users
+* Added a custom text field to auto error reports
+
+
+### Bugfixes:
+
+* Fixed bug #177 Remove FileIO dependency from Wurst.wurst
+* Interpreter: Comparing two reals for equality was broken
+* Fixed a bug in tuple assignment
+* Fixed bug #203 - could use type parameters in static places
+* fixed a bug with overrides of generic functions
+* fixed hanging compiler when recursive functions were used in certain ways
+* Fixed bug #220, class names could be used as expressions
+* Object-editing: Read and write strings as UTF-8.
+
 Version 1.3.0.0
 ==================
 
