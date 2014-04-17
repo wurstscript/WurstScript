@@ -129,6 +129,12 @@ public class ExtendedWurstLexer implements TokenSource {
 				// at EOF close all blocks and return an extra newline
 				handleIndent(0, token.getStartIndex(), token.getStopIndex());
 				eof = token;
+				if (isWurst) {
+					// if inside wurst, add a closing 'endpackage' and a newline
+					nextTokens.add(makeToken(WurstParser.ENDPACKAGE, "endpackage", token.getStartIndex(), token.getStopIndex()));
+					nextTokens.add(makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
+				}
+				// add a single newline
 				return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
 			}
 			

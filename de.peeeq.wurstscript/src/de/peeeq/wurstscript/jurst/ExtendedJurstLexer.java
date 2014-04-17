@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.TokenSource;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
 
+import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -98,13 +99,15 @@ public class ExtendedJurstLexer implements TokenSource {
 			}
 
 			if (isWurst) {
-				if (isJassOnlyKeyword(token)) {
-					token = makeToken(JurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
-				} else if (token.getType() == JurstParser.ENDPACKAGE) {
+				if (token.getType() == JurstParser.ENDPACKAGE 
+						|| token.getType() == JurstParser.ENDLIBRARY 
+						|| token.getType() == JurstParser.ENDSCOPE) {
 					isWurst = false;
 				}
 			} else {
-				if (token.getType() == JurstParser.PACKAGE) {
+				if (token.getType() == JurstParser.PACKAGE
+						|| token.getType() == JurstParser.LIBRARY
+						|| token.getType() == JurstParser.SCOPE) {
 					isWurst = true;
 				} else if (isWurstOnlyKeyword(token)) {
 					token = makeToken(JurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
@@ -121,6 +124,12 @@ public class ExtendedJurstLexer implements TokenSource {
 			if (token.getType() == JurstParser.EOF) {
 				// at EOF close all blocks and return an extra newline
 				eof = token;
+				if (isWurst) {
+					// if inside wurst, add a closing 'endpackage' and a newline
+					nextTokens.add(makeToken(JurstParser.ENDPACKAGE, "endpackage", token.getStartIndex(), token.getStopIndex()));
+					nextTokens.add(makeToken(JurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
+				}
+				// add a single newline
 				return makeToken(JurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
 			}
 			
@@ -185,20 +194,6 @@ public class ExtendedJurstLexer implements TokenSource {
 		switch (token.getType()) {
 		case JurstParser.VAR: 
 		case JurstParser.LET:
-			// TODO other tokens
-			return true;
-		default:
-			return false;
-		}
-	}
-
-
-	private boolean isJassOnlyKeyword(Token token) {
-		switch (token.getType()) {
-		case JurstParser.CALL:
-		case JurstParser.SET:
-		case JurstParser.JASS_LOCAL:
-		case JurstParser.TAKES:
 			// TODO other tokens
 			return true;
 		default:

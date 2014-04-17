@@ -118,7 +118,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 				scanners = new ScannerFactory();
 				WurstPerspective.findConsole();
 			}
-		});;
+		});
 		
 	}
 

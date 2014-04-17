@@ -87,7 +87,7 @@ wpackage: 'package' name=ID NL
 	(
 	imports+=wImport* entities+=entity*
 	| STARTBLOCK imports+=wImport* entities+=entity* ENDBLOCK
-	) ('endpackage' NL)?
+	) 'endpackage' NL
 	;
 
 wImport: 
@@ -188,6 +188,7 @@ modifier:
 		| 'static'
 		| 'override'
 		| 'abstract' 
+		| 'constant'
 			)
 		| annotation
 		;

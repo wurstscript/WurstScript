@@ -427,6 +427,8 @@ public class AntlrWurstParseTreeTransformer {
 			return Ast.ModOverride(src);
 		case WurstParser.ABSTRACT:
 			return Ast.ModAbstract(src);
+		case WurstParser.CONSTANT:
+			return Ast.ModConstant(src);
 		}
 		throw error(m, "not implemented");
 	}

@@ -1234,7 +1234,12 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				m.addError(error.toString());
+				if (m.attrSource().getFile().endsWith(".jurst")) {
+					// for jurst only add a warning:
+					m.addWarning(error.toString());
+				} else {
+					m.addError(error.toString());
+				}
 			}
 		}
 	}
