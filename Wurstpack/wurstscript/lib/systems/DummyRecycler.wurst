@@ -72,8 +72,11 @@ public function newDummy( vec3 pos, angle facing ) returns unit
 	bj_lastCreatedUnit = u
 	return bj_lastCreatedUnit
 
-	
 /** Immediately recycle a dummy */
+public function recycleDummy( unit u )
+	recycleDummy(u)
+	
+/** Recycle a dummy after a delay */
 public function recycleDummy( unit u, real delay )
 	int rc = recycle
 	if u.getTypeId() == DUMMY_UNIT_ID and not IsUnitInGroup(u, protect) 
