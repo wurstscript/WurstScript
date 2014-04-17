@@ -163,7 +163,7 @@ public class MultiFx
 			
 		destroy fxs
 
-		recycleDummy(dummy)
+		recycleDummy(dummy, 0.)
 
 	/** Destroys the MultiFx object without showing the effect's death animation 
 		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
