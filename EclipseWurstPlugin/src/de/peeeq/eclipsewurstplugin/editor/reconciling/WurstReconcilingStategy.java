@@ -10,6 +10,8 @@ import org.eclipse.jface.text.reconciler.DirtyRegion;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategyExtension;
 
+import com.google.common.collect.ImmutableList;
+
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -59,7 +61,8 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 				return cu;
 			}
 			if (doTypecheck) {
-				mm.typeCheckModel(gui, true, false);
+				// check only the updated compilation unit
+				mm.typeCheckModelPartial(gui, true, ImmutableList.of(cu));
 			}
 			return cu;
 		}

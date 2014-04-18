@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -350,11 +351,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	public void checkProg(WurstModel root) {
-		checker.checkProg(root);
+	public void checkProg(WurstModel model) {
+		checkProg(model, model);
 	}
 
-	
+	public void checkProg(WurstModel model, List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
+			Preconditions.checkNotNull(cu);
+			if (!model.contains(cu)) {
+				// model has changed since then, no need to do 'toCheck'
+				return;
+			}
+		}
+		
+		checker.checkProg(model, toCheck);
+	}
 
 	public JassProg translateProg(WurstModel root) {
 		translateProgToIm(root);

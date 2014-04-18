@@ -49,9 +49,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		 */
 		public boolean visit(IResourceDelta delta) throws CoreException {
 			IResource resource = delta.getResource();
-			if (!resource.getName().endsWith(".wurst")
-				|| !resource.getName().endsWith(".jurst")
-				|| !resource.getName().endsWith(".j")) {
+			if (!(resource instanceof IFile)) {
+				return true;
+			}
+			if (!isWurstOrJassFile((IFile) resource)) {
 				// ignore changes to files which are not wurst, jurst, or jass files. 
 				return true;
 			}
@@ -254,7 +255,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			getModelManager().clean();
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().fullBuildDone();
-			getModelManager().typeCheckModel(gui, true, true);
+			getModelManager().typeCheckModel(gui, true);
 		} catch (CoreException e) {
 		}
 	}
@@ -284,7 +285,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		}
 		
 		if (changed) {
-			getModelManager().typeCheckModel(gui, true, true);
+			getModelManager().typeCheckModel(gui, true);
 		}
 	}
 

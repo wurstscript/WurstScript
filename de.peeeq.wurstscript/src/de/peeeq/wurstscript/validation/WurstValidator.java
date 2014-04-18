@@ -71,6 +71,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
@@ -131,6 +132,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -163,15 +165,17 @@ public class WurstValidator {
 		this.prog = root;
 	}
 
-	public void validate() {
+	public void validate(List<CompilationUnit> toCheck) {
 		try {
-			functionCount = countFunctions();
+			functionCount = countFunctions(); 
 			visitedFunctions = 0;
 	
 			prog.getErrorHandler().setProgress("Checking wurst types", ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-			walkTree(prog);	
-			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
-			postChecks();
+			for (CompilationUnit cu : toCheck) {
+				walkTree(cu);	
+			}
+			prog.getErrorHandler().setProgress("Post checks", 0.55);
+			postChecks(toCheck);
 		} catch (RuntimeException e) {
 			WLogger.severe(e);
 			if (lastElement != null) {
@@ -186,16 +190,16 @@ public class WurstValidator {
 
 	/**
 	 * checks done after walking the tree
+	 * @param toCheck 
 	 */
-	private void postChecks() {
-		checkForCyclicFunctions();
-		checkUnusedImports();
+	private void postChecks(List<CompilationUnit> toCheck) {
+		checkUnusedImports(toCheck);
 	}
 
 	
 
-	private void checkUnusedImports() {
-		for (CompilationUnit cu : prog) {
+	private void checkUnusedImports(List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
 			for (WPackage p : cu.getPackages()) {
 				checkUnusedImports(p);
 			}
@@ -249,18 +253,23 @@ public class WurstValidator {
 				unused.remove(def.attrNearestPackage());
 			}
 		}
+		if (e instanceof Expr) {
+			WurstType typ = ((Expr) e).attrTyp();
+			if (typ instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+				NamedScope def = ns.getDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			} else if (typ instanceof WurstTypeTuple) {
+				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			}
+		}
 	}
 
-	private void checkForCyclicFunctions() {
-//		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
-//		for (WScope s : calledFunctionsTr.keySet()) {
-//			if (calledFunctionsTr.containsEntry(s, s)) {
-//				if (!calledFunctions.containsEntry(s, s)) {
-//					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
-//				}
-//			}
-//		}
-	}
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
