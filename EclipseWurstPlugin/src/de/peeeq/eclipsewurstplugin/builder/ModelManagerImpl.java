@@ -169,7 +169,7 @@ public class ModelManagerImpl implements ModelManager {
 	/** check whether cu imports something from 'toCheck' */
 	private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
 		for (WPackage p : cu.getPackages()) {
-			if (imports(p, packageNames, false)) {
+			if (imports(p, packageNames, false, Sets.<WPackage>newHashSet())) {
 				return true;
 			}
 		}
@@ -177,13 +177,18 @@ public class ModelManagerImpl implements ModelManager {
 		return false;
 	}
 	
-	/** check whether p imports something from 'toCheck' */
-	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic) {
+	/** check whether p imports something from 'toCheck' 
+	 * @param hashSet */
+	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic, HashSet<WPackage> visited) {
+		if (visited.contains(p)) {
+			return false;
+		}
+		visited.add(p);
 		for (WImport imp : p.getImports()) {
 			if ((!importPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
 				return true;
 			} else if (imp.getIsPublic() && imp.attrImportedPackage() != null) {
-				if (imports(imp.attrImportedPackage(), packageNames, true)) {
+				if (imports(imp.attrImportedPackage(), packageNames, true, visited)) {
 					return true;
 				}
 			}
