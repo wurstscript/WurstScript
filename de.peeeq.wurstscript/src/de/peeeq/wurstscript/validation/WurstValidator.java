@@ -94,6 +94,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.VisibilityPrivate;
@@ -188,9 +189,67 @@ public class WurstValidator {
 	 */
 	private void postChecks() {
 		checkForCyclicFunctions();
+		checkUnusedImports();
 	}
 
 	
+
+	private void checkUnusedImports() {
+		for (CompilationUnit cu : prog) {
+			for (WPackage p : cu.getPackages()) {
+				checkUnusedImports(p);
+			}
+		}
+	}
+
+	private void checkUnusedImports(WPackage p) {
+		Set<WPackage> unused = Sets.newLinkedHashSet();
+		// first assume all are unused
+		for (WImport imp : p.getImports()) {
+			if (!imp.getPackagename().equals("Wurst")) {
+				unused.add(imp.attrImportedPackage());
+			}
+		}
+		
+		removeUsed(unused, p.getElements());
+		
+		
+		for (WImport imp : p.getImports()) {
+			if (imp.attrImportedPackage() != null 
+				&& !imp.getIsPublic()
+				&& unused.contains(imp.attrImportedPackage()) ) {
+				imp.addWarning("The import " + imp.getPackagename() + " is never used directly.");
+			}
+		}
+	}
+
+	private void removeUsed(Set<WPackage> unused, AstElement e) {
+		for (int i=0; i<e.size(); i++) {
+			removeUsed(unused, e.get(i));
+		}
+		
+		if (e instanceof FuncRef) {
+			FuncRef fr = (FuncRef) e;
+			FunctionDefinition def = fr.attrFuncDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof NameRef) {
+			NameRef nr = (NameRef) e;
+			NameDef def = nr.attrNameDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof TypeRef) {
+			TypeRef t = (TypeRef) e;
+			TypeDef def = t.attrTypeDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+	}
 
 	private void checkForCyclicFunctions() {
 //		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
