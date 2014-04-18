@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
@@ -31,6 +32,8 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -131,6 +134,7 @@ public class ModelManagerImpl implements ModelManager {
 			}
 			
 			try {
+				clearAttributes(toCheck);
 				comp.addImportedLibs(model);
 				comp.checkProg(model, toCheck);
 			} catch (CompileError e) {
@@ -144,6 +148,48 @@ public class ModelManagerImpl implements ModelManager {
 		}
 	}
 	
+    /** clear the attributes for all compilation units that import something from 'toCheck' */
+	private void clearAttributes(List<CompilationUnit> toCheck) {
+		model.clearAttributesLocal();
+		Set<String> packageNames = Sets.newHashSet();
+		for (CompilationUnit cu : toCheck) {
+			cu.clearAttributes();
+			for (WPackage p : cu.getPackages()) {
+				packageNames.add(p.getName());
+			}
+		}
+		for (CompilationUnit cu : model) {
+			if (imports(cu, packageNames, false)) {
+				cu.clearAttributes();
+			}
+		}
+		
+	}
+
+	/** check whether cu imports something from 'toCheck' */
+	private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
+		for (WPackage p : cu.getPackages()) {
+			if (imports(p, packageNames, false)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/** check whether p imports something from 'toCheck' */
+	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic) {
+		for (WImport imp : p.getImports()) {
+			if ((!importPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
+				return true;
+			} else if (imp.getIsPublic() && imp.attrImportedPackage() != null) {
+				if (imports(imp.attrImportedPackage(), packageNames, true)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 	private synchronized void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
 		// this line is not synchronized, because it can trigger a build in a different thread
