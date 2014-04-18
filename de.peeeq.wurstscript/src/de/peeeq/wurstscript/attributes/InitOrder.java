@@ -106,11 +106,17 @@ public class InitOrder {
 			}
 			
 			if (imported == callStack.get(0)) {
-				WPackage problemP = callStack.get(0);
 				String packagesMsg = Utils.join(toStringArray(callStack), " -> ");
-				problemP.addError("Cyclic init dependency between packages: " + packagesMsg + " -> " + imported.getName() + 
-//						"\n" + p.getName() + " -> " + imported.getName() + 
-						"\nChange some imports to 'initlater' imports to avoid this problem.");
+				
+				String msg = "Cyclic init dependency between packages: " + packagesMsg + " -> " + imported.getName() + 
+						"\nChange some imports to 'initlater' imports to avoid this problem.";
+				for (WImport imp : imported.getImports()) {
+					if (imp.attrImportedPackage() == callStack.get(1)) {
+						imp.addError(msg);
+						return;
+					}
+				}
+				imported.addError(msg);
 				return;
 			}
 			
