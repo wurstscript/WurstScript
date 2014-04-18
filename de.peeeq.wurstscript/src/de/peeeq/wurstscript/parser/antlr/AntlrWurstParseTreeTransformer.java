@@ -141,6 +141,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class AntlrWurstParseTreeTransformer {
 
@@ -641,12 +642,16 @@ public class AntlrWurstParseTreeTransformer {
 			return transformLocalVarDef(s.localVarDef());
 		} else if (s.stmtSet() != null) {
 			return transformStmtSet(s.stmtSet());
-		} else if (s.stmtCall() != null) {
-			return transformCall(s.stmtCall());
+		} else if (s.expr() != null) {
+			Expr e = transformExpr(s.expr());
+			if (e instanceof WStatement) {
+				return (WStatement) e;
+			} else {
+				cuErrorHandler.sendError(new CompileError(source(s), Utils.printElement(e) + " cannot be used here. A full statement is required."));
+				return Ast.StmtErr(source(s));
+			}
 		} else if (s.stmtReturn() != null) {
 			return transformReturn(s.stmtReturn());
-		} else if (s.exprDestroy() != null) {
-			return transformExprDestroy(s.exprDestroy());
 		} else if (s.stmtForLoop() != null) {
 			return transformForLoop(s.stmtForLoop());
 		} else if (s.stmtBreak() != null) {

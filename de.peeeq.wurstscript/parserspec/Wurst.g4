@@ -227,17 +227,17 @@ statementsBlock:
 			   (STARTBLOCK statement* ENDBLOCK)?;
 
 
-statement:
-			 stmtIf
-		 | stmtWhile
-		 | localVarDef
-		 | exprDestroy NL
+statement: (
+		   localVarDef
 		 | stmtSet
-		 | stmtCall
-		 | stmtReturn		 
-		 | stmtForLoop
+		 | stmtReturn
 		 | stmtBreak
 		 | stmtSkip
+		 | expr
+		 ) NL
+		 | stmtIf
+		 | stmtWhile
+		 | stmtForLoop
 		 | stmtSwitch
 		 ;
 
@@ -246,7 +246,7 @@ exprDestroy:
 		   ;
 
 stmtReturn:
-			  'return' expr NL
+			  'return' expr
 		  ;
 
 stmtIf:
@@ -282,7 +282,7 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=ID ('=' initial=expr)? 
 	  ;	
 
 localVarDefInline:
@@ -295,7 +295,6 @@ stmtSet:
 			| incOp='++'
 			| decOp='--'
 			) 
-		   NL
 	   ;
 
 
@@ -319,9 +318,9 @@ indexes:
 	   ;
 
 stmtCall:
-			exprMemberMethod NL
-		| exprFunctionCall NL
-		| exprNewObject NL
+			exprMemberMethod
+		| exprFunctionCall
+		| exprNewObject
 		;
 
 exprMemberMethod:
@@ -399,8 +398,8 @@ forIteratorLoop:
 ;
 
 
-stmtBreak:'break' NL;
-stmtSkip:'skip' NL;
+stmtBreak:'break';
+stmtSkip:'skip';
 
 
 
