@@ -49,6 +49,12 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		 */
 		public boolean visit(IResourceDelta delta) throws CoreException {
 			IResource resource = delta.getResource();
+			if (!resource.getName().endsWith(".wurst")
+				|| !resource.getName().endsWith(".jurst")
+				|| !resource.getName().endsWith(".j")) {
+				// ignore changes to files which are not wurst, jurst, or jass files. 
+				return true;
+			}
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
