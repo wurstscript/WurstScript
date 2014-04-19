@@ -104,11 +104,17 @@ public class StatementTranslation {
 
 	public static void translate(ImError s, List<JassStatement> stmts,
 			JassFunction f, ImToJassTranslator translator) {
+		String nl;
 		if (s.getMessage().translate(translator).toString().contains("\n")) {
-			stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r\n" + s.getMessage().translate(translator)))));
+			nl = "";
 		}else{
-			stmts.add(JassAst.JassStmtCall("BJDebugMsg", JassAst.JassExprlist(JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r " + s.getMessage().translate(translator)))));
+			nl = "\n";
 		}
+		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
+				JassAst.JassExprlist(JassAst.JassExprBinary(
+						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl), 
+						JassAst.JassOpPlus(),
+						s.getMessage().translate(translator)))));
 		// crash thread (divide by zero)
 		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), JassAst.JassExprIntVal("0")))));
 		
