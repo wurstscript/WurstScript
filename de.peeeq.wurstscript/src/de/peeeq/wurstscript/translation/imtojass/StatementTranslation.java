@@ -106,9 +106,9 @@ public class StatementTranslation {
 			JassFunction f, ImToJassTranslator translator) {
 		String nl;
 		if (s.getMessage().translate(translator).toString().contains("\n")) {
-			nl = "";
-		}else{
 			nl = "\n";
+		}else{
+			nl = "";
 		}
 		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
 				JassAst.JassExprlist(JassAst.JassExprBinary(
