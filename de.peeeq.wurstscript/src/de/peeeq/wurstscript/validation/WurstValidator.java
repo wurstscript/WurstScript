@@ -822,6 +822,10 @@ public class WurstValidator {
 							" from static context.");
 				}
 			}
+			if (calledFunc instanceof ExtensionFuncDef) {
+				stmtCall.addError("Extension function " + funcName + " must be called with an explicit receiver.\n"
+						+ "Try to write this."+funcName+"(...) .");
+			}
 		}
 
 		// special check for filter & condition:
@@ -837,6 +841,7 @@ public class WurstValidator {
 				}
 			}
 		}
+		
 	}
 
 	//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
