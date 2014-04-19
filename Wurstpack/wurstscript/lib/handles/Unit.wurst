@@ -2,7 +2,6 @@ package Unit
 import NoWurst
 import public Vectors
 import Angle
-import initlater PrintingHelper
 import Terrain
 
 native UnitAlive(unit id) returns boolean

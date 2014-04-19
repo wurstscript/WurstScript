@@ -61,7 +61,7 @@ public class Sound
 		this.eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
 	
 
-	function getSound() returns SData
+	private function getSound() returns SData
 		// If there is a handle on the stack
 		if soundStack.getSize() > 0
 			return soundStack.pop()

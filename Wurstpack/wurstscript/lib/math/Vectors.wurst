@@ -1,7 +1,5 @@
 package Vectors
 import NoWurst
-import PrintingHelper
-import Maths
 import Real
 import Angle
 import MagicFunctions

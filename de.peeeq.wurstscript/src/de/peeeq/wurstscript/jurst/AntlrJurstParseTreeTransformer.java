@@ -8,6 +8,62 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.ClassSlot;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ConstructorDefs;
+import de.peeeq.wurstscript.ast.EnumMembers;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprClosure;
+import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
+import de.peeeq.wurstscript.ast.ExprFuncRef;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprIncomplete;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FuncDefs;
+import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.GlobalVarDefs;
+import de.peeeq.wurstscript.ast.Indexes;
+import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.JassGlobalBlock;
+import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.JassToplevelDeclarations;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.Modifier;
+import de.peeeq.wurstscript.ast.Modifiers;
+import de.peeeq.wurstscript.ast.ModuleInstanciations;
+import de.peeeq.wurstscript.ast.ModuleUse;
+import de.peeeq.wurstscript.ast.ModuleUses;
+import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NativeType;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.StmtReturn;
+import de.peeeq.wurstscript.ast.SwitchCases;
+import de.peeeq.wurstscript.ast.SwitchDefaultCase;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprList;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeParamDefs;
+import de.peeeq.wurstscript.ast.WEntities;
+import de.peeeq.wurstscript.ast.WEntity;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WImports;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WPackages;
+import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.WStatements;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.ClassDefContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.ClassSlotContext;
@@ -87,61 +143,6 @@ import de.peeeq.wurstscript.jurst.antlr.JurstParser.TypeParamsContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.VarDefContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.WImportContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.WpackageContext;
-import de.peeeq.wurstscript.ast.Arguments;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.ClassSlot;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.ConstructorDefs;
-import de.peeeq.wurstscript.ast.EnumMembers;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprClosure;
-import de.peeeq.wurstscript.ast.ExprDestroy;
-import de.peeeq.wurstscript.ast.ExprEmpty;
-import de.peeeq.wurstscript.ast.ExprFuncRef;
-import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncDefs;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.GlobalVarDefs;
-import de.peeeq.wurstscript.ast.Indexes;
-import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.JassGlobalBlock;
-import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
-import de.peeeq.wurstscript.ast.JassToplevelDeclarations;
-import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.Modifier;
-import de.peeeq.wurstscript.ast.Modifiers;
-import de.peeeq.wurstscript.ast.ModuleInstanciations;
-import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.ModuleUses;
-import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NativeType;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.OptExpr;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.SwitchCases;
-import de.peeeq.wurstscript.ast.SwitchDefaultCase;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprList;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.TypeParamDefs;
-import de.peeeq.wurstscript.ast.WEntities;
-import de.peeeq.wurstscript.ast.WEntity;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WImports;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPackages;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
@@ -171,6 +172,7 @@ public class AntlrJurstParseTreeTransformer {
 					packages.add(transformPackage(decl.wpackage()));
 				}
 			}
+			
 		} catch (CompileError e) {
 			cuErrorHandler.sendError(e);
 			e.printStackTrace();
@@ -369,6 +371,7 @@ public class AntlrJurstParseTreeTransformer {
 		}
 		return Ast.WPackage(source, modifiers, name, imports, elements);
 	}
+	
 
 	private WEntity transformEntity(EntityContext e) {
 		try {
@@ -450,6 +453,8 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.ModOverride(src);
 		case JurstParser.ABSTRACT:
 			return Ast.ModAbstract(src);
+		case JurstParser.CONSTANT:
+			return Ast.ModConstant(src);
 		}
 		throw error(m, "not implemented");
 	}
@@ -666,8 +671,6 @@ public class AntlrJurstParseTreeTransformer {
 			return transformCall(s.stmtCall());
 		} else if (s.stmtReturn() != null) {
 			return transformReturn(s.stmtReturn());
-		} else if (s.exprDestroy() != null) {
-			return transformExprDestroy(s.exprDestroy());
 		} else if (s.stmtForLoop() != null) {
 			return transformForLoop(s.stmtForLoop());
 		} else if (s.stmtBreak() != null) {
@@ -724,9 +727,13 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private ExprDestroy transformExprDestroy(ExprDestroyContext e) {
-		return Ast.ExprDestroy(source(e), transformExpr(e.expr()));
+		return transformExprDestroyObject(source(e), e.expr());
 	}
 
+	private ExprDestroy transformExprDestroyObject(WPos source, ExprContext e) {
+		return Ast.ExprDestroy(source, transformExpr(e));
+	}
+	
 	private StmtReturn transformReturn(StmtReturnContext s) {
 		return Ast.StmtReturn(source(s), transformOptionalExpr(s.expr()));
 	}
@@ -751,7 +758,11 @@ public class AntlrJurstParseTreeTransformer {
 					WurstOperator.MINUS, Ast.ExprIntVal(src, "1"));
 			return Ast.StmtSet(src, updatedExpr, right);
 		}
-		throw error(s, "not implemented");
+		if (s.exception != null) {
+			return Ast.StmtErr(src);
+		} else {
+			throw error(s, "not implemented");
+		}
 	}
 
 	private WurstOperator getAssignOp(Token assignOp) {
@@ -798,6 +809,11 @@ public class AntlrJurstParseTreeTransformer {
 			ExprContext e_expr, Token e_dots, Token e_varname,
 			IndexesContext e_indexes) {
 		Expr left = transformExpr(e_expr);
+		
+		if (left instanceof ExprEmpty) {
+			left = Ast.ExprThis(left.getSource());
+		}
+		
 		String varName = text(e_varname);
 		if (e_indexes != null) {
 			Indexes indexes = transformIndexes(e_indexes);
@@ -902,6 +918,8 @@ public class AntlrJurstParseTreeTransformer {
 			return transformMemberMethodCall(c.exprMemberMethod());
 		} else if (c.exprNewObject() != null) {
 			return transformExprNewObject(c.exprNewObject());
+		} else if (c.exprDestroy() != null) {
+			return transformExprDestroy(c.exprDestroy());
 		}
 		// TODO Auto-generated method stub
 		throw error(c, "not implemented");
@@ -929,6 +947,11 @@ public class AntlrJurstParseTreeTransformer {
 			ExprContext receiver, Token dots, Token funcName,
 			TypeArgsContext typeArgs, ExprListContext args) {
 		Expr left = transformExpr(receiver);
+		
+		if (left instanceof ExprEmpty) {
+			left = Ast.ExprThis(left.getSource());
+		}
+		
 		if (dots.getType() == JurstParser.DOT) {
 			return Ast.ExprMemberMethodDot(source, left, text(funcName),
 					transformTypeArgs(typeArgs), transformExprs(args));
@@ -1007,6 +1030,8 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (e.instaneofType != null) {
 			return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType), 
 					transformExpr(e.left));
+		} else if (e.destroyedObject != null) {
+			return transformExprDestroyObject(source(e), e.destroyedObject);
 		}
 		
 		ParseTree left = getLeftParseTree(e);
@@ -1019,6 +1044,8 @@ public class AntlrJurstParseTreeTransformer {
 		}
 		return Ast.ExprEmpty(source);
 	}
+
+	
 
 	private int beginPos(ParseTree left) {
 		if (left instanceof ParserRuleContext) {
@@ -1137,8 +1164,6 @@ public class AntlrJurstParseTreeTransformer {
 			return transformExprStatementsBlock(e.exprStatementsBlock());
 		} else if (e.exprFuncRef() != null) {
 			return transformExprFuncRef(e.exprFuncRef());
-		} else if (e.exprDestroy() != null) {
-			return transformExprDestroy(e.exprDestroy());
 		}
 		// TODO Auto-generated method stub
 		throw error(e, "not implemented " + text(e));

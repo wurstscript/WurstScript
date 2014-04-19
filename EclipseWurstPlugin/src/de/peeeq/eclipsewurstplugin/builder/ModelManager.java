@@ -2,6 +2,7 @@ package de.peeeq.eclipsewurstplugin.builder;
 
 import java.io.File;
 import java.io.Reader;
+import java.util.List;
 
 import org.eclipse.core.resources.IResource;
 
@@ -18,7 +19,9 @@ public interface ModelManager {
 
 	 void clean();
 
-	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes);
+	 void typeCheckModel(WurstGui gui, boolean addErrorMarkers);
+	 
+	 void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck);
 	 
 	 void updateModel(CompilationUnit cu, WurstGui gui);
 

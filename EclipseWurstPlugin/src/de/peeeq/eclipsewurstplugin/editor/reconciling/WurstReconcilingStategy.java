@@ -3,20 +3,22 @@ package de.peeeq.eclipsewurstplugin.editor.reconciling;
 import java.io.StringReader;
 
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.reconciler.DirtyRegion;
 import org.eclipse.jface.text.reconciler.IReconcilingStrategy;
+import org.eclipse.jface.text.reconciler.IReconcilingStrategyExtension;
+
+import com.google.common.collect.ImmutableList;
 
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
-import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 
-public class WurstReconcilingStategy implements IReconcilingStrategy {
+public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcilingStrategyExtension {
 
 	private WurstEditor editor;
 	private IDocument document;
@@ -59,7 +61,8 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 				return cu;
 			}
 			if (doTypecheck) {
-				mm.typeCheckModel(gui, true, false);
+				// check only the updated compilation unit
+				mm.typeCheckModelPartial(gui, true, ImmutableList.of(cu));
 			}
 			return cu;
 		}
@@ -68,6 +71,15 @@ public class WurstReconcilingStategy implements IReconcilingStrategy {
 
 	public int getLastReconcileDocumentHashcode() {
 		return lastReconcileDocumentHashcode;
+	}
+
+	@Override
+	public void setProgressMonitor(IProgressMonitor monitor) {
+	}
+
+	@Override
+	public void initialReconcile() {
+		reconcile(true);
 	}
 
 

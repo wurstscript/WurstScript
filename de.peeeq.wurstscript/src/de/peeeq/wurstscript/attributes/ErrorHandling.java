@@ -13,12 +13,10 @@ import de.peeeq.wurstscript.parser.WPos;
 public class ErrorHandling {
 	
 	public static void addError(AstElement e, String msg) {
-		WLogger.info("Adding error: " + msg);
 		addErrorOrWarning(e, msg, ErrorType.ERROR);
 	}
 	
 	public static void addWarning(AstElement e, String msg) {
-		WLogger.info("Adding warning: " + msg);
 		addErrorOrWarning(e, msg, ErrorType.WARNING);
 	}
 

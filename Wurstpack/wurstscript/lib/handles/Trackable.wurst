@@ -1,7 +1,6 @@
 package Trackable
 
 	import HashMap
-	import TypeCasting
 	
 	/*
 	If you need invisible trackable models here are a few downloadlinks:

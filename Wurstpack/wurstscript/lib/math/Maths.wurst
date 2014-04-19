@@ -1,10 +1,8 @@
 package Maths	
 import NoWurst
-import initlater Vectors
 import initlater Angle
 import initlater Wurstunit
 import initlater Real
-import initlater Integer
 
 /** PI constant */
 public constant real PI			=  3.141592654

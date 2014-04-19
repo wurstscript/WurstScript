@@ -71,6 +71,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
@@ -94,6 +95,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.VisibilityPrivate;
@@ -130,6 +132,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -162,15 +165,17 @@ public class WurstValidator {
 		this.prog = root;
 	}
 
-	public void validate() {
+	public void validate(List<CompilationUnit> toCheck) {
 		try {
-			functionCount = countFunctions();
+			functionCount = countFunctions(); 
 			visitedFunctions = 0;
 	
 			prog.getErrorHandler().setProgress("Checking wurst types", ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-			walkTree(prog);	
-			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
-			postChecks();
+			for (CompilationUnit cu : toCheck) {
+				walkTree(cu);	
+			}
+			prog.getErrorHandler().setProgress("Post checks", 0.55);
+			postChecks(toCheck);
 		} catch (RuntimeException e) {
 			WLogger.severe(e);
 			if (lastElement != null) {
@@ -185,23 +190,86 @@ public class WurstValidator {
 
 	/**
 	 * checks done after walking the tree
+	 * @param toCheck 
 	 */
-	private void postChecks() {
-		checkForCyclicFunctions();
+	private void postChecks(List<CompilationUnit> toCheck) {
+		checkUnusedImports(toCheck);
 	}
 
 	
 
-	private void checkForCyclicFunctions() {
-//		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
-//		for (WScope s : calledFunctionsTr.keySet()) {
-//			if (calledFunctionsTr.containsEntry(s, s)) {
-//				if (!calledFunctions.containsEntry(s, s)) {
-//					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
-//				}
-//			}
-//		}
+	private void checkUnusedImports(List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
+			for (WPackage p : cu.getPackages()) {
+				checkUnusedImports(p);
+			}
+		}
 	}
+
+	private void checkUnusedImports(WPackage p) {
+		Set<WPackage> unused = Sets.newLinkedHashSet();
+		// first assume all are unused
+		for (WImport imp : p.getImports()) {
+			if (!imp.getPackagename().equals("Wurst")) {
+				unused.add(imp.attrImportedPackage());
+			}
+		}
+		
+		removeUsed(unused, p.getElements());
+		
+		
+		for (WImport imp : p.getImports()) {
+			if (imp.attrImportedPackage() != null 
+				&& !imp.getIsPublic()
+				&& unused.contains(imp.attrImportedPackage()) ) {
+				imp.addWarning("The import " + imp.getPackagename() + " is never used directly.");
+			}
+		}
+	}
+
+	private void removeUsed(Set<WPackage> unused, AstElement e) {
+		for (int i=0; i<e.size(); i++) {
+			removeUsed(unused, e.get(i));
+		}
+		
+		if (e instanceof FuncRef) {
+			FuncRef fr = (FuncRef) e;
+			FunctionDefinition def = fr.attrFuncDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof NameRef) {
+			NameRef nr = (NameRef) e;
+			NameDef def = nr.attrNameDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof TypeRef) {
+			TypeRef t = (TypeRef) e;
+			TypeDef def = t.attrTypeDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof Expr) {
+			WurstType typ = ((Expr) e).attrTyp();
+			if (typ instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+				NamedScope def = ns.getDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			} else if (typ instanceof WurstTypeTuple) {
+				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			}
+		}
+	}
+
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
@@ -1234,7 +1302,12 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				m.addError(error.toString());
+				if (m.attrSource().getFile().endsWith(".jurst")) {
+					// for jurst only add a warning:
+					m.addWarning(error.toString());
+				} else {
+					m.addError(error.toString());
+				}
 			}
 		}
 	}

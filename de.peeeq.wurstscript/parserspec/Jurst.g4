@@ -88,8 +88,9 @@ wpackage: ('package'|'library'|'scope') name=ID
 		  (('uses'|'requires'|'needs') requires+=ID (',' requires+=ID)*)?	  
 		  NL 
 	imports+=wImport* entities+=entity*
-	(('endpackage'|'endlibrary'|'endscope') NL)?
+	('endpackage'|'endlibrary'|'endscope') NL
 	;
+
 
 wImport: 
     'import' isPublic='public'? isInitLater='initlater'? importedPackage=ID NL 
@@ -172,7 +173,7 @@ ondestroyDef:
 
 
 funcDef:
-       modifiersWithDoc 'function' funcSignature NL statementsBlock ('end'|'endfunction') NL
+       modifiersWithDoc ('function'|'method') funcSignature NL statementsBlock ('end'|'endfunction'|'endmethod') NL
        ;
 
 
@@ -194,6 +195,7 @@ modifier:
 		| 'static'
 		| 'override'
 		| 'abstract' 
+		| 'constant'
 			)
 		| annotation
 		;
@@ -239,7 +241,6 @@ statement:
 		 | stmtExitwhen
 		 | stmtWhile
 		 | localVarDef
-		 | exprDestroy NL
 		 | stmtSet
 		 | stmtCall
 		 | stmtReturn		 
@@ -255,6 +256,7 @@ stmtExitwhen: 'exitwhen' expr NL;
 
 exprDestroy:
 			   'destroy' expr
+		     | expr '.' 'destroy' ('(' ')')?
 		   ;
 
 stmtReturn:
@@ -271,8 +273,8 @@ elseStatements:
 				'elseif' cond=expr 'then'? NL
 				thenStatements=statementsBlock
 				elseStatements
-			  | 'else' NL statementsBlock 'endif' NL
-			  | 'endif' NL
+			  | 'else' NL statementsBlock ('endif'|'end') NL
+			  | ('endif'|'end') NL
 			  ;
 
 stmtSwitch:
@@ -336,10 +338,11 @@ indexes:
 
 stmtCall: 'call'?
 		(
-			exprMemberMethod NL
-		  | exprFunctionCall NL
-		  | exprNewObject NL
-		)
+			exprMemberMethod
+		  | exprFunctionCall
+		  | exprNewObject
+		  | exprDestroy
+		)  NL
 		;
 
 exprMemberMethod:
@@ -352,6 +355,8 @@ expr:
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
 	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
+	  |	'destroy' destroyedObject=expr
+	  | destroyedObject=expr '.' 'destroy' '(' ')'
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser
@@ -370,7 +375,6 @@ exprPrimary:
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
-	  | exprDestroy
       | varname=ID indexes?
       | atom=(INT
       | REAL
@@ -436,7 +440,7 @@ nativeType: 'type' name=ID ('extends' extended=ID)? NL;
 
 initBlock: 'init' NL 
 				statementsBlock
-			('end'|'endinit'); 
+			('end'|'endinit') NL; 
 
 nativeDef: modifiersWithDoc 'native' funcSignature NL; 
 
@@ -596,7 +600,7 @@ INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
 
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
-
+DEBUG: 'debug' -> skip;
 WS : [ \t]+ -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
