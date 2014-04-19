@@ -117,7 +117,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	
-	private synchronized void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
+	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
 		// this line is not synchronized, because it can trigger a build in a different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
@@ -196,7 +196,7 @@ public class ModelManagerImpl implements ModelManager {
 		return false;
 	}
 
-	private synchronized void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
+	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
 		// this line is not synchronized, because it can trigger a build in a different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
