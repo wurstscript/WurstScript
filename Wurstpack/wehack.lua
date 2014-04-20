@@ -87,18 +87,41 @@ wh_about = MenuEntry:New(whmenu,"About Grimoire ...",aboutpopup)
 havewurst = grim.exists("wurstscript\\wurstscript.exe")
 if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
+	
+	wehack.addmenuseparator(wurstmenu)
+	-- optimizer options
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
 	wurst_localoptenable = TogMenuEntry:New(wurstmenu,"Enable (experimental) local optimizations",nil,false)
 	wurst_inliner = TogMenuEntry:New(wurstmenu, "Enable Inliner",nil,false)
+	
+	wehack.addmenuseparator(wurstmenu)
+	
+	-- debug options
 	wurst_stacktraces = TogMenuEntry:New(wurstmenu, "Enable stack-traces",nil,false)
 	wurst_nodebug = TogMenuEntry:New(wurstmenu, "Disable debug messages",nil,false)
+	wurst_debug = TogMenuEntry:New(wurstmenu,"Debug Mode",nil,false)
+	
+	wehack.addmenuseparator(wurstmenu)
+	
+	-- compiletime options
 	wurst_compiletimefunctions  = TogMenuEntry:New(wurstmenu, "Run compiletime functions",nil,false)
 	wurst_injectObjects  = TogMenuEntry:New(wurstmenu, "Inject compiletime objects",nil,false)
 	
 	wehack.addmenuseparator(wurstmenu)
 	
-	wurst_debug = TogMenuEntry:New(wurstmenu,"Debug Mode",nil,false)
+	-- other tools
+	
+	function wurst_runfileexporter()
+		curmap = wehack.findmappath()
+		if curmap ~= "" then
+			wehack.execprocess("wurstscript\\wurstscript.exe --extractImports \"" .. curmap .. "\"")
+		else
+			wehack.messagebox("No map loaded. Try saving the map first.","Wurst",false)
+		end
+	end
+	
+	MenuEntry:New(wurstmenu,"Extract all imported files",wurst_runfileexporter)
 
 	wehack.addmenuseparator(wurstmenu)
 	
@@ -113,6 +136,11 @@ if havewurst then
   -- TODO wurstshowerrm = MenuEntry:New(wurstmenu,"Show previous errors",wurstshowerr)
   wurstaboutm = MenuEntry:New(wurstmenu,"About WurstScript ...",wurstabout)
 end
+
+
+
+
+
 -- ##EndWurstScript##
 
 -- ## Jasshelper ##

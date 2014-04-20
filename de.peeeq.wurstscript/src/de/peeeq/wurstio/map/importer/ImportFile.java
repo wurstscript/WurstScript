@@ -5,8 +5,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedList;
 
+import javax.swing.JOptionPane;
+
+import com.google.common.io.Files;
+
 import de.peeeq.jmpq.JmpqEditor;
 import de.peeeq.jmpq.JmpqError;
+import de.peeeq.wurstscript.WLogger;
 
 
 public class ImportFile {
@@ -21,7 +26,7 @@ public class ImportFile {
 			e1.printStackTrace();
 		}
 		mpq.extractFile("war3map.imp", temp);
-		temp = new File("C:\\Users\\Crigges\\Desktop\\war3map.imp");
+//		temp = new File("C:\\Users\\Crigges\\Desktop\\war3map.imp");
 		BinFileReader reader = new BinFileReader(temp);
 		reader.readInt();
 		int fileCount =  reader.readInt();
@@ -100,6 +105,46 @@ public class ImportFile {
 		} catch (JmpqError e) {
 			e.printStackTrace();
 		}
+	}
+
+	public static void extractImportedFiles(File mapFile) {
+		if (!mapFile.exists() || !mapFile.isFile()) {
+			JOptionPane.showMessageDialog(null, "Map " + mapFile.getAbsolutePath() + " does not exist.");
+			return;
+		}
+		try {
+			File mapTemp = File.createTempFile("temp", "w3x");
+			Files.copy(mapFile, mapTemp);
+			
+			try (JmpqEditor ed = new JmpqEditor(mapTemp)) {
+				File importDirectory = getImportDirectory(mapFile);
+				extractImportedFiles(ed, importDirectory);
+				JOptionPane.showMessageDialog(null, "All imports were extracted to " + importDirectory.getAbsolutePath());
+			} catch (JmpqError e) {
+				WLogger.severe(e);
+				JOptionPane.showMessageDialog(null, "Could not export objects (1): " + e.getMessage());
+			}
+		} catch (IOException e) {
+			WLogger.severe(e);
+			JOptionPane.showMessageDialog(null, "Could not export objects (2): " + e.getMessage());
+		}
+	}
+	
+	public static void importFilesFromImportDirectory(File mapFile) {
+		File importDirectory = getImportDirectory(mapFile);
+		if (importDirectory.exists() && importDirectory.isDirectory()) {
+			WLogger.info("importing from: " + importDirectory.getAbsolutePath());
+			try (JmpqEditor ed = new JmpqEditor(mapFile)) {
+				insertImportedFiles(ed, importDirectory);
+			} catch (JmpqError e) {
+				WLogger.severe(e);
+				JOptionPane.showMessageDialog(null, "Could import objects from "+importDirectory+": " + e.getMessage());
+			}
+		}
+	}
+
+	private static File getImportDirectory(File mapFile) {
+		return new File(mapFile.getParentFile(), "imports");
 	}
 	
 	

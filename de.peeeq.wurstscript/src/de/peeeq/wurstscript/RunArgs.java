@@ -29,6 +29,7 @@ public class RunArgs {
 	private RunOption optionStacktraces;
 	private RunOption optionNodebug;
 	private RunOption optionInjectCompiletimeObjects;
+	private RunOption optionExtractImports;
 	
 	private class RunOption {
 		final String name;
@@ -81,6 +82,15 @@ public class RunArgs {
 				return null;
 			}
 		});
+		optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", new Function<String, Void>() {
+			@Override
+			public Void apply(String arg) {
+				mapFile = arg;
+				return null;
+			}
+		});
+		
+		
 		addOptionWithArg("out", "Outputs the compiled script to this file.", new Function<String, Void>() {
 			@Override
 			public Void apply(String arg) {
@@ -97,9 +107,8 @@ public class RunArgs {
 						if (o.argHandler != null) {
 							i++;
 							o.argHandler.apply(args[i]);
-						} else {
-							o.isSet = true;
 						}
+						o.isSet = true;
 						continue nextArg;
 					}
 				}
@@ -225,5 +234,9 @@ public class RunArgs {
 
 	public boolean showHelp() {
 		return optionHelp.isSet;
+	}
+
+	public boolean isExtractImports() {
+		return optionExtractImports.isSet;
 	}
 }
