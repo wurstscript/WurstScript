@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -134,6 +135,7 @@ public class CyclicFunctionRemover {
 		}
 	}
 
+	
 	private void replaceCalls(List<ImFunction> funcs, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, JassImElement e) {
 		// process children
 		for (int i=0; i<e.size(); i++) {
@@ -143,8 +145,37 @@ public class CyclicFunctionRemover {
 
 		if (e instanceof ImFuncRef) {
 			ImFuncRef fr = (ImFuncRef) e;
-			if (funcs.contains(fr.getFunc())) {
-				throw new CompileError(fr.attrTrace().attrSource(), "Function references should never be in cycles.");
+			ImFunction f = fr.getFunc();
+			if (funcs.contains(f)) {
+				ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), 
+						f.getName() + "_proxy", 
+						f.getParameters().copy(), 
+						(ImType) f.getReturnType().copy(), 
+						JassIm.ImVars(), 
+						JassIm.ImStmts(), 
+						Collections.<FunctionFlag>emptyList());
+				prog.getFunctions().add(proxyFunc);
+
+				ImExprs arguments = JassIm.ImExprs();
+				for (ImVar p : proxyFunc.getParameters()) {
+					arguments.add(JassIm.ImVarAccess(p));
+				}
+				
+				ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), 
+						f, 
+						arguments, 
+						true, 
+						CallType.NORMAL);
+				
+				if (f.getReturnType() instanceof ImVoid) {
+					proxyFunc.getBody().add(call);
+				} else {
+					proxyFunc.getBody().add(JassIm.ImReturn(proxyFunc.getTrace(), call));
+				}
+				// rewrite the proxy call:
+				replaceCalls(funcs, newFunc, oldToNewVar, call);
+				// change the funcref to use the proxy
+				fr.setFunc(proxyFunc);
 			}
 		} else if (e instanceof ImFunctionCall) {
 			ImFunctionCall fc = (ImFunctionCall) e;
