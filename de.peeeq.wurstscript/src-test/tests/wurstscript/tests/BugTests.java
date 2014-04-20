@@ -592,5 +592,50 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void funcrefs1() {
+		testAssertOkLines(false,  
+				"package test",
+				"native do(code c)",
+				"int x = 20",
+				"function bar() returns int",
+				"	if x > 0",
+				"		do(function bar)",
+				"		bar()",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"init",
+				"	do(function bar)",
+				"endpackage");
+	}
 	
+	@Test
+	public void funcrefs2() {
+		testAssertOkLines(false,  
+				"package test",
+				"native do(code c)",
+				"int x = 20",
+				"function bar() returns int",
+				"	if x > 0",
+				"		blub()",
+				"		do(function bar)",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"function blub() returns int",
+				"	if x > 0",
+				"		bar()",
+				"		do(function bar)",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"init",
+				"	do(function bar)",
+				"	do(function bar)",
+				"endpackage");
+	}
 }

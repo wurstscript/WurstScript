@@ -457,7 +457,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		
-		
 		// translate flattened intermediate lang to jass:
 		
 		beginPhase(13, "translate to jass");

@@ -50,12 +50,11 @@ public class CyclicFunctionRemover {
 
 	public void work() {
 		for (;;) {
+			// TODO optimize, it is not really necessary to completely recalculate the call relations every time
+			//      instead, we could just keep track of the changes
+			tr.calculateCallRelationsAndUsedVariables();
 			TopsortResult<ImFunction> r = graph.topSort(prog.getFunctions());
 			if (r.isCycle()) {
-//				System.out.println("Found cycle: ");
-//				for (ImFunction f : r.getResult()) {
-//					System.out.println("	" + f.getName());
-//				}
 				removeCycle(r.getResult());
 			} else {
 				// finished
