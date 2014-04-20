@@ -11,7 +11,6 @@ public class WurstGuiCliImpl extends WurstGui {
 	@Override
 	public void sendError(CompileError err) {
 		super.sendError(err);
-		System.out.println(err);
 	}
 
 	@Override
