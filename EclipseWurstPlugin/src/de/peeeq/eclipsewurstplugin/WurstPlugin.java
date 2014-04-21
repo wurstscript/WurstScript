@@ -114,19 +114,17 @@ public class WurstPlugin extends AbstractUIPlugin {
 		WLogger.setLevel(Level.INFO);
 		plugin = this;
 		
-		context.addBundleListener(new BundleListener() {
-			
+		Display.getDefault().syncExec(new Runnable() {
 			@Override
-			public void bundleChanged(BundleEvent event) {
-				System.out.println("Bundle changed....");
-				Display.getDefault().syncExec(new Runnable() {
-					@Override
-					public void run() {
-						initializePreferenceStore();
-						scanners = new ScannerFactory();
-						WurstPerspective.findConsole();
-					}
-				});
+			public void run() {
+				initializePreferenceStore();
+				scanners = new ScannerFactory();
+				try {
+					WurstPerspective.findConsole();
+				} catch (Throwable t) {
+					// ignore error
+					t.printStackTrace();
+				}
 			}
 		});
 		

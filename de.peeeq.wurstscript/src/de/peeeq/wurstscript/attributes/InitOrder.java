@@ -30,6 +30,12 @@ public class InitOrder {
 			packages.add(imported);
 		}
 		
+		// add config package if it exists:
+		WPackage configPackage = p.getModel().attrConfigOverridePackages().get(p);
+		if (configPackage != null) {
+			packages.add(configPackage);
+		}
+		
 		return Lists.newArrayList(packages);
 	}
 

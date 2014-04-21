@@ -598,6 +598,20 @@ CompilationUnit.attrGetByType
 	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
 	
 
+WurstModel.attrConfigOverridePackages
+	returns java.util.Map<WPackage, WPackage>
+	implemented by de.peeeq.wurstscript.attributes.CofigOverridePackages.calculate
+	
+NameDef.attrConfigActualNameDef
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.CofigActualDef.calculate
+
+
+NameDef.hasAnnotation(String annotation)
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.HasAnnotation.hasAnnotation
+
+
 
 // Im translation
 	
@@ -762,6 +776,10 @@ AstElement.lookupPackage(String name, boolean showErrors)
 AstElement.lookupVar(String name, boolean showErrors)
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVar
+
+AstElement.lookupVarNoConfig(String name, boolean showErrors)
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarNoConfig
 	
 AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
 	returns NameDef
@@ -770,6 +788,10 @@ AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, St
 AstElement.lookupFuncs(String name, boolean showErrors)
 	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncs
+
+AstElement.lookupFuncsNoConfig(String name, boolean showErrors)
+	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsNoConfig
 	
 AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
 	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>

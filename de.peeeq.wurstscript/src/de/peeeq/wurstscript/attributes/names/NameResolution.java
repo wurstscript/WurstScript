@@ -1,11 +1,14 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.TypeDef;
@@ -16,7 +19,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
 
-	public static Collection<NameLink> lookupFuncs(AstElement node, String name, boolean showErrors) {
+	public static Collection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
 		if (node.attrNearestStructureDef() != null) {
 			// inside a class one can write foo instead of this.foo()
 			// so the receiver type is implicitly given by the enclosing class
@@ -42,6 +45,14 @@ public class NameResolution {
 			scope = nextScope(scope);
 		}
 		return removeDuplicates(result);
+	}
+	
+	public static Collection<NameLink> lookupFuncs(AstElement e, String name, boolean showErrors) {
+		ArrayList<NameLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
+		for (int i=0; i<result.size(); i++) {
+			result.set(i, result.get(i).withConfigDef());
+		}
+		return result;
 	}
 
 	private static Collection<NameLink> removeDuplicates(List<NameLink> nameLinks) {
@@ -94,7 +105,7 @@ public class NameResolution {
 		receiverType.addMemberMethods(node, name, result);
 	}
 	
-	public static NameDef lookupVar(AstElement node, String name, boolean showErrors) {
+	public static NameDef lookupVarNoConfig(AstElement node, String name, boolean showErrors) {
 		WurstType receiverType;
 		if (node.attrNearestStructureDef() != null) {
 			// inside a class one can write bar instead of this.bar
@@ -134,7 +145,7 @@ public class NameResolution {
 					node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n" 
 							+ Utils.printAlternatives(candidates));
 				}
-				return candidates.get(0).getNameDef();
+				return (NameDef) candidates.get(0).getNameDef();
 			}
 			scope = nextScope(scope);
 		}
@@ -251,4 +262,14 @@ public class NameResolution {
 	public static WPackage lookupPackageShort(AstElement node, String name) {
 		return lookupPackage(node, name, true);
 	}
+
+	public static NameDef lookupVar(AstElement e, String name, boolean showErrors) {
+		NameDef v = e.lookupVarNoConfig(name, showErrors);
+		if (v != null) {
+			return (NameDef) v.attrConfigActualNameDef();
+		}
+		return null;
+	}
+
+	
 }

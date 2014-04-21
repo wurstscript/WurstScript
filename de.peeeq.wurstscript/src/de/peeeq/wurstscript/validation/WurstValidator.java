@@ -112,6 +112,7 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -319,6 +320,7 @@ public class WurstValidator {
 			if (e instanceof Modifiers) visit((Modifiers) e);
 			if (e instanceof ModuleDef) visit((ModuleDef) e);
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
+			if (e instanceof NameDef) checkConfigOverride((NameDef)e);
 			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
 			if (e instanceof NameRef) checkNameRef((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
@@ -346,6 +348,88 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkConfigOverride(NameDef e) {
+		if (!e.hasAnnotation("@config")) {
+			return;
+		}
+		if (!(e.attrNearestPackage() instanceof WPackage)) {
+			e.addError("Annotation @config can only be used in packages.");
+			return;
+		}
+		WPackage configPackage = (WPackage) e.attrNearestPackage();
+		if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+			e.addError("Annotation @config can only be used in config packages (package name has to end with '_config').");
+			return;
+		}
+		
+		WPackage origPackage = CofigOverridePackages.getOriginalPackage(configPackage);
+		if (origPackage == null) {
+			return;
+		}
+		
+		if (e instanceof GlobalVarDef) {
+			GlobalVarDef v = (GlobalVarDef) e;
+			NameDef origVar = origPackage.getElements().lookupVarNoConfig(v.getName(), false);
+			if (origVar == null) {
+				e.addError("Could not find var " + v.getName() + " in configured package.");
+				return;
+			}
+			
+			if (!v.attrTyp().equalsType(origVar.attrTyp(), v)) {
+				e.addError("Configured variable must have type " + origVar.attrTyp() 
+						+ " but the found type is " + v.attrTyp() + ".");
+				return;
+			}
+			
+			if (!origVar.hasAnnotation("@configurable")) {
+				e.addWarning("The configured variable " + v.getName() + " is not marked with @configurable.\n" + 
+						"It is still possible to configure this var but it is not recommended.");
+			}
+			
+		} else if (e instanceof FuncDef) {
+			FuncDef funcDef = (FuncDef) e;
+			Collection<NameLink> funcs = origPackage.getElements().lookupFuncsNoConfig(funcDef.getName(), false);
+			FuncDef configuredFunc = null;
+			for (NameLink nameLink : funcs) {
+				if (nameLink.getNameDef() instanceof FuncDef) {
+					FuncDef f = (FuncDef) nameLink.getNameDef();
+					if (equalSignatures(funcDef, f)) {
+						configuredFunc = f;
+						break;
+					}
+				}
+			}
+			if (configuredFunc == null) {
+				funcDef.addError("Could not find a function " + funcDef.getName() + " with the same signature in the configured package.");
+			} else {
+				if (!configuredFunc.hasAnnotation("@configurable")) {
+					e.addWarning("The configured function " + funcDef.getName() + " is not marked with @configurable.\n" + 
+							"It is still possible to configure this function but it is not recommended.");
+				}
+			}
+			
+			
+		} else {
+			e.addError("Configuring " + Utils.printElement(e) + " is not supported by Wurst.");
+		}
+	}
+
+	private boolean equalSignatures(FuncDef f, FuncDef g) {
+		if (f.getParameters().size() != g.getParameters().size()) {
+			return false;
+		}
+		if (!f.getReturnTyp().attrTyp().equalsType(g.getReturnTyp().attrTyp(), f)) {
+			return false;
+		}
+		for (int i=0; i<f.getParameters().size(); i++) {
+			if (!f.getParameters().get(i).attrTyp().equalsType(g.getParameters().get(i).attrTyp(), f)) {
+				return false;
+			}
+		}
+		
+		return true;
 	}
 
 	private void checkExprEmpty(ExprEmpty e) {
@@ -1246,9 +1330,9 @@ public class WurstValidator {
 				public void case_GlobalVarDef(GlobalVarDef g) {
 					if (g.attrNearestClassOrModule() != null) {
 						check(VisibilityPrivate.class, VisibilityProtected.class,
-								ModStatic.class, ModConstant.class);
+								ModStatic.class, ModConstant.class, Annotation.class);
 					} else {
-						check(VisibilityPublic.class, ModConstant.class);
+						check(VisibilityPublic.class, ModConstant.class, Annotation.class);
 					}
 				}
 

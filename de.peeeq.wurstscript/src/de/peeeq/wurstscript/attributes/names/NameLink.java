@@ -278,6 +278,11 @@ public class NameLink {
 		}
 		return parameterTypes;
 	}
+
+	public NameLink withConfigDef() {
+		NameDef def = (NameDef) nameDef.attrConfigActualNameDef();
+		return new NameLink(visibility, type, definedIn, def, returnType, parameterTypes);
+	}
 	
 	
 	
