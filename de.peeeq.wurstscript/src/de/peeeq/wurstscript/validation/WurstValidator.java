@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -292,6 +293,7 @@ public class WurstValidator {
 			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
 			if (e instanceof ExprBinary) visit((ExprBinary) e);
 			if (e instanceof ExprClosure) checkClosure((ExprClosure) e);
+			if (e instanceof ExprEmpty) checkExprEmpty((ExprEmpty)e);
 			if (e instanceof ExprIntVal) checkIntVal((ExprIntVal) e);
 			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
 			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
@@ -344,6 +346,11 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkExprEmpty(ExprEmpty e) {
+		e.addError("Incomplete expression...");
+		
 	}
 
 	private void checkMemberArrayVar(ExprMemberArrayVar e) {
