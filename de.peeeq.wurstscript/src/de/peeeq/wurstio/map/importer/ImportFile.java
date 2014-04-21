@@ -18,15 +18,19 @@ public class ImportFile {
 	private static final int fileVersion = 1;
 	
 	
-	public static void extractImportedFiles(JmpqEditor mpq, File directory) throws JmpqError{
+	public static LinkedList<String> extractImportedFiles(JmpqEditor mpq, File directory){
 		File temp = null;
+		LinkedList<String> failed = new LinkedList<String>();
 		try {
 			temp = File.createTempFile("temp", "imp");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		mpq.extractFile("war3map.imp", temp);
-//		temp = new File("C:\\Users\\Crigges\\Desktop\\war3map.imp");
+		try {
+			mpq.extractFile("war3map.imp", temp);
+		} catch (JmpqError e1) {
+			JOptionPane.showMessageDialog(null, "No vaild war3map.imp was found, or there are no imports");
+		}
 		BinFileReader reader = new BinFileReader(temp);
 		reader.readInt();
 		int fileCount =  reader.readInt();
@@ -39,6 +43,7 @@ public class ImportFile {
 				mpqpath += "war3mapImported\\";
 			}
 			String filename = reader.readString();
+			filename = filename.trim();
 			mpqpath += filename;
 			path += filename;
 			File out = new File(path);
@@ -49,10 +54,15 @@ public class ImportFile {
 				out.delete();
 				out = new File(directory.getPath() + "\\" + "war3mapImported\\" + filename);
 				out.getParentFile().mkdirs();
-				mpq.extractFile("war3mapImported\\" + mpqpath, out);
+				try {
+					mpq.extractFile("war3mapImported\\" + mpqpath, out);
+				} catch (JmpqError e1) {
+					failed.add(mpqpath);
+				}
 			}
 		}
 		reader.close();
+		return failed;
 	}
 	
 	private static LinkedList<File> getFilesOfDirectory(File dir, LinkedList<File> addTo){
@@ -115,15 +125,20 @@ public class ImportFile {
 		try {
 			File mapTemp = File.createTempFile("temp", "w3x");
 			Files.copy(mapFile, mapTemp);
-			
-			try (JmpqEditor ed = new JmpqEditor(mapTemp)) {
-				File importDirectory = getImportDirectory(mapFile);
-				extractImportedFiles(ed, importDirectory);
+			JmpqEditor ed = new JmpqEditor(mapTemp);
+			File importDirectory = getImportDirectory(mapFile);
+			LinkedList<String> failed = extractImportedFiles(ed, importDirectory);
+			if (failed.isEmpty()){
 				JOptionPane.showMessageDialog(null, "All imports were extracted to " + importDirectory.getAbsolutePath());
-			} catch (JmpqError e) {
-				WLogger.severe(e);
-				JOptionPane.showMessageDialog(null, "Could not export objects (1): " + e.getMessage());
+			}else{
+				String message = "Following files could not be extracted:" + "\n";
+				for(String s: failed){
+					message = message + s + "\n";
+				}
+				WLogger.info(message);
+				JOptionPane.showMessageDialog(null, message);
 			}
+			
 		} catch (IOException e) {
 			WLogger.severe(e);
 			JOptionPane.showMessageDialog(null, "Could not export objects (2): " + e.getMessage());
