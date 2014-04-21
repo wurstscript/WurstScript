@@ -9,9 +9,6 @@ public function group.enumUnitsInRange(vec2 pos, real range)
 public function group.enumUnitsInRange(vec2 pos, real range, boolexpr filter)
 	GroupEnumUnitsInRange(this, pos.x, pos.y, range, filter)
 
-public function group.enumUnitsInRange(vec2 pos, real range, boolexpr filter)
-	GroupEnumUnitsInRange(this, pos.x, pos.y, range, filter)
-
 public function group.clear()
 	GroupClear(this)
 	
