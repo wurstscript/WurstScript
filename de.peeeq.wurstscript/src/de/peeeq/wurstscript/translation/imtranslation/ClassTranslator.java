@@ -8,6 +8,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 

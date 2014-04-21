@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.lang.StringEscapeUtils;
+
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -25,8 +27,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -42,8 +46,11 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 
@@ -982,6 +989,47 @@ public class Utils {
 		return null;
 	}
 
-	
+	public static <T extends AstElementWithName> Comparator<T> compareByName() {
+		return new Comparator<T>() {
 
+			@Override
+			public int compare(T a, T b) {
+				return a.getName().compareTo(b.getName());
+			}
+		};
+	}
+	
+	public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
+		return new Comparator<T>() {
+
+			@Override
+			public int compare(T a, T b) {
+				return a.getName().compareTo(b.getName());
+			}
+		};
+	}
+
+	public static String getParameterListText(AstElementWithParameters f) {
+		StringBuilder descr = new StringBuilder();
+		for (WParameter p : f.getParameters()) {
+			if (descr.length() > 0) {
+				descr.append(", ");
+			}
+			descr.append(p.attrTyp() + " " + p.getName());
+		}
+		return descr.toString();
+	}
+	
+	public static <T> List<T> subList(List<T> l, int start) {
+		return subList(l, start, l.size()-1);
+	}
+
+	public static <T> List<T> subList(List<T> l, int start, int stop) {
+		List<T> result = Lists.newArrayListWithCapacity(stop-start);
+		for (int i = start; i <= stop; i++) {
+			result.add(l.get(i));
+		}
+		return result;
+	}
+	
 }

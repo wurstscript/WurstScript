@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrTypeDef {
 
 	public static  TypeDef calculate(TypeExprResolved e) {
-		throw new Error("already resolved...");
+		return null;
 	}
 	
 	

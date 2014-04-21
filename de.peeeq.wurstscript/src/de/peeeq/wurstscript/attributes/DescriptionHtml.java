@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.ExprBoolVal;
 import de.peeeq.wurstscript.ast.ExprCast;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
@@ -447,6 +448,10 @@ public class DescriptionHtml {
 
 	public static String description(WurstDoc wurstDoc) {
 		return wurstDoc.getRawComment();
+	}
+
+	public static String description(ExprEmpty exprEmpty) {
+		return null;
 	}
 	
 }

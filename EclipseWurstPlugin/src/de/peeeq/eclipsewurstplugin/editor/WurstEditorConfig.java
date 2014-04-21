@@ -1,6 +1,5 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
-import org.eclipse.jface.text.DefaultTextHover;
 import org.eclipse.jface.text.IAutoEditStrategy;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IInformationControl;
@@ -14,20 +13,18 @@ import org.eclipse.jface.text.presentation.PresentationReconciler;
 import org.eclipse.jface.text.reconciler.IReconciler;
 import org.eclipse.jface.text.reconciler.MonoReconciler;
 import org.eclipse.jface.text.rules.DefaultDamagerRepairer;
-import org.eclipse.jface.text.source.Annotation;
+import org.eclipse.jface.text.source.DefaultAnnotationHover;
+import org.eclipse.jface.text.source.IAnnotationHover;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.SourceViewerConfiguration;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
-import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
 import de.peeeq.eclipsewurstplugin.editor.autocomplete.WurstCompletionProcessor;
 import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
-import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 import de.peeeq.wurstscript.WLogger;
 
 
@@ -101,6 +98,11 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	@Override
 	public ITextHover getTextHover(ISourceViewer sourceViewer, String contentType){
 		return new WurstTextHover(sourceViewer, editor);
+	}
+	
+	@Override
+	public IAnnotationHover getAnnotationHover(ISourceViewer sourceViewer) {
+	    return new DefaultAnnotationHover();
 	}
 	
 	@Override

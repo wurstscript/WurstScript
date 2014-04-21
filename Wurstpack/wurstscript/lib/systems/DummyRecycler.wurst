@@ -1,6 +1,5 @@
 package DummyRecycler
 import MapBounds 
-import LinkedListModule
 import GameTimer
 // Credits to Bribe
 
@@ -14,7 +13,7 @@ constant int ANG_STORAGE_MAX = 12
 	be higher than 0.74 seconds to allow the unit time to turn. This
 	number should not be lower than the maximum death-animation time of
 	your missile-units' effect attachments, just to be safe. */
-constant real DEATH_TIME = 2. 
+constant real DEATH_TIME = 0.75 
 
 /** Generate angle value from ANG_N. */
 constant int ANG_VAL = 360 div ANG_N
@@ -32,14 +31,6 @@ int array queueLast
 int recycle = 0
 /** Used to prevent double frees. */
 group protect   = CreateGroup()
-
-class DelayData
-	use LinkedListModule
-	unit dum = null
-	real dT = 0.
-	construct(unit d, real dt)
-		dum = d
-		dT = dt
 
 /** Look at newDummy with vec3 */
 public function newDummy( vec2 pos, angle facing ) returns unit
@@ -80,12 +71,12 @@ public function newDummy( vec3 pos, angle facing ) returns unit
 	bj_lastCreatedUnit = u
 	return bj_lastCreatedUnit
 
-/** Recycle a dummy after a certain delay */
-public function recycleDummyDelayed(unit dummy, real delay)
-	new DelayData(dummy, delay)
-	
 /** Immediately recycle a dummy */
 public function recycleDummy( unit u )
+	recycleDummy(u)
+	
+/** Recycle a dummy after a delay */
+public function recycleDummy( unit u, real delay )
 	int rc = recycle
 	if u.getTypeId() == DUMMY_UNIT_ID and not IsUnitInGroup(u, protect) 
 		if rc == 0 
@@ -106,7 +97,7 @@ public function recycleDummy( unit u )
 		queueNext[rc] = 0
 		stackN[i] = stackN[i] + 1
 		//Allow a time barrier for the effect to destroy/turn to complete.
-		timeStamp[rc] = getElapsedGameTime() + DEATH_TIME
+		timeStamp[rc] = getElapsedGameTime() + DEATH_TIME + delay
 		stack[rc] = u
 		//Prevent double-free of this unit.
 		GroupAddUnit(protect, u)
@@ -119,15 +110,6 @@ public function recycleDummy( unit u )
 	else
 		error("[DummyRecycler] Error: Attempt to recycle invalid unit.")
 
-
-function checkDelayed()
-	var data = DelayData.first
-	while data != null
-		data.dT -= .1
-		if data.dT <= 0.
-			recycleDummy(data.dum)
-			destroy data
-		data = data.next
 
 				
 			
@@ -155,5 +137,4 @@ init
 
 		queueNext[n - 1] = 0
 
-	TimerStart(CreateTimer(), 0.1, true, function checkDelayed)
 

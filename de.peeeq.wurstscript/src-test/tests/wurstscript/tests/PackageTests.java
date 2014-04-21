@@ -23,7 +23,7 @@ public class PackageTests extends WurstScriptTest {
 	
 	@Test
 	public void duplicatePackageName() {
-		testAssertErrorsLines(false, "Package A is already defined",
+		testAssertErrorsLines(false, "already",
 				"package A",
 				"endpackage",
 				"package A",

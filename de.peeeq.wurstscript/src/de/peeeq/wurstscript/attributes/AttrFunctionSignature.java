@@ -44,7 +44,8 @@ public class AttrFunctionSignature {
 			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
 		}
 		returnType = returnType.setTypeArgs(binding2);
-		return new FunctionSignature(null, paramTypes, returnType);
+		List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
+		return new FunctionSignature(null, paramTypes, pNames, returnType);
 	}
 
 }

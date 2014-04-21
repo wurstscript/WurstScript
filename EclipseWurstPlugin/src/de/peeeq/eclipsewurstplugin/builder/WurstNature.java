@@ -165,6 +165,10 @@ public class WurstNature implements IProjectNature {
 	}
 
 	public static WurstNature get(final IProject p) {
+		return get(p, false);
+	}
+	
+	public static WurstNature get(final IProject p, boolean askAddNature) {
 		if (p == null) {
 			return null;
 		}
@@ -172,7 +176,7 @@ public class WurstNature implements IProjectNature {
 			IProjectNature nat = p.getNature(NATURE_ID);
 			if (nat instanceof WurstNature) {
 				return (WurstNature) nat;
-			} else {
+			} else if (askAddNature) {
 				final boolean answer[] = new boolean[] {false};
 				Display.getDefault().syncExec(new Runnable() {
 					public void run() {

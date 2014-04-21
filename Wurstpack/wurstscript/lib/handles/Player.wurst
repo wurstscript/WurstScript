@@ -30,9 +30,17 @@ public function player.subGold(int val)
 public function player.getGold() returns int
 	return this.getState(PLAYER_STATE_RESOURCE_GOLD)
 
+public function player.getLumber() returns int
+	return this.getState(PLAYER_STATE_RESOURCE_LUMBER)
 	
 public function player.addLumber(int val)
 	this.addState(PLAYER_STATE_RESOURCE_LUMBER, val)
+	
+public function player.getMaxSupply() returns int
+	return this.getState(PLAYER_STATE_RESOURCE_FOOD_CAP)
+	
+public function player.getCurrentSupply() returns int
+	return this.getState(PLAYER_STATE_RESOURCE_FOOD_USED)
 	
 public function player.setState(playerstate state, int val)
 	SetPlayerState(this, state, val)

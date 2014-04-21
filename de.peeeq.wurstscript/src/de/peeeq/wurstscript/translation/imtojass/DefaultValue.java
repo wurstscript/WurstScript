@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -53,6 +54,10 @@ public class DefaultValue {
 
 	public static ILconst get(ImVoid t) {
 		throw new Error("Could not get default value for void variable.");
+	}
+
+	public static ILconst get(ImArrayTypeMulti imArrayTypeMulti) {
+		return JassIm.ImSimpleType(imArrayTypeMulti.getTypename()).defaultValue();
 	}
 
 }

@@ -28,10 +28,12 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMember;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -70,6 +72,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
@@ -93,6 +96,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.VisibilityPrivate;
@@ -129,6 +133,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -161,15 +166,17 @@ public class WurstValidator {
 		this.prog = root;
 	}
 
-	public void validate() {
+	public void validate(List<CompilationUnit> toCheck) {
 		try {
-			functionCount = countFunctions();
+			functionCount = countFunctions(); 
 			visitedFunctions = 0;
 	
 			prog.getErrorHandler().setProgress("Checking wurst types", ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-			walkTree(prog);	
-			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
-			postChecks();
+			for (CompilationUnit cu : toCheck) {
+				walkTree(cu);	
+			}
+			prog.getErrorHandler().setProgress("Post checks", 0.55);
+			postChecks(toCheck);
 		} catch (RuntimeException e) {
 			WLogger.severe(e);
 			if (lastElement != null) {
@@ -184,23 +191,86 @@ public class WurstValidator {
 
 	/**
 	 * checks done after walking the tree
+	 * @param toCheck 
 	 */
-	private void postChecks() {
-		checkForCyclicFunctions();
+	private void postChecks(List<CompilationUnit> toCheck) {
+		checkUnusedImports(toCheck);
 	}
 
 	
 
-	private void checkForCyclicFunctions() {
-		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
-		for (WScope s : calledFunctionsTr.keySet()) {
-			if (calledFunctionsTr.containsEntry(s, s)) {
-				if (!calledFunctions.containsEntry(s, s)) {
-					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
+	private void checkUnusedImports(List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
+			for (WPackage p : cu.getPackages()) {
+				checkUnusedImports(p);
+			}
+		}
+	}
+
+	private void checkUnusedImports(WPackage p) {
+		Set<WPackage> unused = Sets.newLinkedHashSet();
+		// first assume all are unused
+		for (WImport imp : p.getImports()) {
+			if (!imp.getPackagename().equals("Wurst")) {
+				unused.add(imp.attrImportedPackage());
+			}
+		}
+		
+		removeUsed(unused, p.getElements());
+		
+		
+		for (WImport imp : p.getImports()) {
+			if (imp.attrImportedPackage() != null 
+				&& !imp.getIsPublic()
+				&& unused.contains(imp.attrImportedPackage()) ) {
+				imp.addWarning("The import " + imp.getPackagename() + " is never used directly.");
+			}
+		}
+	}
+
+	private void removeUsed(Set<WPackage> unused, AstElement e) {
+		for (int i=0; i<e.size(); i++) {
+			removeUsed(unused, e.get(i));
+		}
+		
+		if (e instanceof FuncRef) {
+			FuncRef fr = (FuncRef) e;
+			FunctionDefinition def = fr.attrFuncDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof NameRef) {
+			NameRef nr = (NameRef) e;
+			NameDef def = nr.attrNameDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof TypeRef) {
+			TypeRef t = (TypeRef) e;
+			TypeDef def = t.attrTypeDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof Expr) {
+			WurstType typ = ((Expr) e).attrTyp();
+			if (typ instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+				NamedScope def = ns.getDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			} else if (typ instanceof WurstTypeTuple) {
+				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
 				}
 			}
 		}
 	}
+
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
@@ -223,12 +293,14 @@ public class WurstValidator {
 			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
 			if (e instanceof ExprBinary) visit((ExprBinary) e);
 			if (e instanceof ExprClosure) checkClosure((ExprClosure) e);
+			if (e instanceof ExprEmpty) checkExprEmpty((ExprEmpty)e);
 			if (e instanceof ExprIntVal) checkIntVal((ExprIntVal) e);
 			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
 			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
 			if (e instanceof ExprFunctionCall) visit((ExprFunctionCall) e);
 			if (e instanceof ExprMemberMethod) visit((ExprMemberMethod) e);
 			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
+			if (e instanceof ExprMemberArrayVar) checkMemberArrayVar((ExprMemberArrayVar) e);
 			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
 			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
 			if (e instanceof ExprNull) checkExprNull((ExprNull) e);
@@ -274,6 +346,16 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkExprEmpty(ExprEmpty e) {
+		e.addError("Incomplete expression...");
+		
+	}
+
+	private void checkMemberArrayVar(ExprMemberArrayVar e) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	private void checkNameRef(NameRef e) {
@@ -565,7 +647,7 @@ public class WurstValidator {
 	}
 
 	private boolean isValidVarnameStart(String varName) {
-		return Character.isLowerCase(varName.charAt(0))
+		return varName.length() > 0 && Character.isLowerCase(varName.charAt(0))
 				|| varName.startsWith("_");
 	}
 
@@ -615,8 +697,8 @@ public class WurstValidator {
 
 
 		if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
-			s.addError("Array variables must be static.\n" +
-					"Hint: use Lists for dynamic stuff.");
+//			s.addError("Array variables must be static.\n" +
+//					"Hint: use Lists for dynamic stuff.");
 		}
 	}
 
@@ -747,6 +829,10 @@ public class WurstValidator {
 							" from static context.");
 				}
 			}
+			if (calledFunc instanceof ExtensionFuncDef) {
+				stmtCall.addError("Extension function " + funcName + " must be called with an explicit receiver.\n"
+						+ "Try to write this."+funcName+"(...) .");
+			}
 		}
 
 		// special check for filter & condition:
@@ -762,6 +848,7 @@ public class WurstValidator {
 				}
 			}
 		}
+		
 	}
 
 	//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
@@ -1227,7 +1314,12 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				e.addError(error.toString());
+				if (m.attrSource().getFile().endsWith(".jurst")) {
+					// for jurst only add a warning:
+					m.addWarning(error.toString());
+				} else {
+					m.addError(error.toString());
+				}
 			}
 		}
 	}
@@ -1780,7 +1872,21 @@ public class WurstValidator {
 			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr) {
 				g.addError("Constant variable " + g.getName() + " needs an initial value.");
 			}
-			
+		}
+		
+		if (v.attrTyp() instanceof WurstTypeArray) {
+			WurstTypeArray wta = (WurstTypeArray) v.attrTyp();
+			if (wta.getDimensions() == 0) {
+				v.addError("0-dimensionals arrays are not possible");
+			} else if (wta.getDimensions() == 1) {
+				if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
+					v.addError("Sized arrays are only supported as class members.");
+				} else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
+					v.addError("Array members require a fixed size.");
+				}
+			} else {
+				v.addError("Multidimensional Arrays are not yet supported.");
+			}
 		}
 		
 	}

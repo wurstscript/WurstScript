@@ -92,7 +92,16 @@ public class AttrPos {
 	
 	public static WPos getErrorPos(FuncDef e) {
 		WPos pos = e.getSource();
-		return pos.withRightPos(pos.getLeftPos() + ("function " + e.getName()).length());
+		int start;
+		if (e.getModifiers().isEmpty()) {
+			start = pos.getLeftPos();
+		} else {
+			start = e.getModifiers().attrSource().getRightPos() + 1;
+		}
+		start += "function ".length();
+		return pos
+				.withLeftPos(start)
+				.withRightPos(start + e.getName().length());
 	}
 	
 	public static WPos getErrorPos(ExtensionFuncDef e) {

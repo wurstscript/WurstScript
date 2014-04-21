@@ -25,6 +25,7 @@
 WSetup/*
 Wurstpack/wurstscript/lib/MapStuff/*
 Wurstpack/wurstscript/lib/EBR/*
+*/backupsdata.txt
 
 Wurstpack/war3map.j
 
@@ -42,3 +43,7 @@ WurstWeb/war/wurstweb/*
 /WurstSetup/WurstSetup/nbproject/private/
 /WurstSetup/WurstSetup/build/
 /bin
+Wurstpack/vexorianjasshelper/Blizzard.j
+Wurstpack/vexorianjasshelper/common.j
+Wurstpack/wurstscript/Blizzard.j
+Wurstpack/wurstscript/common.j

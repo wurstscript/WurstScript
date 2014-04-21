@@ -39,7 +39,7 @@ WEntity =
 
 TypeExpr = 
 	  TypeExprSimple(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs)
-	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base)
+	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base, OptExpr arraySize)
 	| TypeExprThis(de.peeeq.wurstscript.parser.WPos source)
 	| TypeExprResolved(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.types.WurstType resolvedType)
 	
@@ -198,6 +198,7 @@ ExprAtomic =
 	| ExprThis(de.peeeq.wurstscript.parser.WPos source)
 	| ExprNull(de.peeeq.wurstscript.parser.WPos source)
 	| ExprSuper(de.peeeq.wurstscript.parser.WPos source)
+	| ExprEmpty(de.peeeq.wurstscript.parser.WPos source)
 	
 	
 Indexes * Expr
@@ -343,6 +344,11 @@ OptTypeExpr.attrTyp
 Expr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType 
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.normalizedType
+
+
+Expr.attrConstantValue
+	returns de.peeeq.wurstscript.intermediateLang.ILconst 
+	implemented by de.peeeq.wurstscript.attributes.AttrConstantValue.calculate
 
 
 OptTypeExpr.attrTypRaw

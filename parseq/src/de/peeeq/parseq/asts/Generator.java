@@ -523,12 +523,19 @@ public class Generator {
 	}
 	
 	private void createClearMethod(ConstructorDef c, StringBuilder sb) {
+		// recursive clearAttribute
 		sb.append("	@Override public void clearAttributes() {\n");
 		for (Parameter p : c.parameters) {
 			if (!p.isRef && prog.hasElement(p.typ)) {
 				sb.append("		" + p.name+".clearAttributes();\n");
 			}			
 		}
+		sb.append("		clearAttributesLocal();\n");
+		sb.append("	}\n");
+		
+		
+		// local clear attributes:
+		sb.append("	@Override public void clearAttributesLocal() {\n");
 		for (AttributeDef attr : prog.attrDefs) {
 			if (hasAttribute(c, attr)) {
 				if (attr.parameters == null) {
@@ -536,14 +543,20 @@ public class Generator {
 				}
 			}
 		}
+		
 		sb.append("	}\n");
 	}
 	
 	private void createClearMethod(ListDef c, StringBuilder sb) {
+		// Recursive clear
 		sb.append("	@Override public void clearAttributes() {\n");
 		sb.append("		for ("+c.itemType+" child : this) {\n");
 		sb.append("			child.clearAttributes();\n");
 		sb.append("		}\n");
+		sb.append("		clearAttributesLocal();\n");
+		sb.append("	}\n");
+		// local clear
+		sb.append("	@Override public void clearAttributesLocal() {\n");
 		for (AttributeDef attr : prog.attrDefs) {
 			if (hasAttribute(c, attr)) {
 				if (attr.parameters == null) {
@@ -638,6 +651,7 @@ public class Generator {
 		
 		// clear attributes method
 		sb.append("	void clearAttributes();\n");
+		sb.append("	void clearAttributesLocal();\n");
 		
 		generateVisitorInterface(c, sb);
 		
@@ -963,6 +977,7 @@ public class Generator {
 				"	"+getCommonSupertypeType()+" copy();\n" +
 				"	int size();\n" +
 				"	void clearAttributes();\n" +
+				"	void clearAttributesLocal();\n" +
 				"	"+getCommonSupertypeType()+" get(int i);\n"+
 				"	"+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement);\n"+
 				"	void setParent("+getCommonSupertypeType()+" parent);\n");

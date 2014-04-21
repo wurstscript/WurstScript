@@ -61,4 +61,9 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 		return rating;
 	}
 
+	public WurstCompletion withDisableAction(int cursorPosition) {
+		return new WurstCompletion("", cursorPosition, 0, 0, image, displayString, contextInformation, additionalProposalInfo, rating);
+	}
+	
+
 }

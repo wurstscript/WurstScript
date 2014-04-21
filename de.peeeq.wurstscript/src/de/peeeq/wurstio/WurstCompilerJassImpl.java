@@ -12,6 +12,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,10 +42,12 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.CyclicFunctionRemover;
 import de.peeeq.wurstscript.translation.imtranslation.DebugMessageRemover;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
 import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.MultiArrayEliminator;
 import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -66,6 +69,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private final WurstParser parser;
 	private final WurstChecker checker;
 	private ImTranslator imTranslator;
+	private List<File> dependencies = Lists.newArrayList();
 
 	
 	public WurstCompilerJassImpl(WurstGui gui, RunArgs runArgs) {
@@ -112,10 +116,38 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				loadWurstFilesInDir(f);
 			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
 				loadFile(f);
+			} else if (f.getName().equals("wurst.dependencies")) {
+				addDependencyFile(f);
 			}
 		}
 	}
 	
+	private void addDependencyFile(File f) {
+		try (FileReader fr = new FileReader(f);
+			BufferedReader reader = new BufferedReader(fr)) {
+			while (true) {
+				String line = reader.readLine();
+				if (line == null) break;
+				addDependencyFolder(f, line);						
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new Error(e);
+		}
+	}
+
+
+	private void addDependencyFolder(File f, String folderName) {
+		File folder = new File(folderName);
+		if (!folder.exists()) {
+			gui.sendError(new CompileError(new WPos(f.getAbsolutePath(), new LineOffsets(), 0, 1), "Folder " + folderName + " not found."));
+		} else if (!folder.isDirectory()) {
+			gui.sendError(new CompileError(new WPos(f.getAbsolutePath(), new LineOffsets(), 0, 1), "" + folderName + " is not a folder."));
+		} else {
+			dependencies.add(folder);
+		}
+	}
+
 	@Override public WurstModel parseFiles() {
 
 		// search mapFile
@@ -127,13 +159,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		// import wurst folder if it exists
 		if (mapFile != null) {
-			File relativeWurstDir = new File(mapFile.getParentFile().getAbsolutePath() + "/wurst/");
+			File relativeWurstDir = new File(mapFile.getParentFile(), "wurst");
 			if (relativeWurstDir.exists()) {
 				WLogger.info("Importing wurst files from " + relativeWurstDir);
 				loadWurstFilesInDir(relativeWurstDir);
 			} else {
 				WLogger.info("No wurst folder found in " + relativeWurstDir);
 			}
+			File dependencyFile = new File(mapFile.getParentFile(), "wurst.dependencies");
+			if (dependencyFile.exists()) {
+				addDependencyFile(dependencyFile);
+			}
+			
 		}
 		
 		// add directories:
@@ -274,6 +311,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			for (File libDir: runArgs.getAdditionalLibDirs()) {
 				addLibDir(libDir);
 			}
+			for (File libDir: dependencies) {
+				addLibDir(libDir);
+			}
 		}
 		return libCache;
 	}
@@ -311,11 +351,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	public void checkProg(WurstModel root) {
-		checker.checkProg(root);
+	public void checkProg(WurstModel model) {
+		checkProg(model, model);
 	}
 
-	
+	public void checkProg(WurstModel model, List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
+			Preconditions.checkNotNull(cu);
+			if (!model.contains(cu)) {
+				// model has changed since then, no need to do 'toCheck'
+				return;
+			}
+		}
+		
+		checker.checkProg(model, toCheck);
+	}
 
 	public JassProg translateProg(WurstModel root) {
 		translateProgToIm(root);
@@ -327,9 +377,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		// eliminate classes
 		beginPhase(2, "translate classes");
 		new EliminateClasses(imTranslator, imProg).eliminateClasses();
-
 		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
-		
+		new MultiArrayEliminator(imProg, imTranslator).run();
 		
 		if (runArgs.isNoDebugMessages()) {
 			beginPhase(3, "remove debug messages");
@@ -365,9 +414,20 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		imTranslator.assertProperties(AssertProperty.NOTUPLES);
 		
 		printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
+
+		
+		beginPhase(7, "remove func refs");
+		new FuncRefRemover(imProg, imTranslator).run();
+		
+		// remove cycles:
+		beginPhase(8, "remove cyclic functions");
+		new CyclicFunctionRemover(imTranslator, imProg).work();;
+		
+		printDebugImProg("./test-output/im " + stage++ + "_nocyc.im");
+		
 		
 		// flatten
-		beginPhase(7, "flatten");
+		beginPhase(9, "flatten");
 		imProg.flatten(imTranslator);
 		imTranslator.assertProperties(AssertProperty.NOTUPLES, AssertProperty.FLAT);
 		
@@ -375,36 +435,31 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		
 		if (runArgs.isLocalOptimizations()) {
-			beginPhase(8, "local optimizations");
+			beginPhase(10, "local optimizations");
 			optimizer.localOptimizations();
 		}
 		
 		
 		if (runArgs.isNullsetting()) {
-			beginPhase(9, "null setting");
+			beginPhase(11, "null setting");
 			optimizer.doNullsetting();
 			printDebugImProg("./test-output/im " + stage++ + "_afternullsetting.im");
 		}
 		
 		
-		beginPhase(10, "remove func refs");
-		new FuncRefRemover(imProg, imTranslator).run();
-		
-		
 		optimizer.removeGarbage();
 		
 		if (runArgs.isOptimize()) {
-			beginPhase(11, "froptimize");
+			beginPhase(12, "froptimize");
 			optimizer.optimize();
 			
 			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
 		}
 		
 		
-		
 		// translate flattened intermediate lang to jass:
 		
-		beginPhase(12, "translate to jass");
+		beginPhase(13, "translate to jass");
 		imTranslator.calculateCallRelationsAndUsedVariables();
 		ImToJassTranslator translator = new ImToJassTranslator(imProg, imTranslator.getCalledFunctions()
 				, imTranslator.getMainFunc(), imTranslator.getConfFunc());
@@ -417,12 +472,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	public ImProg translateProgToIm(WurstModel root) {
 		beginPhase(1, "to intermediate lang");
-		
 		// translate wurst to intermediate lang:
 		imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
 		imProg = imTranslator.translateProg();
 		int stage = 1;
-		
 		printDebugImProg("./test-output/im " + stage++ + ".im");
 		return imProg;
 	}

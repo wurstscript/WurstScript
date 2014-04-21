@@ -86,8 +86,8 @@ public class Damager
 	unittype req_ut  = null
 
 
-	Table fct = new Table()
-	Table fc = new Table()
+	int array[MAX_SUB_OPTIONS] fct
+	real array[MAX_SUB_OPTIONS] fc
 	integer  fcn=0
 
 	//
@@ -100,8 +100,8 @@ public class Damager
 			printWarning("In one instance of Damager, you are doing too much calls to factor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of factor() calls")
 			return
 
-		fct.saveInt( fcn, convertUnitTypeToInt( ut ))
-		this.fc.saveReal( fcn, fc )
+		fct[fcn] = convertUnitTypeToInt( ut )
+		this.fc[fcn] = fc
 		fcn++
 
 
@@ -256,8 +256,8 @@ public class Damager
 		i=fcn-1
 		while i > 0
 
-			if( IsUnitType(target, ConvertUnitType(this.fct.loadInt(i)) ) ) 
-				f=f*this.fc.loadReal(i)
+			if( IsUnitType(target, ConvertUnitType(fct[i]) ) ) 
+				f=f*this.fc[i]
 				if(f <= -EPSILON) 
 					f=-f
 					negf=-1.0

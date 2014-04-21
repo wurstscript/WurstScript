@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
 
@@ -30,11 +32,11 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.validation.WurstValidator;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -85,7 +87,7 @@ public class ModelManagerImpl implements ModelManager {
 	
 	
 	@Override
-	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
+	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
 		if (needsFullBuild) {
 			WLogger.info("needs full build...");
 			try {
@@ -96,15 +98,30 @@ public class ModelManagerImpl implements ModelManager {
 			// full build will trigger a new run of typeCheckModel ...
 			return;
 		}
-		doTypeCheck(gui, addErrorMarkers, true /*refreshAttributes*/);
+		doTypeCheck(gui, addErrorMarkers);
+	}
+	
+	@Override
+	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
+		if (needsFullBuild) {
+			WLogger.info("needs full build...");
+			try {
+				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+			// full build will trigger a new run of typeCheckModel ...
+			return;
+		}
+		doTypeCheckPartial(gui, addErrorMarkers, toCheck);
 	}
 
-	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers, boolean refreshAttributes) {
+	
+	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
 		// this line is not synchronized, because it can trigger a build in a different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
 			long time = System.currentTimeMillis();
-			WLogger.info("#typechecking with refresh = " + refreshAttributes);
 			if (gui.getErrorCount() > 0) {
 				if (addErrorMarkers) {
 					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
@@ -115,11 +132,88 @@ public class ModelManagerImpl implements ModelManager {
 			if (model == null) {
 				return;
 			}
-			if (refreshAttributes) {
-				model.clearAttributes();
+			
+			try {
+				clearAttributes(toCheck);
+				comp.addImportedLibs(model);
+				comp.checkProg(model, toCheck);
+			} catch (CompileError e) {
+				gui.sendError(e);
+			}
+			WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+			if (addErrorMarkers) {
+				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
+			}
+		}
+	}
+	
+    /** clear the attributes for all compilation units that import something from 'toCheck' */
+	private void clearAttributes(List<CompilationUnit> toCheck) {
+		model.clearAttributesLocal();
+		Set<String> packageNames = Sets.newHashSet();
+		for (CompilationUnit cu : toCheck) {
+			cu.clearAttributes();
+			for (WPackage p : cu.getPackages()) {
+				packageNames.add(p.getName());
+			}
+		}
+		for (CompilationUnit cu : model) {
+			if (imports(cu, packageNames, false)) {
+				cu.clearAttributes();
+			}
+		}
+		
+	}
+
+	/** check whether cu imports something from 'toCheck' */
+	private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
+		for (WPackage p : cu.getPackages()) {
+			if (imports(p, packageNames, false, Sets.<WPackage>newHashSet())) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/** check whether p imports something from 'toCheck' 
+	 * @param hashSet */
+	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic, HashSet<WPackage> visited) {
+		if (visited.contains(p)) {
+			return false;
+		}
+		visited.add(p);
+		for (WImport imp : p.getImports()) {
+			if ((!importPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
+				return true;
+			} else if (imp.getIsPublic() && imp.attrImportedPackage() != null) {
+				if (imports(imp.attrImportedPackage(), packageNames, true, visited)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
+		// this line is not synchronized, because it can trigger a build in a different thread
+		WurstCompilerJassImpl comp = getCompiler(gui);
+		synchronized (this) {
+			long time = System.currentTimeMillis();
+			if (gui.getErrorCount() > 0) {
+				if (addErrorMarkers) {
+					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+				}
+				WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
+				return;
+			}
+			if (model == null) {
+				return;
 			}
 			
 			try {
+				model.clearAttributes();
 				comp.addImportedLibs(model);		
 				comp.checkProg(model);
 			} catch (CompileError e) {
@@ -271,7 +365,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public void removeCompilationUnitByName(String fileName) {
+	public synchronized void removeCompilationUnitByName(String fileName) {
 		ListIterator<CompilationUnit> it = model.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
@@ -283,7 +377,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public void resolveImports(WurstGui gui) {
+	public synchronized void resolveImports(WurstGui gui) {
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		
 		try {

@@ -4,6 +4,7 @@ import java.util.List;
 
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
@@ -29,6 +30,7 @@ import de.peeeq.wurstscript.jassIm.ImRealVal;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -46,6 +48,7 @@ import de.peeeq.wurstscript.jassIm.ImTypeIdOfObj;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 
 public class ImPrinter {
@@ -424,6 +427,36 @@ public class ImPrinter {
 		e.getObj().print(sb, 0);
 		sb.append(".typeId");
 	}
+
+
+	public static void print(ImArrayTypeMulti imArrayTypeMulti,
+			StringBuilder sb, int indent) {
+		sb.append("array " + imArrayTypeMulti.getTypename() + " size: " + imArrayTypeMulti.getArraySize());
+		
+	}
+
+
+	public static void print(ImSetArrayMulti imSetArrayMulti, StringBuilder sb,
+			int indent) {
+		sb.append(imSetArrayMulti.getLeft().getName() + smallHash(imSetArrayMulti.getLeft()) + "[");
+		imSetArrayMulti.getIndices().get(0).print(sb, indent);
+		sb.append("]");
+		sb.append("[");
+		imSetArrayMulti.getIndices().get(1).print(sb, indent);
+		sb.append("]");
+		sb.append(" = " );
+		imSetArrayMulti.getRight().print(sb, indent);
+		
+	}
+
+
+	public static void print(ImVarArrayMultiAccess imVarArrayMultiAccess,
+			StringBuilder sb, int indent) {
+		sb.append(imVarArrayMultiAccess.getVar().getName() + smallHash(imVarArrayMultiAccess.getVar()));
+		
+	}
+
+
 
 	
 	

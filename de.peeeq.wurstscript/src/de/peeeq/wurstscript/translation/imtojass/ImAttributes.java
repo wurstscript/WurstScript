@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtojass;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
@@ -29,6 +30,10 @@ public class ImAttributes {
 	
 	public static String translateType(ImArrayType t) {
 		return t.getTypename();
+	}
+	
+	public static String translateType(ImArrayTypeMulti imArrayTypeMulti) {
+		throw new Error("multi-arrays should be eliminated in earlier phase");
 	}
 
 
@@ -111,6 +116,9 @@ public class ImAttributes {
 	public static ImClass attrClass(ImMethod m) {
 		return (ImClass) m.getParent().getParent();
 	}
+
+
+
 
 
 	

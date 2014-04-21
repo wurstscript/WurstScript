@@ -202,7 +202,7 @@ public class ModuleTests extends WurstScriptTest {
 	
 	@Test
 	public void modules_wrong_param_count2() {
-		testAssertErrorsLines(false, "parameter", 
+		testAssertErrorsLines(false, "not enough", 
 				"package test",
 				"	module A",
 				"		function foo()",

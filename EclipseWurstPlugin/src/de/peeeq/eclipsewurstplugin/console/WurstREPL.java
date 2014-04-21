@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -249,7 +250,7 @@ public class WurstREPL {
 				// if there was an error, check if there is a problem in typechecking:
 				
 				try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
-					modelManager.typeCheckModel(gui, false, false);
+					modelManager.typeCheckModelPartial(gui, false, ImmutableList.of(cu));
 				} catch (CompileError err) {
 					handleCompileError(err);
 					return;
@@ -642,7 +643,7 @@ public class WurstREPL {
 	private ImProg translateProg() {
 		gui.clearErrors();
 		WurstModel model = modelManager.getModel();
-		modelManager.typeCheckModel(gui, false, false);
+		modelManager.typeCheckModel(gui, false);
 		if (gui.getErrorCount() > 0) {
 			print(gui.getErrors() + "\n");
 			return null;

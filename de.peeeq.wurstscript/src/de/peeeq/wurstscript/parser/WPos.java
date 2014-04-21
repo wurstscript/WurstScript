@@ -71,5 +71,9 @@ public class WPos {
 		}
 		return shortFile + ", line " + getLine();
 	}
+
+	public WPos withLeftPos(int leftPos) {
+		return new WPos(file, lineOffsets, leftPos, rightPos);
+	}
 	
 }

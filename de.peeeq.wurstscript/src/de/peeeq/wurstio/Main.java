@@ -14,10 +14,12 @@ import javax.swing.JOptionPane;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.jmpq.JmpqEditor;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
+import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.BackupController;
@@ -71,11 +73,18 @@ public class Main {
 				about.setVisible(true);
 				return;
 			}
+			WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
+			if (runArgs.isExtractImports()) {
+				File mapFile = new File(runArgs.getMapFile());
+				ImportFile.extractImportedFiles(mapFile);
+				return;
+			}
 
 			if (runArgs.createHotDoc()) {
 				HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
 				hg.generateDoc();
 			}
+			
 
 
 			if (runArgs.isGui()) {
@@ -147,6 +156,11 @@ public class Main {
 						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
 						ctr.setInjectObjects(runArgs.isInjectObjects());
 						ctr.run();
+					}
+					
+					if (runArgs.isInjectObjects()) {
+						// add the imports
+						ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()));
 					}
 
 					JassProg jassProg = compiler.transformProgToJass();

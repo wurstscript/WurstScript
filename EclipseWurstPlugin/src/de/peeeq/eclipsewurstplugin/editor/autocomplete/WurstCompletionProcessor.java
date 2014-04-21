@@ -23,12 +23,16 @@ import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstKeywords;
+import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprEmpty;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMember;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprRealVal;
@@ -66,27 +70,27 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		this.editor = editor;
 		this.validator = new WurstContextInformationValidator();
 	}
-	
-	
+
+
 	@Override
 	public char[] getCompletionProposalAutoActivationCharacters() {
 		return new char[] {'.'};
 	}
-	
+
 	@Override
-	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
+	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, final int offset) {
 		this.offset = offset;
 		if (isEnteringRealNumber(viewer, offset)) {
 			return null;
 		}
-		
-		
+
+
 		alreadyEntered = getAlreadyEnteredText(viewer, offset);
 		alreadyEnteredLower = alreadyEntered.toLowerCase();
 		WLogger.info("already entered = " + alreadyEntered);
-		
+
 		int startPos = offset - alreadyEntered.length();
-		
+
 		CompilationUnit cu = null;
 		if (startPos == lastStartPos 
 				&& lastdocumentHash == editor.getLastReconcileDocumentHashcode()) {
@@ -102,78 +106,172 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			errorMessage = "Could not parse file.";
 			return null;
 		}
-		
-		
+
+
 		List<WurstCompletion> completions = Lists.newArrayList();
-		
-		
-		
+
+
+
 		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
 		WLogger.info("get completions at " + Utils.printElement(elem));
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
-		if (elem instanceof ExprMember) {
-			ExprMember e = (ExprMember) elem;
-			leftType = e.getLeft().attrTyp();
-			isMemberAccess = true;
-			WScope scope = elem.attrNearestScope();
-			// add member vars
-			while (scope != null) {
-				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
-				scope = scope.attrNextScope();
-			}
-		} else if (elem instanceof ExprRealVal) {
-			// show no hints for reals
-		} else if (elem instanceof WPackage) {
-			// no hints at package level
-		} else if (elem instanceof WImport) {
-			//WImport imp = (WImport) elem;
-			WurstModel model = elem.getModel();
-			for (WPackage p : model.attrPackagesFresh().values()) {
-				if (isSuitableCompletion(p.getName())) {
-					completions.add(makeNameDefCompletion(p));
-				}
-			}
-		} else if (elem instanceof ExprNewObject) {
-			WScope scope = elem.attrNearestScope();
-			while (scope != null) {
-				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				for (NameLink n : visibleNames.values()) {
-					if (n.getNameDef() instanceof ClassDef 
-						&& isSuitableCompletion(n.getName())) {
-						ClassDef c = (ClassDef) n.getNameDef();
-						for (ConstructorDef constr : c.attrConstructors()) {
-							completions.add(makeConstructorCompletion(c, constr));
-						}
+		do { // dummy loop for using break
+			if (elem instanceof ExprMember) {
+				ExprMember e = (ExprMember) elem;
+
+				if (elem instanceof ExprMemberMethod) {
+					ExprMemberMethod c = (ExprMemberMethod) elem;
+					if (isInParenthesis(viewer, offset, c.getLeft().getSource().getRightPos())) {
+						// cursor inside parenthesis
+						getCompletionsForExistingMemberCall(offset, completions, c);
+						break;
 					}
 				}
-				scope = scope.attrNextScope();
+
+				leftType = e.getLeft().attrTyp();
+				isMemberAccess = true;
+				WScope scope = elem.attrNearestScope();
+				// add member vars
+				while (scope != null) {
+					Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+					completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
+					completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
+					scope = scope.attrNextScope();
+				}
+			} else if (elem instanceof ExprRealVal) {
+				// show no hints for reals
+			} else if (elem instanceof WPackage) {
+				// no hints at package level
+			} else if (elem instanceof WImport) {
+				//WImport imp = (WImport) elem;
+				WurstModel model = elem.getModel();
+				for (WPackage p : model.attrPackagesFresh().values()) {
+					if (isSuitableCompletion(p.getName())) {
+						completions.add(makeNameDefCompletion(p));
+					}
+				}
+			} else if (elem instanceof ExprNewObject) {
+				ExprNewObject en = (ExprNewObject) elem;
+				if (offset > en.getSource().getLeftPos() + 4 + en.getTypeName().length()) {
+					// cursor inside parameters
+					getCompletionsForExistingConstructorCall(offset, completions, en);
+					break;
+				}
+				WScope scope = elem.attrNearestScope();
+				while (scope != null) {
+					Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+					for (NameLink n : visibleNames.values()) {
+						if (n.getNameDef() instanceof ClassDef 
+								&& isSuitableCompletion(n.getName())) {
+							ClassDef c = (ClassDef) n.getNameDef();
+							for (ConstructorDef constr : c.attrConstructors()) {
+								completions.add(makeConstructorCompletion(c, constr));
+							}
+						}
+					}
+					scope = scope.attrNextScope();
+				}
+			} else if (elem instanceof ExprFunctionCall) {
+				ExprFunctionCall c = (ExprFunctionCall) elem;
+				if (offset > c.getSource().getLeftPos() + c.getFuncName().length()) {
+					// cursor is in parameter list
+					getCompletionsForExistingCall(offset, completions, c);
+				} else {
+					addDefaultCompletions(completions, elem, isMemberAccess);
+				}
+			} else {
+				if (elem instanceof ExprEmpty) {
+					if (elem.getParent() instanceof Arguments) {
+						if (elem.getParent().getParent() instanceof ExprFunctionCall) {
+							ExprFunctionCall c = (ExprFunctionCall) elem.getParent().getParent();
+							getCompletionsForExistingCall(offset, completions, c);
+						} else if (elem.getParent().getParent() instanceof ExprMemberMethod) {
+							ExprMemberMethod c = (ExprMemberMethod) elem.getParent().getParent();
+							getCompletionsForExistingMemberCall(offset,
+									completions, c);
+						} else if (elem.getParent().getParent() instanceof ExprNewObject) {
+							ExprNewObject c = (ExprNewObject) elem.getParent().getParent();
+							getCompletionsForExistingConstructorCall(offset,
+									completions, c);
+						}
+						// TODO add overloaded funcs
+					}
+				}
+				if (completions.isEmpty()) {
+					// default completions:
+					addDefaultCompletions(completions, elem, isMemberAccess);
+				}
 			}
-		} else {
-			leftType = AttrExprType.caclulateThistype(elem, true, null);
-			if (leftType instanceof WurstTypeUnknown) {
-				leftType = null;
-			}
-			WScope scope = elem.attrNearestScope();
-			while (scope != null) {
-				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-				scope = scope.attrNextScope();
-			}
-		}
-		
+		} while (false);
+
 		dropBadCompletions(completions);
 		removeDuplicates(completions);
-		
-//		Collections.sort(completions, c)
-		
+
+		//		Collections.sort(completions, c)
+
 		if (completions.size() > 0) {
 			return toCompletionsArray(completions);
 		}
 		errorMessage = null;
 		return null;
+	}
+
+
+	private boolean isInParenthesis(ITextViewer viewer, int offset, int start) {
+		try {
+			String s = viewer.getDocument().get(start, offset-start);
+			return s.contains("(");
+		} catch (BadLocationException e) {
+			return false;
+		}
+	}
+
+
+	private void addDefaultCompletions(List<WurstCompletion> completions,
+			AstElement elem, boolean isMemberAccess) {
+		WurstType leftType;
+		leftType = AttrExprType.caclulateThistype(elem, true, null);
+		if (leftType instanceof WurstTypeUnknown) {
+			leftType = null;
+		}
+		WScope scope = elem.attrNearestScope();
+		while (scope != null) {
+			Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+			completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
+			scope = scope.attrNextScope();
+		}
+	}
+
+
+	private void getCompletionsForExistingConstructorCall(final int offset,
+			List<WurstCompletion> completions, ExprNewObject c) {
+		if (c.attrConstructorDef() != null) {
+			completions.add(
+					makeConstructorCompletion(c.attrConstructorDef().attrNearestClassDef(), c.attrConstructorDef())
+					.withDisableAction(offset));
+		}
+	}
+
+
+	private void getCompletionsForExistingMemberCall(final int offset,
+			List<WurstCompletion> completions, ExprMemberMethod c) {
+		if (c.attrFuncDef() != null) {
+			completions.add(
+					makeFunctionCompletion(c.attrFuncDef())
+					.withDisableAction(offset));
+		}
+	}
+
+
+	private void getCompletionsForExistingCall(final int offset,
+			List<WurstCompletion> completions, ExprFunctionCall c) {
+		if (c.attrFuncDef() != null) {
+			alreadyEntered = c.getFuncName();
+			completions.add(
+					makeFunctionCompletion(c.attrFuncDef())
+					.withDisableAction(offset));
+		}
 	}
 
 
@@ -199,14 +297,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 
-	
+
 
 
 	private boolean isEnteringRealNumber(ITextViewer viewer, int offset) {
 		IDocument doc = viewer.getDocument();
 		try {
-			String before = doc.get(offset-2, 1);
-			if (before.matches("[0-9]")) {
+			String before = doc.get(offset-2, 2);
+			if (before.matches("[0-9]\\.")) {
 				// we are entering a real
 				return true;
 			}
@@ -216,7 +314,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		return false;
 	}
 
-	
+
 
 
 	private void removeDuplicates(List<WurstCompletion> completions) {
@@ -229,7 +327,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			}
 		}
-		
+
 	}
 
 
@@ -266,13 +364,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			if (!isSuitableCompletion(e.getKey())) {
 				continue;
 			}
-			
+
 			// remove invisible functions
 			if (e.getValue().getVisibility() == Visibility.PRIVATE_OTHER
 					|| e.getValue().getVisibility() == Visibility.PROTECTED_OTHER) {
 				continue;
 			}
-			
+
 			WurstType receiverType = e.getValue().getReceiverType();
 			if (leftType == null) {
 				if (receiverType != null) { 
@@ -280,7 +378,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 					continue;
 				}
 			} else { // leftType != null
-				
+
 				if (!leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
 					if (!isMemberAccess && receiverType == null) {
@@ -292,10 +390,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 					}
 				}
 			}
-			
+
 			if (e.getValue().getNameDef() instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
-				
+
 				WurstCompletion completion = makeFunctionCompletion(f);
 				completions.add(completion);
 			} else {
@@ -308,7 +406,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 		}
 	}
-	
+
 	private void dropBadCompletions(List<WurstCompletion> completions) {
 		Collections.sort(completions);
 		for (int i=completions.size()-1; i>=MAX_COMPLETIONS; i--) {
@@ -327,10 +425,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length();
 		Image image = Icons.var;
-		
+
 		String comment = n.attrComment();
 		comment = comment.replaceAll("\n", "<br />");
-		
+
 		String displayString = n.getName() + " : " + n.attrTyp().toString() + " - [" + nearestScopeName(n) +"]";
 		IContextInformation contextInformation= new ContextInformation(
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
@@ -355,8 +453,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			// close to perfect
 			return 0.999;
 		}
-		
-		
+
+
 		int ssLen;
 		if (Utils.isSubsequence(alreadyEntered, name)) {
 			ssLen = Math.min(
@@ -380,7 +478,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
 		String replacementString = f.getName() + "()";
-		
+
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length() - 1; // inside parentheses
@@ -388,33 +486,21 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			cursorPosition++; // outside parentheses
 		}
 		Image image = Icons.function;
-		
+
 		String displayString = getFunctionDescriptionShort(f);
-		
+
 		IContextInformation contextInformation = null;
 		if (!f.getParameters().isEmpty()) {
 			// context information for parameters
-			contextInformation = new ContextInformation(f.getName(), getParameterListText(f));
+			contextInformation = new ContextInformation(f.getName(), Utils.getParameterListText(f));
 		}
-		
+
 
 		String additionalProposalInfo2 = getFunctionDescriptionHtml(f);
-		
+
 		double rating = calculateRating(f.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
-	}
-
-
-	private String getParameterListText(AstElementWithParameters f) {
-		StringBuilder descr = new StringBuilder();
-		for (WParameter p : f.getParameters()) {
-			if (descr.length() > 0) {
-				descr.append(", ");
-			}
-			descr.append(p.attrTyp() + " " + p.getName());
-		}
-		return descr.toString();
 	}
 
 
@@ -422,17 +508,17 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		String comment = f.attrComment();
 		comment = comment.replaceAll("\n", "<br />");
 		String returnType = f.getReturnTyp().attrTyp().toString();
-		String displayString = f.getName() +"(" + getParameterListText(f) + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
+		String displayString = f.getName() +"(" + Utils.getParameterListText(f) + ") returns " + returnType + " - [" + nearestScopeName(f) +"]";
 		return displayString;
 	}
-	
+
 	public static String getFunctionDescriptionHtml(FunctionDefinition f) {
 		return f.descriptionHtml();
 	}
-	
+
 	private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
 		String replacementString = c.getName() + "()";
-		
+
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();
 		int cursorPosition = replacementString.length() - 1; // inside parentheses
@@ -440,13 +526,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			cursorPosition++; // outside parentheses
 		}
 		Image image = Icons.block;
-		
-		String params = getParameterListText(constr);
+
+		String params = Utils.getParameterListText(constr);
 		IContextInformation contextInformation = params.length() == 0 ? null : new ContextInformation(c.getName(), params);
-		String displayString = c.getName() +"(" + getParameterListText(constr) + ")";
+		String displayString = c.getName() +"(" + Utils.getParameterListText(constr) + ")";
 
 		String additionalProposalInfo2 = constr.descriptionHtml();
-		
+
 		double rating = calculateRating(c.getName());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
@@ -469,9 +555,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			}
 		}
-		
+
 	}
-	
+
 
 	@Override
 	public String getErrorMessage() {
@@ -482,13 +568,13 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	public char[] getContextInformationAutoActivationCharacters() {
 		return new char[] {};
 	}
-	
+
 	@Override
 	public IContextInformation[] computeContextInformation(ITextViewer viewer, int offset) {
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public IContextInformationValidator getContextInformationValidator() {
 		return validator;

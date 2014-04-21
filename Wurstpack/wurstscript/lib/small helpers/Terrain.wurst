@@ -1,7 +1,6 @@
 package Terrain
 import NoWurst
 import Vectors
-import MapBounds
 import Item
 
 constant real		MAX_RANGE	 	= 10.

@@ -5,9 +5,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.List;
 import java.util.Map;
 
-import org.eclipse.core.internal.resources.ResourceException;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -20,6 +20,8 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 
+import com.google.common.collect.Lists;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -29,12 +31,9 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 public class WurstBuilder extends IncrementalProjectBuilder {
 
 	class SampleDeltaVisitor implements IResourceDeltaVisitor {
-		private WurstGui gui;
+		private List<IResource> removes = Lists.newArrayList();
+		private List<IResource> changes = Lists.newArrayList();
 
-		public SampleDeltaVisitor(WurstGui gui) {
-			this.gui = gui;
-		}
-		
 		/*
 		 * (non-Javadoc)
 		 * 
@@ -42,23 +41,35 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		 * org.eclipse.core.resources.IResourceDeltaVisitor#visit(org.eclipse
 		 * .core.resources.IResourceDelta)
 		 */
+		@Override
 		public boolean visit(IResourceDelta delta) throws CoreException {
 			IResource resource = delta.getResource();
+			if (!(resource instanceof IFile)) {
+				return true;
+			}
+			IFile file = (IFile) resource;
+			if (!isWurstOrJassFile(file) && !isDependencyFile(file)) {
+				// ignore changes to files which are not wurst, jurst, or jass files. 
+				return true;
+			}
 			switch (delta.getKind()) {
 			case IResourceDelta.ADDED:
 				// handle added resource
-				WLogger.info("added " + resource.getName());
-				changed |= checkCompilatinUnit(gui, resource);
+				WLogger.info("added " + file.getName());
+				changes.add(file);
+//				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			case IResourceDelta.REMOVED:
 				// handle removed resource
-				WLogger.info("removed " + resource.getName());
-				changed |= getModelManager().removeCompilationUnit(resource);
+				WLogger.info("removed " + file.getName());
+//				changed |= getModelManager().removeCompilationUnit(resource);
+				removes.add(file);
 				break;
 			case IResourceDelta.CHANGED:
 				// handle changed resource
-				WLogger.info("changed " + resource.getName());
-				changed |= checkCompilatinUnit(gui, resource);
+				WLogger.info("changed " + file.getName());
+				changes.add(file);
+//				changed |= checkCompilatinUnit(gui, resource);
 				break;
 			}
 			// return true to continue visiting children.
@@ -75,6 +86,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		public SampleResourceVisitor(WurstGui gui) {
 			this.gui = gui;
 		}
+		@Override
 		public boolean visit(IResource resource) {
 			checkCompilatinUnit(gui, resource);
 			// return true to continue visiting children.
@@ -89,8 +101,6 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 
 	public static final String MARKER_TYPE_GRAMMAR = "EclipseWurstPlugin.wurstProblemGrammar";
 	public static final String MARKER_TYPE_TYPES = "EclipseWurstPlugin.wurstProblemTypes";
-
-	private boolean changed;
 
 	private ModelManager getModelManager() {
 		try {
@@ -114,7 +124,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	 * java.util.Map, org.eclipse.core.runtime.IProgressMonitor)
 	 */
 	@Override
-	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
+	protected IProject[] build(int kind, @SuppressWarnings("rawtypes") Map args, IProgressMonitor monitor) throws CoreException {
 		WLogger.info("build ...");
 		if (kind == FULL_BUILD || getModelManager().needsFullBuild()) {
 			WLogger.info("needs full build: " + kind + ", " + getModelManager().needsFullBuild());
@@ -134,7 +144,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	@Override
 	protected void clean(IProgressMonitor monitor) throws CoreException {
 		super.clean(monitor);
-		WurstNature.get(getProject()).clearAllMarkers();
+		WurstNature nature = WurstNature.get(getProject());
+		if (nature != null) {
+			nature.clearAllMarkers();
+		}
 		getModelManager().clean();
 	}
 
@@ -148,7 +161,7 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			if (isWurstOrJassFile(file)) {
 				handleWurstFile(gui, file);
 				return true;
-			} else if (file.getName().equals("wurst.dependencies")) {
+			} else if (isDependencyFile(file)) {
 				handleWurstDependencyFile(gui, file);
 				return true;
 			}
@@ -157,15 +170,28 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	}
 
 
+
+	private boolean isDependencyFile(IFile file) {
+		return file.getName().equals("wurst.dependencies");
+	}
+
+
 	private void handleWurstDependencyFile(WurstGui gui, IFile file) {
 		WurstNature.deleteAllMarkers(file);
 		try {
 			getModelManager().clearDependencies();
 			BufferedReader reader = new BufferedReader(new InputStreamReader(file.getContents()));
+			LineOffsets lineOffsets = new LineOffsets();
+			int offset = 0;
+			int lineNr = 0;
 			while (true) {
 				String line = reader.readLine();
+				lineNr++;
+				lineOffsets.set(lineNr, offset);
 				if (line == null) break;
-				addDependency(gui, file, line);						
+				int endOffset = offset + line.length();
+				addDependency(gui, file, line, lineOffsets, offset, endOffset);						
+				offset = endOffset;
 			}
 		} catch (CoreException e) {
 			// TODO Auto-generated catch block
@@ -193,7 +219,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		}
 
 		if (doChecks) {
-			WurstNature.get(file.getProject()).addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			WurstNature wurstNature = WurstNature.get(file.getProject());
+			if (wurstNature != null) {
+				wurstNature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
+			}
 		}
 	}
 
@@ -207,13 +236,14 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 	
 	
 
-	private void addDependency(WurstGui gui, IFile depfile, String fileName) {
+	private void addDependency(WurstGui gui, IFile depfile, String fileName, LineOffsets lineOffsets, int offset, int endOffset) {
 		File f = new File(fileName);
+		WPos pos = new WPos(depfile.getProjectRelativePath().toString(), lineOffsets, offset, endOffset);
 		if (!f.exists()) {
-			gui.sendError(new CompileError(new WPos(depfile.getProjectRelativePath().toString(), null, 0, 0), "Path '"+fileName + "' could not be found."));
+			gui.sendError(new CompileError(pos, "Path '"+fileName + "' could not be found."));
 			return;
 		} else if (!f.isDirectory()) {
-			gui.sendError(new CompileError(new WPos(depfile.getProjectRelativePath().toString(), null, 0, 0), "Path '"+fileName + "' is not a folder."));
+			gui.sendError(new CompileError(pos, "Path '"+fileName + "' is not a folder."));
 			return;
 		}
 		
@@ -231,9 +261,10 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		try {
 			WLogger.info("full build ...");
 			WurstGui gui = new WurstGuiEclipse(monitor);
+			getModelManager().clean();
 			getProject().accept(new SampleResourceVisitor(gui));
 			getModelManager().fullBuildDone();
-			getModelManager().typeCheckModel(gui, true, true);
+			getModelManager().typeCheckModel(gui, true);
 		} catch (CoreException e) {
 		}
 	}
@@ -244,10 +275,26 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 		// the visitor does the work.
 		WLogger.info("incremental build ...");
 		WurstGui gui = new WurstGuiEclipse(monitor);
-		changed = false;
-		delta.accept(new SampleDeltaVisitor(gui));
+		boolean changed = false;
+		SampleDeltaVisitor visitor = new SampleDeltaVisitor();
+		delta.accept(visitor);
+		
+		if (visitor.removes.size() + visitor.changes.size() > 1) {
+			// more than one change at once, better do a full build
+			fullBuild(monitor);
+			return;
+		}
+		
+		for (IResource r : visitor.removes) {
+			getModelManager().removeCompilationUnit(r);
+			changed = true;
+		}
+		for (IResource r : visitor.changes) {
+			changed |= checkCompilatinUnit(gui, r);
+		}
+		
 		if (changed) {
-			getModelManager().typeCheckModel(gui, true, true);
+			getModelManager().typeCheckModel(gui, true);
 		}
 	}
 

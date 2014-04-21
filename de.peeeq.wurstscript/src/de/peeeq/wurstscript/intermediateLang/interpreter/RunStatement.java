@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -128,5 +129,13 @@ public class RunStatement {
 		ILconstString msg = (ILconstString) s.getMessage().evaluate(globalState, localState);
 		throw new DebugPrintError(msg.getVal());
 	}
+
+	public static void run(ImSetArrayMulti imSetArrayMulti,
+			ProgramState globalState, LocalState localState) {
+		throw new Error("not implemented");
+		
+	}
+
+
 
 }

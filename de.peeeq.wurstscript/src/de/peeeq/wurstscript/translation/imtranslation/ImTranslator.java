@@ -262,7 +262,7 @@ public class ImTranslator {
 	
 	public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
 		imProg.getGlobals().add(g);
-		globalInitFunc.getBody().add(ImSet(emptyTrace, g, initial));
+		globalInitFunc.getBody().add(ImSet(g.getTrace(), g, initial));
 		imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
 	}
 
@@ -612,8 +612,9 @@ public class ImTranslator {
 		
 		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		for (ImFunction called : calledFuncs) {
-//			WLogger.info("Function " + f.getName() + " calls: " + called.getName());
-			callRelations.put(f, called);
+			if (f != called) { // ignore reflexive call relations
+				callRelations.put(f, called);
+			}
 			calculateCallRelations(called);
 		}
 		

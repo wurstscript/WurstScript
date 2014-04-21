@@ -5,6 +5,7 @@ import java.util.List;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class CallSignature {
 	private final Expr receiver;
@@ -44,13 +45,12 @@ public class CallSignature {
 					+ " parameters.");
 			return;
 		} else if (getArguments().size() < sig.getParamTypes().size()) { 
-			pos.addError("Not enough arguments. Function " + funcName + " requires " + sig.getParamTypes().size() 
-					+ " parameters.");
+			pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
 		} else {
 			for (int i=0; i<getArguments().size(); i++) {
 				if (!getArguments().get(i).attrTyp().isSubtypeOf(sig.getParamTypes().get(i), pos)) {
 					getArguments().get(i).addError("Wrong parameter type when calling " + funcName + ".\n"
-							+ "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i));
+							+ "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i) + " " + sig.getParamName(i));
 				}
 			}
 		}

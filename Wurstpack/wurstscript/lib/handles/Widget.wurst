@@ -1,8 +1,6 @@
 package Widget
 import NoWurst
 import public Vectors
-import Angle
-import PrintingHelper
 
 public function widget.getX() returns real
 	return GetWidgetX(this)

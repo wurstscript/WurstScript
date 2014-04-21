@@ -46,6 +46,8 @@ import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.BundleEvent;
+import org.osgi.framework.BundleListener;
 
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.ScannerFactory;
@@ -105,20 +107,29 @@ public class WurstPlugin extends AbstractUIPlugin {
 	 * (non-Javadoc)
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#start(org.osgi.framework.BundleContext)
 	 */
+	@Override
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		WLogger.setHandler(new PluginLogHandler(getLog()));
 		WLogger.setLevel(Level.INFO);
 		plugin = this;
 		
-		Display.getDefault().syncExec(new Runnable() {
+		context.addBundleListener(new BundleListener() {
+			
 			@Override
-			public void run() {
-				initializePreferenceStore();
-				scanners = new ScannerFactory();
-				WurstPerspective.findConsole();
+			public void bundleChanged(BundleEvent event) {
+				System.out.println("Bundle changed....");
+				Display.getDefault().syncExec(new Runnable() {
+					@Override
+					public void run() {
+						initializePreferenceStore();
+						scanners = new ScannerFactory();
+						WurstPerspective.findConsole();
+					}
+				});
 			}
-		});;
+		});
+		
 		
 	}
 
@@ -126,6 +137,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 	 * (non-Javadoc)
 	 * @see org.eclipse.ui.plugin.AbstractUIPlugin#stop(org.osgi.framework.BundleContext)
 	 */
+	@Override
 	public void stop(BundleContext context) throws Exception {
 		plugin = null;
 		super.stop(context);
