@@ -12,8 +12,9 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 	Many systems already have Java installed. In that case you should make sure that you have the latest version installed.
 - [Wurst Pack](http://peq.github.io/WurstScript/#Downloads)
 	Some AnitVirus programs falsely detect harmless injection-dlls. Ignore the warning and/or turn off your AV-Program for the process and add an exception. The Updater might not respond while downloading the required packages.
-- [Eclipse](http://www.eclipse.org/downloads/packages/eclipse-standard-432/keplersr2)  
-	Download links for your platform are in the right sidebar. Eclipse is needed for working with the Wurst-Plugin.
+- [Eclipse](http://www.eclipse.org/downloads/) 
+        Eclipse is needed for working with the Wurst-Plugin. The minimal download is probably the [Eclipse Platform Runtime Binary](http://archive.eclipse.org/eclipse/downloads/drops4/R-4.3.2-201402211700/#PlatformRuntime).
+
 
 #Installing the Wurst-Plugin and setting up Wurst
 
