@@ -603,6 +603,42 @@ This is done by adding the keyword `initlater` to the import of the package:
 Here only package `D` is guaranteed to be initialized before package `A`.
 Packages `B` and `C` are allowed to be initialized later.
 
+## Configuring Packages
+
+Global variables and functions can be configured. 
+Configuration is done via configuration packages.
+Each package has at most one configuration package and every configuration package configures exactly one package.
+The relation between a package and its configuration package is expressed via the following naming convention: 
+For a package named `Blub` the configuration package must be named `Blub_config`.
+
+Inside a configuration global variables can be annotated with the `@config` annotation. 
+This has the effect that the variable with the same name in the original package will be overridden with 
+the variable in the configuration package.
+In the original package, the variable should be annotated with `@configurable` to signal that it is safe to configure.
+Here is an example:
+
+	package Example
+		@configurable int x = 5
+	endpackage
+
+	package Example_config
+		@config int x = 42
+	endpackage
+
+Configuring functions works basically the same:
+
+	package Example
+		@configurable public function math(int x, int y) returns int
+			return x + y
+		
+	endpackage
+
+	package Example_config
+		@config public function math(int x, int y) returns int
+			return x*y
+
+	endpackage
+
 
 
 
