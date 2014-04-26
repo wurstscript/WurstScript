@@ -21,12 +21,14 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
+import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
+import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
@@ -37,6 +39,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -126,7 +129,7 @@ public class ModelManagerImpl implements ModelManager {
 				if (addErrorMarkers) {
 					nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
 				}
-				WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
+				WLogger.info("finished partial typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 				return;
 			}
 			if (model == null) {
@@ -137,15 +140,27 @@ public class ModelManagerImpl implements ModelManager {
 				clearAttributes(toCheck);
 				comp.addImportedLibs(model);
 				comp.checkProg(model, toCheck);
+			} catch (ModelChangedException e) {
+				// model changed, early return
+				return;
 			} catch (CompileError e) {
 				gui.sendError(e);
 			}
-			WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+			List<String> fileNames = getfileNames(toCheck); 
+			WLogger.info("finished partial typechecking " + fileNames + " in " + (System.currentTimeMillis() - time) + "ms");
 			if (addErrorMarkers) {
-				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES);
+				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES, fileNames);
 				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
 			}
 		}
+	}
+
+	private List<String> getfileNames(List<CompilationUnit> compilationUnits) {
+		return Utils.map(compilationUnits, new Function<CompilationUnit,String>() {
+			@Override
+			public String apply(CompilationUnit cu) {
+				return cu.getFile();
+			}});
 	}
 	
     /** clear the attributes for all compilation units that import something from 'toCheck' */

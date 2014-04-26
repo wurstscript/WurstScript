@@ -13,6 +13,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -161,7 +162,24 @@ public class WurstNature implements IProjectNature {
 			getProject().deleteMarkers(markerType, false, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
 		}
-		
+	}
+	
+	public void clearMarkers(final String markerType, final List<String> fileNames) {
+			try {
+				getProject().accept(new IResourceVisitor() {
+					
+					@Override
+					public boolean visit(IResource resource) throws CoreException {
+						// TODO maybe I have to clear markers in folders?
+						if (fileNames.contains(resource.getProjectRelativePath().toString())) {
+							resource.deleteMarkers(markerType, false, IResource.DEPTH_ZERO);
+						}
+						return true;
+					}
+				});
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
 	}
 
 	public static WurstNature get(final IProject p) {
@@ -265,6 +283,8 @@ public class WurstNature implements IProjectNature {
 		deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
 		
 	}
+
+	
 
 	
 

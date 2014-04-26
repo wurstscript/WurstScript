@@ -360,7 +360,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			Preconditions.checkNotNull(cu);
 			if (!model.contains(cu)) {
 				// model has changed since then, no need to do 'toCheck'
-				return;
+				throw new ModelChangedException();
 			}
 		}
 		
@@ -698,7 +698,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public void setMapFile(File mapFile) {
 		this.mapFile = mapFile;
 	}
-
 
 	
 }

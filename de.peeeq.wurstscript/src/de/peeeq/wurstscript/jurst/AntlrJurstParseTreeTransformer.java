@@ -556,7 +556,7 @@ public class AntlrJurstParseTreeTransformer {
 		WPos source = source(c);
 		Modifiers modifiers = transformModifiers(c.modifiersWithDoc());
 		WParameters parameters = transformFormalParameters(
-				c.formalParameters(), true);
+				c.formalParameters(), false);
 		WStatements body = transformStatementList(c.stmts);
 		boolean isExplicit = c.superArgs != null;
 		Arguments superArgs = transformExprs(c.superArgs);
@@ -1263,7 +1263,7 @@ public class AntlrJurstParseTreeTransformer {
 	private FuncSig transformFuncSig(FuncSignatureContext s) {
 		TypeParamDefs typeParams = transformTypeParams(s.typeParams());
 		WParameters formalParameters = transformFormalParameters(
-				s.formalParameters(), true);
+				s.formalParameters(), false);
 		OptTypeExpr returnType = transformOptionalType(s.returnType);
 		return new FuncSig(text(s.name), typeParams, formalParameters,
 				returnType);
