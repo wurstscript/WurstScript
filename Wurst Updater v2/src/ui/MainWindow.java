@@ -76,6 +76,7 @@ public class MainWindow extends JFrame {
 		btnUpdate.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
+				btnUpdate.setEnabled(false);
 				new UpdateThread().execute();
 			}
 		});
