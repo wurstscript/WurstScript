@@ -69,11 +69,15 @@ public class CheckChanges {
 				}
 			}
 		}else{
-			LinkedList<FileEx> currentSums = FileList.getCompleteFileList(new File("Wurstpack"));
+			File f = new File("Wurstpack");
+			if (! f.isDirectory()) {
+				f.mkdir();
+			}
+			LinkedList<FileEx> currentSums = FileList.getCompleteFileList(f);
 			Map<String, String> currentSumMap = FileEx.getFileMap(currentSums);
-			for(FileEx f: newSums){
-				if((currentSumMap.get(f.file) == null) || !(currentSumMap.get(f.file).equals(f.checksum))){
-					toChange.add(f);
+			for(FileEx fe: newSums){
+				if((currentSumMap.get(fe.file) == null) || !(currentSumMap.get(fe.file).equals(fe.checksum))){
+					toChange.add(fe);
 				}
 			}
 		}
