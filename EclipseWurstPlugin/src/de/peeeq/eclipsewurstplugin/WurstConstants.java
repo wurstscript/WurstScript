@@ -22,6 +22,7 @@ public class WurstConstants {
 	public static final String SYNTAXCOLOR_KEYWORD     = "Keyword";
 	public static final String SYNTAXCOLOR_JASSTYPE    = "Jasstype";
 	public static final String SYNTAXCOLOR_STRING      = "String";
+	public static final String SYNTAXCOLOR_ANNOTATION  = "Annotation";
 	public static final String SYNTAXCOLOR_COMMENT     = "Comment";
 	public static final String SYNTAXCOLOR_FUNCTION    = "Function";
 	public static final String SYNTAXCOLOR_DATATYPE    = "Datatype";
@@ -34,10 +35,12 @@ public class WurstConstants {
 	//Colors
 	private static final RGB COLOR_BLACK = new RGB(0,0,0);
 	
+	
 	public static final RGB SYNTAXCOLOR_RGB_TEXT         = new RGB(0, 0, 0);
 	public static final RGB SYNTAXCOLOR_RGB_JASSTYPE     = new RGB(34, 136, 143);
 	public static final RGB SYNTAXCOLOR_RGB_KEYWORD      = new RGB(127, 0, 85);
 	public static final RGB SYNTAXCOLOR_RGB_STRING       = new RGB(42, 0, 255);
+	public static final RGB SYNTAXCOLOR_RGB_ANNOTATION   = new RGB(100, 100, 100);
 	public static final RGB SYNTAXCOLOR_RGB_COMMENT      = new RGB(63, 127, 95);
 	public static final RGB SYNTAXCOLOR_RGB_FUNCTION     = COLOR_BLACK;
 	public static final RGB SYNTAXCOLOR_RGB_DATATYPE     = new RGB(64, 64, 64);

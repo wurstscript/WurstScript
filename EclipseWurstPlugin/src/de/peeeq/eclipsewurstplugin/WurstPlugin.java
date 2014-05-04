@@ -26,6 +26,8 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_TEXT;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_VAR;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ANNOTATION;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_ANNOTATION;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_TEXT;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_VAR;
@@ -169,6 +171,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_KEYWORD,     SYNTAXCOLOR_RGB_KEYWORD);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_JASSTYPE,    SYNTAXCOLOR_RGB_JASSTYPE);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_STRING,      SYNTAXCOLOR_RGB_STRING);
+		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_ANNOTATION,  SYNTAXCOLOR_RGB_ANNOTATION);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_COMMENT,     SYNTAXCOLOR_RGB_COMMENT);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_FUNCTION,    SYNTAXCOLOR_RGB_FUNCTION);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_DATATYPE,    SYNTAXCOLOR_RGB_DATATYPE);
@@ -182,6 +185,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_KEYWORD,    true);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_STRING,     false);
+		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_DATATYPE,   false);
@@ -194,6 +198,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_KEYWORD,    false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_STRING,     false);
+		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_FUNCTION,   true);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_DATATYPE,   false);
@@ -206,6 +211,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_KEYWORD,    false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_STRING,     false);
+		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_DATATYPE,   false);
@@ -218,6 +224,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_KEYWORD,    false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_JASSTYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_STRING,     false);
+		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_COMMENT,    false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_DATATYPE,   false);
@@ -226,6 +233,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_FIELD,      false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_INTERFACE,  false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_CONSTRUCTOR,false);
+		
 		
 		
 		setDefaultValue(WurstConstants.WURST_ENABLE_AUTOCOMPLETE, true);

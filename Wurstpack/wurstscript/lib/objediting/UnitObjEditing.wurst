@@ -3,6 +3,109 @@ import NoWurst
 
 import ObjEditingNatives
 
+public enum Race
+	Commoner
+	Creeps
+	Critters
+	Demon
+	Human
+	Naga
+	Nightelf
+	Orc
+	Other
+	Undead
+	Unknown
+	
+public enum ArmorType
+	Normal
+	Small
+	Medium
+	Large
+	Fortified
+	Hero
+	Divine
+	Unarmored
+	
+public enum AttackType
+	Unknown
+	Normal
+	Pierce
+	Siege
+	Spells
+	Chaos
+	Magic
+	Hero
+
+
+public function ArmorType.toObjectString() returns string
+	string result = "normal"
+	switch this
+		case Normal
+			result = "normal"
+		case Small
+			result = "small"
+		case Medium
+			result = "medium"
+		case Large
+			result = "large"
+		case Fortified
+			result = "fort"
+		case Hero
+			result = "hero"
+		case Divine
+			result = "divine"
+		case Unarmored
+			result = "none"
+	return result
+	
+public function AttackType.toObjectString() returns string
+	string result = "unknown"
+	switch this
+		case Unknown
+			result = "unknown"
+		case Normal
+			result = "normal"
+		case Pierce
+			result = "pierce"
+		case Siege
+			result = "siege"
+		case Spells
+			result = "spells"
+		case Chaos
+			result = "chaos"
+		case Magic
+			result = "magic"
+		case Hero
+			result = "hero"
+	return result
+	
+public function Race.toObjectString() returns string
+	string result = "unknown"
+	switch this
+		case Commoner
+			result = "commoner"
+		case Creeps
+			result = "creeps"
+		case Critters
+			result = "critters"
+		case Demon
+			result = "demon"
+		case Human
+			result = "human"
+		case Naga
+			result = "naga"
+		case Nightelf
+			result = "nightelf"
+		case Orc
+			result = "orc"
+		case Other
+			result = "other"
+		case Undead
+			result = "undead"
+		case Unknown
+			result = "unknown"
+	return result
+
 public class W3UDefinition
 	ObjectDefinition def
 	
@@ -171,9 +274,9 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setRandomSound(string data)
 		def.setString("ursl", data)
 
-	function setRace(string data)
-		def.setString("urac", data)
-
+	function setRace(Race data)
+		def.setString("urac", data.toObjectString())
+		
 	function setPropulsionWindowdegrees(real data)
 		def.setUnreal("uprw", data)
 
@@ -417,8 +520,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack2CooldownTime(real data)
 		def.setUnreal("ua2c", data)
 
-	function setAttack2AttackType(string data)
-		def.setString("ua2t", data)
+	function setAttack2AttackType(AttackType data)
+		def.setString("ua2t", data.toObjectString())
 
 	function setAttack2AreaofEffectTargets(string data)
 		def.setString("ua2p", data)
@@ -501,8 +604,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1CooldownTime(real data)
 		def.setUnreal("ua1c", data)
 
-	function setAttack1AttackType(string data)
-		def.setString("ua1t", data)
+	function setAttack1AttackType(AttackType data)
+		def.setString("ua1t", data.toObjectString())
 
 	function setAttack1AreaofEffectTargets(string data)
 		def.setString("ua1p", data)
@@ -522,8 +625,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1AnimationBackswingPoint(real data)
 		def.setUnreal("ubs1", data)
 
-	function setArmorType(string data)
-		def.setString("uarm", data)
+	function setArmorType(ArmorType data)
+		def.setString("uarm", data.toObjectString())
 
 	function setAnimationWalkSpeed(real data)
 		def.setReal("uwal", data)
@@ -698,8 +801,8 @@ public class ItemDefinition extends W3UDefinition
 	function setAbilities(string data)
 		def.setString("iabi", data)
 
-	function setArmorType(string data)
-		def.setString("iarm", data)
+	function setArmorType(ArmorType data)
+		def.setString("iarm", data.toObjectString())
 
 	function setClassification(string data)
 		def.setString("icla", data)
