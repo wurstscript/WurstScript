@@ -390,4 +390,21 @@ public class ClosureTests extends WurstScriptTest {
 				"	f.call()"
 			);
 	}
+	
+	
+	@Test
+	public void intliteralClosure() { // see bug #255
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"tuple vec2(real x, real y)",
+				"interface SimpleFunc",
+				"	function call() returns int",
+				"init",
+				"	",
+				"	SimpleFunc f = () -> 1",
+				"	if f.call() == 1",
+				"		testSuccess()"
+			);
+	}
 }
