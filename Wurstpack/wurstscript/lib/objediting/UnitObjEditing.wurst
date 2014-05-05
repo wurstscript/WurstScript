@@ -3,6 +3,15 @@ import NoWurst
 
 import ObjEditingNatives
 
+public enum MovementType
+	None
+	Foot
+	Horse
+	Fly
+	Hover
+	Float
+	Amphipic
+
 public enum Race
 	Commoner
 	Creeps
@@ -105,7 +114,25 @@ public function Race.toObjectString() returns string
 		case Unknown
 			result = "unknown"
 	return result
-
+	
+public function MovementType.toObjectString() returns string
+	var result = ""
+	switch this
+		case None
+		case Foot
+			result = "foot"
+		case Horse
+			result = "horse"
+		case Fly
+			result = "fly"
+		case Hover
+			result = "hover"
+		case Float
+			result = "float"
+		case Amphipic
+			result = "amph"
+	return result
+	
 public class W3UDefinition
 	ObjectDefinition def
 	
@@ -160,8 +187,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setUnitClassification(string data)
 		def.setString("utyp", data)
 
-	function setMovementType(string data)
-		def.setString("umvt", data)
+	function setMovementType(MovementType mtype)
+		def.setString("umvt", mtype.toObjectString())
 
 	function setTurnRate(real data)
 		def.setUnreal("umvr", data)

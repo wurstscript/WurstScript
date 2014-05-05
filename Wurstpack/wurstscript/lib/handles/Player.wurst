@@ -3,6 +3,11 @@ import NoWurst
 import initlater Colors
 import initlater Unit
 
+player array players
+init
+	for i = 0 to 13
+		players[i] = Player(i)
+
 public enum PlayerId
 	RED
 	BLUE
