@@ -6,12 +6,14 @@ import java.util.List;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 
+import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstMultiArray;
 import de.peeeq.wurstscript.intermediateLang.ILconstNull;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
@@ -231,9 +233,30 @@ public class EvaluateExpr {
 		return new ILconstInt(globalState.getTypeId(obj.getVal(), e.attrTrace()));
 	}
 
-	public static ILconst eval(ImVarArrayMultiAccess imVarArrayMultiAccess,
+	public static ILconst eval(ImVarArrayMultiAccess s,
 			ProgramState globalState, LocalState localState) {
-		throw new Error("not implemented");
+		ImVar v = s.getVar();
+		int[] indices = {
+				 ((ILconstInt) s.getIndex1().evaluate(globalState, localState)).getVal(),
+				 ((ILconstInt) s.getIndex2().evaluate(globalState, localState)).getVal()
+		};
+		
+		IntTuple indicesT = IntTuple.of(indices);
+		ILconstMultiArray ar;
+		if (v.isGlobal()) {
+			ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		} else {
+			ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		}
+		return ar.get(indicesT.tail());
 	}
 	
 }

@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstMultiArray;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImError;
@@ -101,6 +103,33 @@ public class RunStatement {
 			localState.setArrayVal(v, index.getVal(), newVal);
 		}
 	}
+	
+	public static void run(ImSetArrayMulti s, ProgramState globalState, LocalState localState) {
+		ImVar v = s.getLeft();
+		int[] indices = new int[s.getIndices().size()];
+		
+		for (int i=0; i<indices.length; i++) {
+			ILconstInt index = (ILconstInt) s.getIndices().get(i).evaluate(globalState, localState);
+			indices[i] = index.getVal();
+		}
+		IntTuple indicesT = IntTuple.of(indices);
+		ILconst right = s.getRight().evaluate(globalState, localState);
+		ILconstMultiArray ar;
+		if (v.isGlobal()) {
+			ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		} else {
+			ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		}
+		ar.set(indicesT.tail(), right);
+	}
 
 	public static void run(ImSetTuple s, ProgramState globalState, LocalState localState) {
 		ImVar v = s.getLeft();
@@ -130,11 +159,7 @@ public class RunStatement {
 		throw new DebugPrintError(msg.getVal());
 	}
 
-	public static void run(ImSetArrayMulti imSetArrayMulti,
-			ProgramState globalState, LocalState localState) {
-		throw new Error("not implemented");
-		
-	}
+	
 
 
 
