@@ -1,0 +1,127 @@
+package de.peeeq.wurstscript.galaxy.galaxyAst
+
+
+abstract syntax:
+
+GalaxyProgs * GalaxyProg
+
+GalaxyProg(GalaxyTypeDefs defs, GalaxyVars globals, GalaxyNatives natives, GalaxyFunctions functions)
+
+GalaxyNatives * GalaxyNative
+GalaxyTypeDefs * GalaxyTypeDef
+GalaxyVars * GalaxyVar
+GalaxySimpleVars * GalaxySimpleVar
+GalaxyFunctions * GalaxyFunction
+
+GalaxyTypeDef( String name, String ext)
+
+GalaxyFunctionOrNative = GalaxyNative | GalaxyFunction
+
+GalaxyNative(String name, GalaxySimpleVars params, String returnType )
+	
+	
+GalaxyVar = 
+	  GalaxySimpleVar(String type, String name)
+	| GalaxyArrayVar(String type, String name)
+	| GalaxyInitializedVar(String type, String name, GalaxyExpr val )
+	| GalaxyConstantVar(String type, String name, GalaxyExpr val )
+	
+GalaxyFunction(String name, GalaxySimpleVars params, String returnType, GalaxyVars locals, GalaxyStatements body)
+
+GalaxyStatements * GalaxyStatement  
+
+GalaxyStatement	=
+	  GalaxyStmtIf(GalaxyExpr cond, GalaxyStatements thenBlock, GalaxyStatements elseBlock)
+	| GalaxyStmtLoop(GalaxyStatements body)
+	| GalaxyStmtSet(String left, GalaxyExpr right)
+	| GalaxyStmtSetArray(String left, GalaxyExpr index, GalaxyExpr right)
+	| GalaxyStmtCall(String funcName, GalaxyExprlist arguments)
+	| GalaxyStmtReturn(GalaxyExpr returnValue)
+	| GalaxyStmtReturnVoid()
+	| GalaxyStmtExitwhen(GalaxyExpr cond)
+	
+
+GalaxyExprlist * GalaxyExpr
+
+GalaxyExpr = 
+	  GalaxyExprBinary(GalaxyExpr leftExpr, GalaxyOpBinary op, GalaxyExpr right) // left = a, op = "and" right="b" --> a and b k?
+	| GalaxyExprUnary(GalaxyOpUnary opU, GalaxyExpr right)
+	| GalaxyExprFunctionCall(String funcName, GalaxyExprlist arguments)
+	| GalaxyExprAtomic
+	
+	
+GalaxyExprAtomic = 
+	  GalaxyExprIntVal(String valI)
+	| GalaxyExprRealVal(String valR)
+	| GalaxyExprStringVal(String valS)
+	| GalaxyExprBoolVal(boolean valB)
+	| GalaxyExprFuncRef(String funcName)
+	| GalaxyExprVarRef 
+	| GalaxyExprNull()
+	
+GalaxyExprVarRef = 
+	  GalaxyExprVarAccess(String varName)
+	| GalaxyExprVarArrayAccess(String varName, GalaxyExpr index)
+	
+GalaxyOpBinary = 
+	  GalaxyOpOr() 
+	| GalaxyOpAnd()
+	| GalaxyOpEquals()
+	| GalaxyOpUnequals()
+	| GalaxyOpLessEq()
+	| GalaxyOpLess()
+	| GalaxyOpGreaterEq()
+	| GalaxyOpGreater()
+	| GalaxyOpPlus()
+	| GalaxyOpMinus()
+	| GalaxyOpMult()
+	| GalaxyOpDiv()
+	
+GalaxyOpUnary = 
+	  GalaxyOpNot()
+	| GalaxyOpMinus
+	
+GalaxyOp = GalaxyOpBinary | GalaxyOpUnary	
+	
+GalaxyFuncRef = GalaxyExprFuncRef | GalaxyExprFunctionCall | GalaxyStmtCall
+	
+GalaxyScope = GalaxyFunction | GalaxyProg
+
+attributes:
+
+GalaxyProg.attrIgnoredFunctions
+	returns java.util.Set<GalaxyFunction>
+	implemented by de.peeeq.wurstscript.galaxy.GalaxyAttributes.attrIgnoredFunctions
+
+GalaxyProg.attrIgnoredVariables
+	returns java.util.Set<GalaxyVar>
+	implemented by de.peeeq.wurstscript.galaxy.GalaxyAttributes.attrIgnoredVariables
+
+GalaxyProg.attrComments
+	returns java.util.Map<GalaxyAstElement, String>
+	implemented by de.peeeq.wurstscript.galaxy.GalaxyAttributes.attrComments
+
+
+GalaxyExpr.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.galaxy.printer.ExprPrinter.print
+	
+GalaxyTypeDef.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.galaxy.printer.GalaxyPrinter.printTypeDef
+	
+GalaxyNative.print(java.lang.StringBuilder sb, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.galaxy.printer.GalaxyPrinter.printNative
+
+GalaxyStatement.print(java.lang.StringBuilder sb, int indent, boolean withSpace)
+	returns void
+	implemented by de.peeeq.wurstscript.galaxy.printer.StatementPrinter.print
+
+GalaxyOp.print(java.lang.StringBuilder sb, boolean withSpace, boolean useParanthesesLeft, boolean useParanthesesRight)
+	returns void
+	implemented by de.peeeq.wurstscript.galaxy.printer.OpPrinter.print
+
+GalaxyOp.asString()
+	returns String
+	implemented by de.peeeq.wurstscript.galaxy.printer.OpPrinter.asString

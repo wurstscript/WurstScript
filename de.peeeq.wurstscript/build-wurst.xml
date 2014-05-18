@@ -122,6 +122,14 @@
 		</java>
 	</target>
 
+	<target name="galaxy_jassAst">
+		<java jar="${parseq}" fork="true" failonerror="true">
+			<arg value="./parserspec/galaxy.parseq" />
+			<arg value="${srcgen}" />
+			<classpath refid="classpath" />
+		</java>
+	</target>
+	
 	
 	<target name="parseq_jassImAst">
 			<java jar="${parseq}" fork="true" failonerror="true">
@@ -132,7 +140,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
+	<target name="gen" depends="cup, jflex, jurst_cup, jurst_jflex, parseq_ast, parseq_jassAst, galaxy_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
