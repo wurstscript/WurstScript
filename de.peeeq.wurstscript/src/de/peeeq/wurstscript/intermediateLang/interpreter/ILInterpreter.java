@@ -31,7 +31,7 @@ public class ILInterpreter {
 	}
 
 	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
-		this(prog, gui, mapFile, new ProgramState(mapFile, gui).setProg(prog));
+		this(prog, gui, mapFile, new ProgramState(gui).setProg(prog));
 	}
 
 	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {

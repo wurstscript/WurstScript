@@ -26,7 +26,7 @@ public class RobustProgramState extends ProgramState {
 	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 	
 	public RobustProgramState(File mapFile, WurstGui gui) {
-		super(mapFile, gui);
+		super(gui);
 	}
 	
 	
