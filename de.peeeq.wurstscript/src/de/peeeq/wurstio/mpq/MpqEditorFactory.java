@@ -16,9 +16,7 @@ public class MpqEditorFactory {
 	}
 	
 	static public MpqEditor getEditor(File f) throws Exception {
-		MpqEditor ed = new JmpqBasedEditor();
-		ed.open(f);
-		return ed;
+		return new Jmpq2BasedEditor(f);
 	}
 
 	public static String getTempfolder() {

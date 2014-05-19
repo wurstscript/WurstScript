@@ -13,14 +13,12 @@ class JmpqBasedEditor implements MpqEditor {
 
 	private JmpqEditor getEditor() {
 		if (editor == null) {
-			throw new RuntimeException("editor not initialized");
+			throw new RuntimeException("editor already closed");
 		}
 		return editor;
 	}
 	
-	
-	@Override
-	public void open(File mpqArchive) throws Exception {
+	public JmpqBasedEditor(File mpqArchive) throws Exception {
 		this.editor = new JmpqEditor(mpqArchive);
 	}
 

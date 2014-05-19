@@ -10,6 +10,7 @@ Bundle-ClassPath: wurstscript.jar,
  lib/guava-14.0-rc1.jar,
  lib/velocity-1.7-dep.jar,
  lib/jmpq.jar,
+ lib/jmpq2.jar,
  lib/antlr-runtime-4.2.jar,
  lib/jna-4.0.0.jar
 Export-Package: com.google.common.annotations,
