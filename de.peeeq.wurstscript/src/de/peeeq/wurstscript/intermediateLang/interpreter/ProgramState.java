@@ -23,8 +23,7 @@ public class ProgramState extends State {
 
 	public static final int GENERATED_BY_WURST = 42;
 	private ImStmt lastStatement;
-	private WurstGui gui;
-	private File mapFile;
+	protected WurstGui gui;
 	private int id = 0;
 	private PrintStream outStream = System.out;
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
@@ -34,9 +33,8 @@ public class ProgramState extends State {
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
 	
 	
-	public ProgramState(File mapFile, WurstGui gui) {
+	public ProgramState(WurstGui gui) {
 		this.gui = gui;
-		this.mapFile = mapFile;
 	}
 
 	public void setLastStatement(ImStmt s) {

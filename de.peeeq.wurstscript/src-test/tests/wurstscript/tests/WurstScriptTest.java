@@ -155,7 +155,7 @@ public class WurstScriptTest {
 	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
 		RunArgs runArgs = new RunArgs(new String[] {"-lib", "../Wurstpack/wurstscript/lib/"});
 		WurstGui gui = new WurstGuiCliImpl();
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
 		
@@ -291,7 +291,7 @@ public class WurstScriptTest {
 	}
 
 	private void executeTests(WurstGui gui, ImProg imProg) {
-		CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, gui, FunctionFlag.IS_TEST);
+		CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, FunctionFlag.IS_TEST);
 		cfr.run();
 		WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
 		int failedTestCount = cfr.getFailTests().size();

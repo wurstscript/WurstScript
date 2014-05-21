@@ -73,7 +73,7 @@ public class HotdocGenerator {
 			
 			RunArgs runArgs = new RunArgs(new String[] {});
 			WurstGui gui = new WurstGuiCliImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 			compiler.loadFiles("resources/common.j");
 			compiler.loadFiles("resources/blizzard.j");
 			for (String file: files) {

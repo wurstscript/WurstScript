@@ -7,7 +7,7 @@
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.wurstio.Main" />
-				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq.jar wurstscript_lib/antlr-runtime-4.2.jar wurstscript_lib/jna-4.0.0.jar" />
+				<attribute name="Class-Path" value=". wurstscript_lib/java-cup-runtime.jar wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq.jar wurstscript_lib/jmpq2.jar wurstscript_lib/antlr-runtime-4.2.jar wurstscript_lib/jna-4.0.0.jar" />
 			</manifest>
 			<fileset dir="./bin" />
 			<fileset dir="./resources" />
@@ -21,6 +21,7 @@
 		<copy file="./lib/chardet.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/velocity-1.7-dep.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/jmpq.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/jmpq2.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/antlr-runtime-4.2.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/jna-4.0.0.jar" todir="./dist/wurstscript_lib" />
 	</target>

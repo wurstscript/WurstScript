@@ -3,6 +3,7 @@ package tests.wurstscript.objectreader;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.junit.Test;
@@ -30,7 +31,7 @@ public class TestW3u {
 		
 	}
 
-	private void testW3u(File inFile, File outFile) {
+	private void testW3u(File inFile, File outFile) throws FileNotFoundException {
 		//read
 		ObjectFile objFile = new ObjectFile(inFile, ObjectFileType.UNITS);
 		// write

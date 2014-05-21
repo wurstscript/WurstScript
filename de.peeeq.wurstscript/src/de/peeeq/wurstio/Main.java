@@ -111,6 +111,7 @@ public class Main {
 				return;
 			}
 
+			MpqEditor mpqEditor = null;
 			try {
 				if (runArgs.getMapFile() != null) {
 					// tempfolder
@@ -121,9 +122,13 @@ public class Main {
 				}
 
 				compilation : do {
+					
+					if (runArgs.getMapFile() != null) {
+						mpqEditor = MpqEditorFactory.getEditor(new File(runArgs.getMapFile()));
+					}
 
 
-					compiler = new WurstCompilerJassImpl(gui, runArgs);
+					compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 					for (String file: runArgs.getFiles()) {
 						compiler.loadFiles(file);
 					}
@@ -148,12 +153,12 @@ public class Main {
 
 					if (runArgs.runCompiletimeFunctions()) {
 						gui.sendProgress("Running tests", 0.9);
-						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_TEST);
+						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), mpqEditor, gui, FunctionFlag.IS_TEST);
 						ctr.run();
 					}
 					if (runArgs.runCompiletimeFunctions()) {
 						gui.sendProgress("Running compiletime functions", 0.91);
-						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+						CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), mpqEditor, gui, FunctionFlag.IS_COMPILETIME);
 						ctr.setInjectObjects(runArgs.isInjectObjects());
 						ctr.run();
 					}
@@ -205,14 +210,13 @@ public class Main {
 						break compilation;
 					}
 
-					if (runArgs.getMapFile() != null) { // output to map
+					if (mpqEditor != null) { // output to map
 						gui.sendProgress("Writing to map", 0.99);
 						File mapFile = new File(runArgs.getMapFile());
 
-						MpqEditor mpqEditor = MpqEditorFactory.getEditor();
-						mpqEditor.deleteFile(mapFile, "war3map.j");
-						mpqEditor.insertFile(mapFile, "war3map.j", outputMapscript);
-						mpqEditor.compactArchive(mapFile);
+						mpqEditor.deleteFile("war3map.j");
+						mpqEditor.insertFile("war3map.j", mapScript.toString().getBytes());
+						mpqEditor.close();
 					}
 
 				} while (false); // dummy loop to allow "break compilation"

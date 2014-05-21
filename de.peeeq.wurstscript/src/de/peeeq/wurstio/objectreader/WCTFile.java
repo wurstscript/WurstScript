@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.objectreader;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -9,8 +9,8 @@ import java.util.List;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstio.mpq.JmpqBasedEditor;
 import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 
 public class WCTFile {
 	
@@ -82,14 +82,16 @@ public class WCTFile {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		MpqEditor ed = new JmpqBasedEditor();
+		
 		File mpq = new File("/home/peter/work/dvs/dvs.w3x");
-		File wtc = ed.extractFile(mpq, "war3map.wct");
-		WCTFile tr = fromStream(new BinaryDataInputStream(wtc, true));
-		for (CustomTextTrigger t : tr.triggers) {
-			if (!t.getContents().isEmpty()) {
-				System.out.println("####################### ");
-				System.out.println(t.getContents());
+		try (MpqEditor ed = MpqEditorFactory.getEditor(mpq)) {
+			byte[] wtc = ed.extractFile("war3map.wct");
+			WCTFile tr = fromStream(new BinaryDataInputStream(new ByteArrayInputStream(wtc), true));
+			for (CustomTextTrigger t : tr.triggers) {
+				if (!t.getContents().isEmpty()) {
+					System.out.println("####################### ");
+					System.out.println(t.getContents());
+				}
 			}
 		}
 	}

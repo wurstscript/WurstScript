@@ -66,7 +66,6 @@ public class ClosureTranslator {
 			for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
 				ImVar orig = entry.getKey();
 				ImVar v = entry.getValue();
-				WLogger.info(orig + " ---> " + v);
 				stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
 			}
 			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));

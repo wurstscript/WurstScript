@@ -255,7 +255,7 @@ public class ModelManagerImpl implements ModelManager {
 		// TODO set dependencies
 		RunArgs runArgs = RunArgs.defaults();
 		runArgs.addLibs(dependencies);
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, runArgs);
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, runArgs);
 		comp.setHasCommonJ(true);
 		return comp;
 	}
@@ -303,7 +303,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	private CompilationUnit compileFromBundle(WurstGui gui, Bundle bundle, String fileName) throws IOException {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
 		InputStreamReader reader = new InputStreamReader(source);
 
 		URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
@@ -337,7 +337,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, RunArgs.defaults());
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(fileName, source);
 		
