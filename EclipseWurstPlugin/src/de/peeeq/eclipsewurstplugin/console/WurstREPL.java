@@ -553,7 +553,11 @@ public class WurstREPL {
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
 		RunArgs runArgs = new RunArgs(compileArgs);
-		MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapFile);
+		
+		MpqEditor mpqEditor = null;
+		if (mapFile != null) {
+			mpqEditor = MpqEditorFactory.getEditor(mapFile);
+		}
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
@@ -604,6 +608,10 @@ public class WurstREPL {
 		f.create(source, true, null);
 		
 		print("Output created in " + f.getFullPath() + "\n");
+		if (mpqEditor != null) {
+			mpqEditor.close();
+		}
+		
 		return f;
 	}
 

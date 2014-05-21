@@ -1,8 +1,10 @@
 package de.peeeq.wurstio.mpq;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
 import de.peeeq.jmpq.JMpqEditor;
@@ -20,6 +22,10 @@ class Jmpq2BasedEditor implements MpqEditor {
 		return editor;
 	}
 	public Jmpq2BasedEditor(File mpqArchive) throws Exception {
+		Preconditions.checkNotNull(mpqArchive);
+		if (!mpqArchive.exists()) {
+			throw new FileNotFoundException("not found: " + mpqArchive);
+		}
 		this.editor = new JMpqEditor(mpqArchive);
 	}
 
