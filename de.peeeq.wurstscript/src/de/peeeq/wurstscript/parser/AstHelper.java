@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
+import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
@@ -132,6 +133,18 @@ public class AstHelper {
 
 	public static Expr exprRealVal(WPos pos, String s) {
 		return Ast.ExprRealVal(pos, s.trim());
+	}
+
+	public static Modifiers mods(WPos src, WurstScriptScanner scanner, Modifier ... ms) {
+		Modifiers result = Ast.Modifiers();
+		if (scanner.lastHotdoc != null) {
+			result.add(Ast.WurstDoc(src, scanner.lastHotdoc));
+			scanner.lastHotdoc = null;
+		}
+		for (Modifier m : ms) {
+			result.add(m);
+		}
+		return result;
 	}
 
 }

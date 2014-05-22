@@ -29,6 +29,9 @@ import de.peeeq.wurstscript.utils.Utils;
 
 %{
 	StringBuffer string = new StringBuffer();
+	
+	public String lastHotdoc = null;
+	
 	int afterString; // state to which to return after string
 	
 	// a stack of indentation levels
@@ -137,6 +140,7 @@ IDENT = ({LETTER}|_)({LETTER}|{DIGIT}|_)*
 						return jassSymbol(TokenType.NL);
 					}	
 	"//" [^\r\n]* 			           { }
+	"/**" ~ "*/"                        { lastHotdoc = yytext(); }
 	"/*" ~"*/"                        { }
 	"package"							{ /*mode = 0;*/ yybegin(WURST); return symbol(TokenType.PACKAGE); }
 	"return"                          	{ return jassSymbol(TokenType.RETURN); }

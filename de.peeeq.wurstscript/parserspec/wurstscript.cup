@@ -932,7 +932,7 @@ JassToplevelDeclaration ::=
 
 JassTypeDecl ::=
 	TYPE:x IDENTIFIER:name EXTENDS TypeExpr:extendsName NL
-		{: RESULT = Ast.NativeType(pos(xleft, extendsName), Ast.Modifiers(), name, extendsName); :}
+		{: RESULT = Ast.NativeType(pos(xleft, extendsName), AstHelper.mods(pos(xleft, xleft), parser.scanner), name, extendsName); :}
 ;
 
 
@@ -950,30 +950,30 @@ JassGlobalDecls ::=
 
 JassGlobalDecl ::=
 	CONSTANT:x TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(xleft, i), Ast.Modifiers(Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(xleft, i), AstHelper.mods(pos(xleft, xleft), parser.scanner, Ast.ModConstant(pos(xleft, xright))), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name EQ Expr:i NL
-		{: RESULT = Ast.GlobalVarDef(pos(typ, i), Ast.Modifiers(), typ, name, i); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typ, i), AstHelper.mods(pos(typ, typ), parser.scanner), typ, name, i); :}
 	| TypeExpr:typ IDENTIFIER:name NL
-		{: RESULT = Ast.GlobalVarDef(pos(typ, nameright), Ast.Modifiers(), typ, name, Ast.NoExpr()); :}
+		{: RESULT = Ast.GlobalVarDef(pos(typ, nameright), AstHelper.mods(pos(typ, typ), parser.scanner), typ, name, Ast.NoExpr()); :}
 ;
 
 JassNativeDecl ::=
 	NATIVE:x JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), AstHelper.mods(pos(xleft, xleft), parser.scanner), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 	| CONSTANT:x NATIVE JassFuncSignature:sig NL
-		{: RESULT = Ast.NativeFunc(pos(xleft, sig), Ast.Modifiers(), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
+		{: RESULT = Ast.NativeFunc(pos(xleft, sig), AstHelper.mods(pos(xleft, xleft), parser.scanner), sig.getName(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy()); :}
 ;
 
 JassFuncDef ::=
 	FUNCTION:x JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
+			RESULT = Ast.FuncDef(pos(xleft, yright), AstHelper.mods(pos(xleft, xleft), parser.scanner), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
 		:}
 	| CONSTANT:x FUNCTION JassFuncSignature:sig NL JassLocals:body1 JassStatements:body2 ENDFUNCTION:y NL
 		{: 
 			body1.addAll(body2.removeAll());
-			RESULT = Ast.FuncDef(pos(xleft, yright), Ast.Modifiers(), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
+			RESULT = Ast.FuncDef(pos(xleft, yright), AstHelper.mods(pos(xleft, xleft), parser.scanner), sig.getName(), sig.getTypeParameters().copy(), sig.getParameters().copy(), (OptTypeExpr) sig.getReturnTyp().copy(), body1); 
 		:}
 ;
 
