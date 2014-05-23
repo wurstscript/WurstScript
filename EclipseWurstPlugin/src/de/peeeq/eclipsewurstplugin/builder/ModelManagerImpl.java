@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
@@ -337,6 +338,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
+		gui = new WurstGuiLogger();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
 		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
 		CompilationUnit cu = comp.parse(fileName, source);

@@ -921,8 +921,7 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (c.exprDestroy() != null) {
 			return transformExprDestroy(c.exprDestroy());
 		}
-		// TODO Auto-generated method stub
-		throw error(c, "not implemented");
+		return Ast.StmtErr(source(c));
 	}
 
 	private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
