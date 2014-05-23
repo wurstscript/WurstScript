@@ -218,12 +218,6 @@ public class WurstBuilder extends IncrementalProjectBuilder {
 			e.printStackTrace();
 		}
 
-		if (doChecks) {
-			WurstNature wurstNature = WurstNature.get(file.getProject());
-			if (wurstNature != null) {
-				wurstNature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_GRAMMAR);
-			}
-		}
 	}
 
 
