@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -13,7 +12,6 @@ import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -30,7 +28,6 @@ import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * Removes cyclic functions from a program
@@ -277,14 +274,6 @@ public class CyclicFunctionRemover {
 				newParameters.add(newVar);
 				pos = newParameters.size()+1;
 			}
-		}
-	}
-
-	private <T> void incCount(Map<T, Integer> map, T t) {
-		if (map.containsKey(t)) {
-			map.put(t, map.get(t)+1);
-		} else {
-			map.put(t, 1);
 		}
 	}
 

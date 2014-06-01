@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ExprClosure;
@@ -11,7 +13,7 @@ import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 
 public class AttrClosureAbstractMethod {
 
-	public static NameLink calculate(ExprClosure e) {
+	public static @Nullable NameLink calculate(ExprClosure e) {
 		WurstType expected = e.attrExpectedTyp();
 		if (expected instanceof WurstTypeClassOrInterface) {
 			WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) expected;
@@ -21,7 +23,7 @@ public class AttrClosureAbstractMethod {
 	}
 
 
-	public static FunctionSignature getAbstractMethodSignature(WurstType type) {
+	public static @Nullable FunctionSignature getAbstractMethodSignature(WurstType type) {
 		if (type instanceof WurstTypeClassOrInterface) {
 			WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
 			NameLink abstractMethod = findAbstractMethod(ct.getDef().attrNameLinks());
@@ -35,7 +37,7 @@ public class AttrClosureAbstractMethod {
 		return null;
 	}
 	
-	private static NameLink findAbstractMethod(Multimap<String, NameLink> nameLinks) {
+	private static @Nullable NameLink findAbstractMethod(Multimap<String, NameLink> nameLinks) {
 		NameLink abstractMethod = null; 
 		for (NameLink nl : nameLinks.values()) {
 			if (nl.getType() == NameLinkType.FUNCTION

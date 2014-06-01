@@ -86,11 +86,14 @@ public class WCTFile {
 		File mpq = new File("/home/peter/work/dvs/dvs.w3x");
 		try (MpqEditor ed = MpqEditorFactory.getEditor(mpq)) {
 			byte[] wtc = ed.extractFile("war3map.wct");
-			WCTFile tr = fromStream(new BinaryDataInputStream(new ByteArrayInputStream(wtc), true));
-			for (CustomTextTrigger t : tr.triggers) {
-				if (!t.getContents().isEmpty()) {
-					System.out.println("####################### ");
-					System.out.println(t.getContents());
+			try (BinaryDataInputStream bdin = new BinaryDataInputStream(new ByteArrayInputStream(wtc), true)) {
+				WCTFile tr = fromStream(bdin);
+			
+				for (CustomTextTrigger t : tr.triggers) {
+					if (!t.getContents().isEmpty()) {
+						System.out.println("####################### ");
+						System.out.println(t.getContents());
+					}
 				}
 			}
 		}

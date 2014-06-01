@@ -2,20 +2,12 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.FunctionLike;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.utils.Utils;
@@ -46,35 +38,6 @@ public class InitOrder {
 				return p.getName();
 			}
 		});
-	}
-
-	private static List<WPackage> calcImportChain(WPackage from) {
-		List<WPackage> result = Lists.newArrayList();
-		calcImportChain2(result, from);
-		return result;
-	}
-
-
-	private static boolean calcImportChain2(List<WPackage> result, WPackage from) {
-		if (result.contains(from)) {
-			result.add(from);
-			System.out.println("CYCLE1 " + toStringArray(result));
-			return true;
-		}
-		result.add(from);
-		for (WImport i : from.getImports()) {
-			if (i.attrImportedPackage() == null) {
-				continue;
-			}
-			if (!i.getIsInitLater()) {
-				boolean r = calcImportChain2(result, i.attrImportedPackage());
-				if (r) {
-					return true;
-				}
-			}
-		}
-		result.remove(result.size()-1);
-		return false;
 	}
 
 	public static List<WPackage> initDependenciesTransitive(WPackage p) {

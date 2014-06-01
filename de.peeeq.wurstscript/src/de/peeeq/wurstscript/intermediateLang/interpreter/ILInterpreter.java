@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.io.File;
 import java.util.Stack;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
@@ -31,7 +33,7 @@ public class ILInterpreter {
 	}
 
 	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
-		this(prog, gui, mapFile, new ProgramState(gui).setProg(prog));
+		this(prog, gui, mapFile, new ProgramState(gui, prog));
 	}
 
 	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
@@ -79,8 +81,13 @@ public class ILInterpreter {
 				// ignore
 			}
 		}
-		WPos source = globalState.getLastStatement().attrTrace().attrSource();
-		globalState.getOutStream().println("function " + f.getName() + " not found (line " + source.getLine() + " in " + source.getFile() + ")");
+		ImStmt lastStatement = globalState.getLastStatement();
+		if (lastStatement != null) {
+			WPos source = lastStatement.attrTrace().attrSource();
+			globalState.getOutStream().println("function " + f.getName() + " not found (line " + source.getLine() + " in " + source.getFile() + ")");
+		} else {
+			globalState.getOutStream().println("function " + f.getName() + " not found (no source)");
+		}
 		return new LocalState();
 	}
 
@@ -114,7 +121,7 @@ public class ILInterpreter {
 		runFunc(globalState, f);
 	}
 
-	public ImStmt getLastStatement() {
+	public @Nullable ImStmt getLastStatement() {
 		return globalState.getLastStatement();
 	}
 

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.frotty.jassAttributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -9,7 +11,7 @@ import de.peeeq.wurstscript.jassAst.JassStmtCall;
 
 public class FunctionCall {
 
-	public static JassFunction get(JassExprFunctionCall f) {
+	public static @Nullable JassFunction get(JassExprFunctionCall f) {
 		String funcName = f.getFuncName();
 		JassAstElement node = f.getParent();
 		while (node != null) {
@@ -26,7 +28,7 @@ public class FunctionCall {
 		return null;
 	}
 
-	public static JassFunction get(JassStmtCall f) {
+	public static @Nullable JassFunction get(JassStmtCall f) {
 		String funcName = f.getFuncName();
 		JassAstElement node = f.getParent();
 		while (node != null) {

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.types;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
@@ -12,7 +14,7 @@ public class NativeTypes {
 	 * returns the WurstScriptType for a given nativetype definition
 	 * @param b 
 	 */
-	public static WurstType nativeType(String typeName, boolean isJassCode) {
+	public static @Nullable WurstType nativeType(String typeName, boolean isJassCode) {
 		if (typeName.equals("int") || typeName.equals("integer")) {
 			return WurstTypeInt.instance();
 		}

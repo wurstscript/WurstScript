@@ -510,10 +510,4 @@ public class JassInterpreter {
 		trace = b;
 	}
 
-	
-	private de.peeeq.wurstscript.intermediateLang.ILconst evalOp(de.peeeq.wurstscript.intermediateLang.ILconst left, com.google.common.base.Supplier<de.peeeq.wurstscript.intermediateLang.ILconst> right) {
-		return left;
-		
-	}
-
 }

@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
@@ -81,7 +83,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class DescriptionHtml {
 
-	public static String description(WurstModel wurstModel) {
+	public static @Nullable String description(WurstModel wurstModel) {
 		return null;
 	}
 
@@ -182,20 +184,20 @@ public class DescriptionHtml {
 		return "This is an annotation ";
 	}
 
-	public static String description(List<?> l) {
+	public static @Nullable String description(List<?> l) {
 		// just a list of strings
 		return null;
 	}
 
-	public static String description(CompilationUnit compilationUnit) {
+	public static @Nullable String description(CompilationUnit compilationUnit) {
 		return null;
 	}
 
-	public static String description(EndFunctionStatement endFunctionStatement) {
+	public static @Nullable String description(EndFunctionStatement endFunctionStatement) {
 		return null;
 	}
 
-	public static String description(ExprBinary e) {
+	public static @Nullable String description(ExprBinary e) {
 		FunctionDefinition f = e.attrFuncDef();
 		if (f != null) {
 			return "This is an overloaded operator:<br/>" + 
@@ -204,7 +206,7 @@ public class DescriptionHtml {
 		return null;
 	}
 
-	public static String description(ExprBoolVal exprBoolVal) {
+	public static @Nullable String description(ExprBoolVal exprBoolVal) {
 		return null;
 	}
 
@@ -224,7 +226,7 @@ public class DescriptionHtml {
 		return nr.attrNameDef().descriptionHtml();
 	}
 
-	public static String description(ExprIncomplete exprIncomplete) {
+	public static @Nullable String description(ExprIncomplete exprIncomplete) {
 		return null;
 	}
 
@@ -232,7 +234,7 @@ public class DescriptionHtml {
 		return "instanceof: Check if an object has a type which is a subtype of " + htmlType(e.getTyp().attrTyp());
 	}
 
-	public static String description(ExprIntVal exprIntVal) {
+	public static @Nullable String description(ExprIntVal exprIntVal) {
 		return null;
 	}
 
@@ -244,7 +246,7 @@ public class DescriptionHtml {
 		return "'null' of type " + e.attrExpectedTyp();
 	}
 
-	public static String description(ExprRealVal exprRealVal) {
+	public static @Nullable String description(ExprRealVal exprRealVal) {
 		return null;
 	}
 
@@ -252,7 +254,7 @@ public class DescriptionHtml {
 		return "begin ... end: This is an expression which consists of a list of statements.";
 	}
 
-	public static String description(ExprStringVal exprStringVal) {
+	public static @Nullable String description(ExprStringVal exprStringVal) {
 		return null;
 	}
 
@@ -269,15 +271,15 @@ public class DescriptionHtml {
 				+ "a unique number for each class in the same type hierarchy.";
 	}
 
-	public static String description(ExprUnary exprUnary) {
+	public static @Nullable String description(ExprUnary exprUnary) {
 		return null;
 	}
 
-	public static String description(FuncSignature funcSignature) {
+	public static @Nullable String description(FuncSignature funcSignature) {
 		return null;
 	}
 
-	public static String description(
+	public static @Nullable String description(
 			IdentifierWithTypeArgs identifierWithTypeArgs) {
 		return null;
 	}
@@ -286,7 +288,7 @@ public class DescriptionHtml {
 		return "An init block: This block is executed at map start";
 	}
 
-	public static String description(
+	public static @Nullable String description(
 			IdentifierWithTypeParamDefs identifierWithTypeParamDefs) {
 		return null;
 	}
@@ -314,15 +316,15 @@ public class DescriptionHtml {
 		return m.attrModuleDef().descriptionHtml();
 	}
 
-	public static String description(NoDefaultCase noDefaultCase) {
+	public static @Nullable String description(NoDefaultCase noDefaultCase) {
 		return null;
 	}
 
-	public static String description(NoExpr noExpr) {
+	public static @Nullable String description(NoExpr noExpr) {
 		return null;
 	}
 
-	public static String description(NoTypeExpr noTypeExpr) {
+	public static @Nullable String description(NoTypeExpr noTypeExpr) {
 		return null;
 	}
 
@@ -331,7 +333,7 @@ public class DescriptionHtml {
 				+ "is destroyed." + s.getSource().getLeftPos() + " - " + s.getSource().getRightPos();
 	}
 
-	public static String description(StartFunctionStatement s) {
+	public static @Nullable String description(StartFunctionStatement s) {
 		return null;
 	}
 
@@ -339,7 +341,7 @@ public class DescriptionHtml {
 		return "Destroys an object.";
 	}
 
-	public static String description(StmtErr s) {
+	public static @Nullable String description(StmtErr s) {
 		return null;
 	}
 
@@ -382,7 +384,7 @@ public class DescriptionHtml {
 		return "A return statement";
 	}
 
-	public static String description(StmtSet s) {
+	public static @Nullable String description(StmtSet s) {
 		return null;
 	}
 
@@ -415,7 +417,7 @@ public class DescriptionHtml {
 		return "thistype = " + htmlType(t.attrTyp());
 	}
 
-	public static String description(VisibilityDefault visibilityDefault) {
+	public static @Nullable String description(VisibilityDefault visibilityDefault) {
 		return null;
 	}
 
@@ -431,11 +433,11 @@ public class DescriptionHtml {
 		return "public: can be used in other packages";
 	}
 
-	public static String description(VisibilityPublicread visibilityPublicread) {
+	public static @Nullable String description(VisibilityPublicread visibilityPublicread) {
 		return null;
 	}
 
-	public static String description(WBlock wBlock) {
+	public static @Nullable String description(WBlock wBlock) {
 		return null;
 	}
 
@@ -450,7 +452,7 @@ public class DescriptionHtml {
 		return wurstDoc.getRawComment();
 	}
 
-	public static String description(ExprEmpty exprEmpty) {
+	public static @Nullable String description(ExprEmpty exprEmpty) {
 		return null;
 	}
 	

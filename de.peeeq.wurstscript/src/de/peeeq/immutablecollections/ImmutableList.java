@@ -5,6 +5,10 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
+
 public abstract class ImmutableList<T> implements Iterable<T> {
 	
 	private int hashCode = 0;
@@ -45,6 +49,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 		return ImmutableListEmpty.<T>instance();
 	}
 	
+	@SafeVarargs
 	public static <T> ImmutableList<T> of(T ... elems) {
 		ImmutableList<T> result = emptyList();
 		for (int i=elems.length-1; i>=0; i--) {
@@ -95,7 +100,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	}
 	
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (obj instanceof ImmutableList) {
 			ImmutableList<?> other = (ImmutableList<?>) obj;
 			if (other.size() != size() || other.hashCode() != hashCode()) {
@@ -165,7 +170,7 @@ class ImmutableListEmpty<T> extends ImmutableList<T> {
 
 	@Override
 	public ImmutableList<T> appFront(T elem) {
-		if (elem == null) throw new IllegalArgumentException("elem must not be null");
+		Preconditions.checkNotNull(elem);
 		return new ImmutableListImpl<T>(elem);
 	}
 
@@ -202,7 +207,7 @@ class ImmutableListEmpty<T> extends ImmutableList<T> {
 
 
 class ImmutableListIterator<T> implements Iterator<T> {
-	private ImmutableList<T> pos;
+	private @Nullable ImmutableList<T> pos;
 
 	public ImmutableListIterator(ImmutableList<T> list) {
 		this.pos = list;
@@ -215,13 +220,14 @@ class ImmutableListIterator<T> implements Iterator<T> {
 	}
 
 	@Override
-	public T next() {
-		if (pos.isEmpty()) {
+	public @Nullable T next() {
+		ImmutableList<T> p = pos;
+		if (p == null || p.isEmpty()) {
 			pos = null;
 			return null;
 		} else {
-			T res = pos.head();
-			pos = pos.tail();
+			T res = p.head();
+			pos = p.tail();
 			return res;
 		}
 	}
@@ -261,7 +267,7 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
 
 	@Override
 	public ImmutableList<T> appFront(T elem) {
-		if (elem == null) throw new IllegalArgumentException("elem must not be null");
+		Preconditions.checkNotNull(elem);
 		return new ImmutableListImpl<T>(elem, this);
 	}
 
@@ -325,7 +331,7 @@ class ImmutableListImplCons<T, L extends T, R extends T> extends ImmutableList<T
 
 	@Override
 	public ImmutableList<T> appFront(T elem) {
-		if (elem == null) throw new IllegalArgumentException("elem must not be null");
+		Preconditions.checkNotNull(elem);
 		return new ImmutableListImpl<T>(elem, this);
 	}
 

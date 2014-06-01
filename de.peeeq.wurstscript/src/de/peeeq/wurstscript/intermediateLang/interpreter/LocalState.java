@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 
 
@@ -7,7 +9,7 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 
 public class LocalState extends State {
 
-	private ILconst returnVal = null;
+	private @Nullable ILconst returnVal = null;
 	
 	public LocalState(ILconst returnVal) {
 		this.setReturnVal(returnVal);
@@ -16,11 +18,11 @@ public class LocalState extends State {
 	public LocalState() {
 	}
 
-	public ILconst getReturnVal() {
+	public @Nullable ILconst getReturnVal() {
 		return returnVal;
 	}
 
-	public LocalState setReturnVal(ILconst returnVal) {
+	public LocalState setReturnVal(@Nullable ILconst returnVal) {
 		this.returnVal = returnVal;
 		return this;
 	}

@@ -14,7 +14,6 @@ import com.google.common.collect.Maps;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.MpqEditor;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
@@ -27,6 +26,7 @@ import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 
 public class ProgramStateIO extends ProgramState {
@@ -41,8 +41,8 @@ public class ProgramStateIO extends ProgramState {
 	private Map<Integer, String> trigStrings = null;
 	private final File mapFile;
 
-	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui) {
-		super(gui);
+	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui, ImProg prog) {
+		super(gui, prog);
 		this.mapFile = mapFile;
 		this.mpqEditor = mpqEditor;
 	}
@@ -233,8 +233,6 @@ public class ProgramStateIO extends ProgramState {
 
 			if (inject) {
 				String filenameInMpq = "war3map." + fileType.getExt();
-				
-				File mapFileTemp = new File("inject_tempmap.w3x");
 				
 				try {
 					mpqEditor.deleteFile(filenameInMpq);

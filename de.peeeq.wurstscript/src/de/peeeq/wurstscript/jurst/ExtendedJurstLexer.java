@@ -11,8 +11,8 @@ import org.antlr.v4.runtime.TokenFactory;
 import org.antlr.v4.runtime.TokenSource;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
+import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -22,8 +22,8 @@ public class ExtendedJurstLexer implements TokenSource {
 	private final JurstLexer orig;
 	private Queue<Token> nextTokens = new LinkedList<>();
 	private State state = State.INIT;
-	private Token eof = null;
-	private Token firstNewline;
+	private @Nullable Token eof = null;
+	private @Nullable Token firstNewline;
 	private LineOffsets lineOffsets = new LineOffsets();
 	public StringBuilder debugSb = new StringBuilder();
 	private final boolean debug = false;
@@ -82,8 +82,9 @@ public class ExtendedJurstLexer implements TokenSource {
 			return nextTokens.poll();
 		}
 
-		if (eof != null) {
-			return makeToken(JurstParser.EOF, "$EOF", eof.getStartIndex(), eof.getStopIndex());
+		Token eof_local = eof;
+		if (eof_local != null) {
+			return makeToken(JurstParser.EOF, "$EOF", eof_local.getStartIndex(), eof_local.getStopIndex());
 		}
 
 
@@ -111,6 +112,7 @@ public class ExtendedJurstLexer implements TokenSource {
 					isWurst = true;
 				} else if (isWurstOnlyKeyword(token)) {
 					token = makeToken(JurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+					assert token != null;
 				} else if (token.getType() == JurstParser.HOTDOC_COMMENT) {
 					continue;
 				}
@@ -262,7 +264,7 @@ public class ExtendedJurstLexer implements TokenSource {
 	}
 
 	@Override
-	public void setTokenFactory(TokenFactory<?> factory) {
+	public void setTokenFactory(@SuppressWarnings("null") TokenFactory<?> factory) {
 		orig.setTokenFactory(factory);
 	}
 

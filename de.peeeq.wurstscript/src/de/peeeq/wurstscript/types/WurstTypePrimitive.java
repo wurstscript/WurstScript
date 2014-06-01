@@ -6,12 +6,10 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 public abstract class WurstTypePrimitive extends WurstType {
 	
 	private String name;
-	private String[] jassType;
 	private ImSimpleType imType;
 
 	protected WurstTypePrimitive(String name) {
 		this.name = name;
-		jassType = new String[] { name };
 		imType = JassIm.ImSimpleType(name);
 	}
 	@Override

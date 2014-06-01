@@ -6,6 +6,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Arguments;
@@ -21,7 +22,6 @@ import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -199,7 +199,7 @@ public class AntlrJurstParseTreeTransformer {
 		throw error(d, "unhandled case: " + text(d));
 	}
 
-	private String text(ParserRuleContext c) {
+	private String text(@Nullable ParserRuleContext c) {
 		if (c==null) {
 			return "";
 		}
@@ -303,7 +303,7 @@ public class AntlrJurstParseTreeTransformer {
 		return Ast.StmtIf(source(s), transformExpr(s.cond), thenBlock, elseBlock);
 	}
 
-	private WStatements transformJassElseIfs(JassElseIfsContext s) {
+	private WStatements transformJassElseIfs(@Nullable JassElseIfsContext s) {
 		if (s == null) {
 			return Ast.WStatements();
 		}
@@ -346,9 +346,7 @@ public class AntlrJurstParseTreeTransformer {
 			if (e.globalsBlock() != null) {
 				for (VarDefContext v : e.globalsBlock().vars) {
 					WEntity en = transformVardef(v);
-					if (en != null) {
-						elements.add(en);
-					}
+					elements.add(en);
 				}
 			} else {
 				WEntity en = transformEntity(e);
@@ -373,7 +371,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 	
 
-	private WEntity transformEntity(EntityContext e) {
+	private @Nullable WEntity transformEntity(EntityContext e) {
 		try {
 			if (e.nativeType() != null) {
 				return transformNativeType(e.nativeType());
@@ -486,7 +484,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private ClassSlotResult transformClassSlots(WPos src,
-			ClassSlotsContext slots) {
+			@Nullable ClassSlotsContext slots) {
 		ClassSlotResult result = new ClassSlotResult();
 		if (slots != null && slots.slots != null) {
 			for (ClassSlotContext slot : slots.slots) {
@@ -518,7 +516,7 @@ public class AntlrJurstParseTreeTransformer {
 		return result;
 	}
 
-	private ClassSlot transformClassSlot(ClassSlotContext s) {
+	private @Nullable ClassSlot transformClassSlot(ClassSlotContext s) {
 		try {
 			if (s.constructorDef() != null) {
 				return transformConstructorDef(s.constructorDef());
@@ -648,7 +646,7 @@ public class AntlrJurstParseTreeTransformer {
 				transformStatements(i.statementsBlock()));
 	}
 
-	private WStatements transformStatements(StatementsBlockContext b) {
+	private WStatements transformStatements(@Nullable StatementsBlockContext b) {
 		WStatements result = Ast.WStatements();
 		if (b != null) {
 			for (StatementContext s : b.statement()) {
@@ -765,7 +763,7 @@ public class AntlrJurstParseTreeTransformer {
 		}
 	}
 
-	private WurstOperator getAssignOp(Token assignOp) {
+	private @Nullable WurstOperator getAssignOp(Token assignOp) {
 		switch (assignOp.getType()) {
 		case JurstParser.PLUS_EQ:
 			return WurstOperator.PLUS;
@@ -807,7 +805,7 @@ public class AntlrJurstParseTreeTransformer {
 
 	private NameRef transformExprMemberVarAccess2(WPos source,
 			ExprContext e_expr, Token e_dots, Token e_varname,
-			IndexesContext e_indexes) {
+			@Nullable IndexesContext e_indexes) {
 		Expr left = transformExpr(e_expr);
 		
 		if (left instanceof ExprEmpty) {
@@ -833,7 +831,7 @@ public class AntlrJurstParseTreeTransformer {
 		}
 	}
 
-	private String text(Token t) {
+	private String text(@Nullable Token t) {
 		if (t==null) {
 			return "";
 		}
@@ -900,7 +898,7 @@ public class AntlrJurstParseTreeTransformer {
 		return Ast.LocalVarDef(source(l), modifiers, optTyp, name, initialExpr);
 	}
 
-	private OptExpr transformOptionalExpr(ExprContext e) {
+	private OptExpr transformOptionalExpr(@Nullable ExprContext e) {
 		if (e == null) {
 			return Ast.NoExpr();
 		}
@@ -966,7 +964,7 @@ public class AntlrJurstParseTreeTransformer {
 				transformTypeArgs(c.typeArgs()), transformExprs(c.exprList()));
 	}
 
-	private Arguments transformExprs(ExprListContext es) {
+	private Arguments transformExprs(@Nullable ExprListContext es) {
 		Arguments result = Ast.Arguments();
 		if (es != null) {
 			for (ExprContext e : es.exprs) {
@@ -986,14 +984,14 @@ public class AntlrJurstParseTreeTransformer {
 		return Ast.StmtIf(source(i), cond, thenBlock, elseBlock);
 	}
 
-	private WStatements transformElseBlock(ElseStatementsContext es) {
+	private WStatements transformElseBlock(@Nullable ElseStatementsContext es) {
 		if (es == null) {
 			return Ast.WStatements();
 		}
 		if (es.cond != null) {
 			// elseif block
 			WStatements thenBlock = transformStatements(es.thenStatements);
-			WStatements elseBlock = transformElseBlock(es.elseStatements());;
+			WStatements elseBlock = transformElseBlock(es.elseStatements());
 			return Ast.WStatements(Ast.StmtIf(source(es), transformExpr(es.cond), thenBlock, elseBlock));
 		} else if (es.statementsBlock() != null) {
 			// 'else' block
@@ -1068,7 +1066,7 @@ public class AntlrJurstParseTreeTransformer {
 		throw new Error("unhandled case: " + left.getClass() + "  // " + left );
 	}
 
-	private ParseTree getLeftParseTree(ParserRuleContext e) {
+	private @Nullable ParseTree getLeftParseTree(@Nullable ParserRuleContext e) {
 		if (e == null || e.getParent() == null) {
 			return null;
 		}
@@ -1085,7 +1083,7 @@ public class AntlrJurstParseTreeTransformer {
 		return null;
 	}
 	
-	private ParseTree getRightParseTree(ParserRuleContext e) {
+	private @Nullable ParseTree getRightParseTree(@Nullable ParserRuleContext e) {
 		if (e == null || e.getParent() == null) {
 			return null;
 		}
@@ -1279,7 +1277,7 @@ public class AntlrJurstParseTreeTransformer {
 				returnType);
 	}
 
-	private OptTypeExpr transformOptionalType(TypeExprContext t) {
+	private OptTypeExpr transformOptionalType(@Nullable TypeExprContext t) {
 		if (t == null) {
 			return Ast.NoTypeExpr();
 		}
@@ -1307,7 +1305,7 @@ public class AntlrJurstParseTreeTransformer {
 		return new CompileError(source(source), msg);
 	}
 
-	private TypeExprList transformTypeArgs(TypeArgsContext typeArgs) {
+	private TypeExprList transformTypeArgs(@Nullable TypeArgsContext typeArgs) {
 		TypeExprList result = Ast.TypeExprList();
 		if (typeArgs != null) {
 			for (TypeExprContext e : typeArgs.args) {
@@ -1336,7 +1334,7 @@ public class AntlrJurstParseTreeTransformer {
 				transformTypeExpr(p.typeExpr()), text(p.name));
 	}
 
-	private TypeParamDefs transformTypeParams(TypeParamsContext typeParams) {
+	private TypeParamDefs transformTypeParams(@Nullable TypeParamsContext typeParams) {
 		TypeParamDefs result = Ast.TypeParamDefs();
 		if (typeParams != null) {
 			for (TypeParamContext p : typeParams.params) {
@@ -1390,7 +1388,7 @@ public class AntlrJurstParseTreeTransformer {
 		public GlobalVarDefs vars = Ast.GlobalVarDefs();
 		public FuncDefs methods = Ast.FuncDefs();
 		public ModuleUses moduleUses = Ast.ModuleUses();
-		public OnDestroyDef onDestroy = null;
+		public @Nullable OnDestroyDef onDestroy = null;
 
 	}
 

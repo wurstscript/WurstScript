@@ -349,7 +349,7 @@ public class ImTranslator {
 		if (functionMap.containsKey(funcDef)) {
 			return functionMap.get(funcDef);
 		}
-		String name = getNameFor(funcDef);;
+		String name = getNameFor(funcDef);
 		List<FunctionFlag> flags = flags();
 		if (funcDef instanceof NativeFunc) {
 			flags.add(IS_NATIVE);

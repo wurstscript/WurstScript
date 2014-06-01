@@ -20,13 +20,13 @@ public class GetByType {
 		cu.accept(new CompilationUnit.DefaultVisitor() {
 			
 			@Override
-			public void visit(ClassDef classDef) {
+			public void visit(@SuppressWarnings("null") ClassDef classDef) {
 				result.classes.add(classDef);
 			}
 			
 			
 			@Override
-			public void visit(WPackage wPackage) {
+			public void visit(@SuppressWarnings("null") WPackage wPackage) {
 				result.packageDefs.add(wPackage);
 			}
 		});

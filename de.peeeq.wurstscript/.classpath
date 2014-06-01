@@ -7,7 +7,11 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="src-gen"/>
+	<classpathentry kind="src" path="src-gen">
+		<attributes>
+			<attribute name="ignore_optional_problems" value="true"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="src" path="resources"/>
 	<classpathentry kind="src" path="src-test"/>
 	<classpathentry excluding="de/peeeq/emulation/" kind="src" path="src-gwt"/>

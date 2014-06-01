@@ -314,7 +314,7 @@ public class WurstScriptTest {
 		new File(TEST_OUTPUT_PATH).mkdirs();
 		try {
 			StringBuilder sb = new StringBuilder();
-			new JassPrinter(true).printProg(sb, prog);
+			new JassPrinter(true, prog).printProg(sb);
 			
 			Files.write(sb.toString(), outputFile, Charsets.UTF_8);
 		} catch (IOException e) {

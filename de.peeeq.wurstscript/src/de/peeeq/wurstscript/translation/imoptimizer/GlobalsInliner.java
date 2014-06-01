@@ -22,7 +22,6 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class GlobalsInliner {
 	
-	private ImTranslator translator;
 	private ImProg prog;
 
 	
@@ -32,7 +31,6 @@ public class GlobalsInliner {
 	boolean notUsed = true;
 
 	public GlobalsInliner(ImTranslator translator) {
-		this.translator = translator;
 		this.prog = translator.getImProg();
 	}
 	

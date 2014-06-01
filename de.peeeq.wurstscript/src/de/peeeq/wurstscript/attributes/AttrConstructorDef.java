@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -14,7 +16,7 @@ import de.peeeq.wurstscript.ast.TypeDef;
  */
 public class AttrConstructorDef {
 	
-	public static ConstructorDef calculate(final ExprNewObject node) {
+	public static @Nullable ConstructorDef calculate(final ExprNewObject node) {
 		
 		TypeDef typeDef = node.attrTypeDef();
 		

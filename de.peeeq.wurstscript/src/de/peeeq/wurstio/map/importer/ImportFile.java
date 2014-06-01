@@ -125,20 +125,20 @@ public class ImportFile {
 		try {
 			File mapTemp = File.createTempFile("temp", "w3x");
 			Files.copy(mapFile, mapTemp);
-			JmpqEditor ed = new JmpqEditor(mapTemp);
-			File importDirectory = getImportDirectory(mapFile);
-			LinkedList<String> failed = extractImportedFiles(ed, importDirectory);
-			if (failed.isEmpty()){
-				JOptionPane.showMessageDialog(null, "All imports were extracted to " + importDirectory.getAbsolutePath());
-			}else{
-				String message = "Following files could not be extracted:" + "\n";
-				for(String s: failed){
-					message = message + s + "\n";
+			try (JmpqEditor ed = new JmpqEditor(mapTemp)) {
+				File importDirectory = getImportDirectory(mapFile);
+				LinkedList<String> failed = extractImportedFiles(ed, importDirectory);
+				if (failed.isEmpty()){
+					JOptionPane.showMessageDialog(null, "All imports were extracted to " + importDirectory.getAbsolutePath());
+				}else{
+					String message = "Following files could not be extracted:" + "\n";
+					for(String s: failed){
+						message = message + s + "\n";
+					}
+					WLogger.info(message);
+					JOptionPane.showMessageDialog(null, message);
 				}
-				WLogger.info(message);
-				JOptionPane.showMessageDialog(null, message);
 			}
-			
 		} catch (IOException e) {
 			WLogger.severe(e);
 			JOptionPane.showMessageDialog(null, "Could not export objects (2): " + e.getMessage());

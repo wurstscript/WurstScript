@@ -1,8 +1,6 @@
 package de.peeeq.wurstio.mpq;
 
 import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
 
 public interface MpqEditor extends Closeable {
 

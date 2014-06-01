@@ -8,7 +8,6 @@ import java.util.List;
 
 import java_cup.runtime.Symbol;
 
-import org.junit.Assert;
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -19,6 +18,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.junit.Assert;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;

@@ -3,15 +3,17 @@ package de.peeeq.wurstscript.parser;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class WPos {
 	private final String file;
-	private final LineOffsets lineOffsets;
+	private final @Nullable LineOffsets lineOffsets;
 	private final int leftPos;
 	private final int rightPos;
 	
-	public WPos(String file, LineOffsets lineOffsets, int leftPos, int rightPos) {
+	public WPos(String file, @Nullable LineOffsets lineOffsets, int leftPos, int rightPos) {
 		this.file = file;
 		this.lineOffsets = lineOffsets;
 		this.leftPos = leftPos;
@@ -22,7 +24,7 @@ public class WPos {
 		return file;
 	}
 
-	public LineOffsets getLineOffsets() {
+	public @Nullable LineOffsets getLineOffsets() {
 		return lineOffsets;
 	}
 
@@ -35,13 +37,15 @@ public class WPos {
 	}
 
 	public int getLine() {
-		if (lineOffsets == null) return 0;
-		return lineOffsets.getLine(leftPos) + 1;
+		LineOffsets lo = lineOffsets;
+		if (lo == null) return 0;
+		return lo.getLine(leftPos) + 1;
 	}
 
 	public int getEndLine() {
-		if (lineOffsets == null) return 0;
-		return lineOffsets.getLine(rightPos) + 1;
+		LineOffsets lo = lineOffsets;
+		if (lo == null) return 0;
+		return lo.getLine(rightPos) + 1;
 	}
 
 	public WPos withRightPos(int rightPos) {

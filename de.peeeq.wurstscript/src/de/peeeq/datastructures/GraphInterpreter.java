@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -20,7 +22,7 @@ public abstract class GraphInterpreter<T> {
 		
 		for (T t : nodes) {
 			if (!seen.contains(t)) {
-				TopsortResult<T> r = topSort_add(result, seen, seenStack, t);
+				@Nullable TopsortResult<T> r = topSort_add(result, seen, seenStack, t);
 				if (r != null) {
 					return r;
 				}
@@ -31,7 +33,7 @@ public abstract class GraphInterpreter<T> {
 	
 	
 	
-	private TopsortResult<T> topSort_add(List<T> result, Set<T> seen, List<T> seenStack, T n) {
+	private @Nullable TopsortResult<T> topSort_add(List<T> result, Set<T> seen, List<T> seenStack, T n) {
 		for (int i=seenStack.size()-1; i>=0; i--) {
 			if (seenStack.get(i) == n) {
 				// cycle

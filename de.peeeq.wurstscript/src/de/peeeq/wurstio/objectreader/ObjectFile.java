@@ -5,8 +5,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 import de.peeeq.wurstscript.WLogger;
 
@@ -29,10 +27,12 @@ public class ObjectFile {
 		return modifiedTable;
 	}
 
+	@SuppressWarnings("resource") // closed in constructor
 	public ObjectFile(File file, ObjectFileType fileType) throws FileNotFoundException {
 		this(new BinaryDataInputStream(file, true), fileType);
 	}
 	
+	@SuppressWarnings("resource") // closed in constructor
 	public ObjectFile(byte[] w3_, ObjectFileType filetype) {
 		this(new BinaryDataInputStream(new ByteArrayInputStream(w3_), true), filetype);
 	}

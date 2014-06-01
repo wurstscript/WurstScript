@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 
@@ -25,7 +27,7 @@ public class SubClasses {
 		return result ;
 	}
 
-	public static ClassDef getExtendedClass(ClassDef classDef) {
+	public static @Nullable ClassDef getExtendedClass(ClassDef classDef) {
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass c = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			if (classDef == c.getClassDef()) {
@@ -39,7 +41,7 @@ public class SubClasses {
 		return null;
 	}
 
-	public static ConstructorDef getSuperConstructor(ConstructorDef constr) {
+	public static @Nullable ConstructorDef getSuperConstructor(ConstructorDef constr) {
 		ClassDef c = constr.attrNearestClassDef();
 		if (c == null) {
 			return null;

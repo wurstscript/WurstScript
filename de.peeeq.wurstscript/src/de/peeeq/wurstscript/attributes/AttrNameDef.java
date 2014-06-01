@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
@@ -38,7 +40,7 @@ public class AttrNameDef {
 		return searchNameInScope(term.getVarName(), term);
 	}
 
-	public static NameDef specialEnumLookupRules(ExprVarAccess term) {
+	public static @Nullable NameDef specialEnumLookupRules(ExprVarAccess term) {
 		NameDef result = null;
 		AstElement parent = term.getParent();
 		if (parent instanceof SwitchCase) {
@@ -56,7 +58,7 @@ public class AttrNameDef {
 		return result;
 	}
 
-	public static NameDef lookupEnumConst(String varName, WurstType t) {
+	public static @Nullable NameDef lookupEnumConst(String varName, WurstType t) {
 		if (t instanceof WurstTypeEnum) {
 			WurstTypeEnum e = (WurstTypeEnum) t;
 			// if we expect an enum type we can as well directly look into the enum
@@ -66,11 +68,11 @@ public class AttrNameDef {
 		return null;
 	}
 
-	public static NameDef calculate(ExprMemberVar term) {
+	public static @Nullable NameDef calculate(ExprMemberVar term) {
 		return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
 	}
 
-	public static NameDef calculate(ExprMemberArrayVar term) {
+	public static @Nullable NameDef calculate(ExprMemberArrayVar term) {
 		return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
 	}
 
@@ -94,7 +96,7 @@ public class AttrNameDef {
 		return writeAccess;
 	}
 
-	private static NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
+	private static @Nullable NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
 		WurstType receiverType = left.attrTyp();
 		NameDef result = node.lookupMemberVar(receiverType, varName);
 		if (result == null) {

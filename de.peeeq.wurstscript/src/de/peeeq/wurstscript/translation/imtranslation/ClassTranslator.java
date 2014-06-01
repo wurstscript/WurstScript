@@ -8,14 +8,12 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
@@ -51,7 +49,6 @@ import de.peeeq.wurstscript.utils.Pair;
 
 public class ClassTranslator {
 
-	private static final AstElement emptyTrace = Ast.NoExpr();
 	private ClassDef classDef;
 	private ImTranslator translator;
 //	/** list of statements to initialize a new object **/

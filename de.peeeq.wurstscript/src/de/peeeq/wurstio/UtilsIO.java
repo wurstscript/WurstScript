@@ -28,33 +28,20 @@ public class UtilsIO {
 	 */
 	public static String getMethodName(final int depth) {
 		StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		int i = 0;
-		for (StackTraceElement s : ste) {
-			// WLogger.info("Trace " +i+++ " = " + s.getMethodName());
-		}
-
 		return ste[depth + 2].getMethodName();
 	}
 
 	public static String getMethodNameExt(final int depth) {
 		StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		int i = 0;
-		for (StackTraceElement s : ste) {
-			// WLogger.info("Trace " +i+++ " = " + s.getMethodName());
-		}
 		StackTraceElement sf = ste[depth + 2];
 		return sf.getMethodName() + "" + sf.getLineNumber();
 	}
 
 	
 	public static void saveToFile(Object object, String filename) {
-		FileOutputStream fos = null;
-		ObjectOutputStream out = null;
-		try {
-			fos = new FileOutputStream(filename);
-			out = new ObjectOutputStream(fos);
+		try (FileOutputStream fos = new FileOutputStream(filename);
+				ObjectOutputStream out = new ObjectOutputStream(fos)) {
 			out.writeObject(object);
-			out.close();
 		} catch (IOException e) {
 			WLogger.info(e);
 		}

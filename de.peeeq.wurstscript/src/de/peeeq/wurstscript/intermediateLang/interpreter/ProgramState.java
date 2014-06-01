@@ -1,10 +1,11 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -22,9 +23,8 @@ import de.peeeq.wurstscript.parser.WPos;
 public class ProgramState extends State {
 
 	public static final int GENERATED_BY_WURST = 42;
-	private ImStmt lastStatement;
+	private @Nullable ImStmt lastStatement;
 	protected WurstGui gui;
-	private int id = 0;
 	private PrintStream outStream = System.out;
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
 	private ImProg prog;
@@ -33,15 +33,16 @@ public class ProgramState extends State {
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
 	
 	
-	public ProgramState(WurstGui gui) {
+	public ProgramState(WurstGui gui, ImProg prog) {
 		this.gui = gui;
+		this.prog = prog;
 	}
 
 	public void setLastStatement(ImStmt s) {
 		lastStatement = s;		
 	}
 
-	public ImStmt getLastStatement() {
+	public @Nullable ImStmt getLastStatement() {
 		return lastStatement;
 	}
 

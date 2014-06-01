@@ -31,7 +31,6 @@ import de.peeeq.wurstscript.utils.Utils;
 public class CompiletimeFunctionRunner {
 
 	private final ImProg imProg;
-	private final File mapFile;
 	private ILInterpreter interpreter;
 	private WurstGui gui;
 	private FunctionFlag functionFlag;
@@ -45,9 +44,7 @@ public class CompiletimeFunctionRunner {
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlag flag) {
 		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
-		this.mapFile = mapFile;
-		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui);
-		globalState.setProg(imProg);
+		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg);
 		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());

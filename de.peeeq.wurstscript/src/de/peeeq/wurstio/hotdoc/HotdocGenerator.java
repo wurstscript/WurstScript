@@ -37,7 +37,6 @@ public class HotdocGenerator {
 
 	private List<String> files;
 	private File outputfolder;
-	private String navbar;
 	private WurstModel model;
 	private ArrayList<WPackage> packages;
 	private VelocityEngine ve;

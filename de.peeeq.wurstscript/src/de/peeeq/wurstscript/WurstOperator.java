@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Supplier;
 
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
@@ -151,6 +153,7 @@ public enum WurstOperator {
 		throw new Error();
 	}
 
+	@SuppressWarnings("incomplete-switch")
 	public ILconst evaluateUnaryOperator(ILconst e) {
 		switch (this) {
 		case NOT:
@@ -161,7 +164,8 @@ public enum WurstOperator {
 		throw new Error("cannot evaluate " + this);
 	}
 	
-	public String getOverloadingFuncName() {
+	@SuppressWarnings("incomplete-switch")
+	public @Nullable String getOverloadingFuncName() {
 		switch (this) {
 		case PLUS:
 			return AttrFuncDef.overloadingPlus;
@@ -175,6 +179,7 @@ public enum WurstOperator {
 		return null;
 	}
 
+	@SuppressWarnings("incomplete-switch")
 	public JassOpUnary jassTranslateUnary() {
 		switch (this) {
 		case NOT: 

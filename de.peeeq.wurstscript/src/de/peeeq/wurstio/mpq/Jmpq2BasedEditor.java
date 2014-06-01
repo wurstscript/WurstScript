@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
 
 import de.peeeq.jmpq.JMpqEditor;
 import de.peeeq.jmpq.JMpqException;

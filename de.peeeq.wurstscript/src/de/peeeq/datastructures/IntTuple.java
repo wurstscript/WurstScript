@@ -2,6 +2,8 @@ package de.peeeq.datastructures;
 
 import java.util.Arrays;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 public class IntTuple {
 	private final int[] ar;
 	
@@ -46,7 +48,7 @@ public class IntTuple {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)

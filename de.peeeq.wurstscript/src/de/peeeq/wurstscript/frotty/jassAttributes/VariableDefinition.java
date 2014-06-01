@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.frotty.jassAttributes;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
@@ -18,7 +20,7 @@ import de.peeeq.wurstscript.jassAst.JassVar;
 
 public class VariableDefinition {
 
-	public static JassVar get(JassExprVarRef e) {
+	public static @Nullable JassVar get(JassExprVarRef e) {
 		String varName = e.getVarName();
 		JassAstElement node = e.getParent();
 		while (node != null) {
@@ -65,7 +67,7 @@ public class VariableDefinition {
 		return result ;
 	}
 
-	public static JassStmtSet get(JassStmtSet e) {
+	public static @Nullable JassStmtSet get(JassStmtSet e) {
 		String varName = e.getLeft();
 		JassAstElement node = e.getParent();
 		while (node != null) {
@@ -94,7 +96,7 @@ public class VariableDefinition {
 		return null;
 	}
 
-	public static JassStmtSetArray get(JassStmtSetArray e) {
+	public static @Nullable JassStmtSetArray get(JassStmtSetArray e) {
 		String varName = e.getLeft();
 		JassAstElement node = e.getParent();
 		while (node != null) {

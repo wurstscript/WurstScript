@@ -117,7 +117,7 @@ public class PackageLevels {
 	private static void calculatePackageClusters(
 			Partitions<WPackage> packageClusters, HashSet<WPackage> visited,
 			Stack<WPackage> active, WPackage p) {
-		if (p == null || visited.contains(p)) {
+		if (visited.contains(p)) {
 			return;
 		}
 		visited.add(p);

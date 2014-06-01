@@ -18,6 +18,8 @@ import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.CompileTimeInfo;
 
 /**
@@ -31,7 +33,8 @@ public class About extends javax.swing.JDialog {
     final static String authors = "peq & Frotty";
 
     /** Creates new form About */
-    public About(java.awt.Frame parent, boolean modal) throws URISyntaxException {
+    @SuppressWarnings("null")
+	public About(java.awt.Frame parent, boolean modal) throws URISyntaxException {
         super(parent, modal);        
         initComponents();
         uri = new URI(homepage);
@@ -77,8 +80,9 @@ public class About extends javax.swing.JDialog {
         homepageButton.setName("homepageButton"); // NOI18N
         homepageButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-			public void mouseClicked(java.awt.event.MouseEvent evt) {
-                homepageButtonMouseClicked(evt);
+			public void mouseClicked(@Nullable java.awt.event.MouseEvent evt) {
+                assert evt != null;
+            	homepageButtonMouseClicked(evt);
             }
         });
         
@@ -215,7 +219,7 @@ public class About extends javax.swing.JDialog {
                 	dialog.addWindowListener(new java.awt.event.WindowAdapter() {
 
                 		@Override
-                		public void windowClosing(java.awt.event.WindowEvent e) {
+                		public void windowClosing(@Nullable java.awt.event.WindowEvent e) {
                 			System.exit(0);
                 		}
                 	});

@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -20,11 +22,9 @@ import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprIncomplete;
 import de.peeeq.wurstscript.ast.ExprInstanceOf;
 import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprMemberVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
 import de.peeeq.wurstscript.ast.ExprNull;
@@ -51,7 +51,6 @@ import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
@@ -174,7 +173,6 @@ public class AttrExprType {
 		return WurstTypeUnknown.instance();
 	}
 
-	
 	public static  WurstType calculate(ExprThis term)  {
 		return caclulateThistype(term, true, "this");
 	}
@@ -186,7 +184,7 @@ public class AttrExprType {
 	 *  @param dynamic true when searching for 'this'
 	 *  @param searchedTerm what to display in error messages, null for no error messages
 	 */
-	public static  WurstType caclulateThistype(AstElement term, boolean dynamic, String searchedTerm)  {
+	public static  WurstType caclulateThistype(AstElement term, boolean dynamic, @Nullable String searchedTerm)  {
 		boolean showErrors = searchedTerm != null;
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
@@ -211,35 +209,41 @@ public class AttrExprType {
 		if (c != null) {
 			return c.match(new NamedScope.Matcher<WurstType>() {
 
+				@SuppressWarnings("null")
 				@Override
 				public WurstType case_ModuleDef(ModuleDef moduleDef) {
 					return new WurstTypeModule(moduleDef, false);
 				}
 
+				@SuppressWarnings("null")
 				@Override	
 				public WurstType case_ClassDef(ClassDef classDef) {
 					WurstTypeClass result = (WurstTypeClass) classDef.attrTyp().dynamic();
 					return result.replaceTypeVars(classDef.getTypeParameters().attrTypes());
 				}
 
+				@SuppressWarnings("null")
 				@Override
 				public WurstType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
 					ClassOrModule parent = moduleInstanciation.attrNearestClassOrModule();
 					return parent.attrTyp().dynamic();
 				}
 
+				@SuppressWarnings("null")
 				@Override
 				public WurstType case_WPackage(WPackage wPackage) {
 					// 'this' cannot be used on package level
 					return WurstTypeUnknown.instance();
 				}
 
+				@SuppressWarnings("null")
 				@Override
 				public WurstType case_InterfaceDef(InterfaceDef interfaceDef) {
 					WurstTypeInterface result = (WurstTypeInterface) interfaceDef.attrTyp().dynamic();
 					return result.replaceTypeVars(interfaceDef.getTypeParameters().attrTypes());
 				}
 
+				@SuppressWarnings("null")
 				@Override
 				public WurstType case_EnumDef(EnumDef enumDef) {
 					// 'this' cannot be used in enums

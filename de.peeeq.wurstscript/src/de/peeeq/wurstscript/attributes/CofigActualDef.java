@@ -2,10 +2,11 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -51,7 +52,7 @@ public class CofigActualDef {
 	}
 
 
-	private static WPackage getConfigPackage(AstElement e) {
+	private static @Nullable WPackage getConfigPackage(AstElement e) {
 		PackageOrGlobal p = e.attrNearestPackage();
 		return p.getModel().attrConfigOverridePackages().get(p);
 	}

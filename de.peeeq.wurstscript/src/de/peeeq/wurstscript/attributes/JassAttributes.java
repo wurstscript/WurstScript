@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Map;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -22,7 +24,7 @@ public class JassAttributes {
 		return Sets.newLinkedHashSet();
 	}
 
-	public static JassFunction attrFuncDef(JassFuncRef f) {
+	public static @Nullable JassFunction attrFuncDef(JassFuncRef f) {
 		String funcName = f.getFuncName();
 		JassProg root = getRoot(f);
 		for (JassFunction func : root.getFunctions()) {
@@ -34,7 +36,7 @@ public class JassAttributes {
 		return null;
 	}
 
-	private static JassProg getRoot(JassAstElement e) {
+	private static JassProg getRoot(@Nullable JassAstElement e) {
 		while (e != null) {
 			if (e instanceof JassProg) {
 				return (JassProg) e;

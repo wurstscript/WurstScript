@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -20,7 +19,7 @@ public class UsedPackages {
 			return Collections.emptyList();
 		}
 		
-		Set<WPackage> result = null;
+		Set<WPackage> result = Sets.newLinkedHashSet();
 		return processChildren(e, result);
 	}
 
@@ -29,9 +28,6 @@ public class UsedPackages {
 		for (int i=0; i<e.size(); i++) {
 			Collection<WPackage> used = e.get(i).attrUsedPackages();
 			if (!used.isEmpty()) {
-				if (result == null) {
-					result = Sets.newLinkedHashSet();
-				}
 				result.addAll(used);
 			}
 		}

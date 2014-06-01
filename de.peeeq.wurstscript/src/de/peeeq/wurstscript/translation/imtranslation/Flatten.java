@@ -46,7 +46,6 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.translation.imtranslation.Flatten.Result;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 

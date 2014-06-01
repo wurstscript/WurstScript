@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.frotty.jassAttributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
 import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExprFuncRef;
@@ -8,7 +10,7 @@ import de.peeeq.wurstscript.jassAst.JassProgs;
 
 public class FunctionReference {
 
-	public static JassFunction get(JassExprFuncRef ref) {
+	public static @Nullable JassFunction get(JassExprFuncRef ref) {
 		String funcName = ref.getFuncName();
 		JassAstElement node = ref.getParent();
 		while (node != null) {

@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -52,10 +54,11 @@ public class AttrPos {
 	
 	public static int getColumn(WPos p) {
 		LineOffsets lineOffsets = getLineOffsets(p);
+		if (lineOffsets == null) return 0;
 		return p.getLeftPos() - lineOffsets.get(p.getLine() - 1);
 	}
 
-	private static LineOffsets getLineOffsets(WPos p) {
+	private static @Nullable LineOffsets getLineOffsets(WPos p) {
 		LineOffsets lineOffsets;
 		if (p.getLineOffsets() instanceof LineOffsets) {
 			lineOffsets = (LineOffsets) p.getLineOffsets();
@@ -67,16 +70,19 @@ public class AttrPos {
 	
 	public static int getLine(WPos p) {
 		LineOffsets lineOffsets = getLineOffsets(p);
+		if (lineOffsets == null) return 0;
 		return lineOffsets.getLine(p.getLeftPos()) + 1;
 	}
 	
 	public static int getEndColumn(WPos p) {
 		LineOffsets lineOffsets = getLineOffsets(p);
+		if (lineOffsets == null) return 0;
 		return p.getRightPos() - lineOffsets.get(p.getEndLine() - 1);
 	}
 	
 	public static int getEndLine(WPos p) {
 		LineOffsets lineOffsets = getLineOffsets(p);
+		if (lineOffsets == null) return 0;
 		return lineOffsets.getLine(p.getRightPos()) + 1;
 	}
 

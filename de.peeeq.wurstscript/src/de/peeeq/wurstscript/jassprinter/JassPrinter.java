@@ -48,14 +48,14 @@ public class JassPrinter {
 	private JassProg prog;
    
 
-	public JassPrinter(boolean withSpace) {
+	public JassPrinter(boolean withSpace, JassProg prog) {
 		this.withSpace = withSpace;
+		this.prog = prog;
 	}
 	
-	public void printProg(StringBuilder sb, JassProg prog) {
+	public void printProg(StringBuilder sb) {
 		Preconditions.checkNotNull(sb);
 		Preconditions.checkNotNull(prog);
-		this.prog = prog;
 		
 		sb.append(WURST_COMMENT + "\n");
 		printTypes(sb, prog.getDefs());
@@ -110,17 +110,17 @@ public class JassPrinter {
 		g.match(new JassVar.MatcherVoid() {
 			
 			@Override
-			public void case_JassSimpleVar(JassSimpleVar v) {
+			public void case_JassSimpleVar(@SuppressWarnings("null") JassSimpleVar v) {
 				sb.append(v.getType() + " " + v.getName() + "\n");
 			}
 			
 			@Override
-			public void case_JassArrayVar(JassArrayVar v) {
+			public void case_JassArrayVar(@SuppressWarnings("null") JassArrayVar v) {
 				sb.append(v.getType() + " array " + v.getName() + "\n");
 			}
 
 			@Override
-			public void case_JassInitializedVar(JassInitializedVar jassInitializedVar) {
+			public void case_JassInitializedVar(@SuppressWarnings("null") JassInitializedVar jassInitializedVar) {
 				sb.append(jassInitializedVar.getType() + " " + jassInitializedVar.getName() + "=");
 				 jassInitializedVar.getVal().print(sb, withSpace);
 				 sb.append("\n");
@@ -128,7 +128,7 @@ public class JassPrinter {
 			}
 
 			@Override
-			public void case_JassConstantVar(JassConstantVar jassConstantVar) {
+			public void case_JassConstantVar(@SuppressWarnings("null") JassConstantVar jassConstantVar) {
 				sb.append(jassConstantVar.getType() + " " + jassConstantVar.getName() + "=" );
 				jassConstantVar.getVal().print(sb, withSpace); 
 				 sb.append("\n");
@@ -268,67 +268,67 @@ public class JassPrinter {
 		return op.match(new JassOp.Matcher<Integer>() {
 
 			@Override
-			public Integer case_JassOpDiv(JassOpDiv jassOpDiv) {
+			public Integer case_JassOpDiv(@SuppressWarnings("null") JassOpDiv jassOpDiv) {
 				return 4;
 			}
 
 			@Override
-			public Integer case_JassOpLess(JassOpLess jassOpLess) {
+			public Integer case_JassOpLess(@SuppressWarnings("null") JassOpLess jassOpLess) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpAnd(JassOpAnd jassOpAnd) {
+			public Integer case_JassOpAnd(@SuppressWarnings("null") JassOpAnd jassOpAnd) {
 				return 1;
 			}
 
 			@Override
-			public Integer case_JassOpUnequals(JassOpUnequals jassOpUnequals) {
+			public Integer case_JassOpUnequals(@SuppressWarnings("null") JassOpUnequals jassOpUnequals) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq) {
+			public Integer case_JassOpGreaterEq(@SuppressWarnings("null") JassOpGreaterEq jassOpGreaterEq) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpMinus(JassOpMinus jassOpMinus) {
+			public Integer case_JassOpMinus(@SuppressWarnings("null") JassOpMinus jassOpMinus) {
 				return 3;
 			}
 
 			@Override
-			public Integer case_JassOpMult(JassOpMult jassOpMult) {
+			public Integer case_JassOpMult(@SuppressWarnings("null") JassOpMult jassOpMult) {
 				return 4;
 			}
 
 			@Override
-			public Integer case_JassOpGreater(JassOpGreater jassOpGreater) {
+			public Integer case_JassOpGreater(@SuppressWarnings("null") JassOpGreater jassOpGreater) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpPlus(JassOpPlus jassOpPlus) {
+			public Integer case_JassOpPlus(@SuppressWarnings("null") JassOpPlus jassOpPlus) {
 				return 3;
 			}
 
 			@Override
-			public Integer case_JassOpLessEq(JassOpLessEq jassOpLessEq) {
+			public Integer case_JassOpLessEq(@SuppressWarnings("null") JassOpLessEq jassOpLessEq) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpOr(JassOpOr jassOpOr) {
+			public Integer case_JassOpOr(@SuppressWarnings("null") JassOpOr jassOpOr) {
 				return 0;
 			}
 
 			@Override
-			public Integer case_JassOpEquals(JassOpEquals jassOpEquals) {
+			public Integer case_JassOpEquals(@SuppressWarnings("null") JassOpEquals jassOpEquals) {
 				return 2;
 			}
 
 			@Override
-			public Integer case_JassOpNot(JassOpNot jassOpNot) {
+			public Integer case_JassOpNot(@SuppressWarnings("null") JassOpNot jassOpNot) {
 				return 5;
 			}
 		});
@@ -339,67 +339,67 @@ public class JassPrinter {
 		String opString = op.match(new JassOp.Matcher<String>() {
 
 			@Override
-			public String case_JassOpUnequals(JassOpUnequals jassOpUnequals) {
+			public String case_JassOpUnequals(@SuppressWarnings("null") JassOpUnequals jassOpUnequals) {
 				return "!=";
 			}
 			
 			@Override
-			public String case_JassOpPlus(JassOpPlus jassOpPlus) {
+			public String case_JassOpPlus(@SuppressWarnings("null") JassOpPlus jassOpPlus) {
 				return "+";
 			}
 			
 			@Override
-			public String case_JassOpOr(JassOpOr jassOpOr) {
+			public String case_JassOpOr(@SuppressWarnings("null") JassOpOr jassOpOr) {
 				return "or";
 			}
 			
 			@Override
-			public String case_JassOpNot(JassOpNot jassOpNot) {
+			public String case_JassOpNot(@SuppressWarnings("null") JassOpNot jassOpNot) {
 				return "not";
 			}
 			
 			@Override
-			public String case_JassOpMult(JassOpMult jassOpMult) {
+			public String case_JassOpMult(@SuppressWarnings("null") JassOpMult jassOpMult) {
 				return "*";
 			}
 			
 			@Override
-			public String case_JassOpMinus(JassOpMinus jassOpMinus) {
+			public String case_JassOpMinus(@SuppressWarnings("null") JassOpMinus jassOpMinus) {
 				return "-";
 			}
 			
 			@Override
-			public String case_JassOpLessEq(JassOpLessEq jassOpLessEq) {
+			public String case_JassOpLessEq(@SuppressWarnings("null") JassOpLessEq jassOpLessEq) {
 				return "<=";
 			}
 			
 			@Override
-			public String case_JassOpLess(JassOpLess jassOpLess) {
+			public String case_JassOpLess(@SuppressWarnings("null") JassOpLess jassOpLess) {
 				return "<";
 			}
 			
 			@Override
-			public String case_JassOpGreaterEq(JassOpGreaterEq jassOpGreaterEq) {
+			public String case_JassOpGreaterEq(@SuppressWarnings("null") JassOpGreaterEq jassOpGreaterEq) {
 				return ">=";
 			}
 			
 			@Override
-			public String case_JassOpGreater(JassOpGreater jassOpGreater) {
+			public String case_JassOpGreater(@SuppressWarnings("null") JassOpGreater jassOpGreater) {
 				return ">";
 			}
 			
 			@Override
-			public String case_JassOpEquals(JassOpEquals jassOpEquals) {
+			public String case_JassOpEquals(@SuppressWarnings("null") JassOpEquals jassOpEquals) {
 				return "==";
 			}
 			
 			@Override
-			public String case_JassOpDiv(JassOpDiv jassOpDiv) {
+			public String case_JassOpDiv(@SuppressWarnings("null") JassOpDiv jassOpDiv) {
 				return "/";
 			}
 			
 			@Override
-			public String case_JassOpAnd(JassOpAnd jassOpAnd) {
+			public String case_JassOpAnd(@SuppressWarnings("null") JassOpAnd jassOpAnd) {
 				return "and";
 			}
 		});
@@ -415,10 +415,9 @@ public class JassPrinter {
 	}
 
 
-	public String printProg(JassProg prog) {
-		Preconditions.checkNotNull(prog);
+	public String printProg() {
 		StringBuilder sb = new StringBuilder();
-		printProg(sb, prog);
+		printProg(sb);
 		return sb.toString();
 	}
 
