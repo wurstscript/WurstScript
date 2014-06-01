@@ -134,7 +134,7 @@ public class WurstREPL {
 	private void init() {
 		currentState = Maps.newLinkedHashMap();
 		importedPackages = Sets.newLinkedHashSet();
-		RobustProgramState globalState = new RobustProgramState(null, gui);
+		RobustProgramState globalState = new RobustProgramState(null, gui, imProg);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());
@@ -596,8 +596,8 @@ public class WurstREPL {
 		}
 
 
-		JassPrinter printer = new JassPrinter(true);
-		String mapScript = printer.printProg(jassProg);
+		JassPrinter printer = new JassPrinter(true, jassProg);
+		String mapScript = printer.printProg();
 
 		IFile f = project.getFile("compiled.j.txt");
 		if (f.exists()) {
