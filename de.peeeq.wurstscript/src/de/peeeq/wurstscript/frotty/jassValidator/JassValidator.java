@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.jassAst.JassStmtSetArray;
 
 public class JassValidator {
 	
+	@SuppressWarnings("null")
 	public static void validate(JassProg p) {
 		p.accept(new JassProg.DefaultVisitor() {
 			

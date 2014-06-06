@@ -94,6 +94,7 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 	}
 
 	public void SaveInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconstInt value) {
+		@SuppressWarnings("unchecked")
 		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
 		Map<Integer, Object> map2 = map.get(key1.getVal());
 		if (map2 == null) {
@@ -104,6 +105,7 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 	}
 
 	public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+		@SuppressWarnings("unchecked")
 		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
 		Map<Integer, Object> map2 = map.get(key1.getVal());
 		if (map2 == null) {

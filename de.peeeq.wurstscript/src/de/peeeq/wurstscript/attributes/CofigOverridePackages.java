@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
@@ -28,7 +30,7 @@ public class CofigOverridePackages {
 		return result;
 	}
 
-	public static WPackage getOriginalPackage(WPackage configPackage) {
+	public static @Nullable WPackage getOriginalPackage(WPackage configPackage) {
 		Preconditions.checkArgument(configPackage.getName().endsWith(CONFIG_POSTFIX));
 		Map<String, WPackage> packages = configPackage.getModel().attrPackages();
 		String name = configPackage.getName();

@@ -2,16 +2,17 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.OptExpr;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class CallSignature {
-	private final Expr receiver;
+	private final @Nullable Expr receiver;
 	private final List<Expr> arguments;
 	
-	public CallSignature(OptExpr optExpr, List<Expr> arguments) {
+	public CallSignature(@Nullable OptExpr optExpr, List<Expr> arguments) {
 		if (optExpr instanceof Expr) {
 			this.receiver = (Expr) optExpr;
 		} else {
@@ -24,7 +25,7 @@ public class CallSignature {
 		return arguments;
 	}
 
-	public Expr getReceiver() {
+	public @Nullable Expr getReceiver() {
 		return receiver;
 	}
 	
@@ -32,12 +33,13 @@ public class CallSignature {
 		if (sig.isEmpty()) {
 			return;
 		}
-		if (receiver != null) {
+		Expr l_receiver = receiver;
+		if (l_receiver != null) {
 			if (sig.getReceiverType() == null) {
-				receiver.addError("No receiver expected for function " + funcName + ".");
-			} else if (!receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), receiver)) {
-				receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
-						"Found " + receiver.attrTyp() + " but expected " + sig.getReceiverType());
+				l_receiver.addError("No receiver expected for function " + funcName + ".");
+			} else if (!l_receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), l_receiver)) {
+				l_receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
+						"Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
 			}
 		}
 		if (getArguments().size() > sig.getParamTypes().size()) {

@@ -124,7 +124,7 @@ public class RealWorldExamples extends WurstScriptTest {
 		// TODO set config
 		RunArgs runArgs = RunArgs.defaults();
 		runArgs.addLibs(Sets.newHashSet("../Wurstpack/wurstscript/lib/"));
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), runArgs);
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
 		for (File f : comp.getLibs().values()) {
 			WLogger.info("Adding file: " + f);
 			inputs.add(f);

@@ -22,6 +22,10 @@ public class WTSFile {
 			throw new Error(e);
 		}
 	}
+	
+	public static Map<Integer, String> parse(byte[] wts) {
+		return parse(new String(wts, Charsets.UTF_8));
+	}
 
 	public static Map<Integer, String> parse(String wts) {
 		Map<Integer, String> result = Maps.newLinkedHashMap();
@@ -73,5 +77,7 @@ public class WTSFile {
 			sc.useDelimiter(delimiter);
 		}
 	}
+
+	
 
 }

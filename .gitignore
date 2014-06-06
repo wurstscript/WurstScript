@@ -47,3 +47,6 @@ Wurstpack/vexorianjasshelper/Blizzard.j
 Wurstpack/vexorianjasshelper/common.j
 Wurstpack/wurstscript/Blizzard.j
 Wurstpack/wurstscript/common.j
+Wurstpack/winmpq/temp/*
+Wurstpack/wurstscript/logs/*
+Checksums/testmd5.txt

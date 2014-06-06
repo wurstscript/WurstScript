@@ -15,8 +15,6 @@ import org.antlr.v4.runtime.misc.Pair;
 
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ExtendedWurstLexer implements TokenSource {
@@ -106,6 +104,7 @@ public class ExtendedWurstLexer implements TokenSource {
 			if (isWurst) {
 				if (isJassOnlyKeyword(token)) {
 					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+					assert token != null;
 				} else if (token.getType() == WurstParser.ENDPACKAGE) {
 					handleIndent(0, token.getStartIndex(), token.getStopIndex());
 					isWurst = false;
@@ -115,6 +114,7 @@ public class ExtendedWurstLexer implements TokenSource {
 					isWurst = true;
 				} else if (isWurstOnlyKeyword(token)) {
 					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+					assert token != null;
 				} else if (token.getType() == WurstParser.HOTDOC_COMMENT) {
 					continue;
 				}

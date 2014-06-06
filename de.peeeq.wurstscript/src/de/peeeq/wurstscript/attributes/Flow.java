@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ActionStatement;
@@ -111,11 +113,12 @@ public class Flow {
 
 	public static List<WStatement> getNext(StmtReturn s) {
 		WStatement endStmt = findEndStatement(s);
+		if (endStmt == null) return Collections.emptyList();
 		endStmt.attrPreviousStatements().add(s);
 		return Collections.singletonList(endStmt);
 	}
 
-	private static EndFunctionStatement findEndStatement(AstElement n) {
+	private static @Nullable EndFunctionStatement findEndStatement(@Nullable AstElement n) {
 		if (n == null) {
 			return null;
 		}
@@ -181,7 +184,7 @@ public class Flow {
 		}
 	}
 
-	private static CompoundStatement getParentStatement(AstElement node) {
+	private static @Nullable CompoundStatement getParentStatement(AstElement node) {
 		if (node instanceof CompoundStatement) {
 			return (CompoundStatement) node;
 		} else if (node instanceof WEntity) {
@@ -219,7 +222,7 @@ public class Flow {
 		return r;
 	}
 
-	private static WStatement get(WStatements parent, int i) {
+	private static @Nullable WStatement get(WStatements parent, int i) {
 		if (i <= 0) return null;
 		if (i >= parent.size()) return null;
 		return parent.get(i);
@@ -252,7 +255,7 @@ public class Flow {
 		return getFollowingStatements(s);
 	}
 
-	private static LoopStatement getParentLoopStatement(AstElement node) {
+	private static @Nullable LoopStatement getParentLoopStatement(@Nullable AstElement node) {
 		while (node != null) {
 			if (node instanceof LoopStatement) {
 				return (LoopStatement) node;

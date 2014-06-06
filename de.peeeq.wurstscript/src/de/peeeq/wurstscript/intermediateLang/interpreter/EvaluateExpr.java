@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 
@@ -58,13 +60,13 @@ public class EvaluateExpr {
 		return new ILconstFuncRef(e.getFunc());
 	}
 
-	public static ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
+	public static @Nullable ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
 		ImFunction f = e.getFunc();
 		ImExprs arguments = e.getArguments();
 		return evaluateFunc(globalState, localState, f, arguments, e.attrTrace().attrSource());
 	}
 
-	public static ILconst evaluateFunc(ProgramState globalState,
+	public static @Nullable ILconst evaluateFunc(ProgramState globalState,
 			LocalState localState, ImFunction f, List<ImExpr> args2, WPos trace) {
 		ILconst[] args = new ILconst[args2.size()];
 		for (int i=0; i < args2.size(); i++) {
@@ -148,7 +150,7 @@ public class EvaluateExpr {
 		}
 	}
 
-	private static ILconst notNull(ILconst val, ImType imType, String msg, boolean failOnErr) {
+	private static ILconst notNull(@Nullable ILconst val, ImType imType, String msg, boolean failOnErr) {
 		if (val == null) {
 			if (failOnErr) {
 				throw new InterpreterException(msg);
@@ -169,7 +171,7 @@ public class EvaluateExpr {
 		}
 	}
 
-	public static ILconst eval(ImMethodCall mc,
+	public static @Nullable ILconst eval(ImMethodCall mc,
 			ProgramState globalState, LocalState localState) {
 		ILconstInt receiver = (ILconstInt)mc.getReceiver().evaluate(globalState, localState);
 

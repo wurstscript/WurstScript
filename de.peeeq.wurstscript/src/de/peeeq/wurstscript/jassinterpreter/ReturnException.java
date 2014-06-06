@@ -1,16 +1,18 @@
 package de.peeeq.wurstscript.jassinterpreter;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 
 public class ReturnException extends Error {
 
-	private ILconst val;
+	private @Nullable ILconst val;
 
-	public ReturnException(ILconst value) {
+	public ReturnException(@Nullable ILconst value) {
 		this.val = value;
 	}
 
-	public ILconst getVal() {
+	public @Nullable ILconst getVal() {
 		return val;
 	}
 	

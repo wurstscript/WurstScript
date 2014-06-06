@@ -3,6 +3,8 @@ package de.peeeq.immutablecollections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.utils.NotNullList;
 
 
@@ -67,7 +69,7 @@ class ImmutableMapEmpty<K,V> extends ImmutableMap<K, V> {
 	}
 
 	@Override
-	public V get(K key) {
+	public @Nullable V get(K key) {
 		return null;
 	}
 
@@ -159,7 +161,7 @@ class ImmutableHashMap<K,V> extends ImmutableMap<K, V> {
 	}
 
 	@Override
-	public V get(K key) {
+	public @Nullable V get(K key) {
 		int keyHash = key.hashCode();
 		int pos = pos(keyHash);
 		for (Entry<K, V> x : table[pos]) {

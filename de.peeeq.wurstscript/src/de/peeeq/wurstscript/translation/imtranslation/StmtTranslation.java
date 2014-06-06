@@ -13,7 +13,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArrayTuple;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImSetTuple;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 
 import java.util.List;
@@ -22,10 +21,8 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprDestroy;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
@@ -41,7 +38,6 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.StmtSkip;
 import de.peeeq.wurstscript.ast.StmtWhile;
-import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchDefaultCaseStatements;
 import de.peeeq.wurstscript.ast.SwitchStmt;
@@ -49,13 +45,10 @@ import de.peeeq.wurstscript.ast.WBlock;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.jassAst.JassExprStringVal;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
-import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -67,10 +60,6 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 
 public class StmtTranslation {
 

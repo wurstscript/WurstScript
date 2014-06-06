@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -32,7 +34,7 @@ public class AttrParameterTypes {
 		return result;
 	}
 
-	public static WurstType receiverType(FuncDef f) {
+	public static @Nullable WurstType receiverType(FuncDef f) {
 		if (f.attrIsDynamicClassMember()) {
 			NameDef n = (NameDef) f.attrNearestStructureDef();
 			return n.attrTyp();
@@ -44,11 +46,11 @@ public class AttrParameterTypes {
 		return f.getExtendedType().attrTyp().dynamic();
 	}
 
-	public static WurstType receiverType(TupleDef tupleDef) {
+	public static @Nullable WurstType receiverType(TupleDef tupleDef) {
 		return null;
 	}
 	
-	public static WurstType receiverType(NativeFunc f) {
+	public static @Nullable WurstType receiverType(NativeFunc f) {
 		return null;
 	}
 	

@@ -77,13 +77,6 @@ public class ExtendedParser extends parser {
 	}
 
 	/**
-	 * returns the position of a Symbol as string
-	 */
-	private String pos(Symbol s) {
-		return "line " + (s.left + 1) + ", column " + s.right;
-	}
-
-	/**
 	 * uses reflection to get the name of a Symbol
 	 */
 	public static String translateSym(int index) {

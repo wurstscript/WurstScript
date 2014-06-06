@@ -45,7 +45,6 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.mpq.WinMpq;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -135,7 +134,7 @@ public class WurstREPL {
 	private void init() {
 		currentState = Maps.newLinkedHashMap();
 		importedPackages = Sets.newLinkedHashSet();
-		RobustProgramState globalState = new RobustProgramState(null, gui);
+		RobustProgramState globalState = new RobustProgramState(null, gui, imProg);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());
@@ -378,7 +377,8 @@ public class WurstREPL {
 		
 	}
 
-	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) {
+	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) { 
+		// TODO use normal compiler for this, avoid code duplication
 		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
 		try {
 			String wc3Path = WurstPlugin.config().wc3Path();
@@ -420,11 +420,11 @@ public class WurstREPL {
 			// then inject the script into the map
 			File outputMapscript = new File(compiledScript.getRawLocationURI());
 			MpqEditorFactory.setFilepath(mpqEditorExe.getAbsolutePath());
-			MpqEditor mpqEditor = MpqEditorFactory.getEditor();
-			//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
-			mpqEditor.deleteFile(testMap, "war3map.j");
-			mpqEditor.insertFile(testMap, "war3map.j", outputMapscript);
-			mpqEditor.compactArchive(testMap);
+			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+				//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
+				mpqEditor.deleteFile("war3map.j");
+				mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
+			}
 
 			
 
@@ -521,7 +521,7 @@ public class WurstREPL {
 		try {
 			ArrayList<String> runArgs = getArgs(args);
 			compileScript(runArgs, null);
-		} catch (CoreException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			print(e.getMessage()+ "\n");
 		}
@@ -543,7 +543,7 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private IFile compileScript(List<String> compileArgs, File mapFile) throws CoreException {
+	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
 		if (compileArgs.contains("-clean")) {
 			cleanProject();
 			compileArgs.remove("-clean");
@@ -553,7 +553,12 @@ public class WurstREPL {
 		print("compiling project "+project.getName()+", please wait ...\n");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
 		RunArgs runArgs = new RunArgs(compileArgs);
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+		
+		MpqEditor mpqEditor = null;
+		if (mapFile != null) {
+			mpqEditor = MpqEditorFactory.getEditor(mapFile);
+		}
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
 		
@@ -576,7 +581,7 @@ public class WurstREPL {
 			// compile & inject object-editor data
 			// TODO run optimizations later?
 			gui.sendProgress("Running compiletime functions", 0.91);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlag.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(out));
 			ctr.run();
@@ -591,8 +596,8 @@ public class WurstREPL {
 		}
 
 
-		JassPrinter printer = new JassPrinter(true);
-		String mapScript = printer.printProg(jassProg);
+		JassPrinter printer = new JassPrinter(true, jassProg);
+		String mapScript = printer.printProg();
 
 		IFile f = project.getFile("compiled.j.txt");
 		if (f.exists()) {
@@ -603,6 +608,10 @@ public class WurstREPL {
 		f.create(source, true, null);
 		
 		print("Output created in " + f.getFullPath() + "\n");
+		if (mpqEditor != null) {
+			mpqEditor.close();
+		}
+		
 		return f;
 	}
 

@@ -4,12 +4,7 @@ import java.util.List;
 
 import com.google.common.base.Function;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -19,12 +14,9 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.AttrConstantValue.ConstantValueCalculationException;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;

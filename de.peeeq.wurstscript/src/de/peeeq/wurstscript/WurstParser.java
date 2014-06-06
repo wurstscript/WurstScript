@@ -8,7 +8,6 @@ import java.util.List;
 
 import java_cup.runtime.Symbol;
 
-import org.junit.Assert;
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -19,6 +18,7 @@ import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.misc.Interval;
+import org.junit.Assert;
 
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
@@ -42,6 +42,7 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class WurstParser {
 
+	private static final int MAX_SYNTAX_ERRORS = 10;
 	private final ErrorHandler errorHandler;
 	private final WurstGui gui;
 	private static boolean useCup = false;
@@ -90,6 +91,8 @@ public class WurstParser {
 			de.peeeq.wurstscript.antlr.WurstParser parser = new de.peeeq.wurstscript.antlr.WurstParser(tokens);
 			ANTLRErrorListener l = new BaseErrorListener() {
 
+				int errorCount = 0;
+				
 				@Override
 				public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
 						String msg, RecognitionException e) {
@@ -118,7 +121,13 @@ public class WurstParser {
 					while (pos>0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
 						pos--;
 					}
-					gui.sendError(new CompileError(new WPos(source, offsets, pos, posStop), msg));
+					CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
+					gui.sendError(err);
+					
+					errorCount++;
+					if (errorCount > MAX_SYNTAX_ERRORS) {
+						throw new TooManyErrorsException();
+					}
 				}
 
 			};
@@ -133,8 +142,12 @@ public class WurstParser {
 		} catch (IOException e) {
 			WLogger.severe(e);
 			throw new Error(e);
+		} catch (TooManyErrorsException e) {
+			WLogger.info("Stopped parsing file " + source + ", too many errors");
+			return emptyCompilationUnit();
 		}
 	}
+
 
 	private CompilationUnit parseWithCup(Reader reader, String source,
 			boolean hasCommonJ) throws Error {
@@ -184,6 +197,8 @@ public class WurstParser {
 			// create a parser that feeds off the tokens buffer
 			JurstParser parser = new JurstParser(tokens);
 			ANTLRErrorListener l = new BaseErrorListener() {
+				
+				int errorCount = 0;
 
 				@Override
 				public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line, int charPositionInLine,
@@ -213,8 +228,14 @@ public class WurstParser {
 					while (pos>0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
 						pos--;
 					}
+					CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
+					gui.sendError(err);
 					
-					gui.sendError(new CompileError(new WPos(source, offsets, pos, posStop), msg));
+					
+					errorCount++;
+					if (errorCount > MAX_SYNTAX_ERRORS) {
+						throw new TooManyErrorsException();
+					}
 				}
 
 			};
@@ -229,6 +250,9 @@ public class WurstParser {
 		} catch (IOException e) {
 			WLogger.severe(e);
 			throw new Error(e);
+		} catch (TooManyErrorsException e) {
+			WLogger.info("Stopped parsing file " + source + ", too many errors");
+			return emptyCompilationUnit();
 		}
 	}
 
@@ -269,4 +293,6 @@ public class WurstParser {
 	private void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
 		new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
 	}
+	
+	class TooManyErrorsException extends RuntimeException {}
 }

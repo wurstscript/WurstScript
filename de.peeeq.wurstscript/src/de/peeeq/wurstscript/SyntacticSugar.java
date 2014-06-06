@@ -22,7 +22,6 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprMemberVarDot;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;

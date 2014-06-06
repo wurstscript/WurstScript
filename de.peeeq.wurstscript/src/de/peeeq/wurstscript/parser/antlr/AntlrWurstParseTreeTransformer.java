@@ -23,7 +23,6 @@ import de.peeeq.wurstscript.antlr.WurstParser.ExprDestroyContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprFuncRefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprFunctionCallContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprListContext;
-import de.peeeq.wurstscript.antlr.WurstParser.ExprMemberMethodContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprMemberVarContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprNewObjectContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprPrimaryContext;
@@ -67,7 +66,6 @@ import de.peeeq.wurstscript.antlr.WurstParser.NativeTypeContext;
 import de.peeeq.wurstscript.antlr.WurstParser.OndestroyDefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StatementContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StatementsBlockContext;
-import de.peeeq.wurstscript.antlr.WurstParser.StmtCallContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtForLoopContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtIfContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtReturnContext;
@@ -867,34 +865,11 @@ public class AntlrWurstParseTreeTransformer {
 		return r;
 	}
 
-	private WStatement transformCall(StmtCallContext c) {
-		if (c.exprFunctionCall() != null) {
-			return transformFunctionCall(c.exprFunctionCall());
-		} else if (c.exprMemberMethod() != null) {
-			return transformMemberMethodCall(c.exprMemberMethod());
-		} else if (c.exprNewObject() != null) {
-			return transformExprNewObject(c.exprNewObject());
-		}
-		// TODO Auto-generated method stub
-		throw error(c, "not implemented");
-	}
-
 	private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
 		String typeName = text(e.className);
 		TypeExprList typeArgs = transformTypeArgs(e.typeArgs());
 		Arguments args = transformExprs(e.exprList());
 		return Ast.ExprNewObject(source(e), typeName, typeArgs, args);
-	}
-
-	private WStatement transformMemberMethodCall(ExprMemberMethodContext e) {
-		WPos source = source(e);
-		ExprContext receiver = e.receiver;
-		Token dots = e.dots;
-		Token funcName = e.funcName;
-		TypeArgsContext typeArgs = e.typeArgs();
-		ExprListContext args = e.exprList();
-		return transformMemberMethodCall2(source, receiver, dots, funcName,
-				typeArgs, args);
 	}
 
 	private ExprMemberMethod transformMemberMethodCall2(WPos source,

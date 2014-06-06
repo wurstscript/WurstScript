@@ -1,13 +1,14 @@
 package de.peeeq.wurstio.objectreader;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import de.peeeq.wurstscript.WLogger;
 
 public class ObjectReader {
 	
 	
-	public static void main(String ... args) {
+	public static void main(String ... args) throws FileNotFoundException {
 		
 		ObjectFile objFile = new ObjectFile(new File("testscripts/data/units.w3u"), ObjectFileType.UNITS);
 		

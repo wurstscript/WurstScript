@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeExprArray;
@@ -18,12 +20,12 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class AttrTypeDef {
 
-	public static  TypeDef calculate(TypeExprResolved e) {
+	public static @Nullable  TypeDef calculate(TypeExprResolved e) {
 		return null;
 	}
 	
 	
-	public static  TypeDef calculate(TypeRef node) {
+	public static @Nullable  TypeDef calculate(TypeRef node) {
 		String typeName = getTypeName(node);
 
 		if (typeName == null) {
@@ -38,31 +40,31 @@ public class AttrTypeDef {
 		return node.lookupType(typeName);
 	}
 
-	private static String getTypeName(TypeRef node) {
+	private static @Nullable String getTypeName(TypeRef node) {
 		return node.match(new TypeRef.Matcher<String>() {
 
 			@Override
-			public String case_TypeExprSimple(TypeExprSimple typeExprSimple) {
+			public String case_TypeExprSimple(@SuppressWarnings("null") TypeExprSimple typeExprSimple) {
 				return typeExprSimple.getTypeName();
 			}
 
 			@Override
-			public String case_ExprNewObject(ExprNewObject exprNewObject) {
+			public String case_ExprNewObject(@SuppressWarnings("null") ExprNewObject exprNewObject) {
 				return exprNewObject.getTypeName();
 			}
 
 			@Override
-			public String case_TypeExprThis(TypeExprThis typeExprThis) {
+			public @Nullable String case_TypeExprThis(@SuppressWarnings("null") TypeExprThis typeExprThis) {
 				return null;
 			}
 
 			@Override
-			public String case_TypeExprArray(TypeExprArray typeExprArray) {
+			public @Nullable String case_TypeExprArray(@SuppressWarnings("null") TypeExprArray typeExprArray) {
 				return null;
 			}
 
 			@Override
-			public String case_TypeExprResolved(TypeExprResolved t) {
+			public String case_TypeExprResolved(@SuppressWarnings("null") TypeExprResolved t) {
 				return t.attrTyp().getName();
 			}
 		});

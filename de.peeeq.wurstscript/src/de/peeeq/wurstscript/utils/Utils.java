@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang.StringEscapeUtils;
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -27,7 +27,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
@@ -37,9 +36,7 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -49,7 +46,6 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -83,6 +79,7 @@ public class Utils {
 		return result;
 	}
 
+	@SafeVarargs
 	public static <T> List<T> list(T... args) {
 		List<T> result = new NotNullList<T>();
 		for (T t : args) {
@@ -92,10 +89,8 @@ public class Utils {
 	}
 
 	public static <T> List<T> filter(List<T> list, Function<T, Boolean> filter) {
-		if (list == null)
-			throw new IllegalArgumentException("list must not be null");
-		if (filter == null)
-			throw new IllegalArgumentException("filter must not be null");
+		Preconditions.checkNotNull(list);
+		Preconditions.checkNotNull(filter);
 		List<T> result = new NotNullList<T>();
 		for (T t : list) {
 			if (filter.apply(t)) {
@@ -194,7 +189,7 @@ public class Utils {
 	/**
 	 * is a piece of code jass code?
 	 */
-	public static boolean isJassCode(AstElement pos) {
+	public static boolean isJassCode(@Nullable AstElement pos) {
 		while (pos != null) {
 			if (pos instanceof WPackage) {
 				return false; // code is inside package -> wurstscript code
@@ -204,6 +199,7 @@ public class Utils {
 		return true; // no package found -> jass code
 	}
 
+	@SafeVarargs
 	public static <T> T[] array(T... ar) {
 		return ar;
 	}
@@ -321,6 +317,7 @@ public class Utils {
 		activeItems.removeLast();
 	}
 
+	@SafeVarargs
 	public static <T> boolean oneOf(T obj, T... ts) {
 		for (T t : ts) {
 			if (t.equals(obj)) {
@@ -398,7 +395,7 @@ public class Utils {
 		result.add(item);
 	}
 
-	public static String printScope(WScope scope) {
+	public static String printScope(@Nullable WScope scope) {
 		if (scope == null) {
 			return "null-scope";
 		} else if (scope instanceof AstElementWithName) {
@@ -409,7 +406,7 @@ public class Utils {
 		}
 	}
 
-	public static String printElement(AstElement e) {
+	public static String printElement(@Nullable AstElement e) {
 		if (e == null) {
 			return "null";
 		}
@@ -480,6 +477,7 @@ public class Utils {
 		return sb.toString();
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T> T[] conc(List<T> ts, T t) {
 		ArrayList<T> temp = Lists.newArrayList(ts);
 		temp.add(t);
@@ -565,6 +563,7 @@ public class Utils {
 	 * return the element with the smallest size
 	 */
 	private static AstElement bestResult(List<AstElement> betterResults) {
+		Preconditions.checkArgument(!betterResults.isEmpty(), "List must not be empty.");
 		int minSize = Integer.MAX_VALUE;
 		AstElement min = null;
 		for (AstElement e : betterResults) {
@@ -575,6 +574,7 @@ public class Utils {
 				min = e;
 			}
 		}
+		assert min != null; // because list is not empty and size is always way smaller than MAX_VALUE
 		return min;
 	}
 
@@ -600,7 +600,7 @@ public class Utils {
 		return source.getFile() + ", line " + source.getLine();
 	}
 
-	public static boolean isEmptyCU(CompilationUnit cu) {
+	public static boolean isEmptyCU(@Nullable CompilationUnit cu) {
 		return (cu == null)
 				|| (cu.getJassDecls().size() + cu.getPackages().size() == 0);
 	}
@@ -624,7 +624,7 @@ public class Utils {
 		return s.substring(0, 1).toUpperCase() + s.substring(1);
 	}
 
-	public static VarDef getParentVarDef(AstElement node) {
+	public static @Nullable VarDef getParentVarDef(@Nullable AstElement node) {
 		while (node != null) {
 			if (node instanceof VarDef) {
 				return (VarDef) node;
@@ -979,7 +979,7 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static <T extends AstElement> T getNearestByType(AstElement e, Class<T> clazz) {
+	public static @Nullable <T extends AstElement> T getNearestByType(@Nullable AstElement e, Class<T> clazz) {
 		while (e != null) {
 			if (clazz.isInstance(e)) {
 				return (T) e;
@@ -1030,6 +1030,11 @@ public class Utils {
 			result.add(l.get(i));
 		}
 		return result;
+	}
+
+	public static <T> T assertNotnull(@Nullable T o) {
+		Preconditions.checkNotNull(o);
+		return o;
 	}
 	
 }

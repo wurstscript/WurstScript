@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -33,10 +35,10 @@ public class NameLink {
 	private final NameLinkType type;
 	private final WScope definedIn;
 	private boolean receiverTypeCalculted = false;
-	private WurstType receiverType = null;
+	private @Nullable WurstType receiverType = null;
 	private final NameDef nameDef;
-	private WurstType returnType;
-	private List<WurstType> parameterTypes;
+	private @Nullable WurstType returnType;
+	private @Nullable List<WurstType> parameterTypes;
 
 	
 	private NameLink(Visibility visibility, NameLinkType type,
@@ -49,7 +51,7 @@ public class NameLink {
 	}
 	
 	private NameLink(Visibility visibility, NameLinkType type,
-			WScope definedIn, NameDef nameDef, WurstType returnType, List<WurstType> parameterTypes) {
+			WScope definedIn, NameDef nameDef, @Nullable WurstType returnType, @Nullable List<WurstType> parameterTypes) {
 		super();
 		this.visibility = visibility;
 		this.type = type;
@@ -65,7 +67,7 @@ public class NameLink {
 		return new NameLink(visibiliy, type, definedIn, nameDef);
 	}
 
-	private static WurstType calcReceiverType(WScope definedIn,	NameDef nameDef, NameLinkType type) {
+	private static @Nullable WurstType calcReceiverType(WScope definedIn,	NameDef nameDef, NameLinkType type) {
 		if (type == NameLinkType.FUNCTION) {
 			if (nameDef instanceof ExtensionFuncDef) {
 				ExtensionFuncDef exF = (ExtensionFuncDef) nameDef;
@@ -91,7 +93,7 @@ public class NameLink {
 		return null;
 	}
 
-	private static WurstType getReceiverType(WScope definedIn) {
+	private static @Nullable WurstType getReceiverType(WScope definedIn) {
 		if (definedIn instanceof ClassDef) {
 			ClassDef classDef = (ClassDef) definedIn;
 			return classDef.attrTyp();
@@ -211,7 +213,7 @@ public class NameLink {
 	}
 
 
-	public WurstType getReceiverType() {
+	public @Nullable WurstType getReceiverType() {
 		if (!receiverTypeCalculted) {
 			receiverType = calcReceiverType(definedIn, nameDef, type);
 			receiverTypeCalculted = true;
@@ -255,28 +257,31 @@ public class NameLink {
 	}
 
 	private WurstType adjustType(WurstType t, Map<TypeParamDef, WurstType> binding) {
-		if (t == null) return null;
 		return t.setTypeArgs(binding);
 	}
 
 	
 	public WurstType getReturnType() {
-		if (returnType == null) {
-			returnType = nameDef.attrTyp();
+		WurstType r = returnType;
+		if (r == null) {
+			r = nameDef.attrTyp();
+			returnType = r;
 		}
-		return returnType;
+		return r;
 	}
 	
 	public List<WurstType> getParameterTypes() {
-		if (parameterTypes == null) {
+		List<WurstType> pts = parameterTypes;
+		if (pts == null) {
 			if (nameDef instanceof FunctionDefinition) {
 				FunctionDefinition f = (FunctionDefinition) nameDef;
-				parameterTypes = f.attrParameterTypes();
+				pts = f.attrParameterTypes();
 			} else {
-				parameterTypes = Collections.emptyList();
+				pts = Collections.emptyList();
 			}
+			parameterTypes = pts;
 		}
-		return parameterTypes;
+		return pts;
 	}
 
 	public NameLink withConfigDef() {

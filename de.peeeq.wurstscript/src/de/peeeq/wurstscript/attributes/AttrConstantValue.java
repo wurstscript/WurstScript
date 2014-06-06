@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.GlobalVarDef;

@@ -2,16 +2,12 @@ package de.peeeq.wurstscript.validation.controlflow;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithLoopVar;
 import de.peeeq.wurstscript.ast.CompoundStatement;
 import de.peeeq.wurstscript.ast.Expr;

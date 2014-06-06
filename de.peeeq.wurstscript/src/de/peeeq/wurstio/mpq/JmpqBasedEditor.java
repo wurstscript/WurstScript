@@ -1,52 +1,47 @@
 package de.peeeq.wurstio.mpq;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.List;
 
-import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 import de.peeeq.jmpq.JmpqEditor;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.jmpq.JmpqError;
 
-public class JmpqBasedEditor implements MpqEditor {
+class JmpqBasedEditor implements MpqEditor {
+
+	private JmpqEditor editor;
+
+	private JmpqEditor getEditor() {
+		if (editor == null) {
+			throw new RuntimeException("editor already closed");
+		}
+		return editor;
+	}
+	
+	public JmpqBasedEditor(File mpqArchive) throws Exception {
+		this.editor = new JmpqEditor(mpqArchive);
+	}
 
 	@Override
-	public File extractFile(File mpqArchive, String fileToExtract)
-			throws Exception {
+	public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
+		File tempFile = getNewTempFile(filenameInMpq, 0);
+		Files.write(contents, tempFile);
+		getEditor().injectFile(tempFile, filenameInMpq);
+	}
+	
+	
+	@Override
+	public byte[] extractFile(String fileToExtract)	throws Exception {
 		File tempFile1 = getNewTempFile(fileToExtract, 0);
 		tempFile1.getParentFile().mkdirs();
-		try (JmpqEditor editor = new JmpqEditor(mpqArchive)) {
-			editor.extractFile(fileToExtract, tempFile1);
-		}
-		
-		return tempFile1;
+		getEditor().extractFile(fileToExtract, tempFile1);
+		return Files.toByteArray(tempFile1);
 	}
 
-	@Override
-	public void insertFile(File mpqArchive, String filenameInMpq, File tempFile)
-			throws Exception {
-		try (JmpqEditor editor = new JmpqEditor(mpqArchive)) {
-			editor.injectFile(tempFile, filenameInMpq);
-		}
-		
-	}
 
 	@Override
-	public void deleteFile(File mpqArchive, String filenameInMpq)
-			throws Exception {
-		try (JmpqEditor editor = new JmpqEditor(mpqArchive)) {
-			editor.delete(filenameInMpq);
-		}
-	}
-
-	@Override
-	public void compactArchive(File mpqArchive) throws Exception {
-		// TODO
-//		try (JmpqEditor editor = new JmpqEditor(mpqArchive)) {
-//			editor.compact();
-//		}
+	public void deleteFile(String filenameInMpq) throws Exception {
+		getEditor().delete(filenameInMpq);
 	}
 
 	private File getNewTempFile(String fileName, int i) {
@@ -63,6 +58,19 @@ public class JmpqBasedEditor implements MpqEditor {
 		}
 		return f;
 	}
+
+	@Override
+	public void close() throws JmpqError {
+		if (editor != null) {
+			editor.compact();
+			editor.close();
+			editor = null;
+		}
+	}
+
+	
+
+	
 
 }
 

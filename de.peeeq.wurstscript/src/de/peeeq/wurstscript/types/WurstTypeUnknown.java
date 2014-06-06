@@ -12,14 +12,11 @@ public class WurstTypeUnknown extends WurstType {
 
 	private String name = "unknown";
 
-	private Error err;
-	
 	public WurstTypeUnknown(String name) {
 		this.name = name;
 		try {
 			throw new Error("unknown type");
 		} catch (Error e) {
-			this.err = e; // store for later
 		}
 	}
 

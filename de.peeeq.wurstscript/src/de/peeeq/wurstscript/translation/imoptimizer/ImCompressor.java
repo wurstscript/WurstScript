@@ -7,12 +7,10 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ImCompressor {
 	
-	private ImTranslator translator;
 	private ImProg prog;
 	private NameGenerator ng;
 	
 	public ImCompressor(ImTranslator translator) {
-		this.translator = translator;
 		this.prog = translator.getImProg();
 		ng = new NameGenerator();
 	}

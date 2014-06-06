@@ -26,7 +26,7 @@ public class Exports {
 	 * recursively adds all exported namelinks from package p to the result map
 	 */
 	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
-		if (p == null || alreadyImported.contains(p)) {
+		if (alreadyImported.contains(p)) {
 			return;
 		}
 		alreadyImported.add(p);
@@ -51,7 +51,7 @@ public class Exports {
 
 
 	private static void addExportedTypeNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
-		if (p == null || alreadyImported.contains(p)) {
+		if (alreadyImported.contains(p)) {
 			return;
 		}
 		alreadyImported.add(p);

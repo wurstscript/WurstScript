@@ -144,8 +144,7 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
     @Override
     public IInformationControlCreator getInformationControlCreator(ISourceViewer sourceViewer) {
         return new IInformationControlCreator() {
-            @SuppressWarnings("restriction")
-			public IInformationControl createInformationControl(Shell parent) {
+            public IInformationControl createInformationControl(Shell parent) {
                 //return new DefaultInformationControl(parent,new HTMLTextPresenter(false));
 //            	return new BrowserInformationControl(parent, "sans", false);
             	return new WurstInformationControl(parent);

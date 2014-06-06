@@ -10,8 +10,10 @@ Bundle-ClassPath: wurstscript.jar,
  lib/guava-14.0-rc1.jar,
  lib/velocity-1.7-dep.jar,
  lib/jmpq.jar,
+ lib/jmpq2.jar,
  lib/antlr-runtime-4.2.jar,
- lib/jna-4.0.0.jar
+ lib/jna-4.0.0.jar,
+ lib/org.eclipse.jdt.annotation_1.1.0.v20130513-1648.jar
 Export-Package: com.google.common.annotations,
  com.google.common.base,
  com.google.common.base.internal,
@@ -95,3 +97,4 @@ Export-Package: com.google.common.annotations,
  org.junit.runners,
  org.junit.runners.model
 Import-Package: de.peeeq.wurstscript.jassIm
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7

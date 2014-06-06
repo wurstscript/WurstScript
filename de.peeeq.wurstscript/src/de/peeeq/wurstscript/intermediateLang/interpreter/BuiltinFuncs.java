@@ -6,8 +6,6 @@ import de.peeeq.wurstscript.intermediateLang.ILconst;
 
 public class BuiltinFuncs implements NativesProvider {
 
-	private PrintStream outStream = System.out;
-
 	public BuiltinFuncs(ProgramState globalState) {
 		// TODO Auto-generated constructor stub
 	}
@@ -19,7 +17,6 @@ public class BuiltinFuncs implements NativesProvider {
 
 	@Override
 	public void setOutStream(PrintStream outStream) {
-		this.outStream = outStream;
 	}
 
 }

@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.ui;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Scanner;
@@ -11,7 +12,6 @@ import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
 import org.eclipse.core.commands.IHandler;
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -22,8 +22,8 @@ import org.eclipse.ui.handlers.HandlerUtil;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
-import de.peeeq.wurstio.mpq.JmpqBasedEditor;
 import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.WCTFile;
 import de.peeeq.wurstio.objectreader.WCTFile.CustomTextTrigger;
@@ -44,15 +44,13 @@ public class ExtractJurstCommand extends AbstractHandler implements IHandler {
 		
 		BinaryDataInputStream in;
 		try {
-			MpqEditor mpqEd = new JmpqBasedEditor();
 			IPath mpqPath = file.getRawLocation();
 			File mpq = mpqPath.toFile();
-			System.out.println("mpq = " + mpq);
-			System.out.println(mpq.exists());
-			File tempWct = mpqEd.extractFile(mpq, "war3map.wct");
-			System.out.println("tempwct =  " + tempWct);
+			MpqEditor mpqEd = MpqEditorFactory.getEditor(mpq);
+			byte[] tempWct = mpqEd.extractFile("war3map.wct");
+			mpqEd.close();
 			
-			in = new BinaryDataInputStream(tempWct, true);
+			in = new BinaryDataInputStream(new ByteArrayInputStream(tempWct), true);
 			WCTFile f = WCTFile.fromStream(in);
 			
 			File wurstFolder = new File(mpq.getParent(), "wurst");

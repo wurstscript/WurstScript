@@ -3,16 +3,15 @@ package de.peeeq.wurstscript.intermediateLang.optimizer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -89,7 +88,7 @@ public class TempMerger {
 		}
 	}
 
-	private Replacement processStatement(ImStmt s, Knowledge kn) {
+	private @Nullable Replacement processStatement(ImStmt s, Knowledge kn) {
 		Replacement rep = getPossibleReplacement(s, kn);
 		if (rep != null) {
 			return rep;
@@ -114,7 +113,7 @@ public class TempMerger {
 		return null;
 	}
 
-	private Replacement getPossibleReplacement(JassImElement elem, Knowledge kn) {
+	private @Nullable Replacement getPossibleReplacement(JassImElement elem, Knowledge kn) {
 		if (kn.isEmpty()) {
 			return null;
 		}
@@ -211,7 +210,6 @@ public class TempMerger {
 		}
 
 		public void apply() {
-			ImFunction f = read.getNearestFunc();
 			ImExpr e = set.getRight();
 			if (set.getLeft().attrReads().size() <= 1) {
 				// make sure that an impure expression is only evaluated once
@@ -288,7 +286,7 @@ public class TempMerger {
 			currentValues.clear();
 		}
 
-		public Replacement getReplacementIfPossible(ImVarAccess va) {
+		public @Nullable Replacement getReplacementIfPossible(ImVarAccess va) {
 			for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
 				if (e.getKey() == va.getVar()) {
 					return new Replacement(e.getValue(), va);

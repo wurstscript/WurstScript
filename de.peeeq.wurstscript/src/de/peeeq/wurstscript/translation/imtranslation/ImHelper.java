@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +25,6 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassIm.JassImElementWithTypename;
 
 public class ImHelper {
 

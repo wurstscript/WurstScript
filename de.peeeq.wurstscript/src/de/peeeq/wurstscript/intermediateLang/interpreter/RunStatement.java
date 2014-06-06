@@ -95,10 +95,16 @@ public class RunStatement {
 		ILconst right = s.getRight().evaluate(globalState, localState);
 		if (v.isGlobal()) {
 			ILconstTuple oldVal = (ILconstTuple) globalState.getArrayVal(v, index.getVal());
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			globalState.setArrayVal(v, index.getVal(), newVal); 
 		} else {
 			ILconstTuple oldVal = (ILconstTuple) localState.getArrayVal(v, index.getVal());
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			localState.setArrayVal(v, index.getVal(), newVal);
 		}
@@ -136,10 +142,16 @@ public class RunStatement {
 		ILconst right = s.getRight().evaluate(globalState, localState);
 		if (v.isGlobal()) {
 			ILconstTuple oldVal = (ILconstTuple) globalState.getVal(v);
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			globalState.setVal(v, newVal); 
 		} else {
 			ILconstTuple oldVal = (ILconstTuple) localState.getVal(v);
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			localState.setVal(v, newVal);
 		}

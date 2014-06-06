@@ -37,7 +37,6 @@ public class HotdocGenerator {
 
 	private List<String> files;
 	private File outputfolder;
-	private String navbar;
 	private WurstModel model;
 	private ArrayList<WPackage> packages;
 	private VelocityEngine ve;
@@ -73,7 +72,7 @@ public class HotdocGenerator {
 			
 			RunArgs runArgs = new RunArgs(new String[] {});
 			WurstGui gui = new WurstGuiCliImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 			compiler.loadFiles("resources/common.j");
 			compiler.loadFiles("resources/blizzard.j");
 			for (String file: files) {
