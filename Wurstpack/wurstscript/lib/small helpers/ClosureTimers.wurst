@@ -18,7 +18,7 @@ public function doPeriodically(real time, CallbackPeriodic cb)
 	The callback object is destroyed after the action has been executed callAmount times.
 	
 	Example use:
-	| doPeriodicallyCounted(0.5, 100, () -> begin
+	| doPeriodicallyCounted(0.5, 100, (CallbackCounted cb) -> begin
 	|     doSomething()		
 	| end)
 	
@@ -96,23 +96,28 @@ public abstract class CallbackPeriodic
 public abstract class CallbackCounted
 	private timer t
 	private int count = 0
-	private int maxCount
 	
 	protected abstract function call(thistype cb)
 
 	function start(real time, int callAmount)
 		this.t = getTimer()
 		t.setData(this castTo int)
-		maxCount = callAmount
+		count = callAmount
 		t.startPeriodic(time, function staticCallback)
+		
+	function isLast() returns boolean
+		return count == 1
+		
+	function getCount() returns int
+		return count
 		
 	private static function staticCallback()
 		(GetExpiredTimer().getData() castTo thistype).callAndCount()
 		
 	private function callAndCount()
 		call(this)
-		count++
-		if count >= maxCount
+		count--
+		if count <= 0
 			destroy this
 		
 	ondestroy
