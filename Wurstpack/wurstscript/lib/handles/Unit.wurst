@@ -59,8 +59,8 @@ public function unit.getPos3fake() returns vec3
 public function unit.kill()
 	KillUnit(this)
 	
-public function unit.addAbility(int abil)
-	UnitAddAbility(this, abil)
+public function unit.addAbility(int abil) returns boolean
+	return UnitAddAbility(this, abil)
 	
 public function unit.removeAbility(int abil)
 	UnitRemoveAbility(this, abil)
@@ -175,6 +175,9 @@ public function createUnit(player p, int unitId, vec2 pos, angle facing) returns
 	
 public function createUnit(player p, int unitId, vec3 pos, angle facing) returns unit
 	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
+	
+public function createUnitZ(player p, int unitId, vec3 pos, angle facing) returns unit
+	return CreateUnit(p, unitId, pos.x, pos.y, facing.degrees())
 		..setFlyHeight(pos.z - getTerrainZ(pos.x, pos.y), 0)
 
 	
@@ -226,8 +229,8 @@ public function unit.issueTargetOrderById(int id, widget target) returns boolean
 public function unit.issueTargetOrder(string order, widget targetWidget) returns boolean
 	return IssueTargetOrder(this,order,targetWidget)
 	
-public function unit.issuePointOrderById(int id, vec2 target)
-	IssuePointOrderById(this, id, target.x, target.y)
+public function unit.issuePointOrderById(int id, vec2 target) returns boolean
+	return IssuePointOrderById(this, id, target.x, target.y)
 	
 public function unit.issueImmediateOrderById(int id) returns boolean
 	return IssueImmediateOrderById(this, id)
