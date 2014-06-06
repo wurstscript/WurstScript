@@ -6,7 +6,7 @@ public class AbilityDefinition
 	
 	construct(int newAbilityId, int origAbilityId)
 		def = createObjectDefinition("w3a", newAbilityId, origAbilityId)
-
+		
 	function setName(string value)
 		def.setLvlDataString("anam", 0, 0, value)
 
@@ -49,16 +49,16 @@ public class AbilityDefinition
 	function setIconResearch(string value)
 		def.setLvlDataString("arar", 0, 0, value)
 
-	function setCaster(string value)
+	function setArtCaster(string value)
 		def.setLvlDataString("acat", 0, 0, value)
 
-	function setTarget(string value)
+	function setArtTarget(string value)
 		def.setLvlDataString("atat", 0, 0, value)
 
-	function setSpecial(string value)
+	function setArtSpecial(string value)
 		def.setLvlDataString("asat", 0, 0, value)
 
-	function setEffect(string value)
+	function setArtEffect(string value)
 		def.setLvlDataString("aeat", 0, 0, value)
 
 	function setAreaEffect(string value)
