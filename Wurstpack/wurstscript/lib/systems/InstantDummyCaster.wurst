@@ -1,0 +1,102 @@
+package InstantDummyCaster
+import UnitObjEditing
+/*
+ *   Dummy caster for casting spells
+ *
+ *   Spells must have 0 cooldown, 92083 range, and cost 0 mana. Spells must be instant and
+ *   can't share the same order as other spells on the dummy caster.
+ */
+ 
+public class InstantDummyCaster
+	static unit caster
+	static int id
+	
+	private static function prepare(player owner, integer lvl)
+		caster.addAbility(id)
+		if lvl > 1
+			caster.setAbilityLevel(id, lvl)
+		if owner != null
+			caster.setOwner(owner, false)
+			
+	private static function finish()
+		caster..setOwner(DUMMY_PLAYER, false)..removeAbility(id)
+			
+	static function castImmediate(player owner, int abilityId, int lvl, string order, vec2 pos) returns boolean
+		boolean b
+		id = abilityId
+		caster.setXY(pos)
+		prepare(owner, lvl)
+		b = caster.issueImmediateOrderById(OrderId(order))
+		finish()
+		caster.setPos(32256, 32256)
+		return b
+		
+	static function castTarget(player owner, int abilityId, int lvl, string order, widget target) returns boolean
+		boolean b
+		id = abilityId
+		prepare(owner, lvl)
+		print("prepared")
+		caster.setXY(GetWidgetX(target), GetWidgetY(target))
+		b = caster.issueTargetOrderById(OrderId(order), target)
+		print("casted + " + b.toString())
+		finish()
+		return b
+		
+	static function castTarget(player owner, int abilityId, int lvl, string order, widget target, vec2 casterPos) returns boolean
+		boolean b
+		id = abilityId
+		prepare(owner, lvl)
+		print("prepared")
+		caster.setXY(casterPos)
+		b = caster.issueTargetOrderById(OrderId(order), target)
+		print("casted + " + b.toString())
+		finish()
+		return b
+		
+	static function castPoint(player owner, int abilityId, int lvl, string order, vec2 targetPos) returns boolean
+		boolean b
+		id = abilityId
+		prepare(owner, lvl)
+		b = caster.issuePointOrderById(OrderId(order), targetPos)
+		finish()
+		return b
+		
+constant DUMMY_CASTER_UNIT_ID = 'xcas'
+
+init
+	InstantDummyCaster.caster = createUnit(DUMMY_PLAYER, DUMMY_CASTER_UNIT_ID, vec2(0,0), angle(0))
+	InstantDummyCaster.caster.setPos(32256,32256)
+		
+@compiletime function generateObject()
+		let u = new BuildingDefinition(DUMMY_CASTER_UNIT_ID, 'nfr2')
+		u..setName("Dummy Caster")
+		..setUpgradesUsed("")
+		..setManaRegeneration(0.1)
+		..setManaInitialAmount(1000)
+		..setManaMaximum(1000)
+		..setCollisionSize(0.0)
+		..setRace(Race.Commoner)
+		..setFoodCost(0)
+		..setArmorType(ArmorType.Divine)
+		..setIconGameInterface("ReplaceableTextures\\CommandButtons\\BTNtemp.blp")
+		..setSpeedBase(522)
+		..setModelFile("dummy.mdl")
+		..setAnimationBlendTimeseconds(0.0)
+		..setAnimationCastBackswing(0.0)
+		..setMaximumPitchAngledegrees(0.0)
+		..setMaximumRollAngledegrees(0.0)
+		..setSpecial("")
+		..setProjectileImpactZ(0.0)
+		..setProjectileLaunchZ(0.0)
+		..setNameEditorSuffix("(Basics)")
+		..setSightRadiusDay(1)
+		..setSightRadiusNight(1)
+		..setUnitClassification("_")
+		..setPropulsionWindowdegrees(1.0)
+		..setTooltipBasic("")
+		..setNormalAbilities("")
+		..setGroundTexture("")
+		..setShadowTextureBuilding("")
+		..setCollisionSize(0)
+		..setPathingMap("")
+		..setNeutralBuildingShowsMinimapIcon(false)
