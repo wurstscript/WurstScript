@@ -108,6 +108,9 @@ public abstract class CallbackCounted
 	function isLast() returns boolean
 		return count == 1
 		
+	function getCount() returns int
+		return count
+
 	private static function staticCallback()
 		(GetExpiredTimer().getData() castTo thistype).callAndCount()
 		

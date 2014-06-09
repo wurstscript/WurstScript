@@ -114,6 +114,18 @@ public function vec3.inCircle( vec3 v2, real radius ) returns boolean
 /** Get the distance to another Vector */
 public function vec3.distToVec( vec3 v ) returns real
 	return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared() + (v.z - this.z).squared())
+	
+/** Get the distance to another Vector */
+public function vec3.distToVec2d( vec3 v ) returns real
+	return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+	
+/** Get the distance to another Vector */
+public function vec3.distToVec2d( vec2 v ) returns real
+	return SquareRoot((v.x - this.x).squared() + (v.y - this.y).squared())
+	
+/** Get the squared distance to another Vector */
+public function vec3.distToVec2dSquared( vec2 v ) returns real
+	return (v.x - this.x).squared() + (v.y - this.y).squared()
 
 /** Get the squared distance to another Vector */
 public function vec3.distToVecSquared( vec3 v ) returns real
@@ -157,7 +169,7 @@ public function vec3.offset2d(angle ang, real dist) returns vec3
 public function vec3.angleTo2d(vec2 v) returns angle
 	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
 	
-public function vec3.angle2d(vec3 v) returns angle
+public function vec3.angleTo2d(vec3 v) returns angle
 	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
 	
 /** Get a polarprojection of this Vector */

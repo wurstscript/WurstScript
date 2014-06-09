@@ -138,7 +138,7 @@ public class W3UDefinition
 	
 	construct(int newUnitId, int origUnitId)
 		def = createObjectDefinition("w3u", newUnitId, origUnitId)
-		
+				
 	function setTooltipExtended(string data)
 		def.setString("utub", data)
 	
@@ -169,6 +169,7 @@ public class W3UDefinition
 
 public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	
+
 	construct(int newUnitId, int origUnitId)
 		super(newUnitId, origUnitId)
 	
@@ -193,13 +194,13 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setTurnRate(real data)
 		def.setUnreal("umvr", data)
 
-	function setTintingColor3Blue(int data)
+	function setTintingColorBlue(int data)
 		def.setInt("uclb", data)
 
-	function setTintingColor2Green(int data)
+	function setTintingColorGreen(int data)
 		def.setInt("uclg", data)
 
-	function setTintingColor1Red(int data)
+	function setTintingColorRed(int data)
 		def.setInt("uclr", data)
 
 	function setTilesets(string data)

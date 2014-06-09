@@ -1,5 +1,5 @@
 package Fx
-import DummyRecycler
+import NewDummyRecycler
 import Effect
 import Colors
 import Vectors
@@ -27,26 +27,26 @@ public class Fx
 	private colorA col
 	
 	construct(real x, real y, angle facing)
-		dummy = newDummy( vec2(x, y), facing)
+		dummy = DummyRecycler.get( vec2(x, y), facing)
 	
 	construct(vec2 pos, angle facing)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos, facing)
 	
 	construct(vec2 pos, angle facing, string fxpath)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos, facing)
 		setFx( fxpath )
 	
 	construct(vec3 pos, angle facing)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos.toVec2(), facing)
 		setZ(pos.z)	
 	
 	construct(vec3 pos, angle facing, string fxpath)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos.toVec2(), facing)
 		setZ(pos.z)
 		setFx( fxpath )	
 	
 	construct(real x, real y, angle facing, string fxpath)
-		dummy = newDummy( vec2(x,y), facing)
+		dummy = DummyRecycler.get( vec2(x,y), facing)
 		setFx( fxpath )
 			
 	/** Get the owner of this Fx Object */
@@ -111,8 +111,8 @@ public class Fx
 	/** Creates a new dummy with the given facing in order to achieve instant turning. */
 	function setXYAngleInstant(angle value)
 		fx.destr()
-		recycleDummy(dummy)
-		dummy = newDummy( vec2(getX(), getY()), value)
+		DummyRecycler.recycle(dummy)
+		dummy = DummyRecycler.get(vec2(getX(), getY()), value)
 		setFx(sfxPath)
 		
 	/** Get the z angle in radians */
@@ -199,7 +199,7 @@ public class Fx
 		if fx != null
 			fx.destr()
 
-		recycleDummy(dummy)
+		DummyRecycler.recycle(dummy, 1.)
 
 	/** Destroys the Fx object without showing the effect's death animation 
 		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/

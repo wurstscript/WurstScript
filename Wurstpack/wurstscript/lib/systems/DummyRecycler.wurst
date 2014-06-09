@@ -73,7 +73,7 @@ public function newDummy( vec3 pos, angle facing ) returns unit
 
 /** Immediately recycle a dummy */
 public function recycleDummy( unit u )
-	recycleDummy(u)
+	recycleDummy(u, 0)
 	
 /** Recycle a dummy after a delay */
 public function recycleDummy( unit u, real delay )

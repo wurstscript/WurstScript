@@ -9,12 +9,17 @@ public class Queue<T>
 	construct()
 		dummy = new SEntry<T>(null, null)
 		front = dummy
-
+		back = dummy
+		
+	function peek() returns T
+		return front.elem
+		
 	// add an element
 	function enqueue(T elem)
 		if front == dummy
 			front = new SEntry(elem, dummy)
 			back = front
+			front.next = dummy
 		else
 			back.next = new SEntry(elem, dummy)
 			back = back.next
@@ -75,7 +80,7 @@ class SIterator<Q>
 			
 
 	function hasNext() returns boolean
-		return current.next != dummy
+		return current != dummy
 
 	function next() returns Q
 		let tmp = current
