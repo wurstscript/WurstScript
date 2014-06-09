@@ -135,16 +135,16 @@ public class AstHelper {
 		return Ast.ExprRealVal(pos, s.trim());
 	}
 
-	public static Modifiers mods(WPos src, WurstScriptScanner scanner, Modifier ... ms) {
-		Modifiers result = Ast.Modifiers();
-		if (scanner.lastHotdoc != null) {
-			result.add(Ast.WurstDoc(src, scanner.lastHotdoc));
-			scanner.lastHotdoc = null;
-		}
-		for (Modifier m : ms) {
-			result.add(m);
-		}
-		return result;
-	}
+//	public static Modifiers mods(WPos src, WurstScriptScanner scanner, Modifier ... ms) {
+//		Modifiers result = Ast.Modifiers();
+//		if (scanner.lastHotdoc != null) {
+//			result.add(Ast.WurstDoc(src, scanner.lastHotdoc));
+//			scanner.lastHotdoc = null;
+//		}
+//		for (Modifier m : ms) {
+//			result.add(m);
+//		}
+//		return result;
+//	}
 
 }
