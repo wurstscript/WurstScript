@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
+import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
@@ -17,14 +17,6 @@ import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.text.IDocumentExtension;
-
-import de.peeeq.eclipsewurstplugin.WurstConstants;
-import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
-import de.peeeq.wurstscript.gui.WurstGui;
-
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -33,6 +25,13 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 
 import com.google.common.collect.Lists;
+
+import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
+import de.peeeq.wurstscript.gui.WurstGui;
 public class WurstNature implements IProjectNature {
 
 	/**
@@ -106,6 +105,9 @@ public class WurstNature implements IProjectNature {
 	}
 
 	public static void addErrorMarker(IFile file, CompileError e, String markerType) {
+		if (WurstPlugin.config().ignoreAllErrors()) {
+			return;
+		}
 		try {
 			IMarker marker = file.createMarker(markerType);
 			marker.setAttribute(IMarker.MESSAGE, e.getMessage());

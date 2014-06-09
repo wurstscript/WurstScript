@@ -56,8 +56,7 @@ public class WurstConstants {
 	public static final String WURST_ENABLE_RECONCILING = "WURST_ENABLE_RECONCILING";
 	public static final String WURST_RECONCILATION_DELAY = "WURST_RECONCILATION_DELAY";
 	public static final String WURST_WC3_PATH = "WURST_WC3_PATH";
-	public static final String WURST_MPQEDIT_PATH = "WURST_MPQEDIT_PATH";
-	
+	public static final String WURST_IGNORE_ERRORS = "WURST_IGNORE_ERRORS";
 	
 	//Partition Scanner
 	public static final String PARTITION_SINLGE_LINE_COMMENT = "singleComment";
@@ -73,5 +72,7 @@ public class WurstConstants {
 	public static final String PLUGIN_ID = "EclipseWurstPlugin";
 
 	public static final String WURST_PARTITIONING = "__wurst_partitioning";
+
+	
 	
 }

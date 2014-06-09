@@ -37,7 +37,6 @@ public class MpqTest {
 
 	@Test
 	public void test_extract() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
 			byte[] f = edit.extractFile("war3map.j");
@@ -69,7 +68,6 @@ public class MpqTest {
 
 	@Test
 	public void test_insert() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
 			edit.insertFile("test.txt", Files.toByteArray(new File(
@@ -81,7 +79,6 @@ public class MpqTest {
 
 	@Test
 	public void test_delete() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
 		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
 			edit.deleteFile("test.txt");

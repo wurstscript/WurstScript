@@ -1,17 +1,21 @@
 package de.peeeq.eclipsewurstplugin.preferences;
 
+import org.eclipse.jface.layout.GridDataFactory;
+import org.eclipse.jface.layout.GridLayoutFactory;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditor;
-import org.eclipse.jface.preference.IntegerFieldEditor;
 import org.eclipse.jface.preference.PreferencePage;
 import org.eclipse.jface.preference.StringFieldEditor;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Listener;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
@@ -27,7 +31,7 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 	private FieldEditor enableAutocomplete;
 	private FieldEditor autocompleteDelay;
 	private FieldEditor wc3Path;
-	private FieldEditor mpqeditPath;
+	private BooleanFieldEditor ignoreErrors;
 
 	@Override
 	public void init(IWorkbench workbench) {
@@ -39,17 +43,64 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 
 	@Override
 	protected Control createContents(Composite parent) {
-		Composite comp = new Composite(parent, SWT.NONE);
+//		new StringFieldEditor(WurstConstants.WURST_WC3_PATH, "Warcraft installation path: ", comp1);
+		final Composite rootComposite = new Composite(parent, SWT.NONE);
+		rootComposite.setLayout(GridLayoutFactory.fillDefaults().create());
 		
+		final ScrolledComposite sc = new ScrolledComposite(rootComposite, SWT.BORDER | SWT.V_SCROLL);
+		sc.setLayoutData(GridDataFactory.fillDefaults().grab(true, true).hint(SWT.DEFAULT, 200).create());
+		sc.setExpandHorizontal(true);
+		sc.setExpandVertical(true);
+		
+		final Composite comp = new Composite(sc, SWT.NONE);
+		sc.setContent(comp);
 		comp.setLayout(new GridLayout(1, false));
 		
 		createReconcilationControls(comp);
 		createAutocompleteControls(comp);
 		createPathControls(comp);
+		createAdditionalOptions(comp);
 		
 		loadSettings();
 		
-		return comp;
+		sc.setMinWidth(0);
+		
+		comp.addListener(SWT.Resize, new Listener() {
+			@Override
+			public void handleEvent(Event event) {
+				sc.setMinHeight(comp.computeSize(comp.getSize().x, SWT.DEFAULT).y);
+			}
+		});
+		sc.setMinHeight(comp.computeSize(comp.getSize().x, SWT.DEFAULT).y);
+		sc.setContent(comp);
+		return rootComposite;
+	}
+
+
+
+	private void createAdditionalOptions(Composite comp) {
+		GridData gridData = new GridData();
+		gridData.grabExcessHorizontalSpace = true;
+		gridData.horizontalAlignment = SWT.FILL;
+		
+		Group g = new Group(comp, SWT.NONE);
+		g.setLayoutData(gridData);
+		GridLayout layout = new GridLayout(2, false);
+		g.setLayout(layout);
+		
+		g.setText("Other options:");
+		
+		gridData = new GridData();
+		gridData.horizontalAlignment = SWT.FILL;
+		gridData.horizontalSpan = 2;
+		gridData.grabExcessHorizontalSpace = true;
+		gridData.verticalAlignment = SWT.FILL;
+		
+		Composite c1 = new Composite(g, SWT.NONE);
+		ignoreErrors = new BooleanFieldEditor(WurstConstants.WURST_IGNORE_ERRORS, "Ignore all errors", c1 );
+		ignoreErrors.setPreferenceStore(getPreferenceStore());
+		c1.setLayoutData(gridData);
+		
 	}
 
 
@@ -85,10 +136,10 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		wc3Path.setPreferenceStore(getPreferenceStore());
 		c1.setLayoutData(gridData);
 		
-		Composite c2 = new Composite(g, SWT.NONE);
-		mpqeditPath = new StringFieldEditor(WurstConstants.WURST_MPQEDIT_PATH, "Path to MPQEditor.exe", c2);
-		mpqeditPath.setPreferenceStore(getPreferenceStore());
-		c1.setLayoutData(gridData);
+//		Composite c2 = new Composite(g, SWT.NONE);
+//		mpqeditPath = new StringFieldEditor(WurstConstants.WURST_MPQEDIT_PATH, "Path to MPQEditor.exe", c2);
+//		mpqeditPath.setPreferenceStore(getPreferenceStore());
+//		c1.setLayoutData(gridData);
 		
 	}
 
@@ -176,7 +227,7 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		autocompleteDelay.load();
 		recDelay.load();
 		wc3Path.load();
-		mpqeditPath.load();
+		ignoreErrors.load();
 	}
 	
 	
@@ -187,7 +238,7 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		autocompleteDelay.loadDefault();
 		recDelay.loadDefault();
 		wc3Path.loadDefault();
-		mpqeditPath.loadDefault();
+		ignoreErrors.loadDefault();
 		super.performDefaults();
 	}
 	
@@ -198,7 +249,7 @@ public class WurstPreferencePage extends PreferencePage implements IWorkbenchPre
 		autocompleteDelay.store();
 		recDelay.store();
 		wc3Path.store();
-		mpqeditPath.store();
+		ignoreErrors.store();
 		return super.performOk();
 	}
 	

@@ -101,7 +101,6 @@ wImport:
 entity: 
         nativeType
       | funcDef
-      | varDef
 	  | globalsBlock
       | initBlock
       | nativeDef
@@ -111,6 +110,7 @@ entity:
       | interfaceDef
       | tupleDef
       | extensionFuncDef
+      | varDef
 ;
 
 
@@ -220,7 +220,7 @@ formalParameter:
 
 typeExpr:
 		  thistype='thistype'
-		| typeName=id typeArgs
+		| typeName=ID typeArgs
 		| typeExpr 'array'
 		;
 
@@ -264,7 +264,7 @@ stmtReturn:
 		  ;
 
 stmtIf:
-		  'if' cond=expr 'then'? NL
+		  isStatic='static'? 'if' cond=expr 'then'? NL
 		  thenStatements=statementsBlock
 		  elseStatements
 	  ;
@@ -375,7 +375,6 @@ exprPrimary:
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
-      | varname=id indexes?
       | atom=(INT
       | REAL
 	  | STRING
@@ -385,6 +384,7 @@ exprPrimary:
 	  | 'this'
 	  | 'super')
 	  | exprFuncRef
+      | varname=id indexes?
       | '(' expr ')' 
 	;
 
@@ -452,7 +452,7 @@ extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSign
 
 
 // some keywords are also valid identifiers for backwards compatibility reasons
-id: ID|'end'|'init';
+id: ID|'end'|'init'|'this'|'new'|'destroy'|'it'|'to'|'from'|'class'|'thistype';
 
 // Lexer:
 

@@ -240,7 +240,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(WurstConstants.WURST_AUTOCOMPLETION_DELAY, "0.5");
 		setDefaultValue(WurstConstants.WURST_ENABLE_RECONCILING, true);
 		setDefaultValue(WurstConstants.WURST_RECONCILATION_DELAY, "0.5");
-		setDefaultValue(WurstConstants.WURST_MPQEDIT_PATH, "C:\\mpqedit\\MPQEditor.exe");
+		setDefaultValue(WurstConstants.WURST_IGNORE_ERRORS, false);
 		setDefaultValue(WurstConstants.WURST_WC3_PATH, "C:\\Warcraft III\\");
 		try {
 			// try to use the registry to find wc3 path

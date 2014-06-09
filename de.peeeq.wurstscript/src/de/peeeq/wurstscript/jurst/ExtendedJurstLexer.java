@@ -135,7 +135,12 @@ public class ExtendedJurstLexer implements TokenSource {
 				return makeToken(JurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
 			}
 			
-			
+			if (token.getType() == JurstParser.ID 
+					&& token.getText().equals("debug")
+					&& (state == State.NEWLINES )) {
+				// ignore 'debug' at beginning of line
+				continue;
+			}
 			
 
 			switch (state) {
