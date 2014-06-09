@@ -93,6 +93,7 @@ import de.peeeq.wurstscript.jurst.antlr.JurstParser.FormalParameterContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.FormalParametersContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.FuncDefContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.FuncSignatureContext;
+import de.peeeq.wurstscript.jurst.antlr.JurstParser.IdContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.IndexesContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.InitBlockContext;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.InterfaceDefContext;
@@ -333,7 +334,7 @@ public class AntlrJurstParseTreeTransformer {
 
 		WImports imports = Ast.WImports();
 
-		for (Token i : p.requires) {
+		for (IdContext i : p.requires) {
 			imports.add(Ast.WImport(source(i), true, false, i.getText()));
 		}
 		
@@ -586,7 +587,7 @@ public class AntlrJurstParseTreeTransformer {
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
 		String name = text(i.name);
 		EnumMembers members = Ast.EnumMembers();
-		for (Token m : i.enumMembers) {
+		for (IdContext m : i.enumMembers) {
 			members.add(Ast.EnumMember(source(m), Ast.Modifiers(), text(m)));
 		}
 		return Ast.EnumDef(src, modifiers, name, members);
@@ -804,7 +805,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private NameRef transformExprMemberVarAccess2(WPos source,
-			ExprContext e_expr, Token e_dots, Token e_varname,
+			ExprContext e_expr, Token e_dots, IdContext varname2,
 			@Nullable IndexesContext e_indexes) {
 		Expr left = transformExpr(e_expr);
 		
@@ -812,7 +813,7 @@ public class AntlrJurstParseTreeTransformer {
 			left = Ast.ExprThis(left.getSource());
 		}
 		
-		String varName = text(e_varname);
+		String varName = text(varname2);
 		if (e_indexes != null) {
 			Indexes indexes = transformIndexes(e_indexes);
 			if (e_dots.getType() == JurstParser.DOT) {
@@ -933,7 +934,7 @@ public class AntlrJurstParseTreeTransformer {
 		WPos source = source(e);
 		ExprContext receiver = e.receiver;
 		Token dots = e.dots;
-		Token funcName = e.funcName;
+		IdContext funcName = e.funcName;
 		TypeArgsContext typeArgs = e.typeArgs();
 		ExprListContext args = e.exprList();
 		return transformMemberMethodCall2(source, receiver, dots, funcName,
@@ -941,7 +942,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private ExprMemberMethod transformMemberMethodCall2(WPos source,
-			ExprContext receiver, Token dots, Token funcName,
+			ExprContext receiver, Token dots, IdContext funcName,
 			TypeArgsContext typeArgs, ExprListContext args) {
 		Expr left = transformExpr(receiver);
 		

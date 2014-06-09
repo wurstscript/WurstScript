@@ -21,7 +21,7 @@ jassGlobalsBlock:
 				;
 
 jassGlobalDecl:
-				  constant='constant'? typeExpr name=ID ('=' initial=expr)? NL
+				  constant='constant'? typeExpr name=id ('=' initial=expr)? NL
 			  ;
 
 jassFuncDef:
@@ -31,7 +31,7 @@ jassFuncDef:
 			   'endfunction' NL
 		   ;
 
-jassLocal: 'local' typeExpr name=ID ('=' initial=expr)? NL;
+jassLocal: 'local' typeExpr name=id ('=' initial=expr)? NL;
 
 jassStatements: stmts+=jassStatement*;
 
@@ -76,16 +76,16 @@ jassNativeDecl:
 			  ;
 
 jassFuncSignature:
-					 name=ID 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
+					 name=id 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
 					 'returns' ('nothing'|returnType=typeExpr)
 				 ;
 
-jassTypeDecl: 'type' name=ID 'extends' extended=typeExpr NL;
+jassTypeDecl: 'type' name=id 'extends' extended=typeExpr NL;
 
 
-wpackage: ('package'|'library'|'scope') name=ID 
-		  ('initializer' initializer=(ID|'init'))?
-		  (('uses'|'requires'|'needs') requires+=ID (',' requires+=ID)*)?	  
+wpackage: ('package'|'library'|'scope') name=id 
+		  ('initializer' initializer=id)?
+		  (('uses'|'requires'|'needs') requires+=id (',' requires+=id)*)?	  
 		  NL 
 	imports+=wImport* entities+=entity*
 	('endpackage'|'endlibrary'|'endscope') NL
@@ -93,7 +93,7 @@ wpackage: ('package'|'library'|'scope') name=ID
 
 
 wImport: 
-    'import' isPublic='public'? isInitLater='initlater'? importedPackage=ID NL 
+    'import' isPublic='public'? isInitLater='initlater'? importedPackage=id NL 
     ;
 
 
@@ -117,7 +117,7 @@ entity:
 globalsBlock: 'globals' NL vars+=varDef* 'endglobals' NL;
 
 interfaceDef:
-                modifiersWithDoc 'interface' name=ID typeParams 
+                modifiersWithDoc 'interface' name=id typeParams 
                 ('extends' extended+=typeExpr (',' extended+=typeExpr)*)? 
                 NL
                     classSlots
@@ -126,7 +126,7 @@ interfaceDef:
              
  
 classDef:
-            modifiersWithDoc ('class'|'struct') name=ID typeParams 
+            modifiersWithDoc ('class'|'struct') name=id typeParams 
             ('extends' extended=typeExpr)? 
             ('implements' implemented+=typeExpr (',' implemented+=typeExpr)*)?
             NL
@@ -134,13 +134,13 @@ classDef:
 			('end'|'endclass'|'endstruct') NL
         ;
 
-enumDef: modifiersWithDoc 'enum' name=ID NL 
-      (enumMembers+=ID NL)*
+enumDef: modifiersWithDoc 'enum' name=id NL 
+      (enumMembers+=id NL)*
 	('end'|'endenum') NL
 	   ;
 
 moduleDef:
-            modifiersWithDoc 'module' name=ID typeParams
+            modifiersWithDoc 'module' name=id typeParams
             NL
                 classSlots
             ('end'|'endmodule') NL
@@ -164,7 +164,7 @@ constructorDef:
               ;
        
 moduleUse: 
-         modifiersWithDoc ('use'|'implement') moduleName=ID typeArgs NL
+         modifiersWithDoc ('use'|'implement') moduleName=id typeArgs NL
          ;
 
 ondestroyDef:
@@ -205,7 +205,7 @@ annotation: ANNOTATION;
 hotdocComment: HOTDOC_COMMENT;
 
 funcSignature:
-				 name=(ID|'init') typeParams formalParameters ('returns' ('nothing' | returnType=typeExpr))?
+				 name=id typeParams formalParameters ('returns' ('nothing' | returnType=typeExpr))?
 			 ;
 
 formalParameters: 
@@ -215,19 +215,19 @@ formalParameters:
 				;
 
 formalParameter:
-				   typeExpr name=ID
+				   typeExpr name=id
 			   ;
 
 typeExpr:
 		  thistype='thistype'
-		| typeName=ID typeArgs
+		| typeName=id typeArgs
 		| typeExpr 'array'
 		;
 
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=id ('=' initial=expr)? NL 
 	  ;		  
 
 statements: statement*;
@@ -300,11 +300,11 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|'local'? type=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=id ('=' initial=expr)? NL 
 	  ;	
 
 localVarDefInline:
-					 typeExpr? name=ID
+					 typeExpr? name=id
 				 ;
 
 stmtSet:
@@ -323,12 +323,12 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=ID indexes?
+				 expr dots=('.'|'..') varname=id indexes?
 			 ;
 
 
 exprVarAccess:
-				 varname=ID indexes?
+				 varname=id indexes?
 			 ;
 
 
@@ -346,15 +346,15 @@ stmtCall: 'call'?
 		;
 
 exprMemberMethod:
-					receiver=expr dots=('.'|'..') funcName=ID? typeArgs ('(' exprList ')')?
+					receiver=expr dots=('.'|'..') funcName=id? typeArgs ('(' exprList ')')?
 				;
 
 expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
-	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
+	  | receiver=expr dotsCall=('.'|'..') funcName=id? typeArgs '(' exprList ')'
+	  | receiver=expr dotsVar=('.'|'..') varName=id? indexes?
 	  |	'destroy' destroyedObject=expr
 	  | destroyedObject=expr '.' 'destroy' '(' ')'
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
@@ -375,7 +375,7 @@ exprPrimary:
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
-      | varname=ID indexes?
+      | varname=id indexes?
       | atom=(INT
       | REAL
 	  | STRING
@@ -388,7 +388,7 @@ exprPrimary:
       | '(' expr ')' 
 	;
 
-exprFuncRef: 'function' (scopeName=ID '.')? funcName=ID;
+exprFuncRef: 'function' (scopeName=id '.')? funcName=id;
 
 exprStatementsBlock:
 					   'begin' NL statementsBlock 'end'
@@ -396,16 +396,16 @@ exprStatementsBlock:
 
 
 exprFunctionCall:
-					funcName=ID typeArgs '(' exprList ')'
+					funcName=id typeArgs '(' exprList ')'
 				;
 	  
-exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
+exprNewObject:'new' className=id typeArgs ('(' exprList ')')?;
 
 exprClosure: formalParameters '->' expr;
 		  
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
-typeParam: name=ID;
+typeParam: name=id;
 
 stmtForLoop:
 			   forRangeLoop
@@ -436,7 +436,7 @@ exprList : exprs+=expr (',' exprs+=expr)*;
 
 
 
-nativeType: 'type' name=ID ('extends' extended=ID)? NL;
+nativeType: 'type' name=id ('extends' extended=id)? NL;
 
 initBlock: 'init' NL 
 				statementsBlock
@@ -444,11 +444,15 @@ initBlock: 'init' NL
 
 nativeDef: modifiersWithDoc 'native' funcSignature NL; 
 
-tupleDef: modifiersWithDoc 'tuple' name=ID formalParameters NL; 
+tupleDef: modifiersWithDoc 'tuple' name=id formalParameters NL; 
 
 extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL 
 		statementsBlock 
 	('end'|'endfunction');
+
+
+// some keywords are also valid identifiers for backwards compatibility reasons
+id: ID|'end'|'init';
 
 // Lexer:
 

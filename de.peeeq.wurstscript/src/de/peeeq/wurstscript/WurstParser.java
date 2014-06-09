@@ -54,7 +54,7 @@ public class WurstParser {
 	}
 
 	public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
-		if (useCup || source.endsWith(".j")) {
+		if (useCup) {
 			return parseWithCup(reader, source, hasCommonJ);
 		} else {
 			try (java.util.Scanner s = new java.util.Scanner(reader)) {

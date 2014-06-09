@@ -71,12 +71,12 @@ public class RealWorldExamples extends WurstScriptTest {
 
 	@Test
 	public void setFrottyBugVector() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "vector.j"), false);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "vector.wurst"), false);
 	}
 	
 	@Test
 	public void test_war3map() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.j"), false);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.wurst"), false);
 	}
 	
 	@Test
