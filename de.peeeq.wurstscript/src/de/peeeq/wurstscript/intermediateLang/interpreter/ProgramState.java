@@ -31,6 +31,7 @@ public class ProgramState extends State {
 	private int objectIdCounter;
 	private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
+	private Stack<ImStmt> lastStatements = new Stack<>();
 	
 	
 	public ProgramState(WurstGui gui, ImProg prog) {
@@ -136,19 +137,22 @@ public class ProgramState extends State {
 
 	public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
 		stackFrames.push(new ILStackFrame(f, args, trace));
-		
+		lastStatements.push(lastStatement);
 	}
 
 	public void popStackframe() {
 		if (!stackFrames.isEmpty()) {
 			stackFrames.pop();
 		}
+		if (!lastStatements.empty()) {
+			lastStatement = lastStatements.pop();
+		}
 	}
 	
 	public void resetStackframes() {
 		stackFrames.clear();
+		lastStatements.clear();
 	}
-	
 	
 	public Stack<ILStackFrame> getStackFrames() {
 		return stackFrames;
