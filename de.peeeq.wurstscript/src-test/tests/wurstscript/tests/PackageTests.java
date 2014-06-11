@@ -180,7 +180,7 @@ public class PackageTests extends WurstScriptTest {
 	
 	@Test
 	public void test_typename_as_var2() {
-		testAssertErrorsLines(false, "defines the same name",
+		testAssertErrorsLines(false, "The name 'unit' is already used",
 				"type unit extends handle",
 				"package A",
 				"	int unit",

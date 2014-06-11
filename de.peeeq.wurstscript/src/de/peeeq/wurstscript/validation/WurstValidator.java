@@ -15,8 +15,10 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -285,6 +287,7 @@ public class WurstValidator {
 	private void check(AstElement e) {
 		try {
 			if (e instanceof AstElementWithTypeParameters) checkTypeParameters((AstElementWithTypeParameters) e);
+			if (e instanceof AstElementWithName) checkName((AstElementWithName) e);
 			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
 			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
 			if (e instanceof ClassDef) checkConstructorsUnique((ClassDef) e);
@@ -333,7 +336,6 @@ public class WurstValidator {
 			if (e instanceof SwitchStmt) checkSwitch((SwitchStmt) e);
 			if (e instanceof TypeExpr) checkTypeExpr((TypeExpr) e);
 			if (e instanceof TypeExprArray) chechCodeArrays((TypeExprArray) e);
-			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
 			if (e instanceof VarDef) checkVarDef((VarDef) e);
 			if (e instanceof WImport) visit((WImport) e);
 			if (e instanceof WPackage) checkPackage((WPackage) e);
@@ -347,6 +349,26 @@ public class WurstValidator {
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkName(AstElementWithName e) {
+		String name = e.getName();
+		TypeDef def = e.lookupType(name, false);
+		
+		if (def != e && def instanceof NativeType) {
+			e.addError("The name '" + name + "' is already used as a native type in " + Utils.printPos(def.getSource()));
+		} else {
+			switch (name) {
+			case "int":
+			case "integer":
+			case "real":
+			case "code":
+			case "boolean":
+			case "string":
+			case "handle":
+				e.addError("The name '" + name + "' is a built-in type and cannot be used here.");
+			}
 		}
 	}
 
@@ -1924,14 +1946,6 @@ public class WurstValidator {
 			}
 		}
 		return false;
-	}
-
-	private void checkTypenameAsVar(VarDef v) {
-		TypeDef t = v.lookupType(v.getName(), false);
-		if (t != null) {
-			v.addError("Variable " + v.getName() + " defines the same name as " + Utils.printElementWithSource(t));
-		}
-
 	}
 
 	private void checkForDuplicateImports(WPackage p) {

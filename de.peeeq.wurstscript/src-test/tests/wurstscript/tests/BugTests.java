@@ -638,4 +638,28 @@ public class BugTests extends WurstScriptTest {
 				"	do(function bar)",
 				"endpackage");
 	}
+	
+	@Test
+	public void typenameAsFuncname1() {
+		testAssertErrorsLines(false, "The name", 
+				"package test",
+				"function integer()",
+				"init",
+				"	integer()",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void typenameAsFuncname2() {
+		testAssertErrorsLines(false, "The name", 
+				"type agent			    extends     handle",
+				"package test",
+				"function agent()",
+				"init",
+				"	agent()",
+				"endpackage"
+				);
+	}
+	
 }
