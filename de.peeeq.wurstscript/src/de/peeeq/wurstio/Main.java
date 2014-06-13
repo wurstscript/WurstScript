@@ -74,8 +74,9 @@ public class Main {
 				return;
 			}
 			WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
+			String mapFilePath = runArgs.getMapFile();
 			if (runArgs.isExtractImports()) {
-				File mapFile = new File(runArgs.getMapFile());
+				File mapFile = new File(mapFilePath);
 				ImportFile.extractImportedFiles(mapFile);
 				return;
 			}
@@ -100,17 +101,17 @@ public class Main {
 			}
 
 			try {
-				if (runArgs.getMapFile() != null) {
+				if (mapFilePath != null) {
 					// tempfolder
 					File tempFolder = new File("./temp/");
 					tempFolder.mkdirs();
 					BackupController bc = new BackupController();
-					bc.makeBackup(runArgs.getMapFile(), 24);
+					bc.makeBackup(mapFilePath);
 				}
 
 					
-				if (runArgs.getMapFile() != null) {
-					try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(runArgs.getMapFile()))) {
+				if (mapFilePath != null) {
+					try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
 						CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
 						if (mapScript != null) {
 							gui.sendProgress("Writing to map", 0.99);
@@ -155,6 +156,9 @@ public class Main {
 		if (gui.getErrorCount() > 0) {
 			return null;
 		}
+		if (model == null) {
+			return null;
+		}
 		
 		compiler.checkProg(model);
 		
@@ -168,15 +172,24 @@ public class Main {
 			return null;
 		}
 
-
+		File mapFile = compiler.getMapFile();
+		
+		
 		if (runArgs.runCompiletimeFunctions()) {
+			if (mapFile == null) {
+				throw new RuntimeException("mapFile must not be null when running compiletime functions");
+			}
+			if (mpqEditor == null) {
+				throw new RuntimeException("mpqEditor must not be null when running compiletime functions");
+			}
+			// tests
 			gui.sendProgress("Running tests", 0.9);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), mpqEditor, gui, FunctionFlag.IS_TEST);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlag.IS_TEST);
 			ctr.run();
-		}
-		if (runArgs.runCompiletimeFunctions()) {
+		
+			// compiletime functions
 			gui.sendProgress("Running compiletime functions", 0.91);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), mpqEditor, gui, FunctionFlag.IS_COMPILETIME);
+			ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlag.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.run();
 		}

@@ -58,7 +58,7 @@ public abstract class WurstType {
 	public abstract String getFullName();
 	
 	
-	public boolean equalsType(WurstType otherType, AstElement location) {
+	public boolean equalsType(WurstType otherType, @Nullable AstElement location) {
 		return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
 	}
 	
