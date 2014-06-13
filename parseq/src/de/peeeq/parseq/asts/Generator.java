@@ -197,6 +197,7 @@ public class Generator {
 		calculateSubTypes();
 		calculateContainments();
 		
+		generatePackageInfo();
 		generateStandardClasses();
 		generateStandardList();
 		generateCyclicDependencyError();
@@ -219,6 +220,18 @@ public class Generator {
 		
 		System.out.println("Done.");
 	}
+
+	private void generatePackageInfo() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(FileGenerator.PARSEQ_COMMENT + "\n");
+		sb.append("@org.eclipse.jdt.annotation.NonNullByDefault\n");
+		sb.append("package " + packageName + ";\n\n");
+		
+		
+		fileGenerator.createFile("package-info.java", sb);
+	}
+
+
 
 	private void generatePropertyInterfaces() {
 		for (Parameter p : parameters.values()) {
@@ -433,8 +446,8 @@ public class Generator {
 
 	private void createGetSetParentMethods(StringBuilder sb) {
 		sb.append("	private " + getCommonSupertypeType() + " parent;\n");
-		sb.append("	public " + getCommonSupertypeType() + " getParent() { return parent; }\n");
-		sb.append("	public void setParent(" + getCommonSupertypeType() + " parent) {\n" +
+		sb.append("	public @org.eclipse.jdt.annotation.Nullable " + getCommonSupertypeType() + " getParent() { return parent; }\n");
+		sb.append("	public void setParent(@org.eclipse.jdt.annotation.Nullable " + getCommonSupertypeType() + " parent) {\n" +
 				"		if (parent != null && this.parent != null) { " +
 				"			throw new Error(\"Parent of \" + this + \" already set: \" + this.parent + \"\\ntried to change to \" + parent); " +
 				"		}\n" +
@@ -642,7 +655,7 @@ public class Generator {
 		sb.append(" {\n");
 
 		// getParent method:
-		sb.append("	" + getCommonSupertypeType() + " getParent();\n");
+		sb.append("	@org.eclipse.jdt.annotation.Nullable " + getCommonSupertypeType() + " getParent();\n");
 
 		
 		
@@ -788,7 +801,7 @@ public class Generator {
 		sb.append("{\n");
 
 		// getParent method:
-		sb.append("	" + getCommonSupertypeType() + " getParent();\n");
+		sb.append("	@org.eclipse.jdt.annotation.Nullable " + getCommonSupertypeType() + " getParent();\n");
 		
 		
 		
@@ -973,14 +986,14 @@ public class Generator {
 		printProlog(sb);
 		
 		sb.append("public interface "+getCommonSupertypeType()+" {\n" +
-				"	"+getCommonSupertypeType()+" getParent();\n" +
+				"	@org.eclipse.jdt.annotation.Nullable "+getCommonSupertypeType()+" getParent();\n" +
 				"	"+getCommonSupertypeType()+" copy();\n" +
 				"	int size();\n" +
 				"	void clearAttributes();\n" +
 				"	void clearAttributesLocal();\n" +
 				"	"+getCommonSupertypeType()+" get(int i);\n"+
 				"	"+getCommonSupertypeType()+" set(int i, "+getCommonSupertypeType()+" newElement);\n"+
-				"	void setParent("+getCommonSupertypeType()+" parent);\n");
+				"	void setParent(@org.eclipse.jdt.annotation.Nullable "+getCommonSupertypeType()+" parent);\n");
 		AstEntityDefinition c = new AstEntityDefinition() {
 			
 			@Override
@@ -997,7 +1010,7 @@ public class Generator {
 		sb.append("}\n\n");
 		
 		sb.append("interface "+getCommonSupertypeType()+"Intern {\n" +
-				"	void setParent("+getCommonSupertypeType()+" pos);\n" +
+				"	void setParent(@org.eclipse.jdt.annotation.Nullable "+getCommonSupertypeType()+" pos);\n" +
 				"}\n\n");
 		
 		fileGenerator.createFile(getCommonSupertypeType() + ".java", sb);

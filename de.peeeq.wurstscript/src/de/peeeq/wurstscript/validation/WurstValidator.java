@@ -9,13 +9,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
@@ -163,7 +164,7 @@ public class WurstValidator {
 	private int functionCount;
 	private int visitedFunctions;
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
-	private AstElement lastElement = null;
+	private @Nullable AstElement lastElement = null;
 
 	public WurstValidator(WurstModel root) {
 		this.prog = root;
@@ -267,9 +268,7 @@ public class WurstValidator {
 				}
 			} else if (typ instanceof WurstTypeTuple) {
 				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
-				if (def != null) {
-					unused.remove(def.attrNearestPackage());
-				}
+				unused.remove(def.attrNearestPackage());
 			}
 		}
 	}
@@ -376,11 +375,12 @@ public class WurstValidator {
 		if (!e.hasAnnotation("@config")) {
 			return;
 		}
-		if (!(e.attrNearestPackage() instanceof WPackage)) {
+		PackageOrGlobal nearestPackage = e.attrNearestPackage();
+		if (!(nearestPackage instanceof WPackage)) {
 			e.addError("Annotation @config can only be used in packages.");
 			return;
 		}
-		WPackage configPackage = (WPackage) e.attrNearestPackage();
+		WPackage configPackage = (WPackage) nearestPackage;
 		if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
 			e.addError("Annotation @config can only be used in config packages (package name has to end with '_config').");
 			return;
@@ -482,8 +482,9 @@ public class WurstValidator {
 		if (e.isModuleUseTypeArg()) {
 			return;
 		}
-		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
-			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
+		TypeDef typeDef = e.attrTypeDef();
+		if (typeDef instanceof TypeParamDef) { // references a type parameter
+			TypeParamDef tp = (TypeParamDef) typeDef;
 			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
 				if (tp.attrNearestStructureDef() instanceof ModuleDef) {
 					// in modules we can also type-params in static contexts
@@ -667,7 +668,7 @@ public class WurstValidator {
 		});
 	}
 
-	private void checkVarNotConstant(NameRef left, NameDef var) {
+	private void checkVarNotConstant(NameRef left, @Nullable NameDef var) {
 		if (var != null && var.attrIsConstant()) {
 			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
 		}
@@ -697,7 +698,7 @@ public class WurstValidator {
 		if (rightType instanceof WurstTypeVoid) {
 			if (pos.attrNearestPackage() instanceof WPackage) {
 				WPackage pack = (WPackage) pos.attrNearestPackage();
-				if (!pack.getName().equals("WurstREPL")) { // allow assigning nothing to a variable in the Repl
+				if (pack != null && !pack.getName().equals("WurstREPL")) { // allow assigning nothing to a variable in the Repl
 					pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
 				}
 			}

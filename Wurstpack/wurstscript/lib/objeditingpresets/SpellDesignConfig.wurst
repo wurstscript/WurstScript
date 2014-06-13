@@ -1,5 +1,5 @@
 package SpellDesignConfig
-import ChannelSpellPreset
+import ChannelAbilityPreset
 
 var TITLECOLOR = "|cff3B97D3"
 var TITLE_COOLDOWN = "Cooldown:"

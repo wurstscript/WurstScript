@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -42,10 +44,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 	@Override
 	public String getName() {
-		return getDef().getName();
+		NamedScope def = getDef();
+		if (def == null) {
+			return "not found";
+		}
+		return def.getName();
 	}
 
-	public abstract NamedScope getDef();
+	public abstract @Nullable NamedScope getDef();
 
 	@Override
 	public String getFullName() {
@@ -58,7 +64,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType obj, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType obj, @Nullable AstElement location) {
 		if (obj instanceof WurstTypeTypeParam) {
 			return false;
 		}
@@ -81,19 +87,21 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 	
 	
-	Map<TypeParamDef, WurstType> cache_typeParamBounds;
+	@Nullable Map<TypeParamDef, WurstType> cache_typeParamBounds;
 	private Map<TypeParamDef, WurstType> getTypeParamBounds() {
-		if (cache_typeParamBounds == null) {
-			cache_typeParamBounds = Maps.newLinkedHashMap();
-			if (getDef() instanceof AstElementWithTypeParameters) {
-				AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) getDef();
+		Map<TypeParamDef, WurstType> cache = cache_typeParamBounds;
+		if (cache == null) {
+			cache_typeParamBounds = cache = Maps.newLinkedHashMap();
+			NamedScope def = getDef();
+			if (def instanceof AstElementWithTypeParameters) {
+				AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) def;
 				TypeParamDefs tps = wtp.getTypeParameters();
 				for (int index = 0; index < typeParameters.size(); index++) {
-					cache_typeParamBounds.put(tps.get(index), typeParameters.get(index));
+					cache.put(tps.get(index), typeParameters.get(index));
 				}
 			}
 		}
-		return cache_typeParamBounds;
+		return cache;
 	}
 	
 	protected String printTypeParams() {
@@ -130,8 +138,9 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	@Override
 	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
 		
-		if (getDef() instanceof AstElementWithTypeParameters) {
-			AstElementWithTypeParameters def = (AstElementWithTypeParameters) getDef();
+		NamedScope def2 = getDef();
+		if (def2 instanceof AstElementWithTypeParameters) {
+			AstElementWithTypeParameters def = (AstElementWithTypeParameters) def2;
 			Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 			for (int i=0; i<typeParameters.size(); i++) {
 				WurstType t = typeParameters.get(i);
@@ -198,7 +207,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 	
 	
-	protected boolean checkTypeParametersEqual(List<WurstType> tps1, List<WurstType> tps2, AstElement location) {
+	protected boolean checkTypeParametersEqual(List<WurstType> tps1, List<WurstType> tps2, @Nullable AstElement location) {
 		if (tps1.size() != tps2.size()) {
 			return false;
 		}
@@ -229,11 +238,12 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		NamedScope scope = getDef();
 		if (scope instanceof ModuleDef) {
 			// cannot access functions from outside of module 
-		} else {
+		} else if (scope != null) {
 			for (NameLink n : scope.attrNameLinks().get(name)) {
+				WurstType receiverType = n.getReceiverType();
 				if (n.getType() == NameLinkType.FUNCTION
-						&& n.getReceiverType() != null
-						&& n.getReceiverType().isSupertypeOf(this, node)) {
+						&& receiverType != null
+						&& receiverType.isSupertypeOf(this, node)) {
 					result.add(n.hidingPrivateAndProtected());
 				}
 			}

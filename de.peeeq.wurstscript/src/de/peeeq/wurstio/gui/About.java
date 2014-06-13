@@ -34,7 +34,7 @@ public class About extends javax.swing.JDialog {
 
     /** Creates new form About */
     @SuppressWarnings("null")
-	public About(java.awt.Frame parent, boolean modal) throws URISyntaxException {
+	public About(@Nullable java.awt.Frame parent, boolean modal) throws URISyntaxException {
         super(parent, modal);        
         initComponents();
         uri = new URI(homepage);
