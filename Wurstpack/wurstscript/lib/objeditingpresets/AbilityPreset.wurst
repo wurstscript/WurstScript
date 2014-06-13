@@ -1,4 +1,4 @@
-package SpellPreset
+package AbilityPreset
 import public AbilityObjEditing
 
 
