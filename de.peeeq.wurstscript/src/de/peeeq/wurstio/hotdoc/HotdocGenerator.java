@@ -116,6 +116,7 @@ public class HotdocGenerator {
 			for (WPackage p : packages) {
 				createPackageDoc(p, packages);
 			}
+			gui.clearErrors();
 		} catch (Throwable t) {
 			System.err.println("Error in creating documentation: ");
 			t.printStackTrace();

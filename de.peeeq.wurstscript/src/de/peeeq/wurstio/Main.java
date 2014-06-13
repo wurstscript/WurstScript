@@ -83,6 +83,7 @@ public class Main {
 			if (runArgs.createHotDoc()) {
 				HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
 				hg.generateDoc();
+				return;
 			}
 			
 			if (runArgs.isGui()) {

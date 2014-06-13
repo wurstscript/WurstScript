@@ -5,14 +5,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public class RunArgs {
 
 	private List<String> files  = Lists.newArrayList();
-	private String mapFile = null;
-	private String outFile = null;
+	private @Nullable String mapFile = null;
+	private @Nullable String outFile = null;
 	private List<RunOption> options = Lists.newArrayList();
 	private List<File> libDirs = Lists.newArrayList();
 	private RunOption optionHelp;
@@ -33,7 +35,7 @@ public class RunArgs {
 	private class RunOption {
 		final String name;
 		final String descr;
-		final Function<String, Void> argHandler;
+		final @Nullable Function<String, Void> argHandler;
 		boolean isSet;
 		
 		public RunOption(String name, String descr) {
@@ -75,6 +77,7 @@ public class RunArgs {
 		// other
 		optionGui = addOption("gui", "Show a graphical user interface (progress bar and error window).");
 		addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", new Function<String, Void>() {
+			@SuppressWarnings("null")
 			@Override
 			public Void apply(String arg) {
 				libDirs.add(new File(arg));
@@ -82,6 +85,7 @@ public class RunArgs {
 			}
 		});
 		optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", new Function<String, Void>() {
+			@SuppressWarnings("null")
 			@Override
 			public Void apply(String arg) {
 				mapFile = arg;
@@ -91,6 +95,7 @@ public class RunArgs {
 		
 		
 		addOptionWithArg("out", "Outputs the compiled script to this file.", new Function<String, Void>() {
+			@SuppressWarnings("null")
 			@Override
 			public Void apply(String arg) {
 				outFile = arg;
@@ -103,9 +108,10 @@ public class RunArgs {
 			if (a.startsWith("-")) {
 				for (RunOption o : options) {
 					if (("-" + o.name).equals(a)) {
-						if (o.argHandler != null) {
+						Function<String, Void> argHandler = o.argHandler;
+						if (argHandler != null) {
 							i++;
-							o.argHandler.apply(args[i]);
+							argHandler.apply(args[i]);
 						}
 						o.isSet = true;
 						continue nextArg;
@@ -169,11 +175,11 @@ public class RunArgs {
 		return optionGui.isSet;
 	}
 
-	public String getMapFile() {
+	public @Nullable String getMapFile() {
 		return mapFile;
 	}
 
-	public String getOutFile() {
+	public @Nullable String getOutFile() {
 		return outFile;
 	}
 
