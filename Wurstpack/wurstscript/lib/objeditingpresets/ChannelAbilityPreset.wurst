@@ -1,7 +1,12 @@
-package ChannelSpellPreset
-import public SpellPreset
+package ChannelAbilityPreset
+import public AbilityPreset
+import OrderStringFactory
 
 constant CHANNEL_ID = 'ANcl'
+
+OrderStringFactory odf = new OrderStringFactory()
+@compiletime function initOdf()
+	odf = new OrderStringFactory()
 
 public enum Option
 	VISIBLE
@@ -11,10 +16,11 @@ public enum Option
 	UNIQUECAST
 	
 public enum Targettype
-	//instant == standard
+	NOTARGET
 	UTARGET
 	PTARGET
 	PUTARGET
+	PASSIVE
 	
 constant int visibleval = 1
 constant int targetimageval = 2
@@ -26,15 +32,19 @@ constant int uniquecastval = 16
 	
 public function Targettype.toString() returns string
 	switch this
+		case NOTARGET
+			return "No Target"
 		case Targettype.PTARGET
 			return "Point Target"
 		case Targettype.UTARGET
 			return "Unit Target"
 		case Targettype.PUTARGET
 			return "Point & Unit Target"
+		case PASSIVE
+			return "Passive"
 	return ""
 
-public class ChannelSpellPreset extends SpellPreset
+public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 	boolean VISIBLE
 	boolean TARGETIMAGE
 	boolean PHYSICALSPELL
@@ -42,21 +52,37 @@ public class ChannelSpellPreset extends SpellPreset
 	boolean UNIQUECAST
 	int optionval = 0
 	
+	int lvl
+	
 	construct(int newId, int lvls)
-		super(newId, CHANNEL_ID, lvls)
+		super(newId)
+		this.lvl = lvls
+		setBaseOrderId(odf.getOrderString())
 		
-	function removeChannelProperties()
+	function removeChannelProperties(boolean removeVisuals)
 		setDisablesOther(false)
 		setFollowThroughTime(0.)
 		setArtDuration(0.)
+		if removeVisuals
+			setArtCaster("")
+			setArtEffect("")
+			setArtSpecial("")
+			setArtTarget("")
+			
+		
+
+		
+	function setAreaOfEffect(real range)
+		for i = 1 to lvl
+			setAreaofEffect(i, range)
 		
 	function setArtDuration(real value)
 		for i = 1 to lvl
 			def.setLvlDataUnreal("Ncl4", i, 4, value)
 		
-	function setBaseOrderID(string value)
+	function setBaseOrderId(string value)
 		for i = 1 to lvl
-			def.setLvlDataString("Ncl6", i, 6, value)
+			setBaseOrderID(i, value)
 				
 	function setDisablesOther(boolean flag)
 		int v = 0
@@ -71,7 +97,7 @@ public class ChannelSpellPreset extends SpellPreset
 					
 	function setTargetType(Targettype ttype)			
 		for i = 1 to lvl
-			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int)+1)
+			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int))
 					
 	function setOption(Option opt, boolean flag)
 		switch opt
