@@ -22,9 +22,14 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_TES
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -113,48 +118,49 @@ public class ImTranslator {
 
 	private static final AstElement emptyTrace = Ast.NoExpr();
 
-	private Multimap<ImFunction, ImFunction> callRelations = null;
-	private Set<ImVar> usedVariables = null;
-	private Set<ImVar> readVariables = null;
-	private Set<ImFunction> usedFunctions = null;
+	private @Nullable Multimap<ImFunction, ImFunction> callRelations = null;
+	private @Nullable Set<ImVar> usedVariables = null;
+	private @Nullable Set<ImVar> readVariables = null;
+	private @Nullable Set<ImFunction> usedFunctions = null;
 
-	private ImFunction debugPrintFunction;
+	private @Nullable ImFunction debugPrintFunction;
 
-	private final Map<TranslatedToImFunction, ImFunction> functionMap = Maps.newLinkedHashMap();
-	private ImFunction globalInitFunc;
+	private final Map<TranslatedToImFunction, ImFunction> functionMap = new LinkedHashMap<>();
+	private @Nullable ImFunction globalInitFunc;
 
 	private final ImProg imProg;
 
-	final Map<WPackage, ImFunction> initFuncMap = Maps.newLinkedHashMap();
+	final Map<WPackage, ImFunction> initFuncMap = new LinkedHashMap<>();
 
-	private final Map<TranslatedToImFunction, ImVar> thisVarMap = Maps.newLinkedHashMap();
+	private final Map<TranslatedToImFunction, ImVar> thisVarMap = new LinkedHashMap<>();
 
-	private final Set<WPackage> translatedPackages = Sets.newLinkedHashSet();
-	private final Set<ClassDef>  translatedClasses = Sets.newLinkedHashSet();
+	private final Set<WPackage> translatedPackages = new LinkedHashSet<>();
+	private final Set<ClassDef>  translatedClasses = new LinkedHashSet<>();
 
 
-	final Map<ClassDef, Integer> typeIdMap = Maps.newLinkedHashMap();
-	final Map<ClassDef, Integer> typeIdMapMax = Maps.newLinkedHashMap();
+	final Map<ClassDef, Integer> typeIdMap = new LinkedHashMap<>();
+	final Map<ClassDef, Integer> typeIdMapMax = new LinkedHashMap<>();
 
-	private final Map<VarDef, ImVar> varMap = Maps.newLinkedHashMap();
+	private final Map<VarDef, ImVar> varMap = new LinkedHashMap<>();
 
 	private final WurstModel wurstProg;
 
-	private ImFunction mainFunc = null;
+	private @Nullable ImFunction mainFunc = null;
 
-	private ImFunction configFunc = null;
+	private @Nullable ImFunction configFunc = null;
 
-	private final Map<ImVar, List<ImVar>> varsForTupleVar = Maps.newLinkedHashMap();
+	private final Map<ImVar, List<ImVar>> varsForTupleVar = new LinkedHashMap<>();
 
 	private boolean isUnitTestMode;
 
 	private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
 
+	private boolean addInitChecks = false;
 
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
-		imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), Maps.<ImVar,ImExpr>newHashMap());
+		imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<ImVar,ImExpr>());
 	}
 
 
@@ -164,11 +170,12 @@ public class ImTranslator {
 	public ImProg translateProg() {
 
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-		addFunction(globalInitFunc);
+		addFunction(getGlobalInitFunc());
 		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
 		
-		imProg.getGlobals().add(lastInitFunc);
-
+		if (addInitChecks) {
+			imProg.getGlobals().add(lastInitFunc);
+		}
 
 		for (CompilationUnit cu : wurstProg) {
 			translateCompilationUnit(cu);
@@ -207,8 +214,10 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("init globals")));
-		mainFunc.getBody().add(1, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
+		getMainFunc().getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
+		if (addInitChecks) {
+			getMainFunc().getBody().add(0, JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("init globals")));
+		}
 		
 		addInitSuccessCheck();
 		
@@ -221,13 +230,18 @@ public class ImTranslator {
 			callInitFunc(calledInitializers, p);
 		}
 		
-		mainFunc.getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("")));
+		if (addInitChecks) {
+			getMainFunc().getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("")));
+		}
 		
 		
 	}
 
 
 	private void addInitSuccessCheck() {
+		if (!addInitChecks) {
+			return;
+		}
 		ImFunction timerStartFunc = getNativeFunc("TimerStart");
 		ImFunction createTimerFunc = getNativeFunc("CreateTimer");
 		ImFunction print = getNativeFunc("BJDebugMsg");
@@ -243,8 +257,8 @@ public class ImTranslator {
 		ImFunction initCheckFunc = JassIm.ImFunction(emptyTrace, "initCheckFunc", JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), body, Lists.<FunctionFlag>newArrayList());
 		ImExpr handlerFunc = JassIm.ImFuncRef(initCheckFunc);
 		
-		mainFunc.getBody().add(2, JassIm.ImFunctionCall(emptyTrace, print, JassIm.ImExprs(JassIm.ImStringVal("BLUB")), false, CallType.NORMAL));
-		mainFunc.getBody().add(3, JassIm.ImFunctionCall(emptyTrace, timerStartFunc, JassIm.ImExprs(whichTimer, timeout, periodic, handlerFunc), false, CallType.NORMAL));
+		getMainFunc().getBody().add(2, JassIm.ImFunctionCall(emptyTrace, print, JassIm.ImExprs(JassIm.ImStringVal("BLUB")), false, CallType.NORMAL));
+		getMainFunc().getBody().add(3, JassIm.ImFunctionCall(emptyTrace, timerStartFunc, JassIm.ImExprs(whichTimer, timeout, periodic, handlerFunc), false, CallType.NORMAL));
 	}
 
 
@@ -266,8 +280,10 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
-		mainFunc.getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal(p.getName())));
-		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
+		if (addInitChecks) {
+			getMainFunc().getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal(p.getName())));
+		}
+		getMainFunc().getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void addFunction(ImFunction f) {
@@ -303,7 +319,7 @@ public class ImTranslator {
 	
 	public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
 		imProg.getGlobals().add(g);
-		globalInitFunc.getBody().add(ImSet(g.getTrace(), g, initial));
+		getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), g, initial));
 		imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
 	}
 
@@ -643,23 +659,28 @@ public class ImTranslator {
 	}
 
 	private void calculateCallRelations(ImFunction f) {
-		if (usedFunctions.contains(f)) {
+		if (getUsedFunctions().contains(f)) {
 			return;
 		}
-		usedFunctions.add(f);
+		getUsedFunctions().add(f);
 
-		usedVariables.addAll(f.calcUsedVariables());
-		readVariables.addAll(f.calcReadVariables());
+		getUsedVariables().addAll(f.calcUsedVariables());
+		getReadVariables().addAll(f.calcReadVariables());
 		
 		Set<ImFunction> calledFuncs = f.calcUsedFunctions();
 		for (ImFunction called : calledFuncs) {
 			if (f != called) { // ignore reflexive call relations
-				callRelations.put(f, called);
+				getCallRelations().put(f, called);
 			}
 			calculateCallRelations(called);
 		}
 		
 	}
+
+	private Multimap<ImFunction, ImFunction> getCallRelations() {
+		return callRelations;
+	}
+
 
 	public ImFunction getMainFunc() {
 		return mainFunc;
