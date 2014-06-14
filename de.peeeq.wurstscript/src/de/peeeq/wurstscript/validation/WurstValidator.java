@@ -183,8 +183,9 @@ public class WurstValidator {
 			postChecks(toCheck);
 		} catch (RuntimeException e) {
 			WLogger.severe(e);
-			if (lastElement != null) {
-				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
+			AstElement le = lastElement;
+			if (le != null) {
+				le.addError("Encountered compiler bug near element " + Utils.printElement(le) + ":\n" +
 						Utils.printException(e));
 			} else {
 				// rethrow
