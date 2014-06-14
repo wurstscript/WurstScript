@@ -32,6 +32,7 @@ import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.parser.WPos;
 public class WurstNature implements IProjectNature {
 
 	/**
@@ -117,9 +118,20 @@ public class WurstNature implements IProjectNature {
 				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
 			}
 
-			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
-			marker.setAttribute(WurstConstants.START_POS, e.getSource().getLeftPos());
-			marker.setAttribute(WurstConstants.END_POS, e.getSource().getRightPos());
+			WPos source = e.getSource();
+			marker.setAttribute(IMarker.LINE_NUMBER, source.getLine());
+			
+			int left = source.getLeftPos();
+			int right = source.getRightPos();
+			int s1 = source.getLineOffsets().get(source.getLine());
+			if (left == s1) {
+				// if the error is the newline character start one character earlier,
+				// so that eclipse actually shows the error
+				left --;
+			}
+			marker.setAttribute(WurstConstants.START_POS, left);
+			marker.setAttribute(WurstConstants.END_POS, right);
+			
 		} catch (CoreException ex) {
 		}
 		

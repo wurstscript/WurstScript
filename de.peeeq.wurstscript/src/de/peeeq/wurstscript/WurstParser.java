@@ -81,15 +81,15 @@ public class WurstParser {
 						posStop = pos+1;
 					}
 					
-					msg = msg + " || " + input.getText(new Interval(pos, pos+10));
-					
-					msg = "line "+line+": "+ msg;
-					
-					if (recognizer instanceof Parser) {
-						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
-						Collections.reverse(stack);
-						msg += "\nrule stack: "+stack;
-					}
+//					msg = msg + " || " + input.getText(new Interval(pos, pos+10));
+//					
+//					msg = "line "+line+": "+ msg;
+//					
+//					if (recognizer instanceof Parser) {
+//						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
+//						Collections.reverse(stack);
+//						msg += "\nrule stack: "+stack;
+//					}
 					while (pos>0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
 						pos--;
 					}

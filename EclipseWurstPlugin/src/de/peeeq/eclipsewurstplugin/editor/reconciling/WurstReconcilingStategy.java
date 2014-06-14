@@ -56,7 +56,7 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 			String doc = document.get();
 			lastReconcileDocumentHashcode = doc.hashCode();
 			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(doc));
-			if (gui.getErrorCount() > 0) {
+			if (gui.getErrorCount() > 0 || cu == null) {
 				// errors after parse, abort
 				return cu;
 			}
