@@ -159,16 +159,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		// import wurst folder if it exists
-		if (mapFile != null) {
-			File relativeWurstDir = new File(mapFile.getParentFile(), "wurst");
+		File l_mapFile = mapFile;
+		if (l_mapFile != null) {
+			File relativeWurstDir = new File(l_mapFile.getParentFile(), "wurst");
 			if (relativeWurstDir.exists()) {
 				WLogger.info("Importing wurst files from " + relativeWurstDir);
 				loadWurstFilesInDir(relativeWurstDir);
 			} else {
 				WLogger.info("No wurst folder found in " + relativeWurstDir);
 			}
-			assert mapFile != null;
-			File dependencyFile = new File(mapFile.getParentFile(), "wurst.dependencies");
+			File dependencyFile = new File(l_mapFile.getParentFile(), "wurst.dependencies");
 			if (dependencyFile.exists()) {
 				addDependencyFile(dependencyFile);
 			}
@@ -491,7 +491,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		beginPhase(1, "to intermediate lang");
 		// translate wurst to intermediate lang:
 		imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
-		imProg = imTranslator.translateProg();
+		imProg = getImTranslator().translateProg();
 		int stage = 1;
 		printDebugImProg("./test-output/im " + stage++ + ".im");
 		return imProg;

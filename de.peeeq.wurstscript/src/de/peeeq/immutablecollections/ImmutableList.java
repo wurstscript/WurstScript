@@ -53,7 +53,11 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 	public static <T> ImmutableList<T> of(T ... elems) {
 		ImmutableList<T> result = emptyList();
 		for (int i=elems.length-1; i>=0; i--) {
-			result = result.appFront(elems[i]);
+			T elem = elems[i];
+			if (elem == null) {
+				throw new IllegalArgumentException("Elem " + i + " is null.");
+			}
+			result = result.appFront(elem);
 		}
 		return result;
 	}
@@ -215,8 +219,8 @@ class ImmutableListIterator<T> implements Iterator<T> {
 
 	@Override
 	public boolean hasNext() {
-		
-		return pos != null && !pos.isEmpty();
+		ImmutableList<T> p = pos;
+		return p != null && !p.isEmpty();
 	}
 
 	@Override
