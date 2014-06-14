@@ -37,8 +37,9 @@ public class AttrExprExpectedType {
 			AstElement parent = expr.getParent();
 			if (parent instanceof Arguments) {
 				Arguments args = (Arguments) parent;
-				if (args.getParent() instanceof StmtCall) {
-					StmtCall stmtCall = (StmtCall) args.getParent();
+				AstElement parent2 = args.getParent();
+				if (parent2 instanceof StmtCall) {
+					StmtCall stmtCall = (StmtCall) parent2;
 					FunctionSignature sig = stmtCall.attrFunctionSignature();
 					int maxI = Math.min(args.size(), sig.getParamTypes().size()); 
 					for (int i = 0; i < maxI; i++) {

@@ -34,6 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -82,6 +83,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
@@ -146,6 +148,8 @@ public class ImTranslator {
 
 	private boolean isUnitTestMode;
 
+	private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
+
 
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
@@ -162,7 +166,8 @@ public class ImTranslator {
 		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 		addFunction(globalInitFunc);
 		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
-
+		
+		imProg.getGlobals().add(lastInitFunc);
 
 
 		for (CompilationUnit cu : wurstProg) {
@@ -202,7 +207,12 @@ public class ImTranslator {
 
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
-		mainFunc.getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
+		mainFunc.getBody().add(0, JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("init globals")));
+		mainFunc.getBody().add(1, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
+		
+		addInitSuccessCheck();
+		
+		
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
@@ -210,6 +220,36 @@ public class ImTranslator {
 		for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
 			callInitFunc(calledInitializers, p);
 		}
+		
+		mainFunc.getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("")));
+		
+		
+	}
+
+
+	private void addInitSuccessCheck() {
+		ImFunction timerStartFunc = getNativeFunc("TimerStart");
+		ImFunction createTimerFunc = getNativeFunc("CreateTimer");
+		ImFunction print = getNativeFunc("BJDebugMsg");
+		ImExpr whichTimer = JassIm.ImFunctionCall(emptyTrace, createTimerFunc, JassIm.ImExprs(), false, CallType.NORMAL);
+		ImExpr timeout = JassIm.ImRealVal("1.");
+		ImExpr periodic = JassIm.ImBoolVal(false);
+		ImStmts thenStatements = JassIm.ImStmts(JassIm.ImError(JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("Initialization thread crashed in "), JassIm.ImVarAccess(lastInitFunc)))));
+		ImStmts body = JassIm.ImStmts(
+				JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(lastInitFunc), JassIm.ImStringVal(""))), 
+						thenStatements, 
+						JassIm.ImStmts()
+				));
+		ImFunction initCheckFunc = JassIm.ImFunction(emptyTrace, "initCheckFunc", JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), body, Lists.<FunctionFlag>newArrayList());
+		ImExpr handlerFunc = JassIm.ImFuncRef(initCheckFunc);
+		
+		mainFunc.getBody().add(2, JassIm.ImFunctionCall(emptyTrace, print, JassIm.ImExprs(JassIm.ImStringVal("BLUB")), false, CallType.NORMAL));
+		mainFunc.getBody().add(3, JassIm.ImFunctionCall(emptyTrace, timerStartFunc, JassIm.ImExprs(whichTimer, timeout, periodic, handlerFunc), false, CallType.NORMAL));
+	}
+
+
+	private ImFunction getNativeFunc(String funcName) {
+		return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstProg.lookupFuncs(funcName)).getNameDef());
 	}
 
 	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p) {
@@ -226,6 +266,7 @@ public class ImTranslator {
 		if (initFunc == null) {
 			return;
 		}
+		mainFunc.getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal(p.getName())));
 		mainFunc.getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
 	}
 
