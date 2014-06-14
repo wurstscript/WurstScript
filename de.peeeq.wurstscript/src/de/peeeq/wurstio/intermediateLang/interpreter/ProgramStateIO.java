@@ -5,9 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
@@ -32,13 +35,13 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 public class ProgramStateIO extends ProgramState {
 
 	public static final int GENERATED_BY_WURST = 42;
-	private ImStmt lastStatement;
+	private @Nullable ImStmt lastStatement;
 	private final MpqEditor mpqEditor;
 	private final Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newLinkedHashMap();
 	private int id = 0;
 	private final Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
 	private PrintStream outStream = System.out;
-	private Map<Integer, String> trigStrings = null;
+	private @Nullable Map<Integer, String> trigStrings = null;
 	private final File mapFile;
 
 	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui, ImProg prog) {
@@ -63,24 +66,26 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	public String getTrigString(int id) {
-		loadTrigStrings();
-		String r = trigStrings.get(id);
+		String r = loadTrigStrings().get(id);
 		return r == null ? "" : r;
 	}
 
-	private void loadTrigStrings() {
-		if (trigStrings != null) {
-			return;
+	private Map<Integer, String> loadTrigStrings() {
+		Map<Integer, String> res = trigStrings;
+		if (res != null) {
+			return res;
 		}
 		try {
 			byte[] wts = mpqEditor.extractFile("war3map.wts");
-			trigStrings = WTSFile.parse(wts);
+			res = WTSFile.parse(wts);
 		} catch (Exception e) {
 			// dummy result
-			trigStrings = Maps.newLinkedHashMap();
+			res = new LinkedHashMap<>();
 			WLogger.warning("Could not load trigger strings");
 			WLogger.info(e);
 		}
+		trigStrings = res;
+		return res;
 	}
 
 	public ObjectFile getDataStore(String fileExtension) {
@@ -132,16 +137,13 @@ public class ProgramStateIO extends ProgramState {
 			for (ObjectModification<?> mod : od.getModifications()) {
 				if (mod instanceof ObjectModificationString) {
 					ObjectModificationString modS = (ObjectModificationString) mod;
-					WLogger.info("mod: " + mod);
 					if (modS.getData().startsWith("TRIGSTR_")) {
 						try {
 							int id = Integer.parseInt(modS.getData().substring("TRIGSTR_".length()), 10);
 							String newVal = getTrigString(id);
-							WLogger.info("replace id: " + id + " with '" + newVal + "'");
 							modS.setData(newVal);
 						} catch (NumberFormatException e) {
 							// ignore
-							WLogger.info("number format in trigstr: " + modS.getData());
 						}
 					}
 				}
@@ -150,7 +152,6 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void deleteWurstObjects(ObjectFile unitStore) {
-		WLogger.info("deleteWurstObjects start " + unitStore.getFileType() + "\n\n" + unitStore);
 		Iterator<ObjectDefinition> it = unitStore.getModifiedTable().getObjectDefinitions().iterator();
 		while (it.hasNext()) {
 			ObjectDefinition od = it.next();
@@ -158,14 +159,12 @@ public class ProgramStateIO extends ProgramState {
 				if (om.getModificationId().equals("wurs") && om instanceof ObjectModificationInt) {
 					ObjectModificationInt om2 = (ObjectModificationInt) om;
 					if (om2.getData() == GENERATED_BY_WURST) {
-						WLogger.info( "Removing " + od + " from " + unitStore.getFileType());
 						it.remove();
 						break;
 					}
 				}
 			}
 		}
-		WLogger.info("deleteWurstObjects end " + unitStore.getFileType() + "\n\n" + unitStore);
 	}
 
 

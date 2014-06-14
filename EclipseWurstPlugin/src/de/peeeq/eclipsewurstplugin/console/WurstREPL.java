@@ -108,6 +108,7 @@ public class WurstREPL {
 	private Map<String, String> currentState;
 	private Set<String> importedPackages;
 	private Random rand = new Random();
+	private long lastMeasureTime = 0;
 	
 	private class ReplGui extends WurstGuiLogger {
 
@@ -408,7 +409,7 @@ public class WurstREPL {
 			IFile compiledScript = compileScript(compileArgs, testMap);
 			RunArgs runArgs = new RunArgs(compileArgs);
 
-
+			println("preparing testmap ... ");
 			monitor.beginTask("Preparing testmap", 100);
 			
 			
@@ -426,6 +427,7 @@ public class WurstREPL {
 
 			
 
+			println("Starting wc3 ... ");
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
 			
 			// now start the map
@@ -543,13 +545,16 @@ public class WurstREPL {
 	
 	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
 		if (compileArgs.contains("-clean")) {
+			println("Cleaning project ... ");
 			cleanProject();
 			compileArgs.remove("-clean");
 		}
 		gui.clearErrors();
 		IProject project = modelManager.getNature().getProject();
-		print("compiling project "+project.getName()+", please wait ...\n");
+		println("building project "+project.getName()+", please wait ...");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+		
+		
 		RunArgs runArgs = new RunArgs(compileArgs);
 		
 		MpqEditor mpqEditor = null;
@@ -560,6 +565,10 @@ public class WurstREPL {
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
 		
+		// reset time
+		getTimeSinceLastMeasureString();
+		
+		print("checking program ... ");
 		compiler.checkProg(model);
 		
 		if (gui.getErrorCount() > 0) {
@@ -567,6 +576,8 @@ public class WurstREPL {
 			return null;
 		}
 		
+		println(getTimeSinceLastMeasureString());
+		print("translating program ... ");
 		compiler.translateProgToIm(model);
 
 		if (gui.getErrorCount() > 0) {
@@ -576,6 +587,8 @@ public class WurstREPL {
 		
 		
 		if (runArgs.runCompiletimeFunctions()) {
+			println(getTimeSinceLastMeasureString());
+			print("running compiletime functions ... ");
 			// compile & inject object-editor data
 			// TODO run optimizations later?
 			gui.sendProgress("Running compiletime functions", 0.91);
@@ -585,8 +598,11 @@ public class WurstREPL {
 			ctr.run();
 		}
 		
-		
+		println(getTimeSinceLastMeasureString());
+		print("translating program to jass ... ");
 		compiler.checkAndTranslate(model);
+		println(getTimeSinceLastMeasureString());
+		
 		JassProg jassProg = compiler.getProg();
 		if (jassProg == null) {
 			print("Could not compile project\n");
@@ -744,6 +760,17 @@ public class WurstREPL {
 	public void setEditorCompilationUnit(CompilationUnit editorCu) {
 		this.editorCu = editorCu;
 		
+	}
+	
+	private long getTimeSinceLastMeasure() {
+		long t = System.currentTimeMillis();
+		long delta = t - lastMeasureTime;
+		lastMeasureTime = t;
+		return delta;
+	}
+	
+	private String getTimeSinceLastMeasureString() {
+		return getTimeSinceLastMeasure() + "ms";
 	}
 	
 }
