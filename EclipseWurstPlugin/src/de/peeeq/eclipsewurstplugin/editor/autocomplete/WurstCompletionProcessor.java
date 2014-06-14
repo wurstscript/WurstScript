@@ -14,7 +14,6 @@ import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.RGB;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -22,10 +21,8 @@ import com.google.common.collect.Multimap;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -33,7 +30,6 @@ import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprRealVal;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -41,17 +37,13 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.AttrExprType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
-import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstCompletionProcessor implements IContentAssistProcessor {
@@ -65,6 +57,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private String alreadyEnteredLower;
 	private int lastStartPos = -1;
 	private int lastdocumentHash = 0;
+	private ITextViewer currentViewer;
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
@@ -80,6 +73,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	@Override
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, final int offset) {
 		this.offset = offset;
+		this.currentViewer = viewer;
 		if (isEnteringRealNumber(viewer, offset)) {
 			return null;
 		}
@@ -314,7 +308,18 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		return false;
 	}
 
-
+	private boolean isBeforeParenthesis(ITextViewer viewer, int offset) {
+		IDocument doc = viewer.getDocument();
+		try {
+			String t = doc.get(offset, 1);
+			if (t.equals("(")) {
+				return true;
+			}
+		} catch (BadLocationException e1) {
+			e1.printStackTrace();
+		}
+		return false;
+	}
 
 
 	private void removeDuplicates(List<WurstCompletion> completions) {
@@ -477,7 +482,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
-		String replacementString = f.getName() + "()";
+		String replacementString = f.getName();
+		if (!isBeforeParenthesis(currentViewer, offset)) {
+			replacementString += "()";
+		}
 
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();
