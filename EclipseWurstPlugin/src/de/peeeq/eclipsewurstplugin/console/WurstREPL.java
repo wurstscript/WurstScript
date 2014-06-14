@@ -392,7 +392,7 @@ public class WurstREPL {
 			
 			// now copy the map so that we do not corrupt the original
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
-			String testMapName = "wurstTestMap.w3x";
+			String testMapName = "wurstTestMap1.w3x";
 			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
 			if (testMap.exists()) {
 				testMap.delete();
@@ -433,7 +433,7 @@ public class WurstREPL {
 					frozenThroneExe.getAbsolutePath(),
 					"-window",
 					"-loadfile",
-					"Maps/"+ testMapName);
+					"Maps" + File.separator + testMapName);
 			
 			if (!System.getProperty("os.name").startsWith("Windows")) {
 				// run with wine
