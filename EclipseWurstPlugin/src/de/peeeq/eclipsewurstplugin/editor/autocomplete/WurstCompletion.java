@@ -36,7 +36,7 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 	}
 
 	public String getDisplayString() {
-		return displayString;
+		return rating + " " + displayString;
 	}
 
 	public ICompletionProposal getProposal() {

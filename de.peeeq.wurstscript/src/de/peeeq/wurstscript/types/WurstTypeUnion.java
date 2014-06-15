@@ -33,12 +33,12 @@ public class WurstTypeUnion extends WurstType {
 
 	@Override
 	public String getName() {
-		return typeA.getName() + " & " + typeB.getName();
+		return typeA.getName() + " or " + typeB.getName();
 	}
 
 	@Override
 	public String getFullName() {
-		return typeA.getFullName() + " & " + typeB.getFullName();
+		return typeA.getFullName() + " or " + typeB.getFullName();
 	}
 
 	@Override

@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -18,6 +19,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
 public class AttrPossibleFunctionSignatures {
 
@@ -31,8 +33,34 @@ public class AttrPossibleFunctionSignatures {
 				Expr expr = (Expr) fc.attrImplicitParameter();
 				sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());
 			}
-//			sig = sig.setTypeArgs(fc.attrTypeParameterBindings());
+			sig = sig.setTypeArgs(fc.attrTypeParameterBindings());
+			if (!paramTypesCanMatch(sig.getParamTypes(), partialArgTypes(fc), fc)) {
+				continue;
+			}
+			
 			result.add(sig);
+		}
+		return result;
+	}
+
+	private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, AstElement location) {
+		if (argTypes.size() > paramTypes.size()) {
+			return false;
+		}
+		for (int i=0; i<argTypes.size(); i++) {
+			if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
+				if (!(argTypes.get(i) instanceof WurstTypeUnknown)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private static List<WurstType> partialArgTypes(FunctionCall fc) {
+		List<WurstType> result = new ArrayList<>();
+		for (Expr arg : fc.getArgs()) {
+			result.add(arg.attrTyp());
 		}
 		return result;
 	}

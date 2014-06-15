@@ -525,7 +525,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 		String additionalProposalInfo2 = getFunctionDescriptionHtml(f);
 
-		double rating = calculateRating(f.getName(), f.getReturnTyp().attrTyp()); // TODO use call signature instead for generics
+		double rating = calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic()); // TODO use call signature instead for generics
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
 	}
@@ -560,7 +560,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 		String additionalProposalInfo2 = constr.descriptionHtml();
 
-		double rating = calculateRating(c.getName(), c.attrTyp());
+		double rating = calculateRating(c.getName(), c.attrTyp().dynamic());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
 	}
