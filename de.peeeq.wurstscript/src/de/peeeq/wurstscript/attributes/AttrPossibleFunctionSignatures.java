@@ -34,13 +34,19 @@ public class AttrPossibleFunctionSignatures {
 				sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());
 			}
 			sig = sig.setTypeArgs(fc.attrTypeParameterBindings());
-			if (!paramTypesCanMatch(sig.getParamTypes(), partialArgTypes(fc), fc)) {
-				continue;
-			}
-			
 			result.add(sig);
 		}
-		return result;
+		Collection<FunctionSignature> result2 = new ArrayList<>();
+		for (FunctionSignature sig : result) {
+			if (paramTypesCanMatch(sig.getParamTypes(), partialArgTypes(fc), fc)) {
+				result2.add(sig);
+			}
+		}
+		if (result2.isEmpty()) {
+			return result;
+		} else {
+			return result2;
+		}
 	}
 
 	private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, AstElement location) {
