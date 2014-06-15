@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Collection;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -40,13 +42,7 @@ public class AttrExprExpectedType {
 				AstElement parent2 = args.getParent();
 				if (parent2 instanceof StmtCall) {
 					StmtCall stmtCall = (StmtCall) parent2;
-					FunctionSignature sig = stmtCall.attrFunctionSignature();
-					int maxI = Math.min(args.size(), sig.getParamTypes().size()); 
-					for (int i = 0; i < maxI; i++) {
-						if (args.get(i) == expr) {
-							return sig.getParamTypes().get(i);
-						}
-					}
+					return expectedType(expr, args, stmtCall);
 				}
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
@@ -106,6 +102,27 @@ public class AttrExprExpectedType {
 			WLogger.info(t);
 		}
 		return WurstTypeUnknown.instance();
+	}
+
+	private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
+		Collection<FunctionSignature> sigs = stmtCall.attrPossibleFunctionSignatures();
+		
+		int index = 0;
+		for (int i = 0; i<args.size(); i++) {
+			if (args.get(i) == expr) {
+				index = i;
+				break;
+			}
+		}
+		
+		WurstType res = WurstTypeUnknown.instance();
+		
+		for (FunctionSignature sig : sigs) {
+			if (index < sig.getParamTypes().size()) {
+				res = res.typeUnion(sig.getParamTypes().get(index));
+			}
+		}
+		return res;
 	}
 
 	public static WurstType normalizedType(Expr e) {

@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMember;
@@ -58,6 +59,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private int lastStartPos = -1;
 	private int lastdocumentHash = 0;
 	private ITextViewer currentViewer;
+	private WurstType expectedType;
+	private AstElement elem;
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
@@ -106,8 +109,15 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 
-		AstElement elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
+		elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
 		WLogger.info("get completions at " + Utils.printElement(elem));
+		expectedType = null;
+		if (elem instanceof Expr) {
+			Expr expr = (Expr) elem;
+			expectedType = expr.attrExpectedTyp();
+			WLogger.info("....type = " + expectedType);
+		}
+		
 		WurstType leftType = null;
 		boolean isMemberAccess = false;
 		do { // dummy loop for using break
@@ -439,13 +449,22 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				n.getName(), Utils.printElement(n)+" : " + n.attrTyp().getFullName() + " -  defined in " + nearestScopeName(n)); //$NON-NLS-1$
 
 		String additionalProposalInfo2 = n.descriptionHtml();
-		double rating = calculateRating(n.getName());
+		double rating = calculateRating(n.getName(), n.attrTyp());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo2, rating);
 	}
 
 
-	private double calculateRating(String name) {
+	private double calculateRating(String name, WurstType wurstType) {
+		double r = calculateNameBasedRating(name);
+		if (wurstType.isSubtypeOf(expectedType, elem)) {
+			return r+0.1;
+		}
+		return r;
+	}
+
+
+	private double calculateNameBasedRating(String name) {
 		if (alreadyEntered.isEmpty()) {
 			return 0.5;
 		}
@@ -506,7 +525,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 		String additionalProposalInfo2 = getFunctionDescriptionHtml(f);
 
-		double rating = calculateRating(f.getName());
+		double rating = calculateRating(f.getName(), f.getReturnTyp().attrTyp()); // TODO use call signature instead for generics
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
 	}
@@ -541,7 +560,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 		String additionalProposalInfo2 = constr.descriptionHtml();
 
-		double rating = calculateRating(c.getName());
+		double rating = calculateRating(c.getName(), c.attrTyp());
 		return new WurstCompletion(replacementString, replacementOffset, replacementLength, cursorPosition, image, displayString,
 				contextInformation, additionalProposalInfo2, rating);
 	}

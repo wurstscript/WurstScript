@@ -227,7 +227,7 @@ GlobalOrLocalVarDef =
 
 // has funcName:String attribute
 
-StmtCall = ExprMemberMethod | ExprFunctionCall | ExprNewObject
+StmtCall = FunctionCall | ExprNewObject
 	
 FunctionCall = ExprMemberMethod | ExprFunctionCall
 
@@ -540,7 +540,10 @@ WImport.attrImportedPackage
 ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
-	
+
+StmtCall.attrPossibleFunctionSignatures
+	returns java.util.Collection<de.peeeq.wurstscript.types.FunctionSignature>
+	implemented by de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.calculate	
 	
 StmtCall.attrFunctionSignature
 	returns de.peeeq.wurstscript.types.FunctionSignature
@@ -694,6 +697,11 @@ NameRef.attrNameDef
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
+FuncRef.attrPossibleFuncDefs
+	returns java.util.Collection<FunctionDefinition>
+	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
+
+
 FuncRef.attrFuncDef
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
@@ -799,19 +807,19 @@ AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, 
 
 	
 AstElement.lookupType(String name)
-	returns TypeDef
+	returns @Nullable TypeDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupTypeShort
 	
 AstElement.lookupPackage(String name)
-	returns WPackage
+	returns @Nullable WPackage
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackageShort
 	
 AstElement.lookupVar(String name)
-	returns NameDef
+	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarShort
 	
 AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name)
-	returns NameDef
+	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
 	
 AstElement.lookupFuncs(String name)

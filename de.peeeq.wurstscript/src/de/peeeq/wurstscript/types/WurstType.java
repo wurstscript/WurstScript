@@ -25,6 +25,11 @@ public abstract class WurstType {
 			WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
 			return isSubtypeOf(btp.getBaseType(), location);
 		}
+		if (other instanceof WurstTypeUnion) {
+			WurstTypeUnion wtu = (WurstTypeUnion) other;
+			return this.isSubtypeOf(wtu.getTypeA(), location)
+					&& this.isSubtypeOf(wtu.getTypeB(), location);
+		}
 		if (this.isSubtypeOfIntern(other, location)) {
 			return true;
 		}
@@ -155,6 +160,10 @@ public abstract class WurstType {
 
 	public TypeDef tryGetTypeDef() {
 		throw new Error("not implemented");
+	}
+
+	public WurstType typeUnion(WurstType t) {
+		return WurstTypeUnion.create(this, t);
 	}
 
 
