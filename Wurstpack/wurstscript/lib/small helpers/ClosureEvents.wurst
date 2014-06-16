@@ -1,6 +1,7 @@
 package ClosureEvents
 import HashMap
 import LinkedList
+import DelayedDestroy
 
 //CastStuff
 
@@ -108,8 +109,7 @@ public abstract class OnDamage
 	protected abstract function run(unit damaged, unit source, real amount)
 	
 	ondestroy
-		t.clearConditions()
-		t.destr()
+		TriggerDelayedDestroy.destroyDelayed(t)
 		LinkedList<OnDamage> temp = damageActions.get(u)
 		temp.remove(this)
 		if temp.getSize() <= 0

@@ -1,0 +1,30 @@
+package DelayedDestroy
+
+/** a module for destroying things after a 0 second timer*/
+public module DelayedDestroy<T>
+	private static T array things
+	private static int numberOfThings = 0
+	private static timer t = CreateTimer()
+	
+	/**destroys a thing after a 0 second timer */
+	static function destroyDelayed(T thing)
+		things[numberOfThings] = thing
+		numberOfThings++
+		t.start(0, function destroyAllThings)
+		
+	private static function destroyAllThings()
+		for i = 0 to numberOfThings-1
+			destroyNow(things[i])
+		numberOfThings = 0
+			
+	/** destroys a single thing immediately */
+	abstract static function destroyNow(T thing)
+	
+
+	
+public class TriggerDelayedDestroy
+	use DelayedDestroy<trigger>
+	
+	override static function destroyNow(trigger t)
+		t.clearConditions()
+		t.destr()
