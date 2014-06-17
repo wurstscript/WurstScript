@@ -4,9 +4,9 @@
 #foreach ($package in $packages)
 	<li>
 		#if ($package == $currentPackage)
-			<strong>$package.getName()</strong>
+			<strong>$package.getSource().shortFile()</strong>
 		#else
-			<a href="${package.getName()}.html">$package.getName()</a>
+			<a href="${package.getName()}.html">$package.getSource().shortFile()</a>
 		#end
 	</li>
 #end

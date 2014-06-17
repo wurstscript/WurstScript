@@ -79,5 +79,12 @@ public class WPos {
 	public WPos withLeftPos(int leftPos) {
 		return new WPos(file, lineOffsets, leftPos, rightPos);
 	}
+
+	public String shortFile() {
+		String s = getFile();
+		s = s.substring(s.lastIndexOf("lib/")+4);
+		s = s.replace(".wurst", "");
+		return s;
+	}
 	
 }

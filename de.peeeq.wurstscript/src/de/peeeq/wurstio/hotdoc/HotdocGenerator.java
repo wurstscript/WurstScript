@@ -108,7 +108,7 @@ public class HotdocGenerator {
 			Collections.sort(packages, new Comparator<WPackage>() {
 				@Override @SuppressWarnings("null") 
 				public int compare(WPackage o1, WPackage o2) {
-					return o1.getName().compareTo(o2.getName());
+					return o1.getSource().shortFile().compareTo(o2.getSource().shortFile());
 				}
 			});
 			
@@ -187,6 +187,7 @@ public class HotdocGenerator {
 			context.put("name", Utils.printElement(v));
 			context.put("type", "");
 			context.put("comment", v.attrComment());
+			context.put("source", v.getSource());
 			
 			structureTemplate.merge(context, writer);
 			
@@ -235,6 +236,7 @@ public class HotdocGenerator {
 			context.put("name", descr);
 			context.put("type", "");
 			context.put("comment", f.attrComment());
+			context.put("source", f.getSource());
 			
 			variableTemplate.merge(context, writer);
 		}
@@ -263,6 +265,7 @@ public class HotdocGenerator {
 			context.put("name", v.getName());
 			context.put("type", v.attrTyp());
 			context.put("comment", v.attrComment());
+			context.put("source", v.getSource());
 			
 			variableTemplate.merge(context, writer);
 		}
