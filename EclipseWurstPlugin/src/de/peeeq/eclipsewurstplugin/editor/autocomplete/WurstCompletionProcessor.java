@@ -544,7 +544,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 	private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
-		String replacementString = c.getName() + "()";
+		String replacementString = c.getName();
+		if (!isBeforeParenthesis(currentViewer, offset)) {
+			replacementString += "()";
+		}
 
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();
