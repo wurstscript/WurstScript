@@ -461,4 +461,19 @@ public class ClosureTests extends WurstScriptTest {
 				"	end"
 			);
 	}
+	
+	@Test
+	public void uninitialized6() {
+		testAssertErrorsLines(false, "may not have been initialized",  
+				"package test",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	int x",
+				"	SimpleFunc f = () -> begin",
+				"		x = 1",
+				"		int y = x + 1",
+				"	end"
+			);
+	}
 }
