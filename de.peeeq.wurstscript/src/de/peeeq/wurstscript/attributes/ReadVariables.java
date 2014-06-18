@@ -164,8 +164,8 @@ public class ReadVariables {
 
 	public static ImmutableList<NameDef> calculate(ExprStatementsBlock e) {
 		// TODO not sure what to do here
-//		return generic(e);
-		 return ImmutableList.emptyList();
+		return generic(e);
+//		 return ImmutableList.emptyList();
 	}
 
 	public static ImmutableList<NameDef> calculate(ExprDestroy e) {

@@ -10,14 +10,15 @@ import java.util.PriorityQueue;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
 
-public class ForwardExecution<T> {
+public class ForwardExecution<T, Target extends AstElementWithBody> {
 
-	private ForwardMethod<T> method;
+	private ForwardMethod<T, Target> method;
 	private Map<WStatement, T> currentValues = Maps.newLinkedHashMap();
-	private FunctionLike f;
+	private AstElementWithBody f;
 	
 	private PriorityQueue<WStatement> todo = new PriorityQueue<WStatement>(11, new Comparator<WStatement>() {
 
@@ -28,7 +29,7 @@ public class ForwardExecution<T> {
 
 	});
 	
-	ForwardExecution(FunctionLike f, ForwardMethod<T> method) {
+	ForwardExecution(Target f, ForwardMethod<T, Target> method) {
 		this.f = f;
 		this.method = method;
 		method.setFuncDef(f);

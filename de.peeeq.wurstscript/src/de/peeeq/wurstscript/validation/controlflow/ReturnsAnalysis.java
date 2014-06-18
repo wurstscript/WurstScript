@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation.controlflow;
 
 import java.util.Collection;
 
+import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;
@@ -10,7 +11,7 @@ import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 
-public class ReturnsAnalysis extends ForwardMethod<Boolean> {
+public class ReturnsAnalysis extends ForwardMethod<Boolean, FunctionLike> {
 
 
 	@Override
@@ -47,12 +48,12 @@ public class ReturnsAnalysis extends ForwardMethod<Boolean> {
 	@Override
 	void checkFinal(Boolean incoming) {
 		FunctionLike f = getFuncDef();
+
 		if (!(f.attrReturnType() instanceof WurstTypeVoid) && !(f.attrNearestStructureDef() instanceof InterfaceDef)) {
 			if (!incoming) {
 				f.addError(Utils.printElement(f) + " is missing a return statement.");
 			}
 		}
-		
 	}
 
 	@Override

@@ -518,6 +518,12 @@ public class WurstValidator {
 					+ "but at this position a " + e.attrExpectedTyp() + " is expected.");
 		}
 		e.attrCapturedVariables();
+		
+		if (e.getImplementation() instanceof ExprStatementsBlock) {
+			ExprStatementsBlock block = (ExprStatementsBlock) e.getImplementation();
+			new DataflowAnomalyAnalysis().execute(block);
+		}
+		
 	}
 
 	private void checkConstructorsUnique(ClassDef c) {

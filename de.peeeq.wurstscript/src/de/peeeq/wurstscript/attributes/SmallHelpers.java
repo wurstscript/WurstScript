@@ -21,10 +21,10 @@ public class SmallHelpers {
 	}
 
 	public static @Nullable StmtReturn getReturnStatement(ExprStatementsBlock e) {
-		if (e.getBody().isEmpty()) {
+		if (e.getBody().size()<=2) {
 			return null;
 		}
-		WStatement lastStatement = e.getBody().get(e.getBody().size()-1);
+		WStatement lastStatement = e.getBody().get(e.getBody().size()-2);
 		if (lastStatement instanceof StmtReturn) {
 			return (StmtReturn) lastStatement;
 		}
