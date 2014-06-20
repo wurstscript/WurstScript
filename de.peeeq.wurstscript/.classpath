@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry exported="true" kind="lib" path="lib/jmpq.jar"/>
 	<classpathentry kind="lib" path="lib/antlr-runtime-4.2.jar"/>
 	<classpathentry kind="lib" path="lib/jna-4.0.0.jar"/>
 	<classpathentry kind="lib" path="lib/jmpq2.jar" sourcepath="/jMpq-v2"/>
