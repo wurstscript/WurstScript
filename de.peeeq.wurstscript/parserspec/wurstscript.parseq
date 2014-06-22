@@ -910,3 +910,8 @@ AstElement.isSubtreeOf(AstElement other)
 TypeParamDef.isStructureDefTypeParam()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isStructureDefTypeParam
+
+	
+AstElement.prettyPrint(de.peeeq.wurstscript.attributes.prettyPrint.Spacer spacer, StringBuilder sb, int indent)
+	returns void
+	implemented by de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter.prettyPrint
