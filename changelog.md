@@ -3,6 +3,54 @@ layout: simple
 title: Changelog
 ---
 
+Version 1.4.1.0
+==================
+
+### Language Changes:
+
+- The init order now again depends on the import order. 
+	A cyclic init order is forbidden.
+	Use the `initlater` keyword on imports to break cycles.
+- The rules for newlines are changed.
+	Previously all newlines inside parenthesis were ignored (similar to Python).
+	Now newlines are ignored when a line ends with or begins with special characters (similar to Go).
+	For example when a line ends with a comma, the following newline is ignored.
+- It is now possible to have mutually recursive functions.
+- Wurst now supports array members for classes (#176).
+- Packages can now be configured with config-packages.
+
+
+### Standard library:
+
+- Some bugfixes and refactorings.
+
+### Tools:
+
+- some improvements to auto-complete in Eclipse.
+- better error messages for some special cases.
+- Eclipse now has a command to extract all Custom-Text-Triggers from a map to separate files in the current project.
+- The Wurstpack can now automatically import all files from an import-folder into the map.
+- Some improvements in the Wurstpack updater tool.
+- .j files are now parsed as Jurst files. 
+
+
+### Bugfixes:
+
+- fixed #226, bug in used global variable analysis.
+- fixed #230, read variable analysis.
+- fixed #233, StringCase native was wrong in interpreter.
+- fixed #237, critical bug in localOptimizations->tempMerger.
+- fixed #244: 'null' was not translated correctly, when used with a handle bound to a generic type variable.
+- fixed #207, improved flow analysis for closures.
+- many other smaller bugs and possible crashes.
+
+
+### Internal changes:
+
+- Compiler now uses Antlr4 instead of Cup and Jflex for parsing.
+- Wurst now uses Jmpq2, a new pure Java mpq library written by Crigges. 
+	This should eliminate some rare bugs with the old MPQ library and make everything easier to port to different platforms.
+
 
 Version 1.4.0.0
 ==================
