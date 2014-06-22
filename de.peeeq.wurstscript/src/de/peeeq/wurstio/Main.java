@@ -14,6 +14,7 @@ import javax.swing.JOptionPane;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.Pjass.Result;
@@ -195,8 +196,9 @@ public class Main {
 		}
 		
 		if (runArgs.isInjectObjects()) {
+			Preconditions.checkNotNull(mpqEditor);
 			// add the imports
-			ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()));
+			ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()), mpqEditor);
 		}
 
 		JassProg jassProg = compiler.transformProgToJass();
