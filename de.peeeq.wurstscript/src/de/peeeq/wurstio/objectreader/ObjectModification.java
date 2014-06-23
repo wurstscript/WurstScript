@@ -87,8 +87,8 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 		//		format is correct, when writing a file you should use the new object ID of the current object here)
 		if (end != 0 && end != originalObjectId && end != newObjectId) {
 			// TODO should this be an error visible to the user?
-			WLogger.warning("corrupt end value: " + end + ", " + end + ", expected " + originalObjectId
-					+ " or " + newObjectId);
+//			WLogger.warning("corrupt end value: " + end + ", " + end + ", expected " + originalObjectId
+//					+ " or " + newObjectId);
 		}
 		return result;
 	}

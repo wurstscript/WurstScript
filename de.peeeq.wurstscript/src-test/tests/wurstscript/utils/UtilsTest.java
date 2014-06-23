@@ -10,18 +10,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.attributes.ErrorHandler;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class UtilsTest {
 
-  private ErrorHandler errorHandler = new ErrorHandler(new WurstGuiLogger());
-
-@Test
+  @Test
   public void array() {
     int[] ar1 = {1,2,3};
     int[] ar2 = {1,2,3};

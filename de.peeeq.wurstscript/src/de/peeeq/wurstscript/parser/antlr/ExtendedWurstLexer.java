@@ -12,11 +12,10 @@ import org.antlr.v4.runtime.TokenFactory;
 import org.antlr.v4.runtime.TokenSource;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
+import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ExtendedWurstLexer implements TokenSource {
@@ -25,7 +24,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	private Queue<Token> nextTokens = new LinkedList<>();
 	private State state = State.INIT;
 	private Stack<Integer> indentationLevels = new Stack<>();
-	private Token eof = null;
+	private @Nullable Token eof = null;
 	private Token firstNewline;
 	private int numberOfTabs;
 	private LineOffsets lineOffsets = new LineOffsets();
@@ -33,10 +32,10 @@ public class ExtendedWurstLexer implements TokenSource {
 	private final boolean debug = false;
 	private Pair<TokenSource, CharStream> sourcePair;
 	private boolean isWurst = false;
-
+	private boolean lastCharWasWrap = false;
 
 	enum State {
-		INIT, WRAP_CHAR, NEWLINES, BEGIN_LINE
+		INIT, NEWLINES, BEGIN_LINE
 	}
 
 
@@ -87,8 +86,9 @@ public class ExtendedWurstLexer implements TokenSource {
 			return nextTokens.poll();
 		}
 
-		if (eof != null) {
-			return makeToken(WurstParser.EOF, "$EOF", eof.getStartIndex(), eof.getStopIndex());
+		Token l_eof = eof;
+		if (l_eof != null) {
+			return makeToken(WurstParser.EOF, "$EOF", l_eof.getStartIndex(), l_eof.getStopIndex());
 		}
 
 
@@ -106,6 +106,7 @@ public class ExtendedWurstLexer implements TokenSource {
 			if (isWurst) {
 				if (isJassOnlyKeyword(token)) {
 					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+					assert token != null;
 				} else if (token.getType() == WurstParser.ENDPACKAGE) {
 					handleIndent(0, token.getStartIndex(), token.getStopIndex());
 					isWurst = false;
@@ -115,6 +116,7 @@ public class ExtendedWurstLexer implements TokenSource {
 					isWurst = true;
 				} else if (isWurstOnlyKeyword(token)) {
 					token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
+					assert token != null;
 				} else if (token.getType() == WurstParser.HOTDOC_COMMENT) {
 					continue;
 				}
@@ -129,6 +131,12 @@ public class ExtendedWurstLexer implements TokenSource {
 				// at EOF close all blocks and return an extra newline
 				handleIndent(0, token.getStartIndex(), token.getStopIndex());
 				eof = token;
+				if (isWurst) {
+					// if inside wurst, add a closing 'endpackage' and a newline
+					nextTokens.add(makeToken(WurstParser.ENDPACKAGE, "endpackage", token.getStartIndex(), token.getStopIndex()));
+					nextTokens.add(makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
+				}
+				// add a single newline
 				return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
 			}
 			
@@ -137,21 +145,20 @@ public class ExtendedWurstLexer implements TokenSource {
 
 			switch (state) {
 			case INIT:
-				if (isWrapCharEndLine(token.getType())) {
-					state(State.WRAP_CHAR);
-					return token;
-				} else if (token.getType() == WurstParser.NL) {
+				if (token.getType() == WurstParser.NL) {
 					firstNewline = token;
 					state(State.NEWLINES);
 					continue;
 				} else if (token.getType() == WurstParser.TAB) {
 					continue;
 				}
+				lastCharWasWrap = isWrapCharEndLine(token.getType());
 				return token;
 			case NEWLINES:
 				if (isWrapCharBeginLine(token.getType())) {
 					// ignore all the newlines when a wrap char comes after newlines
-					state(State.WRAP_CHAR);
+					lastCharWasWrap = true;
+					state(State.INIT);
 					return token;
 				} else if (token.getType() == WurstParser.NL) {
 					continue;
@@ -166,17 +173,27 @@ public class ExtendedWurstLexer implements TokenSource {
 					state(State.INIT);
 					return firstNewline;
 				}
-			case WRAP_CHAR:
-				if (isWrapCharEndLine(token.getType())) {
-					return token;
-				} else if (token.getType() == WurstParser.NL
-						|| token.getType() == WurstParser.TAB) {
-					// ignore newlines and tabs after wrap char
-					continue;
-				} else {
-					state(State.INIT);
-					return token;
-				}
+//			case WRAP_CHAR:
+//				if (isWrapCharEndLine(token.getType())) {
+//					return token;
+//				} else if (token.getType() == WurstParser.NL) {
+//					firstNewline = token;
+//					numberOfTabs = 0;
+//					continue;
+//				} else if (token.getType() == WurstParser.TAB) {
+//					numberOfTabs++;
+//					continue;
+//				} else {
+//					state(State.INIT);
+//					if (numberOfTabs <= indentationLevels.peek()) {
+//						// when the number of tabs decreases we ignore wrap chars
+//						handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
+//						nextTokens.add(token);
+//						return firstNewline;
+//					} else {
+//						return token;
+//					}
+//				}
 			case BEGIN_LINE:
 				if (token.getType() == WurstParser.TAB) {
 					numberOfTabs++;
@@ -186,13 +203,20 @@ public class ExtendedWurstLexer implements TokenSource {
 					continue;
 				} else if (isWrapCharBeginLine(token.getType())) {
 					// ignore all the newlines when a wrap char comes after newlines
-					state(State.WRAP_CHAR);
+					lastCharWasWrap = true;
+					state(State.INIT);
 					return token;
 				} else {
-					handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
-					state(State.INIT);
-					nextTokens.add(token);
-					return firstNewline;
+					if (lastCharWasWrap && numberOfTabs > indentationLevels.peek()) {
+						// ignore the newline, only return the token
+						state(State.INIT);
+						return token;
+					} else {
+						handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
+						state(State.INIT);
+						nextTokens.add(token);
+						return firstNewline;
+					}
 				}
 			}
 		}
@@ -271,7 +295,7 @@ public class ExtendedWurstLexer implements TokenSource {
 		case WurstParser.MOD_REAL:
 		case WurstParser.AND:
 		case WurstParser.OR:
-
+		case WurstParser.ARROW:
 			return true;
 		}
 		return false;

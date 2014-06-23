@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.intermediateLang.ILconst;
@@ -18,7 +20,7 @@ public abstract class State {
 		values.put(v, val);
 	}
 
-	public ILconst getVal(ImVar v) {
+	public @Nullable ILconst getVal(ImVar v) {
 		return values.get(v);
 	}
 	
@@ -35,11 +37,11 @@ public abstract class State {
 		getArray(v).put(index, val);
 	}
 
-	public ILconst getArrayVal(ImVar v, int index) {
+	public @Nullable ILconst getArrayVal(ImVar v, int index) {
 		return getArray(v).get(index);
 	}
 	
-	public ILconst getVarValue(String varName) {
+	public @Nullable ILconst getVarValue(String varName) {
 		for (Entry<ImVar, ILconst> e : values.entrySet()) {
 			if (e.getKey().getName().equals(varName)) {
 				return e.getValue();

@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.objectreader;
 
 import java.io.BufferedInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -10,14 +11,14 @@ import java.nio.charset.Charset;
 
 import com.google.common.base.Charsets;
 
-public class BinaryDataInputStream {
+public class BinaryDataInputStream implements Closeable {
 
 	private BufferedInputStream in;
 	private boolean littleEndian;
 
+	@SuppressWarnings("resource") // will be closed in close method
 	public BinaryDataInputStream(File file, boolean littleEndian) throws FileNotFoundException {
 		this(new FileInputStream(file), littleEndian);
-		
 	}
 	
 	

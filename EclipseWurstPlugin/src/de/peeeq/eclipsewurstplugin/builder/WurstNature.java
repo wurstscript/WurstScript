@@ -4,26 +4,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.filesystem.EFS;
 import org.eclipse.core.filesystem.IFileStore;
+import org.eclipse.core.resources.ICommand;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IProjectDescription;
 import org.eclipse.core.resources.IProjectNature;
 import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.text.IDocumentExtension;
-
-import de.peeeq.eclipsewurstplugin.WurstConstants;
-import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
-import de.peeeq.wurstscript.gui.WurstGui;
-
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchPage;
@@ -32,6 +25,14 @@ import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 
 import com.google.common.collect.Lists;
+
+import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.parser.WPos;
 public class WurstNature implements IProjectNature {
 
 	/**
@@ -105,6 +106,9 @@ public class WurstNature implements IProjectNature {
 	}
 
 	public static void addErrorMarker(IFile file, CompileError e, String markerType) {
+		if (WurstPlugin.config().ignoreAllErrors()) {
+			return;
+		}
 		try {
 			IMarker marker = file.createMarker(markerType);
 			marker.setAttribute(IMarker.MESSAGE, e.getMessage());
@@ -114,9 +118,20 @@ public class WurstNature implements IProjectNature {
 				marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_WARNING);
 			}
 
-			marker.setAttribute(IMarker.LINE_NUMBER, e.getSource().getLine());
-			marker.setAttribute(WurstConstants.START_POS, e.getSource().getLeftPos());
-			marker.setAttribute(WurstConstants.END_POS, e.getSource().getRightPos());
+			WPos source = e.getSource();
+			marker.setAttribute(IMarker.LINE_NUMBER, source.getLine());
+			
+			int left = source.getLeftPos();
+			int right = source.getRightPos();
+			int s1 = source.getLineOffsets().get(source.getLine());
+			if (left == s1) {
+				// if the error is the newline character start one character earlier,
+				// so that eclipse actually shows the error
+				left --;
+			}
+			marker.setAttribute(WurstConstants.START_POS, left);
+			marker.setAttribute(WurstConstants.END_POS, right);
+			
 		} catch (CoreException ex) {
 		}
 		
@@ -161,10 +176,31 @@ public class WurstNature implements IProjectNature {
 			getProject().deleteMarkers(markerType, false, IResource.DEPTH_INFINITE);
 		} catch (CoreException e) {
 		}
-		
+	}
+	
+	public void clearMarkers(final String markerType, final List<String> fileNames) {
+			try {
+				getProject().accept(new IResourceVisitor() {
+					
+					@Override
+					public boolean visit(IResource resource) throws CoreException {
+						// TODO maybe I have to clear markers in folders?
+						if (fileNames.contains(resource.getProjectRelativePath().toString())) {
+							resource.deleteMarkers(markerType, false, IResource.DEPTH_ZERO);
+						}
+						return true;
+					}
+				});
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
 	}
 
 	public static WurstNature get(final IProject p) {
+		return get(p, false);
+	}
+	
+	public static WurstNature get(final IProject p, boolean askAddNature) {
 		if (p == null) {
 			return null;
 		}
@@ -172,7 +208,7 @@ public class WurstNature implements IProjectNature {
 			IProjectNature nat = p.getNature(NATURE_ID);
 			if (nat instanceof WurstNature) {
 				return (WurstNature) nat;
-			} else {
+			} else if (askAddNature) {
 				final boolean answer[] = new boolean[] {false};
 				Display.getDefault().syncExec(new Runnable() {
 					public void run() {
@@ -261,6 +297,8 @@ public class WurstNature implements IProjectNature {
 		deleteMarkers(file, WurstBuilder.MARKER_TYPE_TYPES);
 		
 	}
+
+	
 
 	
 

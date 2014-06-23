@@ -12,14 +12,11 @@ public class WurstTypeUnknown extends WurstType {
 
 	private String name = "unknown";
 
-	private Error err;
-	
 	public WurstTypeUnknown(String name) {
 		this.name = name;
 		try {
 			throw new Error("unknown type");
 		} catch (Error e) {
-			this.err = e; // store for later
 		}
 	}
 
@@ -31,6 +28,9 @@ public class WurstTypeUnknown extends WurstType {
 
 	@Override
 	public String getName() {
+		if (name.equals("empty")) {
+			return "missing expression";
+		}
 		return "'unknown type'\n(the type " + name + 
 				" could not be found, the containing package might not be imported)";
 	}

@@ -61,7 +61,7 @@ jassStatementExithwhen:
 						  'exitwhen' cond=expr NL
 ;
 jassStatementReturn:
-					'return' expr? NL
+					'return' expr NL
 ;
 jassStatementSet:
 					'set' left=exprAssignable '=' right=expr NL
@@ -87,7 +87,7 @@ wpackage: 'package' name=ID NL
 	(
 	imports+=wImport* entities+=entity*
 	| STARTBLOCK imports+=wImport* entities+=entity* ENDBLOCK
-	) ('endpackage' NL)?
+	) 'endpackage' NL
 	;
 
 wImport: 
@@ -150,10 +150,10 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL STARTBLOCK 
+                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
 					('super' '(' superArgs=exprList ')' NL)?
 					stmts+=statement*
-                  ENDBLOCK
+                  ENDBLOCK)?
               ;
        
 moduleUse: 
@@ -188,6 +188,7 @@ modifier:
 		| 'static'
 		| 'override'
 		| 'abstract' 
+		| 'constant'
 			)
 		| annotation
 		;
@@ -209,7 +210,7 @@ formalParameter:
 typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
-		| typeExpr 'array'
+		| typeExpr 'array' ('[' arraySize=expr ']')?
 		;
 
 varDef:
@@ -226,17 +227,17 @@ statementsBlock:
 			   (STARTBLOCK statement* ENDBLOCK)?;
 
 
-statement:
-			 stmtIf
-		 | stmtWhile
-		 | localVarDef
-		 | exprDestroy NL
+statement: (
+		   localVarDef
 		 | stmtSet
-		 | stmtCall
-		 | stmtReturn		 
-		 | stmtForLoop
+		 | stmtReturn
 		 | stmtBreak
 		 | stmtSkip
+		 | expr
+		 ) NL
+		 | stmtIf
+		 | stmtWhile
+		 | stmtForLoop
 		 | stmtSwitch
 		 ;
 
@@ -245,7 +246,7 @@ exprDestroy:
 		   ;
 
 stmtReturn:
-			  'return' expr? NL
+			  'return' expr
 		  ;
 
 stmtIf:
@@ -281,7 +282,7 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=ID ('=' initial=expr)? 
 	  ;	
 
 localVarDefInline:
@@ -294,7 +295,6 @@ stmtSet:
 			| incOp='++'
 			| decOp='--'
 			) 
-		   NL
 	   ;
 
 
@@ -318,9 +318,9 @@ indexes:
 	   ;
 
 stmtCall:
-			exprMemberMethod NL
-		| exprFunctionCall NL
-		| exprNewObject NL
+			exprMemberMethod
+		| exprFunctionCall
+		| exprNewObject
 		;
 
 exprMemberMethod:
@@ -342,6 +342,7 @@ expr:
 	  | op='not' right=expr
 	  | left=expr op='and' right=expr
 	  | left=expr op='or' right=expr
+	  |
 	;
 
 
@@ -397,14 +398,14 @@ forIteratorLoop:
 ;
 
 
-stmtBreak:'break' NL;
-stmtSkip:'skip' NL;
+stmtBreak:'break';
+stmtSkip:'skip';
 
 
 
 typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 
-exprList : (exprs+=expr (',' exprs+=expr)*)?;
+exprList : exprs+=expr (',' exprs+=expr)*;
 
 
 

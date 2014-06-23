@@ -1,15 +1,11 @@
 package de.peeeq.wurstio;
 
 import java.awt.Desktop;
-import java.awt.Dialog.ModalityType;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
@@ -17,15 +13,12 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 
-import javax.swing.JButton;
 import javax.swing.JComponent;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import com.google.common.base.Charsets;
@@ -40,10 +33,8 @@ import de.peeeq.wurstscript.utils.Utils;
 public class ErrorReportingIO extends ErrorReporting {
 		
 	@Override
-	public void handleSevere(final Throwable t, String sourcecode) {
+	public void handleSevere(final Throwable t, final String sourcecode) {
 		WLogger.severe(t);
-		
-		sourcecode = WLogger.getLog() + "\n\nSource Code: \n\n" + sourcecode;
 		
 		try {
 			UIManager.setLookAndFeel(
@@ -78,7 +69,7 @@ public class ErrorReportingIO extends ErrorReporting {
 		
 		if (n == 1) {
 			final boolean results[] = new boolean[3];
-			Thread threads[] = new Thread[3];
+			Thread threads[] = new Thread[4];
 			
 			threads[0] = new Thread() {
 				public void run() {
@@ -86,14 +77,20 @@ public class ErrorReportingIO extends ErrorReporting {
 				}
 			};
 			
-			final String sourceCode2 = sourcecode;
 			threads[1] = new Thread() {
 				public void run() {
-					results[1] = sendErrorReport(t, sourceCode2);
+					results[1] = sendErrorReport(t, "\n\nLog: \n\n" + WLogger.getLog());
 				}
 			};
 			
 			threads[2] = new Thread() {
+				public void run() {
+					try { Thread.sleep(500); } catch (InterruptedException e) {}
+					results[1] = sendErrorReport(t, "\n\nSource Code: \n\n" + sourcecode);
+				}
+			};
+			
+			threads[3] = new Thread() {
 				public void run() {
 					String customMessage = showMultilineMessageDialog();
 					results[2] = sendErrorReport(t, "Custom message:\n\n" + customMessage);

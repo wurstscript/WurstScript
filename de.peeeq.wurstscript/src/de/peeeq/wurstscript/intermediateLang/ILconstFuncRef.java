@@ -7,16 +7,12 @@ import de.peeeq.wurstscript.types.WurstTypeCode;
 public class ILconstFuncRef extends ILconstAbstract {
 
 	private String funcName;
-	private ImFunction func;
-
-
 	public ILconstFuncRef(String funcName) {
 		this.funcName = funcName;
 	}
 
 	
 	public ILconstFuncRef(ImFunction func) {
-		this.func = func;
 		this.funcName = func.getName();
 	}
 

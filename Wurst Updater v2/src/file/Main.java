@@ -12,7 +12,7 @@ public class Main {
 				Init.initSilent();
 			}
 		} else {
-			Init.initNormal();
+			Init.initNormal(false);
 		}
 	}
 }

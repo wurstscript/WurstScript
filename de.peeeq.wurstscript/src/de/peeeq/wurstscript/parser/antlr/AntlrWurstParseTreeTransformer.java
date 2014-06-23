@@ -3,8 +3,9 @@ package de.peeeq.wurstscript.parser.antlr;
 import java.util.List;
 
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
@@ -22,7 +23,6 @@ import de.peeeq.wurstscript.antlr.WurstParser.ExprDestroyContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprFuncRefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprFunctionCallContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprListContext;
-import de.peeeq.wurstscript.antlr.WurstParser.ExprMemberMethodContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprMemberVarContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprNewObjectContext;
 import de.peeeq.wurstscript.antlr.WurstParser.ExprPrimaryContext;
@@ -66,7 +66,6 @@ import de.peeeq.wurstscript.antlr.WurstParser.NativeTypeContext;
 import de.peeeq.wurstscript.antlr.WurstParser.OndestroyDefContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StatementContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StatementsBlockContext;
-import de.peeeq.wurstscript.antlr.WurstParser.StmtCallContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtForLoopContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtIfContext;
 import de.peeeq.wurstscript.antlr.WurstParser.StmtReturnContext;
@@ -93,14 +92,12 @@ import de.peeeq.wurstscript.ast.EnumMembers;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncDefs;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -142,6 +139,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class AntlrWurstParseTreeTransformer {
 
@@ -428,6 +426,8 @@ public class AntlrWurstParseTreeTransformer {
 			return Ast.ModOverride(src);
 		case WurstParser.ABSTRACT:
 			return Ast.ModAbstract(src);
+		case WurstParser.CONSTANT:
+			return Ast.ModConstant(src);
 		}
 		throw error(m, "not implemented");
 	}
@@ -640,12 +640,16 @@ public class AntlrWurstParseTreeTransformer {
 			return transformLocalVarDef(s.localVarDef());
 		} else if (s.stmtSet() != null) {
 			return transformStmtSet(s.stmtSet());
-		} else if (s.stmtCall() != null) {
-			return transformCall(s.stmtCall());
+		} else if (s.expr() != null) {
+			Expr e = transformExpr(s.expr());
+			if (e instanceof WStatement) {
+				return (WStatement) e;
+			} else {
+				cuErrorHandler.sendError(new CompileError(source(s), Utils.printElement(e) + " cannot be used here. A full statement is required."));
+				return Ast.StmtErr(source(s));
+			}
 		} else if (s.stmtReturn() != null) {
 			return transformReturn(s.stmtReturn());
-		} else if (s.exprDestroy() != null) {
-			return transformExprDestroy(s.exprDestroy());
 		} else if (s.stmtForLoop() != null) {
 			return transformForLoop(s.stmtForLoop());
 		} else if (s.stmtBreak() != null) {
@@ -854,19 +858,11 @@ public class AntlrWurstParseTreeTransformer {
 		if (e == null) {
 			return Ast.NoExpr();
 		}
-		return transformExpr(e);
-	}
-
-	private WStatement transformCall(StmtCallContext c) {
-		if (c.exprFunctionCall() != null) {
-			return transformFunctionCall(c.exprFunctionCall());
-		} else if (c.exprMemberMethod() != null) {
-			return transformMemberMethodCall(c.exprMemberMethod());
-		} else if (c.exprNewObject() != null) {
-			return transformExprNewObject(c.exprNewObject());
+		Expr r = transformExpr(e);
+		if (r instanceof ExprEmpty) {
+			return Ast.NoExpr();
 		}
-		// TODO Auto-generated method stub
-		throw error(c, "not implemented");
+		return r;
 	}
 
 	private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
@@ -874,17 +870,6 @@ public class AntlrWurstParseTreeTransformer {
 		TypeExprList typeArgs = transformTypeArgs(e.typeArgs());
 		Arguments args = transformExprs(e.exprList());
 		return Ast.ExprNewObject(source(e), typeName, typeArgs, args);
-	}
-
-	private WStatement transformMemberMethodCall(ExprMemberMethodContext e) {
-		WPos source = source(e);
-		ExprContext receiver = e.receiver;
-		Token dots = e.dots;
-		Token funcName = e.funcName;
-		TypeArgsContext typeArgs = e.typeArgs();
-		ExprListContext args = e.exprList();
-		return transformMemberMethodCall2(source, receiver, dots, funcName,
-				typeArgs, args);
 	}
 
 	private ExprMemberMethod transformMemberMethodCall2(WPos source,
@@ -913,6 +898,9 @@ public class AntlrWurstParseTreeTransformer {
 				result.add(transformExpr(e));
 			}
 		}
+		if (result.size() == 1 && result.get(0) instanceof ExprEmpty) {
+			result.clear();
+		}
 		return result;
 	}
 
@@ -935,36 +923,97 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private Expr transformExpr(ExprContext e) {
+		WPos source = source(e);
 		if (e.exprPrimary() != null) {
 			return transformExprPrimary(e.exprPrimary());
 		} else if (e.left != null && e.right != null && e.op != null) {
-			return Ast.ExprBinary(source(e), transformExpr(e.left),
+			return Ast.ExprBinary(source, transformExpr(e.left),
 					transformOp(e.op), transformExpr(e.right));
 		} else if (e.op != null && e.op.getType() == WurstParser.NOT) {
-			return Ast.ExprUnary(source(e), WurstOperator.NOT,
+			return Ast.ExprUnary(source, WurstOperator.NOT,
 					transformExpr(e.right));
 		} else if (e.op != null && e.op.getType() == WurstParser.MINUS) {
-			return Ast.ExprUnary(source(e), WurstOperator.UNARY_MINUS,
+			return Ast.ExprUnary(source, WurstOperator.UNARY_MINUS,
 					transformExpr(e.right));
 		} else if (e.castToType != null) {
-			return Ast.ExprCast(source(e), transformTypeExpr(e.castToType),
+			return Ast.ExprCast(source, transformTypeExpr(e.castToType),
 					transformExpr(e.left));
 		} else if (e.dotsVar != null) {
-			return transformExprMemberVarAccess2(source(e), e.receiver, e.dotsVar,
+			return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
 					e.varName, e.indexes());
 		} else if (e.dotsCall != null) {
-			return transformMemberMethodCall2(source(e), e.receiver, e.dotsCall,
+			return transformMemberMethodCall2(source, e.receiver, e.dotsCall,
 					e.funcName, e.typeArgs(), e.exprList());
 		} else if (e.instaneofType != null) {
-			return Ast.ExprInstanceOf(source(e), transformTypeExpr(e.instaneofType), 
+			return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType), 
 					transformExpr(e.left));
 		}
 		
-		if (e.exception != null) {
-			return Ast.ExprNull(source(e));
+		ParseTree left = getLeftParseTree(e);
+		if (left != null) {
+			source = source.withLeftPos(1+stopPos(left));
 		}
-		// TODO Auto-generated method stub
-		throw error(e, "not implemented: " + text(e));
+		ParseTree right = getRightParseTree(e);
+		if (right != null) {
+			source = source.withRightPos(beginPos(right));
+		}
+		return Ast.ExprEmpty(source);
+	}
+
+	private int beginPos(ParseTree left) {
+		if (left instanceof ParserRuleContext) {
+			ParserRuleContext left2 = (ParserRuleContext) left;
+			return left2.getStart().getStartIndex();
+		} else if (left instanceof TerminalNode) {
+			TerminalNode left2 = (TerminalNode) left;
+			return left2.getSymbol().getStartIndex();
+		}
+		throw new Error("unhandled case: " + left.getClass() + "  // " + left );
+	}
+
+	private int stopPos(ParseTree left) {
+		if (left instanceof ParserRuleContext) {
+			ParserRuleContext left2 = (ParserRuleContext) left;
+			return left2.getStop().getStopIndex();
+		} else if (left instanceof TerminalNode) {
+			TerminalNode left2 = (TerminalNode) left;
+			return left2.getSymbol().getStopIndex();
+		}
+		throw new Error("unhandled case: " + left.getClass() + "  // " + left );
+	}
+
+	private ParseTree getLeftParseTree(ParserRuleContext e) {
+		if (e == null || e.getParent() == null) {
+			return null;
+		}
+		ParserRuleContext parent = e.getParent();
+		for (int i=0; i<parent.getChildCount(); i++) {
+			if (parent.getChild(i) == e) {
+				if (i > 0) {
+					return parent.getChild(i-1);
+				} else {
+					return getLeftParseTree(parent);
+				}
+			}
+		}
+		return null;
+	}
+	
+	private ParseTree getRightParseTree(ParserRuleContext e) {
+		if (e == null || e.getParent() == null) {
+			return null;
+		}
+		ParserRuleContext parent = e.getParent();
+		for (int i=0; i<parent.getChildCount(); i++) {
+			if (parent.getChild(i) == e) {
+				if (i < parent.getChildCount()-1) {
+					return parent.getChild(i+1);
+				} else {
+					return getRightParseTree(parent);
+				}
+			}
+		}
+		return null;
 	}
 
 	private WurstOperator transformOp(Token op) {
@@ -1161,7 +1210,7 @@ public class AntlrWurstParseTreeTransformer {
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
 			return Ast
-					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()));
+					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(t.arraySize));
 		}
 		throw error(t, "not implemented " + t.toStringTree());
 	}

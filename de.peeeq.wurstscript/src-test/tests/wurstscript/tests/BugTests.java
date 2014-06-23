@@ -553,5 +553,113 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void localOptimizerFail() { // essence of #237
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"function foo(int i) returns int",
+				"	return 1",
+				"function colors_hexs(int i) returns string",
+				"	return \"a\"",
+				"init",
+				"	var aaa = foo(1)",
+				"	var bbb = foo(2)",
+				"	var fff = aaa",
+				"	var ggg = fff div 16",
+				"	var kkk = fff - ggg * 16",
+				"	var ccc = \"|cff\" + colors_hexs(ggg) + colors_hexs(kkk)",
+				"	var eee = bbb",
+				"	var hhh = eee div 16",
+				"	var iii = eee - hhh * 16",
+				"	var ddd = ccc + colors_hexs(hhh) + colors_hexs(iii)",
+				"	testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void genericsNull() {
+		testAssertOkLines(false,  
+				"package test",
+				"class A<T>",
+				"	function foo(T t)",
+				"function handleToIndex(handle h) returns int",
+				"	return 1",
+				"function handleFromIndex(int i) returns handle",
+				"	return null",
+				"init",
+				"	new A<handle>().foo(null)",
+				"endpackage");
+	}
+	
+	@Test
+	public void funcrefs1() {
+		testAssertOkLines(false,  
+				"package test",
+				"native do(code c)",
+				"int x = 20",
+				"function bar() returns int",
+				"	if x > 0",
+				"		do(function bar)",
+				"		bar()",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"init",
+				"	do(function bar)",
+				"endpackage");
+	}
+	
+	@Test
+	public void funcrefs2() {
+		testAssertOkLines(false,  
+				"package test",
+				"native do(code c)",
+				"int x = 20",
+				"function bar() returns int",
+				"	if x > 0",
+				"		blub()",
+				"		do(function bar)",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"function blub() returns int",
+				"	if x > 0",
+				"		bar()",
+				"		do(function bar)",
+				"		x--",
+				"		return 1",
+				"	else",
+				"		return 2",
+				"init",
+				"	do(function bar)",
+				"	do(function bar)",
+				"endpackage");
+	}
+	
+	@Test
+	public void typenameAsFuncname1() {
+		testAssertErrorsLines(false, "The name", 
+				"package test",
+				"function integer()",
+				"init",
+				"	integer()",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void typenameAsFuncname2() {
+		testAssertErrorsLines(false, "The name", 
+				"type agent			    extends     handle",
+				"package test",
+				"function agent()",
+				"init",
+				"	agent()",
+				"endpackage"
+				);
+	}
 	
 }

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.Annotation;
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ExprStatementsBlock;
@@ -9,7 +10,6 @@ import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.utils.Utils;
@@ -20,11 +20,11 @@ public class SmallHelpers {
 		return f.getBody().size() <= 2;
 	}
 
-	public static StmtReturn getReturnStatement(ExprStatementsBlock e) {
-		if (e.getBody().isEmpty()) {
+	public static @Nullable StmtReturn getReturnStatement(ExprStatementsBlock e) {
+		if (e.getBody().size()<=2) {
 			return null;
 		}
-		WStatement lastStatement = e.getBody().get(e.getBody().size()-1);
+		WStatement lastStatement = e.getBody().get(e.getBody().size()-2);
 		if (lastStatement instanceof StmtReturn) {
 			return (StmtReturn) lastStatement;
 		}
@@ -39,7 +39,7 @@ public class SmallHelpers {
 		return false;
 	}
 
-	public static boolean isSubtreeOf(AstElement subtree, AstElement of) {
+	public static boolean isSubtreeOf(@Nullable AstElement subtree, AstElement of) {
 		while (subtree!= null) {
 			if (subtree == of) return true;
 			subtree = subtree.getParent();

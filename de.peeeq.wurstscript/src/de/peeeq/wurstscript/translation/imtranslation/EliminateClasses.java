@@ -267,7 +267,7 @@ public class EliminateClasses {
 			@Override
 			public void visit(ImMemberAccess e) {
 				mas.add(e);
-			};
+			}
 
 			@Override
 			public void visit(ImMethodCall e) {

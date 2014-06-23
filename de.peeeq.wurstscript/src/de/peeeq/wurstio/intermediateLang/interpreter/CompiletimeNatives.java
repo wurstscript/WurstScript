@@ -1,7 +1,5 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
-import java.io.PrintStream;
-
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
@@ -21,8 +19,6 @@ import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
 	private ProgramStateIO globalState;
-	private PrintStream outStream = System.out;
-
 	public CompiletimeNatives(ProgramStateIO globalState) {
 		this.globalState = globalState;
 	}

@@ -1,8 +1,13 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -27,6 +32,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class TempMerger {
 
@@ -82,7 +88,7 @@ public class TempMerger {
 		}
 	}
 
-	private Replacement processStatement(ImStmt s, Knowledge kn) {
+	private @Nullable Replacement processStatement(ImStmt s, Knowledge kn) {
 		Replacement rep = getPossibleReplacement(s, kn);
 		if (rep != null) {
 			return rep;
@@ -107,7 +113,7 @@ public class TempMerger {
 		return null;
 	}
 
-	private Replacement getPossibleReplacement(JassImElement elem, Knowledge kn) {
+	private @Nullable Replacement getPossibleReplacement(JassImElement elem, Knowledge kn) {
 		if (kn.isEmpty()) {
 			return null;
 		}
@@ -209,12 +215,41 @@ public class TempMerger {
 				// make sure that an impure expression is only evaluated once
 				// by removing the assignment
 				set.replaceWith(JassIm.ImNull());
+				
+				// remove variables which are no longer read
+				for (ImVarRead r : readVariables(set)) {
+					r.getVar().attrReads().remove(r);
+				}
 			}
-			read.replaceWith(e.copy());
-			// update attrReads
+			
+			ImExpr newE = (ImExpr) e.copy();
+			read.replaceWith(newE);
+			// update attrReads:
 			set.getLeft().attrReads().remove(read);
+			
+			// for all the variables in e: add to read
+			for (ImVarRead r : readVariables(newE)) {
+				r.getVar().attrReads().add(r);
+			}
+			
 		}
 
+	}
+	
+	private Collection<ImVarRead> readVariables(JassImElement e) {
+		Collection<ImVarRead> result = Lists.newArrayList();
+		collectReadVariables(result, e);
+		return result;
+	}
+	
+
+	private void collectReadVariables(Collection<ImVarRead> result, JassImElement e) {
+		if (e instanceof ImVarRead) {
+			result.add((ImVarRead) e);
+		}
+		for (int i=0; i<e.size(); i++) {
+			collectReadVariables(result, e.get(i));
+		}
 	}
 
 	class Knowledge {
@@ -251,7 +286,7 @@ public class TempMerger {
 			currentValues.clear();
 		}
 
-		public Replacement getReplacementIfPossible(ImVarAccess va) {
+		public @Nullable Replacement getReplacementIfPossible(ImVarAccess va) {
 			for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
 				if (e.getKey() == va.getVar()) {
 					return new Replacement(e.getValue(), va);
@@ -308,6 +343,18 @@ public class TempMerger {
 			for (ImVar i : invalid) {
 				currentValues.remove(i);
 			}
+		}
+		
+		@Override
+		public String toString() {
+			ArrayList<ImVar> keys = Lists.newArrayList(currentValues.keySet());
+			Collections.sort(keys, Utils.<ImVar>compareByNameIm());
+			StringBuilder sb = new StringBuilder();
+			for (ImVar v : keys) {
+				ImSet s = currentValues.get(v);
+				sb.append(v.getName() + " -> " + s + ", ");
+			}
+			return sb.toString();
 		}
 
 	}

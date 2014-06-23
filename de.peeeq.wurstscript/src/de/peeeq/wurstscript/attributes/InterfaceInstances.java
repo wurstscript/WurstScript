@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -44,7 +46,7 @@ public class InterfaceInstances {
 		return result;
 	}
 	
-	private static void addInterface(Collection<WurstTypeInterface> result, TypeExpr t, InterfaceDef in) {
+	private static void addInterface(Collection<WurstTypeInterface> result, TypeExpr t, @Nullable InterfaceDef in) {
 		if (t.attrTyp() instanceof WurstTypeInterface) {
 			WurstTypeInterface i = (WurstTypeInterface) t.attrTyp();
 			if (i.getDef() == in) {

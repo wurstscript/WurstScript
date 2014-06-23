@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript;
 
+import java.util.List;
+
 import com.google.common.base.Preconditions;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -18,8 +20,9 @@ public class WurstChecker {
 		this.errorHandler = errorHandler;
 	}
 
-	public void checkProg(WurstModel root) {
+	public void checkProg(WurstModel root, List<CompilationUnit> toCheck) {
 		Preconditions.checkNotNull(root);
+		Preconditions.checkNotNull(toCheck);
 		gui.sendProgress("Checking Files", 0.2);
 		
 		if (errorHandler.getErrorCount() > 0) return;
@@ -31,12 +34,14 @@ public class WurstChecker {
 		if (errorHandler.getErrorCount() > 0) return;
 		
 		// compute the flow attributes
-		WurstValidator.computeFlowAttributes(root);
+		for (CompilationUnit cu : toCheck) {
+			WurstValidator.computeFlowAttributes(cu);
+		}
 		
 		
 		// validate the resource:
 		WurstValidator validator = new WurstValidator(root);
-		validator.validate();
+		validator.validate(toCheck);
 		WLogger.info("debug - finished checkProg");
 	}
 

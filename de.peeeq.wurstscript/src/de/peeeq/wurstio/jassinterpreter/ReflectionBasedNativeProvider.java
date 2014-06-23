@@ -50,8 +50,6 @@ public abstract class ReflectionBasedNativeProvider  implements NativesProvider{
 		for (int i = 0; i < args.length; i++) {
 			parameterTypes[i] = "" + args[i];
 		}
-		outStream.println("native function " + funcname + "(" + Utils.printSep(", ", parameterTypes)
-				+ ") can not be executed at compile time.");
 		throw new NoSuchNativeException();
 	}
 

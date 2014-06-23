@@ -103,7 +103,8 @@ attributeDef[Program prog]:
 	;
 	
 javaType returns [String name]: 
-	n1=qID { $name = $n1.text; } ('<' n=javaType { $name += "<" + $n.name; } (',' n=javaType { $name +=", " + $n.name; } )* { $name += ">"; } '>')?;
+	{ $name = ""; }
+	('@Nullable' { $name+="@org.eclipse.jdt.annotation.Nullable "; })? n1=qID { $name += $n1.text; } ('<' n=javaType { $name += "<" + $n.name; } (',' n=javaType { $name +=", " + $n.name; } )* { $name += ">"; } '>')?;
 
 
 qID returns [String s]: n=ID {$s=$n.text;} ('.' n=ID {$s+="."+$n.text;})*;

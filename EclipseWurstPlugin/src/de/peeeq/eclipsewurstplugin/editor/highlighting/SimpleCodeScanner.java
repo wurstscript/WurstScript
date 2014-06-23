@@ -37,6 +37,7 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 	private Token keywordToken;
 	private Token commentToken;
 	private Token stringToken;
+	private Token annotationToken;
 	private Token jasstypeToken;
 	private Token identifierToken;
 
@@ -83,6 +84,7 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 		setRules(new IRule[] { 
 				new EndOfLineRule("//", commentToken), 
 				new SingleLineRule("\"", "\"", stringToken, '\\'),
+				new SingleLineRule("@", " ", annotationToken),
 				new SingleLineRule("'", "'", stringToken, '\\'), 
 //				new MultiLineRule("/*", "*/", commentToken),
 				whitespaceRule,
@@ -90,13 +92,14 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 
 			});
 	}
-
+	
 	private void updateColors() {
 		IPreferenceStore preferencestore = UtilityFunctions.getDefaultPreferenceStore();
 		jasstypeToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_JASSTYPE);
 		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
 		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
 		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
+		annotationToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_ANNOTATION);
 		identifierToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_TEXT);
 		System.out.println("Colors updated");
 	}

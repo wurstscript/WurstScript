@@ -17,6 +17,11 @@ package Real
 			return -1.0
 		else
 			return 0.0
+			
+	public function real.round() returns int
+		if this > 0
+			return (this+.5).toInt()
+		return (this-.5).toInt()
 
 	public function real.toInt() returns int
 		return R2I(this)

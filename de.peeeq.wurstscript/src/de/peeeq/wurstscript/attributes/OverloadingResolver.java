@@ -3,13 +3,14 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExprMemberMethodDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -29,6 +30,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 	abstract WurstType getArgumentType(C c, int i);
 	abstract void handleError(List<String> hints);
 	
+	@Nullable
 	F resolve(Iterable<F> alternativeFunctions, C caller) {
 		List<String> hints = new NotNullList<String>();
 		List<F> results = new NotNullList<F>();
@@ -88,7 +90,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			return results.get(0);
 		}
 	}
-	public static ConstructorDef resolveExprNew(List<ConstructorDef> constructors, final ExprNewObject node) {
+	public static @Nullable ConstructorDef resolveExprNew(List<ConstructorDef> constructors, final ExprNewObject node) {
 		return new OverloadingResolver<ConstructorDef, ExprNewObject>() {
 
 			@Override
@@ -118,7 +120,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 		}.resolve(constructors, node);
 	}
 	
-	public static ConstructorDef resolveSuperCall(List<ConstructorDef> constructors, final ConstructorDef node) {
+	public static @Nullable ConstructorDef resolveSuperCall(List<ConstructorDef> constructors, final ConstructorDef node) {
 		return new OverloadingResolver<ConstructorDef, ConstructorDef>() {
 
 			@Override
@@ -149,7 +151,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 	}
 	
 	
-	public static FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> collection, final FuncRef funcCall) {
+	public static @Nullable FunctionDefinition resolveFuncCall(final Collection<FunctionDefinition> collection, final FuncRef funcCall) {
 		return new OverloadingResolver<FunctionDefinition, FuncRef>() {
 
 			@Override
@@ -163,9 +165,11 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
+			@SuppressWarnings("null")  
 			int getArgumentCount(FuncRef c) {
 				return c.match(new FuncRef.Matcher<Integer>() {
 
+					
 					@Override
 					public Integer case_ExprFuncRef(ExprFuncRef term)  {
 						return 0; // CHECK a funcref should be able to specify the parameter types and count
@@ -189,6 +193,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 
 			@Override
+			@SuppressWarnings("null")  
 			WurstType getArgumentType(FuncRef c, final int i) {
 				return c.match(new FuncRef.Matcher<WurstType>() {
 

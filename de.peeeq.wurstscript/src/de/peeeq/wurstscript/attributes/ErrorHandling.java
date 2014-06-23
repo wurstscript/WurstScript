@@ -2,8 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.ListIterator;
 
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Annotation;
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -13,12 +13,10 @@ import de.peeeq.wurstscript.parser.WPos;
 public class ErrorHandling {
 	
 	public static void addError(AstElement e, String msg) {
-		WLogger.info("Adding error: " + msg);
 		addErrorOrWarning(e, msg, ErrorType.ERROR);
 	}
 	
 	public static void addWarning(AstElement e, String msg) {
-		WLogger.info("Adding warning: " + msg);
 		addErrorOrWarning(e, msg, ErrorType.WARNING);
 	}
 
@@ -31,7 +29,7 @@ public class ErrorHandling {
 		}
 	}
 
-	private static CompileError makeCompileError(AstElement e, String msg,
+	private static @Nullable CompileError makeCompileError(AstElement e, String msg,
 			ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
 		WPos pos = e.attrErrorPos();
 		if (errorType == ErrorType.ERROR && handler.isUnitTestMode()) {

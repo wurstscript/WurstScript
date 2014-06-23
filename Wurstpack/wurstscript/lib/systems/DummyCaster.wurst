@@ -2,18 +2,14 @@ package DummyCaster
 import DummyRecycler
 // @credit Anitarf
 
-	
-constant int INITIAL_DUMMY_COUNT  = 12
-constant int DUMMY_STACK_LIMIT	= 50
 constant boolean FORCE_INVISIBLE_CAST = false
 constant boolean AUTO_RESET_MANA_COOLDOWN = true 
-
 
 
 public class DummyCaster
 	private int 	abilityId		= 0	//ID (rawcode) of the ability to cast
 	private int 	level			= 1	//Level of the ability to cast
-	private player  owningplayer 	= DUMMY_PLAYER
+	private player  owner 			= DUMMY_PLAYER
 	private int 	orderId			= 0
 	private real 	recycleDelay	= 0.5
 
@@ -41,7 +37,7 @@ public class DummyCaster
 	construct( int abilityId, string orderString, player owner, boolean autodestroy )
 		this.orderId	 = OrderId( orderString )
 		this.abilityId   = abilityId
-		owningplayer	 = owner
+		this.owner	 	 = owner
 		this.autodestroy = autodestroy
 		debugPrint("DC constructed", 3)
 
@@ -55,7 +51,7 @@ public class DummyCaster
 			dummy = newDummy(tpos, angle(0))
 			debugPrint("new dummy " + dummy.getName(), 3)
 
-		dummy.setOwner(owningplayer, false)
+		dummy.setOwner(owner, false)
 		dummy.unpause()
 		debugPrint("AbilId: " + abilityId.toString(), 3)
 		if not dummy.hasAbility(abilityId)
@@ -76,14 +72,14 @@ public class DummyCaster
 		unit dummy = createDummyCaster(target.getPos())
 		debugPrint("dummy created", 3)
 		if FORCE_INVISIBLE_CAST
-			UnitShareVision(target, owningplayer, true)
+			UnitShareVision(target, owner, true)
 			dummy.issueTargetOrderById(orderId,target)
-			UnitShareVision(target, owningplayer, false)
+			UnitShareVision(target, owner, false)
 		else
 			dummy.issueTargetOrderById(orderId,target)
 			debugPrint("casted " + orderId.toString(), 3)
 		
-		recycleDummyDelayed(dummy, recycleDelay)
+		recycleDummy(dummy, recycleDelay)
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
@@ -95,7 +91,7 @@ public class DummyCaster
 	function castOnWidgetTarget( widget target )
 		unit dummy = createDummyCaster(vec2(target.getX(), target.getY()))		
 		dummy.issueTargetOrderById(orderId,target)
-		recycleDummyDelayed(dummy, recycleDelay)
+		recycleDummy(dummy, recycleDelay)
 		if autodestroy
 			destroy this
 
@@ -107,7 +103,7 @@ public class DummyCaster
 		debugPrint("dummy created " + dummy.getName() + "<name", 3)
 		dummy.issuePointOrderById(orderId,target)
 		debugPrint("ordered Cast", 3)
-		recycleDummyDelayed(dummy, recycleDelay)
+		recycleDummy(dummy, recycleDelay)
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
@@ -122,7 +118,7 @@ public class DummyCaster
 		customSource = false
 		unit dummy = createDummyCaster(target)
 		dummy.issueImmediateOrderById(orderId)
-		recycleDummyDelayed(dummy, .5)
+		recycleDummy(dummy, .5)
 		if autodestroy
 			destroy this
 

@@ -36,10 +36,10 @@ public class RealWorldExamples extends WurstScriptTest {
 		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "module.wurst"), false);
 	}
 	
-	@Test
-	public void testCyclic() throws IOException {
-		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
-	}
+//	@Test
+//	public void testCyclic() throws IOException {
+//		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
+//	}
 
 	@Test
 	public void testLists() throws IOException {
@@ -71,12 +71,12 @@ public class RealWorldExamples extends WurstScriptTest {
 
 	@Test
 	public void setFrottyBugVector() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "vector.j"), false);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "vector.wurst"), false);
 	}
 	
 	@Test
 	public void test_war3map() throws IOException {
-		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.j"), false);
+		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "test_war3map.wurst"), false);
 	}
 	
 	@Test
@@ -124,7 +124,7 @@ public class RealWorldExamples extends WurstScriptTest {
 		// TODO set config
 		RunArgs runArgs = RunArgs.defaults();
 		runArgs.addLibs(Sets.newHashSet("../Wurstpack/wurstscript/lib/"));
-		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), runArgs);
+		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
 		for (File f : comp.getLibs().values()) {
 			WLogger.info("Adding file: " + f);
 			inputs.add(f);

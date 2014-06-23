@@ -615,4 +615,37 @@ public class ClassesExtTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void testMultiArray() {
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		int array[5] foo",
+				"	init",
+				"		let a = new A()",
+				"		a.foo[3] = 6",
+				"		if a.foo[3] == 6",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	// TODO @Test
+	public void testMultiTuple() {
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	tuple v(int x, int y)",
+				"	class A",
+				"		v array[5] foo",
+				"	init",
+				"		let a = new A()",
+				"		a.foo[3] = v(3,4)",
+				"		if a.foo[3] == v(3,4)",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

@@ -1,15 +1,13 @@
 package de.peeeq.wurstio.mpq;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.Closeable;
 
-public interface MpqEditor {
+public interface MpqEditor extends Closeable {
 
-	File extractFile(File mpqArchive, String fileToExtract) throws Exception;
+	byte[] extractFile(String fileToExtract) throws Exception;
 
-	void insertFile(File mpqArchive, String filenameInMpq, File tempFile) throws Exception;
+	void insertFile(String filenameInMpq, byte[] contents) throws Exception;
 
-	void deleteFile(File mpqArchive, String filenameInMpq) throws Exception;
-
-	void compactArchive(File mpqArchive) throws Exception;
+	void deleteFile(String filenameInMpq) throws Exception;
+	
 }

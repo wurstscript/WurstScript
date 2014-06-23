@@ -347,7 +347,7 @@ public class SimpleStatementTests extends WurstScriptTest {
 	
 	@Test
 	public void test_unitialized() {
-		assertError(false, "not initialized",
+		assertError(false, "may not have been initialized",
 				"int x",
 				"int y = 2", // 6
 				"if y == 3", // 7

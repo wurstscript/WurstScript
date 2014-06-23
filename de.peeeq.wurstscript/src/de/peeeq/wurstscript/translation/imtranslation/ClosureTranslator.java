@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -66,7 +65,6 @@ public class ClosureTranslator {
 			for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
 				ImVar orig = entry.getKey();
 				ImVar v = entry.getValue();
-				WLogger.info(orig + " ---> " + v);
 				stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));		
 			}
 			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));

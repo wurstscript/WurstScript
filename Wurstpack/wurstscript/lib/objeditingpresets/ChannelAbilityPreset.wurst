@@ -1,0 +1,136 @@
+package ChannelAbilityPreset
+import public AbilityPreset
+import OrderStringFactory
+
+constant CHANNEL_ID = 'ANcl'
+
+OrderStringFactory odf = new OrderStringFactory()
+@compiletime function initOdf()
+	odf = new OrderStringFactory()
+
+public enum Option
+	VISIBLE
+	TARGETIMAGE
+	PHYSICALSPELL
+	UNIVERSALSPELL
+	UNIQUECAST
+	
+public enum Targettype
+	NOTARGET
+	UTARGET
+	PTARGET
+	PUTARGET
+	PASSIVE
+	
+constant int visibleval = 1
+constant int targetimageval = 2
+constant int physicalspellval = 4
+constant int universalspellval = 8
+constant int uniquecastval = 16
+	
+
+	
+public function Targettype.toString() returns string
+	switch this
+		case NOTARGET
+			return "No Target"
+		case Targettype.PTARGET
+			return "Point Target"
+		case Targettype.UTARGET
+			return "Unit Target"
+		case Targettype.PUTARGET
+			return "Point & Unit Target"
+		case PASSIVE
+			return "Passive"
+	return ""
+
+public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
+	boolean VISIBLE
+	boolean TARGETIMAGE
+	boolean PHYSICALSPELL
+	boolean UNIVERSALSPELL
+	boolean UNIQUECAST
+	int optionval = 0
+	
+	int lvl
+	
+	construct(int newId, int lvls)
+		super(newId)
+		this.lvl = lvls
+		setBaseOrderId(odf.getOrderString())
+		
+	function removeChannelProperties(boolean removeVisuals)
+		setDisablesOther(false)
+		setFollowThroughTime(0.)
+		setArtDuration(0.)
+		if removeVisuals
+			setArtCaster("")
+			setArtEffect("")
+			setArtSpecial("")
+			setArtTarget("")
+			
+		
+
+		
+	function setAreaOfEffect(real range)
+		for i = 1 to lvl
+			setAreaofEffect(i, range)
+		
+	function setArtDuration(real value)
+		for i = 1 to lvl
+			def.setLvlDataUnreal("Ncl4", i, 4, value)
+		
+	function setBaseOrderId(string value)
+		for i = 1 to lvl
+			setBaseOrderID(i, value)
+				
+	function setDisablesOther(boolean flag)
+		int v = 0
+		if flag
+			v = 1 
+		for i = 1 to lvl
+			def.setLvlDataInt("Ncl5", i, 5, v)
+			
+	function setFollowThroughTime(real time)
+		for i = 1 to lvl
+			def.setLvlDataUnreal("Ncl1", i, 1, time)
+					
+	function setTargetType(Targettype ttype)			
+		for i = 1 to lvl
+			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int))
+					
+	function setOption(Option opt, boolean flag)
+		switch opt
+			case Option.VISIBLE
+				VISIBLE = flag
+				if VISIBLE
+					optionval+=visibleval
+				else
+					optionval-=visibleval
+			case Option.TARGETIMAGE
+				TARGETIMAGE = flag
+				if VISIBLE
+					optionval+=targetimageval
+				else
+					optionval-=targetimageval
+			case Option.PHYSICALSPELL
+				PHYSICALSPELL = flag
+				if VISIBLE
+					optionval+=physicalspellval
+				else
+					optionval-=physicalspellval
+			case Option.UNIVERSALSPELL
+				UNIVERSALSPELL = flag
+				if VISIBLE
+					optionval+=universalspellval
+				else
+					optionval-=universalspellval
+			case Option.UNIQUECAST
+				UNIQUECAST = flag
+				if VISIBLE
+					optionval+=uniquecastval
+				else
+					optionval-=uniquecastval
+
+		for i = 1 to lvl
+			def.setLvlDataInt("Ncl3", i, 3, optionval)

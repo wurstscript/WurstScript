@@ -22,3 +22,28 @@ public module QueueModule
 	static function getLast() returns thistype
 		return last
 
+public module SingletonQueue<T>
+	static T array storage
+	static int maxSize = 8190
+	static int fp = 0
+	static int rp = 0
+	static int size = 0
+
+	static function enqueue(T t)
+		if size < maxSize
+			size++
+			rp = (rp + 1) mod maxSize
+			storage[rp] = t
+		else
+			error("Queue Overflow")
+		
+	static function dequeue() returns T
+		if size > 0
+			size--
+			fp = (fp + 1) mod maxSize
+			return storage[fp]
+		else
+			error("Queue empty")
+			return null
+			
+	

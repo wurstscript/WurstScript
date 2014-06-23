@@ -31,8 +31,8 @@ public class WurstEclipseConfig {
 		return pref.getString(WurstConstants.WURST_WC3_PATH);
 	}
 	
-	public String mpqEditorPath() {
-		return pref.getString(WurstConstants.WURST_MPQEDIT_PATH);
+	public boolean ignoreAllErrors() {
+		return pref.getBoolean(WurstConstants.WURST_IGNORE_ERRORS);
 	}
 	
 }

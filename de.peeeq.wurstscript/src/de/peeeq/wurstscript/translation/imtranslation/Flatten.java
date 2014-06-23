@@ -32,6 +32,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
@@ -42,6 +43,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
@@ -364,6 +366,18 @@ public class Flatten {
 	public static Result flatten(ImClassRelatedExpr e,
 			ImTranslator translator, ImFunction f) {
 		throw new RuntimeException("Eliminate method calls before calling flatten.");
+	}
+
+
+	public static Result flatten(ImSetArrayMulti imSetArrayMulti,
+			ImTranslator translator, ImFunction f) {
+		throw new Error("not implemented");
+	}
+
+
+	public static Result flatten(ImVarArrayMultiAccess imVarArrayMultiAccess,
+			ImTranslator translator, ImFunction f) {
+		throw new Error("not implemented");
 	}
 
 

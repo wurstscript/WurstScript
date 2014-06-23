@@ -12,6 +12,7 @@ import java.util.Properties;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
@@ -29,6 +30,7 @@ import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.utils.Utils;
@@ -37,9 +39,8 @@ public class HotdocGenerator {
 
 	private List<String> files;
 	private File outputfolder;
-	private String navbar;
-	private WurstModel model;
-	private ArrayList<WPackage> packages;
+//	private WurstModel model;
+//	private ArrayList<WPackage> packages;
 	private VelocityEngine ve;
 	private Template variableTemplate;
 	private Template navbarTemplate;
@@ -48,12 +49,18 @@ public class HotdocGenerator {
 	public HotdocGenerator(List<String> files) {
 		this.files = Lists.newArrayList(files);
 		this.outputfolder = new File(this.files.remove(files.size()-1));
+		ve = new VelocityEngine();
+		Properties p = new Properties();
+		p.setProperty("eventhandler.include.class", "org.apache.velocity.app.event.implement.IncludeRelativePath");
+		p.setProperty("runtime.references.strict", "true");
+		ve.init(p);
+		variableTemplate = ve.getTemplate("resources/hotdoc/var.html");
+		navbarTemplate = ve.getTemplate("resources/hotdoc/navbar.html");
+		structureTemplate = ve.getTemplate("resources/hotdoc/structure.html");
 	}
 
 	public void generateDoc() {
 		try {
-			setupVelocity();
-			
 			WLogger.info("Generating hotdoc into " + outputfolder.getAbsolutePath());
 			for (String f : files) {
 				WLogger.info("	input: " + f);
@@ -73,7 +80,7 @@ public class HotdocGenerator {
 			
 			RunArgs runArgs = new RunArgs(new String[] {});
 			WurstGui gui = new WurstGuiCliImpl();
-			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 			compiler.loadFiles("resources/common.j");
 			compiler.loadFiles("resources/blizzard.j");
 			for (String file: files) {
@@ -88,33 +95,41 @@ public class HotdocGenerator {
 					compiler.loadFiles(f);
 				}
 			}
-			model = compiler.parseFiles();
+			WurstModel model = compiler.parseFiles();
+			if (model == null) {
+				System.out.println("Hotdoc model is null.");
+				for (CompileError e : gui.getErrorList()) {
+					System.out.println(e);
+				}
+				throw new RuntimeException("Could not analyze program correctly.");
+			}
 			
-			packages = Lists.newArrayList(model.attrPackages().values());
+			ArrayList<WPackage> packages = Lists.newArrayList(model.attrPackages().values());
 			Collections.sort(packages, new Comparator<WPackage>() {
-				@Override
+				@Override @SuppressWarnings("null") 
 				public int compare(WPackage o1, WPackage o2) {
-					return o1.getName().compareTo(o2.getName());
+					return o1.getSource().shortFile().compareTo(o2.getSource().shortFile());
 				}
 			});
 			
-			createIndex();
+			createIndex(packages);
 			for (WPackage p : packages) {
-				createPackageDoc(p);
+				createPackageDoc(p, packages);
 			}
+			gui.clearErrors();
 		} catch (Throwable t) {
 			System.err.println("Error in creating documentation: ");
 			t.printStackTrace();
+			throw new RuntimeException(t);
 		}
-		
 	}
 
-	private void createIndex() {
+	private void createIndex(List<WPackage> packages) {
 		Template t = ve.getTemplate("resources/hotdoc/document.html");
 		
 		VelocityContext context = new VelocityContext();
 		context.put("title", "HotDoc Wurst Documentation");
-		context.put("navbar", getNavbarWithHighlight(null));
+		context.put("navbar", getNavbarWithHighlight(null, packages));
 		context.put("content", "");
 		String s = render(t, context);
 		WLogger.info( s );     
@@ -128,24 +143,13 @@ public class HotdocGenerator {
 		
 	}
 
-	private void setupVelocity() {
-		ve = new VelocityEngine();
-		Properties p = new Properties();
-		p.setProperty("eventhandler.include.class", "org.apache.velocity.app.event.implement.IncludeRelativePath");
-		p.setProperty("runtime.references.strict", "true");
-		ve.init(p);
-		variableTemplate = ve.getTemplate("resources/hotdoc/var.html");
-		navbarTemplate = ve.getTemplate("resources/hotdoc/navbar.html");
-		structureTemplate = ve.getTemplate("resources/hotdoc/structure.html");
-	}
-
-	private void createPackageDoc(WPackage pack) {
+	private void createPackageDoc(WPackage pack, List<WPackage> packages) {
 		
         Template t = ve.getTemplate("resources/hotdoc/document.html");
 	
 		VelocityContext context = new VelocityContext();
 		context.put("title", pack.getName() + " HotDoc Wurst Documentation");
-		context.put("navbar", getNavbarWithHighlight(pack));
+		context.put("navbar", getNavbarWithHighlight(pack, packages));
 		context.put("content", getPackageContent(pack));
 		String s = render(t, context);
 		WLogger.info( s );     
@@ -183,6 +187,7 @@ public class HotdocGenerator {
 			context.put("name", Utils.printElement(v));
 			context.put("type", "");
 			context.put("comment", v.attrComment());
+			context.put("source", v.getSource());
 			
 			structureTemplate.merge(context, writer);
 			
@@ -231,6 +236,7 @@ public class HotdocGenerator {
 			context.put("name", descr);
 			context.put("type", "");
 			context.put("comment", f.attrComment());
+			context.put("source", f.getSource());
 			
 			variableTemplate.merge(context, writer);
 		}
@@ -239,8 +245,7 @@ public class HotdocGenerator {
 	private <T extends AstElementWithName> List<T> sortedByName(List<T> funcs) {
 		List<T> result = Lists.newArrayList(funcs);
 		Collections.sort(result, new Comparator<T>() {
-
-			@Override
+			@Override @SuppressWarnings("null") 
 			public int compare(T o1, T o2) {
 				return o1.getName().compareTo(o2.getName());
 			}
@@ -260,6 +265,7 @@ public class HotdocGenerator {
 			context.put("name", v.getName());
 			context.put("type", v.attrTyp());
 			context.put("comment", v.attrComment());
+			context.put("source", v.getSource());
 			
 			variableTemplate.merge(context, writer);
 		}
@@ -285,7 +291,7 @@ public class HotdocGenerator {
 		return s;
 	}
 
-	private String getNavbarWithHighlight(WPackage pack) {
+	private String getNavbarWithHighlight(@Nullable WPackage pack, List<WPackage> packages) {
 		VelocityContext context = new VelocityContext();
 		context.put("packages", packages);
 		context.put("currentPackage", pack);

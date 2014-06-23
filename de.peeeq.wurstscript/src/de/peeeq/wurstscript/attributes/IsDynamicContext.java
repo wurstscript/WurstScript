@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.TypeExprList;
 
 /**
  * a dynamic context is a place where we have a 'this' variable 

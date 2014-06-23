@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: EclipseWurstPlugin
 Bundle-SymbolicName: EclipseWurstPlugin; singleton:=true
-Bundle-Version: 1.4.0.0-cdb091b
+Bundle-Version: 1.4.1.0-5cf3b3c
 Bundle-Activator: de.peeeq.eclipsewurstplugin.WurstPlugin
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
@@ -10,7 +10,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jface.text,
  de.peeeq.wurstscript
 Bundle-ActivationPolicy: lazy
-Import-Package: java_cup.runtime,
+Import-Package: 
  org.eclipse.core.filebuffers,
  org.eclipse.core.filesystem,
  org.eclipse.debug.core,

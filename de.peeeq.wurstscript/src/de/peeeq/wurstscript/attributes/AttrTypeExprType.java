@@ -4,6 +4,8 @@ import java.util.List;
 
 import com.google.common.base.Function;
 
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
 import de.peeeq.wurstscript.ast.TypeDef;
@@ -12,6 +14,9 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeExprThis;
+import de.peeeq.wurstscript.attributes.AttrConstantValue.ConstantValueCalculationException;
+import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.types.NativeTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
@@ -77,7 +82,26 @@ public class AttrTypeExprType {
 	
 	
 	public static WurstType calculate(TypeExprArray typeExprArray) {
-		return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
+		if( typeExprArray.getArraySize() instanceof NoExpr) {
+			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
+		} else { // otherwise it must be an Expr
+			Expr arSize = (Expr) typeExprArray.getArraySize();
+			System.out.println("has getArraySize " + typeExprArray.getArraySize());
+			// default is to have no array sizes:
+			int[] sizes = {};
+			// when there is an array size given, try to evaluate it:
+			try {
+				ILconst i = arSize.attrConstantValue();
+				if (i instanceof ILconstInt) {
+					sizes = new int[] {((ILconstInt) i).getVal()};
+				} else {
+					arSize.addError("Array sizes should be integer...");
+				}
+			} catch (ConstantValueCalculationException e) {
+				arSize.addError("Array size is not a constant expression.");
+			}
+			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
+		}
 	}
 
 	private static WurstType getBaseType(TypeExprSimple node) {

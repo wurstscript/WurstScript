@@ -60,7 +60,7 @@ public class ObjectDefinition {
 	}
 
 	public void prettyPrint(StringBuilder sb) {
-		sb.append("Object " + newObjectId + " <: " + origObjectId+ "[\n");
+
 		
 		for (ObjectModification<?> m : modifications) {
 			sb.append("    " + m.toString() + ";\n");

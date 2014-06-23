@@ -26,7 +26,7 @@ public class ZipArchiveExtractor {
 
            String entryFileName = entry.getName();
 
-           File dir = dir = buildDirectoryHierarchyFor(entryFileName, destDir);
+           File dir = buildDirectoryHierarchyFor(entryFileName, destDir);
            if (!dir.exists()) {
                dir.mkdirs();
            }

@@ -2,15 +2,17 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.OptExpr;
 
 public class CallSignature {
-	private final Expr receiver;
+	private final @Nullable Expr receiver;
 	private final List<Expr> arguments;
 	
-	public CallSignature(OptExpr optExpr, List<Expr> arguments) {
+	public CallSignature(@Nullable OptExpr optExpr, List<Expr> arguments) {
 		if (optExpr instanceof Expr) {
 			this.receiver = (Expr) optExpr;
 		} else {
@@ -23,7 +25,7 @@ public class CallSignature {
 		return arguments;
 	}
 
-	public Expr getReceiver() {
+	public @Nullable Expr getReceiver() {
 		return receiver;
 	}
 	
@@ -31,12 +33,13 @@ public class CallSignature {
 		if (sig.isEmpty()) {
 			return;
 		}
-		if (receiver != null) {
+		Expr l_receiver = receiver;
+		if (l_receiver != null) {
 			if (sig.getReceiverType() == null) {
-				receiver.addError("No receiver expected for function " + funcName + ".");
-			} else if (!receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), receiver)) {
-				receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
-						"Found " + receiver.attrTyp() + " but expected " + sig.getReceiverType());
+				l_receiver.addError("No receiver expected for function " + funcName + ".");
+			} else if (!l_receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), l_receiver)) {
+				l_receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
+						"Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
 			}
 		}
 		if (getArguments().size() > sig.getParamTypes().size()) {
@@ -44,13 +47,12 @@ public class CallSignature {
 					+ " parameters.");
 			return;
 		} else if (getArguments().size() < sig.getParamTypes().size()) { 
-			pos.addError("Not enough arguments. Function " + funcName + " requires " + sig.getParamTypes().size() 
-					+ " parameters.");
+			pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
 		} else {
 			for (int i=0; i<getArguments().size(); i++) {
 				if (!getArguments().get(i).attrTyp().isSubtypeOf(sig.getParamTypes().get(i), pos)) {
 					getArguments().get(i).addError("Wrong parameter type when calling " + funcName + ".\n"
-							+ "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i));
+							+ "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i) + " " + sig.getParamName(i));
 				}
 			}
 		}

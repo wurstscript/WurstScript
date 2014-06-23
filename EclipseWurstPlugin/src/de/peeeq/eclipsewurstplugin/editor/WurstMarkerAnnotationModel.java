@@ -20,8 +20,10 @@ public class WurstMarkerAnnotationModel extends ResourceMarkerAnnotationModel {
 
 	@Override
 	protected Position createPositionFromMarker(IMarker marker) {
-		if(WurstBuilder.isWurstMarker(marker)
-				&& marker.getAttribute(IMarker.CHAR_START, -1) == -1){
+		if(WurstBuilder.isWurstMarker(marker)) {
+			if (marker.getAttribute(WurstConstants.END_POS, -1) == -1) {
+				return null;
+			}
 			int start = marker.getAttribute(WurstConstants.START_POS, -1);
 			int end = marker.getAttribute(WurstConstants.END_POS, -1);
 			if (start >= 0 && end >= start) {

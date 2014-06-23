@@ -1,7 +1,6 @@
 package Destructable
 import NoWurst
 import public Vectors
-import Angle
 
 public function destructable.kill()
 	KillDestructable(this)

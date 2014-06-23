@@ -177,15 +177,6 @@ public class ImToJassTranslator {
 	}
 
 
-
-	private List<JassSimpleVar> simpleVars(List<JassVar> l) {
-		List<JassSimpleVar> result = Lists.newArrayListWithCapacity(l.size());
-		for (JassVar i : l) {
-			result.add((JassSimpleVar) i);
-		}
-		return result;
-	}
-
 	private String getUniqueGlobalName(String name) { // TODO find local names
 		String name2 = "";
 		for (int i = 0; i < restrictedNames.length; i++) {
@@ -243,7 +234,6 @@ public class ImToJassTranslator {
 		JassVar result = jassVars.get(v);
 		if (result == null) {
 			boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
-			int i = 0;
 			String type = v.getType().translateType();
 			String name = jassifyName(v.getName());
 			if (v.getNearestFunc() != null) {

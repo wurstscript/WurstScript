@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -18,10 +20,15 @@ public abstract class WurstType {
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public final boolean isSubtypeOf(WurstType other, AstElement location) {
+	public final boolean isSubtypeOf(WurstType other, @Nullable AstElement location) {
 		if (other instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
 			return isSubtypeOf(btp.getBaseType(), location);
+		}
+		if (other instanceof WurstTypeUnion) {
+			WurstTypeUnion wtu = (WurstTypeUnion) other;
+			return this.isSubtypeOf(wtu.getTypeA(), location)
+					&& this.isSubtypeOf(wtu.getTypeB(), location);
 		}
 		if (this.isSubtypeOfIntern(other, location)) {
 			return true;
@@ -34,7 +41,7 @@ public abstract class WurstType {
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public abstract boolean isSubtypeOfIntern(WurstType other, AstElement location);
+	public abstract boolean isSubtypeOfIntern(WurstType other, @Nullable AstElement location);
 	
 	
 	/**
@@ -56,7 +63,7 @@ public abstract class WurstType {
 	public abstract String getFullName();
 	
 	
-	public boolean equalsType(WurstType otherType, AstElement location) {
+	public boolean equalsType(WurstType otherType, @Nullable AstElement location) {
 		return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
 	}
 	
@@ -67,7 +74,7 @@ public abstract class WurstType {
 	 * @deprecated  use {@link #equalsType(WurstType, AstElement)}
 	 */
 	@Deprecated
-	@Override public boolean equals(Object other) {
+	@Override public boolean equals(@Nullable Object other) {
 		throw new Error("operation not supported");
 	}
 	
@@ -153,6 +160,10 @@ public abstract class WurstType {
 
 	public TypeDef tryGetTypeDef() {
 		throw new Error("not implemented");
+	}
+
+	public WurstType typeUnion(WurstType t) {
+		return WurstTypeUnion.create(this, t);
 	}
 
 

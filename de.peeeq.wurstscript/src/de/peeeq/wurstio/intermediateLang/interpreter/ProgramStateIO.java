@@ -3,21 +3,20 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
-import com.google.common.io.OutputSupplier;
 
-import de.peeeq.wurstio.mpq.LadikMpq;
 import de.peeeq.wurstio.mpq.MpqEditor;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
@@ -30,24 +29,25 @@ import de.peeeq.wurstio.objectreader.WTSFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 
 public class ProgramStateIO extends ProgramState {
 
 	public static final int GENERATED_BY_WURST = 42;
-	private ImStmt lastStatement;
-	private WurstGui gui;
-	private File mapFile;
-	private Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newLinkedHashMap();
+	private @Nullable ImStmt lastStatement;
+	private final MpqEditor mpqEditor;
+	private final Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newLinkedHashMap();
 	private int id = 0;
-	private Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
+	private final Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
 	private PrintStream outStream = System.out;
-	private Map<Integer, String> trigStrings = null;
+	private @Nullable Map<Integer, String> trigStrings = null;
+	private final File mapFile;
 
-	public ProgramStateIO(File mapFile, WurstGui gui) {
-		super(mapFile, gui);
-		this.gui = gui;
+	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui, ImProg prog) {
+		super(gui, prog);
 		this.mapFile = mapFile;
+		this.mpqEditor = mpqEditor;
 	}
 
 	@Override
@@ -62,29 +62,30 @@ public class ProgramStateIO extends ProgramState {
 
 	@Override
 	public WurstGui getGui() {
-		return gui;
+		return super.getGui();
 	}
 
 	public String getTrigString(int id) {
-		loadTrigStrings();
-		String r = trigStrings.get(id);
+		String r = loadTrigStrings().get(id);
 		return r == null ? "" : r;
 	}
 
-	private void loadTrigStrings() {
-		if (trigStrings != null) {
-			return;
+	private Map<Integer, String> loadTrigStrings() {
+		Map<Integer, String> res = trigStrings;
+		if (res != null) {
+			return res;
 		}
 		try {
-			MpqEditor editor = MpqEditorFactory.getEditor();
-			File wts = editor.extractFile(mapFile, "war3map.wts");
-			trigStrings = WTSFile.parse(wts);
+			byte[] wts = mpqEditor.extractFile("war3map.wts");
+			res = WTSFile.parse(wts);
 		} catch (Exception e) {
 			// dummy result
-			trigStrings = Maps.newLinkedHashMap();
+			res = new LinkedHashMap<>();
 			WLogger.warning("Could not load trigger strings");
 			WLogger.info(e);
 		}
+		trigStrings = res;
+		return res;
 	}
 
 	public ObjectFile getDataStore(String fileExtension) {
@@ -96,15 +97,14 @@ public class ProgramStateIO extends ProgramState {
 		if (dataStore != null) {
 			return dataStore;
 		}
-		if (mapFile == null) {
+		if (mpqEditor == null) {
 			throw new Error("Mapfile not set.");
 		}
 
 		try {
 			// extract specific object file:
 			try {
-				MpqEditor editor = MpqEditorFactory.getEditor();
-				File w3_ = editor.extractFile(mapFile, "war3map."+filetype.getExt());
+				byte[] w3_ = mpqEditor.extractFile("war3map."+filetype.getExt());
 				dataStore = new ObjectFile(w3_, filetype);
 				replaceTrigStrings(dataStore);
 			} catch (IOException | InterruptedException e) {
@@ -137,16 +137,13 @@ public class ProgramStateIO extends ProgramState {
 			for (ObjectModification<?> mod : od.getModifications()) {
 				if (mod instanceof ObjectModificationString) {
 					ObjectModificationString modS = (ObjectModificationString) mod;
-					WLogger.info("mod: " + mod);
 					if (modS.getData().startsWith("TRIGSTR_")) {
 						try {
 							int id = Integer.parseInt(modS.getData().substring("TRIGSTR_".length()), 10);
 							String newVal = getTrigString(id);
-							WLogger.info("replace id: " + id + " with '" + newVal + "'");
 							modS.setData(newVal);
 						} catch (NumberFormatException e) {
 							// ignore
-							WLogger.info("number format in trigstr: " + modS.getData());
 						}
 					}
 				}
@@ -155,7 +152,6 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	private void deleteWurstObjects(ObjectFile unitStore) {
-		WLogger.info("deleteWurstObjects start " + unitStore.getFileType() + "\n\n" + unitStore);
 		Iterator<ObjectDefinition> it = unitStore.getModifiedTable().getObjectDefinitions().iterator();
 		while (it.hasNext()) {
 			ObjectDefinition od = it.next();
@@ -163,14 +159,12 @@ public class ProgramStateIO extends ProgramState {
 				if (om.getModificationId().equals("wurs") && om instanceof ObjectModificationInt) {
 					ObjectModificationInt om2 = (ObjectModificationInt) om;
 					if (om2.getData() == GENERATED_BY_WURST) {
-						WLogger.info( "Removing " + od + " from " + unitStore.getFileType());
 						it.remove();
 						break;
 					}
 				}
 			}
 		}
-		WLogger.info("deleteWurstObjects end " + unitStore.getFileType() + "\n\n" + unitStore);
 	}
 
 
@@ -231,42 +225,31 @@ public class ProgramStateIO extends ProgramState {
 		try {
 			File folder = getObjectEditingOutputFolder();
 
-			File w3u = new File(folder, "wurstCreatedObjects." + fileType.getExt());
-			if (w3u.exists()) {
-				w3u.delete();
-			}
-			dataStore.writeTo(w3u);
+			byte[] w3u = dataStore.writeToByteArray();
+			
+			// wurst exported objects
 			Files.write(dataStore.exportToWurst(fileType),  new File(folder, "WurstExportedObjects_"+fileType.getExt()+".wurst.txt"), Charsets.UTF_8);
 
 			if (inject) {
-				MpqEditor editor = MpqEditorFactory.getEditor();
 				String filenameInMpq = "war3map." + fileType.getExt();
 				
-				File mapFileTemp = new File("inject_tempmap.w3x");
-				Files.copy(mapFile, mapFileTemp);
-				
 				try {
-					editor.deleteFile(mapFileTemp, filenameInMpq);
+					mpqEditor.deleteFile(filenameInMpq);
 				} catch (Throwable e) {
 					WLogger.info(e);
 				}
-				editor.compactArchive(mapFileTemp);
-				editor.insertFile(mapFileTemp, filenameInMpq, w3u);
+				mpqEditor.insertFile(filenameInMpq, w3u);
 
-				editor.compactArchive(mapFileTemp);
 				
-				File extr;
+				byte[] extr;
 				try {
-					extr = editor.extractFile(mapFileTemp, filenameInMpq);
+					extr = mpqEditor.extractFile(filenameInMpq);
 				} catch (Throwable e) {
 					WLogger.info(e);
 					extr = null;
 				}
-				if (extr == null || !extr.exists()) {
+				if (extr == null) {
 					JOptionPane.showMessageDialog(null, "Could not inject " + filenameInMpq + ".");
-				} else {
-					Files.copy(mapFileTemp, mapFile);
-					mapFileTemp.delete();
 				}
 				
 				

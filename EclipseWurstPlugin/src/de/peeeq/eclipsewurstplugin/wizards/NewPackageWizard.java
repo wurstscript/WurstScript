@@ -49,7 +49,7 @@ public class NewPackageWizard extends Wizard implements INewWizard {
 		mainPage.setFileName(Utils.toFirstUpper(mainPage.getFileName()));
         IFile file = mainPage.createNewFile();
         if (file != null) {
-                    WurstNature nature = WurstNature.get(file.getProject());
+                    WurstNature nature = WurstNature.get(file.getProject(), true);
                     WurstEditor editor = nature.open(file, 0);
                 	
                     IDocument doc = editor.getDocumentProvider().getDocument(editor.getEditorInput());

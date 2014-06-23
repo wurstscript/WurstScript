@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 
@@ -16,7 +19,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
 
-	public static Collection<NameLink> lookupFuncs(AstElement node, String name, boolean showErrors) {
+	public static Collection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
 		if (node.attrNearestStructureDef() != null) {
 			// inside a class one can write foo instead of this.foo()
 			// so the receiver type is implicitly given by the enclosing class
@@ -43,6 +46,14 @@ public class NameResolution {
 		}
 		return removeDuplicates(result);
 	}
+	
+	public static Collection<NameLink> lookupFuncs(AstElement e, String name, boolean showErrors) {
+		ArrayList<NameLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
+		for (int i=0; i<result.size(); i++) {
+			result.set(i, result.get(i).withConfigDef());
+		}
+		return result;
+	}
 
 	private static Collection<NameLink> removeDuplicates(List<NameLink> nameLinks) {
 		List<NameLink> result = Lists.newArrayList();
@@ -57,7 +68,7 @@ public class NameResolution {
 		return result;
 	}
 
-	private static WScope nextScope(WScope scope) {
+	private static @Nullable WScope nextScope(WScope scope) {
 		AstElement parent = scope.getParent();
 		if (parent == null) {
 			return null;
@@ -77,9 +88,10 @@ public class NameResolution {
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
 			for (NameLink n : scope.attrNameLinks().get(name)) {
+				WurstType n_receiverType = n.getReceiverType();
 				if (n.getType() == NameLinkType.FUNCTION
-						&& n.getReceiverType() != null
-						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+						&& n_receiverType != null
+						&& n_receiverType.isSupertypeOf(receiverType, node)) {
 					result.add(n);
 				}
 			}
@@ -94,7 +106,7 @@ public class NameResolution {
 		receiverType.addMemberMethods(node, name, result);
 	}
 	
-	public static NameDef lookupVar(AstElement node, String name, boolean showErrors) {
+	public static @Nullable NameDef lookupVarNoConfig(AstElement node, String name, boolean showErrors) {
 		WurstType receiverType;
 		if (node.attrNearestStructureDef() != null) {
 			// inside a class one can write bar instead of this.bar
@@ -115,9 +127,10 @@ public class NameResolution {
 //			WLogger.info("		" + scope.attrNameLinks());
 			
 			for (NameLink n : scope.attrNameLinks().get(name)) {
+				WurstType n_receiverType = n.getReceiverType();
 				if (n.getType() == NameLinkType.VAR
-						&& (n.getReceiverType() == null
-						|| (receiverType != null && receiverType.isSubtypeOf(n.getReceiverType(), node))
+						&& (n_receiverType == null
+						|| (receiverType != null && receiverType.isSubtypeOf(n_receiverType, node))
 						)) {
 					
 					if (n.getVisibility() != Visibility.PRIVATE_OTHER 
@@ -134,7 +147,7 @@ public class NameResolution {
 					node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n" 
 							+ Utils.printAlternatives(candidates));
 				}
-				return candidates.get(0).getNameDef();
+				return (NameDef) candidates.get(0).getNameDef();
 			}
 			scope = nextScope(scope);
 		}
@@ -150,15 +163,16 @@ public class NameResolution {
 		return null;
 	}
 	
-	public static NameDef lookupMemberVar(AstElement node, WurstType receiverType, String name, boolean showErrors) {
+	public static @Nullable NameDef lookupMemberVar(AstElement node, WurstType receiverType, String name, boolean showErrors) {
 //		WLogger.info("lookupMemberVar " + receiverType+"."+name);
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
 			for (NameLink n : scope.attrNameLinks().get(name)) {
 //				WLogger.info("	- " + n);
+				WurstType n_receiverType = n.getReceiverType();
 				if (n.getType() == NameLinkType.VAR
-						&& n.getReceiverType() != null
-						&& n.getReceiverType().isSupertypeOf(receiverType, node)) {
+						&& n_receiverType != null
+						&& n_receiverType.isSupertypeOf(receiverType, node)) {
 					if (showErrors) {
 						if (n.getVisibility() == Visibility.PRIVATE_OTHER ) {
 							node.addError(Utils.printElement(n.getNameDef()) + " is private and cannot be used here.");
@@ -176,7 +190,7 @@ public class NameResolution {
 		return null;
 	}
 	
-	public static TypeDef lookupType(AstElement node, String name, boolean showErrors) {
+	public static @Nullable TypeDef lookupType(AstElement node, String name, boolean showErrors) {
 		
 		NameLink privateCandidate = null;
 		List<NameLink> candidates = Lists.newArrayList();
@@ -185,7 +199,6 @@ public class NameResolution {
 		while (scope != null) {
 			for (NameLink n : scope.attrTypeNameLinks().get(name)) {
 				if (n.getNameDef() instanceof TypeDef) {
-					TypeDef typeDef = (TypeDef) n.getNameDef();
 					if (n.getVisibility() != Visibility.PRIVATE_OTHER
 							&& n.getVisibility() != Visibility.PROTECTED_OTHER) {
 						candidates.add(n);
@@ -215,7 +228,7 @@ public class NameResolution {
 		return null;
 	}
 
-	public static WPackage lookupPackage(AstElement node, String name, boolean showErrors) {
+	public static @Nullable WPackage lookupPackage(AstElement node, String name, boolean showErrors) {
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
 			for (NameLink n : scope.attrTypeNameLinks().get(name)) {
@@ -236,19 +249,29 @@ public class NameResolution {
 		return lookupMemberFuncs(elem, receiverType, name, true);
 	}
 	
-	public static NameDef lookupVarShort(AstElement node, String name) {
+	public static @Nullable NameDef lookupVarShort(AstElement node, String name) {
 		return lookupVar(node, name, true);
 	}
 	
-	public static NameDef lookupMemberVarShort(AstElement node, WurstType receiverType, String name) {
+	public static @Nullable NameDef lookupMemberVarShort(AstElement node, WurstType receiverType, String name) {
 		return lookupMemberVar(node, receiverType, name, true);
 	}
 	
-	public static TypeDef lookupTypeShort(AstElement node, String name) {
+	public static @Nullable TypeDef lookupTypeShort(AstElement node, String name) {
 		return lookupType(node, name, true);
 	}
 
-	public static WPackage lookupPackageShort(AstElement node, String name) {
+	public static @Nullable WPackage lookupPackageShort(AstElement node, String name) {
 		return lookupPackage(node, name, true);
 	}
+
+	public static @Nullable NameDef lookupVar(AstElement e, String name, boolean showErrors) {
+		NameDef v = e.lookupVarNoConfig(name, showErrors);
+		if (v != null) {
+			return (NameDef) v.attrConfigActualNameDef();
+		}
+		return null;
+	}
+
+	
 }

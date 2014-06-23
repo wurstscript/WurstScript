@@ -76,7 +76,7 @@ public class FlowAnalysisTests extends WurstScriptTest {
 	
 	@Test
 	public void testInitalized() {
-		assertError(false, "not initialized", 
+		assertError(false, "may not have been initialized", 
 				"function foo(int i) returns int",
 				"	int j",
 				"	if i < 5",

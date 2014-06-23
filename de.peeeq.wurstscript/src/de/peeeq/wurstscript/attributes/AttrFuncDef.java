@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -32,12 +34,15 @@ import de.peeeq.wurstscript.utils.Utils;
  *
  */
 public class AttrFuncDef {
+	
+	// TODO just use the attr function signature to get the def
+	
 	public final static String overloadingPlus = "op_plus";
 	public final static String overloadingMinus = "op_minus";
 	public final static String overloadingMult = "op_mult";
 	public final static String overloadingDiv = "op_divReal";
 
-	public static  FunctionDefinition calculate(final ExprFuncRef node) {
+	public static @Nullable  FunctionDefinition calculate(final ExprFuncRef node) {
 
 		Collection<NameLink> funcs;
 		if (node.getScopeName().length() > 0) {
@@ -74,11 +79,11 @@ public class AttrFuncDef {
 	}
 
 
-	public static FunctionDefinition calculate(ExprBinary node) {
+	public static @Nullable FunctionDefinition calculate(ExprBinary node) {
 		return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
 	}
 
-	public static  FunctionDefinition calculate(final ExprMemberMethod node) {
+	public static @Nullable  FunctionDefinition calculate(final ExprMemberMethod node) {
 
 		Expr left = node.getLeft();
 		WurstType leftType = left.attrTyp();
@@ -91,7 +96,7 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	public static  FunctionDefinition calculate(final ExprFunctionCall node) {
+	public static @Nullable  FunctionDefinition calculate(final ExprFunctionCall node) {
 		FunctionDefinition result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
 		if (result == null) {
@@ -107,7 +112,7 @@ public class AttrFuncDef {
 		return result;
 	}
 
-	private static FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
+	private static @Nullable FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
 		String funcName = op.getOverloadingFuncName();
 		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
 			return null;
@@ -144,7 +149,7 @@ public class AttrFuncDef {
 	}
 
 
-	private static FunctionDefinition searchFunction(String funcName, FuncRef node, List<WurstType> argumentTypes) {
+	private static @Nullable FunctionDefinition searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
 		if (node == null) {
 			return null;
 		}
@@ -203,7 +208,7 @@ public class AttrFuncDef {
 	}
 
 
-	private static FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
+	private static @Nullable FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
 		Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
 		if (funcs1.size() == 0) {
 			return null;
@@ -306,12 +311,14 @@ public class AttrFuncDef {
 		List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
 		for (NameLink f : funcs2) {
 			boolean existsMoreSpecific = false;
-			if (f.getReceiverType() != null) {
+			WurstType f_receiverType = f.getReceiverType();
+			if (f_receiverType != null) {
 				for (NameLink g : funcs2) {
 					if (f != g) {
-						if (g.getReceiverType() != null
-							&&  g.getReceiverType().isSubtypeOf(f.getReceiverType(), node)
-							&& !g.getReceiverType().equalsType(f.getReceiverType(), node)) {
+						WurstType g_receiverType = g.getReceiverType();
+						if (g_receiverType != null
+							&&  g_receiverType.isSubtypeOf(f_receiverType, node)
+							&& !g_receiverType.equalsType(f_receiverType, node)) {
 							existsMoreSpecific = true;
 							break;
 						}
@@ -334,7 +341,7 @@ public class AttrFuncDef {
 
 	private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
 		NameLink nl = Utils.getFirst(funcs1);
-		if (nl != null && nl.getNameDef() instanceof FunctionDefinition) {
+		if (nl.getNameDef() instanceof FunctionDefinition) {
 			return (FunctionDefinition) nl.getNameDef();
 		}
 		throw new Error("Collection of funcs was empty");

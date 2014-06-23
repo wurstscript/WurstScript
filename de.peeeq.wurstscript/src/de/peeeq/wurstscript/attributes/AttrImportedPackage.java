@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -13,7 +15,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrImportedPackage {
 
-	public static WPackage getImportedPackage(WImport i) {
+	public static @Nullable WPackage getImportedPackage(WImport i) {
 		try {
 			WurstModel root = i.getModel();
 			WPackage p = root.attrPackages().get(i.getPackagename());

@@ -390,4 +390,90 @@ public class ClosureTests extends WurstScriptTest {
 				"	f.call()"
 			);
 	}
+	
+	
+	@Test
+	public void intliteralClosure() { // see bug #255
+		testAssertOkLines(true,  
+				"package test",
+				"native testSuccess()",
+				"tuple vec2(real x, real y)",
+				"interface SimpleFunc",
+				"	function call() returns int",
+				"init",
+				"	",
+				"	SimpleFunc f = () -> 1",
+				"	if f.call() == 1",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void uninitialized() {
+		testAssertErrorsLines(false, "may not have been initialized",  
+				"package test",
+				"interface SimpleFunc",
+				"	function call() returns int",
+				"init",
+				"	int x",
+				"	SimpleFunc f = () -> x + 1"
+			);
+	}
+	
+	@Test
+	public void uninitialized2() {
+		testAssertErrorsLines(false, "may not have been initialized",  
+				"package test",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	int x",
+				"	SimpleFunc f = () -> begin",
+				"		int y = x + 1",
+				"	end"
+			);
+	}
+	
+	@Test
+	public void uninitialized3() {
+		testAssertErrorsLines(false, "may not have been initialized",  
+				"package test",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	SimpleFunc f = () -> begin",
+				"		int x",
+				"		int y = x + 1",
+				"	end"
+			);
+	}
+	
+	@Test
+	public void uninitialized4() {
+		testAssertOkLines(false,   
+				"package test",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	SimpleFunc f = () -> begin",
+				"		int x = 1",
+				"		int y = x + 1",
+				"	end"
+			);
+	}
+	
+	@Test
+	public void uninitialized6() {
+		testAssertErrorsLines(false, "may not have been initialized",  
+				"package test",
+				"interface SimpleFunc",
+				"	function call()",
+				"init",
+				"	int x",
+				"	SimpleFunc f = () -> begin",
+				"		x = 1",
+				"		int y = x + 1",
+				"	end"
+			);
+	}
 }

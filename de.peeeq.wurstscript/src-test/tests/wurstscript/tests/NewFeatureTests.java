@@ -295,5 +295,42 @@ public class NewFeatureTests extends WurstScriptTest {
 				"		testSuccess()"
 				);
 	}
+	
+	
+	@Test
+	public void cyclicFunc1() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"function foo(int x) returns int",
+				"	return 1+bar(x)",
+				"function bar(int x) returns int",
+				"	if x>0",
+				"		return 1+foo(x-1)",
+				"	else",
+				"		return 0",
+				"init",
+				"	if foo(5) == 11",
+				"		testSuccess()"
+				);
+	}
+	
+	@Test
+	public void cyclicFunc2() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"function foo(int x,real y) returns real",
+				"	return 1+bar(y, x)",
+				"function bar(real a, int b) returns real",
+				"	if a>0",
+				"		return a",
+				"	else",
+				"		return foo(1, 2.*b)",
+				"init",
+				"	if foo(5,7) == 8",
+				"		testSuccess()"
+				);
+	}
 
 }

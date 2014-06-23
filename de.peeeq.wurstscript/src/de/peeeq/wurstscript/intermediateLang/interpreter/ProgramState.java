@@ -1,10 +1,11 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import java.io.File;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -22,28 +23,27 @@ import de.peeeq.wurstscript.parser.WPos;
 public class ProgramState extends State {
 
 	public static final int GENERATED_BY_WURST = 42;
-	private ImStmt lastStatement;
-	private WurstGui gui;
-	private File mapFile;
-	private int id = 0;
+	private @Nullable ImStmt lastStatement;
+	protected WurstGui gui;
 	private PrintStream outStream = System.out;
 	private List<NativesProvider> nativeProviders = Lists.newArrayList();
 	private ImProg prog;
 	private int objectIdCounter;
 	private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
+	private Stack<ImStmt> lastStatements = new Stack<>();
 	
 	
-	public ProgramState(File mapFile, WurstGui gui) {
+	public ProgramState(WurstGui gui, ImProg prog) {
 		this.gui = gui;
-		this.mapFile = mapFile;
+		this.prog = prog;
 	}
 
 	public void setLastStatement(ImStmt s) {
 		lastStatement = s;		
 	}
 
-	public ImStmt getLastStatement() {
+	public @Nullable ImStmt getLastStatement() {
 		return lastStatement;
 	}
 
@@ -137,19 +137,22 @@ public class ProgramState extends State {
 
 	public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
 		stackFrames.push(new ILStackFrame(f, args, trace));
-		
+		lastStatements.push(lastStatement);
 	}
 
 	public void popStackframe() {
 		if (!stackFrames.isEmpty()) {
 			stackFrames.pop();
 		}
+		if (!lastStatements.empty()) {
+			lastStatement = lastStatements.pop();
+		}
 	}
 	
 	public void resetStackframes() {
 		stackFrames.clear();
+		lastStatements.clear();
 	}
-	
 	
 	public Stack<ILStackFrame> getStackFrames() {
 		return stackFrames;

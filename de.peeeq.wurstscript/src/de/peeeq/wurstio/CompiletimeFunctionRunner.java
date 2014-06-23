@@ -12,6 +12,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -30,7 +31,6 @@ import de.peeeq.wurstscript.utils.Utils;
 public class CompiletimeFunctionRunner {
 
 	private final ImProg imProg;
-	private final File mapFile;
 	private ILInterpreter interpreter;
 	private WurstGui gui;
 	private FunctionFlag functionFlag;
@@ -41,12 +41,10 @@ public class CompiletimeFunctionRunner {
 	
 
 
-	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, WurstGui gui, FunctionFlag flag) {
+	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlag flag) {
 		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
-		this.mapFile = mapFile;
-		ProgramStateIO globalState = new ProgramStateIO(mapFile, gui);
-		globalState.setProg(imProg);
+		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg);
 		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());

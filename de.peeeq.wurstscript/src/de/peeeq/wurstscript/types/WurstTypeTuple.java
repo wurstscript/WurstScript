@@ -2,6 +2,9 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -20,12 +23,12 @@ public class WurstTypeTuple extends WurstType {
 
 
 	public WurstTypeTuple(TupleDef tupleDef) {
-		if (tupleDef == null) throw new IllegalArgumentException();
+		Preconditions.checkNotNull(tupleDef);
 		this.tupleDef = tupleDef;
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, @Nullable AstElement location) {
 		if (other instanceof WurstTypeTuple) {
 			WurstTypeTuple otherTuple = (WurstTypeTuple) other;
 			return tupleDef == otherTuple.tupleDef;

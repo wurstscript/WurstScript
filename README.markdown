@@ -92,6 +92,12 @@ The eclipse plugin can be started right from your current eclipse installation:
 - Open the site.xml file in the EclipseWurstPluginUpdateSite project.
 - Press "Build All"
 
+### Updating the version number
+
+- Change the version in `de.peeeq.wurstscript/version.properties`.
+- Run the ant file `de.peeeq.wurstscript/build-generate-mvn.xml`, target `updateversions`. 
+	This will update the version number in all the necessary files.
+
 
 Architecture Overview
 =====================

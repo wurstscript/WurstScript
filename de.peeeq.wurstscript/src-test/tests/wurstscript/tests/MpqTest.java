@@ -37,15 +37,14 @@ public class MpqTest {
 
 	@Test
 	public void test_extract() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		MpqEditor edit = MpqEditorFactory.getEditor();
-		File f = edit.extractFile(new File(TEST_W3X), "war3map.j");
-		// edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j",
-		// f);
-		Assert.assertTrue(f.exists());
-		f.delete();
-		// bnlub
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+			byte[] f = edit.extractFile("war3map.j");
+			// edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j",
+			// f);
+			Assert.assertTrue(f.length > 5);
+			// bnlub
+		}
 
 	}
 
@@ -69,21 +68,21 @@ public class MpqTest {
 
 	@Test
 	public void test_insert() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		MpqEditor edit = MpqEditorFactory.getEditor();
-		edit.insertFile(new File(TEST_W3X), "test.txt", new File(
-				"./testscripts/mpq/test.txt"));
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+			edit.insertFile("test.txt", Files.toByteArray(new File(
+					"./testscripts/mpq/test.txt")));
+		}
 		Assert.assertTrue(true);
 
 	}
 
 	@Test
 	public void test_delete() throws Exception {
-		MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
 		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		MpqEditor edit = MpqEditorFactory.getEditor();
-		edit.deleteFile(new File(TEST_W3X), "test.txt");
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+			edit.deleteFile("test.txt");
+		}
 		Assert.assertTrue(true);
 	}
 

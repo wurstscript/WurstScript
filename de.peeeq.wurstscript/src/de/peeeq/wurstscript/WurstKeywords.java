@@ -9,7 +9,8 @@ public class WurstKeywords {
 		"super", "enum", "switch", "case", "default", "typeId", "begin", "end",
 	// jurst keywords, maybe split the highlighters later...:	
 	     "library","endlibrary","scope","endscope","requires","uses","needs","struct","endstruct",
-	     "then","endif","loop","exithwhen","endloop","method","takes","endmethod","set","call","exitwhen"
+	     "then","endif","loop","exithwhen","endloop","method","takes","endmethod","set","call","exitwhen",
+	     "globals","endglobals","initializer","elseif"
 	};
 	
 	public static final String[] JASSTYPES = new String[] { 

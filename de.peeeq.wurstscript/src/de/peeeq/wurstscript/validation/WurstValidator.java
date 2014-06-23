@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -17,6 +19,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -28,10 +31,12 @@ import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
+import de.peeeq.wurstscript.ast.ExprEmpty;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMember;
+import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
@@ -70,6 +75,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.NativeType;
 import de.peeeq.wurstscript.ast.NoDefaultCase;
@@ -93,6 +99,7 @@ import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprResolved;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.VisibilityModifier;
 import de.peeeq.wurstscript.ast.VisibilityPrivate;
@@ -108,6 +115,7 @@ import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstDoc;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CheckHelper;
+import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -129,6 +137,7 @@ import de.peeeq.wurstscript.types.WurstTypeModule;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.WurstTypeTuple;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
@@ -155,25 +164,28 @@ public class WurstValidator {
 	private int functionCount;
 	private int visitedFunctions;
 	private Multimap<WScope	, WScope> calledFunctions = HashMultimap.create();
-	private AstElement lastElement = null;
+	private @Nullable AstElement lastElement = null;
 
 	public WurstValidator(WurstModel root) {
 		this.prog = root;
 	}
 
-	public void validate() {
+	public void validate(List<CompilationUnit> toCheck) {
 		try {
-			functionCount = countFunctions();
+			functionCount = countFunctions(); 
 			visitedFunctions = 0;
 	
 			prog.getErrorHandler().setProgress("Checking wurst types", ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
-			walkTree(prog);	
-			prog.getErrorHandler().setProgress("Searching cyclic dependencies", 0.55);
-			postChecks();
+			for (CompilationUnit cu : toCheck) {
+				walkTree(cu);	
+			}
+			prog.getErrorHandler().setProgress("Post checks", 0.55);
+			postChecks(toCheck);
 		} catch (RuntimeException e) {
 			WLogger.severe(e);
-			if (lastElement != null) {
-				lastElement.addError("Encountered compiler bug near element " + Utils.printElement(lastElement) + ":\n" +
+			AstElement le = lastElement;
+			if (le != null) {
+				le.addError("Encountered compiler bug near element " + Utils.printElement(le) + ":\n" +
 						Utils.printException(e));
 			} else {
 				// rethrow
@@ -184,23 +196,84 @@ public class WurstValidator {
 
 	/**
 	 * checks done after walking the tree
+	 * @param toCheck 
 	 */
-	private void postChecks() {
-		checkForCyclicFunctions();
+	private void postChecks(List<CompilationUnit> toCheck) {
+		checkUnusedImports(toCheck);
 	}
 
 	
 
-	private void checkForCyclicFunctions() {
-		Multimap<WScope, WScope> calledFunctionsTr = Utils.transientClosure(calledFunctions);
-		for (WScope s : calledFunctionsTr.keySet()) {
-			if (calledFunctionsTr.containsEntry(s, s)) {
-				if (!calledFunctions.containsEntry(s, s)) {
-					s.addError(Utils.printElement(s) + " has a cyclic dependency to itself.");
-				}
+	private void checkUnusedImports(List<CompilationUnit> toCheck) {
+		for (CompilationUnit cu : toCheck) {
+			for (WPackage p : cu.getPackages()) {
+				checkUnusedImports(p);
 			}
 		}
 	}
+
+	private void checkUnusedImports(WPackage p) {
+		Set<WPackage> unused = Sets.newLinkedHashSet();
+		// first assume all are unused
+		for (WImport imp : p.getImports()) {
+			if (!imp.getPackagename().equals("Wurst")) {
+				unused.add(imp.attrImportedPackage());
+			}
+		}
+		
+		removeUsed(unused, p.getElements());
+		
+		
+		for (WImport imp : p.getImports()) {
+			if (imp.attrImportedPackage() != null 
+				&& !imp.getIsPublic()
+				&& unused.contains(imp.attrImportedPackage()) ) {
+				imp.addWarning("The import " + imp.getPackagename() + " is never used directly.");
+			}
+		}
+	}
+
+	private void removeUsed(Set<WPackage> unused, AstElement e) {
+		for (int i=0; i<e.size(); i++) {
+			removeUsed(unused, e.get(i));
+		}
+		
+		if (e instanceof FuncRef) {
+			FuncRef fr = (FuncRef) e;
+			FunctionDefinition def = fr.attrFuncDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof NameRef) {
+			NameRef nr = (NameRef) e;
+			NameDef def = nr.attrNameDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof TypeRef) {
+			TypeRef t = (TypeRef) e;
+			TypeDef def = t.attrTypeDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+		if (e instanceof Expr) {
+			WurstType typ = ((Expr) e).attrTyp();
+			if (typ instanceof WurstTypeNamedScope) {
+				WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
+				NamedScope def = ns.getDef();
+				if (def != null) {
+					unused.remove(def.attrNearestPackage());
+				}
+			} else if (typ instanceof WurstTypeTuple) {
+				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
+				unused.remove(def.attrNearestPackage());
+			}
+		}
+	}
+
 	
 	private void walkTree(AstElement e) {
 		lastElement = e;
@@ -214,6 +287,7 @@ public class WurstValidator {
 	private void check(AstElement e) {
 		try {
 			if (e instanceof AstElementWithTypeParameters) checkTypeParameters((AstElementWithTypeParameters) e);
+			if (e instanceof AstElementWithName) checkName((AstElementWithName) e);
 			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
 			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
 			if (e instanceof ClassDef) checkConstructorsUnique((ClassDef) e);
@@ -223,12 +297,14 @@ public class WurstValidator {
 			if (e instanceof ConstructorDef) checkConstructorSuperCall((ConstructorDef) e);
 			if (e instanceof ExprBinary) visit((ExprBinary) e);
 			if (e instanceof ExprClosure) checkClosure((ExprClosure) e);
+			if (e instanceof ExprEmpty) checkExprEmpty((ExprEmpty)e);
 			if (e instanceof ExprIntVal) checkIntVal((ExprIntVal) e);
 			if (e instanceof ExprFuncRef) checkFuncRef((ExprFuncRef) e);
 			if (e instanceof ExprFunctionCall) checkBannedFunctions((ExprFunctionCall) e);
 			if (e instanceof ExprFunctionCall) visit((ExprFunctionCall) e);
 			if (e instanceof ExprMemberMethod) visit((ExprMemberMethod) e);
 			if (e instanceof ExprMemberVar) checkMemberVar((ExprMemberVar) e);
+			if (e instanceof ExprMemberArrayVar) checkMemberArrayVar((ExprMemberArrayVar) e);
 			if (e instanceof ExprNewObject) checkNewObj((ExprNewObject) e);
 			if (e instanceof ExprNewObject) visit((ExprNewObject) e);
 			if (e instanceof ExprNull) checkExprNull((ExprNull) e);
@@ -247,6 +323,7 @@ public class WurstValidator {
 			if (e instanceof Modifiers) visit((Modifiers) e);
 			if (e instanceof ModuleDef) visit((ModuleDef) e);
 			if (e instanceof NameDef) nameDefsMustNotBeNamedAfterJassNativeTypes((NameDef) e);
+			if (e instanceof NameDef) checkConfigOverride((NameDef)e);
 			if (e instanceof NameRef) checkImplicitParameter((NameRef) e);
 			if (e instanceof NameRef) checkNameRef((NameRef) e);
 			if (e instanceof StmtCall) checkCall((StmtCall) e); 
@@ -259,7 +336,6 @@ public class WurstValidator {
 			if (e instanceof SwitchStmt) checkSwitch((SwitchStmt) e);
 			if (e instanceof TypeExpr) checkTypeExpr((TypeExpr) e);
 			if (e instanceof TypeExprArray) chechCodeArrays((TypeExprArray) e);
-			if (e instanceof VarDef) checkTypenameAsVar((VarDef) e);
 			if (e instanceof VarDef) checkVarDef((VarDef) e);
 			if (e instanceof WImport) visit((WImport) e);
 			if (e instanceof WPackage) checkPackage((WPackage) e);
@@ -274,6 +350,119 @@ public class WurstValidator {
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
 		}
+	}
+
+	private void checkName(AstElementWithName e) {
+		String name = e.getName();
+		TypeDef def = e.lookupType(name, false);
+		
+		if (def != e && def instanceof NativeType) {
+			e.addError("The name '" + name + "' is already used as a native type in " + Utils.printPos(def.getSource()));
+		} else {
+			switch (name) {
+			case "int":
+			case "integer":
+			case "real":
+			case "code":
+			case "boolean":
+			case "string":
+			case "handle":
+				e.addError("The name '" + name + "' is a built-in type and cannot be used here.");
+			}
+		}
+	}
+
+	private void checkConfigOverride(NameDef e) {
+		if (!e.hasAnnotation("@config")) {
+			return;
+		}
+		PackageOrGlobal nearestPackage = e.attrNearestPackage();
+		if (!(nearestPackage instanceof WPackage)) {
+			e.addError("Annotation @config can only be used in packages.");
+			return;
+		}
+		WPackage configPackage = (WPackage) nearestPackage;
+		if (!configPackage.getName().endsWith(CofigOverridePackages.CONFIG_POSTFIX)) {
+			e.addError("Annotation @config can only be used in config packages (package name has to end with '_config').");
+			return;
+		}
+		
+		WPackage origPackage = CofigOverridePackages.getOriginalPackage(configPackage);
+		if (origPackage == null) {
+			return;
+		}
+		
+		if (e instanceof GlobalVarDef) {
+			GlobalVarDef v = (GlobalVarDef) e;
+			NameDef origVar = origPackage.getElements().lookupVarNoConfig(v.getName(), false);
+			if (origVar == null) {
+				e.addError("Could not find var " + v.getName() + " in configured package.");
+				return;
+			}
+			
+			if (!v.attrTyp().equalsType(origVar.attrTyp(), v)) {
+				e.addError("Configured variable must have type " + origVar.attrTyp() 
+						+ " but the found type is " + v.attrTyp() + ".");
+				return;
+			}
+			
+			if (!origVar.hasAnnotation("@configurable")) {
+				e.addWarning("The configured variable " + v.getName() + " is not marked with @configurable.\n" + 
+						"It is still possible to configure this var but it is not recommended.");
+			}
+			
+		} else if (e instanceof FuncDef) {
+			FuncDef funcDef = (FuncDef) e;
+			Collection<NameLink> funcs = origPackage.getElements().lookupFuncsNoConfig(funcDef.getName(), false);
+			FuncDef configuredFunc = null;
+			for (NameLink nameLink : funcs) {
+				if (nameLink.getNameDef() instanceof FuncDef) {
+					FuncDef f = (FuncDef) nameLink.getNameDef();
+					if (equalSignatures(funcDef, f)) {
+						configuredFunc = f;
+						break;
+					}
+				}
+			}
+			if (configuredFunc == null) {
+				funcDef.addError("Could not find a function " + funcDef.getName() + " with the same signature in the configured package.");
+			} else {
+				if (!configuredFunc.hasAnnotation("@configurable")) {
+					e.addWarning("The configured function " + funcDef.getName() + " is not marked with @configurable.\n" + 
+							"It is still possible to configure this function but it is not recommended.");
+				}
+			}
+			
+			
+		} else {
+			e.addError("Configuring " + Utils.printElement(e) + " is not supported by Wurst.");
+		}
+	}
+
+	private boolean equalSignatures(FuncDef f, FuncDef g) {
+		if (f.getParameters().size() != g.getParameters().size()) {
+			return false;
+		}
+		if (!f.getReturnTyp().attrTyp().equalsType(g.getReturnTyp().attrTyp(), f)) {
+			return false;
+		}
+		for (int i=0; i<f.getParameters().size(); i++) {
+			if (!f.getParameters().get(i).attrTyp().equalsType(g.getParameters().get(i).attrTyp(), f)) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+
+	private void checkExprEmpty(ExprEmpty e) {
+		e.addError("Incomplete expression...");
+		
+	}
+
+	private void checkMemberArrayVar(ExprMemberArrayVar e) {
+		// TODO Auto-generated method stub
+		
 	}
 
 	private void checkNameRef(NameRef e) {
@@ -294,8 +483,9 @@ public class WurstValidator {
 		if (e.isModuleUseTypeArg()) {
 			return;
 		}
-		if (e.attrTypeDef() instanceof TypeParamDef) { // references a type parameter
-			TypeParamDef tp = (TypeParamDef) e.attrTypeDef();
+		TypeDef typeDef = e.attrTypeDef();
+		if (typeDef instanceof TypeParamDef) { // references a type parameter
+			TypeParamDef tp = (TypeParamDef) typeDef;
 			if (tp.isStructureDefTypeParam()) { // typeParamDef is for structureDef
 				if (tp.attrNearestStructureDef() instanceof ModuleDef) {
 					// in modules we can also type-params in static contexts
@@ -328,6 +518,12 @@ public class WurstValidator {
 					+ "but at this position a " + e.attrExpectedTyp() + " is expected.");
 		}
 		e.attrCapturedVariables();
+		
+		if (e.getImplementation() instanceof ExprStatementsBlock) {
+			ExprStatementsBlock block = (ExprStatementsBlock) e.getImplementation();
+			new DataflowAnomalyAnalysis().execute(block);
+		}
+		
 	}
 
 	private void checkConstructorsUnique(ClassDef c) {
@@ -479,7 +675,7 @@ public class WurstValidator {
 		});
 	}
 
-	private void checkVarNotConstant(NameRef left, NameDef var) {
+	private void checkVarNotConstant(NameRef left, @Nullable NameDef var) {
 		if (var != null && var.attrIsConstant()) {
 			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
 		}
@@ -509,7 +705,7 @@ public class WurstValidator {
 		if (rightType instanceof WurstTypeVoid) {
 			if (pos.attrNearestPackage() instanceof WPackage) {
 				WPackage pack = (WPackage) pos.attrNearestPackage();
-				if (!pack.getName().equals("WurstREPL")) { // allow assigning nothing to a variable in the Repl
+				if (pack != null && !pack.getName().equals("WurstREPL")) { // allow assigning nothing to a variable in the Repl
 					pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
 				}
 			}
@@ -565,7 +761,7 @@ public class WurstValidator {
 	}
 
 	private boolean isValidVarnameStart(String varName) {
-		return Character.isLowerCase(varName.charAt(0))
+		return varName.length() > 0 && Character.isLowerCase(varName.charAt(0))
 				|| varName.startsWith("_");
 	}
 
@@ -615,8 +811,8 @@ public class WurstValidator {
 
 
 		if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
-			s.addError("Array variables must be static.\n" +
-					"Hint: use Lists for dynamic stuff.");
+//			s.addError("Array variables must be static.\n" +
+//					"Hint: use Lists for dynamic stuff.");
 		}
 	}
 
@@ -747,6 +943,10 @@ public class WurstValidator {
 							" from static context.");
 				}
 			}
+			if (calledFunc instanceof ExtensionFuncDef) {
+				stmtCall.addError("Extension function " + funcName + " must be called with an explicit receiver.\n"
+						+ "Try to write this."+funcName+"(...) .");
+			}
 		}
 
 		// special check for filter & condition:
@@ -762,6 +962,7 @@ public class WurstValidator {
 				}
 			}
 		}
+		
 	}
 
 	//	private void checkParams(AstElement where, List<Expr> args, FunctionDefinition calledFunc) {
@@ -1159,9 +1360,9 @@ public class WurstValidator {
 				public void case_GlobalVarDef(GlobalVarDef g) {
 					if (g.attrNearestClassOrModule() != null) {
 						check(VisibilityPrivate.class, VisibilityProtected.class,
-								ModStatic.class, ModConstant.class);
+								ModStatic.class, ModConstant.class, Annotation.class);
 					} else {
-						check(VisibilityPublic.class, ModConstant.class);
+						check(VisibilityPublic.class, ModConstant.class, Annotation.class);
 					}
 				}
 
@@ -1227,7 +1428,12 @@ public class WurstValidator {
 
 			});
 			if (error.length() > 0) {
-				e.addError(error.toString());
+				if (m.attrSource().getFile().endsWith(".jurst")) {
+					// for jurst only add a warning:
+					m.addWarning(error.toString());
+				} else {
+					m.addError(error.toString());
+				}
 			}
 		}
 	}
@@ -1750,14 +1956,6 @@ public class WurstValidator {
 		return false;
 	}
 
-	private void checkTypenameAsVar(VarDef v) {
-		TypeDef t = v.lookupType(v.getName(), false);
-		if (t != null) {
-			v.addError("Variable " + v.getName() + " defines the same name as " + Utils.printElementWithSource(t));
-		}
-
-	}
-
 	private void checkForDuplicateImports(WPackage p) {
 		Set<String> imports = Sets.newLinkedHashSet();
 		for (WImport imp : p.getImports()) {
@@ -1780,7 +1978,21 @@ public class WurstValidator {
 			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr) {
 				g.addError("Constant variable " + g.getName() + " needs an initial value.");
 			}
-			
+		}
+		
+		if (v.attrTyp() instanceof WurstTypeArray) {
+			WurstTypeArray wta = (WurstTypeArray) v.attrTyp();
+			if (wta.getDimensions() == 0) {
+				v.addError("0-dimensionals arrays are not possible");
+			} else if (wta.getDimensions() == 1) {
+				if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
+					v.addError("Sized arrays are only supported as class members.");
+				} else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
+					v.addError("Array members require a fixed size.");
+				}
+			} else {
+				v.addError("Multidimensional Arrays are not yet supported.");
+			}
 		}
 		
 	}

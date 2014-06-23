@@ -7,21 +7,28 @@ import com.google.common.io.Files;
 
 public class BackupController {
 	
-	File backupFolder;
-	int backupLimit;
+	private final File backupFolder;
+	private final int backupLimit;
 	
+	public BackupController() {
+		this(new File("./backups/"), 24);
+	}
+	
+	public BackupController(File backupFolder, int backupLimit) {
+		this.backupFolder = backupFolder;
+		if (backupLimit > 998) { backupLimit = 998; }
+		this.backupLimit = backupLimit;
+	}
+
 	/**
 	 * create a backup of the mapfile
 	 */
-	public void makeBackup(String mapFileName, int limit) throws Error, IOException {
+	public void makeBackup(String mapFileName) throws Error, IOException {
 		File mapFile = new File(mapFileName);
 		if (!mapFile.exists()) {
 			throw new Error("Mapfile " + mapFile + " does not exist.");
 		}
-		backupFolder = new File("./backups/");
 		backupFolder.mkdirs();
-		backupLimit = limit;
-		if (backupLimit > 998) { backupLimit = 998; }
 		WLogger.info(mapFileName);
 		String mapName = mapFileName.substring(mapFileName.lastIndexOf("\\")+1,mapFileName.lastIndexOf("."));
 		WLogger.info(mapName);

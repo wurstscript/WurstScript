@@ -22,6 +22,10 @@ public class WTSFile {
 			throw new Error(e);
 		}
 	}
+	
+	public static Map<Integer, String> parse(byte[] wts) {
+		return parse(new String(wts, Charsets.UTF_8));
+	}
 
 	public static Map<Integer, String> parse(String wts) {
 		Map<Integer, String> result = Maps.newLinkedHashMap();
@@ -30,17 +34,50 @@ public class WTSFile {
 				int id = sc.nextInt();
 				// TODO this pattern is not correct, but it should cover 99% of the cases M;D
 				// the handling of curly braces and comments is not really clear to me at the moment
-				Pattern stringPattern = Pattern.compile("\\{([\n\r]|[^}])*\\}");
-				String str = sc.findWithinHorizon(stringPattern, 0);
-				if (str == null) {
-					continue;
-				}
-				str = str.substring(1, str.length() - 2);
-				str = str.trim();
+				String str = extractNextWTSString(sc);
 				result.put(id, str);
+				WLogger.info("found: " + id + " -> " + str);
 			}
 		}
 		return result;
 	}
+
+	/** extracts the next string in curly braces*/
+	private static String extractNextWTSString(Scanner sc) {
+		// temoporary change delimiter to read single chars
+		Pattern delimiter = sc.delimiter();
+		sc.useDelimiter("");
+		try {
+			StringBuilder result = new StringBuilder();
+			
+			for (;;) {
+				String n = sc.next();
+				if (n == null) {
+					return null;
+				}
+				if (n.equals("{")) {
+					break;
+				}
+			}
+			
+			for (;;) {
+				String n = sc.next();
+				if (n == null) {
+					return null;
+				}
+				if (n.equals("}")) {
+					break;
+				}
+				result.append(n);
+			}
+			// use substring to remove \r\n at beginning and end
+			return result.substring(2, result.length()-2);
+		} finally {
+			// revert to old delimiter
+			sc.useDelimiter(delimiter);
+		}
+	}
+
+	
 
 }

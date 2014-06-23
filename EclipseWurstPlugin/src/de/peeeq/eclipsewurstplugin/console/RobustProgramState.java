@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 
 /**
@@ -25,8 +26,8 @@ public class RobustProgramState extends ProgramState {
 	// (varname, line) -> (index -> value))
 	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 	
-	public RobustProgramState(File mapFile, WurstGui gui) {
-		super(mapFile, gui);
+	public RobustProgramState(File mapFile, WurstGui gui, ImProg prog) {
+		super(gui, prog);
 	}
 	
 	

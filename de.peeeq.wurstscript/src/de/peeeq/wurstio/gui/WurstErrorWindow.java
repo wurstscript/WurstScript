@@ -18,7 +18,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.DefaultListModel;
@@ -51,7 +50,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     private javax.swing.JTextPane codeArea;
     private javax.swing.JLabel currentStatus;
     private javax.swing.JTextArea errorDetailsPanel;
-    private DefaultListModel errorListModel;
+    private DefaultListModel<CompileError> errorListModel;
 //    private javax.swing.JList errorList;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
@@ -59,7 +58,6 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     private javax.swing.JButton aboutButton;
     
     private String currentFile = "";
-    private ArrayList<Integer> currentFileLineList;
    
     public About ab;
     
@@ -113,8 +111,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     private void initComponents() {
     	currentStatus = new javax.swing.JLabel();
         jScrollPane1 = new javax.swing.JScrollPane();
-        errorListModel =  new DefaultListModel();
-		final JList errorList = new JList( errorListModel);
+        errorListModel =  new DefaultListModel<>();
+		final JList<CompileError> errorList = new JList<>( errorListModel);
         closeButton = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
         codeArea = new javax.swing.JTextPane();
@@ -232,8 +230,9 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 		try {
 			if (!currentFile.equals(fileName)) {
 				currentFile = fileName;
-				Reader fr = FileReading.getFileReader(new File(fileName));
-				codeArea.read(fr, fileName);
+				try (Reader fr = FileReading.getFileReader(new File(fileName))) {
+					codeArea.read(fr, fileName);
+				}
 			}
 
 			String text = codeArea.getText();

@@ -22,8 +22,8 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprIntVal;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprMemberVarDot;
+import de.peeeq.wurstscript.ast.ExprStatementsBlock;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
@@ -157,6 +157,11 @@ public class SyntacticSugar {
 
 			@Override
 			public void visit(OnDestroyDef f) {
+				addEnd(f);
+			}
+			
+			@Override
+			public void visit(ExprStatementsBlock f) {
 				addEnd(f);
 			}
 			

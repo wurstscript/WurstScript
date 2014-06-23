@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
@@ -163,11 +165,15 @@ public class SimpleRewrites {
 		
 	}
 
-	private String floatToStringWith4decimalDigits(float resultVal) {
+	private static String floatToStringWith4decimalDigits(float resultVal) {
 		DecimalFormat format = new DecimalFormat();
-		// use the localized pattern, so that it does not randomly replace a dot by comma on German PCs
+		// use a fixed locale, so that it does not randomly replace a dot by comma on German PCs
 		// hope this works
-		format.applyLocalizedPattern("#.####");
+		format.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
+		format.setMinimumIntegerDigits(1);
+	    format.setMaximumFractionDigits(4);
+	    format.setMinimumFractionDigits(0);
+	    format.setGroupingUsed(false);
 		String s = format.format(resultVal);
 		return s;
 	}

@@ -34,6 +34,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
+import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {
@@ -130,6 +131,12 @@ public class ExprTranslation {
 	public static JassExpr translate(ImClassRelatedExpr e,
 			ImToJassTranslator translator) {
 		throw new RuntimeException("Eliminate method calls before translating to jass");
+	}
+
+	public static JassExpr translate(
+			ImVarArrayMultiAccess imVarArrayMultiAccess,
+			ImToJassTranslator translator) {
+		throw new Error("not implemented");
 	}
 
 }

@@ -5,7 +5,6 @@ import Colors
 import Vectors
 import Angle
 import LinkedList
-import TypeCasting
 /********************************************************
  * * * * * * * * * * MultiFx * * * * * * * * * * * * * * * * *
  * An MultiFx-Object is basically just a moveable effect.  	*

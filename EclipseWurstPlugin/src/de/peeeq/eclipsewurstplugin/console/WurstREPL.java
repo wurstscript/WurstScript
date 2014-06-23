@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -44,7 +45,6 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.mpq.WinMpq;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -108,6 +108,7 @@ public class WurstREPL {
 	private Map<String, String> currentState;
 	private Set<String> importedPackages;
 	private Random rand = new Random();
+	private long lastMeasureTime = 0;
 	
 	private class ReplGui extends WurstGuiLogger {
 
@@ -134,7 +135,7 @@ public class WurstREPL {
 	private void init() {
 		currentState = Maps.newLinkedHashMap();
 		importedPackages = Sets.newLinkedHashSet();
-		RobustProgramState globalState = new RobustProgramState(null, gui);
+		RobustProgramState globalState = new RobustProgramState(null, gui, imProg);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());
@@ -249,7 +250,7 @@ public class WurstREPL {
 				// if there was an error, check if there is a problem in typechecking:
 				
 				try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
-					modelManager.typeCheckModel(gui, false, false);
+					modelManager.typeCheckModelPartial(gui, false, ImmutableList.of(cu));
 				} catch (CompileError err) {
 					handleCompileError(err);
 					return;
@@ -377,12 +378,12 @@ public class WurstREPL {
 		
 	}
 
-	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) {
+	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) { 
+		// TODO use normal compiler for this, avoid code duplication
 		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
 		try {
 			String wc3Path = WurstPlugin.config().wc3Path();
 			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
-			File mpqEditorExe = new File(WurstPlugin.config().mpqEditorPath());
 
 
 			if (!map.exists()) {
@@ -392,7 +393,7 @@ public class WurstREPL {
 			
 			// now copy the map so that we do not corrupt the original
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes 
-			String testMapName = "wurstTestMap.w3x";
+			String testMapName = "wurstTestMap1.w3x";
 			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
 			if (testMap.exists()) {
 				testMap.delete();
@@ -408,7 +409,7 @@ public class WurstREPL {
 			IFile compiledScript = compileScript(compileArgs, testMap);
 			RunArgs runArgs = new RunArgs(compileArgs);
 
-
+			println("preparing testmap ... ");
 			monitor.beginTask("Preparing testmap", 100);
 			
 			
@@ -418,15 +419,15 @@ public class WurstREPL {
 			
 			// then inject the script into the map
 			File outputMapscript = new File(compiledScript.getRawLocationURI());
-			MpqEditorFactory.setFilepath(mpqEditorExe.getAbsolutePath());
-			MpqEditor mpqEditor = MpqEditorFactory.getEditor();
-			//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
-			mpqEditor.deleteFile(testMap, "war3map.j");
-			mpqEditor.insertFile(testMap, "war3map.j", outputMapscript);
-			mpqEditor.compactArchive(testMap);
+			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+				//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
+				mpqEditor.deleteFile("war3map.j");
+				mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
+			}
 
 			
 
+			println("Starting wc3 ... ");
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
 			
 			// now start the map
@@ -434,7 +435,7 @@ public class WurstREPL {
 					frozenThroneExe.getAbsolutePath(),
 					"-window",
 					"-loadfile",
-					"Maps/"+ testMapName);
+					"Maps" + File.separator + testMapName);
 			
 			if (!System.getProperty("os.name").startsWith("Windows")) {
 				// run with wine
@@ -520,7 +521,7 @@ public class WurstREPL {
 		try {
 			ArrayList<String> runArgs = getArgs(args);
 			compileScript(runArgs, null);
-		} catch (CoreException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			print(e.getMessage()+ "\n");
 		}
@@ -542,20 +543,32 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private IFile compileScript(List<String> compileArgs, File mapFile) throws CoreException {
+	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
 		if (compileArgs.contains("-clean")) {
+			println("Cleaning project ... ");
 			cleanProject();
 			compileArgs.remove("-clean");
 		}
 		gui.clearErrors();
 		IProject project = modelManager.getNature().getProject();
-		print("compiling project "+project.getName()+", please wait ...\n");
+		println("building project "+project.getName()+", please wait ...");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+		
+		
 		RunArgs runArgs = new RunArgs(compileArgs);
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, runArgs);
+		
+		MpqEditor mpqEditor = null;
+		if (mapFile != null) {
+			mpqEditor = MpqEditorFactory.getEditor(mapFile);
+		}
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
 		
+		// reset time
+		getTimeSinceLastMeasureString();
+		
+		print("checking program ... ");
 		compiler.checkProg(model);
 		
 		if (gui.getErrorCount() > 0) {
@@ -563,6 +576,8 @@ public class WurstREPL {
 			return null;
 		}
 		
+		println(getTimeSinceLastMeasureString());
+		print("translating program ... ");
 		compiler.translateProgToIm(model);
 
 		if (gui.getErrorCount() > 0) {
@@ -572,17 +587,22 @@ public class WurstREPL {
 		
 		
 		if (runArgs.runCompiletimeFunctions()) {
+			println(getTimeSinceLastMeasureString());
+			print("running compiletime functions ... ");
 			// compile & inject object-editor data
 			// TODO run optimizations later?
 			gui.sendProgress("Running compiletime functions", 0.91);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), gui, FunctionFlag.IS_COMPILETIME);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlag.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(out));
 			ctr.run();
 		}
 		
-		
+		println(getTimeSinceLastMeasureString());
+		print("translating program to jass ... ");
 		compiler.checkAndTranslate(model);
+		println(getTimeSinceLastMeasureString());
+		
 		JassProg jassProg = compiler.getProg();
 		if (jassProg == null) {
 			print("Could not compile project\n");
@@ -590,8 +610,8 @@ public class WurstREPL {
 		}
 
 
-		JassPrinter printer = new JassPrinter(true);
-		String mapScript = printer.printProg(jassProg);
+		JassPrinter printer = new JassPrinter(true, jassProg);
+		String mapScript = printer.printProg();
 
 		IFile f = project.getFile("compiled.j.txt");
 		if (f.exists()) {
@@ -602,6 +622,10 @@ public class WurstREPL {
 		f.create(source, true, null);
 		
 		print("Output created in " + f.getFullPath() + "\n");
+		if (mpqEditor != null) {
+			mpqEditor.close();
+		}
+		
 		return f;
 	}
 
@@ -642,7 +666,7 @@ public class WurstREPL {
 	private ImProg translateProg() {
 		gui.clearErrors();
 		WurstModel model = modelManager.getModel();
-		modelManager.typeCheckModel(gui, false, false);
+		modelManager.typeCheckModel(gui, false);
 		if (gui.getErrorCount() > 0) {
 			print(gui.getErrors() + "\n");
 			return null;
@@ -736,6 +760,17 @@ public class WurstREPL {
 	public void setEditorCompilationUnit(CompilationUnit editorCu) {
 		this.editorCu = editorCu;
 		
+	}
+	
+	private long getTimeSinceLastMeasure() {
+		long t = System.currentTimeMillis();
+		long delta = t - lastMeasureTime;
+		lastMeasureTime = t;
+		return delta;
+	}
+	
+	private String getTimeSinceLastMeasureString() {
+		return getTimeSinceLastMeasure() + "ms";
 	}
 	
 }

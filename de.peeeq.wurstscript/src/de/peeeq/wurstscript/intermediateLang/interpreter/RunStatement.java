@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
+import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstMultiArray;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImError;
@@ -14,6 +16,7 @@ import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImSetArray;
+import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -92,13 +95,46 @@ public class RunStatement {
 		ILconst right = s.getRight().evaluate(globalState, localState);
 		if (v.isGlobal()) {
 			ILconstTuple oldVal = (ILconstTuple) globalState.getArrayVal(v, index.getVal());
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			globalState.setArrayVal(v, index.getVal(), newVal); 
 		} else {
 			ILconstTuple oldVal = (ILconstTuple) localState.getArrayVal(v, index.getVal());
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			localState.setArrayVal(v, index.getVal(), newVal);
 		}
+	}
+	
+	public static void run(ImSetArrayMulti s, ProgramState globalState, LocalState localState) {
+		ImVar v = s.getLeft();
+		int[] indices = new int[s.getIndices().size()];
+		
+		for (int i=0; i<indices.length; i++) {
+			ILconstInt index = (ILconstInt) s.getIndices().get(i).evaluate(globalState, localState);
+			indices[i] = index.getVal();
+		}
+		IntTuple indicesT = IntTuple.of(indices);
+		ILconst right = s.getRight().evaluate(globalState, localState);
+		ILconstMultiArray ar;
+		if (v.isGlobal()) {
+			ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		} else {
+			ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
+			if (ar == null) {
+				ar = new ILconstMultiArray();
+				globalState.setArrayVal(v, indicesT.head(), ar);
+			}
+		}
+		ar.set(indicesT.tail(), right);
 	}
 
 	public static void run(ImSetTuple s, ProgramState globalState, LocalState localState) {
@@ -106,10 +142,16 @@ public class RunStatement {
 		ILconst right = s.getRight().evaluate(globalState, localState);
 		if (v.isGlobal()) {
 			ILconstTuple oldVal = (ILconstTuple) globalState.getVal(v);
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			globalState.setVal(v, newVal); 
 		} else {
 			ILconstTuple oldVal = (ILconstTuple) localState.getVal(v);
+			if (oldVal == null) {
+				throw new Error("Tuple not initialized");
+			}
 			ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
 			localState.setVal(v, newVal);
 		}
@@ -128,5 +170,9 @@ public class RunStatement {
 		ILconstString msg = (ILconstString) s.getMessage().evaluate(globalState, localState);
 		throw new DebugPrintError(msg.getVal());
 	}
+
+	
+
+
 
 }

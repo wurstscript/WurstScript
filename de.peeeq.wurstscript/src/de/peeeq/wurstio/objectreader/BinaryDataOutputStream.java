@@ -15,6 +15,7 @@ public class BinaryDataOutputStream implements Closeable {
 	private BufferedOutputStream out;
 	private boolean littleEndian;
 
+	@SuppressWarnings("resource")
 	public BinaryDataOutputStream(File file, boolean littleEndian) throws FileNotFoundException {
 		this(new FileOutputStream(file), littleEndian);
 	}
