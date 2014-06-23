@@ -173,6 +173,24 @@ function ubersplatFromIndex(int index) returns ubersplat
 function ubersplatToIndex(ubersplat object) returns int
 	return object.getHandleId()
 	
+function stringToIndex(string s) returns int
+	int i = StringHash(s)
+	typecastdata.saveString(i, s)
+	typecastdata.saveInt(i, typecastdata.loadInt(i) + 1)
+	return i
+	
+function stringFromIndex(int i) returns string
+	string s = typecastdata.loadString(i)
+	int c = typecastdata.loadInt(i)
+	if c - 1 <= 0
+		typecastdata.removeInt(i)
+		typecastdata.removeString(i)
+	else
+		typecastdata.saveInt(i, c - 1)		
+	return s
+	
+
+	
 function booleanToIndex(boolean u) returns int
 	if u
 		return 1
