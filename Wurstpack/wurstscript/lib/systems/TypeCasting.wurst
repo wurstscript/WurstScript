@@ -189,8 +189,6 @@ function stringFromIndex(int i) returns string
 		typecastdata.saveInt(i, c - 1)		
 	return s
 	
-
-	
 function booleanToIndex(boolean u) returns int
 	if u
 		return 1
