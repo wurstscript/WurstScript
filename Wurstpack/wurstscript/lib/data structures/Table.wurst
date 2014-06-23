@@ -2,17 +2,6 @@ package Table
 import NoWurst
 import Hashtable
 
-class A
-	B b
-	
-	construct()
-		b = new B()
-	
-class B
-	A a
-	
-	
-
 public class Table
 	private static hashtable ht = InitHashtable()
 	
@@ -51,6 +40,9 @@ public class Table
 	
 	function saveString( int parentKey, string value )
 		ht.saveString(this castTo int, parentKey, value)
+		
+	function removeString(int parentKey)
+		ht.removeString(this castTo int, parentKey)
 
 	function hasReal( int parentKey ) returns boolean
 		return ht.hasReal(this castTo int, parentKey)
