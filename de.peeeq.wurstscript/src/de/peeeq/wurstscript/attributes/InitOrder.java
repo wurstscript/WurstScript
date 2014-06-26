@@ -73,6 +73,10 @@ public class InitOrder {
 			if (imported == null || i.getIsInitLater()) {
 				continue;
 			}
+			if (imported == p) {
+				// import self is handled elsewhere
+				continue;
+			}
 			
 			if (imported == callStack.get(0)) {
 				String packagesMsg = Utils.join(toStringArray(callStack), " -> ");
@@ -80,7 +84,7 @@ public class InitOrder {
 				String msg = "Cyclic init dependency between packages: " + packagesMsg + " -> " + imported.getName() + 
 						"\nChange some imports to 'initlater' imports to avoid this problem.";
 				for (WImport imp : imported.getImports()) {
-					if (imp.attrImportedPackage() == callStack.get(1)) {
+					if (callStack.size() > 1 && imp.attrImportedPackage() == callStack.get(1)) {
 						imp.addError(msg);
 						return;
 					}

@@ -327,5 +327,21 @@ public class PackageTests extends WurstScriptTest {
 				"	class A",
 				"endpackage");
 	}
+	
+	@Test
+	public void import_self1() {
+		testAssertErrorsLines(false, "Packages cannot import themselves",  
+				"package A", 
+				"	import A",
+				"endpackage");
+	}
+	
+	@Test
+	public void import_self2() {
+		testAssertErrorsLines(false, "Packages cannot import themselves",  
+				"package A",
+				"	import initlater A",
+				"endpackage");
+	}
 
 }
