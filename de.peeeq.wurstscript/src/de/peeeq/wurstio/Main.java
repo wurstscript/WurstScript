@@ -117,7 +117,8 @@ public class Main {
 						if (mapScript != null) {
 							gui.sendProgress("Writing to map", 0.99);
 							mpqEditor.deleteFile("war3map.j");
-							mpqEditor.insertFile("war3map.j", mapScript.toString().getBytes());
+							byte[] war3map = mapScript.toString().getBytes(Charsets.UTF_8);
+							mpqEditor.insertFile("war3map.j", war3map);
 						}
 					}
 				} else {

@@ -29,6 +29,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.console.IOConsoleOutputStream;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -617,7 +618,7 @@ public class WurstREPL {
 		if (f.exists()) {
 			f.delete(true, null);
 		}
-		InputStream source = new ByteArrayInputStream(mapScript.getBytes());
+		InputStream source = new ByteArrayInputStream(mapScript.getBytes(Charsets.UTF_8));
 
 		f.create(source, true, null);
 		
