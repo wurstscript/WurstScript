@@ -77,7 +77,6 @@ init
 		..setCollisionSize(0.0)
 		..setRace(Race.Commoner)
 		..setFoodCost(0)
-		..setArmorType(ArmorType.Divine)
 		..setIconGameInterface("ReplaceableTextures\\CommandButtons\\BTNtemp.blp")
 		..setSpeedBase(522)
 		..setModelFile("dummy.mdl")
