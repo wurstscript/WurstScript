@@ -536,7 +536,7 @@ public class WurstValidator {
 
 	private void checkIfNoEffectAssignment(StmtSet s) {
 		if (refersToSameVar(s.getUpdatedExpr(), s.getRight())) {
-			s.addWarning("This expression probably has no effect.");
+			s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef()) + "  probably has no effect.");
 		}
 		
 	}
