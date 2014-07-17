@@ -11,7 +11,7 @@
 	<property name="antlr" location="./tools/antlr-3.4-complete-no-antlrv2.jar" />
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="./tools/parseq.jar" />
-	<property name="antlr4" location="./tools/antlr-4.2-complete.jar" />
+	<property name="antlr4" location="./tools/antlr-4.4-complete.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
 	<property name="antlr4wurstgrammar" location="./parserspec/Wurst.g4" />
