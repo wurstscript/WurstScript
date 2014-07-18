@@ -50,6 +50,11 @@ public class Scanners {
 
 		
 	}
+	/**
+	 * 
+	 * @author Frotty
+	 *
+	 */
 	public static class MultiCommentScanner extends RuleBasedScanner implements WurstScanner {
 		public MultiCommentScanner(){
 			IPreferenceStore store = UtilityFunctions.getDefaultPreferenceStore();

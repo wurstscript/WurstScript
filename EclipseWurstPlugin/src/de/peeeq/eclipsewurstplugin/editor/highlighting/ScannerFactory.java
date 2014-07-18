@@ -38,7 +38,7 @@ public class ScannerFactory {
 	}
 
 	public ITokenScanner hotDocScanner() {
-		return new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_COMMENT));
+		return new SingleTokenScanner(getStyle(WurstConstants.SYNTAXCOLOR_HOTDOC));
 	}
 
 	public ITokenScanner multilineCommentScanner() {

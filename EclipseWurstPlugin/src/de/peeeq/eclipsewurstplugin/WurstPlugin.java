@@ -2,7 +2,7 @@ package de.peeeq.eclipsewurstplugin;
 
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_CONSTRUCTOR;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_DATATYPE;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FIELD;
@@ -173,6 +173,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_STRING,      SYNTAXCOLOR_RGB_STRING);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_ANNOTATION,  SYNTAXCOLOR_RGB_ANNOTATION);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_COMMENT,     SYNTAXCOLOR_RGB_COMMENT);
+		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_HOTDOC,      SYNTAXCOLOR_RGB_HOTDOC);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_FUNCTION,    SYNTAXCOLOR_RGB_FUNCTION);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_DATATYPE,    SYNTAXCOLOR_RGB_DATATYPE);
 		setDefaultValue(SYNTAXCOLOR_COLOR + SYNTAXCOLOR_VAR,         SYNTAXCOLOR_RGB_VAR        );
@@ -187,6 +188,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_COMMENT,    false);
+		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_HOTDOC,    false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_DATATYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_BOLD + SYNTAXCOLOR_VAR,        false);
@@ -200,6 +202,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_COMMENT,    false);
+		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_HOTDOC,    false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_FUNCTION,   true);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_DATATYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_ITALIC + SYNTAXCOLOR_VAR,        false);
@@ -213,6 +216,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_COMMENT,    false);
+		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_HOTDOC,    false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_DATATYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_UNDERLINE + SYNTAXCOLOR_VAR,        false);
@@ -226,6 +230,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_STRING,     false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_ANNOTATION, false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_COMMENT,    false);
+		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_HOTDOC,    false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_FUNCTION,   false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_DATATYPE,   false);
 		setDefaultValue(SYNTAXCOLOR_STRIKETHROUGH + SYNTAXCOLOR_VAR,        false);

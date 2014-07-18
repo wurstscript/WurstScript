@@ -36,6 +36,7 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 	
 	private Token keywordToken;
 	private Token commentToken;
+	private Token hotdocToken;
 	private Token stringToken;
 	private Token annotationToken;
 	private Token jasstypeToken;
@@ -98,6 +99,7 @@ public class SimpleCodeScanner extends RuleBasedScanner implements WurstScanner 
 		jasstypeToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_JASSTYPE);
 		keywordToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_KEYWORD);
 		commentToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_COMMENT);
+		hotdocToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_HOTDOC);
 		stringToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_STRING);
 		annotationToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_ANNOTATION);
 		identifierToken = makeToken(preferencestore, WurstConstants.SYNTAXCOLOR_TEXT);

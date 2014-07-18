@@ -24,6 +24,7 @@ public class WurstConstants {
 	public static final String SYNTAXCOLOR_STRING      = "String";
 	public static final String SYNTAXCOLOR_ANNOTATION  = "Annotation";
 	public static final String SYNTAXCOLOR_COMMENT     = "Comment";
+	public static final String SYNTAXCOLOR_HOTDOC      = "Hotdoc";
 	public static final String SYNTAXCOLOR_FUNCTION    = "Function";
 	public static final String SYNTAXCOLOR_DATATYPE    = "Datatype";
 	public static final String SYNTAXCOLOR_VAR         = "Var";
@@ -42,6 +43,7 @@ public class WurstConstants {
 	public static final RGB SYNTAXCOLOR_RGB_STRING       = new RGB(42, 0, 255);
 	public static final RGB SYNTAXCOLOR_RGB_ANNOTATION   = new RGB(100, 100, 100);
 	public static final RGB SYNTAXCOLOR_RGB_COMMENT      = new RGB(63, 127, 95);
+	public static final RGB SYNTAXCOLOR_RGB_HOTDOC       = new RGB(115, 146, 225);
 	public static final RGB SYNTAXCOLOR_RGB_FUNCTION     = COLOR_BLACK;
 	public static final RGB SYNTAXCOLOR_RGB_DATATYPE     = new RGB(64, 64, 64);
 	public static final RGB SYNTAXCOLOR_RGB_VAR          = COLOR_BLACK;
@@ -49,7 +51,6 @@ public class WurstConstants {
 	public static final RGB SYNTAXCOLOR_RGB_FIELD        = new RGB(0, 0, 128); 
 	public static final RGB SYNTAXCOLOR_RGB_INTERFACE    = SYNTAXCOLOR_RGB_FIELD;          
 	public static final RGB SYNTAXCOLOR_RGB_CONSTRUCTOR  = COLOR_BLACK;
-
 	// config
 	public static final String WURST_AUTOCOMPLETION_DELAY = "WURST_AUTOCOMPLETION_DELAY";
 	public static final String WURST_ENABLE_AUTOCOMPLETE = "WURST_ENABLE_AUTOCOMPLETE";
