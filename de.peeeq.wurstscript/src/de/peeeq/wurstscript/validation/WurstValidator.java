@@ -17,103 +17,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithName;
-import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.CyclicDependencyError;
-import de.peeeq.wurstscript.ast.EnumDef;
-import de.peeeq.wurstscript.ast.EnumMember;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprBinary;
-import de.peeeq.wurstscript.ast.ExprClosure;
-import de.peeeq.wurstscript.ast.ExprDestroy;
-import de.peeeq.wurstscript.ast.ExprEmpty;
-import de.peeeq.wurstscript.ast.ExprFuncRef;
-import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprMember;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVarDot;
-import de.peeeq.wurstscript.ast.ExprMemberArrayVarDotDot;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
-import de.peeeq.wurstscript.ast.ExprMemberVarDot;
-import de.peeeq.wurstscript.ast.ExprMemberVarDotDot;
-import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.ExprNull;
-import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.ExprStringVal;
-import de.peeeq.wurstscript.ast.ExprThis;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
-import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FuncRef;
-import de.peeeq.wurstscript.ast.FunctionCall;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.FunctionImplementation;
-import de.peeeq.wurstscript.ast.FunctionLike;
-import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
-import de.peeeq.wurstscript.ast.GlobalVarDef;
-import de.peeeq.wurstscript.ast.HasModifier;
-import de.peeeq.wurstscript.ast.HasTypeArgs;
-import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.ModAbstract;
-import de.peeeq.wurstscript.ast.ModConstant;
-import de.peeeq.wurstscript.ast.ModOverride;
-import de.peeeq.wurstscript.ast.ModStatic;
-import de.peeeq.wurstscript.ast.Modifier;
-import de.peeeq.wurstscript.ast.Modifiers;
-import de.peeeq.wurstscript.ast.ModuleDef;
-import de.peeeq.wurstscript.ast.ModuleInstanciation;
-import de.peeeq.wurstscript.ast.ModuleUse;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NamedScope;
-import de.peeeq.wurstscript.ast.NativeFunc;
-import de.peeeq.wurstscript.ast.NativeType;
-import de.peeeq.wurstscript.ast.NoDefaultCase;
-import de.peeeq.wurstscript.ast.NoExpr;
-import de.peeeq.wurstscript.ast.NoTypeExpr;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.StmtCall;
-import de.peeeq.wurstscript.ast.StmtForRange;
-import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.StmtWhile;
-import de.peeeq.wurstscript.ast.StructureDef;
-import de.peeeq.wurstscript.ast.SwitchCase;
-import de.peeeq.wurstscript.ast.SwitchStmt;
-import de.peeeq.wurstscript.ast.TranslatedToImFunction;
-import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprArray;
-import de.peeeq.wurstscript.ast.TypeExprResolved;
-import de.peeeq.wurstscript.ast.TypeExprSimple;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.TypeRef;
-import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.VisibilityModifier;
-import de.peeeq.wurstscript.ast.VisibilityPrivate;
-import de.peeeq.wurstscript.ast.VisibilityProtected;
-import de.peeeq.wurstscript.ast.VisibilityPublic;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
-import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.ast.WStatement;
-import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.ast.WurstDoc;
-import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -626,7 +530,43 @@ public class WurstValidator {
 		checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
 
 		checkIfAssigningToConstant(s.getUpdatedExpr());
+		
+		checkIfNoEffectAssignment(s);
+	}
 
+	private void checkIfNoEffectAssignment(StmtSet s) {
+		if (refersToSameVar(s.getUpdatedExpr(), s.getRight())) {
+			s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef()) + "  probably has no effect.");
+		}
+		
+	}
+
+	private boolean refersToSameVar(OptExpr a, OptExpr b) {
+		if (a instanceof NoExpr && b instanceof NoExpr) {
+			return true;
+		}
+		if (a instanceof ExprThis && b instanceof ExprThis) {
+			return true;
+		}
+		if (a instanceof NameRef && b instanceof NameRef) {
+			NameRef va = (NameRef) a;
+			NameRef vb = (NameRef) b;
+			if (va.attrNameDef() == vb.attrNameDef()
+					&& refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
+				if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
+					AstElementWithIndexes vai = (AstElementWithIndexes) va;
+					AstElementWithIndexes vbi = (AstElementWithIndexes) vb;
+					
+					for (int i=0; i<vai.getIndexes().size() && i <vbi.getIndexes().size(); i++) {
+						if (!refersToSameVar(vai.getIndexes().get(i), vbi.getIndexes().get(i))) {
+							return false;
+						}
+					}
+				}
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void checkIfAssigningToConstant(final NameRef left) {

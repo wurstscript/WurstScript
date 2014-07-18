@@ -549,7 +549,7 @@ NL: [\r\n]+;
 ID: [a-zA-Z_][a-zA-Z0-9_]* ;
 ANNOTATION: '@' [a-zA-Z0-9_]+;
 
-STRING: '"' ( EscapeSequence | ~('\\'|'"') )* '"';
+STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') )* '"';
 REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
 INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
 

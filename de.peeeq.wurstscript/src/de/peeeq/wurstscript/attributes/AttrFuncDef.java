@@ -114,7 +114,7 @@ public class AttrFuncDef {
 
 	private static @Nullable FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
 		String funcName = op.getOverloadingFuncName();
-		if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
+		if (funcName == null || nativeOperator(op, left.attrTyp(), right.attrTyp(), left)) {
 			return null;
 		}
 		return searchMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
@@ -125,15 +125,16 @@ public class AttrFuncDef {
 	/**
 	 * checks if operator is a native operator like for 1+2
 	 * TODO also check which operator is used?
+	 * @param op 
 	 * @param term 
 	 */
-	private static boolean nativeOperator(WurstType leftType, WurstType rightType, AstElement term) {
+	private static boolean nativeOperator(WurstOperator op, WurstType leftType, WurstType rightType, AstElement term) {
 		return
 			// numeric
 			((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term)) 
 					&& (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)))
 			// strings
-			|| (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
+			|| (op == WurstOperator.PLUS && leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
 	}
 
 
