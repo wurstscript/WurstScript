@@ -14,7 +14,7 @@ public class WurstKeywords {
 	};
 	
 	public static final String[] JASSTYPES = new String[] { 
-		"int", "integer", "real", "code", "boolean", "string",
+		"int", "integer", "real", "code", "boolean", "string", "boolexpr",
 		"agent",  "event",  "player",  "widget",  "unit",  "destructable", 
 		 "item",  "ability",  "buff",  "force",  "group", 
 		 "trigger",  "triggercondition",  "triggeraction",  "timer",  "location", 
