@@ -36,6 +36,7 @@ public class WurstSyntaxColoring extends PreferencePage implements IWorkbenchPre
 			SYNTAXCOLOR_STRING, 
 			SYNTAXCOLOR_ANNOTATION,
 			SYNTAXCOLOR_COMMENT,
+			SYNTAXCOLOR_HOTDOC,
 			SYNTAXCOLOR_JASSTYPE,
 			SYNTAXCOLOR_TEXT,			
 	};
