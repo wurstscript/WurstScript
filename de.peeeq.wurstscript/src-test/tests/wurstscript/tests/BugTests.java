@@ -662,4 +662,16 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void underscores_in_name() {
+		testAssertOkLines(false,  
+				"package test",
+				"native print(string msg)",
+				"init",
+				"	var _test_ = \"Hello\"",
+				"	print(_test_)",
+				"endpackage"
+				);
+	}
+	
 }

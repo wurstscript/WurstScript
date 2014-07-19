@@ -184,6 +184,7 @@ public class ImToJassTranslator {
 				name2 = "w" + name;
 			}
 		}
+		
 		if (name2.length() < 1) {
 			if (!usedNames.contains(name)) {
 				usedNames.add(name);
@@ -262,6 +263,9 @@ public class ImToJassTranslator {
 	private String jassifyName(String name) {
 		while (name.startsWith("_")) {
 			name = name.substring(1);
+		}
+		if (name.endsWith("_")) {
+			name = name + "u";
 		}
 		if (name.isEmpty()) {
 			name = "empty";
