@@ -6,11 +6,13 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.LoopStatement;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.StmtForIn;
@@ -188,6 +190,14 @@ public class AttrPos {
 		return pos;
 	}
 	
+	
+	public static WPos getErrorPos(LocalVarDef e) {
+		WPos pos = e.getSource();
+		if (e.getInitialExpr() instanceof Expr) {
+			pos = pos.withRightPos(e.getInitialExpr().attrSource().getLeftPos() - 3);
+		}
+		return pos;
+	}
 	
 	
 }
