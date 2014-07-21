@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.Pjass.Result;
+import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
@@ -74,6 +75,12 @@ public class Main {
 				about.setVisible(true);
 				return;
 			}
+			
+			if (runArgs.isStartServer()) {
+				WurstServer.startServer();
+				return;
+			}
+			
 			WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
 			String mapFilePath = runArgs.getMapFile();
 			if (runArgs.isExtractImports()) {

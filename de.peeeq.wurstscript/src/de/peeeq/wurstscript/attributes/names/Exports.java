@@ -61,7 +61,10 @@ public class Exports {
 		// import public imports
 		for (WImport imp2 : p.getImports()) {
 			if (imp2.getIsPublic()) {
-				addExportedTypeNameLinks(result, imp2.attrImportedPackage(), alreadyImported);
+				WPackage imported = imp2.attrImportedPackage();
+				if (imported != null) {
+					addExportedTypeNameLinks(result, imported, alreadyImported);
+				}
 			}
 		}
 
