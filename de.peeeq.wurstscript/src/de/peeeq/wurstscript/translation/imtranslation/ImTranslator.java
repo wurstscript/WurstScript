@@ -39,6 +39,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
@@ -157,8 +158,11 @@ public class ImTranslator {
 
 	private boolean addInitChecks = false;
 
+	AstElement lasttranslatedThing;  
+	
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
+		this.lasttranslatedThing = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
 		imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<ImVar,ImExpr>());
 	}
@@ -168,30 +172,37 @@ public class ImTranslator {
 	 * translates a program 
 	 */
 	public ImProg translateProg() {
+		try {
+			globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+			addFunction(getGlobalInitFunc());
+			debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
 
-		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-		addFunction(getGlobalInitFunc());
-		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
-		
-		if (addInitChecks) {
-			imProg.getGlobals().add(lastInitFunc);
-		}
+			if (addInitChecks) {
+				imProg.getGlobals().add(lastInitFunc);
+			}
 
-		for (CompilationUnit cu : wurstProg) {
-			translateCompilationUnit(cu);
-		}
+			for (CompilationUnit cu : wurstProg) {
+				translateCompilationUnit(cu);
+			}
 
-		if (mainFunc == null) {
-			mainFunc = ImFunction(emptyTrace, "main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-			addFunction(mainFunc);
-		}
-		if (configFunc == null) {
-			configFunc = ImFunction(emptyTrace, "config", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-			addFunction(configFunc);
-		}
-		finishInitFunctions();
+			if (mainFunc == null) {
+				mainFunc = ImFunction(emptyTrace, "main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+				addFunction(mainFunc);
+			}
+			if (configFunc == null) {
+				configFunc = ImFunction(emptyTrace, "config", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+				addFunction(configFunc);
+			}
+			finishInitFunctions();
 
-		return imProg;
+			return imProg;
+		} catch (CompileError t) {
+			throw t;
+		} catch (Throwable t) {
+			WLogger.severe(t);
+			throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t.getMessage() + 
+					"\nPlease open a ticket with source code and the error log.", t);
+		}
 	}
 
 	private ArrayList<FunctionFlag> flags(FunctionFlag ... flags) {
@@ -200,13 +211,16 @@ public class ImTranslator {
 
 
 	private void translateCompilationUnit(CompilationUnit cu) {
+		lasttranslatedThing = cu;
 		// TODO can we make this smarter? Only translate functions which are actually called...
 		for (WPackage p : cu.getPackages()) {
+			lasttranslatedThing = p;
 			p.imTranslateTLD(this);
 		}
 		for (JassToplevelDeclaration tld : cu.getJassDecls()) {
+			lasttranslatedThing = tld;
 			tld.imTranslateTLD(this);
-		}
+		}	
 	}
 
 
@@ -617,6 +631,7 @@ public class ImTranslator {
 	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
 		List<ImStmt> result = Lists.newArrayList();
 		for (WStatement s : statements) {
+			lasttranslatedThing = s;
 			ImStmt translated = s.imTranslateStmt(this, f);
 			result.add(translated);
 		}

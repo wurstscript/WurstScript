@@ -73,6 +73,7 @@ public class TLDTranslation {
 		
 		// translate the package itself
 		for (WEntity e : pack.getElements()) {
+			translator.lasttranslatedThing = e;
 			e.imTranslateEntity(translator);
 		}
 	}
