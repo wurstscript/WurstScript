@@ -12,7 +12,7 @@ public class ParserTests extends WurstScriptTest {
 	
 	@Test
 	public void parenthesis1() {
-		testAssertErrorsLines(false, "static", 
+		testAssertErrorsLines(false, "no", 
 				"package test",
 				"	init",
 				"		print(\"hello\" ",
@@ -22,7 +22,7 @@ public class ParserTests extends WurstScriptTest {
 	
 	@Test
 	public void parenthesis2() {
-		testAssertErrorsLines(false, "static", 
+		testAssertErrorsLines(false, "no", 
 				"package test",
 				"	init",
 				"		print(\"hello\")) ",
@@ -32,7 +32,7 @@ public class ParserTests extends WurstScriptTest {
 	
 	@Test
 	public void err_in_closure() {
-		testAssertErrorsLines(false, "static", 
+		testAssertErrorsLines(false, "no", 
 				"package test",
 				"	init",
 				"		doAfter(0.1, ()->begin",
