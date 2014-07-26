@@ -146,13 +146,13 @@ public class ClosureTranslator {
 		
 		ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
 		
-		transformTranslated(translated);
 		
 		if (e.getImplementation().attrTyp().isVoid()) {
 			impl.getBody().add(translated);
 		} else {
 			impl.getBody().add(JassIm.ImReturn(e, translated));
 		}
+		transformTranslated(translated);
 		return c;
 	}
 
