@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -1087,6 +1089,12 @@ public class Utils {
 		ImmutableSet.Builder<T> builder = ImmutableSet.<T>builder();
 		builder.addAll(a).addAll(b);
 		return builder.build();
+	}
+
+	public static <T> T[] joinArrays(T[] a, T[] b) {
+		T[] res = Arrays.copyOf(a, a.length+b.length);
+		System.arraycopy(b, 0, res, a.length, b.length);
+		return res;
 	}
 	
 	

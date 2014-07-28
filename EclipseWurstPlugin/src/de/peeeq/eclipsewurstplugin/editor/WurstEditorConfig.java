@@ -26,6 +26,7 @@ import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
 import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.Utils;
 
 
 
@@ -63,6 +64,10 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		DefaultDamagerRepairer dr= new DefaultDamagerRepairer(plugin.scanners().wurstCodeScanner());
 		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
 		reconciler.setRepairer(dr, IDocument.DEFAULT_CONTENT_TYPE);
+		
+		dr= new DefaultDamagerRepairer(plugin.scanners().wurstCodeScanner());
+		reconciler.setDamager(dr, WurstPartitionScanner.WURST_OTHER);
+		reconciler.setRepairer(dr, WurstPartitionScanner.WURST_OTHER);
 
 		dr= new DefaultDamagerRepairer(plugin.scanners().hotDocScanner());
 		reconciler.setDamager(dr, WurstPartitionScanner.HOT_DOC);
@@ -115,6 +120,16 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		return new IAutoEditStrategy[] {
 				new WurstAutoIndentStrategy()
 		};
+	}
+	
+	@Override
+	public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
+		return Utils.joinArrays(new String[] { IDocument.DEFAULT_CONTENT_TYPE } , WurstPartitionScanner.PARTITION_TYPES);
+	}
+	
+	@Override
+	public String getConfiguredDocumentPartitioning(ISourceViewer sourceViewer) {
+		return WurstConstants.WURST_PARTITIONING;
 	}
 	
 	ContentAssistant assistant;
