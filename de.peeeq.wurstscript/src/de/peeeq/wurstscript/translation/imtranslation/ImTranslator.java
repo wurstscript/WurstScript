@@ -33,11 +33,14 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.datastructures.ImmutableTree;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
@@ -150,7 +153,7 @@ public class ImTranslator {
 
 	private @Nullable ImFunction configFunc = null;
 
-	private final Map<ImVar, List<ImVar>> varsForTupleVar = new LinkedHashMap<>();
+	private final Map<ImVar, ImmutableTree<ImVar>> varsForTupleVar = new LinkedHashMap<>();
 
 	private boolean isUnitTestMode;
 
@@ -902,20 +905,55 @@ public class ImTranslator {
 		isEclipseMode = enabled;
 	}
 
-	public List<ImVar> getVarsForTuple(ImVar v) {
+	public ImmutableTree<ImVar> getVarsForTuple(ImVar v) {
 
-		List<ImVar> result = varsForTupleVar.get(v);
+		ImmutableTree<ImVar> result = varsForTupleVar.get(v);
 		if (result == null) {
 			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
-				result = Collections.singletonList(v);
+				result = ImmutableTree.leaf(v);
 			} else {
-				result = Lists.newArrayList();
-				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
+				result = createVarsForType(v.getName(), v.getType(), false, v.getTrace());
 			}
+			
+//			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
+//				result = ImmutableTree.leaf(v);
+//			} else {
+//				result = Lists.newArrayList();
+//				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
+//			}
 			varsForTupleVar.put(v, result);
 		}
 		return result;
 	}
+
+	private ImmutableTree<ImVar> createVarsForType(String name, ImType type, boolean array, AstElement tr) {
+		if (type instanceof ImTupleType) {
+			ImTupleType tt = (ImTupleType) type;
+			int i=0;
+			Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();			
+			for (ImType t : tt.getTypes()) {
+				ts.add(createVarsForType(name+ "_" + tt.getNames().get(i) , t, array, tr));
+				i++;
+			}
+			return ImmutableTree.node(ts.build());
+		} else if (type instanceof ImTupleArrayType) {
+			ImTupleArrayType tt = (ImTupleArrayType) type;
+			Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();	
+			for (ImType t : tt.getTypes()) {
+				ts.add(createVarsForType(name, t, true, tr));
+			}
+			return ImmutableTree.node(ts.build());
+		} else if (type instanceof ImVoid) {
+			return ImmutableTree.empty();
+		} else {
+			if (array && type instanceof ImSimpleType){
+				ImSimpleType st = (ImSimpleType) type;
+				type = JassIm.ImArrayType(st.getTypename());
+			}
+			return ImmutableTree.leaf(JassIm.ImVar(tr, type, name, false));
+		}
+	}
+
 
 	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, AstElement tr) {
 		Preconditions.checkNotNull(type);
