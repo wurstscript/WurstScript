@@ -4,6 +4,10 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKE
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -12,8 +16,16 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
+import org.eclipse.jface.text.Position;
+import org.eclipse.jface.text.source.Annotation;
 import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
 import org.eclipse.jface.text.source.ICharacterPairMatcher;
+import org.eclipse.jface.text.source.ISourceViewer;
+import org.eclipse.jface.text.source.IVerticalRuler;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
+import org.eclipse.jface.text.source.projection.ProjectionSupport;
+import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.viewers.IPostSelectionProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -54,6 +66,9 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	private Set<CompilationUnitChangeListener> changeListeners = Sets.newLinkedHashSet();
 	private CompilationUnit compiationUnit;
 	private WurstReconcilingStategy reconciler;
+	private ProjectionSupport projectionSupport;
+	private ProjectionAnnotationModel annotationModel;
+	private int reconcileCount;
 
 	public WurstEditor() {
 		super();
@@ -169,11 +184,62 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		if (reconciler != null) {
 			reconciler.reconcile(false);
 		}
+		
+	    ProjectionViewer viewer =(ProjectionViewer)getSourceViewer();
+
+	    projectionSupport = new ProjectionSupport(viewer,getAnnotationAccess(),getSharedColors());
+	    projectionSupport.install();
+
+	    //turn projection mode on
+	    viewer.enableProjection();
+	    viewer.doOperation(ProjectionViewer.COLLAPSE);
+
+	    annotationModel = viewer.getProjectionAnnotationModel();
 	
 	}
 
+	@Override
+	protected ISourceViewer createSourceViewer(Composite parent, IVerticalRuler ruler, int styles) {
+		ISourceViewer viewer = new ProjectionViewer(parent, ruler,
+				getOverviewRuler(), isOverviewRulerVisible(), styles);
 
+		// ensure decoration support has been created and configured.
+		getSourceViewerDecorationSupport(viewer);
+
+		return viewer;
+	}
 	
+	
+	private Annotation[] oldAnnotations;
+	public void updateFoldingStructure(List<Position> positions)
+	{
+	   Annotation[] annotations = new Annotation[positions.size()];
+
+	   //this will hold the new annotations along
+	   //with their corresponding positions
+	   Map<ProjectionAnnotation, Position> newAnnotations = new HashMap<>();
+
+	   for(int i = 0; i < positions.size();i++)
+	   {
+	      ProjectionAnnotation annotation = new ProjectionAnnotation();
+
+	      newAnnotations.put(annotation, positions.get(i));
+
+	      annotations[i] = annotation;
+	   }
+
+	   annotationModel.modifyAnnotations(oldAnnotations, newAnnotations,null);
+	   ProjectionViewer viewer =(ProjectionViewer)getSourceViewer();
+	   if (reconcileCount < 2) {
+		   viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
+	   }
+	   reconcileCount++;
+//	   viewer.doOperation(ProjectionViewer.TOGGLE);
+//	   viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
+//	   viewer.doOperation(ProjectionViewer.COLLAPSE);
+	   
+	   oldAnnotations = annotations;
+	}
 	
 	
 	@Override

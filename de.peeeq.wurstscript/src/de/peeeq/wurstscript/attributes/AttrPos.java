@@ -21,6 +21,8 @@ import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -49,6 +51,29 @@ public class AttrPos {
 			return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
 		}
 		// if no childs exist, search a parent element with a explicit position
+		return getParentSource(e);
+	}
+
+	public static WPos getPos(WImports e) {
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
+		for (WImport i : e) {
+			if (i.getPackagename().equals("Wurst")) {
+				continue;
+			}
+			WPos childSource = i.getSource();
+			min = Math.min(min, childSource.getLeftPos());
+			max = Math.max(max, childSource.getRightPos());
+		}
+		if (min != Integer.MAX_VALUE) {
+			return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
+		} else {
+			return getParentSource(e);
+		}
+	}
+	
+
+	private static WPos getParentSource(AstElement e) {
 		AstElement parent = e.getParent();
 		while (parent != null) {
 			if (parent instanceof AstElementWithSource) {
