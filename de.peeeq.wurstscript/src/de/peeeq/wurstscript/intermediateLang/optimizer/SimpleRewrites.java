@@ -179,7 +179,9 @@ public class SimpleRewrites {
 	}
 
 	private void optimizeIf(ImIf imIf) {
-		if (imIf.getCondition() instanceof ImBoolVal) {
+		if (imIf.getThenBlock().isEmpty() && imIf.getElseBlock().isEmpty()) {
+			imIf.replaceWith(imIf.getCondition().copy());
+		} else if (imIf.getCondition() instanceof ImBoolVal) {
 			ImBoolVal boolVal = (ImBoolVal) imIf.getCondition();
 			if (boolVal.getValB()) {
 				// we have something like 'if true ...'
@@ -191,9 +193,7 @@ public class SimpleRewrites {
 			}else if ( ! imIf.getElseBlock().isEmpty()){
 				imIf.replaceWith(JassIm.ImStatementExpr(imIf.getElseBlock().copy(), JassIm.ImNull()));
 			}
-			
 		}
-		
 	}
 	
 	
