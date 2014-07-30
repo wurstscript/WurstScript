@@ -50,7 +50,7 @@ public class TempMerger {
 		for (ImFunction f : prog.getFunctions()) {
 			optimizeFunc(f);
 		}
-		// flatten the program because we introduces null-statements
+		// flatten the program because we introduced null-statements
 		prog.flatten(trans);
 	}
 
@@ -208,6 +208,11 @@ public class TempMerger {
 			this.set = set;
 			this.read = read;
 		}
+		
+		@Override
+		public String toString() {
+			return "replace " + read + ", using " + set;
+		}
 
 		public void apply() {
 			ImExpr e = set.getRight();
@@ -326,6 +331,7 @@ public class TempMerger {
 
 		/** invalidates all expression depending on 'left' */
 		private void invalidateVar(ImVar left) {
+			currentValues.remove(left);
 			if (left.isGlobal()) {
 				invalidateGlobals();
 			} else {
