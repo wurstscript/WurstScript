@@ -447,8 +447,8 @@ public class WurstREPL {
 			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
 		} catch (CompileError e) {
 			e.printStackTrace();
-			showMessage("There was an error when compiling the map: \n" + e.getMessage());
-			print(e.getMessage() + "\n");
+			showMessage("There was an error when compiling the map: \n" + e);
+			print("\n" + e + "\n");
 		} catch (final Exception e) {
 			WLogger.severe(e);
 			final String message = "Could not start the map.\n\nPlease check the configuration in Window>Preferences>Wurst. \n\n"

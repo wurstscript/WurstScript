@@ -61,6 +61,9 @@ public class ILInterpreter {
 			localState.setVal(p, args[i]);
 			i++;
 		}
+		
+		globalState.pushStackframe(f, args, f.attrTrace().attrSource());
+		
 		try {
 			f.getBody().runStatements(globalState, localState);
 		} catch (ReturnException e) {

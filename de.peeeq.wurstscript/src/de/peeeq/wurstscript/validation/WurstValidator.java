@@ -1263,8 +1263,7 @@ public class WurstValidator {
 					}
 					if (!isAllowed) {
 						error.append("Modifier " + printMod(m) + " not allowed for " +
-								Utils.printElement(e) + ".\n Allowed are the following" +
-								" modifiers: ");
+								Utils.printElement(e) + ".\n Allowed are the following modifiers: ");
 						boolean first = true;
 						for (Class<? extends Modifier> c : allowed) {
 							if (!first) {
@@ -1311,10 +1310,10 @@ public class WurstValidator {
 					if (f.attrNearestStructureDef() != null) {
 						if (f.attrNearestStructureDef() instanceof InterfaceDef) {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
-									ModAbstract.class, ModOverride.class);
+									ModAbstract.class, ModOverride.class, Annotation.class);
 						} else {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
-									ModAbstract.class, ModOverride.class, ModStatic.class);
+									ModAbstract.class, ModOverride.class, ModStatic.class, Annotation.class);
 							if (f.attrNearestStructureDef() instanceof ClassDef) {
 								if (f.attrIsStatic() && f.attrIsAbstract()) {
 									f.addError("Static functions cannot be abstract.");
