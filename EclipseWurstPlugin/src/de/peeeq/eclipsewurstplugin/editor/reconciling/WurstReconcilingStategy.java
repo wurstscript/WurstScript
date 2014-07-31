@@ -71,26 +71,33 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 				mm.typeCheckModelPartial(gui, true, ImmutableList.of(cu));
 			}
 			
-			final List<Position> positions = new ArrayList<>();
-			for (WPackage p : cu.getPackages()) {
-				WPos importsPos = p.getImports().attrSource();
-				int start = importsPos.getLeftPos();
-				int length = importsPos.getRightPos() - start;
-				if (length > 0) {
-					positions.add(new Position(start, length));
-				}
-			}
-			
-			Display.getDefault().asyncExec(new Runnable() {
-				public void run() {
-					editor.updateFoldingStructure(positions);
-				}
-
-			});
+			codeFolding(cu);
 			
 			return cu;
 		}
 		return null;
+	}
+
+	/**
+	 * calculates the points for doing code folding 
+	 */
+	private void codeFolding(CompilationUnit cu) {
+		final List<WPosition> positions = new ArrayList<>();
+		for (WPackage p : cu.getPackages()) {
+			WPos importsPos = p.getImports().attrSource();
+			int start = importsPos.getLeftPos();
+			int length = importsPos.getRightPos() - start;
+			if (length > 0) {
+				positions.add(new WPosition(start, length));
+			}
+		}
+		
+		Display.getDefault().asyncExec(new Runnable() {
+			public void run() {
+				editor.updateFoldingStructure(positions);
+			}
+
+		});
 	}
 
 	public int getLastReconcileDocumentHashcode() {

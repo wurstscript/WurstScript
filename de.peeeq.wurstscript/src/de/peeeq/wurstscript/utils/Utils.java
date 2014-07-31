@@ -1096,6 +1096,16 @@ public class Utils {
 		System.arraycopy(b, 0, res, a.length, b.length);
 		return res;
 	}
+
+	public static <K,V> void removeValuesFromMap(Map<K, V> map, Collection<V> removed) {
+		Iterator<Entry<K, V>> it = map.entrySet().iterator();
+		while (it.hasNext()) {
+			Entry<K, V> e = it.next();
+			if (removed.contains(e.getValue())) {
+				it.remove();
+			}
+		}
+	}
 	
 	
 	

@@ -6,8 +6,10 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKET
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -55,9 +57,11 @@ import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
+import de.peeeq.eclipsewurstplugin.editor.reconciling.WPosition;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
 	
@@ -210,35 +214,39 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	}
 	
 	
-	private Annotation[] oldAnnotations;
-	public void updateFoldingStructure(List<Position> positions)
-	{
-	   Annotation[] annotations = new Annotation[positions.size()];
+	private Map<WPosition, Annotation> oldAnnotations = new HashMap<>();
 
-	   //this will hold the new annotations along
-	   //with their corresponding positions
-	   Map<ProjectionAnnotation, Position> newAnnotations = new HashMap<>();
+	public void updateFoldingStructure(List<WPosition> positions) {
+		Map<Annotation, Position> newAnnotations = new HashMap<>();
+		
+		Set<Annotation> removed = new HashSet<>(oldAnnotations.values());
+		System.out.println("old annotations: " + oldAnnotations);
+		for (WPosition position : positions) {
+			Annotation a = oldAnnotations.get(position);
+			System.out.println("position " + position + " ---> " + a);
+			if (a == null) {
+				ProjectionAnnotation annotation = new ProjectionAnnotation();
+				newAnnotations.put(annotation, position.toEclipsePosition());
+			} else {
+				removed.remove(a);
+			}
+		}
+		
+		Utils.removeValuesFromMap(oldAnnotations, removed);
+		
+		for (Entry<Annotation, Position> a : newAnnotations.entrySet()) {
+			oldAnnotations.put(new WPosition(a.getValue()), a.getKey());
+		}
+		
+		System.out.println("removed = "  +removed);
+		System.out.println("new = " + newAnnotations);
+		annotationModel.modifyAnnotations(removed.toArray(new Annotation[0]), newAnnotations, null);
+		ProjectionViewer viewer = (ProjectionViewer) getSourceViewer();
+		if (reconcileCount < 2) {
+			viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
+		}
+		reconcileCount++;
 
-	   for(int i = 0; i < positions.size();i++)
-	   {
-	      ProjectionAnnotation annotation = new ProjectionAnnotation();
-
-	      newAnnotations.put(annotation, positions.get(i));
-
-	      annotations[i] = annotation;
-	   }
-
-	   annotationModel.modifyAnnotations(oldAnnotations, newAnnotations,null);
-	   ProjectionViewer viewer =(ProjectionViewer)getSourceViewer();
-	   if (reconcileCount < 2) {
-		   viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
-	   }
-	   reconcileCount++;
-//	   viewer.doOperation(ProjectionViewer.TOGGLE);
-//	   viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
-//	   viewer.doOperation(ProjectionViewer.COLLAPSE);
-	   
-	   oldAnnotations = annotations;
 	}
 	
 	
