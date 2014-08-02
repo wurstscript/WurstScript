@@ -792,8 +792,8 @@ public class WurstValidator {
 		if (!func.attrHasEmptyBody()) {
 			new ReturnsAnalysis().execute(func);
 		} else { // no body, check if in interface:
-			if (func instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) func;
+			if (func instanceof FunctionImplementation) {
+				FunctionImplementation funcDef = (FunctionImplementation) func;
 				if (funcDef.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
 					func.addError("Function " + funcDef.getName() + " is missing a body. Use the 'skip' statement to define an empty body.");
 				}

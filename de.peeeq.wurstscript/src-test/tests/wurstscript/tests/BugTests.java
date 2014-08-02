@@ -674,4 +674,22 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void extensionFunc_noreturn() { // see #280
+		testAssertErrorsLines(false, "missing a body",  
+				"package test",
+				"function int.foo() returns int",
+				"endpackage"
+				);
+	}
+
+	@Test
+	public void func_noreturn() { // see #280
+		testAssertErrorsLines(false, "missing a body",  
+				"package test",
+				"function foo() returns int",
+				"endpackage"
+				);
+	}
+	
 }
