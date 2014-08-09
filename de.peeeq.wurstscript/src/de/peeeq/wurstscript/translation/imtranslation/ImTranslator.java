@@ -372,7 +372,7 @@ public class ImTranslator {
 	public GetAForB<StructureDef, ImFunction> destroyFunc = new GetAForB<StructureDef, ImFunction>() {
 		
 		@Override
-		ImFunction initFor(StructureDef classDef) {
+		public ImFunction initFor(StructureDef classDef) {
 			ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			addFunction(f);
@@ -383,7 +383,7 @@ public class ImTranslator {
 	public GetAForB<StructureDef, ImMethod> destroyMethod = new GetAForB<StructureDef, ImMethod>() {
 		
 		@Override
-		ImMethod initFor(StructureDef classDef) {
+		public ImMethod initFor(StructureDef classDef) {
 			ImFunction impl = destroyFunc.getFor(classDef);
 			boolean abstr;
 			if (classDef instanceof ClassDef) {
@@ -401,7 +401,7 @@ public class ImTranslator {
 	public GetAForB<ImClass, ImFunction> allocFunc = new GetAForB<ImClass, ImFunction>() {
 
 		@Override
-		ImFunction initFor(ImClass c) {
+		public ImFunction initFor(ImClass c) {
 			return JassIm.ImFunction(c.getTrace(), "alloc_" + c.getName(), JassIm.ImVars(), TypesHelper.imInt(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}
@@ -411,7 +411,7 @@ public class ImTranslator {
 	public GetAForB<ImClass, ImFunction> deallocFunc = new GetAForB<ImClass, ImFunction>() {
 
 		@Override
-		ImFunction initFor(ImClass c) {
+		public ImFunction initFor(ImClass c) {
 			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}

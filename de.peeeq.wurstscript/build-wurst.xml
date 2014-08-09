@@ -54,6 +54,14 @@
 	</target>
 
 	
+	<target name="parseq_luaAst">
+			<java jar="${parseq}" fork="true" failonerror="true">
+				<arg value="./parserspec/lua.parseq" />
+				<arg value="${srcgen}" />
+				<classpath refid="classpath" />
+			</java>
+		</target>
+	
 	<target name="parseq_jassImAst">
 			<java jar="${parseq}" fork="true" failonerror="true">
 				<arg value="./parserspec/jass_im.parseq" />
@@ -63,7 +71,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
+	<target name="gen" depends="parseq_ast, parseq_jassAst, parseq_luaAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">
