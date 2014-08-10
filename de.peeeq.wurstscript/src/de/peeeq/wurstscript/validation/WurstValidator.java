@@ -1609,9 +1609,9 @@ public class WurstValidator {
 	}
 
 	private void checkSwitch(SwitchStmt s) {
-		if (! isViableSwitchtype(s.getExpr()))
+		if (! isViableSwitchtype(s.getExpr())) {
 			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
-		else {
+		} else {
 			for (SwitchCase c : s.getCases()) {	
 				//				if ( i > 0 ) {
 				//					for( int j = 0; j<i; j++) {
@@ -1643,6 +1643,9 @@ public class WurstValidator {
 					s.addError("Enum member " + name + " from enum " + wurstTypeEnum.getName() + " not covered in switchstatement and no default found.");
 				}
 
+		}
+		if (s.getCases().isEmpty()) {
+			s.addError("Switch statement without any cases.");
 		}
 		// TODO check if all cases for switch are covered
 
