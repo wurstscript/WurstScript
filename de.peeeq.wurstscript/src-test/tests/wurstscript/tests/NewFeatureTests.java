@@ -332,5 +332,23 @@ public class NewFeatureTests extends WurstScriptTest {
 				"		testSuccess()"
 				);
 	}
+	
+	@Test
+	public void callFunctionsWithAnnotation() {
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"function callFunctionsWithAnnotation(string _annotation)",
+				"int x = 1",
+				"@blub function foo()",
+				"	x = x + 2",
+				"@blub function bar()",
+				"	x += 3",
+				"init",
+				"	callFunctionsWithAnnotation(\"@blub\")",
+				"	if x == 6",
+				"		testSuccess()"
+				);
+	}
 
 }

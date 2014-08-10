@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 
 public class ImAttributes {
 
@@ -68,19 +69,19 @@ public class ImAttributes {
 
 
 	public static boolean isBj(ImFunction f) {
-		return f.getFlags().contains(FunctionFlag.IS_BJ);
+		return f.getFlags().contains(FunctionFlagEnum.IS_BJ);
 	}
 	
 	public static boolean isExtern(ImFunction f) {
-		return f.getFlags().contains(FunctionFlag.IS_EXTERN);
+		return f.getFlags().contains(FunctionFlagEnum.IS_EXTERN);
 	}
 
 	public static boolean isNative(ImFunction f) {
-		return f.getFlags().contains(FunctionFlag.IS_NATIVE);
+		return f.getFlags().contains(FunctionFlagEnum.IS_NATIVE);
 	}
 	
 	public static boolean isCompiletime(ImFunction f) {
-		return f.getFlags().contains(FunctionFlag.IS_COMPILETIME);
+		return f.getFlags().contains(FunctionFlagEnum.IS_COMPILETIME);
 	}
 
 	

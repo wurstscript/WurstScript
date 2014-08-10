@@ -81,6 +81,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
@@ -593,7 +594,7 @@ public class WurstREPL {
 			// compile & inject object-editor data
 			// TODO run optimizations later?
 			gui.sendProgress("Running compiletime functions", 0.91);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlag.IS_COMPILETIME);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlagEnum.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(out));
 			ctr.run();
@@ -639,7 +640,7 @@ public class WurstREPL {
 		List<ImFunction> successTests = Lists.newArrayList();
 		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
 		for (ImFunction f : imProg.getFunctions()) {
-			if (f.hasFlag(FunctionFlag.IS_TEST)) {
+			if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
 				print("Testing " + Utils.printElementWithSource(f.attrTrace()) + "	... ");
 				try {
 					interpreter.runVoidFunc(f);

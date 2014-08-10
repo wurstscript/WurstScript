@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -71,7 +72,7 @@ public class CompiletimeFunctionRunner {
 					}
 				}
 			}
-			if (functionFlag == FunctionFlag.IS_COMPILETIME) {
+			if (functionFlag == FunctionFlagEnum.IS_COMPILETIME) {
 				interpreter.writebackGlobalState(isInjectObjects());
 			}
 		} catch (Throwable e) {

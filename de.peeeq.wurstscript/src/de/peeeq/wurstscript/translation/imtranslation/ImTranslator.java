@@ -14,10 +14,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSimpleType;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_BJ;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_COMPILETIME;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_NATIVE;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_TEST;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_BJ;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_COMPILETIME;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_NATIVE;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_TEST;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -197,6 +197,7 @@ public class ImTranslator {
 				addFunction(configFunc);
 			}
 			finishInitFunctions();
+			EliminateCallFunctionsWithAnnotation.process(imProg);
 
 			return imProg;
 		} catch (CompileError t) {
@@ -432,7 +433,7 @@ public class ImTranslator {
 			flags.add(IS_BJ);
 		}
 		if (isExtern(funcDef)) {
-			flags.add(FunctionFlag.IS_EXTERN);
+			flags.add(FunctionFlagEnum.IS_EXTERN);
 		}
 		if (funcDef instanceof FuncDef) {
 			FuncDef funcDef2 = (FuncDef) funcDef;
@@ -440,12 +441,23 @@ public class ImTranslator {
 				flags.add(IS_COMPILETIME);
 			}
 			if (funcDef2.attrHasAnnotation("compiletimenative")) {
-				flags.add(FunctionFlag.IS_COMPILETIME_NATIVE);
+				flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
 			}
 			if (funcDef2.attrHasAnnotation("test")) {
 				flags.add(IS_TEST);
 			}
 		}
+		
+		if (funcDef instanceof AstElementWithModifiers) {
+			AstElementWithModifiers awm = (AstElementWithModifiers) funcDef;
+			for (Modifier m : awm.getModifiers()) {
+				if (m instanceof Annotation) {
+					Annotation annotation = (Annotation) m;
+					flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+				}
+			}
+		}
+		
 		ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
