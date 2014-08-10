@@ -84,3 +84,6 @@ LuaOpUnary =
 attributes:
 
 
+LuaAstElement.print(StringBuilder sb, int indent)
+	returns void
+	implemented by de.peeeq.wurstscript.lua.printing.LuaPrinter.print
