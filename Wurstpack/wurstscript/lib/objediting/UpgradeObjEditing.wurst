@@ -1,0 +1,37 @@
+package UpgradeObjEditing
+import ObjEditingNatives
+import UnitObjEditing
+import NoWurst
+
+public class W3QDefinition
+	ObjectDefinition def
+	
+	construct(int newUnitId, int origUnitId)
+		def = createObjectDefinition("w3q", newUnitId, origUnitId)
+				
+	function setTooltipExtended(string data)
+		def.setString("utub", data)
+	
+	function setTooltipBasic(string data)
+		def.setString("utip", data)
+	
+	function setRequirementsLevels(string data)
+		def.setString("urqa", data)
+	
+	function setRequirements(string data)
+		def.setString("ureq", data)
+	
+	function setName(string data)
+		def.setString("unam", data)
+	
+	function setHotkey(string data)
+		def.setString("uhot", data)
+	
+	function setDescription(string data)
+		def.setString("ides", data)
+	
+	function setButtonPositionY(int data)
+		def.setInt("ubpy", data)
+	
+	function setButtonPositionX(int data)
+		def.setInt("ubpx", data)

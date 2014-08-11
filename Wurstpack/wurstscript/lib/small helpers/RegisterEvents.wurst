@@ -1,0 +1,39 @@
+package RegisterEvents
+import NoWurst
+import TypeCasting
+import HashMap
+
+/*****PlayerUnitEvent*****/
+
+trigger array t
+
+public function registerPlayerUnitEvent(playerunitevent p, code c)
+	int hid = GetHandleId(p)
+	if t[hid] == null
+		t[hid] = CreateTrigger()
+		for k = 15 downto 0
+			TriggerRegisterPlayerUnitEvent(t[hid], Player(k), p, null)
+
+	TriggerAddCondition(t[hid], Filter(c))
+
+public function registerPlayerUnitEventForPlayer(playerunitevent p, code c, player pl)
+	int i = 16 * GetHandleId(p) + GetPlayerId(pl)
+	if t[i] == null
+		t[i] = CreateTrigger()
+		TriggerRegisterPlayerUnitEvent(t[i], pl, p, null)
+	TriggerAddCondition(t[i], Filter(c))
+
+public function getPlayerUnitEventTrigger(playerunitevent p) returns trigger
+	return t[GetHandleId(p)]
+
+/*****SpellEffectEvent*****/
+
+HashMap<int, trigger> onCastMap = new HashMap<int, trigger>()
+ 
+init
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT, () -> TriggerEvaluate(onCastMap.get(GetSpellAbilityId())))
+ 
+function registerSpellEffectEvent(int abil, code onCast)
+	if not onCastMap.has(abil)
+		onCastMap.put(abil, CreateTrigger())
+	TriggerAddCondition(onCastMap.get(abil), Filter(onCast))

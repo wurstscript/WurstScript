@@ -4,12 +4,12 @@ import Table
 
 Table triggerData = new Table()
 
-public function trigger.registerUnitInRangeSource( unit whichUnit, real range ) returns event
+public function trigger.registerUnitInRangeSource( unit whichUnit, real range, boolexpr filter ) returns event
 	int h = GetHandleId(this)
 	int u = GetHandleId(whichUnit)
 	triggerData.saveUnit(h,whichUnit)
 	triggerData.saveTrigger(u,this)
-	return TriggerRegisterUnitInRange(this, whichUnit, range, null)
+	return TriggerRegisterUnitInRange(this, whichUnit, range, filter)
 
 
 

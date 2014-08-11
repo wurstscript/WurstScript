@@ -1,5 +1,5 @@
 package MultiFx
-import DummyRecycler
+import NewDummyRecycler
 import Effect
 import Colors
 import Vectors
@@ -27,13 +27,13 @@ public class MultiFx
 	private colorA col
 	
 	construct(real x, real y, angle facing)
-		dummy = newDummy( vec2(x, y), facing)
+		dummy = DummyRecycler.get( vec2(x, y), facing)
 	
 	construct(vec2 pos, angle facing)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos, facing)
 	
 	construct(vec3 pos, angle facing)
-		dummy = newDummy( pos, facing)
+		dummy = DummyRecycler.get( pos.toVec2(), facing)
 		setZ(pos.z)	
 
 	function addFx(string fxPath)
@@ -162,7 +162,7 @@ public class MultiFx
 			
 		destroy fxs
 
-		recycleDummy(dummy)
+		DummyRecycler.recycle(dummy)
 
 	/** Destroys the MultiFx object without showing the effect's death animation 
 		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/

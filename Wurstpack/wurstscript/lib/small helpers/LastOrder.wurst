@@ -1,67 +1,100 @@
 package LastOrder
+import RegisterEvents
+import OnUnitEnterLeave
+
+class OrderQueue
+	private Order array[ORDERS_TO_HOLD] orders
+	private int fp = 0
+	private int rp = 0
+	private int size = 0
+	
+	function get(int index) returns Order
+		return orders[fp + index]
+
+	function enqueue(Order o)
+		if size < ORDERS_TO_HOLD
+			size++
+			rp = (rp + 1) mod ORDERS_TO_HOLD
+			orders[rp] = o
+		else
+			destroy dequeue()
+			enqueue(o)
+		
+	function dequeue() returns Order
+		if size > 0
+			size--
+			fp = (fp + 1) mod ORDERS_TO_HOLD
+			return orders[fp]
+		else
+			return null
+			
+	ondestroy
+		var e = dequeue()
+		while e != null
+			destroy e
+			e = dequeue()
+
 
 /** How many bast orders to hold.
 	Should be at least 2 */
 constant int ORDERS_TO_HOLD = 3
 
-enum ORDER_TYPE
+public enum OrderType
 	TARGET
 	POINT
 	IMMEDIATE
 
-hashtable ht = InitHashtable()
-
+OrderQueue array orderQueues
 
 public class Order
 	unit u
 	int id
-	ORDER_TYPE typ
+	OrderType otype
 	boolean fin
 	widget  tar
 	real	x
 	real	y
 	
-	construct( unit ordered, int ordid, ORDER_TYPE ordtyp, widget target, real ordx, real ordy )
-		debugPrint("Allocated instance of Order with id: " + (this castTo int).toString(), 3)
-		int hid = GetHandleId(ordered)
+	construct( unit ordered, int ordid, OrderType ordtype, widget target, real ordx, real ordy )
+		debugPrint("Allocated instance of Order with : " + OrderId2String(ordid), 3)
+		
 		u   = ordered
 		id  = ordid
-		typ = ordtyp
+		otype = ordtype
 		fin = false
 		tar = target
 		x   = ordx
 		y   = ordy
 		//Handle stored orders in the hashtable
-		for i = ORDERS_TO_HOLD downto 2
-			//We hold up to the constant ORDERS_TO_HOLD in the table
-			//Moves the N-1th order to the Nth slot, etc. except storing new last order
-			if ht.hasInt(hid, i-1)
-				if i == ORDERS_TO_HOLD and ht.hasInt(hid, i)
-					//Destroy lastmost order struct
-					destroy	(ht.loadInt(hid, i) castTo Order)
-				//Can only do this if the N-1th order exists
-				ht.saveInt( hid, i, ht.loadInt( hid, i-1))
-		//Store the new order to the hashtable as 1th last order
-		ht.saveInt( hid, 1, this castTo int)
+		let index = ordered.getUserData()
+		if orderQueues[index] == null
+			orderQueues[index] = new OrderQueue()
+		orderQueues[index].enqueue(this)
+		
+	function issue() returns boolean
+		if GetUnitTypeId(u) != 0 and not IsUnitType(u, UNIT_TYPE_DEAD) and otype != OrderType.IMMEDIATE and not fin
+			if otype == OrderType.TARGET
+				return IssueTargetOrderById(u, id, tar)
+			else if otype == OrderType.POINT
+				if id == 851971
+					//This adjusts for a bug in the point order's boolean return 
+					//when issuing a smart order
+					IssuePointOrderById(u, id, x, y)
+					return true
+				else
+					return IssuePointOrderById(u, id, x, y)
+			else if otype == OrderType.IMMEDIATE
+				return IssueImmediateOrderById(u, id)
+		return false
 
-	ondestroy
-		debugPrint("ondestroy id: " + (this castTo int).toString(), 3)
-
-//******************************************************************************
 
 public function unit.clearLastOrders()
-	let hid = this.getHandleId()
-	for i = ORDERS_TO_HOLD downto 1
-		//If any of the N orders exist for this handle id, kill them all
-		if ht.hasInt( hid, i)
-			debugPrint("clearing order id: " + ht.loadInt(hid, i).toString() , 3)
-			destroy (ht.loadInt(hid, i)castTo Order)
-			RemoveSavedInteger(ht, hid, i)
+	let index = this.getUserData()
+	if orderQueues[index] != null
+		destroy orderQueues[index]
 
-public function unit.getPastOrder( int whichOrder ) returns Order
-	return ht.loadInt( GetHandleId(this), whichOrder) castTo Order
-
-//******************************************************************************
+public function unit.getPastOrders() returns OrderQueue
+	return orderQueues[this.getUserData()]
 
 function badOrderList( int id ) returns boolean
 	return ( id==852055 or id==852056 or id==852064 or id==852065 or id==852067 or 
@@ -87,32 +120,6 @@ function unit.orderFilter( int id ) returns boolean
 			id == 851993 or (id >= 852055 and id <= 852762)) and not badOrderList(id)
 
 
-public function unit.issuePastOrderFilter( int whichOrder ) returns boolean
-	let od = this.getPastOrder(whichOrder)
-	return GetUnitTypeId(this) != 0 and not IsUnitType(this, UNIT_TYPE_DEAD) and od.typ != ORDER_TYPE.IMMEDIATE
-
-
-//******************************************************************************
-
-public function unit.issuePastOrder( int whichOrder ) returns boolean
-	if ht.hasInt( GetHandleId(this), whichOrder)
-		//Only do this if the past order actually exists
-		let ord = this.getPastOrder( whichOrder)
-		if this.issuePastOrderFilter(whichOrder) and not ord.fin
-			if ord.typ == ORDER_TYPE.TARGET
-				return IssueTargetOrderById(this, ord.id, ord.tar)
-			else if ord.typ == ORDER_TYPE.POINT
-				if ord.id == 851971
-					//This adjusts for a bug in the point order's boolean return 
-					//when issuing a smart order
-					IssuePointOrderById(this, ord.id, ord.x, ord.y)
-					return true
-				else
-					return IssuePointOrderById(this, ord.id, ord.x, ord.y)
-			else if ord.typ == ORDER_TYPE.IMMEDIATE
-				return IssueImmediateOrderById(this, ord.id)
-	return false
-
 
 public function unit.abortOrder() returns boolean
 	if IsUnitPaused(this)
@@ -124,68 +131,42 @@ public function unit.abortOrder() returns boolean
 	return true
 
 
-//**********************************************************
-
 function conditions() returns boolean
 	return GetTriggerUnit().orderFilter(GetIssuedOrderId())
 
 
 function actions()
-	unit	u   = GetTriggerUnit()
-	widget  t   = GetOrderTarget()
-	int oid = GetIssuedOrderId()
-	debugPrint("actions: " + OrderId2String(oid), 3)
-	if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER
-		new Order(u, oid, ORDER_TYPE.TARGET, t, GetWidgetX(t), GetWidgetY(t))
-	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER
-		new Order(u, oid, ORDER_TYPE.POINT, null, GetOrderPointX(), GetOrderPointY())
-	else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER
-		new Order(u, oid, ORDER_TYPE.IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
-	else
-		error("invalid Ordertype")
+//	if conditions()
+		unit	u   = GetTriggerUnit()
+		widget  t   = GetOrderTarget()
+		int oid = GetIssuedOrderId()
+		if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER
+			new Order(u, oid, OrderType.TARGET, t, GetWidgetX(t), GetWidgetY(t))
+		else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER
+			new Order(u, oid, OrderType.POINT, null, GetOrderPointX(), GetOrderPointY())
+		else if GetTriggerEventId() == EVENT_PLAYER_UNIT_ISSUED_ORDER
+			new Order(u, oid, OrderType.IMMEDIATE, null, GetUnitX(u), GetUnitY(u))
+		else
+			error("invalid Ordertype")
 
-//**********************************************************
 
 function spellActions()
-	if ht.hasInt( GetHandleId(GetTriggerUnit()), 1)
+	let index = GetTriggerUnit().getUserData()
+	if orderQueues[index] != null
 		//Only do this if the last order actually exists
-		GetTriggerUnit().getPastOrder(1).fin = true
-
-
-//**********************************************************
-
-function onAdd() returns boolean
-	int hid = GetHandleId(GetFilterUnit())
-	
-	//Handle stored orders in the hashtable
-	for i = ORDERS_TO_HOLD downto 1
-		//If any of the N orders exist for this handle id, kill them all
-		if ht.hasInt( hid, i)
-			destroy (ht.loadInt(hid, i)castTo Order)
-			RemoveSavedInteger(ht, hid, i)
-	return false
-
-
-//**********************************************************
+		orderQueues[index].get(0).fin = true
 
 init
-	trigger trg = CreateTrigger()
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER, function actions)
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER, function actions)
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER, function actions)
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT, function spellActions)
 	
-	//Main order catching trigger
-	TriggerAddAction(trg, function actions)
-	TriggerAddCondition(trg, Condition(function conditions))
-	TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_TARGET_ORDER)
-	TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_POINT_ORDER)
-	TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_ISSUED_ORDER)
-	
-	//Spell trigger to a flag that indicates a spell order's completion
-	trg = CreateTrigger()
-	TriggerAddAction(trg, function spellActions)
-	TriggerRegisterAnyUnitEventBJ(trg, EVENT_PLAYER_UNIT_SPELL_EFFECT)
-	
-	//Entering world trigger that clears old data from handle ids
-//	trg = CreateTrigger()
-//	RegionAddRect(re, m)
-//	TriggerRegisterEnterRegion(trg, re, Condition(function onAdd))
-//	RemoveRect(m)
+	onLeave(() -> begin
+		let index = getEnterLeaveUnit().getUserData()
+		if orderQueues[index] != null
+			destroy orderQueues[index]
+			orderQueues[index] = null
+	end)
+
 	

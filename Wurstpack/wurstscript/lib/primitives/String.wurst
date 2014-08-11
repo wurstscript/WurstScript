@@ -247,8 +247,11 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{7}", par8)
 				.replace("{8}", par9)
 				.replace("{9}", par10)
+				
+public function string.iterator() returns StringIterator
+	return new StringIterator(this, 0, this.length())
 	
-class StringIterator
+public class StringIterator
 	string s
 	int currentpos
 	int stringLen
@@ -269,7 +272,7 @@ class StringIterator
 	function close()
 		destroy this
 		
-class StringLines
+public class StringLines
 	string s
 	int currentLine = 0
 	int lineCount
@@ -279,7 +282,6 @@ class StringLines
 		this.s = s
 		this.lineCount = lineCount
 		this.lastIndex = lastIndex
-		print(lastIndex.toString() + " - " + lineCount.toString())
 		
 	function iterator() returns thistype
 		return this

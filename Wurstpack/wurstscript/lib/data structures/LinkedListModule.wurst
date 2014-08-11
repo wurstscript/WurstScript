@@ -39,7 +39,6 @@ public module LinkedListModule
 			last = prev
 		if this == first
 			first = next
-		print("removed")
 			
 	ondestroy
 		remove()

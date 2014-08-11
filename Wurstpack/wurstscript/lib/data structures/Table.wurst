@@ -2,17 +2,6 @@ package Table
 import NoWurst
 import Hashtable
 
-class A
-	B b
-	
-	construct()
-		b = new B()
-	
-class B
-	A a
-	
-	
-
 public class Table
 	private static hashtable ht = InitHashtable()
 	
@@ -24,6 +13,9 @@ public class Table
 
 	function hasBoolean(int parentKey) returns boolean
 		return ht.hasBoolean(this castTo int, parentKey)
+	
+	function hasString(int parentKey) returns boolean
+		return ht.hasString(this castTo int, parentKey)
 		
 	function removeBoolean( integer parentKey )
 		RemoveSavedBoolean(ht, this castTo int, parentKey)

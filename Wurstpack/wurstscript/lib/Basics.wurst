@@ -3,21 +3,23 @@ import NoWurst
 import UnitObjEditing
 
 /** Id of the dummy unit */
-public constant int 	DUMMY_UNIT_ID 	   		= 'xdum'
+public constant DUMMY_UNIT_ID 	   		= 'xdum'
 /** Id of Ravenform to allow setting fly height */
-public constant int 	HEIGHT_ENABLER	 		= 'Amrf'
+public constant HEIGHT_ENABLER	 		= 'Amrf'
 /** Id of Eattree to recognize trees */
-public constant int		TREE_RECOGNITION  		= 'Aeat'
+public constant TREE_RECOGNITION  		= 'Aeat'
 /** Id of Locust */
-public constant int 	LOCUST_ID				= 'Aloc'
+public constant LOCUST_ID				= 'Aloc'
 /** Standard Period for animation.
 	Note that 0.03125 is also possible, but doesn't work with order cancel from SetUnitPos */
-public constant real	ANIMATION_PERIOD   		=  0.03
-public constant real	MAX_COLLISION_SIZE 		=  197.0
+public constant ANIMATION_PERIOD   		=  0.03
+public constant MAX_COLLISION_SIZE 		=  197.0
 /** Neutral Passive (grey) */
-public constant player  DUMMY_PLAYER 			= Player(15)
+public constant DUMMY_PLAYER 			= Player(15)
 /** Neutral Hostile (darkgreen) */
-public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
+public constant DUMMY_HOSTILE_PLAYER 	= Player(12)
+
+public constant INT_LIMIT 				= 2147483647
 
 @compiletime function generateDummyUnit()
 	let u = new UnitDefinition(DUMMY_UNIT_ID, 'ewsp')
@@ -30,6 +32,7 @@ public constant player	DUMMY_HOSTILE_PLAYER 	= Player(12)
 	..setCollisionSize(0.0)
 	..setRace(Race.Commoner)
 	..setFoodCost(0)
+	..setArmorType(ArmorType.Divine)
 	..setIconGameInterface("ReplaceableTextures\\CommandButtons\\BTNtemp.blp")
 	..setSpeedBase(522)
 	..setModelFile("dummy.mdl")

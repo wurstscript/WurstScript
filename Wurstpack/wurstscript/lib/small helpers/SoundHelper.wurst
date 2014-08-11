@@ -1,5 +1,6 @@
 package SoundHelper
 import Stack
+import Simulate3dSound
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
 constant int DEFAULT_SOUND_FADE_IN_RATE = 10
@@ -10,13 +11,14 @@ constant real DEFAULT_SOUND_PITCH = 1
 
 constant int SOUND_CHANNEL = 5
 constant real SOUND_MIN_DIST = 600
-constant real SOUND_MAX_DIST = 10000
-constant real SOUND_DIST_CUT = 3000
+constant real SOUND_MAX_DIST = 8000
+constant real SOUND_DIST_CUT = 1500
 
 class SData
 	sound snd
 	Sound soundData
 	unit onUnit
+	Sim3DSound s3s = null
 
 public class Sound
 	Stack<SData> soundStack = new Stack<SData>()
@@ -29,8 +31,11 @@ public class Sound
 	int fadeIn
 	int fadeOut
 	string eaxSetting
+	vec2 emuPos = vec2(0,0)
+	unit emuUnit = null
 	
-	construct(string file, int duration, boolean looping, boolean is3D, boolean stopOnLeaveRange, int fadeIn, int fadeOut, string eaxSetting )
+	construct(string file, int duration, boolean looping, boolean is3D, 
+			boolean stopOnLeaveRange, int fadeIn, int fadeOut, string eaxSetting )
 		this.file = file
 		this.duration = duration
 		this.looping = looping
@@ -98,6 +103,18 @@ public class Sound
 		getTimer()
 			..setData(getSound() castTo int)
 			..start(0., function Sound.playSound)
+			
+	function playSimulatePoint(vec2 point)
+		emuPos = point
+		getTimer()
+			..setData(getSound() castTo int)
+			..start(0., function Sound.playSound)
+			
+	function playSimulateUnit(unit u)
+		emuUnit = u
+		getTimer()
+			..setData(getSound() castTo int)
+			..start(0., function Sound.playSound)
 		
 	function playOnUnit(unit u)
 		var s = getSound()
@@ -125,8 +142,16 @@ public class Sound
 		var sdata = tm.getData() castTo SData
 		if sdata.onUnit != null
 			AttachSoundToUnit(sdata.snd, sdata.onUnit)
-		SetSoundVolume(sdata.snd, 100)
-		StartSound(sdata.snd)
+		if sdata.soundData.emuPos.x != 0
+			let data = sdata.soundData
+			sdata.s3s = bindSoundToPoint(sdata.snd, data.emuPos.x, data.emuPos.y, SOUND_MIN_DIST, SOUND_MAX_DIST, SOUND_DIST_CUT)
+			print("created 3dsound")
+		else if sdata.soundData.emuUnit != null
+			let data = sdata.soundData
+			sdata.s3s = bindSoundToUnit(sdata.snd, data.emuUnit, SOUND_MIN_DIST, SOUND_MAX_DIST, SOUND_DIST_CUT)
+		else
+			SetSoundVolume(sdata.snd, 100)
+			StartSound(sdata.snd)
 		tm.release()
 		getTimer()
 			..setData(sdata castTo int)
@@ -135,6 +160,8 @@ public class Sound
 	private static function recycle()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
+		if sdata.s3s != null
+			destroy sdata.s3s
 		if sdata.soundData.soundStack.getSize() < 4
 			sdata.soundData.soundStack.push(sdata)
 		else

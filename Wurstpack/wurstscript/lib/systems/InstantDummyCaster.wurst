@@ -35,10 +35,8 @@ public class InstantDummyCaster
 		boolean b
 		id = abilityId
 		prepare(owner, lvl)
-		print("prepared")
 		caster.setXY(GetWidgetX(target), GetWidgetY(target))
 		b = caster.issueTargetOrderById(OrderId(order), target)
-		print("casted + " + b.toString())
 		finish()
 		return b
 		
@@ -46,10 +44,8 @@ public class InstantDummyCaster
 		boolean b
 		id = abilityId
 		prepare(owner, lvl)
-		print("prepared")
 		caster.setXY(casterPos)
 		b = caster.issueTargetOrderById(OrderId(order), target)
-		print("casted + " + b.toString())
 		finish()
 		return b
 		
@@ -77,6 +73,7 @@ init
 		..setCollisionSize(0.0)
 		..setRace(Race.Commoner)
 		..setFoodCost(0)
+		..setArmorType(ArmorType.Divine)
 		..setIconGameInterface("ReplaceableTextures\\CommandButtons\\BTNtemp.blp")
 		..setSpeedBase(522)
 		..setModelFile("dummy.mdl")
@@ -93,7 +90,7 @@ init
 		..setUnitClassification("_")
 		..setPropulsionWindowdegrees(1.0)
 		..setTooltipBasic("")
-		..setNormalAbilities("")
+		..setNormalAbilities("Agho")
 		..setGroundTexture("")
 		..setShadowTextureBuilding("")
 		..setCollisionSize(0)

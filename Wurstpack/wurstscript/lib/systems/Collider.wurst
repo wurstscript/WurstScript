@@ -137,7 +137,7 @@ public abstract class Collider
 			let dt = ((speed + ns) /2) * ANIMATION_PERIOD
 			speed = ns
 			let newP = vec2( fx.getX()+dt*fx.getXYAngle().cos(), fx.getY()+dt*fx.getXYAngle().sin())
-			fx.setPos(newP)
+			fx.setXY(newP)
 
 			GroupEnumUnitsInRange( ENUM_GROUP, newP.x, newP.y, collisionSize + MAX_COLLISION_SIZE, null)
 			let itr = ENUM_GROUP.iterator()

@@ -110,7 +110,10 @@ public abstract class CallbackCounted
 		
 	function getCount() returns int
 		return count
-
+		
+	function stop()
+		count = 1
+		
 	private static function staticCallback()
 		(GetExpiredTimer().getData() castTo thistype).callAndCount()
 		

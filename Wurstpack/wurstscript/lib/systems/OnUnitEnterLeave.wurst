@@ -1,0 +1,72 @@
+package OnUnitEnterLeave
+import MapBounds
+import NoWurst
+import Unit
+import Trigger
+import Player
+import TempGroups
+import PrintingHelper
+import AbilityObjEditing
+import ObjectIds
+import initlater RegisterEvents
+
+
+
+
+constant eventTrigger = CreateTrigger()
+constant DO_INDEXING = true
+
+class UnitIndex
+	unit u
+	
+	construct(unit u)
+		this.u = u
+		u.setUserData(this castTo int)
+		
+	ondestroy
+		u.setUserData(0)
+
+public function getEnterLeaveUnit() returns unit
+	return tempUnit
+	
+public function onEnter(code c)
+	eventTrigger.addCondition(Condition(c))
+
+public function onLeave(code c)
+	eventTrigger.addAction(c)
+
+unit tempUnit = null
+
+function enter()
+	tempUnit = GetEnteringUnit()..addAbility(ABILITY_ID)..makeAbilityPermanent(ABILITY_ID, true)
+	if DO_INDEXING
+		new UnitIndex(tempUnit)
+	eventTrigger.evaluate()
+	tempUnit = null
+	
+init
+	CreateTrigger()..registerEnterRegion(boundRegion, null)
+	..addCondition(Condition(() -> enter()))
+	
+	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER, () -> begin
+		let leavingUnit = GetFilterUnit()
+		if leavingUnit.getAbilityLevel(ABILITY_ID) == 0
+			tempUnit = leavingUnit
+			destroy tempUnit.getUserData() castTo UnitIndex
+			eventTrigger.execute()
+			tempUnit = null
+	end)
+	ABILITY_ID = '!e@$'
+	for i = 0 to bj_MAX_PLAYER_SLOTS-1
+		players[i].setAbilityAvailable(ABILITY_ID, false)
+    
+	GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> enter()))
+    
+
+int ABILITY_ID = '!e@$'
+
+@compiletime function generateAbility()
+	new AbilityDefinitionDefend(ABILITY_ID)
+	..setName("Deindex Detect")..setEditorSuffix("(Unit Indexer)")
+	..setArtCaster("")..setIconNormal("")..setRace(Race.Unknown)
+	

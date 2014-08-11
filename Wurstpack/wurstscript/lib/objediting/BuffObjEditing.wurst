@@ -18,7 +18,14 @@ public class BuffDefinition
 
 	function setIconNormal(int level, string value)
 		def.setLvlDataString("fart",  level, 0,  value)
+	
+	function setIcon(string name)
+		string s = "ReplaceableTextures\\CommandButtons\\" + name
+		if not name.endsWith(".blp")
+			s += ".blp"
 
+		setIconNormal(1, s)
+		
 	function setCaster(int level, string value)
 		def.setLvlDataString("fcat",  level, 0,  value)
 

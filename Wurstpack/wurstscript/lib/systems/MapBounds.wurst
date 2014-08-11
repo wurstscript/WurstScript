@@ -2,26 +2,39 @@ package MapBounds
 import NoWurst
 import Vectors
 import Region
+import Rect
+
+public rect playableMapRect
+public region playableMapRegion
+public rect boundRect
+public region boundRegion
+public vec2 playableMin
+public vec2 playableMax
+public vec2 boundMin
+public vec2 boundMax
+public vec2 playableCenter
+public vec2 boundCenter
  
-public rect mapRect
-public region mapRegion
-public real mapMinX
-public real mapMinY
-public real mapMaxX
-public real mapMaxY
-public vec2 mapCenter
- 
+public function vec2.inPlayable() returns boolean
+	return this.x > playableMin.x and this.x < playableMax.x and this.y > playableMin.y and  this.y < playableMax.y
+
 public function vec2.inBounds() returns boolean
-	return this.x > mapMinX and this.x < mapMaxX and this.y > mapMinY and  this.y < mapMaxY
+	return this.x > boundMin.x and this.x < boundMax.x and this.y > boundMin.y and  this.y < boundMax.y
+	
+public function vec3.inBounds() returns boolean
+	return this.x > boundMin.x and this.x < boundMax.x and this.y > boundMin.y and  this.y < boundMax.y
  
 public function randomPointOnMap() returns vec2
-	return vec2(GetRandomReal(mapMinX,mapMaxX), GetRandomReal(mapMinY, mapMaxY))
+	return vec2(GetRandomReal(playableMin.x,playableMax.x), GetRandomReal(playableMin.y, playableMax.y))
 		
 init
-	mapRect = GetPlayableMapRect()
-	mapRegion = CreateRegion()..addRect(mapRect)
-	mapMinX = GetRectMinX( mapRect )
-	mapMinY = GetRectMinY( mapRect )
-	mapMaxX = GetRectMaxX( mapRect )
-	mapMaxY = GetRectMaxY( mapRect )
-	mapCenter = vec2(((mapMaxX+mapMinX)/2),((mapMinY+mapMaxY)/2))
+	playableMapRect = GetPlayableMapRect()
+	playableMapRegion = CreateRegion()..addRect(playableMapRect)
+	boundRect = GetWorldBounds()
+	boundRegion = CreateRegion()..addRect(boundRect)
+	playableMin = vec2(playableMapRect.getMinX(), playableMapRect.getMinY())
+	playableMax = vec2(playableMapRect.getMaxX(), playableMapRect.getMaxY())
+	boundMin = vec2(boundRect.getMinX(), boundRect.getMinY())
+	boundMax = vec2(boundRect.getMaxX(), boundRect.getMaxY())
+	playableCenter = (playableMin + playableMax) * 0.5
+	boundCenter = (boundMin + boundMax) * 0.5

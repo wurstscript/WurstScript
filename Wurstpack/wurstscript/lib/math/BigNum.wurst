@@ -61,9 +61,6 @@ public class BigNum_l
 		quotient = num div denom
 		remainder = num - quotient * denom
 		leaf = quotient
-//		print("divSmall: quo=" + quotient.toString()
-//				+" remain=" + remainder.toString()
-//				+ " num=" + num.toString())
 		return remainder
 
 

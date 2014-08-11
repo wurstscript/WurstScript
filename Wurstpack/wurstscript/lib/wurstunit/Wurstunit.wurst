@@ -1,4 +1,8 @@
 package Wurstunit
+import NoWurst
+import Integer
+import Real
+import Boolean
 // Wurst unit testing library
 
 

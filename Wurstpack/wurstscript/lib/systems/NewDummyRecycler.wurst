@@ -2,15 +2,17 @@ package NewDummyRecycler
 import MapBounds
 import GameTimer
 constant DIFFERENT_ANGLES		= 8
+constant ANGLE_DEGREE			= 360 / DIFFERENT_ANGLES
 constant SAVED_UNITS_PER_ANGLE	= 6
 
 
 public class DummyRecycler
-
+	static ArrayQueue array angleQueues
+	
 	static function get(vec2 pos, angle a) returns unit
 		let angleIndex = (a.degrees() % 360).toInt() div DIFFERENT_ANGLES
 		if angleQueues[angleIndex].size > 0
-			return angleQueues[angleIndex].dequeue()..setPos(pos)..unpause()
+			return angleQueues[angleIndex].dequeue()..setXY(pos)..unpause()
 		else
 			return createDummy(pos, DUMMY_PLAYER, a)
 	
@@ -23,14 +25,14 @@ public class DummyRecycler
 			u.remove()
 		else
 			angleQueues[smallestQueue].enqueue(u)
-			u..setPos(32256, 32256)..pause()
+			u..setXY(boundMax)..pause()..setFacing(smallestQueue*ANGLE_DEGREE)
 		
 		
 	static function recycle(unit u, real delay)
 		new DelayNode(u, delay)
 		
 
-ArrayQueue array angleQueues
+
 
 class ArrayQueue
 	unit array[SAVED_UNITS_PER_ANGLE] units
@@ -62,24 +64,42 @@ class DelayNode
 	DelayNode prev = null
 	DelayNode next = null
 	static DelayNode first = null
+	static DelayNode last = null
 	
 	construct(unit u, real time)
 		this.u = u
 		this.delayTime = getElapsedGameTime() + time
 		if first == null
 			first = this
+			last = first
 		else
 			DelayNode tmp = first
 			while tmp.next != null and tmp.delayTime < this.delayTime
 				tmp = tmp.next
 			if tmp.delayTime < this.delayTime
-				tmp.next = this
-				this.prev = tmp
+				if tmp == last
+					tmp.next = this
+					this.prev = tmp
+					last = this
+				else
+					tmp.next.prev = this
+					this.next = tmp.next
+					tmp.next = this
+					this.prev = tmp
 			else
-				tmp.prev.next = this
-				this.prev = tmp.prev
-				this.next = tmp
-				tmp.prev = this
+				if tmp == first
+					tmp.prev = this
+					first = this
+					this.next = tmp
+				else if tmp == last
+					tmp.next = this
+					this.prev = tmp
+					last = tmp
+				else
+					this.prev = tmp
+					this.next = tmp.next
+					tmp.next.prev = this
+					tmp.next = this
 			if t.getRemaining() > 0 and time < t.getRemaining()
 				t.start(time, function DelayNode.recycle)
 			else if t.getRemaining() <= 0
@@ -87,7 +107,6 @@ class DelayNode
 				
 	static function recycle()
 		DummyRecycler.recycle(first.u)
-		print("delay recycled")
 		let tmp = first
 		if first.next == null
 			first = null
@@ -101,13 +120,13 @@ class DelayNode
 			
 function createDummy(vec2 pos, player owner, angle facing) returns unit
 	let u = createUnit(owner, DUMMY_UNIT_ID, pos, facing)
-	u..setPos(pos)..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)..addAbility(LOCUST_ID)
+	u..setXY(pos)..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)..addAbility(LOCUST_ID)
 	return u
 	
 	
 init
 	for i = 0 to DIFFERENT_ANGLES - 1
-		angleQueues[i] = new ArrayQueue()
+		DummyRecycler.angleQueues[i] = new ArrayQueue()
 		for j = 0 to SAVED_UNITS_PER_ANGLE-1
-			angleQueues[i].enqueue(createDummy(vec2(mapMaxX,mapMaxY), DUMMY_PLAYER, (i* (360/DIFFERENT_ANGLES)).asAngleDegrees()))
+			DummyRecycler.angleQueues[i].enqueue(createDummy(boundMax, DUMMY_PLAYER, (i* ANGLE_DEGREE).asAngleDegrees()))
 			

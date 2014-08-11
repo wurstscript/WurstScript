@@ -3,10 +3,13 @@ package OrderStringFactory
 public class OrderStringFactory
 	int counter = -1
 		
-	function getOrderString() returns string
+	function getOrderString(boolean recycle) returns string
 		counter++
 		if counter > 347
-			error("Cannot get more than 347 Orders from an OrderStringFactory")
+			if recycle
+				counter = 0
+			else
+				error("Cannot get more than 347 Orders from an OrderStringFactory")
 		return orderStrings[counter]
 
 string array orderStrings

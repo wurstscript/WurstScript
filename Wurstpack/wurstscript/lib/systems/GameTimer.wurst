@@ -2,9 +2,14 @@ package GameTimer
 
 timer gameTimer
 
+public real currentTime
+
 public function getElapsedGameTime() returns real
 	return gameTimer.getElapsed()
 
 init
 	gameTimer = CreateTimer()
 	gameTimer.start(100000, null)
+	CreateTimer().startPeriodic(ANIMATION_PERIOD, () -> begin
+		currentTime += ANIMATION_PERIOD
+	end)

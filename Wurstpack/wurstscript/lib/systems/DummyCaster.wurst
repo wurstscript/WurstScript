@@ -1,17 +1,18 @@
 package DummyCaster
-import DummyRecycler
+import NewDummyRecycler
+import ClosureTimers
 // @credit Anitarf
 
 constant boolean FORCE_INVISIBLE_CAST = false
 constant boolean AUTO_RESET_MANA_COOLDOWN = true 
 
-
+Table delayTable = new Table()
 public class DummyCaster
 	private int 	abilityId		= 0	//ID (rawcode) of the ability to cast
 	private int 	level			= 1	//Level of the ability to cast
 	private player  owner 			= DUMMY_PLAYER
 	private int 	orderId			= 0
-	private real 	recycleDelay	= 0.5
+	real 	recycleDelay	= 0.5
 
 	function setOrderId( int id ) 
 		orderId = id
@@ -33,6 +34,8 @@ public class DummyCaster
 
 	private boolean autodestroy  = false
 	
+	function setOwner( player p )
+		this.owner = p
 
 	construct( int abilityId, string orderString, player owner, boolean autodestroy )
 		this.orderId	 = OrderId( orderString )
@@ -45,10 +48,10 @@ public class DummyCaster
 	function createDummyCaster( vec2 tpos ) returns unit
 		unit dummy
 		if customSource
-			dummy = newDummy(customPos, angle(0))
+			dummy = DummyRecycler.get(customPos.toVec2(), angle(0))
 		else
 			debugPrint("no custom source", 3)
-			dummy = newDummy(tpos, angle(0))
+			dummy = DummyRecycler.get(tpos, angle(0))
 			debugPrint("new dummy " + dummy.getName(), 3)
 
 		dummy.setOwner(owner, false)
@@ -79,7 +82,12 @@ public class DummyCaster
 			dummy.issueTargetOrderById(orderId,target)
 			debugPrint("casted " + orderId.toString(), 3)
 		
-		recycleDummy(dummy, recycleDelay)
+		delayTable.saveUnit(dummy.getHandleId(), dummy)
+		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
+			let t = GetExpiredTimer()
+			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
+			t.release()
+		end)
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
@@ -91,7 +99,11 @@ public class DummyCaster
 	function castOnWidgetTarget( widget target )
 		unit dummy = createDummyCaster(vec2(target.getX(), target.getY()))		
 		dummy.issueTargetOrderById(orderId,target)
-		recycleDummy(dummy, recycleDelay)
+		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
+			let t = GetExpiredTimer()
+			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
+			t.release()
+		end)
 		if autodestroy
 			destroy this
 
@@ -103,7 +115,11 @@ public class DummyCaster
 		debugPrint("dummy created " + dummy.getName() + "<name", 3)
 		dummy.issuePointOrderById(orderId,target)
 		debugPrint("ordered Cast", 3)
-		recycleDummy(dummy, recycleDelay)
+		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
+			let t = GetExpiredTimer()
+			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
+			t.release()
+		end)
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
@@ -118,7 +134,11 @@ public class DummyCaster
 		customSource = false
 		unit dummy = createDummyCaster(target)
 		dummy.issueImmediateOrderById(orderId)
-		recycleDummy(dummy, .5)
+		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
+			let t = GetExpiredTimer()
+			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
+			t.release()
+		end)
 		if autodestroy
 			destroy this
 

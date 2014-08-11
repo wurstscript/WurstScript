@@ -1,6 +1,13 @@
 package Boolean
 import NoWurst
 
+/** Converts a boolean into a string */
+public function boolean.toString() returns string
+	if this
+		return "true"
+	return "false"
+	
+
 public function boolean.toInt() returns int
 	if this
 		return 1

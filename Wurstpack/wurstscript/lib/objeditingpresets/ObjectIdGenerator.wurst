@@ -1,0 +1,53 @@
+package ObjectIdGenerator
+import ObjectIds
+import ObjEditingNatives
+
+public constant UNIT_ID_GEN = new IdGenerator('s000')
+public constant HERO_ID_GEN = new IdGenerator('H000')
+public constant ABIL_ID_GEN = new IdGenerator('A000')
+public constant BUFF_ID_GEN = new IdGenerator('B000')
+public constant ITEM_ID_GEN = new IdGenerator('I000')
+
+public class IdGenerator
+	int i1
+	int i2
+	int i3
+	int i4
+	
+	construct(int start)
+		i1 = start mod 256
+		i2 = (start mod 65536) div 256
+		i3 = (start mod 16777216) div 65536
+		i4 = start div 16777216
+		
+	function next() returns int
+		if i1 < '~'
+			i1++
+			if(i1 == '_')
+				i1++
+		else if i2 < '~'
+			i1 = '!'
+			i2++
+			if(i2 == '_')
+				i2++
+		else if i3 < '~'
+			i1 = '!'
+			i2 = '!'
+			i3++
+			if(i3 == '_')
+				i3++
+		else if i4 < '~'
+			i1 = '!'
+			i2 = '!'
+			i3 = '!'
+			i4++
+			if(i4 == '_')
+				i4++
+		else
+			error("No vaild id left")
+			return 0
+		return i1 + (i2 * 256) + (i3 * 65536) + (i4 * 16777216)
+		
+		
+		
+		

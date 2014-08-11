@@ -67,7 +67,11 @@ public class LinkedList<T>
 
 	/** get an iterator for this list */
 	function iterator() returns LLIterator<T>
-		return new LLIterator(dummy)			
+		return new LLIterator(dummy)	
+	
+	/** get an iterator for this list */
+	function backiterator() returns LLBIterator<T>
+		return new LLBIterator(dummy)	
 
 	/** adds an element to the beginning of the list */	
 	function addtoStart(T elem)
@@ -161,6 +165,25 @@ public class LLIterator<Q>
  		
 	function close() 
 		destroy this
+		
+public class LLBIterator<Q>
+	LLEntry<Q> dummy
+	LLEntry<Q> current
+
+	construct(LLEntry<Q> dummy)
+		this.dummy = dummy
+		this.current = dummy
+			
+	function hasNext() returns boolean
+		return current.prev != dummy
+
+	function next() returns Q
+		current = current.prev 
+		return current.elem 
+ 		
+	function close() 
+		destroy this
+
 
 		
 public interface LinkedListPredicate<T>

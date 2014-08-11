@@ -5,7 +5,7 @@ import initlater Unit
 
 public player array players
 init
-	for i = 0 to 13
+	for i = 0 to bj_MAX_PLAYER_SLOTS-1
 		players[i] = Player(i)
 
 public enum PlayerId

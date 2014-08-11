@@ -55,12 +55,6 @@ public function printTimedToPlayerClear(string msg, real duration, player p)
 		ClearTextMessages()
 	DisplayTimedTextToPlayer(p, 0., 0., duration, msg)
 
-/** Converts a boolean into a string */
-public function boolean.toString() returns string
-	if this
-		return "true"
-	return "false"
-	
 /** Function used to switch the debugstate of a player */
 function switchDebug()
 	let p = GetTriggerPlayer()

@@ -1,12 +1,11 @@
 package ChannelAbilityPreset
-import public AbilityPreset
+import public AbilityObjEditing
 import OrderStringFactory
-
-constant CHANNEL_ID = 'ANcl'
 
 OrderStringFactory odf = new OrderStringFactory()
 @compiletime function initOdf()
 	odf = new OrderStringFactory()
+
 
 public enum Option
 	VISIBLE
@@ -15,6 +14,12 @@ public enum Option
 	UNIVERSALSPELL
 	UNIQUECAST
 	
+constant visibleval = 1
+constant targetimageval = 2
+constant physicalspellval = 4
+constant universalspellval = 8
+constant uniquecastval = 16
+	
 public enum Targettype
 	NOTARGET
 	UTARGET
@@ -22,18 +27,10 @@ public enum Targettype
 	PUTARGET
 	PASSIVE
 	
-constant int visibleval = 1
-constant int targetimageval = 2
-constant int physicalspellval = 4
-constant int universalspellval = 8
-constant int uniquecastval = 16
-	
-
-	
 public function Targettype.toString() returns string
 	switch this
 		case NOTARGET
-			return "No Target"
+			return "Instant Cast"
 		case Targettype.PTARGET
 			return "Point Target"
 		case Targettype.UTARGET
@@ -52,54 +49,30 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 	boolean UNIQUECAST
 	int optionval = 0
 	
-	int lvl
-	
 	construct(int newId, int lvls)
 		super(newId)
-		this.lvl = lvls
-		setBaseOrderId(odf.getOrderString())
+		this.lvls = lvls
+		presetBaseOrderID((int lvl) -> odf.getOrderString(true))
 		
 	function removeChannelProperties(boolean removeVisuals)
-		setDisablesOther(false)
-		setFollowThroughTime(0.)
-		setArtDuration(0.)
+		removeChannelProperties(removeVisuals, true)
+		
+	function removeChannelProperties(boolean removeVisuals, boolean makeVisible)
+		presetDisableOtherAbilities((int lvl) -> false)
+		presetFollowThroughTime((int lvl) -> 0.)
+		presetArtDuration((int lvl) -> 0.)
+		if makeVisible
+			presetOption(Option.VISIBLE, true)
 		if removeVisuals
 			setArtCaster("")
 			setArtEffect("")
 			setArtSpecial("")
 			setArtTarget("")
 			
-		
-
-		
-	function setAreaOfEffect(real range)
-		for i = 1 to lvl
-			setAreaofEffect(i, range)
-		
-	function setArtDuration(real value)
-		for i = 1 to lvl
-			def.setLvlDataUnreal("Ncl4", i, 4, value)
-		
-	function setBaseOrderId(string value)
-		for i = 1 to lvl
-			setBaseOrderID(i, value)
-				
-	function setDisablesOther(boolean flag)
-		int v = 0
-		if flag
-			v = 1 
-		for i = 1 to lvl
-			def.setLvlDataInt("Ncl5", i, 5, v)
-			
-	function setFollowThroughTime(real time)
-		for i = 1 to lvl
-			def.setLvlDataUnreal("Ncl1", i, 1, time)
+	function presetTargetTypes(Targettype ttype)
+		presetTargetType((int lvl) -> ttype castTo int + 0)
 					
-	function setTargetType(Targettype ttype)			
-		for i = 1 to lvl
-			def.setLvlDataInt("Ncl2", i, 2, (ttype castTo int))
-					
-	function setOption(Option opt, boolean flag)
+	function presetOption(Option opt, boolean flag)
 		switch opt
 			case Option.VISIBLE
 				VISIBLE = flag
@@ -132,5 +105,4 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 				else
 					optionval-=uniquecastval
 
-		for i = 1 to lvl
-			def.setLvlDataInt("Ncl3", i, 3, optionval)
+		presetOptions((int lvl) -> optionval)

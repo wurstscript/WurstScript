@@ -2,10 +2,20 @@ package ObjEditingNatives
 import NoWurst
 import Boolean
 
+public interface StringLevelClosure
+	function run(int lvl) returns string
+		
+public interface IntLevelClosure
+	function run(int lvl) returns int
+		
+public interface RealLevelClosure
+	function run(int lvl) returns real
+		
+public interface BooleanLevelClosure
+	function run(int lvl) returns boolean
 
 // when this function is called at compiletime it generated a compile error with the given message 
 @compiletimenative public function compileError(string msg)
-
 
 public tuple ObjectDefinition(int key)
 
@@ -73,3 +83,24 @@ public function ObjectDefinition.setLvlDataBoolean(string modification, int lvl,
 		this.setLvlDataInt(modification, lvl, dataPointer, 1)
 	else
 		this.setLvlDataInt(modification, lvl, dataPointer, 0)
+		
+public function ObjectDefinition.setLevelsDataString(string modification, int maxLevel, int dataPointer, StringLevelClosure lc)
+	for i = 1 to maxLevel
+		this.setLvlDataString(modification, i, dataPointer, lc.run(i))
+	
+public function ObjectDefinition.setLevelsDataInt(string modification, int maxLevel, int dataPointer, IntLevelClosure lc)
+	for i = 1 to maxLevel
+		this.setLvlDataInt(modification, i, dataPointer, lc.run(i))	
+		
+public function ObjectDefinition.setLevelsDataUnreal(string modification, int maxLevel, int dataPointer, RealLevelClosure lc)
+	for i = 1 to maxLevel
+		this.setLvlDataUnreal(modification, i, dataPointer, lc.run(i))
+		
+public function ObjectDefinition.setLevelsDataReal(string modification, int maxLevel, int dataPointer, RealLevelClosure lc)
+	for i = 1 to maxLevel
+		this.setLvlDataReal(modification, i, dataPointer, lc.run(i))
+		
+public function ObjectDefinition.setLevelsDataBoolean(string modification, int maxLevel, int dataPointer, BooleanLevelClosure lc)
+	for i = 1 to maxLevel
+		this.setLvlDataBoolean(modification, i, dataPointer, lc.run(i))
+	

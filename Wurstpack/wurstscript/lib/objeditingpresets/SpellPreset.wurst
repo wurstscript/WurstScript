@@ -1,0 +1,24 @@
+package SpellPreset
+import public AbilityObjEditing
+
+
+public class SpellPreset extends AbilityDefinition
+	int lvl
+	
+	construct(int newAbilityId, int origAbilityId, int lvls)
+		super(newAbilityId, origAbilityId)
+		setLevels(lvls)
+		this.lvl = lvls
+		
+	function setIcon(string name)
+		string s = "ReplaceableTextures\\CommandButtons\\" + name
+		if not name.endsWith(".blp")
+			s += ".blp"
+
+		setIconResearch(s)
+		setIconNormal(s)
+			
+	
+		
+	
+		

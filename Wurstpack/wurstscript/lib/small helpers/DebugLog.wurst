@@ -1,0 +1,17 @@
+package DebugLog
+import GameTimer
+import FileIO
+
+public class DebugLog
+	File file
+	string name
+	construct(string name)
+		this.name = name
+		
+	function println(string line)
+		this.file = File.open("debug", name + ".txt", Flag.READ)
+		let content = file.read()
+		file.close()
+		this.file = File.open("debug", name + ".txt", Flag.WRITE)
+		file.write(content + line + "\n")
+		file.close()
