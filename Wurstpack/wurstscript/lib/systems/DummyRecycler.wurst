@@ -117,8 +117,8 @@ init
 	int endPos
 	int n = ANG_N
 	real angl
-	real x = mapMaxX
-	real y = mapMaxY
+	real x = playableMin.x
+	real y = playableMin.y
 	for int i = ANG_N downto 0
 		stackN[i] = ANG_STORAGE_MAX
 		queueNext[i] = n
