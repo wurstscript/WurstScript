@@ -269,7 +269,7 @@ package Entity
 			
 		override function update()
 			pos += (vel*speedFactor)
-			fx.setPos(pos)
+			fx.setXYZ(pos)
 			
 		function setFx(string sfxpath)
 			fx.setFx(sfxpath)

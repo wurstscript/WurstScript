@@ -11,7 +11,7 @@ public function unit.recycle()
 		let stack = objectLists.loadInt(id) castTo Stack<unit>
 		stack.push(this)
 		this.hide()
-		this.setPos(mapMinX, mapMinY)
+		this.setPos(1, 2)
 	else
 		printError("trying to recycle a unit not created by 'getUnit'!")
 	
