@@ -18,6 +18,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstio.Pjass.Result;
+import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
@@ -35,6 +36,7 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class Main {
@@ -74,6 +76,12 @@ public class Main {
 				about.setVisible(true);
 				return;
 			}
+			
+			if (runArgs.isStartServer()) {
+				WurstServer.startServer();
+				return;
+			}
+			
 			WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
 			String mapFilePath = runArgs.getMapFile();
 			if (runArgs.isExtractImports()) {
@@ -186,12 +194,12 @@ public class Main {
 			}
 			// tests
 			gui.sendProgress("Running tests", 0.9);
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlag.IS_TEST);
+			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_TEST);
 			ctr.run();
 		
 			// compiletime functions
 			gui.sendProgress("Running compiletime functions", 0.91);
-			ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlag.IS_COMPILETIME);
+			ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.run();
 		}

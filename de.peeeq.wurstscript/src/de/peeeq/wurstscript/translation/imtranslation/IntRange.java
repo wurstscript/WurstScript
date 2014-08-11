@@ -18,7 +18,7 @@ public class IntRange implements Iterable<Integer> {
 	
 	@Override
 	public String toString() {
-		return start + ".." + end;
+		return start + "..<" + end;
 	}
 
 	public int size() {

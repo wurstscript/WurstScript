@@ -4,6 +4,12 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKE
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -12,8 +18,16 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
+import org.eclipse.jface.text.Position;
+import org.eclipse.jface.text.source.Annotation;
 import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
 import org.eclipse.jface.text.source.ICharacterPairMatcher;
+import org.eclipse.jface.text.source.ISourceViewer;
+import org.eclipse.jface.text.source.IVerticalRuler;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
+import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
+import org.eclipse.jface.text.source.projection.ProjectionSupport;
+import org.eclipse.jface.text.source.projection.ProjectionViewer;
 import org.eclipse.jface.viewers.IPostSelectionProvider;
 import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
@@ -43,9 +57,11 @@ import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
 import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
+import de.peeeq.eclipsewurstplugin.editor.reconciling.WPosition;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
 	
@@ -54,6 +70,9 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	private Set<CompilationUnitChangeListener> changeListeners = Sets.newLinkedHashSet();
 	private CompilationUnit compiationUnit;
 	private WurstReconcilingStategy reconciler;
+	private ProjectionSupport projectionSupport;
+	private ProjectionAnnotationModel annotationModel;
+	private int reconcileCount;
 
 	public WurstEditor() {
 		super();
@@ -169,11 +188,66 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		if (reconciler != null) {
 			reconciler.reconcile(false);
 		}
+		
+	    ProjectionViewer viewer =(ProjectionViewer)getSourceViewer();
+
+	    projectionSupport = new ProjectionSupport(viewer,getAnnotationAccess(),getSharedColors());
+	    projectionSupport.install();
+
+	    //turn projection mode on
+	    viewer.enableProjection();
+	    viewer.doOperation(ProjectionViewer.COLLAPSE);
+
+	    annotationModel = viewer.getProjectionAnnotationModel();
 	
 	}
 
+	@Override
+	protected ISourceViewer createSourceViewer(Composite parent, IVerticalRuler ruler, int styles) {
+		ISourceViewer viewer = new ProjectionViewer(parent, ruler,
+				getOverviewRuler(), isOverviewRulerVisible(), styles);
 
+		// ensure decoration support has been created and configured.
+		getSourceViewerDecorationSupport(viewer);
+
+		return viewer;
+	}
 	
+	
+	private Map<WPosition, Annotation> oldAnnotations = new HashMap<>();
+
+	public void updateFoldingStructure(List<WPosition> positions) {
+		Map<Annotation, Position> newAnnotations = new HashMap<>();
+		
+		Set<Annotation> removed = new HashSet<>(oldAnnotations.values());
+		System.out.println("old annotations: " + oldAnnotations);
+		for (WPosition position : positions) {
+			Annotation a = oldAnnotations.get(position);
+			System.out.println("position " + position + " ---> " + a);
+			if (a == null) {
+				ProjectionAnnotation annotation = new ProjectionAnnotation();
+				newAnnotations.put(annotation, position.toEclipsePosition());
+			} else {
+				removed.remove(a);
+			}
+		}
+		
+		Utils.removeValuesFromMap(oldAnnotations, removed);
+		
+		for (Entry<Annotation, Position> a : newAnnotations.entrySet()) {
+			oldAnnotations.put(new WPosition(a.getValue()), a.getKey());
+		}
+		
+		System.out.println("removed = "  +removed);
+		System.out.println("new = " + newAnnotations);
+		annotationModel.modifyAnnotations(removed.toArray(new Annotation[0]), newAnnotations, null);
+		ProjectionViewer viewer = (ProjectionViewer) getSourceViewer();
+		if (reconcileCount < 2) {
+			viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
+		}
+		reconcileCount++;
+
+	}
 	
 	
 	@Override

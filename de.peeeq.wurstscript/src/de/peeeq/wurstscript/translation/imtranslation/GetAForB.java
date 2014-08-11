@@ -4,17 +4,17 @@ import java.util.Map;
 
 import com.google.common.collect.Maps;
 
-public abstract class GetAForB<A,B> {
+public abstract class GetAForB<B,A> {
 
-	private final Map<A, B> thing = Maps.newLinkedHashMap();
+	private final Map<B, A> thing = Maps.newLinkedHashMap();
 	
-	abstract B initFor(A a);
+	public abstract A initFor(B a);
 	
-	public B getFor(A a) {
+	public A getFor(B a) {
 		if (thing.containsKey(a)) {
 			return thing.get(a);
 		}
-		B b = initFor(a);
+		A b = initFor(a);
 		thing.put(a, b);
 		return b;
 	}

@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,8 +25,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -45,6 +53,7 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
@@ -1036,5 +1045,68 @@ public class Utils {
 		Preconditions.checkNotNull(o);
 		return o;
 	}
+
+	public static <K,V> ImmutableMap<K,V> mergeMaps(
+			ImmutableMap<K, V> a,
+			ImmutableMap<K, V> b,
+			Function2<V,V,V> mergeFunc) {
+		if (a.isEmpty()) return b;
+		if (b.isEmpty()) return a;
+		
+		ImmutableMap.Builder<K, V> builder = ImmutableMap.builder();
+		
+		for (Entry<K, V> e : a.entrySet()) {
+			K key = e.getKey();
+			if (b.containsKey(key)) {
+				builder.put(key, mergeFunc.apply(e.getValue(), b.get(key)));
+			} else {
+				builder.put(e);
+			}
+		}
+		
+		for (Entry<K, V> e : b.entrySet()) {
+			K key = e.getKey();
+			if (!a.containsKey(key)) {
+				builder.put(e);
+			}
+		}
+		
+		return builder.build();
+	}
+	
+	public static <K,V> ImmutableSetMultimap<K,V> mergeMultiMaps(
+			ImmutableSetMultimap<K, V> a, ImmutableSetMultimap<K, V> b) {
+		if (a.isEmpty()) return b;
+		if (b.isEmpty()) return a;
+		
+		ImmutableSetMultimap.Builder<K, V> builder = ImmutableSetMultimap.builder();
+		builder.putAll(a);
+		builder.putAll(b);
+		return builder.build();
+	}
+
+	public static <T> ImmutableSet<T> mergeSets(ImmutableSet<T> a, ImmutableSet<T> b) {
+		ImmutableSet.Builder<T> builder = ImmutableSet.<T>builder();
+		builder.addAll(a).addAll(b);
+		return builder.build();
+	}
+
+	public static <T> T[] joinArrays(T[] a, T[] b) {
+		T[] res = Arrays.copyOf(a, a.length+b.length);
+		System.arraycopy(b, 0, res, a.length, b.length);
+		return res;
+	}
+
+	public static <K,V> void removeValuesFromMap(Map<K, V> map, Collection<V> removed) {
+		Iterator<Entry<K, V>> it = map.entrySet().iterator();
+		while (it.hasNext()) {
+			Entry<K, V> e = it.next();
+			if (removed.contains(e.getValue())) {
+				it.remove();
+			}
+		}
+	}
+	
+	
 	
 }

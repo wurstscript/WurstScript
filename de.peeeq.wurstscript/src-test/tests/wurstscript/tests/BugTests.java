@@ -662,4 +662,34 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void underscores_in_name() {
+		testAssertOkLines(false,  
+				"package test",
+				"native print(string msg)",
+				"init",
+				"	var _test_ = \"Hello\"",
+				"	print(_test_)",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void extensionFunc_noreturn() { // see #280
+		testAssertErrorsLines(false, "missing a body",  
+				"package test",
+				"function int.foo() returns int",
+				"endpackage"
+				);
+	}
+
+	@Test
+	public void func_noreturn() { // see #280
+		testAssertErrorsLines(false, "missing a body",  
+				"package test",
+				"function foo() returns int",
+				"endpackage"
+				);
+	}
+	
 }

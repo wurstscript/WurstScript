@@ -308,4 +308,27 @@ public class TupleTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void tupleInTuple3() {
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	native println(string s)",
+				"	@extern native I2S(int i) returns string",
+				"	tuple vec(int x, int y)",
+				"	tuple line(vec a, vec b)",
+				"	line array l",
+				"	init",
+				"		l[2] = line(vec(1,2),vec(3,4))",
+				"		string s = \"abc\"",
+				"		s += I2S(l[2].a.x)",
+				"		s += I2S(l[2].a.y)",
+				"		s += I2S(l[2].b.x)",
+				"		s += I2S(l[2].b.y)",
+				"		if s == \"abc1234\"",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

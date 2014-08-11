@@ -235,11 +235,12 @@ public class Flow {
 			r.add(loop.getBody().get(0));
 		}
 		// ... or after the loop
-		int index = loop.attrListIndex();
-		WStatements parent = (WStatements) loop.getParent();
-		if (index + 1 < parent.size()) {
-			r.add(parent.get(index+1));
-		}
+//		int index = loop.attrListIndex();
+//		WStatements parent = (WStatements) loop.getParent();
+//		if (index + 1 < parent.size()) {
+//			r.add(parent.get(index+1));
+//		}
+		r.addAll(getFollowingStatements(loop));
 		return r;
 	}
 

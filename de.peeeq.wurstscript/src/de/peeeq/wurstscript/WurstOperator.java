@@ -14,6 +14,8 @@ import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpUnary;
+import de.peeeq.wurstscript.luaAst.LuaAst;
+import de.peeeq.wurstscript.luaAst.LuaOpBinary;
 
 public enum WurstOperator {
 	OR("or", 2),
@@ -85,6 +87,43 @@ public enum WurstOperator {
 			return JassAst.JassOpOr();
 		case PLUS:
 			return JassAst.JassOpPlus();
+		case NOT:
+		case UNARY_MINUS:
+		}
+		throw new Error("cannot translate " + this);
+	}
+	
+	public LuaOpBinary luaTranslateBinary() {
+		switch (this) {
+		case AND: return LuaAst.LuaOpAnd();
+		case DIV_INT:
+			return LuaAst.LuaOpDiv();
+		case DIV_REAL:
+			return LuaAst.LuaOpDiv();
+		case EQ:
+			return LuaAst.LuaOpEquals();
+		case GREATER:
+			return LuaAst.LuaOpGreater();
+		case GREATER_EQ:
+			return LuaAst.LuaOpGreaterEq();
+		case LESS:
+			return LuaAst.LuaOpLess();
+		case LESS_EQ:
+			return LuaAst.LuaOpLessEq();
+		case MINUS:
+			return LuaAst.LuaOpMinus();
+		case MOD_REAL:
+			return LuaAst.LuaOpMod();
+		case MOD_INT:
+			throw new Error("Cannot translate modulo int");
+		case MULT:
+			return LuaAst.LuaOpMult();
+		case NOTEQ:
+			return LuaAst.LuaOpUnequals();
+		case OR:
+			return LuaAst.LuaOpOr();
+		case PLUS:
+			return LuaAst.LuaOpPlus();
 		case NOT:
 		case UNARY_MINUS:
 		}

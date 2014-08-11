@@ -6,11 +6,23 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprMember;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.LoopStatement;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.StmtForIn;
+import de.peeeq.wurstscript.ast.StmtIf;
+import de.peeeq.wurstscript.ast.StmtLoop;
+import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -39,6 +51,29 @@ public class AttrPos {
 			return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
 		}
 		// if no childs exist, search a parent element with a explicit position
+		return getParentSource(e);
+	}
+
+	public static WPos getPos(WImports e) {
+		int min = Integer.MAX_VALUE;
+		int max = Integer.MIN_VALUE;
+		for (WImport i : e) {
+			if (i.getPackagename().equals("Wurst")) {
+				continue;
+			}
+			WPos childSource = i.getSource();
+			min = Math.min(min, childSource.getLeftPos());
+			max = Math.max(max, childSource.getRightPos());
+		}
+		if (min != Integer.MAX_VALUE) {
+			return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
+		} else {
+			return getParentSource(e);
+		}
+	}
+	
+
+	private static WPos getParentSource(AstElement e) {
 		AstElement parent = e.getParent();
 		while (parent != null) {
 			if (parent instanceof AstElementWithSource) {
@@ -139,4 +174,55 @@ public class AttrPos {
 		WPos pos = e.getSource();
 		return pos.withRightPos(pos.getLeftPos() + 5 + e.getName().length());
 	}
+	
+	
+	public static WPos getErrorPos(LoopStatement e) {
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 3);
+	}
+	
+	public static WPos getErrorPos(StmtWhile e) {
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 5);
+	}
+	
+	public static WPos getErrorPos(StmtLoop e) {
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 5);
+	}
+	
+	public static WPos getErrorPos(StmtIf e) {
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 2);
+	}
+	
+	public static WPos getErrorPos(SwitchStmt e) {
+		WPos pos = e.getSource();
+		return pos.withRightPos(pos.getLeftPos() + 6);
+	}
+	
+	
+	public static WPos getErrorPos(ExprMember e) {
+		WPos pos = e.getSource();
+		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos());
+		return pos;
+	}
+	
+	public static WPos getErrorPos(ExprMemberMethod e) {
+		WPos pos = e.getSource();
+		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos());
+		pos = pos.withRightPos(e.getArgs().attrSource().getLeftPos());
+		return pos;
+	}
+	
+	
+	public static WPos getErrorPos(LocalVarDef e) {
+		WPos pos = e.getSource();
+		if (e.getInitialExpr() instanceof Expr) {
+			pos = pos.withRightPos(e.getInitialExpr().attrSource().getLeftPos() - 3);
+		}
+		return pos;
+	}
+	
+	
 }

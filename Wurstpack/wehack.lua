@@ -88,7 +88,30 @@ havewurst = grim.exists("wurstscript\\wurstscript.exe")
 if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	
+	function wurst_command()
+		if wurst_b_enable.checked then
+			return "wurstscript\\wurstscript_b.exe"
+		else
+			return "wurstscript\\wurstscript.exe"
+		end
+	end
+	
+	
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
+	wurst_b_enable = TogMenuEntry:New(wurstmenu,"Use Wurst compilation server",nil,false)
+	
+	
+	function wurst_compilationserver_start()
+		wehack.execprocess("wurstscript\\wurstscript.exe -startServer")
+	end
+	
+	function wurst_compilationserver_stop()
+		wehack.execprocess("wurstscript\\wurstscript.exe -stopServer")
+	end
+	
+	-- TODO
+	--MenuEntry:New(wurstmenu,"Start Wurst compilation server ",wurst_compilationserver_start)
+	--MenuEntry:New(wurstmenu,"Stop Wurst compilation server ",wurst_compilationserver_stop)
 	
 	wehack.addmenuseparator(wurstmenu)
 	-- optimizer options
@@ -113,10 +136,12 @@ if havewurst then
 	
 	-- other tools
 	
+	
+	
 	function wurst_runfileexporter()
 		curmap = wehack.findmappath()
 		if curmap ~= "" then
-			wehack.execprocess("wurstscript\\wurstscript.exe --extractImports \"" .. curmap .. "\"")
+			wehack.execprocess(wurst_command() .. " --extractImports \"" .. curmap .. "\"")
 		else
 			wehack.messagebox("No map loaded. Try saving the map first.","Wurst",false)
 		end
@@ -127,11 +152,11 @@ if havewurst then
 	wehack.addmenuseparator(wurstmenu)
 	
 	function wurstshowerr()
-	  	wehack.execprocess("wurstscript\\wurstscript.exe --showerrors")
+	  	wehack.execprocess(wurst_command() .. " --showerrors")
 	end
 	
 	function wurstabout()
-	  	wehack.execprocess("wurstscript\\wurstscript.exe --about")
+	  	wehack.execprocess(wurst_command() .. " --about")
 	end
 	
   -- TODO wurstshowerrm = MenuEntry:New(wurstmenu,"Show previous errors",wurstshowerr)
@@ -513,7 +538,7 @@ grim.log("running tool on save: "..cmdargs)
 	end
 	
 	if havewurst and wurst_enable.checked then
-		cmdline = "wurstscript\\wurstscript.exe"
+		cmdline = wurst_command()
 		cmdline = cmdline .. " -gui"
 		if wurst_debug.checked then
 			--cmdline = cmdline .. " --debug"
@@ -555,6 +580,7 @@ grim.log("running tool on save: "..cmdargs)
 		if toolresult == 0 then 
 			mapvalid = true
 		else
+			wehack.messagebox("Could not run Wurst.","Wurst",false)
 			mapvalid = false
 		end
 	end

@@ -11,4 +11,11 @@ Error messages can also be disabled.
 public function error(string _msg)
 
 
+/** builtin magic function.
+Calls all functions with the given annotation, for example
+`callFunctionsWithAnnotation("@initializeObject")`.
+The called functions must not take any parameters. 
+*/
+public function callFunctionsWithAnnotation(string _annotation)
+
 

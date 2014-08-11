@@ -102,6 +102,13 @@ public class UtilsTest {
 	  
   }
   
+  @Test
+  public void joinArrays() {
+	  String[] ar1 = {"a","b"};
+	  String[] ar2 = {"c","d","e"};
+	  String[] ar3 = {"a","b","c","d","e"};
+	  Assert.assertEquals(ar3, Utils.joinArrays(ar1, ar2));
+  }
   
 /* TODO utils unit tests
   @Test

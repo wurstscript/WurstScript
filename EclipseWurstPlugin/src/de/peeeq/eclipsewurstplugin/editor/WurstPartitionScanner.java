@@ -17,9 +17,10 @@ import org.eclipse.jface.text.rules.WordRule;
 import com.google.common.collect.Lists;
 
 public class WurstPartitionScanner extends RuleBasedPartitionScanner {
-	public final static String WURST_MULTILINE_COMMENT= "__wurst_multiline_comment"; 
+	public final static String WURST_MULTILINE_COMMENT= "__wurst_multiline_comment";
+	public final static String WURST_OTHER = "__wurst_other";
 	public final static String HOT_DOC= "__wurst_hotdoc"; 
-	public final static String[] PARTITION_TYPES= new String[] { WURST_MULTILINE_COMMENT, HOT_DOC };
+	public final static String[] PARTITION_TYPES= new String[] { WURST_MULTILINE_COMMENT, HOT_DOC, WURST_OTHER };
 
 	/**
 	 * Detector for empty comments.
@@ -77,15 +78,16 @@ public class WurstPartitionScanner extends RuleBasedPartitionScanner {
 
 		IToken javaDoc= new Token(HOT_DOC);
 		IToken comment= new Token(WURST_MULTILINE_COMMENT);
+		IToken other= new Token(WURST_OTHER);
 
 		List<IPredicateRule> rules= Lists.newArrayList();
 
 		// Add rule for single line comments.
-		rules.add(new EndOfLineRule("//", comment)); //$NON-NLS-1$
+		rules.add(new EndOfLineRule("//", other)); //$NON-NLS-1$
 
 		// Add rule for strings and character constants.
-		rules.add(new SingleLineRule("\"", "\"", Token.UNDEFINED, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
-		rules.add(new SingleLineRule("'", "'", Token.UNDEFINED, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
+		rules.add(new SingleLineRule("\"", "\"", other, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
+		rules.add(new SingleLineRule("'", "'", other, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
 
 		// Add special case word rule.
 		rules.add(new WordPredicateRule(comment));

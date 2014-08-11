@@ -168,7 +168,7 @@ public class RunStatement {
 	public static void run(ImError s, ProgramState globalState,
 			LocalState localState) {
 		ILconstString msg = (ILconstString) s.getMessage().evaluate(globalState, localState);
-		throw new DebugPrintError(msg.getVal());
+		throw new DebugPrintError(msg.getVal(), globalState.getStackFrames().peek(), globalState.getLastStatement());
 	}
 
 	

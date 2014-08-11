@@ -328,6 +328,41 @@ public class OptimizerTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+
+	@Test
+	public void test_ifInt4() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		if 8 >= 8 and 50 != 50",
+				"		else",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	@Test
+	public void test_ifEmpty() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	int x = 0",
+				"	function foo() returns boolean",
+				"		if x == 0",
+				"			x = 1",
+				"			return true",
+				"		return false",
+				"	init",
+				"		if foo()",
+				"		if x == 1",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
+	
+	
 	@Test
 	public void test_exitwhen() {
 		assertOk(false,

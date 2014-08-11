@@ -14,10 +14,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSimpleType;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVars;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVoid;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_BJ;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_COMPILETIME;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_NATIVE;
-import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlag.IS_TEST;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_BJ;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_COMPILETIME;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_NATIVE;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_TEST;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,12 +33,16 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
+import de.peeeq.datastructures.ImmutableTree;
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
@@ -149,7 +153,7 @@ public class ImTranslator {
 
 	private @Nullable ImFunction configFunc = null;
 
-	private final Map<ImVar, List<ImVar>> varsForTupleVar = new LinkedHashMap<>();
+	private final Map<ImVar, ImmutableTree<ImVar>> varsForTupleVar = new LinkedHashMap<>();
 
 	private boolean isUnitTestMode;
 
@@ -157,8 +161,11 @@ public class ImTranslator {
 
 	private boolean addInitChecks = false;
 
+	AstElement lasttranslatedThing;  
+	
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
+		this.lasttranslatedThing = wurstProg;
 		this.isUnitTestMode = isUnitTestMode;
 		imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<ImVar,ImExpr>());
 	}
@@ -168,30 +175,38 @@ public class ImTranslator {
 	 * translates a program 
 	 */
 	public ImProg translateProg() {
+		try {
+			globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+			addFunction(getGlobalInitFunc());
+			debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
 
-		globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-		addFunction(getGlobalInitFunc());
-		debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
-		
-		if (addInitChecks) {
-			imProg.getGlobals().add(lastInitFunc);
-		}
+			if (addInitChecks) {
+				imProg.getGlobals().add(lastInitFunc);
+			}
 
-		for (CompilationUnit cu : wurstProg) {
-			translateCompilationUnit(cu);
-		}
+			for (CompilationUnit cu : wurstProg) {
+				translateCompilationUnit(cu);
+			}
 
-		if (mainFunc == null) {
-			mainFunc = ImFunction(emptyTrace, "main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-			addFunction(mainFunc);
-		}
-		if (configFunc == null) {
-			configFunc = ImFunction(emptyTrace, "config", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-			addFunction(configFunc);
-		}
-		finishInitFunctions();
+			if (mainFunc == null) {
+				mainFunc = ImFunction(emptyTrace, "main", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+				addFunction(mainFunc);
+			}
+			if (configFunc == null) {
+				configFunc = ImFunction(emptyTrace, "config", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+				addFunction(configFunc);
+			}
+			finishInitFunctions();
+			EliminateCallFunctionsWithAnnotation.process(imProg);
 
-		return imProg;
+			return imProg;
+		} catch (CompileError t) {
+			throw t;
+		} catch (Throwable t) {
+			WLogger.severe(t);
+			throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t.getMessage() + 
+					"\nPlease open a ticket with source code and the error log.", t);
+		}
 	}
 
 	private ArrayList<FunctionFlag> flags(FunctionFlag ... flags) {
@@ -200,13 +215,16 @@ public class ImTranslator {
 
 
 	private void translateCompilationUnit(CompilationUnit cu) {
+		lasttranslatedThing = cu;
 		// TODO can we make this smarter? Only translate functions which are actually called...
 		for (WPackage p : cu.getPackages()) {
+			lasttranslatedThing = p;
 			p.imTranslateTLD(this);
 		}
 		for (JassToplevelDeclaration tld : cu.getJassDecls()) {
+			lasttranslatedThing = tld;
 			tld.imTranslateTLD(this);
-		}
+		}	
 	}
 
 
@@ -355,7 +373,7 @@ public class ImTranslator {
 	public GetAForB<StructureDef, ImFunction> destroyFunc = new GetAForB<StructureDef, ImFunction>() {
 		
 		@Override
-		ImFunction initFor(StructureDef classDef) {
+		public ImFunction initFor(StructureDef classDef) {
 			ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 			ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
 			addFunction(f);
@@ -366,7 +384,7 @@ public class ImTranslator {
 	public GetAForB<StructureDef, ImMethod> destroyMethod = new GetAForB<StructureDef, ImMethod>() {
 		
 		@Override
-		ImMethod initFor(StructureDef classDef) {
+		public ImMethod initFor(StructureDef classDef) {
 			ImFunction impl = destroyFunc.getFor(classDef);
 			boolean abstr;
 			if (classDef instanceof ClassDef) {
@@ -384,7 +402,7 @@ public class ImTranslator {
 	public GetAForB<ImClass, ImFunction> allocFunc = new GetAForB<ImClass, ImFunction>() {
 
 		@Override
-		ImFunction initFor(ImClass c) {
+		public ImFunction initFor(ImClass c) {
 			return JassIm.ImFunction(c.getTrace(), "alloc_" + c.getName(), JassIm.ImVars(), TypesHelper.imInt(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}
@@ -394,7 +412,7 @@ public class ImTranslator {
 	public GetAForB<ImClass, ImFunction> deallocFunc = new GetAForB<ImClass, ImFunction>() {
 
 		@Override
-		ImFunction initFor(ImClass c) {
+		public ImFunction initFor(ImClass c) {
 			return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), 
 					JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
 		}
@@ -415,7 +433,7 @@ public class ImTranslator {
 			flags.add(IS_BJ);
 		}
 		if (isExtern(funcDef)) {
-			flags.add(FunctionFlag.IS_EXTERN);
+			flags.add(FunctionFlagEnum.IS_EXTERN);
 		}
 		if (funcDef instanceof FuncDef) {
 			FuncDef funcDef2 = (FuncDef) funcDef;
@@ -423,12 +441,23 @@ public class ImTranslator {
 				flags.add(IS_COMPILETIME);
 			}
 			if (funcDef2.attrHasAnnotation("compiletimenative")) {
-				flags.add(FunctionFlag.IS_COMPILETIME_NATIVE);
+				flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
 			}
 			if (funcDef2.attrHasAnnotation("test")) {
 				flags.add(IS_TEST);
 			}
 		}
+		
+		if (funcDef instanceof AstElementWithModifiers) {
+			AstElementWithModifiers awm = (AstElementWithModifiers) funcDef;
+			for (Modifier m : awm.getModifiers()) {
+				if (m instanceof Annotation) {
+					Annotation annotation = (Annotation) m;
+					flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+				}
+			}
+		}
+		
 		ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
 		funcDef.imCreateFuncSkeleton(this, f);
 		addFunction(f);
@@ -617,6 +646,7 @@ public class ImTranslator {
 	public List<ImStmt> translateStatements(ImFunction f, List<WStatement> statements) {
 		List<ImStmt> result = Lists.newArrayList();
 		for (WStatement s : statements) {
+			lasttranslatedThing = s;
 			ImStmt translated = s.imTranslateStmt(this, f);
 			result.add(translated);
 		}
@@ -887,20 +917,55 @@ public class ImTranslator {
 		isEclipseMode = enabled;
 	}
 
-	public List<ImVar> getVarsForTuple(ImVar v) {
+	public ImmutableTree<ImVar> getVarsForTuple(ImVar v) {
 
-		List<ImVar> result = varsForTupleVar.get(v);
+		ImmutableTree<ImVar> result = varsForTupleVar.get(v);
 		if (result == null) {
 			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
-				result = Collections.singletonList(v);
+				result = ImmutableTree.leaf(v);
 			} else {
-				result = Lists.newArrayList();
-				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
+				result = createVarsForType(v.getName(), v.getType(), false, v.getTrace());
 			}
+			
+//			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
+//				result = ImmutableTree.leaf(v);
+//			} else {
+//				result = Lists.newArrayList();
+//				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
+//			}
 			varsForTupleVar.put(v, result);
 		}
 		return result;
 	}
+
+	private ImmutableTree<ImVar> createVarsForType(String name, ImType type, boolean array, AstElement tr) {
+		if (type instanceof ImTupleType) {
+			ImTupleType tt = (ImTupleType) type;
+			int i=0;
+			Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();			
+			for (ImType t : tt.getTypes()) {
+				ts.add(createVarsForType(name+ "_" + tt.getNames().get(i) , t, array, tr));
+				i++;
+			}
+			return ImmutableTree.node(ts.build());
+		} else if (type instanceof ImTupleArrayType) {
+			ImTupleArrayType tt = (ImTupleArrayType) type;
+			Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();	
+			for (ImType t : tt.getTypes()) {
+				ts.add(createVarsForType(name, t, true, tr));
+			}
+			return ImmutableTree.node(ts.build());
+		} else if (type instanceof ImVoid) {
+			return ImmutableTree.empty();
+		} else {
+			if (array && type instanceof ImSimpleType){
+				ImSimpleType st = (ImSimpleType) type;
+				type = JassIm.ImArrayType(st.getTypename());
+			}
+			return ImmutableTree.leaf(JassIm.ImVar(tr, type, name, false));
+		}
+	}
+
 
 	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, AstElement tr) {
 		Preconditions.checkNotNull(type);

@@ -11,7 +11,7 @@
 	<property name="antlr" location="./tools/antlr-3.4-complete-no-antlrv2.jar" />
 	<property name="parseqspec" location="./parserspec/wurstscript.parseq" />
 	<property name="parseq" location="./tools/parseq.jar" />
-	<property name="antlr4" location="./tools/antlr-4.2-complete.jar" />
+	<property name="antlr4" location="./tools/antlr-4.4-complete.jar" />
 	<property name="junitTestResults" location="./junitTestResults/" />
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
 	<property name="antlr4wurstgrammar" location="./parserspec/Wurst.g4" />
@@ -54,6 +54,14 @@
 	</target>
 
 	
+	<target name="parseq_luaAst">
+			<java jar="${parseq}" fork="true" failonerror="true">
+				<arg value="./parserspec/lua.parseq" />
+				<arg value="${srcgen}" />
+				<classpath refid="classpath" />
+			</java>
+		</target>
+	
 	<target name="parseq_jassImAst">
 			<java jar="${parseq}" fork="true" failonerror="true">
 				<arg value="./parserspec/jass_im.parseq" />
@@ -63,7 +71,7 @@
 		</target>
 	
 	
-	<target name="gen" depends="parseq_ast, parseq_jassAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
+	<target name="gen" depends="parseq_ast, parseq_jassAst, parseq_luaAst, parseq_jassImAst, compiletimefile, wurst_antlr4, jurst_antlr4" >
 	</target>
 	
 	<target name="compile" depends="gen, just_compile">

@@ -220,6 +220,17 @@ ImType.translateType()
 ImVar.isGlobal
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
+
+ImStmt.translateStmtToLua(java.util.List<de.peeeq.wurstscript.luaAst.LuaStatement> res, 
+						de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+	returns void
+	implemented by de.peeeq.wurstscript.lua.translation.StmtTranslation.translate
+
+
+ImExpr.translateToLua(de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+	returns de.peeeq.wurstscript.luaAst.LuaExpr
+	implemented by de.peeeq.wurstscript.lua.translation.ExprTranslation.translate
+
 	
 ImStmts.runStatements(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
 		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
@@ -319,5 +330,6 @@ ImClass.attrSubclasses
 ImProg.attrSubclasses
 	returns com.google.common.collect.Multimap<ImClass, ImClass>
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Subclasses.calculate
+		
 		
 		

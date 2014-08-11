@@ -792,8 +792,8 @@ public class WurstValidator {
 		if (!func.attrHasEmptyBody()) {
 			new ReturnsAnalysis().execute(func);
 		} else { // no body, check if in interface:
-			if (func instanceof FuncDef) {
-				FuncDef funcDef = (FuncDef) func;
+			if (func instanceof FunctionImplementation) {
+				FunctionImplementation funcDef = (FunctionImplementation) func;
 				if (funcDef.getReturnTyp() instanceof TypeExpr && !(func.attrNearestStructureDef() instanceof InterfaceDef)) {
 					func.addError("Function " + funcDef.getName() + " is missing a body. Use the 'skip' statement to define an empty body.");
 				}
@@ -1263,8 +1263,7 @@ public class WurstValidator {
 					}
 					if (!isAllowed) {
 						error.append("Modifier " + printMod(m) + " not allowed for " +
-								Utils.printElement(e) + ".\n Allowed are the following" +
-								" modifiers: ");
+								Utils.printElement(e) + ".\n Allowed are the following modifiers: ");
 						boolean first = true;
 						for (Class<? extends Modifier> c : allowed) {
 							if (!first) {
@@ -1311,10 +1310,10 @@ public class WurstValidator {
 					if (f.attrNearestStructureDef() != null) {
 						if (f.attrNearestStructureDef() instanceof InterfaceDef) {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
-									ModAbstract.class, ModOverride.class);
+									ModAbstract.class, ModOverride.class, Annotation.class);
 						} else {
 							check(VisibilityPrivate.class, VisibilityProtected.class,
-									ModAbstract.class, ModOverride.class, ModStatic.class);
+									ModAbstract.class, ModOverride.class, ModStatic.class, Annotation.class);
 							if (f.attrNearestStructureDef() instanceof ClassDef) {
 								if (f.attrIsStatic() && f.attrIsAbstract()) {
 									f.addError("Static functions cannot be abstract.");
@@ -1610,9 +1609,9 @@ public class WurstValidator {
 	}
 
 	private void checkSwitch(SwitchStmt s) {
-		if (! isViableSwitchtype(s.getExpr()))
+		if (! isViableSwitchtype(s.getExpr())) {
 			s.addError("The type " + s.getExpr().attrTyp() + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
-		else {
+		} else {
 			for (SwitchCase c : s.getCases()) {	
 				//				if ( i > 0 ) {
 				//					for( int j = 0; j<i; j++) {
@@ -1644,6 +1643,9 @@ public class WurstValidator {
 					s.addError("Enum member " + name + " from enum " + wurstTypeEnum.getName() + " not covered in switchstatement and no default found.");
 				}
 
+		}
+		if (s.getCases().isEmpty()) {
+			s.addError("Switch statement without any cases.");
 		}
 		// TODO check if all cases for switch are covered
 
