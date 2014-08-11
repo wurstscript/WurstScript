@@ -44,6 +44,78 @@ public enum AttackType
 	Chaos
 	Magic
 	Hero
+	
+public enum WeaponSound
+	Nothing
+	AxeMediumChop
+	MetalHeavyBash
+	MetalHeavyChop
+	MetalHeavySlice
+	MetalLightChop
+	MetalLightSlice
+	MetalMediumBash
+	MetalMediumChop
+	MetalMediumSlice
+	RockHeavyBash
+	WoodHeavyBash
+	WoodLightBash
+	WoodMediumBash
+	
+public enum ArmorSoundType
+	Ethereal
+	Metal
+	Flesh
+	Stone
+	Wood
+	
+public function WeaponSound.toString() returns string
+	switch this
+		case WeaponSound.Nothing
+			return "Nothing"
+		case WeaponSound.AxeMediumChop
+			return "AxeMediumChop"
+		case WeaponSound.MetalHeavyBash
+			return "MetalHeavyBash"
+		case WeaponSound.MetalHeavyChop
+			return "MetalHeavyChop"
+		case WeaponSound.MetalHeavySlice
+			return "MetalHeavySlice"
+		case WeaponSound.MetalLightChop
+			return "MetalLightChop"
+		case WeaponSound.MetalLightSlice
+			return "MetalLightSlice"
+		case WeaponSound.MetalMediumBash
+			return "MetalMediumBash"
+		case WeaponSound.MetalMediumChop
+			return "MetalMediumChop"
+		case WeaponSound.MetalMediumSlice
+			return "MetalMediumSlice"
+		case WeaponSound.RockHeavyBash
+			return "RockHeavyBash"
+		case WeaponSound.WoodHeavyBash
+			return "WoodHeavyBash"
+		case WeaponSound.WoodLightBash
+			return "WoodLightBash"
+		case WeaponSound.WoodMediumBash
+			return "WoodMediumBash"
+		default
+			return null
+		
+public function ArmorSoundType.toString() returns string
+	switch this
+		case ArmorSoundType.Ethereal
+			return "Ethereal"
+		case ArmorSoundType.Flesh
+			return "Flesh"
+		case ArmorSoundType.Wood
+			return "Wood"
+		case ArmorSoundType.Stone
+			return "Stone"
+		case ArmorSoundType.Metal
+			return "Metal"
+		default
+			return null
+			
 
 
 public function ArmorType.toObjectString() returns string
@@ -449,7 +521,7 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setDefenseUpgradeBonus(int data)
 		def.setInt("udup", data)
 
-	function setDefenseType(ArmorType data)
+	function setArmorType(ArmorType data)
 		def.setString("udty", data.toObjectString())
 
 	function setDefenseBase(int data)
@@ -488,8 +560,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack2WeaponType(string data)
 		def.setString("ua2w", data)
 
-	function setAttack2WeaponSound(string data)
-		def.setString("ucs2", data)
+	function setAttack2WeaponSound(WeaponSound data)
+		def.setString("ucs2", data.toString())
 
 	function setAttack2TargetsAllowed(string data)
 		def.setString("ua2g", data)
@@ -572,8 +644,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1WeaponType(string data)
 		def.setString("ua1w", data)
 
-	function setAttack1WeaponSound(string data)
-		def.setString("ucs1", data)
+	function setAttack1WeaponSound(WeaponSound data)
+		def.setString("ucs1", data.toString())
 
 	function setAttack1TargetsAllowed(string data)
 		def.setString("ua1g", data)
@@ -653,8 +725,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1AnimationBackswingPoint(real data)
 		def.setUnreal("ubs1", data)
 
-	function setArmorType(ArmorType data)
-		def.setString("uarm", data.toObjectString())
+	function setArmorSoundType(ArmorSoundType data)
+		def.setString("uarm", data.toString())
 
 	function setAnimationWalkSpeed(real data)
 		def.setReal("uwal", data)
