@@ -449,8 +449,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setDefenseUpgradeBonus(int data)
 		def.setInt("udup", data)
 
-	function setDefenseType(string data)
-		def.setString("udty", data)
+	function setDefenseType(ArmorType data)
+		def.setString("udty", data.toObjectString())
 
 	function setDefenseBase(int data)
 		def.setInt("udef", data)
@@ -653,8 +653,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack1AnimationBackswingPoint(real data)
 		def.setUnreal("ubs1", data)
 
-	function setArmorType(ArmorType data)
-		def.setString("uarm", data.toObjectString())
+	function setArmorType(string data)
+		def.setString("uarm", data)
 
 	function setAnimationWalkSpeed(real data)
 		def.setReal("uwal", data)
