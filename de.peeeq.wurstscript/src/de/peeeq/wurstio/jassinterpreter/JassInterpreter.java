@@ -4,6 +4,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.WLogger;
@@ -108,6 +110,7 @@ public class JassInterpreter {
 		
 	}
 
+	@Nullable
 	ILconst executeJassFunction(JassFunction func, ILconst ... arguments) {
 		List<JassVar> locals = func.getLocals();
 

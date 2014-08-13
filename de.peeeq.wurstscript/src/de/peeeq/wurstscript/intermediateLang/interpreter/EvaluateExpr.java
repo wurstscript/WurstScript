@@ -73,9 +73,12 @@ public class EvaluateExpr {
 			args[i] = args2.get(i).evaluate(globalState, localState);
 		}
 		globalState.pushStackframe(f, args, trace);
-		LocalState r = ILInterpreter.runFunc(globalState, f, args);
-		globalState.popStackframe();
-		return r.getReturnVal();
+		try {
+			LocalState r = ILInterpreter.runFunc(globalState, f, args);
+			return r.getReturnVal();
+		} finally {
+			globalState.popStackframe();
+		}
 	}
 
 	public static ILconst eval(ImIntVal e, ProgramState globalState, LocalState localState) {

@@ -16,7 +16,7 @@ public class ReturnException extends Error {
 		return val;
 	}
 	
-	public ReturnException setVal(ILconst val) {
+	public ReturnException setVal(@Nullable ILconst val) {
 		this.val = val;
 		return this;
 	}

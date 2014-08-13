@@ -9,15 +9,21 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.Modifier;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediateLang.ILconstInt;
+import de.peeeq.wurstscript.intermediateLang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.utils.LineOffsets;
 
 public class ILInterpreter {
 	private ImProg prog;
@@ -42,6 +48,15 @@ public class ILInterpreter {
 			parameterTypes[i] = "" + args[i];
 		}
 		
+		if (f.getParameters().size() != args.length) {
+			throw new Error("wrong number of parameters when calling func " + f.getName());
+		}
+		
+		for (int i = 0; i<f.getParameters().size(); i++) {
+			// TODO could do typecheck here
+			args[i] = adjustTypeOfConstant(args[i], f.getParameters().get(i).getType());
+		}
+		
 		if (isCompiletimeNative(f)) {
 			return runBuiltinFunction(globalState, f, args);
 		}
@@ -51,9 +66,7 @@ public class ILInterpreter {
 			return runBuiltinFunction(globalState, f, args);
 		}
 		
-		if (f.getParameters().size() != args.length) {
-			throw new Error("wrong number of parameters when calling func " + f.getName());
-		}
+		
 		
 		LocalState localState = new LocalState();
 		int i = 0;
@@ -64,15 +77,38 @@ public class ILInterpreter {
 		
 		globalState.pushStackframe(f, args, f.attrTrace().attrSource());
 		
+		
 		try {
 			f.getBody().runStatements(globalState, localState);
 		} catch (ReturnException e) {
-			return localState.setReturnVal(e.getVal());
+			ILconst retVal = e.getVal();
+			retVal = adjustTypeOfConstant(retVal, f.getReturnType());
+			return localState.setReturnVal(retVal);
+		} finally {
+			globalState.popStackframe();
 		}
 		if (f.getReturnType() instanceof ImVoid) {
 			return localState;
 		}
 		throw new InterpreterException("function " + f.getName() + " did not return any value...");
+	}
+
+	@SuppressWarnings("null")
+	private static ILconst adjustTypeOfConstant(@Nullable ILconst retVal, ImType expectedType) {
+		if (retVal instanceof ILconstInt
+				&& isTypeReal(expectedType)) {
+			ILconstInt retValI = (ILconstInt) retVal;
+			retVal = new ILconstReal(retValI.getVal());
+		}
+		return retVal;
+	}
+
+	private static boolean isTypeReal(ImType t) {
+		if (t instanceof ImSimpleType) {
+			ImSimpleType st = (ImSimpleType) t;
+			return st.getTypename().equals("real");
+		}
+		return false;
 	}
 
 	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
@@ -87,9 +123,12 @@ public class ILInterpreter {
 		ImStmt lastStatement = globalState.getLastStatement();
 		if (lastStatement != null) {
 			WPos source = lastStatement.attrTrace().attrSource();
-			globalState.getOutStream().println("function " + f.getName() + " not found (line " + source.getLine() + " in " + source.getFile() + ")");
+			globalState.getGui().sendError(new CompileError(source, "function " + f.getName() + " not found"));
 		} else {
-			globalState.getOutStream().println("function " + f.getName() + " not found (no source)");
+			globalState.getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), "function " + f.getName() + " not found"));
+		}
+		for (ILStackFrame sf : globalState.getStackFrames()) {
+			globalState.getGui().sendError(new CompileError(sf.trace, sf.trace.printShort()));
 		}
 		return new LocalState();
 	}
