@@ -96,8 +96,6 @@ public enum WurstOperator {
 	public LuaOpBinary luaTranslateBinary() {
 		switch (this) {
 		case AND: return LuaAst.LuaOpAnd();
-		case DIV_INT:
-			return LuaAst.LuaOpDiv();
 		case DIV_REAL:
 			return LuaAst.LuaOpDiv();
 		case EQ:
