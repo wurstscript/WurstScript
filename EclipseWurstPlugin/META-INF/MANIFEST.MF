@@ -25,3 +25,4 @@ Import-Package:
  org.eclipse.ui.ide,
  org.eclipse.ui.texteditor,
  org.eclipse.ui.views.contentoutline
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

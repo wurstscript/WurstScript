@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="lib" path="lib/antlr-runtime-4.4.jar"/>
-	<classpathentry kind="lib" path="lib/jna-4.0.0.jar"/>
-	<classpathentry kind="lib" path="lib/jmpq2.jar" sourcepath="/jMpq-v2"/>
-	<classpathentry kind="lib" path="lib/org.eclipse.jdt.annotation_1.1.0.v20130513-1648.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="src-gen">
@@ -19,5 +15,9 @@
 	<classpathentry exported="true" kind="lib" path="lib/chardet.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/guava-14.0-rc1.jar" sourcepath="/home/peter/Downloads/guava-17.0-sources.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/velocity-1.7-dep.jar"/>
+	<classpathentry kind="lib" path="lib/jmpq2.jar" sourcepath="/jMpq-v2"/>
+	<classpathentry exported="true" kind="lib" path="lib/antlr-runtime-4.4.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/jna-4.0.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/org.eclipse.jdt.annotation_1.1.0.v20130513-1648.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

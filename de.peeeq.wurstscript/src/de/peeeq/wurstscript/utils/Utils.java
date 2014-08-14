@@ -88,6 +88,7 @@ public class Utils {
 		}
 		return result;
 	}
+	
 
 	@SafeVarargs
 	public static <T> List<T> list(T... args) {
@@ -244,14 +245,6 @@ public class Utils {
 		return result.toString();
 	}
 
-	public static <S, T> List<T> map(List<S> items, Function<S, T> function) {
-		List<T> result = new ArrayList<T>(items.size());
-		for (S s : items) {
-			result.add(function.apply(s));
-		}
-		return result;
-	}
-	
 	public static <S, T> ImmutableList<T> map(ImmutableList<S> items, Function<S, T> function) {
 		ImmutableList.Builder<T> result = ImmutableList.builder();
 		for (S s : items) {
@@ -300,14 +293,7 @@ public class Utils {
 	 */
 	public static <T> List<T> topSort(Collection<T> items,
 			final Multimap<T, T> biggerItems) throws TopsortCycleException {
-		return topSort(items, new Function<T, Collection<T>>() {
-
-			@Override
-			public Collection<T> apply(T input) {
-				return biggerItems.get(input);
-			}
-
-		});
+		return topSort(items, x -> biggerItems.get(x));
 	}
 
 	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems,
@@ -346,14 +332,7 @@ public class Utils {
 	}
 
 	public static String printContext(de.peeeq.immutablecollections.ImmutableList<ClassOrModule> context) {
-		return join(map(context, new Function<ClassOrModule, String>() {
-
-			@Override
-			public String apply(ClassOrModule c) {
-				return c.getName();
-			}
-
-		}), "->");
+		return join(map(context, ClassOrModule::getName), "->");
 	}
 
 	public static <T> T getFirst(Iterable<T> ts) {
@@ -377,13 +356,7 @@ public class Utils {
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
 			final Multimap<T, T> biggerItems) {
-		return topSortIgnoreCycles(input, new Function<T, Collection<T>>() {
-
-			@Override
-			public Collection<T> apply(T t) {
-				return biggerItems.get(t);
-			}
-		});
+		return topSortIgnoreCycles(input, t -> biggerItems.get(t));
 	}
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> items,

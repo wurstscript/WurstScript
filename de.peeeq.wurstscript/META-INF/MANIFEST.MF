@@ -94,4 +94,4 @@ Export-Package: com.google.common.annotations,
  org.junit.runners,
  org.junit.runners.model
 Import-Package: de.peeeq.wurstscript.jassIm
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

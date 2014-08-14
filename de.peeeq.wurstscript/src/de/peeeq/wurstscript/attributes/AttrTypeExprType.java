@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 
@@ -37,14 +38,9 @@ public class AttrTypeExprType {
 		if (node.getTypeArgs().size() > 0) {
 			if (baseType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) baseType;
-				List<WurstType> newTypes = Utils.map(node.getTypeArgs() , new Function<TypeExpr, WurstType>() {
-
-					@Override
-					public WurstType apply(TypeExpr input) {
-						return input.attrTyp().dynamic();
-					}
-					
-				});
+				List<WurstType> newTypes = node.getTypeArgs().stream()
+						.map((TypeExpr te) -> te.attrTyp().dynamic())
+						.collect(Collectors.toList());
 				return ns.replaceTypeVars(newTypes);
 			} else {
 				node.addError("Type " + baseType + " cannot have type args");

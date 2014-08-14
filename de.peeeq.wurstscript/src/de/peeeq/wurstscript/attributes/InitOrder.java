@@ -3,8 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -34,12 +34,9 @@ public class InitOrder {
 	}
 
 	private static List<String> toStringArray(List<WPackage> importChain) {
-		return Utils.map(importChain, new Function<WPackage, String>() {
-			@Override
-			public String apply(WPackage p) {
-				return p.getName();
-			}
-		});
+		return importChain.stream()
+				.map(WPackage::getName)
+				.collect(Collectors.toList());
 	}
 
 	public static ImmutableList<WPackage> initDependenciesTransitive(WPackage p) {

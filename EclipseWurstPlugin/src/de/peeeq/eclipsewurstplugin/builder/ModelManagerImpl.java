@@ -11,6 +11,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IResource;
@@ -21,7 +22,6 @@ import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
 import org.osgi.framework.Bundle;
 
-import com.google.common.base.Function;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -40,7 +40,6 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -157,11 +156,9 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private List<String> getfileNames(List<CompilationUnit> compilationUnits) {
-		return Utils.map(compilationUnits, new Function<CompilationUnit,String>() {
-			@Override
-			public String apply(CompilationUnit cu) {
-				return cu.getFile();
-			}});
+		return compilationUnits.stream()
+				.map(CompilationUnit::getFile)
+				.collect(Collectors.toList());
 	}
 	
     /** clear the attributes for all compilation units that import something from 'toCheck' */

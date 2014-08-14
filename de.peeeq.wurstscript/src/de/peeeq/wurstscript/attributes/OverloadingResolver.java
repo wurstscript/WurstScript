@@ -2,10 +2,9 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
-
-import com.google.common.base.Function;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -71,20 +70,16 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			handleError(Utils.list("No constructor found."));
 			return null;
 		} else {
-			String alts = Utils.join(Utils.map(results, new Function<F, String>() {
-
-				@Override
-				public String apply(F f) {
-					if (f instanceof FunctionDefinition) {
-						FunctionDefinition functionDefinition = (FunctionDefinition) f;
-						FunctionDefinition func = functionDefinition;
-						return "function " + func.getName() + " defined in " + 
-							"  line " + func.getSource().getLine();
-					}
-					return f.toString();
-				}
-			
-			}), "\n * ");
+			String alts = results.stream()
+					.map((F f) -> {
+						if (f instanceof FunctionDefinition) {
+							FunctionDefinition functionDefinition = (FunctionDefinition) f;
+							FunctionDefinition func = functionDefinition;
+							return "function " + func.getName() + " defined in " + 
+								"  line " + func.getSource().getLine();
+						}
+						return f.toString();
+					}).collect(Collectors.joining("\n * "));
 			handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
 			// call is ambiguous but we just choose the first method and continue:
 			return results.get(0);
@@ -164,8 +159,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 				return f.getParameters().get(i).getTyp().attrTyp();
 			}
 
-			@Override
-			@SuppressWarnings("null")  
+			@Override  
 			int getArgumentCount(FuncRef c) {
 				return c.match(new FuncRef.Matcher<Integer>() {
 
@@ -192,8 +186,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 				});
 			}
 
-			@Override
-			@SuppressWarnings("null")  
+			@Override  
 			WurstType getArgumentType(FuncRef c, final int i) {
 				return c.match(new FuncRef.Matcher<WurstType>() {
 
