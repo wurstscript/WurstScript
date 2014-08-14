@@ -22,10 +22,8 @@ import java.util.regex.Pattern;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
-import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
@@ -82,7 +80,6 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.WurstType;
@@ -547,7 +544,7 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private @Nullable IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
+	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
 		if (compileArgs.contains("-clean")) {
 			println("Cleaning project ... ");
 			cleanProject();
