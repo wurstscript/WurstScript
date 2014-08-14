@@ -16,6 +16,7 @@ Import-Package:
  org.eclipse.debug.core,
  org.eclipse.debug.core.model,
  org.eclipse.debug.ui,
+ org.eclipse.jdt.annotation,
  org.eclipse.jface.text.revisions,
  org.eclipse.ui,
  org.eclipse.ui.console,
