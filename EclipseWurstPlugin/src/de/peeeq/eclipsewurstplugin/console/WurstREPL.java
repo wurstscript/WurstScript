@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +36,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
+import com.sun.istack.internal.Nullable;
 
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
@@ -545,7 +547,7 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
+	private @Nullable IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
 		if (compileArgs.contains("-clean")) {
 			println("Cleaning project ... ");
 			cleanProject();
@@ -566,6 +568,8 @@ public class WurstREPL {
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
+		
+		debugPrintCompilationUnits(model);
 		
 		// reset time
 		getTimeSinceLastMeasureString();
@@ -602,7 +606,8 @@ public class WurstREPL {
 		
 		println(getTimeSinceLastMeasureString());
 		print("translating program to jass ... ");
-		compiler.checkAndTranslate(model);
+//		compiler.checkAndTranslate(model);
+		compiler.transformProgToJass();
 		println(getTimeSinceLastMeasureString());
 		
 		JassProg jassProg = compiler.getProg();
@@ -629,6 +634,15 @@ public class WurstREPL {
 		}
 		
 		return f;
+	}
+
+	private void debugPrintCompilationUnits(WurstModel model) {
+		List<String> compiledUnits = new ArrayList<>();
+		for (CompilationUnit cu : model) {
+			compiledUnits.add(cu.getFile());
+		}
+		Collections.sort(compiledUnits);
+		println("Compiled units: " + Utils.join(compiledUnits, ", "));
 	}
 
 	private void runTests() {
