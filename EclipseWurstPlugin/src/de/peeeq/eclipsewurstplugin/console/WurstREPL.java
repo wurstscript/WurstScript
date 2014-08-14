@@ -427,6 +427,9 @@ public class WurstREPL {
 			}
 
 			
+			String testMapName2 = "wurstTestMap.w3x";
+			File testMap2 = new File(new File(wc3Path, "Maps"), testMapName2);
+			Files.copy(testMap, testMap2);
 
 			println("Starting wc3 ... ");
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
@@ -436,7 +439,7 @@ public class WurstREPL {
 					frozenThroneExe.getAbsolutePath(),
 					"-window",
 					"-loadfile",
-					"Maps" + File.separator + testMapName);
+					"Maps" + File.separator + testMapName2);
 			
 			if (!System.getProperty("os.name").startsWith("Windows")) {
 				// run with wine
