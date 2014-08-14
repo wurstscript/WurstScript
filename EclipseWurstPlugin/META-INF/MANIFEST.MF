@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: EclipseWurstPlugin
 Bundle-SymbolicName: EclipseWurstPlugin; singleton:=true
-Bundle-Version: 1.4.1.0-5cf3b3c
+Bundle-Version: 1.5.0.0-3891bb1
 Bundle-Activator: de.peeeq.eclipsewurstplugin.WurstPlugin
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
