@@ -2,8 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Map.Entry;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -19,17 +19,17 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 
 public class AttrClosureCapturedVariables {
 
-	public static Multimap<AstElement, VarDef> calculate(ExprClosure e) {
-		final Multimap<AstElement, VarDef> result = HashMultimap.create();
+	public static ImmutableMultimap<AstElement, VarDef> calculate(ExprClosure e) {
+		ImmutableMultimap.Builder<AstElement, VarDef> result = ImmutableMultimap.builder();
 		// just use a visitor and select every local variable which is not defined in the
 		// closure itself
 		collect(result, e, e.getImplementation());
 		
 		// TODO Auto-generated method stub
-		return result;
+		return result.build();
 	}
 
-	private static void collect(Multimap<AstElement, VarDef> result, ExprClosure closure, AstElement e) {
+	private static void collect(Builder<AstElement, VarDef> result, ExprClosure closure, AstElement e) {
 		if (e instanceof ExprClosure) {
 			ExprClosure innerClosure = (ExprClosure) e;
 			for (Entry<AstElement, VarDef> entry : innerClosure.attrCapturedVariables().entries()) {

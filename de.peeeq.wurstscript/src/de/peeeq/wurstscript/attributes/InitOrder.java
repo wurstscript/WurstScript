@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Set;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -14,7 +16,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class InitOrder {
 
-	public static List<WPackage> initDependencies(WPackage p) {
+	public static ImmutableList<WPackage> initDependencies(WPackage p) {
 		Set<WPackage> packages = Sets.newLinkedHashSet();
 		
 		// add all imported packages, which do not import this package again
@@ -28,7 +30,7 @@ public class InitOrder {
 			packages.add(configPackage);
 		}
 		
-		return Lists.newArrayList(packages);
+		return ImmutableList.copyOf(packages);
 	}
 
 	private static List<String> toStringArray(List<WPackage> importChain) {
@@ -40,12 +42,12 @@ public class InitOrder {
 		});
 	}
 
-	public static List<WPackage> initDependenciesTransitive(WPackage p) {
+	public static ImmutableList<WPackage> initDependenciesTransitive(WPackage p) {
 		List<WPackage> result = Lists.newArrayList();
 		for (WPackage dep : p.attrInitDependencies()) {
 			addInitDependenciesTransitive(dep, result);
 		}
-		return result;
+		return ImmutableList.copyOf(result);
 	}
 
 	private static void addInitDependenciesTransitive(WPackage p, List<WPackage> result) {
@@ -58,11 +60,11 @@ public class InitOrder {
 		}
 	}
 
-	public static Collection<WPackage> importedPackagesTrans(WPackage p) {
+	public static ImmutableCollection<WPackage> importedPackagesTrans(WPackage p) {
 		Collection<WPackage> result = Sets.newLinkedHashSet();
 		List<WPackage> callStack = Lists.newArrayList();
 		collectImportedPackages(callStack, p, result);
-		return result;
+		return ImmutableList.copyOf(result);
 	}
 
 	private static void collectImportedPackages(List<WPackage> callStack, WPackage p,	Collection<WPackage> result) {

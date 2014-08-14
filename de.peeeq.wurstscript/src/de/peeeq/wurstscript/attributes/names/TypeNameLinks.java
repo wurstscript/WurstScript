@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
@@ -25,51 +25,48 @@ import de.peeeq.wurstscript.ast.WurstModel;
 
 public class TypeNameLinks {
 	
-	public static Multimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		addTypeParametersIfAny(result, c);
 		result.put(c.getName(), c.createNameLink(c.attrNextScope()));
-		return result;
+		return result.build();
 	}
 
-	public static Multimap<String, NameLink> calculate(CompilationUnit cu) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(CompilationUnit cu) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		addJassTypes(result, cu);
 		addPackages(result, cu);
-		return result;
+		return result.build();
 	}
 	
-	public static Multimap<String, NameLink> calculate(AstElementWithBody c) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(AstElementWithBody c) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		WScope s = (WScope) c;
 		addTypeParametersIfAny(result, s);
-		return result;
+		return result.build();
 	}
 
 	
-	public static Multimap<String, NameLink> calculate(EnumDef e) {
-		Multimap<String, NameLink> result = HashMultimap.create();
-		return result;
+	public static ImmutableMultimap<String, NameLink> calculate(EnumDef e) {
+		return ImmutableMultimap.of();
 	}
 
-	public static Multimap<String, NameLink> calculate(InterfaceDef i) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(InterfaceDef i) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		addTypeParametersIfAny(result, i);
-		return result;
+		return result.build();
 	}
 
-	public static Multimap<String, NameLink> calculate(NativeFunc nativeFunc) {
-		Multimap<String, NameLink> result = HashMultimap.create();
-		return result;
+	public static ImmutableMultimap<String, NameLink> calculate(NativeFunc nativeFunc) {
+		return ImmutableMultimap.of();
 	}
 
-	public static Multimap<String, NameLink> calculate(TupleDef t) {
-		Multimap<String, NameLink> result = HashMultimap.create();
-		return result;
+	public static ImmutableMultimap<String, NameLink> calculate(TupleDef t) {
+		return ImmutableMultimap.of();
 	}
 
-	public static Multimap<String, NameLink> calculate(WPackage p) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(WPackage p) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		for (WImport imp : p.getImports()) {
 			WPackage importedPackage = imp.attrImportedPackage();
 			if (importedPackage == null) {
@@ -77,34 +74,33 @@ public class TypeNameLinks {
 			}
 			result.putAll(importedPackage.attrExportedTypeNameLinks());
 		}
-		return result;
+		return result.build();
 	}
 	
-	public static Multimap<String, NameLink> calculate(WEntities wEntities) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(WEntities wEntities) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		for (WEntity e : wEntities) {
 			if (e instanceof TypeDef) {
 				TypeDef n = (TypeDef) e;
 				result.put(n.getName(), n.createNameLink(wEntities));
 			}
 		}
-		return result;
+		return result.build();
 	}
 
-	public static Multimap<String, NameLink> calculate(WurstModel model) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> calculate(WurstModel model) {
+		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		for (CompilationUnit cu : model) {
 			result.putAll(cu.attrTypeNameLinks());
 		}
-		return result;
+		return result.build();
 	}
 	
-	public static Multimap<String, NameLink> calculate(WStatements statements) {
-		Multimap<String, NameLink> result = HashMultimap.create();
-		return result;
+	public static ImmutableMultimap<String, NameLink> calculate(WStatements statements) {
+		return ImmutableMultimap.of();
 	}
 	
-	private static void addTypeParametersIfAny(Multimap<String, NameLink> result, WScope c) {
+	private static void addTypeParametersIfAny(ImmutableMultimap.Builder<String, NameLink> result, WScope c) {
 		if (c instanceof AstElementWithTypeParameters) {
 			AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) c;
 			for (TypeParamDef i : wtp.getTypeParameters()) {
@@ -114,7 +110,7 @@ public class TypeNameLinks {
 		
 	}
 	
-	private static void addJassTypes(Multimap<String, NameLink> result, CompilationUnit cu) {
+	private static void addJassTypes(ImmutableMultimap.Builder<String, NameLink> result, CompilationUnit cu) {
 		for (JassToplevelDeclaration jd : cu.getJassDecls()) {
 			if (jd instanceof TypeDef) {
 				TypeDef def = (TypeDef) jd;
@@ -123,14 +119,13 @@ public class TypeNameLinks {
 		}
 	}
 
-	private static void addPackages(Multimap<String, NameLink> result, CompilationUnit cu) {
+	private static void addPackages(ImmutableMultimap.Builder<String, NameLink> result, CompilationUnit cu) {
 		for (WPackage p : cu.getPackages()) {
 			result.put(p.getName(), p.createNameLink(cu));
 		}
 	}
 
-	public static Multimap<String, NameLink> calculate(ExprClosure exprClosure) {
-		Multimap<String, NameLink> result = HashMultimap.create();
-		return result;
+	public static ImmutableMultimap<String, NameLink> calculate(ExprClosure exprClosure) {
+		return ImmutableMultimap.of();
 	}
 }

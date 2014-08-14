@@ -1,10 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.List;
-
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -17,21 +15,21 @@ import de.peeeq.wurstscript.types.WurstType;
 
 public class AttrParameterTypes {
 
-	public static List<WurstType> parameterTypesIncludingReceiver(FunctionDefinition f) {
-		List<WurstType> result = Lists.newArrayList();
+	public static ImmutableList<WurstType> parameterTypesIncludingReceiver(FunctionDefinition f) {
+		ImmutableList.Builder<WurstType> result = ImmutableList.builder();
 		if (f.attrReceiverType() != null) {
 			result.add(f.attrReceiverType());
 		}
 		result.addAll(f.attrParameterTypes());
-		return result;
+		return result.build();
 	}
 	
-	public static List<WurstType> parameterTypes(FunctionDefinition f) {
-		List<WurstType> result = Lists.newArrayList();
+	public static ImmutableList<WurstType> parameterTypes(FunctionDefinition f) {
+		ImmutableList.Builder<WurstType> result = ImmutableList.builder();
 		for (WParameter p : f.getParameters()) {
 			result.add(p.attrTyp());
 		}
-		return result;
+		return result.build();
 	}
 
 	public static @Nullable WurstType receiverType(FuncDef f) {

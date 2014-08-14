@@ -372,7 +372,7 @@ ExprClosure.attrClosureAbstractMethod
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
 
 ExprClosure.attrCapturedVariables
-	returns com.google.common.collect.Multimap<AstElement,VarDef>
+	returns com.google.common.collect.ImmutableMultimap<AstElement,VarDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureCapturedVariables.calculate
 
 
@@ -402,11 +402,11 @@ FunctionDefinition.attrIsDynamicClassMember
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
 FunctionDefinition.attrParameterTypesIncludingReceiver
-	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
+	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypesIncludingReceiver
 
 FunctionDefinition.attrParameterTypes
-	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
+	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypes
 
 FunctionDefinition.attrReceiverType
@@ -518,17 +518,8 @@ HasModifier.attrIsConstant
 	
 
 
-ClassOrModuleOrModuleInstanciation.attrModuleInstanciations
-	returns java.util.List<ModuleInstanciation>
-	implemented by de.peeeq.wurstscript.attributes.MemberAttributes.getModuleInstanciations
-
-
-ClassOrModuleOrModuleInstanciation.attrConstructors
-	returns java.util.List<ConstructorDef>
-	implemented by de.peeeq.wurstscript.attributes.MemberAttributes.getConstructors
-
 ClassOrModule.attrUsedModules
-	returns java.util.Collection<ModuleDef>
+	returns com.google.common.collect.ImmutableCollection<ModuleDef>
 	implemented by de.peeeq.wurstscript.attributes.AttrUsedModules.calculate
 
 WImport.attrImportedPackage
@@ -542,7 +533,7 @@ ModuleInstanciation.attrModuleOrigin
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
 
 StmtCall.attrPossibleFunctionSignatures
-	returns java.util.Collection<de.peeeq.wurstscript.types.FunctionSignature>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.FunctionSignature>
 	implemented by de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.calculate	
 	
 StmtCall.attrFunctionSignature
@@ -563,7 +554,7 @@ AstElement.attrErrorPos() "returns the position where errors are marked"
 
 	
 HasTypeArgs.attrTypeParameterBindings
-	returns java.util.Map<TypeParamDef, de.peeeq.wurstscript.types.WurstType>
+	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
 	
 
@@ -571,7 +562,7 @@ HasTypeArgs.attrTypeParameterBindings
 
 	
 InterfaceDef.attrExtendedInterfaces	
-	returns java.util.Collection<de.peeeq.wurstscript.types.WurstTypeInterface>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
 
 ClassDef.attrExtendedClass
@@ -585,12 +576,9 @@ ConstructorDef.attrSuperConstructor
 	
 	
 WurstModel.attrPackages
-	returns java.util.Map<String, WPackage>
+	returns com.google.common.collect.ImmutableMap<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
 	
-WurstModel.attrPackagesFresh()
-	returns java.util.Map<String, WPackage>
-	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackagesFresh
 	
 AstElement.getModel()
 	returns WurstModel
@@ -602,7 +590,7 @@ CompilationUnit.attrGetByType
 	
 
 WurstModel.attrConfigOverridePackages
-	returns java.util.Map<WPackage, WPackage>
+	returns com.google.common.collect.ImmutableMap<WPackage, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.CofigOverridePackages.calculate
 	
 NameDef.attrConfigActualNameDef
@@ -668,7 +656,7 @@ NameDef.hasAnnotation(String annotation)
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
 
 	ClassDef.attrImplementedInterfaces
-		returns java.util.Collection<de.peeeq.wurstscript.types.WurstTypeInterface>
+		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 		
 		
@@ -698,7 +686,7 @@ NameRef.attrNameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
 FuncRef.attrPossibleFuncDefs
-	returns java.util.Collection<FunctionDefinition>
+	returns com.google.common.collect.ImmutableCollection<FunctionDefinition>
 	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
 
 
@@ -737,39 +725,39 @@ TypeRef.attrTypeDef
 	
 
 //WPackage.attrExportedNames "get the exported names of a package"
-//	returns  com.google.common.collect.Multimap<String, NameDef>
+//	returns  com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getExportedNames
 
 //WScope.attrDefinedNames "get the names defined in this scope"
-//	returns com.google.common.collect.Multimap<String, NameDef>
+//	returns com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getDefinedNames
 
 //WScope.attrVisibleNamesPrivate ""
-//	returns com.google.common.collect.Multimap<String, NameDef>
+//	returns com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPrivate
 
 //WScope.attrVisibleNamesProtected
-//	returns com.google.common.collect.Multimap<String, NameDef>
+//	returns com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesProtected
 
 //WScope.attrVisibleNamesPublic
-//	returns com.google.common.collect.Multimap<String, NameDef>
+//	returns com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 	
 WScope.attrNameLinks "returns a map of all the names visible in this scope."
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameLinks.calculate
 
 WScope.attrTypeNameLinks "returns a map of all the names visible in this scope."
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate	
 
 WPackage.attrExportedNameLinks
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedNameLinks
 
 WPackage.attrExportedTypeNameLinks
-	returns com.google.common.collect.Multimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedTypeNameLinks
 	
 	
@@ -794,15 +782,15 @@ AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, St
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
 	
 AstElement.lookupFuncs(String name, boolean showErrors)
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncs
 
 AstElement.lookupFuncsNoConfig(String name, boolean showErrors)
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsNoConfig
 	
 AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs
 
 	
@@ -823,15 +811,15 @@ AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, St
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
 	
 AstElement.lookupFuncs(String name)
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsShort
 	
 AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name)
-	returns java.util.Collection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncsShort
 	
 TypeParamDefs.attrTypes()
-	returns java.util.List<de.peeeq.wurstscript.types.WurstType>
+	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.TypeParamTypes.calculte
 
 Documentable.attrComment
@@ -839,51 +827,43 @@ Documentable.attrComment
 	implemented by de.peeeq.wurstscript.attributes.AttrWurstDoc.getComment
 	
 ExprOrStatements.attrUsedGlobalVariables
-	returns java.util.List<VarDef>
+	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
-	circular java.util.Collections.emptyList
+	circular de.peeeq.wurstscript.utils.Utils.emptyList
 	
 FunctionDefinition.attrUsedGlobalVariables
-	returns java.util.List<VarDef>
+	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getUsedGlobals
-	circular java.util.Collections.emptyList
+	circular de.peeeq.wurstscript.utils.Utils.emptyList
 	
 ExprOrStatements.attrReadGlobalVariables
-	returns java.util.List<VarDef>
+	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
-	circular java.util.Collections.emptyList
+	circular de.peeeq.wurstscript.utils.Utils.emptyList
 	
 FunctionDefinition.attrReadGlobalVariables
-	returns java.util.List<VarDef>
+	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
-	circular java.util.Collections.emptyList
+	circular de.peeeq.wurstscript.utils.Utils.emptyList
 
 InitBlock.attrReadGlobalVariables
-	returns java.util.List<VarDef>
+	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
 
 AstElement.attrUsedPackages
-	returns java.util.Collection<WPackage>
+	returns com.google.common.collect.ImmutableCollection<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.UsedPackages.usedPackages
 	
-WurstModel.attrPackageLevels
-	returns java.util.Map<WPackage, Integer>
-	implemented by de.peeeq.wurstscript.attributes.PackageLevels.calculate
-	
-WPackage.attrPackageLevel
-	returns int
-	implemented by de.peeeq.wurstscript.attributes.PackageLevels.get
-	
 WPackage.attrImportedPackagesTransitive
-	returns java.util.Collection<WPackage>
+	returns com.google.common.collect.ImmutableCollection<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.InitOrder.importedPackagesTrans
 	
 WPackage.attrInitDependencies
-	returns java.util.List<WPackage>
+	returns com.google.common.collect.ImmutableList<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependencies
 
 WPackage.attrInitDependenciesTransitive
-	returns java.util.List<WPackage>
+	returns com.google.common.collect.ImmutableList<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependenciesTransitive
 	
 

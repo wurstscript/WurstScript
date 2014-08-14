@@ -1,11 +1,12 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -19,12 +20,12 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
 
-	public static Collection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
 		if (node.attrNearestStructureDef() != null) {
 			// inside a class one can write foo instead of this.foo()
 			// so the receiver type is implicitly given by the enclosing class
 			WurstType receiverType = node.attrNearestStructureDef().attrTyp();
-			Collection<NameLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
+			ImmutableCollection<NameLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
 			if (!funcs.isEmpty()) {
 				return funcs;
 			}
@@ -47,15 +48,15 @@ public class NameResolution {
 		return removeDuplicates(result);
 	}
 	
-	public static Collection<NameLink> lookupFuncs(AstElement e, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupFuncs(AstElement e, String name, boolean showErrors) {
 		ArrayList<NameLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
 		for (int i=0; i<result.size(); i++) {
 			result.set(i, result.get(i).withConfigDef());
 		}
-		return result;
+		return ImmutableList.copyOf(result);
 	}
 
-	private static Collection<NameLink> removeDuplicates(List<NameLink> nameLinks) {
+	private static ImmutableCollection<NameLink> removeDuplicates(List<NameLink> nameLinks) {
 		List<NameLink> result = Lists.newArrayList();
 		nextLink: for (NameLink nl : nameLinks) {
 			for (NameLink other : result) {
@@ -65,7 +66,7 @@ public class NameResolution {
 			}
 			result.add(nl);
 		}
-		return result;
+		return ImmutableList.copyOf(result);
 	}
 
 	private static @Nullable WScope nextScope(WScope scope) {
@@ -83,7 +84,7 @@ public class NameResolution {
 		return scope;
 	}
 
-	public static Collection<NameLink> lookupMemberFuncs(AstElement node, WurstType receiverType, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupMemberFuncs(AstElement node, WurstType receiverType, String name, boolean showErrors) {
 		List<NameLink> result = Lists.newArrayList();
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
@@ -241,11 +242,11 @@ public class NameResolution {
 		return null;
 	}
 
-	public static Collection<NameLink> lookupFuncsShort(AstElement elem, String name) {
+	public static ImmutableCollection<NameLink> lookupFuncsShort(AstElement elem, String name) {
 		return lookupFuncs(elem, name, true);
 	}
 
-	public static Collection<NameLink> lookupMemberFuncsShort(AstElement elem, WurstType receiverType, String name) {
+	public static ImmutableCollection<NameLink> lookupMemberFuncsShort(AstElement elem, WurstType receiverType, String name) {
 		return lookupMemberFuncs(elem, receiverType, name, true);
 	}
 	

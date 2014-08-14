@@ -5,6 +5,7 @@ import java.util.Map;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.WPackage;
@@ -14,8 +15,8 @@ public class CofigOverridePackages {
 
 	public static final String CONFIG_POSTFIX = "_config";
 
-	public static Map<WPackage, WPackage> calculate(WurstModel model) {
-		Map<WPackage, WPackage> result = Maps.newHashMap();
+	public static ImmutableMap<WPackage, WPackage> calculate(WurstModel model) {
+		ImmutableMap.Builder<WPackage, WPackage> result = ImmutableMap.builder();
 		Map<String, WPackage> packages = model.attrPackages();
 		for (WPackage p : packages.values()) {
 			if (p.getName().endsWith(CONFIG_POSTFIX)) {
@@ -27,7 +28,7 @@ public class CofigOverridePackages {
 				}
 			}
 		}
-		return result;
+		return result.build();
 	}
 
 	public static @Nullable WPackage getOriginalPackage(WPackage configPackage) {

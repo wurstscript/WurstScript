@@ -150,7 +150,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			} else if (elem instanceof WImport) {
 				//WImport imp = (WImport) elem;
 				WurstModel model = elem.getModel();
-				for (WPackage p : model.attrPackagesFresh().values()) {
+				for (WPackage p : model.attrPackages().values()) {
 					if (isSuitableCompletion(p.getName())) {
 						completions.add(makeNameDefCompletion(p));
 					}
@@ -169,7 +169,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 						if (n.getNameDef() instanceof ClassDef 
 								&& isSuitableCompletion(n.getName())) {
 							ClassDef c = (ClassDef) n.getNameDef();
-							for (ConstructorDef constr : c.attrConstructors()) {
+							for (ConstructorDef constr : c.getConstructors()) {
 								completions.add(makeConstructorCompletion(c, constr));
 							}
 						}

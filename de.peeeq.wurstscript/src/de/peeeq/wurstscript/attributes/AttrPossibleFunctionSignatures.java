@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -23,9 +25,9 @@ import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
 public class AttrPossibleFunctionSignatures {
 
-	public static Collection<FunctionSignature> calculate(FunctionCall fc) {
-		Collection<FunctionDefinition> fs = fc.attrPossibleFuncDefs();
-		Collection<FunctionSignature> result = new ArrayList<>();
+	public static ImmutableCollection<FunctionSignature> calculate(FunctionCall fc) {
+		ImmutableCollection<FunctionDefinition> fs = fc.attrPossibleFuncDefs();
+		ImmutableCollection.Builder<FunctionSignature> resultBuilder = ImmutableList.builder();
 		for (FunctionDefinition f : fs) {
 			FunctionSignature sig = FunctionSignature.forFunctionDefinition(f);
 			
@@ -34,18 +36,20 @@ public class AttrPossibleFunctionSignatures {
 				sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());
 			}
 			sig = sig.setTypeArgs(fc.attrTypeParameterBindings());
-			result.add(sig);
+			resultBuilder.add(sig);
 		}
-		Collection<FunctionSignature> result2 = new ArrayList<>();
-		for (FunctionSignature sig : result) {
+		ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
+		ImmutableCollection<FunctionSignature> res = resultBuilder.build();
+		for (FunctionSignature sig : res) {
 			if (paramTypesCanMatch(sig.getParamTypes(), partialArgTypes(fc), fc)) {
-				result2.add(sig);
+				resultBuilder2.add(sig);
 			}
 		}
-		if (result2.isEmpty()) {
-			return result;
+		ImmutableCollection<FunctionSignature> res2 = resultBuilder2.build();
+		if (res2.isEmpty()) {
+			return res;
 		} else {
-			return result2;
+			return res2;
 		}
 	}
 
@@ -71,10 +75,10 @@ public class AttrPossibleFunctionSignatures {
 		return result;
 	}
 
-	public static Collection<FunctionSignature> calculate(ExprNewObject fc) {
+	public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
 		ConstructorDef f = fc.attrConstructorDef();
 		if (f == null) {
-			return Collections.emptyList();
+			return ImmutableList.of();
 		}
 		StructureDef struct = f.attrNearestStructureDef();
 		assert struct != null; // because constructors can only appear inside a StructureDef
@@ -87,7 +91,7 @@ public class AttrPossibleFunctionSignatures {
 		}
 		returnType = returnType.setTypeArgs(binding2);
 		List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
-		return Collections.singleton(new FunctionSignature(null, paramTypes, pNames, returnType));
+		return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType));
 	}
 
 }
