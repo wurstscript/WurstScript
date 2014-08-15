@@ -79,8 +79,8 @@ public class AbilityDefinition
 		def.setLvlDataInt("arpy", 0, 0, value)
 		
 	function presetButtonPosNormal(int x, int y)
-		setButtonPositionTurnOffX(x)
-		setButtonPositionTurnOffY(y)
+		setButtonPositionNormalX(x)
+		setButtonPositionNormalY(y)
 		
 	function presetButtonPosTurnOff(int x, int y)
 		setButtonPositionResearchX(x)
