@@ -27,14 +27,7 @@ public class UtilsTest {
   public void filter() {
 	  
     List<Integer> list = Utils.list(1,2,3,4,5,6,7,8);
-	List<Integer> list2 = Utils.filter(list , new Function<Integer, Boolean>() {
-
-		@Override
-		public Boolean apply(Integer input) {
-			return input % 3 == 0;
-		}
-    	
-    });
+	List<Integer> list2 = Utils.filter(list , i -> i % 3 == 0);
 	Assert.assertEquals(8, list.size());
 	Assert.assertEquals(2, list2.size());
 	Object[] ar = {3, 6};
@@ -44,19 +37,14 @@ public class UtilsTest {
   @Test
   public void topSort_1() throws TopsortCycleException {
     List<Integer> toSort = Utils.list(2,1,3);
-    List<Integer> sorted = Utils.topSort(toSort, new Function<Integer,Collection<Integer>>() {
-
-		@Override
-		public Collection<Integer> apply(Integer input) {
-			Collection<Integer> result = new LinkedList<Integer>();
-			for (int i = 1; i<=3; i++) {
-				if (i > input) {
-					result.add(i);
-				}
-			}
-			return result ;
-		}
-    	
+    List<Integer> sorted = Utils.topSort(toSort, input -> {
+    	Collection<Integer> result = new LinkedList<Integer>();
+    	for (int i = 1; i<=3; i++) {
+    		if (i > input) {
+    			result.add(i);
+    		}
+    	}
+    	return result ;
     });
     
     Object[] ar = {3, 2, 1};

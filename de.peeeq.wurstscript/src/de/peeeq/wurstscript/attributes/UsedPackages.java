@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -14,35 +17,36 @@ import de.peeeq.wurstscript.ast.WPackage;
 
 public class UsedPackages {
 
-	public static Collection<WPackage> usedPackages(AstElement e) {
+	public static ImmutableCollection<WPackage> usedPackages(AstElement e) {
 		if (e.size() == 0) {
-			return Collections.emptyList();
+			return ImmutableList.of();
 		}
 		
-		Set<WPackage> result = Sets.newLinkedHashSet();
-		return processChildren(e, result);
+		ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
+		processChildren(e, result);
+		return result.build();
 	}
 
-	private static Collection<WPackage> processChildren(AstElement e,
-			Set<WPackage> result) {
+	private static void processChildren(AstElement e,
+			ImmutableSet.Builder<WPackage> result) {
 		for (int i=0; i<e.size(); i++) {
-			Collection<WPackage> used = e.get(i).attrUsedPackages();
+			ImmutableCollection<WPackage> used = e.get(i).attrUsedPackages();
 			if (!used.isEmpty()) {
 				result.addAll(used);
 			}
 		}
-		return result;
 	}
 	
-	public static Collection<WPackage> usedPackages(NameRef e) {
-		Set<WPackage> result = Sets.newLinkedHashSet();
+	public static ImmutableCollection<WPackage> usedPackages(NameRef e) {
+		ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
 		NameDef def = e.attrNameDef();
 		if (def instanceof VarDef) {
 			if (def.attrNearestPackage() instanceof WPackage) {
 				result.add((WPackage) e.attrNearestPackage());
 			}
 		}
-		return processChildren(e, result);
+		processChildren(e, result);
+		return result.build();
 	}
 	
 	

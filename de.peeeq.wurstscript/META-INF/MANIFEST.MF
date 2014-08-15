@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Wurstscript
 Bundle-SymbolicName: de.peeeq.wurstscript
-Bundle-Version: 1.4.1.0-5cf3b3c
+Bundle-Version: 1.5.0.0-3891bb1
 Bundle-ClassPath: wurstscript.jar,
  lib/junit-4.10.jar,
  lib/chardet.jar,
@@ -94,4 +94,4 @@ Export-Package: com.google.common.annotations,
  org.junit.runners,
  org.junit.runners.model
 Import-Package: de.peeeq.wurstscript.jassIm
-Bundle-RequiredExecutionEnvironment: JavaSE-1.7
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

@@ -3,8 +3,8 @@ package de.peeeq.wurstscript.attributes.names;
 
 import java.util.Set;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.WImport;
@@ -15,17 +15,17 @@ public class Exports {
 	/**
 	 * calculates all the namelinks exported by package p 
 	 */
-	public static Multimap<String, NameLink> exportedNameLinks(WPackage p) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> exportedNameLinks(WPackage p) {
+		Builder<String, NameLink> result = ImmutableMultimap.builder();
 		addExportedNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
-		return result;
+		return result.build();
 	}
 
 
 	/**
 	 * recursively adds all exported namelinks from package p to the result map
 	 */
-	private static void addExportedNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
+	private static void addExportedNameLinks(Builder<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
 		if (alreadyImported.contains(p)) {
 			return;
 		}
@@ -43,14 +43,14 @@ public class Exports {
 
 	}
 
-	public static Multimap<String, NameLink> exportedTypeNameLinks(WPackage p) {
-		Multimap<String, NameLink> result = HashMultimap.create();
+	public static ImmutableMultimap<String, NameLink> exportedTypeNameLinks(WPackage p) {
+		Builder<String, NameLink> result = ImmutableMultimap.builder();
 		addExportedTypeNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
-		return result;
+		return result.build();
 	}
 
 
-	private static void addExportedTypeNameLinks(Multimap<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
+	private static void addExportedTypeNameLinks(Builder<String, NameLink> result,	WPackage p, Set<WPackage> alreadyImported) {
 		if (alreadyImported.contains(p)) {
 			return;
 		}

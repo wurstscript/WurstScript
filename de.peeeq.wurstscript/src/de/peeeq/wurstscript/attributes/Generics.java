@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Arguments;
@@ -32,10 +33,10 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class Generics {
 
-	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(FunctionCall fc) {
+	public static ImmutableMap<TypeParamDef, WurstType> getTypeParameterBindings(FunctionCall fc) {
 		FunctionDefinition def = fc.attrFuncDef();
 		if (def == null) {
-			return Collections.emptyMap();
+			return ImmutableMap.of();
 		}
 		TypeParamDefs typeParams = getTypeParameters(def);
 		if (hasTypeParams(fc, typeParams)) {
@@ -48,7 +49,7 @@ public class Generics {
 			inferTypeParameterUsingReceiver(result, emm, typeParams);
 		}
 		inferTypeParametersUsingArguments(result, fc.getArgs(), def.getParameters(), typeParams);
-		return result;
+		return ImmutableMap.copyOf(result);
 	}
 
 	private static void inferTypeParameterUsingReceiver(
@@ -102,10 +103,10 @@ public class Generics {
 		}
 	}
 
-	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(ExprNewObject e) {
+	public static ImmutableMap<TypeParamDef, WurstType> getTypeParameterBindings(ExprNewObject e) {
 		ConstructorDef constrDef = e.attrConstructorDef();
 		if (constrDef == null) {
-			return Collections.emptyMap();
+			return ImmutableMap.of();
 		}
 		ClassOrModule classDef = constrDef.attrNearestClassOrModule();
 		TypeParamDefs typeParams = getTypeParameters(classDef);
@@ -115,39 +116,39 @@ public class Generics {
 		
 		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 		inferTypeParametersUsingArguments(result, e.getArgs(), constrDef.getParameters(), typeParams);
-		return result;
+		return ImmutableMap.copyOf(result);
 	}
 	
-	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(ModuleUse m) {
+	public static ImmutableMap<TypeParamDef, WurstType> getTypeParameterBindings(ModuleUse m) {
 		ModuleDef usedModule = m.attrModuleDef();
 		TypeParamDefs typeParams = getTypeParameters(usedModule);
 		if (hasTypeParams(m, typeParams)) {
 			return givenBinding(m, typeParams);
 		}
 		m.addError("Missing type arguments for module " + m.getModuleName());
-		return Collections.emptyMap();
+		return ImmutableMap.of();
 	}
 
-	public static Map<TypeParamDef, WurstType> getTypeParameterBindings(TypeExprSimple t) {
+	public static ImmutableMap<TypeParamDef, WurstType> getTypeParameterBindings(TypeExprSimple t) {
 		TypeDef def = t.attrTypeDef();
 		TypeParamDefs typeParams = getTypeParameters(def);
 		if (hasTypeParams(t, typeParams)) {
 			return givenBinding(t, typeParams);
 		}
 		t.addError("Missing type arguments for " + Utils.printElement(t));
-		return Collections.emptyMap();
+		return ImmutableMap.of();
 	}
 	
 	
 	/**
 	 * returns the binding given by the user
 	 */
-	private static Map<TypeParamDef, WurstType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
+	private static ImmutableMap<TypeParamDef, WurstType> givenBinding(AstElementWithTypeArgs fc, TypeParamDefs typeParams) {
 		Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
 		for (int i = 0; i < typeParams.size(); i++) {
 			result.put(typeParams.get(i), fc.getTypeArgs().get(i).attrTyp().dynamic());
 		}
-		return result;
+		return ImmutableMap.copyOf(result);
 	}
 
 	/**

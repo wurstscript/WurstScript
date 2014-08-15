@@ -26,7 +26,7 @@ public class AttrConstructorDef {
 			
 			ClassDef classDef = (ClassDef) typeDef;
 			
-			List<ConstructorDef> constructors = classDef.attrConstructors();
+			List<ConstructorDef> constructors = classDef.getConstructors();
 			
 			return OverloadingResolver.resolveExprNew(constructors, node);
 			

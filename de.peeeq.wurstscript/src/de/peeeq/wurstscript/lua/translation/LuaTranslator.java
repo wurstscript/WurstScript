@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.lua.translation;
 
-import java.util.Collections;
-import java.util.Iterator;
+import java.util.ListIterator;
 
+import de.peeeq.wurstscript.ast.AstElementWithArgs;
+import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -12,21 +14,20 @@ import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
+import de.peeeq.wurstscript.luaAst.LuaExprNull;
 import de.peeeq.wurstscript.luaAst.LuaExprOpt;
 import de.peeeq.wurstscript.luaAst.LuaExprlist;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaModel;
-import de.peeeq.wurstscript.luaAst.LuaParams;
+import de.peeeq.wurstscript.luaAst.LuaStatement;
 import de.peeeq.wurstscript.luaAst.LuaStatements;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
-import de.peeeq.wurstscript.types.TypesHelper;
 
 public class LuaTranslator {
 	
@@ -86,10 +87,46 @@ public class LuaTranslator {
 			translateFunc(f);
 		}
 		
+		cleanStatements();
+		
 		return luaModel;
 	}
 
+	private void cleanStatements() {
+		luaModel.accept(new LuaModel.DefaultVisitor() {
+			@Override
+			public void visit(LuaStatements stmts) {
+				cleanStatements(stmts);
+			}
+
+		});
+	}
+
+	private void cleanStatements(LuaStatements stmts) {
+		ListIterator<LuaStatement> it = stmts.listIterator();
+		while (it.hasNext()) {
+			LuaStatement s = it.next();
+			if (s instanceof LuaExprNull) {
+				it.remove();
+			} else if (s instanceof LuaExpr && !(s instanceof AstElementWithArgs)) {
+				LuaExpr e = (LuaExpr) s;
+				e.setParent(null);
+				LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", LuaAst.LuaNoExpr());
+				it.set(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(exprTemp), e));
+			}
+			
+		}
+	}
+	
 	private void translateFunc(ImFunction f) {
+		if (f.isExtern()) {
+			return;
+		} 
+		if (f.isNative()) {
+			LuaFunction nf = luaFunc.getFor(f);
+			LuaNatives.get(nf);
+		}
+		
 		LuaFunction lf = luaFunc.getFor(f);
 		luaModel.add(lf);
 		// translate parameters
@@ -119,6 +156,11 @@ public class LuaTranslator {
 
 	private void translateGlobal(ImVar v) {
 		LuaVariable lv = luaVar.getFor(v);
+		if (v.getType() instanceof ImArrayType
+				|| v.getType() instanceof ImArrayTypeMulti
+				|| v.getType() instanceof ImTupleArrayType) {
+			lv.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+		}
 		luaModel.add(lv);
 	}
 

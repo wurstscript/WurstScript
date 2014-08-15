@@ -3,8 +3,8 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -336,12 +336,9 @@ public class EliminateClasses {
 	private void replaceInstanceof(ImInstanceof e) {
 		ImFunction f = e.getNearestFunc();
 		List<ImClass> allSubClasses = getAllSubclasses(e.getClazz()); 
-		List<Integer> subClassIds = Lists.transform(allSubClasses, new Function<ImClass, Integer>() {
-			@Override
-			public Integer apply(ImClass c) {
-				return c.attrTypeId();
-			}
-		});
+		List<Integer> subClassIds = allSubClasses.stream()
+				.map(ImClass::attrTypeId)
+				.collect(Collectors.toList());
 		List<IntRange> idRanges = IntRange.createFromIntList(subClassIds);
 		ImExpr obj = e.getObj();
 		obj.setParent(null);

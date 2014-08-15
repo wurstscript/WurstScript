@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImMemberAccess;
+import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
@@ -28,7 +30,9 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaExpr;
 import de.peeeq.wurstscript.luaAst.LuaExprlist;
+import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaOpBinary;
+import de.peeeq.wurstscript.luaAst.LuaOpUnary;
 import de.peeeq.wurstscript.luaAst.LuaStatements;
 import de.peeeq.wurstscript.luaAst.LuaTableFields;
 
@@ -37,7 +41,14 @@ public class ExprTranslation {
 	private static final String TYPE_ID = "__typeId__";
 
 	public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
-		return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()); // TODO any fields required? typeid?
+		LuaTableFields fields = LuaAst.LuaTableFields();
+		ImClass clazz = e.getClazz();
+		fields.add(LuaAst.LuaTableNamedField("wurst_typeId", LuaAst.LuaExprIntVal(""+clazz.attrTypeId())));
+		for (ImMethod m : clazz.getMethods()) {
+			LuaFunction luaMethod = tr.luaMethod.getFor(m);
+			fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
+		}
+		return LuaAst.LuaTableConstructor(fields); // TODO any fields required? typeid?
 	}
 
 	public static LuaExpr translate(ImBoolVal e, LuaTranslator tr) {
@@ -83,19 +94,42 @@ public class ExprTranslation {
 		if (e.getArguments().size() == 2) {
 			ImExpr left = e.getArguments().get(0);
 			ImExpr right = e.getArguments().get(1);
+			LuaExpr leftExpr = left.translateToLua(tr);
+			LuaExpr rightExpr = right.translateToLua(tr);
 			LuaOpBinary op;
 			if (e.getOp() == WurstOperator.PLUS
 					&& isStringType(left.attrTyp())
 					&& isStringType(right.attrTyp())) {
 				// special case for string concatenation
 				op = LuaAst.LuaOpConcatString();
+			} else if (e.getOp() == WurstOperator.MOD_INT) {
+				op = LuaAst.LuaOpMod();
+				
+				return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
+						LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
+			} else if (e.getOp() == WurstOperator.DIV_INT) {
+				op = LuaAst.LuaOpDiv();
+				return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
+						LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
 			} else {
 				// TODO special cases for integer division and modulo
 				op = e.getOp().luaTranslateBinary();
 			}
-			LuaExpr leftExpr = left.translateToLua(tr);
-			LuaExpr rightExpr = right.translateToLua(tr);
+			
 			return LuaAst.LuaExprBinary(leftExpr, op, rightExpr);
+		} else if (e.getArguments().size() == 1) {
+			ImExpr arg = e.getArguments().get(0);
+			LuaExpr argT = arg.translateToLua(tr);
+			LuaOpUnary op;
+			if (e.getOp() == WurstOperator.NOT) {
+				op = LuaAst.LuaOpNot();
+			} else if (e.getOp() == WurstOperator.UNARY_MINUS) {
+				op = LuaAst.LuaOpMinus();
+			} else {
+				throw new Error("not implemented: unary operator " + e.getOp());
+			}
+			return LuaAst.LuaExprUnary(op, argT);
+			
 		}
 		throw new Error("not implemented: " + e);
 	}

@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,7 +22,6 @@ import java.util.regex.Pattern;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
-import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.swt.SWT;
@@ -80,7 +80,6 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.WurstType;
@@ -428,6 +427,9 @@ public class WurstREPL {
 			}
 
 			
+			String testMapName2 = "wurstTestMap.w3x";
+			File testMap2 = new File(new File(wc3Path, "Maps"), testMapName2);
+			Files.copy(testMap, testMap2);
 
 			println("Starting wc3 ... ");
 			monitor.beginTask("Starting wc3", IProgressMonitor.UNKNOWN);
@@ -437,7 +439,7 @@ public class WurstREPL {
 					frozenThroneExe.getAbsolutePath(),
 					"-window",
 					"-loadfile",
-					"Maps" + File.separator + testMapName);
+					"Maps" + File.separator + testMapName2);
 			
 			if (!System.getProperty("os.name").startsWith("Windows")) {
 				// run with wine
@@ -567,6 +569,8 @@ public class WurstREPL {
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelManager.getModel();
 		
+		debugPrintCompilationUnits(model);
+		
 		// reset time
 		getTimeSinceLastMeasureString();
 		
@@ -602,7 +606,8 @@ public class WurstREPL {
 		
 		println(getTimeSinceLastMeasureString());
 		print("translating program to jass ... ");
-		compiler.checkAndTranslate(model);
+//		compiler.checkAndTranslate(model);
+		compiler.transformProgToJass();
 		println(getTimeSinceLastMeasureString());
 		
 		JassProg jassProg = compiler.getProg();
@@ -629,6 +634,15 @@ public class WurstREPL {
 		}
 		
 		return f;
+	}
+
+	private void debugPrintCompilationUnits(WurstModel model) {
+		List<String> compiledUnits = new ArrayList<>();
+		for (CompilationUnit cu : model) {
+			compiledUnits.add(cu.getFile());
+		}
+		Collections.sort(compiledUnits);
+		println("Compiled units: " + Utils.join(compiledUnits, ", "));
 	}
 
 	private void runTests() {

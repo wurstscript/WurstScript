@@ -4,10 +4,10 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 public class RunArgs {
@@ -37,7 +37,7 @@ public class RunArgs {
 	private class RunOption {
 		final String name;
 		final String descr;
-		final @Nullable Function<String, Void> argHandler;
+		final @Nullable Consumer<String> argHandler;
 		boolean isSet;
 		
 		public RunOption(String name, String descr) {
@@ -46,10 +46,10 @@ public class RunArgs {
 			this.argHandler = null;
 		}
 		
-		public RunOption(String name, String descr, Function<String, Void> argHandler) {
+		public RunOption(String name, String descr, Consumer<String> argHandler2) {
 			this.name = name;
 			this.descr = descr;
-			this.argHandler = argHandler;
+			this.argHandler = argHandler2;
 		}
 	}
 	
@@ -81,31 +81,16 @@ public class RunArgs {
 		optionGenerateLua = addOption("lua", "generate lua output");
 		// other
 		optionGui = addOption("gui", "Show a graphical user interface (progress bar and error window).");
-		addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", new Function<String, Void>() {
-			@SuppressWarnings("null")
-			@Override
-			public Void apply(String arg) {
-				libDirs.add(new File(arg));
-				return null;
-			}
+		addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", arg -> {
+			libDirs.add(new File(arg));
 		});
-		optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", new Function<String, Void>() {
-			@SuppressWarnings("null")
-			@Override
-			public Void apply(String arg) {
-				mapFile = arg;
-				return null;
-			}
+		optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", arg -> {
+			mapFile = arg;
 		});
 		
 		
-		addOptionWithArg("out", "Outputs the compiled script to this file.", new Function<String, Void>() {
-			@SuppressWarnings("null")
-			@Override
-			public Void apply(String arg) {
-				outFile = arg;
-				return null;
-			}
+		addOptionWithArg("out", "Outputs the compiled script to this file.", arg -> {
+			outFile = arg;
 		});
 		
 		nextArg: for (int i=0; i<args.length; i++) {
@@ -113,10 +98,10 @@ public class RunArgs {
 			if (a.startsWith("-")) {
 				for (RunOption o : options) {
 					if (("-" + o.name).equals(a)) {
-						Function<String, Void> argHandler = o.argHandler;
+						Consumer<String> argHandler = o.argHandler;
 						if (argHandler != null) {
 							i++;
-							argHandler.apply(args[i]);
+							argHandler.accept(args[i]);
 						}
 						o.isSet = true;
 						continue nextArg;
@@ -142,7 +127,7 @@ public class RunArgs {
 		return opt;
 	}
 
-	private RunOption addOptionWithArg(String name, String descr, Function<String, Void> argHandler) {
+	private RunOption addOptionWithArg(String name, String descr, Consumer<String> argHandler) {
 		RunOption opt = new RunOption(name, descr, argHandler);
 		options.add(opt);
 		return opt;

@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -18,7 +18,6 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class FunctionSignature {
 	public static final FunctionSignature empty = new FunctionSignature(null, Collections.<WurstType>emptyList(), Collections.<String>emptyList(), WurstTypeUnknown.instance());
@@ -92,14 +91,9 @@ public class FunctionSignature {
 
 
 	public static List<String> getParamNames(WParameters parameters) {
-		return Utils.map(parameters, new Function<WParameter, String>() {
-
-			@Override
-			public String apply(WParameter a) {
-				return a.getName();
-			}
-			
-		});
+		return parameters.stream()
+				.map(WParameter::getName)
+				.collect(Collectors.toList());
 	}
 
 

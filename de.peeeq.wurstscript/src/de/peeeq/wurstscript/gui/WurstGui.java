@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.gui;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -38,21 +39,15 @@ public abstract class WurstGui {
 	}
 
 	public final List<CompileError> getErrorList() {
-		return Utils.filter(errors, new Function<CompileError,Boolean>() {
-			@Override
-			public Boolean apply(CompileError e) {
-				return e.getErrorType() == ErrorType.ERROR;
-			}
-		});
+		return errors.stream()
+				.filter(e -> e.getErrorType() == ErrorType.ERROR)
+				.collect(Collectors.toList());
 	}
 	
 	public final List<CompileError> getWarningList() {
-		return Utils.filter(errors, new Function<CompileError,Boolean>() {
-			@Override
-			public Boolean apply(CompileError e) {
-				return e.getErrorType() == ErrorType.WARNING;
-			}
-		});
+		return errors.stream()
+				.filter(e -> e.getErrorType() == ErrorType.WARNING)
+				.collect(Collectors.toList());
 	}
 
 	

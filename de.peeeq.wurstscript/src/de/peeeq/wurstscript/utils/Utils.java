@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,6 +17,11 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -25,16 +29,14 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 
-import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
@@ -53,7 +55,6 @@ import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
-import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
@@ -87,6 +88,7 @@ public class Utils {
 		}
 		return result;
 	}
+	
 
 	@SafeVarargs
 	public static <T> List<T> list(T... args) {
@@ -243,12 +245,12 @@ public class Utils {
 		return result.toString();
 	}
 
-	public static <S, T> List<T> map(List<S> items, Function<S, T> function) {
-		List<T> result = new ArrayList<T>(items.size());
+	public static <S, T> ImmutableList<T> map(ImmutableList<S> items, Function<S, T> function) {
+		ImmutableList.Builder<T> result = ImmutableList.builder();
 		for (S s : items) {
 			result.add(function.apply(s));
 		}
-		return result;
+		return result.build();
 	}
 
 	/**
@@ -291,14 +293,7 @@ public class Utils {
 	 */
 	public static <T> List<T> topSort(Collection<T> items,
 			final Multimap<T, T> biggerItems) throws TopsortCycleException {
-		return topSort(items, new Function<T, Collection<T>>() {
-
-			@Override
-			public Collection<T> apply(T input) {
-				return biggerItems.get(input);
-			}
-
-		});
+		return topSort(items, x -> biggerItems.get(x));
 	}
 
 	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems,
@@ -336,15 +331,8 @@ public class Utils {
 		return false;
 	}
 
-	public static String printContext(ImmutableList<ClassOrModule> context) {
-		return join(map(context, new Function<ClassOrModule, String>() {
-
-			@Override
-			public String apply(ClassOrModule c) {
-				return c.getName();
-			}
-
-		}), "->");
+	public static String printContext(de.peeeq.immutablecollections.ImmutableList<ClassOrModule> context) {
+		return join(map(context, ClassOrModule::getName), "->");
 	}
 
 	public static <T> T getFirst(Iterable<T> ts) {
@@ -354,8 +342,8 @@ public class Utils {
 		throw new Error("collection has no first element");
 	}
 
-	public static int getCommonPrefixLength(ImmutableList<?> list1,
-			ImmutableList<?> list2) {
+	public static int getCommonPrefixLength(de.peeeq.immutablecollections.ImmutableList<?> list1,
+			de.peeeq.immutablecollections.ImmutableList<?> list2) {
 		if (list1.isEmpty() || list2.isEmpty()) {
 			return 0;
 		}
@@ -368,13 +356,7 @@ public class Utils {
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
 			final Multimap<T, T> biggerItems) {
-		return topSortIgnoreCycles(input, new Function<T, Collection<T>>() {
-
-			@Override
-			public Collection<T> apply(T t) {
-				return biggerItems.get(t);
-			}
-		});
+		return topSortIgnoreCycles(input, t -> biggerItems.get(t));
 	}
 
 	public static <T> List<T> topSortIgnoreCycles(Collection<T> items,
@@ -1106,7 +1088,42 @@ public class Utils {
 			}
 		}
 	}
-	
+
+	public static <T> ImmutableList<T> emptyList() {
+		return ImmutableList.of();
+	}
+
+	public static <T>
+    Collector<T, ?, ImmutableList<T>> toImmutableList() {
+		Collectors.toList();
+        return new Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>() {
+
+			@Override
+			public Supplier<Builder<T>> supplier() {
+				return ImmutableList::builder;
+			}
+
+			@Override
+			public BiConsumer<Builder<T>, T> accumulator() {
+				return (b, e) -> b.add(e);
+			}
+
+			@Override
+			public BinaryOperator<Builder<T>> combiner() {
+				return (a,b) -> a.addAll(b.build());
+			}
+
+			@Override
+			public java.util.function.Function<Builder<T>, ImmutableList<T>> finisher() {
+				return b -> b.build();
+			}
+
+			@Override
+			public Set<java.util.stream.Collector.Characteristics> characteristics() {
+				return Collections.emptySet();
+			}
+		};
+    }
 	
 	
 }

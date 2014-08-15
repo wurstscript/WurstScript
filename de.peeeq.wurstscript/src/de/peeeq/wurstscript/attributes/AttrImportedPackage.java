@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -40,7 +41,7 @@ public class AttrImportedPackage {
 		throw new Error("trying to get model for element " + Utils.printElement(elem) + ", which is not attached to a model");
 	}
 
-	public static Map<String, WPackage> getPackages(WurstModel wurstModel) {
+	public static ImmutableMap<String, WPackage> getPackages(WurstModel wurstModel) {
 		Map<String, WPackage> result = Maps.newLinkedHashMap();
 		for (CompilationUnit cu : wurstModel) {
 			for (WPackage p : cu.getPackages()) {
@@ -54,15 +55,9 @@ public class AttrImportedPackage {
 				}
 			}
 		}
-		return result;
+		return ImmutableMap.copyOf(result);
 	}
 
-	public static Map<String, WPackage> getPackagesFresh(WurstModel wurstModel) {
-		Map<String, WPackage> attrPackages = wurstModel.attrPackages();
-		attrPackages.clear();
-		attrPackages.putAll(getPackages(wurstModel));
-		return attrPackages;
-	}
 
 
 }

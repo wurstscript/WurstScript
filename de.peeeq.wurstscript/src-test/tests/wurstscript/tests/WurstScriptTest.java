@@ -1,7 +1,9 @@
 package tests.wurstscript.tests;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.Collections;
@@ -37,14 +39,19 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.lua.printing.LuaPrinter;
+import de.peeeq.wurstscript.lua.translation.LuaTranslator;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstScriptTest {
 
 	private static final String TEST_OUTPUT_PATH = "./test-output/";
+	private static final boolean testLua = false;
 
 	
 	protected boolean testOptimizer() {
@@ -187,9 +194,82 @@ public class WurstScriptTest {
 		compiler.setRunArgs(new RunArgs(new String[] {"-inline", "-localOptimizations"}));
 		translateAndTest(name+"_inlopt", executeProg, executeTests, gui, compiler,	model);
 		
+		if (testLua && !withStdLib) {
+			// test lua translation
+			compiler.setRunArgs(new RunArgs(new String[] {"-lua"}));
+			translateAndTestLua(name, executeProg, gui, model);
+		}
+		
 		
 	}
 	
+	private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model) {
+		try {
+			name = name.replaceAll("[^a-zA-Z0-9_]", "_");
+			
+			ImTranslator imTranslator = new ImTranslator(model, true);
+			ImProg imProg = imTranslator.translateProg();
+
+			LuaTranslator luaTranslator = new LuaTranslator(imProg);
+			LuaCompilationUnit luaCode = luaTranslator.translate();
+			StringBuilder sb = new StringBuilder();
+			luaCode.print(sb, 0);
+
+			File luaDir = new File(TEST_OUTPUT_PATH, "lua");
+			luaDir.mkdirs();
+			File luaFile = new File(luaDir, name + ".lua");
+			String luaScript = sb.toString();
+			
+			// replace builtin lua functions
+			
+			Files.write(luaScript, luaFile, Charsets.UTF_8);
+			
+			// run with lua -l SimpleStatementTests_testIf1 -e 'main()'
+			
+			if (executeProg) {
+				String line;
+				String[] args = {
+						"lua", 
+						"-l", luaFile.getPath().replace(".lua", ""),
+						"-e", "main()"
+				};
+				Process p = Runtime.getRuntime().exec(args);
+				StringBuilder errors = new StringBuilder();
+				StringBuilder output = new StringBuilder();
+				try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+					while ((line = input.readLine()) != null) {
+						System.err.println(line);
+						errors.append(line);
+						errors.append("\n");
+					}
+				}
+				
+				if (errors.length() > 0) {
+					throw new TestFailException(errors.toString());
+				}
+				
+				boolean success = false;
+				try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+					while ((line = input.readLine()) != null) {
+						if (line.equals("testSuccess")) {
+							success = true;
+						}
+						output.append(line);
+						output.append("\n");
+					}
+				}
+				if (!success) {
+					throw new Error("Succeed function not called");
+				}
+			}
+			
+			
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
+	}
+
 	private void translateAndTest(String name, boolean executeProg,
 			boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
 			WurstModel model) throws CompileError, Error, TestFailException {

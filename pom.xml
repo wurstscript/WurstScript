@@ -3,9 +3,9 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.peeeq.wurstscript</groupId>
 	<artifactId>WurstScript</artifactId>
-	<version>1.4.1.0-5cf3b3c</version>
+	<version>1.5.0.0-3891bb1</version>
 	<properties>
-		<tycho-version>0.19.0</tycho-version>
+		<tycho-version>0.21.0</tycho-version>
 	</properties>
 	<packaging>pom</packaging>
 	<modules>
@@ -35,10 +35,10 @@
 				<artifactId>target-platform-configuration</artifactId>
 				<version>${tycho-version}</version>
 				<configuration>
-					<executionEnvironment>JavaSE-1.7</executionEnvironment>
-					<compilerVersion>1.7</compilerVersion>
-					<source>1.7</source>
-					<target>1.7</target>
+					<executionEnvironment>JavaSE-1.8</executionEnvironment>
+					<compilerVersion>1.8</compilerVersion>
+					<source>1.8</source>
+					<target>1.8</target>
 					<environments>
 						<environment>
 							<os>linux</os>

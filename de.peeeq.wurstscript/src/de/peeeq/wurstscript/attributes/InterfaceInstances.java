@@ -1,12 +1,13 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
 import java.util.Map;
 
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableCollection.Builder;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -30,23 +31,23 @@ public class InterfaceInstances {
 		return result;
 	}
 
-	public static Collection<WurstTypeInterface> getImplementedInterfaces(ClassDef c) {
-		Collection<WurstTypeInterface> result = Lists.newArrayList();
+	public static ImmutableCollection<WurstTypeInterface> getImplementedInterfaces(ClassDef c) {
+		ImmutableCollection.Builder<WurstTypeInterface> result = ImmutableList.builder();
 		for (TypeExpr t : c.getImplementsList()) {
 			addInterface(result, t, null);
 		}
-		return result;
+		return result.build();
 	}
 
-	public static Collection<WurstTypeInterface> getExtendedInterfaces(InterfaceDef in) {
-		Collection<WurstTypeInterface> result = Lists.newArrayList();
+	public static ImmutableCollection<WurstTypeInterface> getExtendedInterfaces(InterfaceDef in) {
+		ImmutableCollection.Builder<WurstTypeInterface> result = ImmutableList.builder();
 		for (TypeExpr t : in.getExtendsList()) {
 			addInterface(result, t, in);
 		}
-		return result;
+		return result.build();
 	}
 	
-	private static void addInterface(Collection<WurstTypeInterface> result, TypeExpr t, @Nullable InterfaceDef in) {
+	private static void addInterface(Builder<WurstTypeInterface> result, TypeExpr t, @Nullable InterfaceDef in) {
 		if (t.attrTyp() instanceof WurstTypeInterface) {
 			WurstTypeInterface i = (WurstTypeInterface) t.attrTyp();
 			if (i.getDef() == in) {

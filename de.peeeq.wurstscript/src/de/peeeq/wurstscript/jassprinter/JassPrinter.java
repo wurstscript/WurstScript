@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.jassprinter;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -33,6 +34,7 @@ import de.peeeq.wurstscript.jassAst.JassOpPlus;
 import de.peeeq.wurstscript.jassAst.JassOpUnequals;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassAst.JassSimpleVar;
+import de.peeeq.wurstscript.jassAst.JassSimpleVars;
 import de.peeeq.wurstscript.jassAst.JassStatement;
 import de.peeeq.wurstscript.jassAst.JassStmtSet;
 import de.peeeq.wurstscript.jassAst.JassTypeDef;
@@ -156,13 +158,7 @@ public class JassPrinter {
 		if (f.getParams().size() == 0) {
 			sb.append("nothing");
 		} else {
-				Utils.printSep(sb, comma(withSpace), f.getParams(), new Function<JassSimpleVar, String>() {
-
-					@Override
-					public String apply(JassSimpleVar input) {
-						return input.getType() + " " + input.getName();
-					}
-				});				
+			sb.append(printParams(f.getParams(), withSpace));
 		}
 		sb.append(" returns ");
 		sb.append(f.getReturnType());
@@ -235,6 +231,12 @@ public class JassPrinter {
 		}
 		printStatements(sb, 1, body, withSpace);
 		sb.append("endfunction\n" + additionalNewline());
+	}
+
+	private static String printParams(JassSimpleVars params, boolean withSpace) {
+		return params.stream()
+			.map(v -> v.getType() + " " + v.getName())
+			.collect(Collectors.joining(comma(withSpace)));
 	}
 
 	private void printComment(StringBuilder sb, JassAstElement f, int indent) {
@@ -438,13 +440,7 @@ public class JassPrinter {
 		if (jassNative.getParams().size() == 0) {
 			sb.append("nothing");
 		} else {
-				Utils.printSep(sb, comma(withSpace), jassNative.getParams(), new Function<JassSimpleVar, String>() {
-
-					@Override
-					public String apply(JassSimpleVar input) {
-						return input.getType() + " " + input.getName();
-					}
-				});				
+			sb.append(printParams(jassNative.getParams(), withSpace));
 		}
 		sb.append(" returns ");
 		sb.append(jassNative.getReturnType());

@@ -1,19 +1,15 @@
 package de.peeeq.parseq.asts;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.google.common.io.Files;
 
 import de.peeeq.parseq.asts.ast.Alternative;
 import de.peeeq.parseq.asts.ast.AstBaseTypeDefinition;
@@ -269,7 +265,7 @@ public class Generator {
 	private void generateBaseClass_Impl(ConstructorDef c) {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
-		sb.append("@SuppressWarnings(\"all\")\n");
+		addSuppressWarningAnnotations(sb);
 		sb.append("class " + c.name + "Impl implements ");
 		sb.append(c.name +  ", " + getCommonSupertypeType() + "Intern {\n");
 
@@ -728,7 +724,7 @@ public class Generator {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
 		
-		sb.append("@SuppressWarnings(\"all\")\n");
+		addSuppressWarningAnnotations(sb);
 		sb.append("public class " + toFirstUpper(prog.getLastPackagePart()) + " {\n");
 	
 		for (ConstructorDef c : prog.constructorDefs) {
@@ -874,7 +870,7 @@ public class Generator {
 		sb = new StringBuilder();
 		printProlog(sb);
 		
-		sb.append("@SuppressWarnings(\"all\")\n");
+		addSuppressWarningAnnotations(sb);
 		sb.append("class " + l.name + "Impl extends "+l.name+" implements "+getCommonSupertypeType()+"Intern {\n ");
 		
 		createGetSetParentMethods(sb);
@@ -947,7 +943,7 @@ public class Generator {
 	private void generateList_interface(ListDef l) {
 		StringBuilder sb = new StringBuilder();
 		printProlog(sb);
-		sb.append("@SuppressWarnings(\"all\")\n");
+		addSuppressWarningAnnotations(sb);
 		sb.append("public abstract class " + l.name + " extends ParseqList<"+l.itemType+"> implements ");
 		sb.append(getCommonSupertypeType());
 		for (AstEntityDefinition supertype : directSuperTypes.get(l)) {
@@ -973,6 +969,12 @@ public class Generator {
 		
 		sb.append("}\n");
 		fileGenerator.createFile(l.name + ".java", sb);
+	}
+
+
+
+	private void addSuppressWarningAnnotations(StringBuilder sb) {
+		sb.append("@SuppressWarnings({\"cast\", \"unused\"})\n");
 	}
 
 	private void generateLists() {
@@ -1009,13 +1011,18 @@ public class Generator {
 		createAttributeStubs(c, sb);
 		sb.append("}\n\n");
 		
-		sb.append("interface "+getCommonSupertypeType()+"Intern {\n" +
-				"	void setParent(@org.eclipse.jdt.annotation.Nullable "+getCommonSupertypeType()+" pos);\n" +
-				"}\n\n");
+		
 		
 		fileGenerator.createFile(getCommonSupertypeType() + ".java", sb);
 		
 		
+		StringBuilder sb2 = new StringBuilder();
+		printProlog(sb2);
+		
+		sb2.append("interface "+getCommonSupertypeType()+"Intern {\n" +
+				"	void setParent(@org.eclipse.jdt.annotation.Nullable "+getCommonSupertypeType()+" pos);\n" +
+				"}\n\n");
+		fileGenerator.createFile(getCommonSupertypeType() + "Intern.java", sb2);
 		
 	}
 

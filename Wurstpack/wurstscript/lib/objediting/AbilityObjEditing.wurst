@@ -83,12 +83,12 @@ public class AbilityDefinition
 		setButtonPositionNormalY(y)
 		
 	function presetButtonPosTurnOff(int x, int y)
-		setButtonPositionResearchX(x)
-		setButtonPositionResearchY(y)
+		setButtonPositionTurnOffX(x)
+		setButtonPositionTurnOffY(y)
 		
 	function presetButtonPosResearch(int x, int y)
 		setButtonPositionResearchX(x)
-		setButtonPositionResearchY(y)
+		setButtonPositionResearchY(y
 		
 	function setIconNormal(string value)
 		def.setLvlDataString("aart", 0, 0, value)

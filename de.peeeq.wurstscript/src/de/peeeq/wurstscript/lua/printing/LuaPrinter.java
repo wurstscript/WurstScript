@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.luaAst.LuaExprVarAccess;
 import de.peeeq.wurstscript.luaAst.LuaExprlist;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaIf;
+import de.peeeq.wurstscript.luaAst.LuaLiteral;
 import de.peeeq.wurstscript.luaAst.LuaLocal;
 import de.peeeq.wurstscript.luaAst.LuaModel;
 import de.peeeq.wurstscript.luaAst.LuaNoExpr;
@@ -161,7 +162,7 @@ public class LuaPrinter {
 
 	public static void print(LuaExprMethodCall e, StringBuilder sb, int indent) {
 		e.getReceiver().print(sb, indent);
-		sb.append(".");
+		sb.append(":");
 		sb.append(e.getFunc().getName());
 		sb.append("(");
 		e.getArguments().print(sb, indent);
@@ -198,7 +199,7 @@ public class LuaPrinter {
 		sb.append("(");
 		f.getParams().print(sb, indent);
 		sb.append(") \n");
-		f.getBody().print(sb, indent);
+		f.getBody().print(sb, indent+1);
 		printIndent(sb,indent);
 		sb.append("end");
 	}
@@ -350,7 +351,14 @@ public class LuaPrinter {
 	}
 
 	public static void print(LuaVariable v, StringBuilder sb, int indent) {
+		
 		sb.append(v.getName());
+		sb.append(" = ");
+		if (v.getInitialValue() instanceof LuaExpr) {
+			v.getInitialValue().print(sb, indent);
+		} else {
+			sb.append("nil");
+		}
 	}
 
 	public static void print(LuaWhile s, StringBuilder sb, int indent) {
@@ -358,7 +366,12 @@ public class LuaPrinter {
 		s.getCond().print(sb, indent);
 		sb.append(" do\n");
 		s.getBody().print(sb, indent+1);
+		printIndent(sb, indent);
 		sb.append("end");
+	}
+
+	public static void print(LuaLiteral e, StringBuilder sb, int indent) {
+		sb.append(e.getLuaCode());
 	}
 
 }

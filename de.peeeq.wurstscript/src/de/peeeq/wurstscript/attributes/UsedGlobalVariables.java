@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collections;
-import java.util.List;
-
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -28,8 +26,8 @@ import de.peeeq.wurstscript.types.WurstTypeClass;
 
 public class UsedGlobalVariables {
 
-	public static List<VarDef> getUsedGlobals(ExprOrStatements e) {
-		List<VarDef> result = Lists.newArrayList();
+	public static ImmutableList<VarDef> getUsedGlobals(ExprOrStatements e) {
+		ImmutableList.Builder<VarDef> result = ImmutableList.builder();
 		if (e instanceof FunctionCall) {
 			FunctionCall funcCall = (FunctionCall) e;
 			FunctionDefinition f = funcCall.attrFuncDef();
@@ -67,33 +65,33 @@ public class UsedGlobalVariables {
 				result.addAll(child2.attrUsedGlobalVariables());
 			}
 		}
-		return result;
+		return result.build();
 	}
 	
 
-	public static List<VarDef> getUsedGlobals(FunctionImplementation func) {
+	public static ImmutableList<VarDef> getUsedGlobals(FunctionImplementation func) {
 		return func.getBody().attrUsedGlobalVariables();
 	}
 
-	public static List<VarDef> getUsedGlobals(NativeFunc nativeFunc) {
-		return Collections.emptyList();
+	public static ImmutableList<VarDef> getUsedGlobals(NativeFunc nativeFunc) {
+		return ImmutableList.of();
 	}
 
-	public static List<VarDef> getUsedGlobals(TupleDef tupleDef) {
-		return Collections.emptyList();
+	public static ImmutableList<VarDef> getUsedGlobals(TupleDef tupleDef) {
+		return ImmutableList.of();
 	}
 
 	
 	// ----
 	
-	public static List<VarDef> getReadGlobals(ExprOrStatements e) {
-		List<VarDef> result = Lists.newArrayList();
+	public static ImmutableList<VarDef> getReadGlobals(ExprOrStatements e) {
+		Builder<VarDef> result = ImmutableList.builder();
 		collectReadGlobals(e, result);
-		return result;
+		return result.build();
 	}
 
 
-	private static void collectReadGlobals(AstElement e, List<VarDef> result) {
+	private static void collectReadGlobals(AstElement e, Builder<VarDef> result) {
 		if (e instanceof FunctionCall) {
 			FunctionCall funcRef = (FunctionCall) e;
 			FunctionDefinition f = funcRef.attrFuncDef();
@@ -143,20 +141,20 @@ public class UsedGlobalVariables {
 	}
 	
 
-	public static List<VarDef> getReadGlobals(FunctionImplementation func) {
+	public static ImmutableList<VarDef> getReadGlobals(FunctionImplementation func) {
 		return func.getBody().attrReadGlobalVariables();
 	}
 
-	public static List<VarDef> getReadGlobals(NativeFunc nativeFunc) {
-		return Collections.emptyList();
+	public static ImmutableList<VarDef> getReadGlobals(NativeFunc nativeFunc) {
+		return ImmutableList.of();
 	}
 
-	public static List<VarDef> getReadGlobals(TupleDef tupleDef) {
-		return Collections.emptyList();
+	public static ImmutableList<VarDef> getReadGlobals(TupleDef tupleDef) {
+		return ImmutableList.of();
 	}
 
 
-	public static List<VarDef> getReadGlobals(InitBlock initBlock) {
+	public static ImmutableList<VarDef> getReadGlobals(InitBlock initBlock) {
 		return initBlock.getBody().attrReadGlobalVariables();
 	}
 
