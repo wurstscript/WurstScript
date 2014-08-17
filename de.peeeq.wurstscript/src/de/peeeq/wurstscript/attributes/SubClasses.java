@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -52,14 +53,15 @@ public class SubClasses {
 	private static void assertNonCyclicClassHierarchy(ClassDef c, List<ClassDef> hierarchy) {
 		if (hierarchy.contains(c)) {
 			ClassDef start = hierarchy.get(0);
-			throw new CompileError(start.getSource(), "Class " + start.getName() + " has a cyclic class hierarchy." );
+			throw new CompileError(start.getSource(), "Class " + start.getName() + " has a cyclic class hierarchy: " + 
+					hierarchy.stream().map(ClassDef::getName).collect(Collectors.joining(" < ")));
 		}
 		OptTypeExpr ext = c.getExtendedClass();
 		if (ext instanceof TypeExpr) {
 			TypeExpr extT = (TypeExpr) ext;
 			if (extT.attrTypeDef() instanceof ClassDef) {
 				ClassDef extC = (ClassDef) extT.attrTypeDef();
-				hierarchy.add(extC);
+				hierarchy.add(c);
 				assertNonCyclicClassHierarchy(extC, hierarchy);
 			}
 		}
