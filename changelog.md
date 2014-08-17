@@ -3,6 +3,51 @@ layout: simple
 title: Changelog
 ---
 
+
+Version 1.5.0.0
+==================
+
+### Java 8
+
+Wurst now requires *Java 8*. Download it [here](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html).
+
+### Language changes
+
+- operator overloading is now enabled for strings
+- `@compiletime` annotation is now allowed on static methods
+- new pseudo-native: callFunctionsWithAnnotation (check the hotdoc in MagicFunctions.wurst for documentation)
+
+
+### Tools
+
+- Added a warning for stupid assignments like `this.x = x`
+- Improved dataflow anomaly checker, gives warnings when a value is not used
+- Experimental compilation server for Wurstpack to make compiles faster (not documented yet and hard to use)
+- Eclipse can now do code-folding on imports
+- Improved error markers in eclipse
+- Autocomplete no longer triggers inside of comments or strings
+
+
+### Bugfixes:
+
+- fixed #216: Stdlib: ItemDefinition from UnitObjEditing.wurst creates units instead of items.
+- also fixed some bugs regarding object editing in the standard lib
+- fixed #277: Packages can import themselves, resulting in compiler bug
+- fixed #278: Unicode support
+- fixed #285: Multiline strings give no parse error
+- fixed #296: Underscore crashes Wc3
+- fixed a bug in jmpq library
+- fixed a bug in the translation of closures
+- hopefully fixed #26: Multiline comments were sometimes not highlighted correctly in eclipse
+- fixed a really bad bug in the optimizer (TempMerger)
+- fixed #280: extension functions with empty body were valid
+- fixed bug with empty switch statements
+- fixed a bug in the interpreter when handling ints/reals and overloading of natives
+- fixed a problem when starting a map from eclipse on certain Windows installations
+- fixed #310: cyclic class hierarchies 
+
+
+
 Version 1.4.1.0
 ==================
 
