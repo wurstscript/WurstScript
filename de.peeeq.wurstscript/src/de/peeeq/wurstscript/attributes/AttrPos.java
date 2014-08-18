@@ -210,8 +210,12 @@ public class AttrPos {
 	
 	public static WPos getErrorPos(ExprMemberMethod e) {
 		WPos pos = e.getSource();
-		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos());
-		pos = pos.withRightPos(e.getArgs().attrSource().getLeftPos());
+		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos() + 1);
+		if (!e.getArgs().isEmpty()) {
+			pos = pos.withRightPos(e.getArgs().attrSource().getLeftPos() - 1);
+		} else {
+			pos = pos.withRightPos(pos.getRightPos() - 2);
+		}
 		return pos;
 	}
 	
