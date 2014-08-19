@@ -4,7 +4,8 @@ Bundle-Name: EclipseWurstPlugin
 Bundle-SymbolicName: EclipseWurstPlugin; singleton:=true
 Bundle-Version: 1.5.0.0-3891bb1
 Bundle-Activator: de.peeeq.eclipsewurstplugin.WurstPlugin
-Require-Bundle: org.eclipse.ui,
+Require-Bundle: 
+ org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
  org.eclipse.jface.text,
