@@ -46,6 +46,24 @@ Wurst now requires *Java 8*. Download it [here](http://www.oracle.com/technetwor
 - fixed a problem when starting a map from eclipse on certain Windows installations
 - fixed #310: cyclic class hierarchies 
 
+### Std-Lib:
+
+- replaced the old DummyRecycler with a new, improved one
+- added UnitIndexing capabilities with OnUnitEnterLeave package
+- added Simulate3dSound (credits to purgeandfire)
+- added RegisterEvents
+- added AbilityTooltipGenerator
+- added auto-tooltip generation for abilities
+- Added LList backwards iterator
+- added .has to HashMap
+- added UpgradeObjEditing capabilities
+- added preset-functions to AbilityObjectEditing for use with closures
+- added ObjectIdGenerator
+- added OrderStringFactory
+- revamped ChannelAbilityPreset
+- revamped DamageDetection
+- fixed QueueModule
+
 
 
 Version 1.4.1.0
