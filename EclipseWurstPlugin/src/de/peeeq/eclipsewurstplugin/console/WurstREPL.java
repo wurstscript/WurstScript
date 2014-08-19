@@ -11,6 +11,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -18,12 +19,14 @@ import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
@@ -104,7 +107,7 @@ public class WurstREPL {
 	private IOConsoleOutputStream out;
 	private ModelManager modelManager;
 	private ReplGui gui;
-	private CompilationUnit editorCu;
+	private @Nullable CompilationUnit editorCu;
 	private ILInterpreter interpreter;
 	private Map<String, String> currentState;
 	private Set<String> importedPackages;
@@ -130,21 +133,17 @@ public class WurstREPL {
 		this.modelManager = mm;
 		this.out = s;
 		gui = this.new ReplGui();
-		init();
-	}
-
-	private void init() {
 		currentState = Maps.newLinkedHashMap();
 		importedPackages = Sets.newLinkedHashSet();
 		RobustProgramState globalState = new RobustProgramState(null, gui, imProg);
 		interpreter = new ILInterpreter(null, gui, null, globalState);
-		
+
 		interpreter.addNativeProvider(new NativeFunctionsIO());
-//		interpreter.addNativeProvider(new CompiletimeNatives(globalState));
-		
+		//		interpreter.addNativeProvider(new CompiletimeNatives(globalState));
+
 		globalState.setOutStream(new PrintStream(out));
 	}
-	
+
 	private void print(String msg) {
 		try {
 			out.write(msg);
@@ -158,7 +157,7 @@ public class WurstREPL {
 
 	
 	Pattern asignmentPattern = Pattern.compile("^\\s*([a-zA-Z0-9_]*\\s+)?([a-zA-Z][a-zA-Z0-9_]*)\\s*=.*");
-	private ImProg imProg;
+	private @Nullable ImProg imProg;
 	
 	public void putLine(String line) {
 		
@@ -167,7 +166,15 @@ public class WurstREPL {
 			if (line.isEmpty()) {
 				return;
 			} else if (line.equals("reset")) {
-				init();
+				currentState = Maps.newLinkedHashMap();
+						importedPackages = Sets.newLinkedHashSet();
+						RobustProgramState globalState = new RobustProgramState(null, gui, imProg);
+						interpreter = new ILInterpreter(null, gui, null, globalState);
+						
+						interpreter.addNativeProvider(new NativeFunctionsIO());
+				//		interpreter.addNativeProvider(new CompiletimeNatives(globalState));
+						
+						globalState.setOutStream(new PrintStream(out));
 				return;
 			} else if (line.equals("main")) {
 				if (translateProg() != null) {
@@ -567,7 +574,10 @@ public class WurstREPL {
 		}
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
-		WurstModel model = modelManager.getModel();
+		WurstModel model = modelManager.getModel().copy(); // TODO maybe create a copy
+		purgeUnimportedFiles(model);
+		model.clearAttributes();
+		
 		
 		debugPrintCompilationUnits(model);
 		
@@ -635,6 +645,47 @@ public class WurstREPL {
 		
 		return f;
 	}
+
+	/**
+	 * removes everything compilation unit which is neither 
+	 *  - inside a wurst folder
+	 *  - a jass file
+	 *  - imported by a file in a wurst folder 
+	 */
+	private void purgeUnimportedFiles(WurstModel model) {
+		Set<CompilationUnit> inWurstFolder = model.stream()
+				.filter(cu -> isInWurstFolder(cu.getFile())
+						|| cu.getFile().endsWith(".j"))
+				.collect(Collectors.toSet());
+				
+		
+		Set<CompilationUnit> imported = new HashSet<>(inWurstFolder);
+		addImports(imported, imported);
+		
+		model.removeIf(cu -> !imported.contains(cu));
+		
+	}
+
+
+	private void addImports(Set<CompilationUnit> result, Set<CompilationUnit> toAdd) {
+		Set<CompilationUnit> imported = toAdd.stream()
+			.flatMap((CompilationUnit cu) -> cu.getPackages().stream())
+			.flatMap((WPackage p) -> p.getImports().stream())
+			.map(WImport::attrImportedPackage)
+			.filter(p -> p != null)
+			.map(WPackage::attrCompilationUnit)
+			.collect(Collectors.toSet());
+		boolean changed = result.addAll(imported);
+		if (changed) {
+			// recursive call terminates, as there are only finitely many compilation units
+			addImports(result, imported);
+		}
+	}
+
+	private boolean isInWurstFolder(String file) {
+		return file.matches("(.*/|^)wurst/.*\\.wurst");
+	}
+	
 
 	private void debugPrintCompilationUnits(WurstModel model) {
 		List<String> compiledUnits = new ArrayList<>();
