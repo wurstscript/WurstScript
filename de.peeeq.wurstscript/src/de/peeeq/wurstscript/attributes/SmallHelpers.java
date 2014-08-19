@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Optional;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.ast.AstElement;
@@ -32,9 +34,9 @@ public class SmallHelpers {
 	}
 
 	public static boolean isModuleUseTypeArg(TypeExpr e) {
-		ModuleUse mUse = Utils.getNearestByType(e, ModuleUse.class);
-		if (mUse != null) {
-			return mUse.isSubtreeOf(e);
+		Optional<ModuleUse> mUse = Utils.getNearestByType(e, ModuleUse.class);
+		if (mUse.isPresent()) {
+			return mUse.get().isSubtreeOf(e);
 		}
 		return false;
 	}
@@ -48,9 +50,12 @@ public class SmallHelpers {
 	}
 
 	public static boolean isStructureDefTypeParam(TypeParamDef tp) {
-		StructureDef sDef = Utils.getNearestByType(tp, StructureDef.class);
-		if (sDef instanceof AstElementWithTypeParameters) {
-			return tp.isSubtreeOf(((AstElementWithTypeParameters) sDef).getTypeParameters());
+		Optional<StructureDef> sDef = Utils.getNearestByType(tp, StructureDef.class);
+		if (!sDef.isPresent()) {
+			return false;
+		}
+		if (sDef.get() instanceof AstElementWithTypeParameters) {
+			return tp.isSubtreeOf(((AstElementWithTypeParameters) sDef.get()).getTypeParameters());
 		}
 		return false;
 	}

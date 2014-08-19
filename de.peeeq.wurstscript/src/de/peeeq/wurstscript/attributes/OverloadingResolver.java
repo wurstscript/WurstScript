@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
@@ -29,12 +30,12 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 	abstract WurstType getArgumentType(C c, int i);
 	abstract void handleError(List<String> hints);
 	
-	@Nullable
-	F resolve(Iterable<F> alternativeFunctions, C caller) {
+	
+	Optional<F> resolve(Iterable<F> alternativeFunctions, C caller) {
 		List<String> hints = new NotNullList<String>();
 		List<F> results = new NotNullList<F>();
 		if (Utils.size(alternativeFunctions) == 1) {
-			return Utils.getFirst(alternativeFunctions);
+			return Optional.of(Utils.getFirst(alternativeFunctions));
 		}
 		for (F f : alternativeFunctions) {
 			if (getParameterCount(f) > getArgumentCount(caller)) {
@@ -60,15 +61,15 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			}
 		}
 		if (results.size() == 1) {
-			return results.get(0);
+			return Optional.of(results.get(0));
 		} else if (results.size() == 0) {
 			handleError(hints);
 			// no method matches so we just choose the first not matching one:
 			for (F f : alternativeFunctions) {
-				return f;
+				return Optional.of(f);
 			}
 			handleError(Utils.list("No constructor found."));
-			return null;
+			return Optional.empty();
 		} else {
 			String alts = results.stream()
 					.map((F f) -> {
@@ -82,7 +83,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 					}).collect(Collectors.joining("\n * "));
 			handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
 			// call is ambiguous but we just choose the first method and continue:
-			return results.get(0);
+			return Optional.of(results.get(0));
 		}
 	}
 	public static @Nullable ConstructorDef resolveExprNew(List<ConstructorDef> constructors, final ExprNewObject node) {
@@ -112,7 +113,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			void handleError(List<String> hints) {
 				node.addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
 			}
-		}.resolve(constructors, node);
+		}.resolve(constructors, node).orElse(null);
 	}
 	
 	public static @Nullable ConstructorDef resolveSuperCall(List<ConstructorDef> constructors, final ConstructorDef node) {
@@ -142,7 +143,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 			void handleError(List<String> hints) {
 				node.addError("No suitable constructor found. \n" + Utils.join(hints, ", \n"));
 			}
-		}.resolve(constructors, node);
+		}.resolve(constructors, node).orElse(null);
 	}
 	
 	
@@ -219,7 +220,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 				funcCall.addError("Could not find the right method to call: \n" + Utils.join(hints, ", \n"));
 			}
 
-		}.resolve(collection, funcCall);
+		}.resolve(collection, funcCall).orElse(null);
 	}
 	
 }

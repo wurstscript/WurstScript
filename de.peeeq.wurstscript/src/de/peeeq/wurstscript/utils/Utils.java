@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -23,6 +24,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -47,6 +49,7 @@ import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprSimple;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -970,14 +973,14 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static @Nullable <T extends AstElement> T getNearestByType(@Nullable AstElement e, Class<T> clazz) {
+	public static <T extends AstElement> Optional<T> getNearestByType(@Nullable AstElement e, Class<T> clazz) {
 		while (e != null) {
 			if (clazz.isInstance(e)) {
-				return (T) e;
+				return Optional.of((T) e);
 			}
 			e = e.getParent();
 		}
-		return null;
+		return Optional.empty();
 	}
 
 	public static <T extends AstElementWithName> Comparator<T> compareByName() {
@@ -1021,11 +1024,6 @@ public class Utils {
 			result.add(l.get(i));
 		}
 		return result;
-	}
-
-	public static <T> T assertNotnull(@Nullable T o) {
-		Preconditions.checkNotNull(o);
-		return o;
 	}
 
 	public static <K,V> ImmutableMap<K,V> mergeMaps(
@@ -1124,6 +1122,5 @@ public class Utils {
 			}
 		};
     }
-	
-	
+
 }

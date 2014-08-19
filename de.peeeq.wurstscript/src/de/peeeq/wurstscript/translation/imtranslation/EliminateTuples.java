@@ -62,10 +62,12 @@ import de.peeeq.wurstscript.jassIm.JassImElementWithTypes;
 public class EliminateTuples {
 
 	public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
+		
 		transformVars(imProg.getGlobals(), translator);
 		for (ImFunction f : imProg.getFunctions()) {
 			f.eliminateTuples(translator);
 		}
+		
 		
 		for (ImFunction f : imProg.getFunctions()) {
 			transformStatements(f, f.getBody(), translator);

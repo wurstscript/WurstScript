@@ -10,8 +10,7 @@ Bundle-ClassPath: wurstscript.jar,
  lib/velocity-1.7-dep.jar,
  lib/jmpq2.jar,
  lib/antlr-runtime-4.4.jar,
- lib/jna-4.0.0.jar,
- lib/org.eclipse.jdt.annotation_1.1.0.v20130513-1648.jar
+ lib/jna-4.0.0.jar
 Export-Package: com.google.common.annotations,
  com.google.common.base,
  com.google.common.base.internal,
