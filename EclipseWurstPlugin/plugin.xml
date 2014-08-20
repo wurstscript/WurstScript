@@ -365,8 +365,7 @@
 	    id="de.peeeq.eclipsewurstplugin.decorators"
 	    label="Wurst Decorator"
 	    state="true"
-	    lightweight= "true"
-        quadrant = "BOTTOM_RIGHT"
+	    lightweight= "true"	    
 	    class= "de.peeeq.eclipsewurstplugin.ui.Decorators"
 	    adaptable="true">
 	    <description>
@@ -379,5 +378,4 @@
 	    </enablement>
 	  </decorator>
 	</extension>
-   
 </plugin>
