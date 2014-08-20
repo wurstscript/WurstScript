@@ -16,7 +16,7 @@
 	<property name="hotDocLoc" location="${build}/hotdoc/" />
 	<property name="antlr4wurstgrammar" location="./parserspec/Wurst.g4" />
 	<property name="antlr4jurstgrammar" location="./parserspec/Jurst.g4" />
-
+	<property name="mvn.target.classes" location="./target/classes/"></property>
 	<import file="build-generate-mvn.xml"/>
 	
 	
@@ -95,6 +95,13 @@
 		<delete dir="${build}" />
 		<delete dir="${srcgen}" />
 	</target>
+	
+	
+	<target name="copy_from_target">
+		<copy todir="${build}" overwrite="yes">
+			<fileset dir="${mvn.target.classes}"/>
+		</copy>
+	</target>
 
 	<path id="classpath.test">
 		<pathelement location="${build}" />
@@ -116,7 +123,7 @@
 
 	<target name="junit_allTests">
 		<mkdir dir="${junitTestResults}" />
-		<junit printsummary="on">
+		<junit fork="true" printsummary="on">
 			<classpath location="${build}" />
 			<classpath refid="classpath.test">
 			</classpath>
