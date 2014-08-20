@@ -123,7 +123,7 @@ public class Decorators extends LabelProvider implements ILightweightLabelDecora
 		Object[] elements = resources.toArray();
 		resources.clear();
 		for (ILabelProviderListener listener : listeners) {
-			listener.labelProviderChanged(new LabelProviderChangedEvent(this, elements));
+			listener.labelProviderChanged(new LabelProviderChangedEvent(this));
 		}
 	}
 
