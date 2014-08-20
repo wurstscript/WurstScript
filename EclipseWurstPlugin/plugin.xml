@@ -359,4 +359,25 @@
          
       </menuContribution>
    </extension>
+   <!-- error decorator -->
+   <extension point="org.eclipse.ui.decorators">
+	<decorator
+	    id="de.peeeq.eclipsewurstplugin.decorators"
+	    label="Wurst Decorator"
+	    state="true"
+	    lightweight= "true"
+        quadrant = "BOTTOM_RIGHT"
+	    class= "de.peeeq.eclipsewurstplugin.ui.Decorators"
+	    adaptable="true">
+	    <description>
+	      Adds error markers for Wurst.
+	    </description>
+	    <enablement>
+	    <objectClass 
+           name="org.eclipse.core.resources.IResource">
+	    </objectClass>
+	    </enablement>
+	  </decorator>
+	</extension>
+   
 </plugin>
