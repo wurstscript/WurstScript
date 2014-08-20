@@ -1,12 +1,17 @@
 package de.peeeq.eclipsewurstplugin.ui;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
+import org.eclipse.core.resources.IResourceDelta;
+import org.eclipse.core.resources.IResourceDeltaVisitor;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.annotation.Nullable;
@@ -25,7 +30,7 @@ import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 public class Decorators extends LabelProvider implements ILightweightLabelDecorator, IResourceChangeListener {
 
 	private List<ILabelProviderListener> listeners = new ArrayList<ILabelProviderListener>();
-	
+	private Set<IResource> resources = new HashSet<>();
 	
 	public Decorators() {
 		ResourcesPlugin.getWorkspace().addResourceChangeListener(this);
@@ -81,10 +86,27 @@ public class Decorators extends LabelProvider implements ILightweightLabelDecora
 		}
 	}
 
+	
+	
+	
 	@Override
 	public void resourceChanged(@Nullable IResourceChangeEvent event) {
 		Preconditions.checkNotNull(event);
 		if (event.getType() == IResourceChangeEvent.POST_CHANGE) {
+			IResourceDelta delta = event.getDelta();
+			
+			
+			IResourceDeltaVisitor visitor = delta1 -> {
+				resources.add(delta1.getResource());
+				return true;
+			};
+			try {
+				synchronized (this) {
+					visitor.visit(delta);
+				}
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
 			Display.getDefault().asyncExec(new Runnable() {
 				@Override
 				public void run() {
@@ -94,9 +116,14 @@ public class Decorators extends LabelProvider implements ILightweightLabelDecora
 		}
 	}
 
-	private void fireLabelChangedEvent() {
+	private synchronized void fireLabelChangedEvent() {
+		if (resources.isEmpty()) {
+			return;
+		}
+		Object[] elements = resources.toArray();
+		resources.clear();
 		for (ILabelProviderListener listener : listeners) {
-			listener.labelProviderChanged(new LabelProviderChangedEvent(this));
+			listener.labelProviderChanged(new LabelProviderChangedEvent(this, elements));
 		}
 	}
 
