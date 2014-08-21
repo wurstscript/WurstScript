@@ -127,7 +127,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 	
 	abstract void writeDataToStream(BinaryDataOutputStream out, ObjectFileType fileType) throws IOException;
 
-	public void exportToWurst(Appendable out) throws IOException {
+	public final void exportToWurst(Appendable out) throws IOException {
 		if (parent.getFileType().usesLevels()) {
 			out.append("	u.setLvlData"+getFuncPostfix()+"(\"");
 			out.append(modificationId);

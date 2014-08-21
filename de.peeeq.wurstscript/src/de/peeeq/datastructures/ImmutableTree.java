@@ -9,8 +9,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
-import de.peeeq.wurstscript.jassIm.ImVar;
-
 public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
 	
 	// invariant: children == null <--> elem != null
@@ -61,7 +59,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
 		return b.build();
 	}
 
-	private void addValues(Builder<T> b) {
+	private void addValues(Builder<@Nullable T> b) {
 		ImmutableList<ImmutableTree<T>> ch = children;
 		if (ch == null) {
 			b.add(elem);
@@ -81,7 +79,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
 		final int prime = 31;
 		int result = 1;
 		ImmutableList<ImmutableTree<T>> c = children;
-		T e = elem;
+		@Nullable T e = elem;
 		result = prime * result + ((c == null) ? 0 : c.hashCode());
 		result = prime * result + ((e == null) ? 0 : e.hashCode());
 		return result;
@@ -102,7 +100,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
 				return false;
 		} else if (!c.equals(other.children))
 			return false;
-		T e = elem;
+		@Nullable T e = elem;
 		if (e == null) {
 			if (other.elem != null)
 				return false;
@@ -136,7 +134,7 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
 
 	public T getOnlyEment() {
 		ImmutableList<ImmutableTree<T>> ch = children;
-		T el = elem;
+		@Nullable T el = elem;
 		if (el != null) {
 			return el;
 		} else if (ch != null && !ch.isEmpty()) {

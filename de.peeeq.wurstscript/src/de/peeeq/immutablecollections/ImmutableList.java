@@ -224,11 +224,11 @@ class ImmutableListIterator<T> implements Iterator<T> {
 	}
 
 	@Override
-	public @Nullable T next() {
+	public T next() {
 		ImmutableList<T> p = pos;
 		if (p == null || p.isEmpty()) {
 			pos = null;
-			return null;
+			throw new RuntimeException("Calling next on finished iterator.");
 		} else {
 			T res = p.head();
 			pos = p.tail();
