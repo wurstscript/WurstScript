@@ -12,6 +12,7 @@ package de.peeeq.wurstio.gui;
 
 import java.awt.Color;
 import java.awt.Frame;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -31,6 +32,10 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+
+import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
 
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.WLogger;
@@ -62,7 +67,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     public About ab;
     
     /** Creates new form WurstErrorWindow */
-    public WurstErrorWindow() {
+    @SuppressWarnings("null")
+	public WurstErrorWindow() {
     	super("Errors");
     	BufferedImage image = null;
         try {
@@ -123,7 +129,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         errorList.addListSelectionListener(new ListSelectionListener() {
 
 			@Override
-			public void valueChanged(ListSelectionEvent e) {
+			public void valueChanged(@Nullable ListSelectionEvent e) {
 				int index = errorList.getSelectedIndex();
 				if (index >= 0) {
 					CompileError err = (CompileError) errorListModel.get(index);
@@ -147,7 +153,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         closeButton.setText("Close");
         closeButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-			public void mouseClicked(java.awt.event.MouseEvent evt) {
+			public void mouseClicked(@Nullable MouseEvent evt) {
+            	Preconditions.checkNotNull(evt);
                 closeButtonMouseClicked(evt);
             }
         });
@@ -157,7 +164,8 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         aboutButton.setText("About...");
         aboutButton.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
-			public void mouseClicked(java.awt.event.MouseEvent evt) {
+			public void mouseClicked(@Nullable MouseEvent evt) {
+            	Preconditions.checkNotNull(evt);
                 aboutButtonMouseClicked(evt);
             }
         });

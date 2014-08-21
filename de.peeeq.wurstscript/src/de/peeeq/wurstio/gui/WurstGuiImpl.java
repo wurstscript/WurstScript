@@ -6,6 +6,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.base.Preconditions;
+
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -19,7 +23,7 @@ public class WurstGuiImpl extends WurstGui {
 	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
-	private volatile String currentlyWorkingOn = "";
+	private volatile @Nullable String currentlyWorkingOn = "";
 	private GuiUpdater guiUpdater;
 
 	public WurstGuiImpl() {
@@ -35,8 +39,8 @@ public class WurstGuiImpl extends WurstGui {
 	 * this is all done asynchronously, so the main compiler thread is not blocked
 	 */
 	class GuiUpdater extends Thread {
-		private WurstStatusWindow statusWindow = null;
-		private WurstErrorWindow errorWindow = null;
+		private @Nullable WurstStatusWindow statusWindow = null;
+		private @Nullable WurstErrorWindow errorWindow = null;
 
 
 		public GuiUpdater() {
@@ -57,6 +61,10 @@ public class WurstGuiImpl extends WurstGui {
 					}
 				});
 				
+				WurstStatusWindow statusWindow = this.statusWindow;
+				WurstErrorWindow errorWindow = this.errorWindow;
+				Preconditions.checkNotNull(statusWindow);
+				Preconditions.checkNotNull(errorWindow);
 				
 				// main loop: wait until finished and send the errors in the queue to the actual gui
 				while (!finished || !errorQueue.isEmpty()) {
@@ -65,10 +73,14 @@ public class WurstGuiImpl extends WurstGui {
 					SwingUtilities.invokeAndWait(new Runnable() {
 						@Override
 						public void run() {
-							for (CompileError elem = errorQueue.poll() ;elem != null; elem = errorQueue.poll()) {
+							for (CompileError elem = pollErrorQueue(); elem != null; elem = pollErrorQueue()) {
 								errorWindow.sendError(elem);
 							}
 							statusWindow.sendProgress(currentlyWorkingOn, progress);
+						}
+
+						private @Nullable CompileError pollErrorQueue() {
+							return errorQueue.poll();
 						}
 					});
 					
@@ -101,7 +113,7 @@ public class WurstGuiImpl extends WurstGui {
 	boolean show = true;
 
 	@Override
-	public void sendProgress(String whatsRunningNow, double percent) {
+	public void sendProgress(@Nullable String whatsRunningNow, double percent) {
 		if (whatsRunningNow != null) {
 			WLogger.info("progress: " + whatsRunningNow);
 		}

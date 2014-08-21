@@ -105,12 +105,7 @@ public class HotdocGenerator {
 			}
 			
 			ArrayList<WPackage> packages = Lists.newArrayList(model.attrPackages().values());
-			Collections.sort(packages, new Comparator<WPackage>() {
-				@Override @SuppressWarnings("null") 
-				public int compare(WPackage o1, WPackage o2) {
-					return o1.getSource().shortFile().compareTo(o2.getSource().shortFile());
-				}
-			});
+			Collections.sort(packages, (o1, o2) -> o1.getSource().shortFile().compareTo(o2.getSource().shortFile()));
 			
 			createIndex(packages);
 			for (WPackage p : packages) {

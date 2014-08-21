@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.gui;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -15,7 +17,7 @@ public abstract class WurstGui {
 	
 	
 	
-	public abstract void sendProgress(String whatsRunningNow, double percent);
+	public abstract void sendProgress(@Nullable String whatsRunningNow, double percent);
 	
 	public abstract void sendFinished();
 

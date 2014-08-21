@@ -80,12 +80,7 @@ public class WurstServer {
 
 	public static void startServer() {
 		// don't know why this is needed ...
-		SwingUtilities.invokeLater(new Runnable() {
-			@Override
-			public void run() {
-				
-			}
-		});
+		SwingUtilities.invokeLater(() -> {});
 		
 		
 		WurstServer s = new WurstServer();

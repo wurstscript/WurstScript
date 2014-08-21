@@ -13,7 +13,6 @@ package de.peeeq.wurstio.gui;
 import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.Frame;
-import java.awt.event.MouseEvent;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.URI;
@@ -24,6 +23,7 @@ import java.util.logging.Logger;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.CompileTimeInfo;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  *
@@ -81,13 +81,7 @@ public class About extends javax.swing.JDialog {
         homepageButton.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         homepageButton.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
         homepageButton.setName("homepageButton"); // NOI18N
-        homepageButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-			public void mouseClicked(@Nullable MouseEvent evt) {
-                assert evt != null;
-            	homepageButtonMouseClicked(evt);
-            }
-        });
+        homepageButton.addMouseListener(Utils.onClickDo(this::homepageButtonMouseClicked));
         
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);

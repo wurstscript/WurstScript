@@ -56,7 +56,7 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	@Override
-	public ImStmt getLastStatement() {
+	public @Nullable ImStmt getLastStatement() {
 		return lastStatement;
 	}
 
@@ -66,8 +66,7 @@ public class ProgramStateIO extends ProgramState {
 	}
 
 	public String getTrigString(int id) {
-		String r = loadTrigStrings().get(id);
-		return r == null ? "" : r;
+		return loadTrigStrings().getOrDefault(id, "");
 	}
 
 	private Map<Integer, String> loadTrigStrings() {
