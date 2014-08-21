@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import com.google.common.base.Charsets;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 
 public abstract class ObjectModification<T> { // TODO split into appropiate subclasses

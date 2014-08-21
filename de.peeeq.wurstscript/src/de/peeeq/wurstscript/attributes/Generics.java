@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 

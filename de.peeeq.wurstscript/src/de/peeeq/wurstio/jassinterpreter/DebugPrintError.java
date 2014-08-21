@@ -1,7 +1,5 @@
 package de.peeeq.wurstio.jassinterpreter;
 
-import java.util.Stack;
-
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;

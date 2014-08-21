@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.gui;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.attributes.CompileError;
