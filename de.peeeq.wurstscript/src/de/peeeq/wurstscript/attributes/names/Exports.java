@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes.names;
 
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.Sets;
@@ -37,7 +39,11 @@ public class Exports {
 		// import public imports
 		for (WImport imp2 : p.getImports()) {
 			if (imp2.getIsPublic()) {
-				addExportedNameLinks(result, imp2.attrImportedPackage(), alreadyImported);
+				@Nullable
+				WPackage imported = imp2.attrImportedPackage();
+				if (imported != null) {
+					addExportedNameLinks(result, imported, alreadyImported);
+				}
 			}
 		}
 

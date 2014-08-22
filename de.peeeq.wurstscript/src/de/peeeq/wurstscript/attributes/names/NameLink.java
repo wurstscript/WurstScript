@@ -6,8 +6,10 @@ import java.util.Map;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
@@ -78,15 +80,20 @@ public class NameLink {
 		} else if (type == NameLinkType.VAR) {
 			if (nameDef instanceof GlobalVarDef) {
 				return getReceiverType(definedIn);
-			} else if (nameDef instanceof WParameter) {
-				if (nameDef.getParent().getParent() instanceof TupleDef) {
-					TupleDef tupleDef = (TupleDef) nameDef.getParent().getParent();
-					return tupleDef.attrTyp();
-				}
-			} else if (nameDef instanceof EnumMember) {
-				if (nameDef.getParent().getParent() instanceof EnumDef) {
-					EnumDef enumDef = (EnumDef) nameDef.getParent().getParent();
-					return enumDef.attrTyp();
+			} else {
+				AstElement parent = nameDef.getParent();
+				Preconditions.checkNotNull(parent);
+				AstElement grandParent = parent.getParent();
+				if (nameDef instanceof WParameter) {
+					if (grandParent instanceof TupleDef) {
+						TupleDef tupleDef = (TupleDef) grandParent;
+						return tupleDef.attrTyp();
+					}
+				} else if (nameDef instanceof EnumMember) {
+					if (grandParent instanceof EnumDef) {
+						EnumDef enumDef = (EnumDef) grandParent;
+						return enumDef.attrTyp();
+					}
 				}
 			}
 		}
