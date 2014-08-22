@@ -569,6 +569,10 @@ ClassDef.attrExtendedClass
 	returns ClassDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
 
+ClassDef.attrExtendedClassType
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClassType
+
 ConstructorDef.attrSuperConstructor
 	returns ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor

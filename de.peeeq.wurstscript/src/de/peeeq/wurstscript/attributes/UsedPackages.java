@@ -1,13 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.NameDef;

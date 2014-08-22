@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -26,7 +28,7 @@ public class RobustProgramState extends ProgramState {
 	// (varname, line) -> (index -> value))
 	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 	
-	public RobustProgramState(File mapFile, WurstGui gui, ImProg prog) {
+	public RobustProgramState(@Nullable File mapFile, WurstGui gui, ImProg prog) {
 		super(gui, prog);
 	}
 	
@@ -71,7 +73,7 @@ public class RobustProgramState extends ProgramState {
 	}
 	
 	@Override
-	public ILconst getVarValue(String varName) {
+	public @Nullable ILconst getVarValue(String varName) {
 		for (Entry<String, ILconst> e : values.entrySet()) {
 			if (e.getKey().endsWith("^"+varName)) {
 				return e.getValue();

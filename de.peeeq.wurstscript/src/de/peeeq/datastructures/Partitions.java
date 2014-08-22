@@ -64,12 +64,7 @@ public class Partitions<T> {
 	}
 
 	private Partition getPartition(T b) {
-		Partition p = partitions.get(b);
-		if (p == null) {
-			p = new Partition(b);
-			partitions.put(b, p);
-		}
-		return p;
+		return partitions.computeIfAbsent(b, k -> new Partition(b));
 	}
 
 	public boolean contains(T t) {

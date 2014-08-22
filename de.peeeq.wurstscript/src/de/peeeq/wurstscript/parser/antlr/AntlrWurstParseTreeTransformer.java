@@ -1270,8 +1270,13 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private WPos source(ParserRuleContext p) {
-		return new WPos(file, lineOffsets, p.start.getStartIndex(),
-				p.stop.getStopIndex()+1);
+		int stopIndex;
+		if (p.stop.getType() == WurstParser.NL) {
+			stopIndex = p.stop.getStartIndex()+1;
+		} else {
+			stopIndex = p.stop.getStopIndex()+1;
+		}
+		return new WPos(file, lineOffsets, p.start.getStartIndex(), stopIndex);
 	}
 
 	private WPos source(Token p) {

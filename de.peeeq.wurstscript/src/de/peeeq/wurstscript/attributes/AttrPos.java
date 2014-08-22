@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.LocalVarDef;
 import de.peeeq.wurstscript.ast.LoopStatement;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtWhile;
@@ -210,8 +209,12 @@ public class AttrPos {
 	
 	public static WPos getErrorPos(ExprMemberMethod e) {
 		WPos pos = e.getSource();
-		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos());
-		pos = pos.withRightPos(e.getArgs().attrSource().getLeftPos());
+		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos() + 1);
+		if (!e.getArgs().isEmpty()) {
+			pos = pos.withRightPos(e.getArgs().attrSource().getLeftPos() - 1);
+		} else {
+			pos = pos.withRightPos(pos.getRightPos() - 2);
+		}
 		return pos;
 	}
 	

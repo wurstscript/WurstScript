@@ -12,6 +12,8 @@ package de.peeeq.wurstio.gui;
 
 import java.awt.Color;
 import java.awt.Desktop;
+import java.awt.Frame;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -21,6 +23,7 @@ import java.util.logging.Logger;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.CompileTimeInfo;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  *
@@ -34,7 +37,7 @@ public class About extends javax.swing.JDialog {
 
     /** Creates new form About */
     @SuppressWarnings("null")
-	public About(@Nullable java.awt.Frame parent, boolean modal) throws URISyntaxException {
+	public About(@Nullable Frame parent, boolean modal) throws URISyntaxException {
         super(parent, modal);        
         initComponents();
         uri = new URI(homepage);
@@ -78,13 +81,7 @@ public class About extends javax.swing.JDialog {
         homepageButton.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         homepageButton.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
         homepageButton.setName("homepageButton"); // NOI18N
-        homepageButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-			public void mouseClicked(@Nullable java.awt.event.MouseEvent evt) {
-                assert evt != null;
-            	homepageButtonMouseClicked(evt);
-            }
-        });
+        homepageButton.addMouseListener(Utils.onClickDo(this::homepageButtonMouseClicked));
         
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
@@ -219,7 +216,7 @@ public class About extends javax.swing.JDialog {
                 	dialog.addWindowListener(new java.awt.event.WindowAdapter() {
 
                 		@Override
-                		public void windowClosing(@Nullable java.awt.event.WindowEvent e) {
+                		public void windowClosing(@Nullable WindowEvent e) {
                 			System.exit(0);
                 		}
                 	});

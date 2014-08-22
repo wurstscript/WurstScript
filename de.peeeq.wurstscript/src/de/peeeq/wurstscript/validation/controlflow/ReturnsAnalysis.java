@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.validation.controlflow;
 
 import java.util.Collection;
 
-import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StartFunctionStatement;

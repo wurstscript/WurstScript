@@ -379,14 +379,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	public @Nullable JassProg transformProgToJass() {
 		ImTranslator imTranslator2 = getImTranslator();
 		ImProg imProg2 = getImProg();
-		
+		imTranslator2.assertProperties();
 		int stage = 2;
 		// eliminate classes
 		beginPhase(2, "translate classes");
 		
 		new EliminateClasses(imTranslator2, imProg2).eliminateClasses();
+		imTranslator2.assertProperties();
 		printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
 		new MultiArrayEliminator(imProg2, imTranslator2).run();
+		imTranslator2.assertProperties();
+		
 		
 		if (runArgs.isNoDebugMessages()) {
 			beginPhase(3, "remove debug messages");
@@ -398,7 +401,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				new StackTraceInjector(imProg2).transform();
 			}
 		}
-		
+		imTranslator2.assertProperties();
 		
 		ImOptimizer optimizer = new ImOptimizer(imTranslator2);
 		
@@ -408,6 +411,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		if (runArgs.isInline()) {
 			beginPhase(5, "inlining");
 			optimizer.doInlining();
+			imTranslator2.assertProperties();
 			
 			printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
 		}
@@ -555,7 +559,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		return result;
 	}
 
-	@SuppressWarnings("resource")
 	private CompilationUnit processMap(File file) {
 		gui.sendProgress("Processing Map " + file.getName(), 0.05);		
 		if (!file.equals(mapFile)) {
@@ -564,8 +567,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			throw new Error("file: " + file + " is not the mapfile: " + mapFile);
 		}
 		
-		MpqEditor mapMpq = Utils.assertNotnull(mapFileMpq);
-		
+		MpqEditor mapMpq = mapFileMpq;
+		if (mapMpq == null) {
+			throw new RuntimeException("map mpq is null");
+		}
 
 		// extract mapscript:
 		try {

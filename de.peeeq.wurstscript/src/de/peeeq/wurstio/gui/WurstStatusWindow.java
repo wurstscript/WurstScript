@@ -16,6 +16,8 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.swing.UIManager;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.WLogger;
 
 /**
@@ -49,7 +51,45 @@ public class WurstStatusWindow extends javax.swing.JFrame {
             java.util.logging.Logger.getLogger(WurstStatusWindow.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
 
-        initComponents();
+        progressBar = new javax.swing.JProgressBar();
+		title = new javax.swing.JLabel();
+		currentStatus = new javax.swing.JLabel();
+		
+		progressBar.setDoubleBuffered(true);
+		
+		setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+		
+		title.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+		title.setText("WurstScript");
+		
+		currentStatus.setDoubleBuffered(true);
+		currentStatus.setText("starting...");
+		
+		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
+		getContentPane().setLayout(layout);
+		layout.setHorizontalGroup(
+		    layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+		    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+		        .addContainerGap()
+		        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+		            .addComponent(progressBar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+		            .addComponent(title, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+		            .addComponent(currentStatus, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE))
+		        .addContainerGap())
+		);
+		layout.setVerticalGroup(
+		    layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+		    .addGroup(layout.createSequentialGroup()
+		        .addContainerGap()
+		        .addComponent(title, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
+		        .addGap(5, 5, 5)
+		        .addComponent(currentStatus)
+		        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+		        .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+		        .addContainerGap(12, Short.MAX_VALUE))
+		);
+		
+		pack();
         
         GuiUtils.setWindowToCenterOfScreen(this);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -58,63 +98,7 @@ public class WurstStatusWindow extends javax.swing.JFrame {
     }
 
 
-    private void initComponents() {
-
-    	progressBar = new javax.swing.JProgressBar();
-        title = new javax.swing.JLabel();
-        currentStatus = new javax.swing.JLabel();
-        
-        progressBar.setDoubleBuffered(true);
-        
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-
-        title.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
-        title.setText("WurstScript");
-        
-        currentStatus.setDoubleBuffered(true);
-        currentStatus.setText("starting...");
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(progressBar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
-                    .addComponent(title, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
-                    .addComponent(currentStatus, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE))
-                .addContainerGap())
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(title, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(5, 5, 5)
-                .addComponent(currentStatus)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(12, Short.MAX_VALUE))
-        );
-
-        pack();
-    }
-    
-    
-
-//	@Override
-//	public void sendError(CompileError err) {
-//		errorWindow.setVisible(true);
-//		mainGui.gui = errorWindow;
-//		mainGui.gui.sendError(err);
-//		errorWindow.requestFocus();
-//		dispose();
-//		
-//	}
-
-//	@Override
-	public void sendProgress(String whatsRunningNow, double percent) {
+	public void sendProgress(@Nullable String whatsRunningNow, double percent) {
 		if (whatsRunningNow != null && whatsRunningNow.length() > 1) {
 			currentStatus.setText(whatsRunningNow);
 		}
@@ -124,7 +108,6 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 		
 	}
 
-//	@Override
 	public void sendFinished() {
 		dispose();
 	}

@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
-
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;

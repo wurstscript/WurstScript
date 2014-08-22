@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediateLang.interpreter.NoSuchNativeException;
-import de.peeeq.wurstscript.utils.Utils;
 
 public abstract class ReflectionBasedNativeProvider  implements NativesProvider{
 

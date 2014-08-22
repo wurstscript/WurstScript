@@ -26,6 +26,8 @@ public class Icons {
 	public static Image winterface = createIcon("interface.gif");
 	public static Image var = createIcon("var.gif");
 	public static Image wpackage = createIcon("package.gif");
+	public static Image werror = createIcon("error_co.gif");
+	public static Image wwarning = createIcon("warning_co.gif");
 	
 	public static Image createIcon(String path){
 		return createImage(ICON_PATH+path);

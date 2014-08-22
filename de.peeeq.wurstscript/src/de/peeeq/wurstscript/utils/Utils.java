@@ -1,5 +1,8 @@
 package de.peeeq.wurstscript.utils;
 
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,9 +19,11 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -970,14 +975,14 @@ public class Utils {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static @Nullable <T extends AstElement> T getNearestByType(@Nullable AstElement e, Class<T> clazz) {
+	public static <T extends AstElement> Optional<T> getNearestByType(@Nullable AstElement e, Class<T> clazz) {
 		while (e != null) {
 			if (clazz.isInstance(e)) {
-				return (T) e;
+				return Optional.of((T) e);
 			}
 			e = e.getParent();
 		}
-		return null;
+		return Optional.empty();
 	}
 
 	public static <T extends AstElementWithName> Comparator<T> compareByName() {
@@ -1021,11 +1026,6 @@ public class Utils {
 			result.add(l.get(i));
 		}
 		return result;
-	}
-
-	public static <T> T assertNotnull(@Nullable T o) {
-		Preconditions.checkNotNull(o);
-		return o;
 	}
 
 	public static <K,V> ImmutableMap<K,V> mergeMaps(
@@ -1124,6 +1124,15 @@ public class Utils {
 			}
 		};
     }
-	
-	
+
+	public static MouseListener onClickDo(Consumer<MouseEvent> onclick) {
+		return new MouseAdapter() {
+			@Override
+			public void mouseClicked(@Nullable MouseEvent e) {
+				Preconditions.checkNotNull(e);
+				onclick.accept(e);
+			}
+		};
+	}
+
 }

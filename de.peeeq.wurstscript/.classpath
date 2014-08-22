@@ -18,6 +18,6 @@
 	<classpathentry kind="lib" path="lib/jmpq2.jar" sourcepath="/jMpq-v2"/>
 	<classpathentry exported="true" kind="lib" path="lib/antlr-runtime-4.4.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/jna-4.0.0.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/org.eclipse.jdt.annotation_1.1.0.v20130513-1648.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jdt.annotation-2.0.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -33,6 +33,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	private Pair<TokenSource, CharStream> sourcePair;
 	private boolean isWurst = false;
 	private boolean lastCharWasWrap = false;
+	private @Nullable Token lastToken = null;
 
 	enum State {
 		INIT, NEWLINES, BEGIN_LINE
@@ -74,6 +75,7 @@ public class ExtendedWurstLexer implements TokenSource {
 	@Override
 	public Token nextToken() {
 		Token t = nextTokenIntern();
+		lastToken = t;
 
 		debugSb.append(t.getText() + " ");
 		if (debug) System.out.println("		new token: " + t);
@@ -261,6 +263,11 @@ public class ExtendedWurstLexer implements TokenSource {
 	private void handleIndent(int n, int start, int stop) {
 		if (!isWurst) {
 			return;
+		}
+		Token t = lastToken;
+		if (t != null) {
+			start = t.getStopIndex();
+			stop = t.getStopIndex();
 		}
 		if (debug) System.out.println("handleIndent " + n + "	 " + indentationLevels);
 		if (n > indentationLevels.peek()) {

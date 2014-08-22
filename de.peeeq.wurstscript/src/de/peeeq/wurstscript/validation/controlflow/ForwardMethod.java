@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.validation.controlflow;
 import java.util.Collection;
 
 import de.peeeq.wurstscript.ast.AstElementWithBody;
-import de.peeeq.wurstscript.ast.FunctionLike;
 import de.peeeq.wurstscript.ast.WStatement;
 
 public abstract class ForwardMethod<T, Target extends AstElementWithBody> {
