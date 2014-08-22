@@ -19,7 +19,10 @@ public function group.removeUnit(unit u)
 	GroupRemoveUnit(this, u)
 	
 public function group.destr()
-	DestroyGroup(this)	
+	DestroyGroup(this)
+	
+public function group.contains(unit u) returns boolean
+	return IsUnitInGroup(u, this)
 
 // group iterators
 
