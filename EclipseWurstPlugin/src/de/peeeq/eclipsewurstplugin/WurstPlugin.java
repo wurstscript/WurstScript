@@ -1,36 +1,6 @@
 package de.peeeq.eclipsewurstplugin;
 
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_CONSTRUCTOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_DATATYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FIELD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_FUNCTION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_INTERFACE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_JASSTYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_KEYWORD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_PARAM;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_COMMENT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_CONSTRUCTOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_DATATYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FIELD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_FUNCTION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_INTERFACE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_JASSTYPE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_KEYWORD;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_PARAM;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_TEXT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_VAR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ANNOTATION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_RGB_ANNOTATION;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_TEXT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_VAR;
 
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -38,6 +8,8 @@ import java.util.logging.LogRecord;
 
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.Status;
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -97,7 +69,7 @@ public class WurstPlugin extends AbstractUIPlugin {
 	// The shared instance
 	private static WurstPlugin plugin;
 
-	private ScannerFactory scanners;
+	private @Nullable ScannerFactory scanners;
 	
 	/**
 	 * The constructor
@@ -116,21 +88,16 @@ public class WurstPlugin extends AbstractUIPlugin {
 		WLogger.setLevel(Level.INFO);
 		plugin = this;
 		
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
-				initializePreferenceStore();
-				scanners = new ScannerFactory();
-				try {
-					WurstPerspective.findConsole();
-				} catch (Throwable t) {
-					// ignore error
-					t.printStackTrace();
-				}
+		
+		// TODO not sure where to load the console
+		Display.getDefault().asyncExec(() -> {
+			try {
+				WurstPerspective.findConsole();
+			} catch (Throwable t) {
+				// ignore error
+				t.printStackTrace();
 			}
 		});
-		
-		
 	}
 
 	/*
@@ -161,6 +128,11 @@ public class WurstPlugin extends AbstractUIPlugin {
 	 */
 	public static ImageDescriptor getImageDescriptor(String path) {
 		return imageDescriptorFromPlugin(PLUGIN_ID, path);
+	}
+	
+	@Override
+	protected void initializeDefaultPreferences(IPreferenceStore store) {
+		initializePreferenceStore();
 	}
 	
 	private void initializePreferenceStore(){
@@ -281,7 +253,11 @@ public class WurstPlugin extends AbstractUIPlugin {
 	}
 
 	public ScannerFactory scanners() {
-		return scanners;
+		ScannerFactory result = scanners;
+		if (result == null) {
+			result = scanners = new ScannerFactory();
+		}
+		return result;
 	}
 
 	public static WurstEclipseConfig config() {
