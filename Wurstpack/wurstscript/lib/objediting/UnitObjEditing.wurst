@@ -893,4 +893,91 @@ public class BuildingDefinition extends UnitOrBuildingOrHeroDefinition
 	function setConstructionSound(string data)
 		def.setString("ubsl", data)
 
+public class BuildingAndHeroDefinition extends UnitOrBuildingOrHeroDefinition
+	
+	construct(int newId, int origId)
+		super(newId, origId)
+		
+	function setUpgradesTo(string data)
+		def.setString("uupt", data)
 
+	function setUnitsTrained(string data)
+		def.setString("utra", data)
+
+	function setUnitsSold(string data)
+		def.setString("useu", data)
+
+	function setRevivesDeadHeros(boolean data)
+		def.setBoolean("urev", data)
+
+	function setResearchesAvailable(string data)
+		def.setString("ures", data)
+
+	function setPlacementRequiresWaterRadius(real data)
+		def.setUnreal("upaw", data)
+
+	function setPlacementRequires(string data)
+		def.setString("upap", data)
+
+	function setPlacementPreventedBy(string data)
+		def.setString("upar", data)
+
+	function setPathingMap(string data)
+		def.setString("upat", data)
+
+	function setNeutralBuildingValidAsRandomBuilding(boolean data)
+		def.setBoolean("unbr", data)
+
+	function setNeutralBuildingShowsMinimapIcon(boolean data)
+		def.setBoolean("unbm", data)
+
+	function setItemsSold(string data)
+		def.setString("usei", data)
+
+	function setItemsMade(string data)
+		def.setString("umki", data)
+
+	function setGroundTexture(string data)
+		def.setString("uubs", data)
+
+	function setConstructionSound(string data)
+		def.setString("ubsl", data)
+
+	function setTooltipRevive(string data)
+		def.setString("utpr", data)
+
+	function setTooltipAwaken(string data)
+		def.setString("uawt", data)
+
+	function setStrengthPerLevel(real data)
+		def.setUnreal("ustp", data)
+
+	function setStartingStrength(int data)
+		def.setInt("ustr", data)
+
+	function setStartingIntelligence(int data)
+		def.setInt("uint", data)
+
+	function setStartingAgility(int data)
+		def.setInt("uagi", data)
+
+	function setProperNamesUsed(int data)
+		def.setInt("upru", data)
+
+	function setProperNames(string data)
+		def.setString("upro", data)
+
+	function setPrimaryAttribute(string data)
+		def.setString("upra", data)
+
+	function setIntelligencePerLevel(real data)
+		def.setUnreal("uinp", data)
+
+	function setHeroRevivalLocations(string data)
+		def.setString("urva", data)
+
+	function setHeroAbilities(string data)
+		def.setString("uhab", data)
+
+	function setAgilityPerLevel(real data)
+		def.setUnreal("uagp", data)
