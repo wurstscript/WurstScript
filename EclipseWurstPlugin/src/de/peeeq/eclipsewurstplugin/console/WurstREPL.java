@@ -43,6 +43,7 @@ import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
@@ -158,6 +159,7 @@ public class WurstREPL {
 	
 	Pattern asignmentPattern = Pattern.compile("^\\s*([a-zA-Z0-9_]*\\s+)?([a-zA-Z][a-zA-Z0-9_]*)\\s*=.*");
 	private @Nullable ImProg imProg;
+	private @Nullable WurstServer wurstServer;
 	
 	public void putLine(String line) {
 		
@@ -201,6 +203,20 @@ public class WurstREPL {
 				return;
 			} else if (line.equals("about")) {
 				printAbout();
+				return;
+			} else if (line.toLowerCase().equals("startserver")) {
+				WurstServer s = wurstServer = new WurstServer();
+				s.setPrinter(this::println);
+				s.startInNewThread();
+				return;
+			} else if (line.toLowerCase().equals("stopserver")) {
+				WurstServer s = wurstServer;
+				if (s == null) {
+					println("no server is running");
+					return;
+				}
+				println("stopping server ... ");
+				s.stop();
 				return;
 			}
 			
