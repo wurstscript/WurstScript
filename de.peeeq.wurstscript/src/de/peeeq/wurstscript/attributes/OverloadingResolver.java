@@ -1,11 +1,15 @@
 package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
+
+import com.google.common.collect.Ordering;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -30,8 +34,78 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 	abstract WurstType getArgumentType(C c, int i);
 	abstract void handleError(List<String> hints);
 	
-	
 	Optional<F> resolve(Iterable<F> alternativeFunctions, C caller) {
+		int size = Utils.size(alternativeFunctions);
+		if (size == 0) {
+			return Optional.empty();
+		} if (size == 1) {
+			return Optional.of(Utils.getFirst(alternativeFunctions));
+		}
+		List<String> hints = new NotNullList<String>();
+		
+		Map<F,Integer> numMatches = new HashMap<>();
+		for (F f : alternativeFunctions) {
+			int matches = 0;
+			for (int i=0; i<getArgumentCount(caller) && i<getParameterCount(f); i++) {
+				if (getArgumentType(caller, i) instanceof WurstTypeTypeParam
+						&& getParameterType(f, i) instanceof WurstTypeTypeParam) {
+					// should be ok!
+				} else if (! getArgumentType(caller, i).isSubtypeOf(getParameterType(f, i), f)) {
+					hints.add("Expected " + getParameterType(f, i)
+							 + " as parameter " + i + " ,but found " +  getArgumentType(caller, i) + "." );
+					continue;
+				}
+				matches++;
+			}
+			numMatches.put(f, matches);
+		}
+		// sort by number of matches
+		List<F> funcs = Ordering.natural().reverse()
+				.onResultOf(numMatches::get)
+				.sortedCopy(alternativeFunctions);
+		
+		int maxMatches = numMatches.get(funcs.get(0));
+		funcs.removeIf(f -> numMatches.get(f) < maxMatches);
+		
+		if (funcs.size() == 1) {
+			// exactly one match
+			return Optional.of(funcs.get(0));
+		}
+		
+		// if we have several functions matching a prefix, 
+		// we have to check if there is a function with the right number of parameters
+		
+		List<F> rightNumberOfParams = funcs.stream()
+				.filter(f -> getParameterCount(f) == getArgumentCount(caller))
+				.collect(Collectors.toList());
+		if (rightNumberOfParams.size() == 1) {
+			return Optional.of(rightNumberOfParams.get(0));
+		} else if (rightNumberOfParams.size() > 1) {
+			// if there are many funcs with the right number of arguments
+			// take thos as the basis for showing errors
+			funcs = rightNumberOfParams;
+		}
+		// there are many alternatives
+		String alts = funcs.stream()
+				.map((F f) -> {
+					if (f instanceof FunctionDefinition) {
+						FunctionDefinition functionDefinition = (FunctionDefinition) f;
+						FunctionDefinition func = functionDefinition;
+						return "function " + func.getName() + " defined in " + 
+							"  line " + func.getSource().getLine();
+					}
+					return Utils.printElementWithSource(f);
+				}).collect(Collectors.joining("\n * "));
+		handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
+		
+		// return one with least number of args
+		return Optional.of(
+				Ordering.natural()
+					.onResultOf(this::getParameterCount)
+					.max(funcs));
+	}
+	
+	Optional<F> resolveOld(Iterable<F> alternativeFunctions, C caller) {
 		List<String> hints = new NotNullList<String>();
 		List<F> results = new NotNullList<F>();
 		if (Utils.size(alternativeFunctions) == 1) {
