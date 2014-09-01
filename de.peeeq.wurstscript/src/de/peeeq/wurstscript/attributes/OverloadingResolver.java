@@ -79,7 +79,7 @@ public abstract class OverloadingResolver<F extends AstElement,C> {
 							return "function " + func.getName() + " defined in " + 
 								"  line " + func.getSource().getLine();
 						}
-						return f.toString();
+						return Utils.printElementWithSource(f);
 					}).collect(Collectors.joining("\n * "));
 			handleError(Utils.list("call is ambiguous, there are several alternatives: \n * " + alts));
 			// call is ambiguous but we just choose the first method and continue:
