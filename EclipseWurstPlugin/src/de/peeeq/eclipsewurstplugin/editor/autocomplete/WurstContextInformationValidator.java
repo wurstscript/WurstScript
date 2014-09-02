@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.core.runtime.Assert;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -18,14 +19,28 @@ import org.eclipse.swt.custom.StyleRange;
 
 import com.google.common.base.Preconditions;
 
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import de.peeeq.wurstscript.ast.Arguments;
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ExprEmpty;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprNewObject;
+import de.peeeq.wurstscript.utils.Utils;
+
 public class WurstContextInformationValidator implements IContextInformationValidator, IContextInformationPresenter {
 
-	@SuppressWarnings("null") // not initialized by constructor, but by install method
 	private ITextViewer viewer;
-	@SuppressWarnings("null") // not initialized by constructor, but by install method
 	private IContextInformation info;
 	private int installOffset;
 	private int fCurrentParameter = -1;
+	private WurstEditor editor;
+
+	@SuppressWarnings("null") // not initialized by constructor, but by install method
+	public WurstContextInformationValidator(WurstEditor editor) {
+		this.editor = editor;
+	}
 
 	@Override
 	public void install(@Nullable IContextInformation info, @Nullable ITextViewer viewer, int offset) {
@@ -35,6 +50,19 @@ public class WurstContextInformationValidator implements IContextInformationVali
 		this.viewer = viewer;
 		this.installOffset = offset;
 		fCurrentParameter= -1;
+		
+		// adjust installOffset to the beginning of the argument list
+		CompilationUnit cu = editor.getCompilationUnit();
+		AstElement elem = Utils.getAstElementAtPos(cu, offset, false);
+		if (elem instanceof ExprEmpty) {
+			if (elem.getParent() instanceof Arguments) {
+				Arguments args = (Arguments) elem.getParent();
+				if (!args.isEmpty()) {
+					installOffset = args.get(0).getSource().getLeftPos();
+				}
+				
+			}
+		}
 	}
 
 	@Override

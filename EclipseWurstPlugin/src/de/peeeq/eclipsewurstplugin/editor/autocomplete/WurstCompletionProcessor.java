@@ -64,7 +64,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
-		this.validator = new WurstContextInformationValidator();
+		this.validator = new WurstContextInformationValidator(editor);
 	}
 
 
