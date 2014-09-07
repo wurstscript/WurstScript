@@ -1,7 +1,7 @@
 package ObjectIds
 import NoWurst
 import String
-import MagicFunctions
+import ErrorHandling
 import Wurstunit
 
 string charMap = ".................................!.#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[.]^_`abcdefghijklmnopqrstuvwxyz{|}~................................................................................................................................."

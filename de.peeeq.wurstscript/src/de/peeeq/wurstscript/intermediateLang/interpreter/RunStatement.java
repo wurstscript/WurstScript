@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstMultiArray;
 import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
-import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -164,15 +163,6 @@ public class RunStatement {
 			s.runStatement(globalState, localState);
 		}
 	}
-
-	public static void run(ImError s, ProgramState globalState,
-			LocalState localState) {
-		ILconstString msg = (ILconstString) s.getMessage().evaluate(globalState, localState);
-		throw new DebugPrintError(msg.getVal(), globalState.getStackFrames().peek(), globalState.getLastStatement());
-	}
-
-	
-
 
 
 }

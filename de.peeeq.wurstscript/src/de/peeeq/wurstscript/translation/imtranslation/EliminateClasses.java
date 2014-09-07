@@ -139,10 +139,10 @@ public class EliminateClasses {
 						JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)
 						)), 
 						// then error(NPE)
-						JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
+						JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
 						, 
 						// else error(unallocated)
-						JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
+						JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
 						)) 
 				
 				,JassIm.ImStmts())

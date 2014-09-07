@@ -2,7 +2,7 @@ package Image
 import NoWurst
 import public Colors
 import Vectors
-import MagicFunctions
+import ErrorHandling
 
 public enum Layer
 	L1

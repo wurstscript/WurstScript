@@ -26,12 +26,15 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.Lists;
@@ -85,6 +88,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -265,7 +269,7 @@ public class ImTranslator {
 		ImExpr whichTimer = JassIm.ImFunctionCall(emptyTrace, createTimerFunc, JassIm.ImExprs(), false, CallType.NORMAL);
 		ImExpr timeout = JassIm.ImRealVal("1.");
 		ImExpr periodic = JassIm.ImBoolVal(false);
-		ImStmts thenStatements = JassIm.ImStmts(JassIm.ImError(JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("Initialization thread crashed in "), JassIm.ImVarAccess(lastInitFunc)))));
+		ImStmts thenStatements = JassIm.ImStmts(imError(JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("Initialization thread crashed in "), JassIm.ImVarAccess(lastInitFunc)))));
 		ImStmts body = JassIm.ImStmts(
 				JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(lastInitFunc), JassIm.ImStringVal(""))), 
 						thenStatements, 
@@ -340,9 +344,6 @@ public class ImTranslator {
 		imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
 	}
 
-	public ImFunction getDebugPrintFunc() {
-		return debugPrintFunction;
-	}
 
 	public ImExpr getDefaultValueForJassType(ImType type) {
 		if (type instanceof ImSimpleType) {
@@ -904,7 +905,7 @@ public class ImTranslator {
 		return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
 	}
 
-	public ImFunction getDebugPrintFunction() {
+	private ImFunction getDebugPrintFunction() {
 		return debugPrintFunction;
 	}
 
@@ -1127,6 +1128,8 @@ public class ImTranslator {
 
 	
 	private Map<ImClass, ClassManagementVars> classManagementVars = null;
+
+	private @Nullable ImFunction errorFunc;
 	
 	public Map<ImClass, ClassManagementVars> getClassManagementVars() {
 		if (classManagementVars != null) {
@@ -1158,6 +1161,61 @@ public class ImTranslator {
 
 	public ImFunction getGlobalInitFunc() {
 		return globalInitFunc;
+	}
+
+
+	public ImExpr imError(ImExpr message) {
+		ImFunction ef = errorFunc;
+		if (ef == null) {
+			Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);
+			ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
+		}
+		ImExprs arguments = JassIm.ImExprs(message);
+		return JassIm.ImFunctionCall(emptyTrace, ef, arguments, false, CallType.NORMAL);
+	}
+
+	private ImFunction makeDefaultErrorFunc() {
+		ImVar msgVar = JassIm.ImVar(emptyTrace, TypesHelper.imString(), "msg", false);
+		ImVars parameters = JassIm.ImVars(msgVar);
+		ImType returnType = JassIm.ImVoid();
+		ImVars locals = JassIm.ImVars();
+		ImStmts body = JassIm.ImStmts();
+		
+		// print message:
+		body.add(JassIm.ImFunctionCall(emptyTrace, getDebugPrintFunction(), 
+				JassIm.ImExprs(JassIm.ImVarAccess(msgVar)),
+				false, CallType.NORMAL));
+		// TODO divide by zero to crash thread:
+		
+		
+		
+//		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
+//				JassAst.JassExprlist(JassAst.JassExprBinary(
+//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl), 
+//						JassAst.JassOpPlus(),
+//						s.getMessage().translate(translator)))));
+//		// crash thread (divide by zero)
+//		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), Jas
+//				               
+		
+		List<FunctionFlag> flags = Lists.newArrayList();
+		return JassIm.ImFunction(emptyTrace, "error", parameters, returnType, locals, body, flags);
+	}
+	
+
+	private Optional<FuncDef> findErrorFunc() throws CompileError {
+		WPackage p = wurstProg.lookupPackage("ErrorHandling");
+		if (p == null) {
+			return Optional.empty();
+		}
+		ImmutableCollection<NameLink> funcs = p.getElements().lookupFuncs("error");
+		if (funcs.isEmpty()) {
+			return Optional.empty();
+		} else if (funcs.size() > 1) {
+			return Optional.empty();
+		}
+		FuncDef f = (FuncDef) funcs.stream().findAny().get().getNameDef();
+		return Optional.of(f);
 	}
 	
 	

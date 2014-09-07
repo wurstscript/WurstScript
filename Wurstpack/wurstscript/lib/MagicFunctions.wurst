@@ -3,13 +3,12 @@ import NoWurst
 // this package contains functions which are 
 // implemented in the wurst compiler
 
-/** builtin error function.
-Outputs an error message and terminates the current thread.
-There is a compiler flag to augment the error messages with stack traces.
-Error messages can also be disabled. 
-*/
-public function error(string _msg)
 
+/** builtin function which returns a stack trace.
+If stack traces are disabled, this function returns the empty string.
+*/
+public function getStackTraceString() returns string
+	return ""
 
 /** builtin magic function.
 Calls all functions with the given annotation, for example

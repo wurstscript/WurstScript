@@ -2,18 +2,20 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
-import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
@@ -399,13 +401,6 @@ public class ImPrinter {
 	}
 
 
-	public static void print(ImError e, StringBuilder sb, int indent) {
-		sb.append("#error(");
-		e.getMessage().print(sb, 0);
-		sb.append(")");
-	}
-
-
 	public static void print(ImInstanceof e, StringBuilder sb,
 			int indent) {
 		e.getObj().print(sb, 0);
@@ -454,6 +449,11 @@ public class ImPrinter {
 			StringBuilder sb, int indent) {
 		sb.append(imVarArrayMultiAccess.getVar().getName() + smallHash(imVarArrayMultiAccess.getVar()));
 		
+	}
+
+
+	public static void print(ImGetStackTrace e, StringBuilder sb, int indent) {
+		sb.append("#getStackTrace()");
 	}
 
 

@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -15,13 +17,13 @@ import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
-import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImNoExpr;
@@ -209,10 +211,6 @@ public class EliminateTuples {
 	}
 	
 	public static ImStmt eliminateTuples(ImLoop e, ImTranslator translator, ImFunction f) {
-		return (ImStmt) eliminateTuples2(e, translator, f);
-	}
-	
-	public static ImStmt eliminateTuples(ImError e, ImTranslator translator, ImFunction f) {
 		return (ImStmt) eliminateTuples2(e, translator, f);
 	}
 	
@@ -791,6 +789,13 @@ public class EliminateTuples {
 			ImVarArrayMultiAccess imVarArrayMultiAccess,
 			ImTranslator translator, ImFunction f) {
 		throw new Error("not implemented");
+	}
+
+
+
+	public static ImExpr eliminateTuplesExpr(ImGetStackTrace e,
+			ImTranslator translator, ImFunction f) {
+		return e;
 	}
 
 

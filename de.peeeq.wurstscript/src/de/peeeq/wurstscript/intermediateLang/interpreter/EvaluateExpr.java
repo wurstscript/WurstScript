@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Supplier;
@@ -28,6 +29,7 @@ import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImMemberAccess;
@@ -262,6 +264,16 @@ public class EvaluateExpr {
 			}
 		}
 		return ar.get(indicesT.tail());
+	}
+
+	public static ILconst eval(ImGetStackTrace e, ProgramState globalState,
+			LocalState localState) {
+		StringBuilder sb = new StringBuilder();
+		for (ILStackFrame sf : globalState.getStackFrames()) {
+			sb.append(sf.getMessage());
+			sb.append("\n");
+		}
+		return new ILconstString(sb.toString());
 	}
 	
 }

@@ -4,24 +4,27 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -38,15 +41,16 @@ public class StackTraceInjector {
 	}
 	
 	public void transform() {
-		final Multimap<ImFunction, ImError> errorPrints = LinkedListMultimap.create();
+//		@Deprecated final Multimap<ImFunction, ImError> errorPrints = LinkedListMultimap.create();
+		final Multimap<ImFunction, ImGetStackTrace> stackTraceGets = LinkedListMultimap.create();
 		final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
 		final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
 		final List<ImFuncRef> funcRefs = Lists.newArrayList();
 		prog.accept(new ImProg.DefaultVisitor() {
+			
 			@Override
-			public void visit(ImError imError) {
-				errorPrints.put(imError.getNearestFunc(), imError);
-				
+			public void visit(ImGetStackTrace e) {
+				stackTraceGets.put(e.getNearestFunc(), e);
 			}
 			
 			@Override
@@ -65,9 +69,9 @@ public class StackTraceInjector {
 		Multimap<ImFunction, ImFunction> callRelationTr = Utils.transientClosure(callRelation);
 
 		// find affected functions
-		Set<ImFunction> affectedFuncs = Sets.newHashSet(errorPrints.keySet());
+		Set<ImFunction> affectedFuncs = Sets.newHashSet(stackTraceGets.keySet());
 		for (Entry<ImFunction, ImFunction> e : callRelationTr.entries()) {
-			if (errorPrints.containsKey(e.getValue())) {
+			if (stackTraceGets.containsKey(e.getValue())) {
 				affectedFuncs.add(e.getKey());
 			}
 		}
@@ -75,7 +79,7 @@ public class StackTraceInjector {
 		addStackTraceParams(affectedFuncs);
 		passStacktraceParams(calls, affectedFuncs);
 		rewriteFuncRefs(funcRefs, affectedFuncs);
-		rewriteErrorStatements(errorPrints);
+		rewriteErrorStatements(stackTraceGets);
 	}
 
 	private void addStackTraceParams(Set<ImFunction> affectedFuncs) {
@@ -104,7 +108,13 @@ public class StackTraceInjector {
 					stExpr = str("   " + f.getName());
 				} else {
 					ImVar stackTraceVar = getStackTraceVar(caller); 
-					String callPos = "\n   " + call.attrTrace().attrSource().printShort();
+					WPos source = call.attrTrace().attrSource();
+					String callPos;
+					if (source.getFile().startsWith("<")) {
+						callPos = "";
+					} else {
+						callPos = "\n   " + source.printShort();
+					}
 					stExpr = JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(
 							str(callPos),
 							JassIm.ImVarAccess(stackTraceVar)
@@ -145,19 +155,13 @@ public class StackTraceInjector {
 	}
 
 	private void rewriteErrorStatements(
-			final Multimap<ImFunction, ImError> errorPrints) {
+			final Multimap<ImFunction, ImGetStackTrace> stackTraceGets) {
 		//  rewrite error statements
-		for (Entry<ImFunction, ImError> e: errorPrints.entries()) {
+		for (Entry<ImFunction, ImGetStackTrace> e: stackTraceGets.entries()) {
 			ImFunction f = e.getKey();
-			ImError s = e.getValue();
-			ImExpr message = s.getMessage();
-			message.setParent(null);
+			ImGetStackTrace s = e.getValue();
 			
-			
-			s.setMessage(JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(
-					message,
-					JassIm.ImVarAccess(getStackTraceVar(f))
-					)));
+			s.replaceWith(JassIm.ImVarAccess(getStackTraceVar(f)));
 		}
 	}
 

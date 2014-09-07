@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.lua.translation;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
@@ -8,6 +10,7 @@ import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImMemberAccess;
@@ -195,6 +198,10 @@ public class ExprTranslation {
 		LuaExprlist indexes = LuaAst.LuaExprlist();
 		indexes.add(e.getIndex().translateToLua(tr));
 		return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
+	}
+
+	public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
+		throw new Error("not implemented");
 	}
 
 }

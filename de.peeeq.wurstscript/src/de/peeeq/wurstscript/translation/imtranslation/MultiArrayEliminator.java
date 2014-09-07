@@ -8,7 +8,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -26,6 +25,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 public class MultiArrayEliminator {
 	private ImProg prog;
 	private HashMap<ImVar, GetSetPair> getSetMap = Maps.newHashMap();
+	private ImTranslator translator;
 
 	private class GetSetPair {
 		ImFunction getter;
@@ -38,6 +38,7 @@ public class MultiArrayEliminator {
 	}
 	public MultiArrayEliminator(ImProg imProg, ImTranslator tr) {
 		this.prog = imProg;
+		this.translator = tr;
 	}
 	
 	public void run() {
@@ -100,15 +101,6 @@ public class MultiArrayEliminator {
 		}
 
 	}
-	public static void main(String[] runArgs) {
-		MultiArrayEliminator mae = new MultiArrayEliminator(null, null);
-		List<ImVar> testAr = Lists.newArrayList();
-		ImVar mav = JassIm.ImVar(Ast.NoExpr(), JassIm.ImArrayTypeMulti("int", Lists.newArrayList(7, 8192)), "TestVar", false);
-		for(int i = 0; i < 8; i++) {
-			testAr.add(JassIm.ImVar(Ast.NoExpr(), TypesHelper.imInt(), "testAr_" + i, false));
-		}
-		mae.generateGetFunc(mav, testAr );
-	}
 	
 	private ImFunction generateSetFunc(ImVar aVar, List<ImVar> newArrays) {
 		ImArrayTypeMulti mtype = (ImArrayTypeMulti) aVar.getType();
@@ -116,7 +108,7 @@ public class MultiArrayEliminator {
 		ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "instanceId", false);
 		ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "arrayIndex", false);
 		ImVar value = JassIm.ImVar(aVar.getTrace(), JassIm.ImSimpleType(mtype.getTypename()), "value", false);
-		ImStmts thenBlock = JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Index out of Bounds")));
+		ImStmts thenBlock = JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Index out of Bounds")));
 		ImStmts elseBlock = JassIm.ImStmts();
 		generateBinSearchSet(elseBlock, instanceId, arrayIndex, value, newArrays, 0, newArrays.size()-1);
 		ImExpr highCond = JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(JassIm.ImVarAccess(arrayIndex), JassIm.ImIntVal(mtype.getArraySize().get(0))));
@@ -157,7 +149,7 @@ public class MultiArrayEliminator {
 		ImVars locals = JassIm.ImVars(returnVal);
 		ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index1", false);
 		ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index2", false);
-		ImStmts thenBlock = JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Index out of Bounds")));
+		ImStmts thenBlock = JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Index out of Bounds")));
 		ImStmts elseBlock = JassIm.ImStmts();
 		generateBinSearchGet(elseBlock, instanceId, arrayIndex, returnVal, newArrays, 0, newArrays.size()-1);
 		ImExpr highCond = JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(JassIm.ImVarAccess(arrayIndex), JassIm.ImIntVal(mtype.getArraySize().get(0))));

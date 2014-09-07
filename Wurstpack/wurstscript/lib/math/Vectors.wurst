@@ -2,7 +2,7 @@ package Vectors
 import NoWurst
 import Real
 import Angle
-import MagicFunctions
+import ErrorHandling
 
 /** 3d Vector tuple */
 public tuple vec3( real x, real y, real z )

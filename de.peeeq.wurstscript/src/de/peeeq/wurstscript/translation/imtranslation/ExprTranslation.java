@@ -341,15 +341,12 @@ public class ExprTranslation {
 
 	private static ImExpr translateFunctionCall(FunctionCall e, ImTranslator t, ImFunction f, boolean returnReveiver) {
 		
-		
-		if (e.getFuncName().equals("error") 
+			
+		if (e.getFuncName().equals("getStackTraceString") 
 				&& e.attrImplicitParameter() instanceof NoExpr
-				&& e.getArgs().size() == 1
-				&& e.getArgs().get(0).attrTyp().isSubtypeOf(WurstTypeString.instance(), e)) {
+				&& e.getArgs().size() == 0) {
 			// special built-in error function
-			return JassIm.ImStatementExpr(JassIm.ImStmts(
-					JassIm.ImError(e.getArgs().get(0).imTranslateExpr(t, f))),
-					JassIm.ImNull());
+			return JassIm.ImGetStackTrace();
 		}
 		
 		if (e.getFuncName().equals("ExecuteFunc")) {

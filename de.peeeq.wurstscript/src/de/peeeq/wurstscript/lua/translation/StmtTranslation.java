@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.lua.translation;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.jassIm.ImError;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -30,10 +29,6 @@ public class StmtTranslation {
 				LuaAst.LuaStatements(LuaAst.LuaBreak()), 
 				LuaAst.LuaStatements());
 		res.add(r);
-	}
-
-	public static void translate(ImError s, List<LuaStatement> res, LuaTranslator tr) {
-		res.add(LuaAst.LuaExprFunctionCallByName("print", LuaAst.LuaExprlist(s.getMessage().translateToLua(tr))));
 	}
 
 	public static void translate(ImLoop s, List<LuaStatement> res, LuaTranslator tr) {

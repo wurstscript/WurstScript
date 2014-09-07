@@ -71,7 +71,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 						JassIm.ImExprs(JassIm.ImVarArrayAccess(mVars.typeId, JassIm.ImVarAccess(thisVar)), JassIm.ImIntVal(0))), 
 				// then
 				// error
-				JassIm.ImStmts(JassIm.ImError(JassIm.ImStringVal("Double free: object of type " + c.getName()))),
+				JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Double free: object of type " + c.getName()))),
 				// else
 				JassIm.ImStmts(
 						// free[freeCount] = this

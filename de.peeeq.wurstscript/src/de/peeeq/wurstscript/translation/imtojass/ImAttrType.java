@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassIm.ImAlloc;
@@ -11,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImDealloc;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImInstanceof;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImMemberAccess;
@@ -183,6 +186,10 @@ public class ImAttrType {
 
 	public static ImType getType(ImVarArrayMultiAccess imVarArrayMultiAccess) {
 		throw new Error("not implemented");
+	}
+
+	public static ImType getType(ImGetStackTrace imGetStackTrace) {
+		return TypesHelper.imString();
 	}
 
 }

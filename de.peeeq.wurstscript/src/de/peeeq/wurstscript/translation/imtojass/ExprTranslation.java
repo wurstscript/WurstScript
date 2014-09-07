@@ -24,6 +24,7 @@ import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImNull;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
@@ -35,6 +36,7 @@ import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ExprTranslation {
@@ -138,5 +140,10 @@ public class ExprTranslation {
 			ImToJassTranslator translator) {
 		throw new Error("not implemented");
 	}
+
+	public static JassExpr translate(ImGetStackTrace imGetStackTrace, ImToJassTranslator translator) {
+		return JassAst.JassExprStringVal("");
+	}
+
 
 }

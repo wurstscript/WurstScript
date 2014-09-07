@@ -57,7 +57,6 @@ ImStmt =
 	| ImSetArray(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, ImExpr right)
 	| ImSetArrayMulti(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExprs indices, ImExpr right)
 	| ImSetArrayTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, int tupleIndex, ImExpr right)
-	| ImError(ImExpr message);
 	| ImExpr
 	
 	
@@ -84,6 +83,7 @@ ImFlatExpr =
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImClassRelatedExpr
 	| ImConst
+	| ImGetStackTrace()
 	
 ImClassRelatedExpr = 
 	  ImMethodCall(de.peeeq.wurstscript.ast.AstElement trace, &ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)

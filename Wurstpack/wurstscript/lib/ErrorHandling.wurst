@@ -1,0 +1,19 @@
+package ErrorHandling
+import NoWurst
+import PrintingHelper
+import MagicFunctions
+
+
+/** error handing function.
+This function is used by libraries and for internal Wurst errors like 
+accessing a null-pointer. Overwrite this function to customize error handling.
+
+Outputs an error message and terminates the current thread.
+There is a compiler flag to augment the error messages with stack traces.
+Error messages can also be disabled.
+*/
+@configurable public function error(string msg)
+	print("|cffFF3A29Error:|r " + msg + getStackTraceString())
+	// crash the thread:
+	I2S(1 div 0)
+
