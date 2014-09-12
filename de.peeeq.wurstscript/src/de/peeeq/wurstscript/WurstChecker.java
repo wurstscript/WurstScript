@@ -53,7 +53,7 @@ public class WurstChecker {
 	
 	private void expandModules(WurstModel root) {
 		for (CompilationUnit cu : root) {
-			new ModuleExpander().expandModules(cu);
+			ModuleExpander.expandModules(cu);
 		}
 	}
 	

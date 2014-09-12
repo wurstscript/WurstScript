@@ -33,7 +33,7 @@ WEntity =
 	| NativeFunc(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
+			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	
 
 
@@ -51,7 +51,7 @@ TypeDef =
 	  NativeType(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
 	| ClassDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
+			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| InterfaceDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
@@ -79,7 +79,7 @@ ClassSlot =
 	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
+			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
 	| ClassMember
 	
 ClassMember = 
@@ -517,6 +517,9 @@ HasModifier.attrIsConstant
 	
 	
 
+ClassOrModuleOrModuleInstanciation.getModuleInstanciations
+	returns ModuleInstanciations
+	implemented by de.peeeq.wurstscript.ModuleExpander.expandModules
 
 ClassOrModule.attrUsedModules
 	returns com.google.common.collect.ImmutableCollection<ModuleDef>

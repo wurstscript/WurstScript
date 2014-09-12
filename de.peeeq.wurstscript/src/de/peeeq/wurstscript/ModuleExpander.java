@@ -11,6 +11,8 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.ModuleInstanciation;
+import de.peeeq.wurstscript.ast.ModuleInstanciations;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.WEntity;
@@ -21,14 +23,15 @@ import de.peeeq.wurstscript.utils.Pair;
 
 public class ModuleExpander {
 
+	private ModuleExpander() {}
 
-	public void expandModules(CompilationUnit cu) {
+	public static void expandModules(CompilationUnit cu) {
 		for (WPackage t : cu.getPackages()) {
 			expandModules((WPackage) t);
 		}
 	}
 
-	private void expandModules(WPackage p) {
+	private static void expandModules(WPackage p) {
 		for (WEntity e : p.getElements()) {
 			if (e instanceof ClassOrModule) {
 				expandModules((ClassOrModule) e);
@@ -36,10 +39,10 @@ public class ModuleExpander {
 		}
 	}
 
-	private void expandModules(ClassOrModule m) {
+	public static ModuleInstanciations expandModules(ClassOrModule m) {
 		Preconditions.checkNotNull(m);
-		if (m.getModuleInstanciations().size() > 0) {
-			return;
+		if (m.getP_moduleInstanciations().size() > 0) {
+			return m.getP_moduleInstanciations();
 		}
 		
 
@@ -66,7 +69,7 @@ public class ModuleExpander {
 				typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i).attrTyp()));
 			}
 			
-			m.getModuleInstanciations().add(
+			m.getP_moduleInstanciations().add(
 					Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(), 
 							usedModule.getName(), 
 							smartCopy(usedModule.getMethods(), typeReplacements), 
@@ -76,10 +79,14 @@ public class ModuleExpander {
 							smartCopy(usedModule.getModuleUses(), typeReplacements), 
 							smartCopy(usedModule.getOnDestroy(), typeReplacements)));
 		}
-		
+		return m.getP_moduleInstanciations();
+	}
+	
+	public static ModuleInstanciations expandModules(ModuleInstanciation mi) {
+		return mi.getP_moduleInstanciations();
 	}
 
-	private <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, WurstType>> typeReplacements) {
+	private static <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, WurstType>> typeReplacements) {
 		List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
 		calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
 		
@@ -96,7 +103,7 @@ public class ModuleExpander {
 		return t;
 	}
 	
-	private void doReplacement(AstElement e, ImmutableList<Integer> a, TypeExpr newTypeExpr) {
+	private static void doReplacement(AstElement e, ImmutableList<Integer> a, TypeExpr newTypeExpr) {
 		if (a.size() == 1) {
 			e.set(a.head(), newTypeExpr);
 		} else if (a.size() > 1) {
@@ -104,7 +111,7 @@ public class ModuleExpander {
 		}
 	}
 
-	private void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
+	private static void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
 		if (e instanceof TypeExpr) {
 			TypeExpr typeExpr = (TypeExpr) e;
 			for (Pair<WurstType, WurstType> rep : typeReplacements) {
@@ -120,5 +127,4 @@ public class ModuleExpander {
 		}
 	}
 
-	
 }
