@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.ITextViewer;
@@ -15,6 +16,7 @@ import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -52,16 +54,17 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private static final int MAX_COMPLETIONS = 50;
 	private final WurstEditor editor;
 	private int offset;
-	private String errorMessage;
+	private @Nullable String errorMessage;
 	private IContextInformationValidator validator;
 	private String alreadyEntered;
 	private String alreadyEnteredLower;
 	private int lastStartPos = -1;
 	private int lastdocumentHash = 0;
 	private ITextViewer currentViewer;
-	private WurstType expectedType;
+	private @Nullable WurstType expectedType;
 	private AstElement elem;
 
+	@SuppressWarnings("null") // lifecycle makes sure that elements are not null when accessed
 	public WurstCompletionProcessor(WurstEditor editor) {
 		this.editor = editor;
 		this.validator = new WurstContextInformationValidator(editor);
@@ -74,7 +77,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 	@Override
-	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, final int offset) {
+	public ICompletionProposal @Nullable[] computeCompletionProposals(@Nullable ITextViewer viewer, final int offset) {
+		Preconditions.checkNotNull(viewer);
 		this.offset = offset;
 		this.currentViewer = viewer;
 		if (isEnteringRealNumber(viewer, offset)) {
@@ -117,97 +121,8 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			expectedType = expr.attrExpectedTyp();
 			WLogger.info("....type = " + expectedType);
 		}
-		
-		WurstType leftType = null;
-		boolean isMemberAccess = false;
-		do { // dummy loop for using break
-			if (elem instanceof ExprMember) {
-				ExprMember e = (ExprMember) elem;
 
-				if (elem instanceof ExprMemberMethod) {
-					ExprMemberMethod c = (ExprMemberMethod) elem;
-					if (isInParenthesis(viewer, offset, c.getLeft().getSource().getRightPos())) {
-						// cursor inside parenthesis
-						getCompletionsForExistingMemberCall(offset, completions, c);
-						break;
-					}
-				}
-
-				leftType = e.getLeft().attrTyp();
-				isMemberAccess = true;
-				WScope scope = elem.attrNearestScope();
-				// add member vars
-				while (scope != null) {
-					Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-					completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-					completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
-					scope = scope.attrNextScope();
-				}
-			} else if (elem instanceof ExprRealVal) {
-				// show no hints for reals
-			} else if (elem instanceof WPackage) {
-				// no hints at package level
-			} else if (elem instanceof WImport) {
-				//WImport imp = (WImport) elem;
-				WurstModel model = elem.getModel();
-				for (WPackage p : model.attrPackages().values()) {
-					if (isSuitableCompletion(p.getName())) {
-						completions.add(makeNameDefCompletion(p));
-					}
-				}
-			} else if (elem instanceof ExprNewObject) {
-				ExprNewObject en = (ExprNewObject) elem;
-				if (offset > en.getSource().getLeftPos() + 4 + en.getTypeName().length()) {
-					// cursor inside parameters
-					getCompletionsForExistingConstructorCall(offset, completions, en);
-					break;
-				}
-				WScope scope = elem.attrNearestScope();
-				while (scope != null) {
-					Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
-					for (NameLink n : visibleNames.values()) {
-						if (n.getNameDef() instanceof ClassDef 
-								&& isSuitableCompletion(n.getName())) {
-							ClassDef c = (ClassDef) n.getNameDef();
-							for (ConstructorDef constr : c.getConstructors()) {
-								completions.add(makeConstructorCompletion(c, constr));
-							}
-						}
-					}
-					scope = scope.attrNextScope();
-				}
-			} else if (elem instanceof ExprFunctionCall) {
-				ExprFunctionCall c = (ExprFunctionCall) elem;
-				if (offset > c.getSource().getLeftPos() + c.getFuncName().length()) {
-					// cursor is in parameter list
-					getCompletionsForExistingCall(offset, completions, c);
-				} else {
-					addDefaultCompletions(completions, elem, isMemberAccess);
-				}
-			} else {
-				if (elem instanceof ExprEmpty) {
-					if (elem.getParent() instanceof Arguments) {
-						if (elem.getParent().getParent() instanceof ExprFunctionCall) {
-							ExprFunctionCall c = (ExprFunctionCall) elem.getParent().getParent();
-							getCompletionsForExistingCall(offset, completions, c);
-						} else if (elem.getParent().getParent() instanceof ExprMemberMethod) {
-							ExprMemberMethod c = (ExprMemberMethod) elem.getParent().getParent();
-							getCompletionsForExistingMemberCall(offset,
-									completions, c);
-						} else if (elem.getParent().getParent() instanceof ExprNewObject) {
-							ExprNewObject c = (ExprNewObject) elem.getParent().getParent();
-							getCompletionsForExistingConstructorCall(offset,
-									completions, c);
-						}
-						// TODO add overloaded funcs
-					}
-				}
-				if (completions.isEmpty()) {
-					// default completions:
-					addDefaultCompletions(completions, elem, isMemberAccess);
-				}
-			}
-		} while (false);
+		calculateCompletions(completions, viewer, offset);
 
 		dropBadCompletions(completions);
 		removeDuplicates(completions);
@@ -219,6 +134,106 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 		errorMessage = null;
 		return null;
+	}
+
+
+	private void calculateCompletions(List<WurstCompletion> completions, ITextViewer viewer, final int offset) {
+		WurstType leftType = null;
+		boolean isMemberAccess = false;
+		if (elem instanceof ExprMember) {
+			ExprMember e = (ExprMember) elem;
+
+			if (elem instanceof ExprMemberMethod) {
+				ExprMemberMethod c = (ExprMemberMethod) elem;
+				if (isInParenthesis(viewer, offset, c.getLeft().getSource().getRightPos())) {
+					// cursor inside parenthesis
+					getCompletionsForExistingMemberCall(offset, completions, c);
+					return;
+				}
+			}
+
+			leftType = e.getLeft().attrTyp();
+			isMemberAccess = true;
+			WScope scope = elem.attrNearestScope();
+			// add member vars
+			while (scope != null) {
+				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+				completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
+				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
+				scope = scope.attrNextScope();
+			}
+		} else if (elem instanceof ExprRealVal) {
+			// show no hints for reals
+		} else if (elem instanceof WPackage) {
+			// no hints at package level
+		} else if (elem instanceof WImport) {
+			//WImport imp = (WImport) elem;
+			WurstModel model = elem.getModel();
+			for (WPackage p : model.attrPackages().values()) {
+				if (isSuitableCompletion(p.getName())) {
+					completions.add(makeNameDefCompletion(p));
+				}
+			}
+		} else if (elem instanceof ExprNewObject) {
+			ExprNewObject en = (ExprNewObject) elem;
+			if (offset > en.getSource().getLeftPos() + 4 + en.getTypeName().length()) {
+				// cursor inside parameters
+				getCompletionsForExistingConstructorCall(offset, completions, en);
+				return;
+			}
+			WScope scope = elem.attrNearestScope();
+			while (scope != null) {
+				Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+				for (NameLink n : visibleNames.values()) {
+					if (n.getNameDef() instanceof ClassDef 
+							&& isSuitableCompletion(n.getName())) {
+						ClassDef c = (ClassDef) n.getNameDef();
+						for (ConstructorDef constr : c.getConstructors()) {
+							completions.add(makeConstructorCompletion(c, constr));
+						}
+					}
+				}
+				scope = scope.attrNextScope();
+			}
+		} else if (elem instanceof ExprFunctionCall) {
+			ExprFunctionCall c = (ExprFunctionCall) elem;
+			if (offset > c.getSource().getLeftPos() + c.getFuncName().length()) {
+				// cursor is in parameter list
+				getCompletionsForExistingCall(offset, completions, c);
+			} else {
+				addDefaultCompletions(completions, elem, isMemberAccess);
+			}
+		} else {
+			if (elem instanceof ExprEmpty) {
+				if (elem.getParent() instanceof Arguments) {
+					AstElement grandParent = getGrandParent();
+					if (grandParent instanceof ExprFunctionCall) {
+						ExprFunctionCall c = (ExprFunctionCall) grandParent;
+						getCompletionsForExistingCall(offset, completions, c);
+					} else if (grandParent instanceof ExprMemberMethod) {
+						ExprMemberMethod c = (ExprMemberMethod) grandParent;
+						getCompletionsForExistingMemberCall(offset,
+								completions, c);
+					} else if (grandParent instanceof ExprNewObject) {
+						ExprNewObject c = (ExprNewObject) grandParent;
+						getCompletionsForExistingConstructorCall(offset,
+								completions, c);
+					}
+					// TODO add overloaded funcs
+				}
+			}
+			if (completions.isEmpty()) {
+				// default completions:
+				addDefaultCompletions(completions, elem, isMemberAccess);
+			}
+		}
+	}
+
+
+	private @Nullable AstElement getGrandParent() {
+		AstElement parent = elem.getParent();
+		if (parent == null) return null;
+		return parent.getParent();
 	}
 
 
@@ -250,9 +265,12 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void getCompletionsForExistingConstructorCall(final int offset,
 			List<WurstCompletion> completions, ExprNewObject c) {
-		if (c.attrConstructorDef() != null) {
+		ConstructorDef constructorDef = c.attrConstructorDef();
+		if (constructorDef != null) {
+			ClassDef classDef = constructorDef.attrNearestClassDef();
+			assert classDef != null; // every constructor has a nearest class
 			completions.add(
-					makeConstructorCompletion(c.attrConstructorDef().attrNearestClassDef(), c.attrConstructorDef())
+					makeConstructorCompletion(classDef, constructorDef)
 					.withDisableAction(offset));
 		}
 	}
@@ -260,9 +278,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void getCompletionsForExistingMemberCall(final int offset,
 			List<WurstCompletion> completions, ExprMemberMethod c) {
-		if (c.attrFuncDef() != null) {
+		FunctionDefinition funcDef = c.attrFuncDef();
+		if (funcDef != null) {
 			completions.add(
-					makeFunctionCompletion(c.attrFuncDef())
+					makeFunctionCompletion(funcDef)
 					.withDisableAction(offset));
 		}
 	}
@@ -270,10 +289,11 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private void getCompletionsForExistingCall(final int offset,
 			List<WurstCompletion> completions, ExprFunctionCall c) {
-		if (c.attrFuncDef() != null) {
+		FunctionDefinition funcDef = c.attrFuncDef();
+		if (funcDef != null) {
 			alreadyEntered = c.getFuncName();
 			completions.add(
-					makeFunctionCompletion(c.attrFuncDef())
+					makeFunctionCompletion(funcDef)
 					.withDisableAction(offset));
 		}
 	}
@@ -373,7 +393,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void completionsAddVisibleNames(String alreadyEntered,
-			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, WurstType leftType, boolean isMemberAccess, AstElement pos) {
+			List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames, @Nullable WurstType leftType, boolean isMemberAccess, AstElement pos) {
 		Collection<Entry<String, NameLink>> entries = visibleNames.entries();
 		for (Entry<String, NameLink> e : entries) {
 			if (!isSuitableCompletion(e.getKey())) {
@@ -394,15 +414,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			} else { // leftType != null
 
-				if (!leftType.isSubtypeOf(receiverType, pos)) {
+				if (receiverType != null && !leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
-					if (!isMemberAccess && receiverType == null) {
-						// if it is not a member access, then also include normals vars
-						// and functions
-					} else {
-						// otherwise skip
-						continue;
-					}
+					continue;
 				}
 			}
 
@@ -457,7 +471,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 	private double calculateRating(String name, WurstType wurstType) {
 		double r = calculateNameBasedRating(name);
-		if (wurstType.isSubtypeOf(expectedType, elem)) {
+		if (expectedType != null && wurstType.isSubtypeOf(expectedType, elem)) {
 			return r+0.1;
 		}
 		return r;
@@ -590,7 +604,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	@Override
-	public String getErrorMessage() {
+	public @Nullable String getErrorMessage() {
 		return errorMessage;
 	}
 
@@ -600,7 +614,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	}
 
 	@Override
-	public IContextInformation[] computeContextInformation(ITextViewer viewer, int offset) {
+	public IContextInformation @Nullable[] computeContextInformation(@Nullable ITextViewer viewer, int offset) {
 		// TODO Auto-generated method stub
 		return null;
 	}

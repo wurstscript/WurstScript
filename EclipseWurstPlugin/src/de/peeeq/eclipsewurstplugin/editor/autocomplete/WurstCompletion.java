@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.contentassist.CompletionProposal;
 import org.eclipse.jface.text.contentassist.ICompletionProposal;
 import org.eclipse.jface.text.contentassist.IContextInformation;
@@ -12,7 +13,7 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 	private final int cursorPosition;
 	private final Image image;
 	private final String displayString;
-	private final IContextInformation contextInformation;
+	private final @Nullable IContextInformation contextInformation;
 	private final String additionalProposalInfo;
 	private final double rating;
 	
@@ -20,7 +21,7 @@ public class WurstCompletion implements Comparable<WurstCompletion> {
 
 	public WurstCompletion(String replacementString, int replacementOffset,
 			int replacementLength, int cursorPosition, Image image,
-			String displayString, IContextInformation contextInformation,
+			String displayString, @Nullable IContextInformation contextInformation,
 			String additionalProposalInfo,
 			double rating) {
 		super();

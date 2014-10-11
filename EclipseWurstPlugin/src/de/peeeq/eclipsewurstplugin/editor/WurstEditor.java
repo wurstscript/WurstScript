@@ -242,7 +242,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		System.out.println("new = " + newAnnotations);
 		annotationModel.modifyAnnotations(removed.toArray(new Annotation[0]), newAnnotations, null);
 		ProjectionViewer viewer = (ProjectionViewer) getSourceViewer();
-		if (reconcileCount < 2) {
+		if (reconcileCount < 2 && viewer != null) {
 			viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
 		}
 		reconcileCount++;

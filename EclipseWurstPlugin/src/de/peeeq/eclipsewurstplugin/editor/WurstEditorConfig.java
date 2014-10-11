@@ -1,5 +1,6 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.IAutoEditStrategy;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IInformationControl;
@@ -40,14 +41,14 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	}
 	
 	@Override
-	public String[] getIndentPrefixes(ISourceViewer sourceViewer, String contentType) {
+	public String[] getIndentPrefixes(@Nullable ISourceViewer sourceViewer, @Nullable String contentType) {
 		return getIndentPrefixesForTab(4);
 	}
 	
 	
 
 	@Override
-	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
+	public IPresentationReconciler getPresentationReconciler(@Nullable ISourceViewer sourceViewer) {
 //		PresentationReconciler reconciler = new PresentationReconciler();
 ////		registerRepairer(reconciler, new Scanners.SingleCommentScanner());
 ////		registerRepairer(reconciler, new Scanners.MultiCommentScanner());
@@ -80,15 +81,8 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		return reconciler;
 	}
 
-	private void registerRepairer(PresentationReconciler reconciler, WurstScanner scanner) {
-		DefaultDamagerRepairer dr =	new DefaultDamagerRepairer(scanner);
-		reconciler.setDamager(dr, scanner.getPartitionType());
-		reconciler.setRepairer(dr, scanner.getPartitionType());
-
-	}
-	
 	@Override
-	public IReconciler getReconciler(ISourceViewer sourceViewer) {
+	public IReconciler getReconciler(@Nullable ISourceViewer sourceViewer) {
 		WurstReconcilingStategy strategy = new WurstReconcilingStategy(editor);
 		MonoReconciler r = new MonoReconciler(strategy , false);
 		// check after x ms:
@@ -101,65 +95,67 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 	}
 	
 	@Override
-	public ITextHover getTextHover(ISourceViewer sourceViewer, String contentType){
+	public ITextHover getTextHover(@Nullable ISourceViewer sourceViewer, @Nullable String contentType){
 		return new WurstTextHover(sourceViewer, editor);
 	}
 	
 	@Override
-	public IAnnotationHover getAnnotationHover(ISourceViewer sourceViewer) {
+	public IAnnotationHover getAnnotationHover(@Nullable ISourceViewer sourceViewer) {
 	    return new DefaultAnnotationHover();
 	}
 	
 	@Override
-	public IHyperlinkDetector[] getHyperlinkDetectors(ISourceViewer sourceViewer) {
+	public IHyperlinkDetector[] getHyperlinkDetectors(@Nullable ISourceViewer sourceViewer) {
 		return new IHyperlinkDetector[] {new WurstHyperlinkDetector(editor)};
 	}
 	
 	@Override
-	public IAutoEditStrategy[] getAutoEditStrategies(ISourceViewer sourceViewer, String contentType) {
+	public IAutoEditStrategy[] getAutoEditStrategies(@Nullable ISourceViewer sourceViewer, @Nullable String contentType) {
 		return new IAutoEditStrategy[] {
 				new WurstAutoIndentStrategy()
 		};
 	}
 	
 	@Override
-	public String[] getConfiguredContentTypes(ISourceViewer sourceViewer) {
+	public String[] getConfiguredContentTypes(@Nullable ISourceViewer sourceViewer) {
 		return Utils.joinArrays(new String[] { IDocument.DEFAULT_CONTENT_TYPE } , WurstPartitionScanner.PARTITION_TYPES);
 	}
 	
 	@Override
-	public String getConfiguredDocumentPartitioning(ISourceViewer sourceViewer) {
+	public String getConfiguredDocumentPartitioning(@Nullable ISourceViewer sourceViewer) {
 		return WurstConstants.WURST_PARTITIONING;
 	}
 	
-	ContentAssistant assistant;
+	@Nullable ContentAssistant assistant;
 
 	@Override
-	public IContentAssistant getContentAssistant(ISourceViewer sourceViewer) {
-		if (assistant == null) {
-			assistant = new ContentAssistant();
-			assistant.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
-			assistant.setContentAssistProcessor(new WurstCompletionProcessor(editor), IDocument.DEFAULT_CONTENT_TYPE);
+	public IContentAssistant getContentAssistant(@Nullable ISourceViewer sourceViewer) {
+		ContentAssistant a = assistant;
+		if (a == null) {
+			assistant = a = new ContentAssistant();
+			a.setDocumentPartitioning(getConfiguredDocumentPartitioning(sourceViewer));
+			a.setContentAssistProcessor(new WurstCompletionProcessor(editor), IDocument.DEFAULT_CONTENT_TYPE);
 			
-			assistant.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
-			assistant.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
+			a.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
+			a.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
 	//		assistant.setContextInformationPopupBackground(...);
-			assistant.setInformationControlCreator(getInformationControlCreator(sourceViewer));
-			assistant.enableAutoInsert(true);
+			a.setInformationControlCreator(getInformationControlCreator(sourceViewer));
+			a.enableAutoInsert(true);
 		}
 		if (WurstPlugin.config().autocompleteEnabled()) {
-			assistant.enableAutoActivation(true);
-			assistant.setAutoActivationDelay((int) (1000*WurstPlugin.config().autocompleteDelay()));
+			a.enableAutoActivation(true);
+			a.setAutoActivationDelay((int) (1000*WurstPlugin.config().autocompleteDelay()));
 		} else {
-			assistant.enableAutoActivation(false);
+			a.enableAutoActivation(false);
 		}
-		return assistant;
+		return a;
 	}
 	
     @Override
-    public IInformationControlCreator getInformationControlCreator(ISourceViewer sourceViewer) {
+    public IInformationControlCreator getInformationControlCreator(@Nullable ISourceViewer sourceViewer) {
         return new IInformationControlCreator() {
-            public IInformationControl createInformationControl(Shell parent) {
+            @Override
+			public IInformationControl createInformationControl(@Nullable Shell parent) {
                 //return new DefaultInformationControl(parent,new HTMLTextPresenter(false));
 //            	return new BrowserInformationControl(parent, "sans", false);
             	return new WurstInformationControl(parent);

@@ -16,6 +16,7 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorPart;
@@ -138,7 +139,7 @@ public class WurstNature implements IProjectNature {
 	}
 	
 	
-	public void renewErrorMarkers(WurstGui gui, IFile file) {
+	public void renewErrorMarkers(WurstGui gui, @Nullable IFile file) {
 		if (gui.getErrorCount() > 0) {
 			// when there are parse errors we also should clear the type errors:
 			if (file != null) {

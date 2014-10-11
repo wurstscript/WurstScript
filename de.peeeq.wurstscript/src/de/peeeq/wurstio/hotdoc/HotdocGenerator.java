@@ -8,11 +8,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.hamcrest.CoreMatchers;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
@@ -173,7 +176,9 @@ public class HotdocGenerator {
 	}
 
 	private void documentStructures(WPackage pack, StringWriter writer) {
-		for (StructureDef v : sortedByName(getElements(pack, StructureDef.class))) {
+		List<StructureDef> sorted = getElements(pack, StructureDef.class).stream()
+				.sorted(Comparator.comparing(StructureDef::getName)).collect(Collectors.toList());
+		for (StructureDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				continue;
 			}
@@ -193,7 +198,7 @@ public class HotdocGenerator {
 	}
 
 	private void documentFuncs(List<? extends FunctionDefinition> funcs, StringWriter writer, boolean includeNonPublic) {
-		funcs = sortedByName(funcs);
+		funcs = funcs.stream().sorted(Comparator.comparing(FunctionDefinition::getName)).collect(Collectors.toList());
 		for (FunctionDefinition f : funcs) {
 			if (!f.attrIsPublic()) {
 				if (!includeNonPublic || f.attrIsPrivate() ) {
@@ -237,19 +242,9 @@ public class HotdocGenerator {
 		}
 	}
 
-	private <T extends AstElementWithName> List<T> sortedByName(List<T> funcs) {
-		List<T> result = Lists.newArrayList(funcs);
-		Collections.sort(result, new Comparator<T>() {
-			@Override @SuppressWarnings("null") 
-			public int compare(T o1, T o2) {
-				return o1.getName().compareTo(o2.getName());
-			}
-		});
-		return result;
-	}
-
 	private void documentVars(List<? extends VarDef> vardefs, StringWriter writer, boolean includeNonPublic) {
-		for (VarDef v : sortedByName(vardefs)) {
+		List<VarDef> sorted = vardefs.stream().sorted(Comparator.comparing(VarDef::getName)).collect(Collectors.toList());
+		for (VarDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				if (!includeNonPublic || v.attrIsPrivate() ) {
 					continue;

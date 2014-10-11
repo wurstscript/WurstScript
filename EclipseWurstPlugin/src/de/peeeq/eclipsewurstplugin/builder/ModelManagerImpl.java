@@ -20,6 +20,7 @@ import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.core.runtime.Platform;
+import org.eclipse.jdt.annotation.Nullable;
 import org.osgi.framework.Bundle;
 
 import com.google.common.collect.HashMultimap;
@@ -46,7 +47,7 @@ import de.peeeq.wurstscript.gui.WurstGuiLogger;
  */
 public class ModelManagerImpl implements ModelManager {
 
-	private volatile WurstModel model;
+	private volatile @Nullable WurstModel model;
 	private final WurstNature nature;
 	private final Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	private volatile boolean needsFullBuild = true;
@@ -58,13 +59,14 @@ public class ModelManagerImpl implements ModelManager {
 	
 	@Override
 	public synchronized boolean removeCompilationUnit(IResource resource) {
-		if (model == null) {
+		WurstModel model2 = model;
+		if (model2 == null) {
 			return false;
 		}
 		if (!(resource instanceof IFile)) {
 			return false;
 		}
-		ListIterator<CompilationUnit> it = model.listIterator();
+		ListIterator<CompilationUnit> it = model2.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
 			if (cu.getFile().equals(resource.getProjectRelativePath().toString())) {
@@ -132,14 +134,15 @@ public class ModelManagerImpl implements ModelManager {
 				WLogger.info("finished partial typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 				return;
 			}
-			if (model == null) {
+			WurstModel model2 = model;
+			if (model2 == null) {
 				return;
 			}
 			
 			try {
 				clearAttributes(toCheck);
-				comp.addImportedLibs(model);
-				comp.checkProg(model, toCheck);
+				comp.addImportedLibs(model2);
+				comp.checkProg(model2, toCheck);
 			} catch (ModelChangedException e) {
 				// model changed, early return
 				return;
@@ -163,7 +166,11 @@ public class ModelManagerImpl implements ModelManager {
 	
     /** clear the attributes for all compilation units that import something from 'toCheck' */
 	private void clearAttributes(List<CompilationUnit> toCheck) {
-		model.clearAttributesLocal();
+		WurstModel model2 = model;
+		if (model2 == null) {
+			return;
+		}
+		model2.clearAttributesLocal();
 		Set<String> packageNames = Sets.newHashSet();
 		for (CompilationUnit cu : toCheck) {
 			cu.clearAttributes();
@@ -171,7 +178,7 @@ public class ModelManagerImpl implements ModelManager {
 				packageNames.add(p.getName());
 			}
 		}
-		for (CompilationUnit cu : model) {
+		for (CompilationUnit cu : model2) {
 			if (imports(cu, packageNames, false)) {
 				cu.clearAttributes();
 			}
@@ -200,9 +207,12 @@ public class ModelManagerImpl implements ModelManager {
 		for (WImport imp : p.getImports()) {
 			if ((!importPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
 				return true;
-			} else if (imp.getIsPublic() && imp.attrImportedPackage() != null) {
-				if (imports(imp.attrImportedPackage(), packageNames, true, visited)) {
-					return true;
+			} else {
+				WPackage importedPackage = imp.attrImportedPackage();
+				if (imp.getIsPublic() && importedPackage != null) {
+					if (imports(importedPackage, packageNames, true, visited)) {
+						return true;
+					}
 				}
 			}
 		}
@@ -221,14 +231,16 @@ public class ModelManagerImpl implements ModelManager {
 				WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
 				return;
 			}
-			if (model == null) {
+			@Nullable
+			WurstModel model2 = model;
+			if (model2 == null) {
 				return;
 			}
 			
 			try {
-				model.clearAttributes();
-				comp.addImportedLibs(model);		
-				comp.checkProg(model);
+				model2.clearAttributes();
+				comp.addImportedLibs(model2);		
+				comp.checkProg(model2);
 			} catch (CompileError e) {
 				gui.sendError(e);
 			}
@@ -261,10 +273,12 @@ public class ModelManagerImpl implements ModelManager {
 	
 	@Override
 	public synchronized void updateModel(CompilationUnit cu, WurstGui gui) {
-		if (model == null) {
-			model = newModel(cu, gui);
+		@Nullable
+		WurstModel model2 = model;
+		if (model2 == null) {
+			model = model2 = newModel(cu, gui);
 		} else {
-			ListIterator<CompilationUnit> it = model.listIterator();
+			ListIterator<CompilationUnit> it = model2.listIterator();
 			boolean updated = false;
 			while (it.hasNext()) {
 				CompilationUnit c = it.next();
@@ -276,7 +290,7 @@ public class ModelManagerImpl implements ModelManager {
 				}
 			}
 			if (!updated) {
-				model.add(cu);
+				model2.add(cu);
 			}
 		}
 		for (CompilationUnitChangeListener cl : changeListeners.get(cu.getFile())) {
@@ -302,24 +316,26 @@ public class ModelManagerImpl implements ModelManager {
 	private CompilationUnit compileFromBundle(WurstGui gui, Bundle bundle, String fileName) throws IOException {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
-		InputStreamReader reader = new InputStreamReader(source);
-
-		URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
-		String bundleFile = FileLocator.toFileURL(fileUrl).getFile();
-		if (bundleFile.matches("^/[a-zA-Z]:/.*")) {
-			bundleFile = bundleFile.substring(1);
+		
+		try (InputStreamReader reader = new InputStreamReader(source)) {
+			URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
+			String bundleFile = FileLocator.toFileURL(fileUrl).getFile();
+			if (bundleFile.matches("^/[a-zA-Z]:/.*")) {
+				bundleFile = bundleFile.substring(1);
+			}
+			CompilationUnit cu = comp.parse(bundleFile, reader);
+			cu.setFile(bundleFile);
+			return cu;
 		}
-		CompilationUnit cu = comp.parse(bundleFile, reader);
-		cu.setFile(bundleFile);
-		return cu;
 	}
 
 	@Override
-	public CompilationUnit getCompilationUnit(String fileName) {
-		if (model == null) {
+	public @Nullable CompilationUnit getCompilationUnit(String fileName) {
+		WurstModel model2 = model;
+		if (model2 == null) {
 			return null;
 		}
-		for (CompilationUnit cu : model) {
+		for (CompilationUnit cu : model2) {
 			if (cu.getFile().equals(fileName)) {
 				return cu;
 			}
@@ -346,7 +362,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		nature.renewErrorMarkers(gui, file);
 		
-		if (cu != null && cu.getJassDecls().size() + cu.getPackages().size() > 0) {
+		if (cu.getJassDecls().size() + cu.getPackages().size() > 0) {
 			cu.setFile(fileName);
 			updateModel(cu, gui);
 		}
@@ -370,7 +386,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public WurstModel getModel() {
+	public @Nullable WurstModel getModel() {
 		return model;
 	}
 	
@@ -380,7 +396,11 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public synchronized void removeCompilationUnitByName(String fileName) {
-		ListIterator<CompilationUnit> it = model.listIterator();
+		WurstModel m = model;
+		if (m == null) {
+			return;
+		}
+		ListIterator<CompilationUnit> it = m.listIterator();
 		while (it.hasNext()) {
 			CompilationUnit cu = it.next();
 			if (cu.getFile().equals(fileName)) {
@@ -395,7 +415,11 @@ public class ModelManagerImpl implements ModelManager {
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		
 		try {
-			comp.addImportedLibs(model);		
+			WurstModel m = model;
+			if (m == null) {
+				return;
+			}
+			comp.addImportedLibs(m);		
 		} catch (CompileError e) {
 			gui.sendError(e);
 		}

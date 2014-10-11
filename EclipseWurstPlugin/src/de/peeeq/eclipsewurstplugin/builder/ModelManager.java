@@ -5,6 +5,7 @@ import java.io.Reader;
 import java.util.List;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -25,7 +26,7 @@ public interface ModelManager {
 	 
 	 void updateModel(CompilationUnit cu, WurstGui gui);
 
-	 CompilationUnit getCompilationUnit(String fileName);
+	 @Nullable CompilationUnit getCompilationUnit(String fileName);
 
 	 void registerChangeListener(String fileName, CompilationUnitChangeListener listener);
 
@@ -37,7 +38,7 @@ public interface ModelManager {
 
 	void clearDependencies();
 
-	WurstModel getModel();
+	@Nullable WurstModel getModel();
 	
 	WurstNature getNature();
 

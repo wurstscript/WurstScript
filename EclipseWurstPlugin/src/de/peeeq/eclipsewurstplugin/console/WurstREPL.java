@@ -26,6 +26,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
@@ -581,6 +582,15 @@ public class WurstREPL {
 		println("building project "+project.getName()+", please wait ...");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
 		
+		
+		for (CompilationUnit cu: modelManager.getModel()) {
+			for (WPackage p : cu.getPackages()) {
+				System.out.println(p.getName());
+				for (WImport imp : p.getImports()) {
+					System.out.println("\t" + imp.getPackagename());
+				}
+			}
+		}
 		
 		RunArgs runArgs = new RunArgs(compileArgs);
 		
