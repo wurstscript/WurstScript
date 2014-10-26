@@ -70,8 +70,6 @@ public class WurstConstants {
 	public static final String START_POS = PLUGIN_PACKAGE + ".startPos";
 	public static final String END_POS = PLUGIN_PACKAGE + ".endPos";
 
-	public static final String PLUGIN_ID = "EclipseWurstPlugin";
-
 	public static final String WURST_PARTITIONING = "__wurst_partitioning";
 
 	

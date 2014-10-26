@@ -27,7 +27,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
@@ -299,7 +299,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
-		Bundle bundle = Platform.getBundle(WurstConstants.PLUGIN_ID);
+		Bundle bundle = Platform.getBundle(WurstPlugin.PLUGIN_ID);
 		if (bundle == null) {
 			throw new Error("could not locate wurst bundle");
 		}
