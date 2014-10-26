@@ -1,11 +1,13 @@
 package Interpolation
+import Wurstunit
+
 // Credits to BlinkyBoy
 /**Look at linear*/
 public function linear(vec2 start, vec2 stop, real p) returns vec2
-	return vec2(linear(start.x, stop.y, p), linear(start.y, stop.y, p))
+	return vec2(linear(start.x, stop.x, p), linear(start.y, stop.y, p))
 	
 public function bezier_3(vec2 start, vec2 mid, vec2 stop, real p) returns vec2
-	return vec2(bezier_3(start.x, mid.x, stop.y, p), bezier_3(start.y, mid.x, stop.y, p))
+	return vec2(bezier_3(start.x, mid.x, stop.x, p), bezier_3(start.y, mid.y, stop.y, p))
 
 /** 
 	Linear Interpolation
@@ -87,3 +89,9 @@ public function axiAngle( real dy, real dx ) returns real
 
 public function getCardTan( real p1, real p3 ) returns real
 	return 0.5*(p3-p1)
+	
+	
+@test function linearVecTest()
+	let v = linear(vec2(3,4), vec2(6,2), 0.5)
+	v.x.assertEquals(4.5, .001)
+	v.y.assertEquals(3, .001)
