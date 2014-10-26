@@ -57,7 +57,7 @@ int array data
 public class ArrayList<T>
 	
 	private int pos
-	private int size = 0
+	protected int size = 0
 	private int capacity
 	
 	/** create a new arraylist */
@@ -193,7 +193,11 @@ public class ArrayList<T>
 	/** an iterator to iterate over the list */
 	function iterator() returns ArrayListIterator<T>
 		return new ArrayListIterator<T>(pos, size)
-		
+	
+	/** an iterator to iterate over the list 
+		with methods to remove or change elements */
+	function iteratorMut() returns ArrayListIteratorMut<T>
+		return new ArrayListIteratorMut<T>(pos, size, this)	
 		
 public class ArrayListIterator<Q>
 	private int pos
@@ -213,7 +217,35 @@ public class ArrayListIterator<Q>
 	function close() 
 		destroy this
 
+public class ArrayListIteratorMut<Q>
+	private int pos
+	private int endPos
+	private int removed = 0
+	private ArrayList<Q> list
+	
+	construct(int pos, int size, ArrayList<Q> list)
+		this.pos = pos - 1
+		this.endPos = pos + size - 1
+		this.list = list
+		
+	function hasNext() returns boolean
+		return pos < endPos
 
+	function next() returns Q
+		pos++
+		data[pos-removed] = data[pos]
+		return data[pos] castTo Q
+ 		
+	function close()
+		list.size -= removed
+		destroy this
+		
+	function setCurrent(Q value)
+		data[pos] = value castTo int
+		
+	function remove()
+		removed++
+		
 
 function assertDataInvariants()
 	assertNotNull(freeList)
@@ -253,6 +285,26 @@ function testList() returns ArrayList<int>
 		..add(3)
 		..add(4)
 		..add(5)
+
+@test function testRemoveIt1()
+	let l = testList()
+	let iter = l.iteratorMut()
+	for i from iter
+		if i == 2 or i == 3
+			iter.remove()
+	iter.close()
+	l.toString().assertEquals("[1, 4, 5]")
+	destroy l
+	
+@test function testRemoveIt2()
+	let l = testList()
+	let iter = l.iteratorMut()
+	for i from iter
+		if i == 1 or i == 5
+			iter.remove()
+	iter.close()
+	l.toString().assertEquals("[2, 3, 4]")
+	destroy l
 
 @test function testAdd()
 	let l = testList()
