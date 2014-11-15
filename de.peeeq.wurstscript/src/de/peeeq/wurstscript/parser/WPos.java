@@ -66,6 +66,10 @@ public class WPos {
 		return "[" + file + ", line " + getLine() + "]";
 	}
 	
+	public String printDetails() {
+		return "[" + file + ", line " + getLine() + ", " + leftPos + "-" + rightPos + "]";
+	}
+	
 	public String printShort() {
 		Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^\\.]*$");
 		String shortFile = file;
