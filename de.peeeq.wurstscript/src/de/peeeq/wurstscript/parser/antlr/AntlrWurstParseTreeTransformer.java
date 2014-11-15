@@ -1273,6 +1273,9 @@ public class AntlrWurstParseTreeTransformer {
 		int stopIndex;
 		if (p.stop.getType() == WurstParser.NL) {
 			stopIndex = p.stop.getStartIndex()+1;
+			if (p.stop.getText().contains("\r")) {
+				stopIndex++;
+			}
 		} else {
 			stopIndex = p.stop.getStopIndex()+1;
 		}
