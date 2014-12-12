@@ -176,7 +176,7 @@ funcDef:
 
 modifiersWithDoc:
 	(hotdocComment NL)?
-	modifiers+=modifier*
+	(modifiers+=modifier NL?)*
 ;
 
 modifier:
