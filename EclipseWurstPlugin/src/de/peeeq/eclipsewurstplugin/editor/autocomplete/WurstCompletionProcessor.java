@@ -1,5 +1,8 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -15,13 +18,16 @@ import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.widgets.Display;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
+import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
@@ -119,7 +125,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		if (elem instanceof Expr) {
 			Expr expr = (Expr) elem;
 			expectedType = expr.attrExpectedTyp();
-			WLogger.info("....type = " + expectedType);
+			WLogger.info("....expected type = " + expectedType);
 		}
 
 		calculateCompletions(completions, viewer, offset);
@@ -138,7 +144,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void calculateCompletions(List<WurstCompletion> completions, ITextViewer viewer, final int offset) {
-		WurstType leftType = null;
 		boolean isMemberAccess = false;
 		if (elem instanceof ExprMember) {
 			ExprMember e = (ExprMember) elem;
@@ -152,7 +157,16 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			}
 
-			leftType = e.getLeft().attrTyp();
+			WurstType leftType = e.getLeft().attrTyp();
+			Display.getCurrent().asyncExec(() -> {
+				try (OutputStream out = WurstPerspective.findConsole().newOutputStream();
+						PrintStream ps = new PrintStream(out)) {
+					ps.append("Left type = " + leftType + "\n");
+				} catch (IOException e1) {
+					e1.printStackTrace();
+					throw new Error(e1);
+				}
+			});
 			isMemberAccess = true;
 			WScope scope = elem.attrNearestScope();
 			// add member vars
@@ -162,6 +176,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
 				scope = scope.attrNextScope();
 			}
+			return;
 		} else if (elem instanceof ExprRealVal) {
 			// show no hints for reals
 		} else if (elem instanceof WPackage) {
@@ -414,7 +429,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			} else { // leftType != null
 
-				if (receiverType != null && !leftType.isSubtypeOf(receiverType, pos)) {
+				if (receiverType == null || !leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
 					continue;
 				}
