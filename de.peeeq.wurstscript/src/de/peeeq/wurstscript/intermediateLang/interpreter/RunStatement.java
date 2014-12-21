@@ -1,12 +1,10 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.datastructures.IntTuple;
-import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.intermediateLang.ILconstBool;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstMultiArray;
-import de.peeeq.wurstscript.intermediateLang.ILconstString;
 import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;

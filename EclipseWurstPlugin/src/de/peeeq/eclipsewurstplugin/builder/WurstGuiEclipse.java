@@ -1,19 +1,13 @@
 package de.peeeq.eclipsewurstplugin.builder;
 
-import java.util.List;
-
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 
-import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.utils.NotNullList;
 
 public class WurstGuiEclipse extends WurstGui {
 

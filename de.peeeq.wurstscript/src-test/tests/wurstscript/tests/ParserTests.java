@@ -1,11 +1,6 @@
 package tests.wurstscript.tests;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.junit.Test;
-
-import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 
 public class ParserTests extends WurstScriptTest {
 	

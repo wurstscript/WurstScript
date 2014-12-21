@@ -1,12 +1,8 @@
 package de.peeeq.eclipsewurstplugin.editor.highlighting;
 
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
 
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
@@ -18,11 +14,9 @@ import org.eclipse.jface.text.rules.MultiLineRule;
 import org.eclipse.jface.text.rules.RuleBasedScanner;
 import org.eclipse.jface.text.rules.SingleLineRule;
 import org.eclipse.jface.text.rules.Token;
-import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Color;
 import org.eclipse.swt.widgets.Display;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
 import de.peeeq.wurstscript.WLogger;

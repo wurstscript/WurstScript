@@ -1,8 +1,5 @@
 package de.peeeq.eclipsewurstplugin.editor.outline;
 
-import java.util.Arrays;
-
-import org.eclipse.jface.viewers.IContentProvider;
 import org.eclipse.jface.viewers.ITreeContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 

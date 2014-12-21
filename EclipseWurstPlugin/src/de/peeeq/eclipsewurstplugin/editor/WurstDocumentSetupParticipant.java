@@ -6,8 +6,8 @@ import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.IDocumentPartitioner;
 import org.eclipse.jface.text.rules.FastPartitioner;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.WurstConstants;
+import de.peeeq.eclipsewurstplugin.WurstPlugin;
 
 
 public class WurstDocumentSetupParticipant  implements IDocumentSetupParticipant {

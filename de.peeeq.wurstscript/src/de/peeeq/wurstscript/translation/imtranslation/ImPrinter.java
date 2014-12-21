@@ -2,8 +2,6 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import java.util.List;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;

@@ -1,11 +1,8 @@
 package de.peeeq.eclipsewurstplugin.editor.outline;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.jface.viewers.IBaseLabelProvider;
 import org.eclipse.jface.viewers.ILabelProvider;
-import org.eclipse.jface.viewers.ILabelProviderListener;
 import org.eclipse.jface.viewers.LabelProvider;
-import org.eclipse.jface.viewers.StyledCellLabelProvider;
 import org.eclipse.swt.graphics.Image;
 
 public class WurstLabelProvider extends LabelProvider implements ILabelProvider {

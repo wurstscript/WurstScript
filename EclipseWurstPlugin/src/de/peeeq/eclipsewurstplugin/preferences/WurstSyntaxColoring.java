@@ -1,5 +1,18 @@
 package de.peeeq.eclipsewurstplugin.preferences;
 
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ANNOTATION;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_BOLD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COLOR;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_COMMENT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_HOTDOC;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_ITALIC;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_JASSTYPE;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_KEYWORD;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRIKETHROUGH;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_STRING;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_TEXT;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.SYNTAXCOLOR_UNDERLINE;
+
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.ColorFieldEditor;
 import org.eclipse.jface.preference.PreferencePage;
@@ -8,15 +21,14 @@ import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Group;
-import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
+import org.eclipse.swt.widgets.Group;
+import org.eclipse.swt.widgets.List;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 
 import de.peeeq.eclipsewurstplugin.util.UtilityFunctions;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 
 
 /**

@@ -1,7 +1,6 @@
 package de.peeeq.eclipsewurstplugin.wizards;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.Wizard;

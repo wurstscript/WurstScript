@@ -16,14 +16,9 @@ import org.eclipse.jface.viewers.TreeSelection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorPart;
 
-import de.peeeq.eclipsewurstplugin.WurstPlugin;
-import de.peeeq.eclipsewurstplugin.builder.WurstNature;
-import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
-import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 
 public class Shortcut implements ILaunchShortcut {
 

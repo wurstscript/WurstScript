@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.lua.translation;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;

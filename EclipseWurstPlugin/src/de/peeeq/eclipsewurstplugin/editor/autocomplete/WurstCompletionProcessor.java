@@ -1,8 +1,5 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -18,16 +15,13 @@ import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.widgets.Display;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
-import de.peeeq.eclipsewurstplugin.ui.WurstPerspective;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
