@@ -70,18 +70,15 @@ public class DummyCaster
 		return dummy
 		
 
-	function castOnTarget( unit target )
+	function castOnTarget( unit target ) returns boolean
 		debugPrint("cast on target", 3)
 		unit dummy = createDummyCaster(target.getPos())
 		debugPrint("dummy created", 3)
 		if FORCE_INVISIBLE_CAST
 			UnitShareVision(target, owner, true)
-			dummy.issueTargetOrderById(orderId,target)
+		let res = dummy.issueTargetOrderById(orderId,target)
+		if FORCE_INVISIBLE_CAST
 			UnitShareVision(target, owner, false)
-		else
-			dummy.issueTargetOrderById(orderId,target)
-			debugPrint("casted " + orderId.toString(), 3)
-		
 		delayTable.saveUnit(dummy.getHandleId(), dummy)
 		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
 			let t = GetExpiredTimer()
@@ -91,14 +88,15 @@ public class DummyCaster
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
+		return res
 
 	//accepts units, items and destructables, if you know it is
 	// a unit it is better to use castOnTarget since that would
 	// be able to use FORCE_INVISIBLE_CAST if necessary.
 	//
-	function castOnWidgetTarget( widget target )
+	function castOnWidgetTarget( widget target ) returns boolean
 		unit dummy = createDummyCaster(vec2(target.getX(), target.getY()))		
-		dummy.issueTargetOrderById(orderId,target)
+		let res = dummy.issueTargetOrderById(orderId,target)
 		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
 			let t = GetExpiredTimer()
 			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
@@ -106,14 +104,15 @@ public class DummyCaster
 		end)
 		if autodestroy
 			destroy this
+		return res
 
 
 
-	function castOnPoint( vec2 target )
+	function castOnPoint( vec2 target ) returns boolean
 		debugPrint("cast on point", 3)
 		unit dummy = createDummyCaster(target)
 		debugPrint("dummy created " + dummy.getName() + "<name", 3)
-		dummy.issuePointOrderById(orderId,target)
+		let res = dummy.issuePointOrderById(orderId,target)
 		debugPrint("ordered Cast", 3)
 		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
 			let t = GetExpiredTimer()
@@ -123,6 +122,7 @@ public class DummyCaster
 		debugPrint("recycled", 3)
 		if autodestroy
 			destroy this
+		return res
 			
 	function castOnPoint( vec3 target )
 		castOnPoint(vec2(target.x, target.y))
@@ -130,10 +130,10 @@ public class DummyCaster
 
 
 	//ignores custom source x and y (for obvious reasons)
-	function castInPoint( vec2 target )
+	function castInPoint( vec2 target ) returns boolean
 		customSource = false
 		unit dummy = createDummyCaster(target)
-		dummy.issueImmediateOrderById(orderId)
+		let res = dummy.issueImmediateOrderById(orderId)
 		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
 			let t = GetExpiredTimer()
 			DummyRecycler.recycle(delayTable.loadUnit(t.getData()))
@@ -141,6 +141,7 @@ public class DummyCaster
 		end)
 		if autodestroy
 			destroy this
+		return res
 
 
 
