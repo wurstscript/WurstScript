@@ -158,15 +158,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 
 			WurstType leftType = e.getLeft().attrTyp();
-			Display.getCurrent().asyncExec(() -> {
-				try (OutputStream out = WurstPerspective.findConsole().newOutputStream();
-						PrintStream ps = new PrintStream(out)) {
-					ps.append("Left type = " + leftType + "\n");
-				} catch (IOException e1) {
-					e1.printStackTrace();
-					throw new Error(e1);
-				}
-			});
 			isMemberAccess = true;
 			WScope scope = elem.attrNearestScope();
 			// add member vars
