@@ -101,3 +101,5 @@ public function player.setAbilityAvailable(integer abilityId, boolean avail)
 public function player.getColor() returns playercolor
 	return GetPlayerColor(this)
 	
+public function player.getStartLocation() returns vec2
+	return vec2(GetPlayerStartLocationX(this), GetPlayerStartLocationY(this))
