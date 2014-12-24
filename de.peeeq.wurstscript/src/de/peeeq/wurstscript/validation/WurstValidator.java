@@ -1538,7 +1538,7 @@ public class WurstValidator {
 	}
 
 	private void checkPackageName(CompilationUnit cu) {
-		if (cu.getPackages().size() == 1 && (cu.getFile().endsWith(".wurst") || cu.getFile().endsWith(".jurst"))) {
+		if (cu.getPackages().size() == 1 && Utils.isWurstFile(cu.getFile())) {
 			// only one package in a wurst file
 			WPackage p = cu.getPackages().get(0);
 			if (!Utils.fileName(cu.getFile()).equals(p.getName()+".wurst")

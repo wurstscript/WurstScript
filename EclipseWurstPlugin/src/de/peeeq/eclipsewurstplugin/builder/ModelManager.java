@@ -3,8 +3,10 @@ package de.peeeq.eclipsewurstplugin.builder;
 import java.io.File;
 import java.io.Reader;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
@@ -45,5 +47,9 @@ public interface ModelManager {
 	void removeCompilationUnitByName(String replDummyFilename);
 
 	void resolveImports(WurstGui gui);
+
+	Set<String> getDependencies();
+
+	Set<@NonNull File> getDependencyWurstFiles();
 
 }

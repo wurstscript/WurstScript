@@ -2,9 +2,12 @@ package de.peeeq.eclipsewurstplugin.builder;
 
 import java.io.File;
 import java.io.Reader;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.eclipse.core.resources.IResource;
+import org.eclipse.jdt.annotation.NonNull;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -86,6 +89,16 @@ public class ModelManagerStub implements ModelManager {
 	@Override
 	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers,
 			List<CompilationUnit> toCheck) {
+	}
+
+	@Override
+	public @NonNull Set<String> getDependencies() {
+		return Collections.emptySet();
+	}
+
+	@Override
+	public @NonNull Set<@NonNull File> getDependencyWurstFiles() {
+		return Collections.emptySet();
 	}
 
 }

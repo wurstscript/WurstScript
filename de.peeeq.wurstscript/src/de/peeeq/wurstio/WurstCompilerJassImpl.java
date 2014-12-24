@@ -115,7 +115,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		for (File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				loadWurstFilesInDir(f);
-			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
+			} else if (Utils.isWurstFile(f)) {
 				loadFile(f);
 			} else if (f.getName().equals("wurst.dependencies")) {
 				addDependencyFile(f);
@@ -331,8 +331,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				// recursively scan directory
 				addLibDir(f);
 			}
-			if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
-				String libName = f.getName().replaceAll("\\.[jw]urst$", "");
+			if (Utils.isWurstFile(f)) {
+				String libName = Utils.getLibName(f);
 				getLibs().put(libName, f);
 			}
 		}
