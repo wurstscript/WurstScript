@@ -1,13 +1,5 @@
 package de.peeeq.eclipsewurstplugin;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Scanner;
-
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
-
 import de.peeeq.wurstscript.WLogger;
 
 /**

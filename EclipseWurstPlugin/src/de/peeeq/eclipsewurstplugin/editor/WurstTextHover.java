@@ -15,17 +15,8 @@ import org.eclipse.jface.text.source.ISourceViewerExtension2;
 import org.eclipse.ui.texteditor.SimpleMarkerAnnotation;
 
 import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
-import de.peeeq.eclipsewurstplugin.editor.autocomplete.WurstCompletionProcessor;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.Documentable;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
-import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
-import de.peeeq.wurstscript.ast.FuncRef;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstTextHover implements ITextHover,

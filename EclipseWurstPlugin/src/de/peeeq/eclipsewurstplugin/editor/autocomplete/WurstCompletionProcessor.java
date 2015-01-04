@@ -1,9 +1,11 @@
 package de.peeeq.eclipsewurstplugin.editor.autocomplete;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.BadLocationException;
@@ -19,7 +21,9 @@ import org.eclipse.swt.graphics.Image;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
+import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.eclipsewurstplugin.editor.outline.Icons;
 import de.peeeq.wurstscript.WLogger;
@@ -119,7 +123,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		if (elem instanceof Expr) {
 			Expr expr = (Expr) elem;
 			expectedType = expr.attrExpectedTyp();
-			WLogger.info("....type = " + expectedType);
+			WLogger.info("....expected type = " + expectedType);
 		}
 
 		calculateCompletions(completions, viewer, offset);
@@ -138,7 +142,6 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private void calculateCompletions(List<WurstCompletion> completions, ITextViewer viewer, final int offset) {
-		WurstType leftType = null;
 		boolean isMemberAccess = false;
 		if (elem instanceof ExprMember) {
 			ExprMember e = (ExprMember) elem;
@@ -152,7 +155,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			}
 
-			leftType = e.getLeft().attrTyp();
+			WurstType leftType = e.getLeft().attrTyp();
 			isMemberAccess = true;
 			WScope scope = elem.attrNearestScope();
 			// add member vars
@@ -162,18 +165,14 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
 				scope = scope.attrNextScope();
 			}
+			return;
 		} else if (elem instanceof ExprRealVal) {
 			// show no hints for reals
 		} else if (elem instanceof WPackage) {
 			// no hints at package level
 		} else if (elem instanceof WImport) {
 			//WImport imp = (WImport) elem;
-			WurstModel model = elem.getModel();
-			for (WPackage p : model.attrPackages().values()) {
-				if (isSuitableCompletion(p.getName())) {
-					completions.add(makeNameDefCompletion(p));
-				}
-			}
+			completeImport(completions);
 		} else if (elem instanceof ExprNewObject) {
 			ExprNewObject en = (ExprNewObject) elem;
 			if (offset > en.getSource().getLeftPos() + 4 + en.getTypeName().length()) {
@@ -226,6 +225,29 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				// default completions:
 				addDefaultCompletions(completions, elem, isMemberAccess);
 			}
+		}
+	}
+
+
+	private void completeImport(List<WurstCompletion> completions) {
+		ModelManager mm = editor.getModelManager();
+		WurstModel model = elem.getModel();
+		Set<String> usedPackages = Sets.newHashSet();
+		for (WPackage p : model.attrPackages().values()) {
+			if (!usedPackages.contains(p.getName()) && isSuitableCompletion(p.getName())) {
+				completions.add(makeNameDefCompletion(p));
+				usedPackages.add(p.getName());
+			}
+		}
+		for (File dep : mm.getDependencyWurstFiles()) {
+			String libName = Utils.getLibName(dep);
+			if (!usedPackages.contains(libName) && isSuitableCompletion(libName)) {
+				usedPackages.add(libName);
+				completions.add(makeSimpleNameCompletion(libName));
+			}
+		}
+		if (isSuitableCompletion("NoWurst")) {
+			completions.add(makeSimpleNameCompletion("NoWurst"));
 		}
 	}
 
@@ -414,7 +436,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				}
 			} else { // leftType != null
 
-				if (receiverType != null && !leftType.isSubtypeOf(receiverType, pos)) {
+				if (receiverType == null || !leftType.isSubtypeOf(receiverType, pos)) {
 					// skip elements with wrong receiver type
 					continue;
 				}
@@ -468,6 +490,22 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				cursorPosition, image, displayString, contextInformation, additionalProposalInfo2, rating);
 	}
 
+	
+	private WurstCompletion makeSimpleNameCompletion(String name) {
+		String replacementString = name;
+		int replacementOffset = offset - alreadyEntered.length();
+		int replacementLength = alreadyEntered.length();
+		int cursorPosition = replacementString.length();
+		Image image = Icons.var;
+
+		String displayString = name;
+		IContextInformation contextInformation= null; //new ContextInformation(name, ""); 
+
+		String additionalProposalInfo2 = "";
+		double rating = calculateRating(name, WurstTypeUnknown.instance());
+		return new WurstCompletion(replacementString, replacementOffset, replacementLength,
+				cursorPosition, image, displayString, contextInformation, additionalProposalInfo2, rating);
+	}
 
 	private double calculateRating(String name, WurstType wurstType) {
 		double r = calculateNameBasedRating(name);

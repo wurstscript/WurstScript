@@ -2,8 +2,6 @@ package de.peeeq.eclipsewurstplugin;
 
 import java.io.FileNotFoundException;
 
-import de.peeeq.wurstscript.utils.Debug;
-
 /**
  * This will be used to generate unique Strings which aren't named like the ones
  * in the restricted list.

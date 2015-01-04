@@ -4,7 +4,6 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKE
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;

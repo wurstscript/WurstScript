@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Supplier;

@@ -10,7 +10,6 @@ import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IRegion;
 import org.eclipse.jface.text.TextUtilities;
 
-import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import de.peeeq.wurstscript.WLogger;
 
 public class WurstAutoIndentStrategy extends DefaultIndentLineAutoEditStrategy implements IAutoEditStrategy {

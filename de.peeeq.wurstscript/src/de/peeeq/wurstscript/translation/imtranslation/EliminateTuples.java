@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import java.util.List;
 import java.util.ListIterator;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;

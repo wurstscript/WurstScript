@@ -2,14 +2,11 @@ package de.peeeq.eclipsewurstplugin.editor;
 
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.runtime.CoreException;
-import org.eclipse.jface.text.BadLocationException;
-import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.Position;
 import org.eclipse.ui.texteditor.ResourceMarkerAnnotationModel;
+
 import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.builder.WurstBuilder;
-import de.peeeq.wurstscript.attributes.CompileError;
 
 
 public class WurstMarkerAnnotationModel extends ResourceMarkerAnnotationModel {

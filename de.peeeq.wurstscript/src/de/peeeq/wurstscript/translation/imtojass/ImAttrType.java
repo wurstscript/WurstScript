@@ -2,8 +2,6 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import java.util.List;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassIm.ImAlloc;

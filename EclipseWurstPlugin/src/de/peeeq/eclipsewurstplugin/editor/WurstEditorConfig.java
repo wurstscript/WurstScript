@@ -24,7 +24,6 @@ import de.peeeq.eclipsewurstplugin.WurstConstants;
 import de.peeeq.eclipsewurstplugin.WurstPlugin;
 import de.peeeq.eclipsewurstplugin.editor.autocomplete.WurstCompletionProcessor;
 import de.peeeq.eclipsewurstplugin.editor.autoedit.WurstAutoIndentStrategy;
-import de.peeeq.eclipsewurstplugin.editor.highlighting.WurstScanner;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;

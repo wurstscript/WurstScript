@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
+import de.peeeq.wurstscript.utils.Utils;
 
 /**
  * keeps a version of the model which is always the most recent one 
@@ -425,5 +426,28 @@ public class ModelManagerImpl implements ModelManager {
 		}
 	}
 
+	@Override
+	public Set<String> getDependencies() {
+		return Collections.unmodifiableSet(dependencies);
+	}
+
+	@Override
+	public Set<File> getDependencyWurstFiles() {
+		Set<File> result = Sets.newHashSet();
+		for (String dep : dependencies) {
+			addDependencyWurstFiles(result, new File(dep));
+		}
+		return result;
+	}
+
+	private void addDependencyWurstFiles(Set<File> result, File file) {
+		if (file.isDirectory()) {
+			for (File child : file.listFiles()) {
+				addDependencyWurstFiles(result, child);
+			}
+		} else if (Utils.isWurstFile(file)) {
+			result.add(file);
+		}
+	}
 	
 }

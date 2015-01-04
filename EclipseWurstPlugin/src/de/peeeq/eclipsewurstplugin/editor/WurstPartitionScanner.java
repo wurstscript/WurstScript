@@ -1,6 +1,5 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jface.text.rules.EndOfLineRule;

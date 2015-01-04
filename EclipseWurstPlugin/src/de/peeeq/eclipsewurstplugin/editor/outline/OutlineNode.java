@@ -7,23 +7,17 @@ import java.util.List;
 
 import org.eclipse.swt.graphics.Image;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
-import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.InterfaceDef;
-import de.peeeq.wurstscript.ast.JassToplevelDeclaration;
-import de.peeeq.wurstscript.ast.JassToplevelDeclarations;
-import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprArray;
@@ -33,7 +27,6 @@ import de.peeeq.wurstscript.ast.WEntity;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WPackages;
 
 public class OutlineNode {
 

@@ -15,8 +15,6 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
-import org.eclipse.jdt.annotation.Nullable;
-
 import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
 

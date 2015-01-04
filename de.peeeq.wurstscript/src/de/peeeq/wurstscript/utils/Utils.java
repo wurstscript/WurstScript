@@ -4,6 +4,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -1135,4 +1136,18 @@ public class Utils {
 		};
 	}
 
+	public static boolean isWurstFile(File f) {
+		return isWurstFile(f.getName());
+	}
+	
+	public static boolean isWurstFile(String fileName) {
+		return fileName.endsWith(".wurst") || fileName.endsWith(".jurst");
+	}
+
+	public static String getLibName(File f) {
+		return f.getName().replaceAll("\\.[jw]urst$", "");
+	}
+
+	
+	
 }
