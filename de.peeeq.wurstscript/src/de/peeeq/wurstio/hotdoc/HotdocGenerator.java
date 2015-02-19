@@ -174,7 +174,7 @@ public class HotdocGenerator {
 
 	private void documentStructures(WPackage pack, StringWriter writer) {
 		List<StructureDef> sorted = getElements(pack, StructureDef.class).stream()
-				.sorted(Comparator.comparing(StructureDef::getName)).collect(Collectors.toList());
+				.sorted(Comparator.comparing((StructureDef s) -> s.getName())).collect(Collectors.toList());
 		for (StructureDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				continue;
@@ -195,7 +195,7 @@ public class HotdocGenerator {
 	}
 
 	private void documentFuncs(List<? extends FunctionDefinition> funcs, StringWriter writer, boolean includeNonPublic) {
-		funcs = funcs.stream().sorted(Comparator.comparing(FunctionDefinition::getName)).collect(Collectors.toList());
+		funcs = funcs.stream().sorted(Comparator.comparing((FunctionDefinition f) -> f.getName())).collect(Collectors.toList());
 		for (FunctionDefinition f : funcs) {
 			if (!f.attrIsPublic()) {
 				if (!includeNonPublic || f.attrIsPrivate() ) {
@@ -240,7 +240,7 @@ public class HotdocGenerator {
 	}
 
 	private void documentVars(List<? extends VarDef> vardefs, StringWriter writer, boolean includeNonPublic) {
-		List<VarDef> sorted = vardefs.stream().sorted(Comparator.comparing(VarDef::getName)).collect(Collectors.toList());
+		List<VarDef> sorted = vardefs.stream().sorted(Comparator.comparing((VarDef v) -> v.getName())).collect(Collectors.toList());
 		for (VarDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				if (!includeNonPublic || v.attrIsPrivate() ) {
