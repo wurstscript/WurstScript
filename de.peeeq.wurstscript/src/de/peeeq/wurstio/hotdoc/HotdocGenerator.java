@@ -5,10 +5,8 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
@@ -173,8 +171,7 @@ public class HotdocGenerator {
 	}
 
 	private void documentStructures(WPackage pack, StringWriter writer) {
-		List<StructureDef> sorted = getElements(pack, StructureDef.class).stream()
-				.sorted(Comparator.comparing((StructureDef s) -> s.getName())).collect(Collectors.toList());
+		List<StructureDef> sorted = Utils.sortByName(getElements(pack, StructureDef.class));
 		for (StructureDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				continue;
@@ -194,8 +191,8 @@ public class HotdocGenerator {
 		
 	}
 
-	private void documentFuncs(List<? extends FunctionDefinition> funcs, StringWriter writer, boolean includeNonPublic) {
-		funcs = funcs.stream().sorted(Comparator.comparing((FunctionDefinition f) -> f.getName())).collect(Collectors.toList());
+	private <T extends FunctionDefinition> void documentFuncs(List<T> funcs, StringWriter writer, boolean includeNonPublic) {
+		funcs = Utils.sortByName(funcs);
 		for (FunctionDefinition f : funcs) {
 			if (!f.attrIsPublic()) {
 				if (!includeNonPublic || f.attrIsPrivate() ) {
@@ -239,8 +236,8 @@ public class HotdocGenerator {
 		}
 	}
 
-	private void documentVars(List<? extends VarDef> vardefs, StringWriter writer, boolean includeNonPublic) {
-		List<VarDef> sorted = vardefs.stream().sorted(Comparator.comparing((VarDef v) -> v.getName())).collect(Collectors.toList());
+	private <T extends VarDef> void documentVars(List<T> vardefs, StringWriter writer, boolean includeNonPublic) {
+		List<T> sorted = Utils.sortByName(vardefs);
 		for (VarDef v : sorted) {
 			if (!v.attrIsPublic()) {
 				if (!includeNonPublic || v.attrIsPrivate() ) {
