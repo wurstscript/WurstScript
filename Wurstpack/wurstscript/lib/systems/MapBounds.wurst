@@ -14,27 +14,41 @@ public vec2 boundMin
 public vec2 boundMax
 public vec2 playableCenter
 public vec2 boundCenter
- 
+
+
+// playable map area
+private function inPlayableXY(real x, realy) returns boolean
+	return x > playableMin.x and x < playableMax.x and y > playableMin.y and y < playableMax.y
+
 public function vec2.inPlayable() returns boolean
-	return this.x > playableMin.x and this.x < playableMax.x and this.y > playableMin.y and  this.y < playableMax.y
+	return inPlayableXY(this.x, this.y)
+
+public function vec3.inPlayable() returns boolean
+	return inPlayableXY(this.x, this.y)
+
+
+// map boundaries
+private function inBoundsXY(real x, real y) returns boolean
+	return x > boundMin.x and x < boundMax.x and y > boundMin.y and y < boundMax.y
 
 public function vec2.inBounds() returns boolean
-	return this.x > boundMin.x and this.x < boundMax.x and this.y > boundMin.y and  this.y < boundMax.y
+	return inBoundsXY(this.x, this.y)
 	
 public function vec3.inBounds() returns boolean
-	return this.x > boundMin.x and this.x < boundMax.x and this.y > boundMin.y and  this.y < boundMax.y
- 
+	return inBoundsXY(this.x, this.y)
+
+
 public function randomPointOnMap() returns vec2
-	return vec2(GetRandomReal(playableMin.x,playableMax.x), GetRandomReal(playableMin.y, playableMax.y))
-		
+	return vec2(GetRandomReal(playableMin.x, playableMax.x), GetRandomReal(playableMin.y, playableMax.y))
+
 init
-	playableMapRect = GetPlayableMapRect()
+	playableMapRect   = GetPlayableMapRect()
 	playableMapRegion = CreateRegion()..addRect(playableMapRect)
-	boundRect = GetWorldBounds()
-	boundRegion = CreateRegion()..addRect(boundRect)
-	playableMin = vec2(playableMapRect.getMinX(), playableMapRect.getMinY())
-	playableMax = vec2(playableMapRect.getMaxX(), playableMapRect.getMaxY())
-	boundMin = vec2(boundRect.getMinX(), boundRect.getMinY())
-	boundMax = vec2(boundRect.getMaxX(), boundRect.getMaxY())
-	playableCenter = (playableMin + playableMax) * 0.5
-	boundCenter = (boundMin + boundMax) * 0.5
+	boundRect         = GetWorldBounds()
+	boundRegion       = CreateRegion()..addRect(boundRect)
+	playableMin       = vec2(playableMapRect.getMinX(), playableMapRect.getMinY())
+	playableMax       = vec2(playableMapRect.getMaxX(), playableMapRect.getMaxY())
+	boundMin          = vec2(boundRect.getMinX(),       boundRect.getMinY())
+	boundMax          = vec2(boundRect.getMaxX(),       boundRect.getMaxY())
+	playableCenter    = (playableMin + playableMax) * .5
+	boundCenter       = (boundMin    + boundMax)    * .5
