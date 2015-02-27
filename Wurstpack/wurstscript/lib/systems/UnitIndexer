@@ -1,0 +1,37 @@
+package UnitIndexer
+
+import OnUnitEnterLeave
+
+public function unit.toUnitIndex() returns UnitIndex
+	UnitIndex instance = this.getUserData() castTo UnitIndex
+	
+	if (instance castTo int == 0)
+		instance = new UnitIndex(this)
+		
+	return instance
+	
+public function unit.getUnitIndexInstance() returns UnitIndex
+	return this.toUnitIndex()
+
+public class UnitIndex
+	protected unit _unit
+
+	function getUnit() returns unit
+		return this._unit
+		
+	function getIndex() returns int
+		return this._unit.getUserData()
+
+	construct(unit whichUnit)
+		this._unit = whichUnit
+		this._unit.setUserData(this castTo int)
+		
+	ondestroy
+		this._unit.setUserData(0)
+
+/**
+ * Auto instanciation/destruction
+ */
+init
+	onEnter(() -> new UnitIndex(getEnterLeaveUnit()))
+	onLeave(() -> destroy getEnterLeaveUnit().toUnitIndex())
