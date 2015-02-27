@@ -89,7 +89,7 @@ public class ExtensionMethodsTests extends WurstScriptTest {
 	
 	@Test
 	public void extensionFunction_class() {
-		testAssertOkLines(true, 
+		testAssertErrorsLines(true, "Call to function foo is ambiguous",
 				"package test",
 				"	native testSuccess()",
 				"	class C",
