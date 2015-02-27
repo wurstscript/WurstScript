@@ -2,10 +2,13 @@ package UnitIndexer
 
 import OnUnitEnterLeave
 
+public function unit.getIndex() returns integer
+	return this.getUserData()
+
 public function unit.toUnitIndex() returns UnitIndex
 	UnitIndex instance = this.getUserData() castTo UnitIndex
 	
-	if (instance castTo int == 0)
+	if (instance == null)
 		instance = new UnitIndex(this)
 		
 	return instance
@@ -20,7 +23,7 @@ public class UnitIndex
 		return this._unit
 		
 	function getIndex() returns int
-		return this._unit.getUserData()
+		return this castTo int
 
 	construct(unit whichUnit)
 		this._unit = whichUnit
