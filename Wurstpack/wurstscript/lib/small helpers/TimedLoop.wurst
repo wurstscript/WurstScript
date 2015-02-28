@@ -1,79 +1,112 @@
 package TimedLoop
+
+import LinkedList
 import TimerUtils
 
-// TimedLoop
-// originally created by Vexorian
-// augmented by some ideas from "Constant Timer Loop 32" by Nestharus
+/**
+ * We only need one timer
+ */
+constant timer GLOBAL_TIMER = CreateTimer()
 
+/**
+ * Types are going to register their global "onExpire" in this trigger
+ * On that "onExpire" they will iterate over their own instances and execute
+ * "onTimedLoop"
+ */
+constant trigger ON_EXPIRE_TRIGGER = CreateTrigger()
 
-timer timedLoopTimer = CreateTimer()
-trigger timedLoopTrig = CreateTrigger()
-int conditionCount = 0
-
-function evaluateTimedLoopTrig()
-	TriggerEvaluate(timedLoopTrig)
-	if conditionCount == 0
-		timedLoopTimer.pause()
-		
-enum Mode
-	RUNNING
-	PAUSED
-	STOPPED
-	STOPPED_FOR_GOOD
-
+/**
+ * How many (global) "onExpire" are running?
+ */
+integer registeredCodeCount = 0
 
 public module TimedLoop
-	static private thistype array instances		// The array
-	static private integer instanceCount = 0	// The count
-	static private triggercondition triggerCond = null // the triggerCondition for this
-	static private conditionfunc cond = Condition(function onExpire)
+	/**
+	 * Instances running
+	 */
+	private static LinkedList<thistype> instances = new LinkedList<thistype>()
 
-	// TODO this should be private but does not work currently
-	private Mode mode = Mode.PAUSED
+	/**
+	 * "Global" "onExpire"
+	 * When no instances are running, this triggercondition will be removed
+	 * from the global ON_EXPIRE_TRIGGER to avoid useless evaluations
+	 */
+	private static triggercondition thistypeCode = null
 
+	/**
+	 * Is the instance running?
+	 */
+	protected boolean running
+
+	/**
+	 * Executed every 0.03125 if instance is running
+	 */
 	abstract function onTimedLoop()
 
-	private static function onExpire() returns boolean
-		int i = instanceCount - 1
-		while i >= 0
-			thistype t = instances[i]
+	/**
+	 * Iterate over all the running instances and execute the onTimedLoop method
+	 * If no instances are running, then stop the global timer
+	 */
+	private static function onExpireEx() returns bool
+		LLIterator<thistype> iterator = null
+		thistype instance = null
 
-			t.onTimedLoop()
-			if t.mode != Mode.RUNNING
-				instanceCount--
-				instances[i] = instances[instanceCount]
-				if t.mode == Mode.STOPPED_FOR_GOOD
-					t.mode = Mode.PAUSED
-					destroy t
-				else
-					t.mode = Mode.PAUSED
-			i--
-		if instanceCount == 0
-			TriggerRemoveCondition(timedLoopTrig, triggerCond)
-			triggerCond = null
-			conditionCount--
+		if (instances.getSize() > 0)
+			iterator = instances.iterator()
+			
+			while (iterator.hasNext())
+				instance = iterator.next()
+				instance.onTimedLoop()
+	
+			iterator.close()
+		else
+			// No instances, so remove from global trigger
+			TriggerRemoveCondition(ON_EXPIRE_TRIGGER, thistypeCode)
+			registeredCodeCount--
+			thistypeCode = null
+			
 		return false
-		
+	
+	/**
+	 *
+	 */
 	function stopTimedLoop()
-		mode = Mode.STOPPED
-		
+		if (this.running)
+			this.running = false
+			instances.remove(this)
+	
+	/**
+	 * Stop running and destroy instance
+	 */
 	function stopTimedLoopAndDestroy()
-		mode = Mode.STOPPED_FOR_GOOD
+		this.stopTimedLoop()
+		destroy this
 
+	/**
+	 *
+	 */
 	function startTimedLoop()
-		instances[instanceCount] = this
-		instanceCount++
-		if instanceCount == 1
-			if triggerCond == null
-				triggerCond = TriggerAddCondition(timedLoopTrig, cond)
-				conditionCount++
-				if conditionCount == 1
-					timedLoopTimer.startPeriodic(ANIMATION_PERIOD, function evaluateTimedLoopTrig)	 
-		mode = Mode.RUNNING
-		
+		if (this.running == false)
+			this.running = true
+			
+			instances.add(this)
+			
+			// Check if this type is registered in the global trigger
+			// and add it if required
+			if (thistypeCode == null)
+				registeredCodeCount++
+				thistypeCode = TriggerAddCondition(ON_EXPIRE_TRIGGER, Condition(function onExpireEx))
+			
+			// Just in case it was paused	
+			GLOBAL_TIMER.resume()
+	
 	ondestroy
-		if mode != Mode.PAUSED
-			stopTimedLoop()
-			printWarning("Destroyed Instance using TimedLoop before stopping the Loop")
-					
-
+		this.stopTimedLoop()
+		
+init
+	GLOBAL_TIMER.startPeriodic(0.03125, () -> begin
+		if (registeredCodeCount > 0)
+			ON_EXPIRE_TRIGGER.evaluate()
+		else
+			GLOBAL_TIMER.pause()
+	end)
