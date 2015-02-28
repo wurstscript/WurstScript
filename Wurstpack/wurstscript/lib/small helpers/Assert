@@ -1,0 +1,120 @@
+package Assert
+
+import PrintingHelper
+
+/**
+ * You can use both (same arguments)
+ *
+ * a = assert
+ * e = equal
+ * n = notEqual
+ * g = greaterThan
+ * l = lowerThan
+ *
+ * a(bool[, error-msg]) -> if false, error-msg (optional) will be displayed
+ *
+ * e(int|real|unit|string expected, int|real|unit|string given)
+ *
+ * n(int|real|unit|string expected, int|real|unit|string given)
+ *
+ * g(int|real expected, int|real given)
+ *
+ * l(int|real expected, int|real given)
+ */
+
+public function a(bool assertion, string msg)
+	if (not(assertion))
+		print(msg)
+
+public function a(bool assertion)
+	a(assertion, "failed assertion")
+
+public function assert(bool assertion, string msg)
+	a(assertion, msg)
+
+public function assert(bool assertion)
+	a(assertion)
+
+public function e(string expected, string given)
+	if (expected != given)
+		print("failed - expected string '" + expected + "' but given '" + given + "'")
+
+public function e(unit expected, unit given)
+	if (expected.getHandleId() != given.getHandleId())
+		print("failed - expected certain unit (" + expected.getHandleId().toString() + ") but given another (" + given.getHandleId().toString() + ")")
+
+public function e(real expected, real given)
+	if (expected != given)
+		print("failed - expected " + expected.toString() + " to be equal to " + given.toString())
+
+public function e(int expected, int given)
+	if (expected != given)
+		print("failed - expected " + expected.toString() + " to be equal to " + given.toString())
+
+public function equal(unit expected, unit given)
+	e(expected, given)
+	
+public function equal(real expected, real given)
+	e(expected, given)
+
+public function equal(int expected, int given)
+	e(expected, given)
+	
+public function equal(string expected, string given)
+	e(expected, given)
+
+public function n(real expected, real given)
+	if (expected == given)
+		print("failed - expected " + expected.toString() + " not to be equal to " + given.toString())
+
+public function n(int expected, int given)
+	if (expected == given)
+		print("failed - expected " + expected.toString() + " not to be equal to " + given.toString())
+
+public function n(unit expected, unit given)
+	if (expected.getHandleId() == given.getHandleId())
+		print("failed - expected certain unit (" + expected.getHandleId().toString() + ") not to be equal to (" + given.getHandleId().toString() + ")")
+
+public function n(string expected, string given)
+	if (expected == given)
+		print("failed - expected string '" + expected + "' to be different than '" + given + "'")
+
+public function notEqual(real expected, real given)
+	n(expected, given)
+
+public function notEqual(int expected, int given)
+	n(expected, given)
+	
+public function notEqual(unit expected, unit given)
+	n(expected, given)
+	
+public function notEqual(string expected, string given)
+	n(expected, given)
+	
+public function g(real expected, real given)
+	if (expected < given)
+		print("failed - expected " + expected.toString() + " to be greater than " + given.toString())
+
+public function g(int expected, int given)
+	if (expected < given)
+		print("failed - expected " + expected.toString() + " to be greater than " + given.toString())
+
+public function greaterThan(int expected, int given)
+	g(expected, given)
+
+public function greaterThan(real expected, real given)
+	g(expected, given)
+	
+public function l(real expected, real given)
+	if (expected < given)
+		print("failed - expected " + expected.toString() + " to be lower than " + given.toString())
+		
+public function l(int expected, int given)
+	if (expected < given)
+		print("failed - expected " + expected.toString() + " to be lower than " + given.toString())
+		
+public function lowerThan(int expected, int given)
+	l(expected, given)
+	
+public function lowerThan(real expected, real given)
+	l(expected, given)
