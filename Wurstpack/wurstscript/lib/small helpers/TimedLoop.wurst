@@ -61,7 +61,7 @@ public module TimedLoop
 			iterator.close()
 		else
 			// No instances, so remove from global trigger
-			TriggerRemoveCondition(ON_EXPIRE_TRIGGER, thistypeCode)
+			ON_EXPIRE_TRIGGER.removeCondition(thistypeCode)
 			registeredCodeCount--
 			thistypeCode = null
 			
@@ -95,7 +95,7 @@ public module TimedLoop
 			// and add it if required
 			if (thistypeCode == null)
 				registeredCodeCount++
-				thistypeCode = TriggerAddCondition(ON_EXPIRE_TRIGGER, Condition(function onExpireEx))
+				thistypeCode = ON_EXPIRE_TRIGGER.addCondition(Condition(function onExpireEx))
 			
 			// Just in case it was paused	
 			GLOBAL_TIMER.resume()
