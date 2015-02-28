@@ -38,11 +38,11 @@ public function trigger.destr()
 public function trigger.reset()
 	ResetTrigger( this )
 	
-public function trigger.addAction(code actionFunc)
-	TriggerAddAction( this, actionFunc )
+public function trigger.addAction(code actionFunc) returns triggeraction
+	return TriggerAddAction( this, actionFunc )
 
-public function trigger.addCondition(boolexpr condition)
-	TriggerAddCondition( this, condition )
+public function trigger.addCondition(boolexpr condition) returns triggercondition
+	return TriggerAddCondition( this, condition )
 	
 public function trigger.removeCondition(triggercondition condition)
 	TriggerRemoveCondition( this, condition )
