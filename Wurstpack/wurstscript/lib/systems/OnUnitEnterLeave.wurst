@@ -8,6 +8,7 @@ import Player
 import TempGroups
 import AbilityObjEditing
 import Group
+import TimerUtils
 
 /**
  * Rawcode for the undefend ability to detect leavers
@@ -22,7 +23,18 @@ unit triggerUnit = null
 /**
  * Avoid double leave event fire
  */
-constant group validUnits = CreateGroup()
+constant group VALID_UNITS = CreateGroup()
+
+/**
+ * Is the package initialized?
+ * Used so all init onEnter code is correctly executed
+ */
+bool INITIALIZED = false
+
+/**
+ * Used so all init onEnter code is correctly executed
+ */
+group enteredUnitsBeforeInit = CreateGroup()
 
 /**
  * "events"
@@ -74,13 +86,30 @@ function fireEvent(unit whichUnit, trigger whichEvent)
 	triggerUnit = whichUnit
 	
 	if (triggerUnit != null)
-		whichEvent.evaluate()
-		
+		if (INITIALIZED)
+			whichEvent.evaluate()
+		else
+			if (whichEvent == onEnterTrigger)
+				// If the package isn't initialized yet, we do not fire
+				// the codes, just store the unit to later (when init) do it
+				// This to prevent certain situation when a code wont run on "init"s
+				enteredUnitsBeforeInit.addUnit(whichUnit)
+			else
+				INITIALIZED = true
+				
+				// If the package isn't initialized yet but the event is "leaver"
+				// then we first fire the "enter" event among with the registered
+				// codes
+				fireEvent(whichUnit, onEnterTrigger)
+				fireEvent(whichUnit, whichEvent)
+				
+				INITIALIZED = false
+	
 	triggerUnit = prevTriggerUnit
 	prevTriggerUnit = null
 
 function onEnterEx() returns boolean
-	validUnits.addUnit(GetFilterUnit())
+	VALID_UNITS.addUnit(GetFilterUnit())
 	addLeaverDetector(GetFilterUnit())
 	fireEvent(GetFilterUnit(), onEnterTrigger)
 	
@@ -89,13 +118,26 @@ function onEnterEx() returns boolean
 function onLeaveEx() returns boolean
 	unit leaverUnit = GetTriggerUnit()
 	
-	if (hasLeaverDetector(leaverUnit) == false and validUnits.contains(leaverUnit))
-		validUnits.removeUnit(leaverUnit)
+	if (hasLeaverDetector(leaverUnit) == false and VALID_UNITS.contains(leaverUnit))
+		VALID_UNITS.removeUnit(leaverUnit)
 		fireEvent(leaverUnit, onLeaveTrigger)
 		
 	leaverUnit = null
 	
 	return false
+
+function initialize()
+	INITIALIZED = true
+	
+	// Now that the package is formally initialized, we fire all the events
+	// that we store previously so all registered "onEnter" code runs properly
+	for unit enumUnit from enteredUnitsBeforeInit
+		fireEvent(enumUnit, onEnterTrigger)
+	
+	GetExpiredTimer().release()
+	enteredUnitsBeforeInit.destr()
+	
+	enteredUnitsBeforeInit = null
 	
 init
 	trigger onLeaveTrigger = CreateTrigger()
@@ -109,6 +151,8 @@ init
 	
 	onLeaveTrigger.addCondition(onLeaveCondition)
 	CreateTrigger().registerEnterRegion(boundRegion, onEnterCondition)
+	
+	getTimer().start(0, function initialize)
 	
 	onLeaveTrigger = null
 

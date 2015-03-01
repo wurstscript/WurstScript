@@ -1,60 +1,275 @@
 package DamageDetection
-import MapBounds
+
 import OnUnitEnterLeave
+import LinkedList
+import HashMap
 
-constant SWAP_TIMEOUT = 600. 
-    
-boolexpr array func
-integer funcNext = 0
-trigger current = null
-trigger toDestroy = null
+/**
+ *
+ */
+constant int BUCKET_SIZE = 1
 
-/** CONFIGURATION: Add any conditions before the Register-Call 
-	to keep units from being registered to the damage event. */
-function unit.detectAddFilter()
-	TriggerRegisterUnitEvent(current, this, EVENT_UNIT_DAMAGED)
+/**
+ *
+ */
+constant real CLEAR_TIMEOUT = 2
 
-/** Add a Condition(Action) to the damage Event. */
-public function addOnDamageFunc(boolexpr cf)
-	current.addCondition(cf)
-	func[funcNext] = cf
-	funcNext++
+/**
+ *
+ */
+bool IS_ENABLED = true
 
-/** Disables the damage events */
-function disableDamageDetect()
-	DisableTrigger(current)
+/**
+ * 
+ */
+boolexpr functions = null
 
-/** Enables the damage events */
-function enableDamageDetect()
-	EnableTrigger(current)
+/**
+ *
+ */
+public function canDetectDamage(unit whichUnit) returns bool
+	return true
 
-
-/** Periodic Cleanup-Function */
-function swap()
-	boolean b = IsTriggerEnabled(current)
+class OnDamageTrigger
+	/**
+	 *
+	 */
+	private static HashMap<unit, int> hashMap = new HashMap<unit, int>()
 	
-	current.disable()
-	if toDestroy != null
-		DestroyTrigger(toDestroy)
-
-	toDestroy = current
-	current = CreateTrigger()
+	/**
+	 *
+	 */
+	private trigger _trigger
 	
-	if not(b)
-		DisableTrigger(current)
-
+	/**
+	 *
+	 */
+	private LinkedList<unit> units
 	
-	GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> GetFilterUnit().detectAddFilter()))
+	/**
+	 *
+	 */
+	private int leaks
 	
-	for i = 0 to funcNext-1
-		current.addCondition(func[i])
+	/**
+	 *
+	 */
+	static function getOnDamageTriggerFromUnit(unit whichUnit) returns OnDamageTrigger
+		return hashMap.get(whichUnit) castTo OnDamageTrigger
+	
+	/**
+	 *
+	 */
+	private static function setDamageTriggerToUnit(unit whichUnit, OnDamageTrigger _trigger)
+		if (_trigger != null)
+			hashMap.put(whichUnit, _trigger castTo int)
+		else
+			hashMap.remove(whichUnit)
+	
+	/**
+	 *
+	 */	
+	function hasLeaks() returns bool
+		return this.leaks > 0
+	
+	/**
+	 *
+	 */
+	function notifyEnabledDisabledTrigger()
+		if (IS_ENABLED)
+			this._trigger.enable()
+		else
+			this._trigger.disable()
+	
+	/**
+	 *
+	 */
+	function notifyAddedFunction()
+		this._trigger.clearConditions()
+		this._trigger.addCondition(functions)
+	
+	/**
+	 *
+	 */
+	private function reRegisterAllUnits()
+		LLIterator<unit> allUnits = this.units.iterator()
+		
+		while (allUnits.hasNext())
+			this._trigger.registerUnitEvent(allUnits.next(), EVENT_UNIT_DAMAGED)
+			
+		allUnits.close()
+	
+	/**
+	 *
+	 */
+	function rebuild()		
+		this._trigger.destr()
+		this._trigger = CreateTrigger()
+		
+		this.leaks = 0
+		
+		this.reRegisterAllUnits()
+		this.notifyEnabledDisabledTrigger()
+		this.notifyAddedFunction()
+	
+	/**
+	 *
+	 */
+	function canRegisterUnits() returns bool
+		return this.units.getSize() < BUCKET_SIZE
+	
+	/**
+	 *
+	 */
+	function addUnit(unit whichUnit) returns bool		
+		if (whichUnit == null)
+			return false
+		
+		if (this.canRegisterUnits() == false)
+			return false
+		
+		if (canDetectDamage(whichUnit) == false)
+			return false
+		
+		// Check if already registered
+		if (OnDamageTrigger.getOnDamageTriggerFromUnit(whichUnit) != null)
+			return false
+		
+		this._trigger.registerUnitEvent(whichUnit, EVENT_UNIT_DAMAGED)
+		this.units.add(whichUnit)
+		
+		OnDamageTrigger.setDamageTriggerToUnit(whichUnit, this)
+		
+		return true
+	
+	/**
+	 *
+	 */
+	function removeUnit(unit whichUnit)
+		// Avoid units who are not registered in this instance
+		if (OnDamageTrigger.getOnDamageTriggerFromUnit(whichUnit) == this)
+			BJDebugMsg("leaking")
+			this.leaks++
+			this.units.remove(whichUnit)
+			
+			OnDamageTrigger.setDamageTriggerToUnit(whichUnit, null)
+	
+	/**
+	 *
+	 */	
+	construct()
+		this.units = new LinkedList<unit>()
+		this.rebuild()
 
-    
+class OnDamageTriggerPool
+	/**
+	 *
+	 */
+	private static LinkedList<OnDamageTrigger> triggers = new LinkedList<OnDamageTrigger>()
+	
+	/**
+	 *
+	 */
+	private construct()
+	
+	/**
+	 *
+	 */
+	static function notifyAddedFunction()
+		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
+		
+		while (allTriggers.hasNext())
+			allTriggers.next().notifyAddedFunction()
+			
+		allTriggers.close()
+	
+	/**
+	 *
+	 */
+	static function notifyEnabledDisabledTrigger()
+		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
+		
+		while (allTriggers.hasNext())
+			allTriggers.next().notifyEnabledDisabledTrigger()
+			
+		allTriggers.close()
+	
+	/**
+	 *
+	 */
+	static function clearLeaks()
+		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
+		OnDamageTrigger _trigger = null
+		
+		while (allTriggers.hasNext())
+			_trigger = allTriggers.next()
+			
+			if (_trigger.hasLeaks())
+				_trigger.rebuild()
+			
+		allTriggers.close()
+	
+	/**
+	 *
+	 */
+	static function getOnDamageTrigger() returns OnDamageTrigger
+		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
+		OnDamageTrigger _trigger = null
+	
+		while (allTriggers.hasNext())
+			_trigger = allTriggers.next()
+			
+			if (_trigger.canRegisterUnits())
+				break
+			else
+				_trigger = null
+
+		if (_trigger == null)
+			_trigger = new OnDamageTrigger()
+			triggers.addtoStart(_trigger)
+		
+		allTriggers.close()
+
+		return _trigger
+
+/**
+ *
+ */
+public function addOnDamageFunc(boolexpr func)
+	functions = Or(functions, func)
+	OnDamageTriggerPool.notifyAddedFunction()
+
+/**
+ *
+ */
+public function addOnDamageFunc(code func)
+	boolexpr b = Condition(func)
+	addOnDamageFunc(b)
+
+/**
+ *
+ */
+public function enableDamageDetection()
+	IS_ENABLED = true
+	OnDamageTriggerPool.notifyEnabledDisabledTrigger()
+
+/**
+ *
+ */	
+public function disableDamageDetection()
+	IS_ENABLED = false
+	OnDamageTriggerPool.notifyEnabledDisabledTrigger()
+			
 init
-	current = CreateTrigger()
-	for i = 0 to funcNext-1
-		current.addCondition(func[i])
-	onEnter(() -> getEnterLeaveUnit().detectAddFilter())
-	GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> GetFilterUnit().detectAddFilter()))
-	CreateTimer().startPeriodic(SWAP_TIMEOUT, function swap)
-
+	// Auto clear all leaks
+	CreateTimer().startPeriodic(CLEAR_TIMEOUT, () -> OnDamageTriggerPool.clearLeaks())
+	
+	// Auto register entering units
+	onEnter(() -> OnDamageTriggerPool.getOnDamageTrigger().addUnit(getEnterLeaveUnit()))
+	
+	// Auto unregister leaver units
+	onLeave(() -> begin
+		unit leaver = getEnterLeaveUnit()
+		OnDamageTrigger.getOnDamageTriggerFromUnit(leaver).removeUnit(leaver)
+		leaver = null
+	end)
