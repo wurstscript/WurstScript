@@ -5,6 +5,13 @@ import LinkedList
 import HashMap
 
 /**
+ * For auto registration (this package will not auto-register units by default)
+ * use the following line on a init code:
+ *
+ * onEnter(() -> OnDamageTriggerPool.getOnDamageTrigger().addUnit(getEnterLeaveUnit()))
+ */
+
+/**
  * How many unit can a trigger (events) hold?
  * @default 75
  */
@@ -286,7 +293,7 @@ init
 	CreateTimer().startPeriodic(CLEAR_TIMEOUT, () -> OnDamageTriggerPool.clearLeaks())
 	
 	// Auto register entering units
-	onEnter(() -> OnDamageTriggerPool.getOnDamageTrigger().addUnit(getEnterLeaveUnit()))
+	//onEnter(() -> OnDamageTriggerPool.getOnDamageTrigger().addUnit(getEnterLeaveUnit()))
 	
 	// Auto unregister leaver units to avoid event leaks
 	onLeave(() -> begin
