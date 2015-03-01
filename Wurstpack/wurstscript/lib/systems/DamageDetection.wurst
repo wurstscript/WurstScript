@@ -5,60 +5,108 @@ import LinkedList
 import HashMap
 
 /**
- *
+ * How many unit can a trigger (events) hold?
+ * @default 75
  */
-constant int BUCKET_SIZE = 1
+constant int BUCKET_SIZE = 75
 
 /**
- *
+ * Time in seconds to clear the leaks
+ * @default 300
  */
-constant real CLEAR_TIMEOUT = 2
+constant real CLEAR_TIMEOUT = 300
 
 /**
- *
+ * Is the package (on-damage triggers) enabled?
  */
 bool IS_ENABLED = true
 
 /**
- * 
+ * All onDamage registered code to run
  */
 boolexpr functions = null
 
 /**
+ * Global filter
+ */
+function canDetectDamage(unit whichUnit) returns bool
+	return true
+
+/**
+ * Safetly damage a unit inside of an a "onDamage" code
+ */
+public function unit.damageTargetInsideOnDamageCode(unit target, real amount)
+	bool wasEnabled = IS_ENABLED
+
+	disableDamageDetection()
+	this.damageTarget(target, amount)
+	
+	// Avoid enabling package if it was previously disabled
+	if (wasEnabled)
+		enableDamageDetection()
+
+/**
+ * Register a function to run when a damage occurs
+ */
+public function addOnDamageFunc(boolexpr func)
+	functions = Or(functions, func)
+	OnDamageTriggerPool.notifyAddedFunction()
+
+/**
+ * Register a function to run when a damage occurs
+ */
+public function addOnDamageFunc(code func)
+	boolexpr b = Condition(func)
+	addOnDamageFunc(b)
+
+/**
  *
  */
-public function canDetectDamage(unit whichUnit) returns bool
-	return true
+public function enableDamageDetection()
+	if (IS_ENABLED == false)
+		IS_ENABLED = true
+		OnDamageTriggerPool.notifyEnabledDisabledTrigger()
+
+/**
+ *
+ */	
+public function disableDamageDetection()
+	if (IS_ENABLED)
+		IS_ENABLED = false
+		OnDamageTriggerPool.notifyEnabledDisabledTrigger()
 
 class OnDamageTrigger
 	/**
-	 *
+	 * Used to check if a unit is already registered or not
 	 */
 	private static HashMap<unit, int> hashMap = new HashMap<unit, int>()
 	
 	/**
-	 *
+	 * 
 	 */
 	private trigger _trigger
 	
 	/**
-	 *
+	 * Registered units in the trigger
 	 */
 	private LinkedList<unit> units
 	
 	/**
-	 *
+	 * Amount of event-leaks of the trigger
 	 */
 	private int leaks
 	
 	/**
-	 *
+	 * Return the instance in which the unit is registered (if any)
 	 */
 	static function getOnDamageTriggerFromUnit(unit whichUnit) returns OnDamageTrigger
 		return hashMap.get(whichUnit) castTo OnDamageTrigger
 	
 	/**
-	 *
+	 * Assign instance (where is registered) to unit
+	 * 
+	 * @param unit whichUnit
+	 * @param OnDamageTrigger _trigger Pass null to delete from registry
 	 */
 	private static function setDamageTriggerToUnit(unit whichUnit, OnDamageTrigger _trigger)
 		if (_trigger != null)
@@ -67,13 +115,13 @@ class OnDamageTrigger
 			hashMap.remove(whichUnit)
 	
 	/**
-	 *
+	 * Check if trigger has event-leaks (units added and then removed)
 	 */	
 	function hasLeaks() returns bool
 		return this.leaks > 0
 	
 	/**
-	 *
+	 * 
 	 */
 	function notifyEnabledDisabledTrigger()
 		if (IS_ENABLED)
@@ -82,14 +130,14 @@ class OnDamageTrigger
 			this._trigger.disable()
 	
 	/**
-	 *
+	 * 
 	 */
 	function notifyAddedFunction()
 		this._trigger.clearConditions()
 		this._trigger.addCondition(functions)
 	
 	/**
-	 *
+	 * Re-register all on-damage-unit event to the trigger (used when rebuilding the trigger)
 	 */
 	private function reRegisterAllUnits()
 		LLIterator<unit> allUnits = this.units.iterator()
@@ -100,7 +148,7 @@ class OnDamageTrigger
 		allUnits.close()
 	
 	/**
-	 *
+	 * Rebuild the trigger to clear leaks
 	 */
 	function rebuild()		
 		this._trigger.destr()
@@ -113,13 +161,14 @@ class OnDamageTrigger
 		this.notifyAddedFunction()
 	
 	/**
-	 *
+	 * Check if this instance can still register units or if it is full
 	 */
 	function canRegisterUnits() returns bool
 		return this.units.getSize() < BUCKET_SIZE
 	
 	/**
-	 *
+	 * @param unit whichUnit
+	 * @return bool True if registered, false otherwise
 	 */
 	function addUnit(unit whichUnit) returns bool		
 		if (whichUnit == null)
@@ -148,7 +197,6 @@ class OnDamageTrigger
 	function removeUnit(unit whichUnit)
 		// Avoid units who are not registered in this instance
 		if (OnDamageTrigger.getOnDamageTriggerFromUnit(whichUnit) == this)
-			BJDebugMsg("leaking")
 			this.leaks++
 			this.units.remove(whichUnit)
 			
@@ -163,17 +211,17 @@ class OnDamageTrigger
 
 class OnDamageTriggerPool
 	/**
-	 *
+	 * All OnDamageTrigger instances created
 	 */
 	private static LinkedList<OnDamageTrigger> triggers = new LinkedList<OnDamageTrigger>()
 	
 	/**
-	 *
+	 * Non-instanciable class
 	 */
 	private construct()
 	
 	/**
-	 *
+	 * Notify to all OnDamageTrigger instances that a "onDamage" function has been added
 	 */
 	static function notifyAddedFunction()
 		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
@@ -184,7 +232,7 @@ class OnDamageTriggerPool
 		allTriggers.close()
 	
 	/**
-	 *
+	 * Notify to all OnDamageTrigger isntances that the package has been enabled/disabled
 	 */
 	static function notifyEnabledDisabledTrigger()
 		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
@@ -195,7 +243,7 @@ class OnDamageTriggerPool
 		allTriggers.close()
 	
 	/**
-	 *
+	 * Clear leaks (if any) of all OnDamageTrigger instances
 	 */
 	static function clearLeaks()
 		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
@@ -210,7 +258,7 @@ class OnDamageTriggerPool
 		allTriggers.close()
 	
 	/**
-	 *
+	 * Get a usable OnDamageTrigger instance
 	 */
 	static function getOnDamageTrigger() returns OnDamageTrigger
 		LLIterator<OnDamageTrigger> allTriggers = triggers.iterator()
@@ -224,41 +272,14 @@ class OnDamageTriggerPool
 			else
 				_trigger = null
 
+		allTriggers.close()
+
+		// If all instances are full or there is none, then create one
 		if (_trigger == null)
 			_trigger = new OnDamageTrigger()
 			triggers.addtoStart(_trigger)
-		
-		allTriggers.close()
 
 		return _trigger
-
-/**
- *
- */
-public function addOnDamageFunc(boolexpr func)
-	functions = Or(functions, func)
-	OnDamageTriggerPool.notifyAddedFunction()
-
-/**
- *
- */
-public function addOnDamageFunc(code func)
-	boolexpr b = Condition(func)
-	addOnDamageFunc(b)
-
-/**
- *
- */
-public function enableDamageDetection()
-	IS_ENABLED = true
-	OnDamageTriggerPool.notifyEnabledDisabledTrigger()
-
-/**
- *
- */	
-public function disableDamageDetection()
-	IS_ENABLED = false
-	OnDamageTriggerPool.notifyEnabledDisabledTrigger()
 			
 init
 	// Auto clear all leaks
@@ -267,7 +288,7 @@ init
 	// Auto register entering units
 	onEnter(() -> OnDamageTriggerPool.getOnDamageTrigger().addUnit(getEnterLeaveUnit()))
 	
-	// Auto unregister leaver units
+	// Auto unregister leaver units to avoid event leaks
 	onLeave(() -> begin
 		unit leaver = getEnterLeaveUnit()
 		OnDamageTrigger.getOnDamageTriggerFromUnit(leaver).removeUnit(leaver)
