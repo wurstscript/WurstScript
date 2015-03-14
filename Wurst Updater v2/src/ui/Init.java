@@ -1,6 +1,7 @@
 package ui;
 
 
+import java.io.File;
 import java.io.IOException;
 import java.util.LinkedList;
 
@@ -26,8 +27,9 @@ public class Init {
 		LinkedList<FileEx> toDelete = null;
 		LinkedList<FileEx> toAsk = null;
 		try {
-			toChange = CheckChanges.getFilesToChange();
-			toDelete = CheckChanges.getFilesToDelete();
+			File md5file = Download.downloadFile("wurstpack.md5", File.createTempFile("newChecksums", "md5"));
+			toChange = CheckChanges.getFilesToChange(md5file);
+			toDelete = CheckChanges.getFilesToDelete(md5file);
 			toAsk = CheckChanges.getFilesToAsk(toChange, toDelete);
 		} catch (IOException e) {
 			e.printStackTrace();
