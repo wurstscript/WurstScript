@@ -32,9 +32,8 @@ public class UnitIndex
 	ondestroy
 		this._unit.setUserData(0)
 
-/**
- * Auto instanciation/destruction
- */
+
+// Auto instanciation/destruction 
 init
 	onEnter(() -> new UnitIndex(getEnterLeaveUnit()))
 	onLeave(() -> destroy getEnterLeaveUnit().toUnitIndex())
