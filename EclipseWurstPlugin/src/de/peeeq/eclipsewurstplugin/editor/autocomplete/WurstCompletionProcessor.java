@@ -67,6 +67,10 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 	private ITextViewer currentViewer;
 	private @Nullable WurstType expectedType;
 	private AstElement elem;
+	private SearchMode searchMode;
+	private enum SearchMode {
+		PREFIX, INFIX, SUBSEQENCE;
+	}
 
 	@SuppressWarnings("null") // lifecycle makes sure that elements are not null when accessed
 	public WurstCompletionProcessor(WurstEditor editor) {
@@ -113,28 +117,37 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 		}
 
 
-		List<WurstCompletion> completions = Lists.newArrayList();
+		return calculateCompletion(viewer, offset, cu);
+	}
 
 
-
-		elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
-		WLogger.info("get completions at " + Utils.printElement(elem));
-		expectedType = null;
-		if (elem instanceof Expr) {
-			Expr expr = (Expr) elem;
-			expectedType = expr.attrExpectedTyp();
-			WLogger.info("....expected type = " + expectedType);
-		}
-
-		calculateCompletions(completions, viewer, offset);
-
-		dropBadCompletions(completions);
-		removeDuplicates(completions);
-
-		//		Collections.sort(completions, c)
-
-		if (completions.size() > 0) {
-			return toCompletionsArray(completions);
+	private ICompletionProposal @Nullable [] calculateCompletion(ITextViewer viewer, final int offset,
+			CompilationUnit cu) {
+		for (SearchMode mode: SearchMode.values()) {
+			searchMode = mode;
+			List<WurstCompletion> completions = Lists.newArrayList();
+	
+	
+	
+			elem =  Utils.getAstElementAtPos(cu, lastStartPos, false);
+			WLogger.info("get completions at " + Utils.printElement(elem));
+			expectedType = null;
+			if (elem instanceof Expr) {
+				Expr expr = (Expr) elem;
+				expectedType = expr.attrExpectedTyp();
+				WLogger.info("....expected type = " + expectedType);
+			}
+	
+			calculateCompletions(completions, viewer, offset);
+	
+			dropBadCompletions(completions);
+			removeDuplicates(completions);
+	
+			//		Collections.sort(completions, c)
+	
+			if (completions.size() > 0) {
+				return toCompletionsArray(completions);
+			}
 		}
 		errorMessage = null;
 		return null;
@@ -333,9 +346,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private boolean isSuitableCompletion(String name) {
-		if (alreadyEntered.length() <= 2) {
+		if (searchMode == SearchMode.PREFIX) {
 			return name.toLowerCase().startsWith(alreadyEnteredLower);
-		} else if (alreadyEntered.length() <= 3) {
+		} else if (searchMode == SearchMode.INFIX) {
 			return name.toLowerCase().contains(alreadyEnteredLower);
 		} else {
 			return Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
