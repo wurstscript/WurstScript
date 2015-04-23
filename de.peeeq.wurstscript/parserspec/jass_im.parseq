@@ -212,6 +212,9 @@ JassImElement.getNearestFunc()
 	returns ImFunction
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getNearestFunc
 	
+ImType.equalsType(ImType other)
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.TypeEquality.isEqualType 
 	
 ImType.translateType()
 	returns String

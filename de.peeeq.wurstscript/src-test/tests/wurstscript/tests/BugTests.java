@@ -701,4 +701,22 @@ public class BugTests extends WurstScriptTest {
 				"endpackage"
 				);
 	}
+	
+	
+	@Test
+	public void doubleNativeDecl() { // see #353
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"init",
+				"	testSuccess()",
+				"endpackage",
+				"package other",
+				"native testSuccess()",
+				"init",
+				"	testSuccess()",
+				"endpackage"
+				);
+	}
+	
 }
