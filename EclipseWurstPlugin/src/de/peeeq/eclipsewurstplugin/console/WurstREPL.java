@@ -727,7 +727,7 @@ public class WurstREPL {
 	}
 
 	private boolean isInWurstFolder(String file) {
-		return file.matches("(.*/|^)wurst/.*\\.wurst");
+		return file.matches("(.*/|^)wurst/.*") && Utils.isWurstFile(file);
 	}
 	
 
