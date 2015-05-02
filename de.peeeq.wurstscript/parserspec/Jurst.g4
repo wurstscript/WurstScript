@@ -173,7 +173,7 @@ ondestroyDef:
 
 
 funcDef:
-       modifiersWithDoc ('function'|'method') funcSignature NL statementsBlock ('end'|'endfunction'|'endmethod') NL
+       modifiersWithDoc ('function'|'method') funcSignature NL (statementsBlock ('end'|'endfunction'|'endmethod') NL)?
        ;
 
 
