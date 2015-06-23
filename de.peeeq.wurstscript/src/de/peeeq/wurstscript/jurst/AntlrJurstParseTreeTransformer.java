@@ -396,13 +396,15 @@ public class AntlrJurstParseTreeTransformer {
 				return transformTupleDef(e.tupleDef());
 			} else if (e.extensionFuncDef() != null) {
 				return transformExtensionFuncDef(e.extensionFuncDef());
+			} else if (e.functionInterfaceDef() != null) {
+				return null; // TODO
 			}
 
 			if (e.exception != null) {
 				return null;
 			}
 			// TODO Auto-generated method stub
-			throw error(e, "not implemented " + text(e));
+			throw error(e, "entity not implemented " + text(e));
 		} catch (NullPointerException npe) {
 			// TODO
 			npe.printStackTrace();
@@ -445,6 +447,7 @@ public class AntlrJurstParseTreeTransformer {
 		case JurstParser.PROTECTED:
 			return Ast.VisibilityProtected(src);
 		case JurstParser.PULBICREAD:
+		case JurstParser.READONLY:
 			return Ast.VisibilityPublicread(src);
 		case JurstParser.STATIC:
 			return Ast.ModStatic(src);
@@ -454,8 +457,12 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.ModAbstract(src);
 		case JurstParser.CONSTANT:
 			return Ast.ModConstant(src);
+		case JurstParser.DELEGATE:
+			return Ast.Annotation(src, "delegate");
+		case JurstParser.STUB:
+			return Ast.Annotation(src, "stub");
 		}
-		throw error(m, "not implemented");
+		throw error(m, "modifier not implemented");
 	}
 
 	private WEntity transformTupleDef(TupleDefContext t) {
@@ -760,7 +767,7 @@ public class AntlrJurstParseTreeTransformer {
 		if (s.exception != null) {
 			return Ast.StmtErr(src);
 		} else {
-			throw error(s, "not implemented");
+			throw error(s, "set-statment not implemented");
 		}
 	}
 
@@ -791,7 +798,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private NameRef transformExprVarAccess(ExprVarAccessContext e) {
-		if (e.indexes() == null) {
+		if (e.indexes() == null || e.indexes().isEmpty()) {
 			return Ast.ExprVarAccess(source(e), text(e.varname));
 		} else {
 			return Ast.ExprVarArrayAccess(source(e), text(e.varname),
@@ -806,7 +813,7 @@ public class AntlrJurstParseTreeTransformer {
 
 	private NameRef transformExprMemberVarAccess2(WPos source,
 			ExprContext e_expr, Token e_dots, IdContext varname2,
-			@Nullable IndexesContext e_indexes) {
+			@Nullable List<IndexesContext> indexList) {
 		Expr left = transformExpr(e_expr);
 		
 		if (left instanceof ExprEmpty) {
@@ -814,8 +821,8 @@ public class AntlrJurstParseTreeTransformer {
 		}
 		
 		String varName = text(varname2);
-		if (e_indexes != null) {
-			Indexes indexes = transformIndexes(e_indexes);
+		if (indexList != null) {
+			Indexes indexes = transformIndexes(indexList);
 			if (e_dots.getType() == JurstParser.DOT) {
 				return Ast
 						.ExprMemberArrayVarDot(source, left, varName, indexes);
@@ -845,7 +852,7 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (s.forIteratorLoop() != null) {
 			return transformForIteratorLoop(s.forIteratorLoop());
 		}
-		throw error(s, "not implemented: " + text(s));
+		throw error(s, "for loop not implemented: " + text(s));
 	}
 
 	private WStatement transformForRangeLoop(ForRangeLoopContext s) {
@@ -865,7 +872,7 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (s.direction.getType() == JurstParser.DOWNTO) {
 			return Ast.StmtForRangeDown(source, loopVar, to, step, body);
 		}
-		throw error(s, "not implemented: " + text(s));
+		throw error(s, "for range loop not implemented: " + text(s));
 	}
 
 	private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v) {
@@ -1136,14 +1143,14 @@ public class AntlrJurstParseTreeTransformer {
 		case JurstParser.NOT:
 			return WurstOperator.NOT;
 		}
-		throw error(source(op), "not implemented: " + text(op));
+		throw error(source(op), "operator not implemented: " + text(op));
 	}
 
 	private Expr transformExprPrimary(ExprPrimaryContext e) {
 		if (e.atom != null) {
 			return transformAtom(e.atom);
 		} else if (e.varname != null) {
-			if (e.indexes() != null) {
+			if (e.indexes() != null && !e.indexes().isEmpty()) {
 				Indexes index = transformIndexes(e.indexes());
 				return Ast.ExprVarArrayAccess(source(e), text(e.varname),
 						index);
@@ -1164,7 +1171,7 @@ public class AntlrJurstParseTreeTransformer {
 			return transformExprFuncRef(e.exprFuncRef());
 		}
 		// TODO Auto-generated method stub
-		throw error(e, "not implemented " + text(e));
+		throw error(e, "primary expr not implemented " + text(e));
 	}
 
 	private ExprFuncRef transformExprFuncRef(ExprFuncRefContext e) {
@@ -1186,9 +1193,11 @@ public class AntlrJurstParseTreeTransformer {
 		return Ast.ExprClosure(source(e), parameters, implementation);
 	}
 
-	private Indexes transformIndexes(IndexesContext indexes) {
+	private Indexes transformIndexes(List<IndexesContext> indexList) {
 		Indexes result = Ast.Indexes();
-		result.add(transformExpr(indexes.expr()));
+		for (IndexesContext i : indexList) {
+			result.add(transformExpr(i.expr()));
+		}
 		return result;
 	}
 
@@ -1212,7 +1221,7 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.ExprSuper(source);
 		}
 		// TODO Auto-generated method stub
-		throw error(source(a), "not implemented: " + text(a));
+		throw error(source(a), "atom not implemented: " + text(a));
 	}
 
 	private String getStringVal(WPos source, String text) {

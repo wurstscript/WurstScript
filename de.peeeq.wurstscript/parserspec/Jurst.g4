@@ -85,7 +85,7 @@ jassTypeDecl: 'type' name=id 'extends' extended=typeExpr NL;
 
 wpackage: ('package'|'library'|'scope') name=id 
 		  ('initializer' initializer=id)?
-		  (('uses'|'requires'|'needs') requires+=id (',' requires+=id)*)?	  
+		  (('uses'|'requires'|'needs') 'optional'? requires+=id (',' 'optional'? requires+=id)*)?	  
 		  NL 
 	imports+=wImport* entities+=entity*
 	('endpackage'|'endlibrary'|'endscope') NL
@@ -101,6 +101,7 @@ wImport:
 entity: 
         nativeType
       | funcDef
+      | functionInterfaceDef
 	  | globalsBlock
       | initBlock
       | nativeDef
@@ -127,7 +128,7 @@ interfaceDef:
  
 classDef:
             modifiersWithDoc ('class'|'struct') name=id typeParams 
-            ('extends' extended=typeExpr)? 
+            ('extends' (extended=typeExpr | 'array'))? 
             ('implements' implemented+=typeExpr (',' implemented+=typeExpr)*)?
             NL
                 classSlots
@@ -164,7 +165,7 @@ constructorDef:
               ;
        
 moduleUse: 
-         modifiersWithDoc ('use'|'implement') moduleName=id typeArgs NL
+         modifiersWithDoc ('use'|'implement') optional='optional'? moduleName=id typeArgs NL
          ;
 
 ondestroyDef:
@@ -173,11 +174,17 @@ ondestroyDef:
 
 
 funcDef:
-       modifiersWithDoc ('function'|'method') funcSignature NL statementsBlock ('end'|'endfunction'|'endmethod') NL
+       modifiersWithDoc ('function'|'method') funcSignature 
+       (
+	         NL statementsBlock ('end'|'endfunction'|'endmethod')
+	       | 'defaults' (defaultExpr=expr|defaultsNothing='nothing')
+       )? 
+       NL 
        ;
 
-
-
+functionInterfaceDef:
+	modifiersWithDoc 'function' 'interface' funcSignature NL
+    ;
 
 
 
@@ -192,10 +199,13 @@ modifier:
 		| 'private'
 		| 'protected'
 		| 'publicread'
+		| 'readonly'
 		| 'static'
 		| 'override'
 		| 'abstract' 
 		| 'constant'
+		| 'delegate'
+		| 'stub'
 			)
 		| annotation
 		;
@@ -221,13 +231,13 @@ formalParameter:
 typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
-		| typeExpr 'array'
+		| typeExpr 'array' ('[' arraySizes=expr ']')*
 		;
 
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=id ('=' initial=expr)? NL 
+		  name=id ('[' arraySizes=expr ']')* ('=' initial=expr)? NL 
 	  ;		  
 
 statements: statement*;
@@ -323,12 +333,12 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=id indexes?
+				 expr dots=('.'|'..') varname=id indexes*
 			 ;
 
 
 exprVarAccess:
-				 varname=id indexes?
+				 varname=id indexes*
 			 ;
 
 
@@ -354,7 +364,7 @@ expr:
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
 	  | receiver=expr dotsCall=('.'|'..') funcName=id? typeArgs '(' exprList ')'
-	  | receiver=expr dotsVar=('.'|'..') varName=id? indexes?
+	  | receiver=expr dotsVar=('.'|'..') varName=id? indexes*
 	  |	'destroy' destroyedObject=expr
 	  | destroyedObject=expr '.' 'destroy' '(' ')'
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
@@ -384,7 +394,7 @@ exprPrimary:
 	  | 'this'
 	  | 'super')
 	  | exprFuncRef
-      | varname=id indexes?
+      | varname=id indexes*
       | '(' expr ')' 
 	;
 
@@ -472,6 +482,9 @@ FUNCTION: 'function';
 RETURNS: 'returns';
 PUBLIC: 'public';
 PULBICREAD: 'publicread';
+READONLY: 'readonly';
+DELEGATE: 'delegate';
+STUB: 'stub';
 PRIVATE: 'private';
 PROTECTED: 'protected';
 IMPORT: 'import';
