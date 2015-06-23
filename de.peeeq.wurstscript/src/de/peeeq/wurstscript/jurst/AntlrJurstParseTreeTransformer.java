@@ -647,12 +647,15 @@ public class AntlrJurstParseTreeTransformer {
 		OptExpr initialExpr = transformOptionalExpr(v.initial);
 		String name = text(v.name);
 		OptTypeExpr optTyp = transformOptionalType(v.varType);
-		if (v.arraySize != null) {
+		if (v.arraySizes != null && !v.arraySizes.isEmpty()) {
 			if (optTyp instanceof TypeExprArray) {
 				TypeExprArray arType = (TypeExprArray) optTyp;
-				arType.setArraySize(transformOptionalExpr(v.arraySize));
+				arType.setArraySize(transformOptionalExpr(v.arraySizes.get(0)));
+				if (v.arraySizes.size() > 1) {
+					throw error(v.arraySizes.get(1), "Only one-dimensional arrays are supported currently.");
+				}
 			} else {
-				throw error(v.arraySize, "Array size can only be given for array types.");
+				throw error(v.arraySizes.get(0), "Array size can only be given for array types.");
 			}
 		}
 		return Ast.GlobalVarDef(source, modifiers, optTyp, name, initialExpr);
@@ -1310,8 +1313,16 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.TypeExprSimple(source(t), text(t.typeName),
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
+			ExprContext arrSize = null; 
+			if (t.arraySizes != null && !t.arraySizes.isEmpty()) {
+				arrSize = t.arraySizes.get(0);
+				if (t.arraySizes.size() > 1) {
+					error(t.arraySizes.get(1), "Currently only one dimension is allowed for arrays.");
+				}
+			}
+			
 			return Ast
-					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(t.arraySize));
+					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(arrSize));
 		}
 		throw error(t, "not implemented " + t.toStringTree());
 	}

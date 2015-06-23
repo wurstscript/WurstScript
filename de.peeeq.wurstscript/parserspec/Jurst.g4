@@ -231,13 +231,13 @@ formalParameter:
 typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
-		| typeExpr 'array' ('[' arraySizes=expr ']')*
+		| typeExpr 'array' ('[' arraySizes+=expr ']')*
 		;
 
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=id ('[' arraySizes=expr ']')* ('=' initial=expr)? NL 
+		  name=id ('[' arraySizes+=expr ']')* ('=' initial=expr)? NL 
 	  ;		  
 
 statements: statement*;
