@@ -28,7 +28,6 @@ public class ExtendedWurstLexer implements TokenSource {
 	private Token firstNewline;
 	private int numberOfTabs;
 	private LineOffsets lineOffsets = new LineOffsets();
-	public StringBuilder debugSb = new StringBuilder();
 	private final boolean debug = false;
 	private Pair<TokenSource, CharStream> sourcePair;
 	private boolean isWurst = false;
@@ -77,7 +76,6 @@ public class ExtendedWurstLexer implements TokenSource {
 		Token t = nextTokenIntern();
 		lastToken = t;
 
-		debugSb.append(t.getText() + " ");
 		if (debug) System.out.println("		new token: " + t);
 		return t;		
 	}

@@ -88,7 +88,7 @@ wpackage: ('package'|'library'|'scope') name=id
 		  (('uses'|'requires'|'needs') 'optional'? requires+=id (',' 'optional'? requires+=id)*)?	  
 		  NL 
 	imports+=wImport* entities+=entity*
-	('endpackage'|'endlibrary'|'endscope') NL
+	('endpackage'|'endlibrary'|'endscope'|'end') NL
 	;
 
 
@@ -115,7 +115,7 @@ entity:
 ;
 
 
-globalsBlock: 'globals' NL vars+=varDef* 'endglobals' NL;
+globalsBlock: 'globals' NL vars+=varDef* ('endglobals' | 'end') NL;
 
 interfaceDef:
                 modifiersWithDoc 'interface' name=id typeParams 

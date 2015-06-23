@@ -592,7 +592,7 @@ AstElement.getModel()
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getModel
 
 CompilationUnit.attrGetByType
-	returns de.peeeq.wurstscript.attributes.GetByType.ByTypes
+	returns de.peeeq.wurstscript.attributes.ByTypes
 	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
 	
 

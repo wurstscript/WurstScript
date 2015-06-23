@@ -729,9 +729,12 @@ public class WurstValidator {
 				return;
 			}
 		} else {
-			
 			if (p.getParent().getParent() instanceof TupleDef) {
 				// ignore tuples
+				return;
+			}
+			if (p.getParent().getParent() instanceof NativeFunc) {
+				// ignore native functions
 				return;
 			}
 		}

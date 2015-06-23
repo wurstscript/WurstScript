@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -11,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassImElement;
@@ -117,6 +120,8 @@ public class ImAttributes {
 	public static ImClass attrClass(ImMethod m) {
 		return (ImClass) m.getParent().getParent();
 	}
+
+
 
 
 

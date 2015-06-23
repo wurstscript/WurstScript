@@ -3,10 +3,15 @@ package de.peeeq.eclipsewurstplugin.ui;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.TokenStream;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
@@ -18,15 +23,21 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchWindow;
 import org.eclipse.ui.handlers.HandlerUtil;
+import org.junit.Assert;
+import org.junit.Test;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
+import de.peeeq.eclipsewurstplugin.console.WurstConsole;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.WCTFile;
 import de.peeeq.wurstio.objectreader.WCTFile.CustomTextTrigger;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.jurst.ExtendedJurstLexer;
+import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 
 
 public class ExtractJurstCommand extends AbstractHandler implements IHandler {
@@ -112,14 +123,33 @@ public class ExtractJurstCommand extends AbstractHandler implements IHandler {
 	}
 
 	private static String extractPackageName(String contents) {
-		Pattern p = Pattern.compile("(scope|library|package) ([a-zA-Z0-9\\_]+)");
-		Matcher m = p.matcher(contents);
-
-		if (m.find()) {
-		    return m.group(2);
+		ANTLRInputStream input;
+		try {
+			input = new ANTLRInputStream(new StringReader(contents));
+			final ExtendedJurstLexer lexer = new ExtendedJurstLexer(input);
+			
+			while (true) {
+				Token t = lexer.nextToken();
+				if (t.getType() == JurstParser.EOF) {
+					return "_";
+				}
+				if (t.getType() == JurstParser.SCOPE 
+						|| t.getType() == JurstParser.LIBRARY
+						|| t.getType() == JurstParser.PACKAGE) {
+					t = lexer.nextToken();
+					return t.getText();
+				}
+			}
+		} catch (Exception e) {
+			WLogger.info(e);
+			return "err";
 		}
-		
-		return "_";
+	}
+	
+	@Test
+	public void testExtractPackageName() {
+		String s = extractPackageName("/* library foo */ library bar for");
+		Assert.assertEquals("bar", s);
 	}
 
 }

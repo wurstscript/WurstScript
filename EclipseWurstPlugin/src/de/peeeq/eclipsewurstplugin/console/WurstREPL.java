@@ -106,7 +106,7 @@ public class WurstREPL {
 	private static final String REPL_DUMMY_FILENAME = "<REPL>";
 	private static final String WURST_REPL_RESULT = "res";
 	private IOConsoleOutputStream out;
-	private ModelManager modelManager;
+	private @Nullable ModelManager modelManager;
 	private ReplGui gui;
 	private @Nullable CompilationUnit editorCu;
 	private ILInterpreter interpreter;
@@ -403,6 +403,10 @@ public class WurstREPL {
 	}
 
 	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) { 
+		if (modelManager == null) {
+			throw new RuntimeException("Model manager not set");
+		}
+		
 		// TODO use normal compiler for this, avoid code duplication
 		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
 		try {
@@ -570,19 +574,34 @@ public class WurstREPL {
 		modelManager.clean();
 	}
 	
-	private IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
+	private @Nullable IFile compileScript(List<String> compileArgs, File mapFile) throws Exception {
+		ModelManager modelMngr = modelManager;
+		if (modelMngr == null) {
+			throw new RuntimeException("Model manager not set");
+		}
+		
 		if (compileArgs.contains("-clean")) {
 			println("Cleaning project ... ");
 			cleanProject();
 			compileArgs.remove("-clean");
 		}
 		gui.clearErrors();
-		IProject project = modelManager.getNature().getProject();
+		IProject project = modelMngr.getNature().getProject();
 		println("building project "+project.getName()+", please wait ...");
 		project.build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
 		
 		
-		for (CompilationUnit cu: modelManager.getModel()) {
+		if (gui.getErrorCount() > 0) {
+			print("Could not compile project\n");
+			return null;
+		}
+		
+		WurstModel theModel = modelMngr.getModel();
+		if (theModel == null) {
+			throw new RuntimeException("Wurst model is null, make sure that there are no compilation errors.");
+		}
+		
+		for (CompilationUnit cu: theModel) {
 			for (WPackage p : cu.getPackages()) {
 				System.out.println(p.getName());
 				for (WImport imp : p.getImports()) {
@@ -599,7 +618,7 @@ public class WurstREPL {
 		}
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
-		WurstModel model = modelManager.getModel().copy(); // TODO maybe create a copy
+		WurstModel model = theModel.copy(); // TODO maybe create a copy
 		purgeUnimportedFiles(model);
 		model.clearAttributes();
 		
@@ -708,7 +727,7 @@ public class WurstREPL {
 	}
 
 	private boolean isInWurstFolder(String file) {
-		return file.matches("(.*/|^)wurst/.*\\.wurst");
+		return file.matches("(.*/|^)wurst/.*") && Utils.isWurstFile(file);
 	}
 	
 
@@ -722,7 +741,6 @@ public class WurstREPL {
 	}
 
 	private void runTests() {
-		modelManager.removeCompilationUnit(null);
 		ImProg imProg = translateProg();
 		if (imProg == null) {
 			return;
@@ -755,7 +773,7 @@ public class WurstREPL {
 		}
 	}
 
-	private ImProg translateProg() {
+	private @Nullable ImProg translateProg() {
 		gui.clearErrors();
 		WurstModel model = modelManager.getModel();
 		modelManager.typeCheckModel(gui, false);

@@ -102,13 +102,15 @@ public function unit.setVertexColor(int r, int g, int b, int a)
 	
 public function unit.addEffect(string fx, string attachment) returns effect
 	return AddSpecialEffectTarget(fx, this, attachment)
-
+	
 public function unit.setFacing(real deg)
 	SetUnitFacing(this, deg)
 
 public function unit.setFacing(angle a)
 	SetUnitFacing(this, a.degrees())
 	
+/** Returns the unit's facing in degrees.
+	!Use .getFacingAngle() instead. */
 public function unit.getFacing() returns real
 	return GetUnitFacing(this)
 	

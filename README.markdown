@@ -71,14 +71,29 @@ Building this project with eclipse is recommended.
 - Execute the "make_for_wurstpack" task from the build-jar.xml file. This will generate a new compiler jar and place it into the 
 	Wurstpack folder.
 
-### Using the command line
+### Using the command line (with ant)
 
 To build the project from the commandline you need ant installed on your system.
 
-- run "ant -buildfile build-wurst.xml compile" to compile the project
-- run "ant -buildfile build-jar.xml make_for_wurstpack"
+1. change to the compiler directory `de.peeeq.wurstscript`
+2. run `ant -buildfile build-wurst.xml compile` to compile the project
+3. run `ant -buildfile build-jar.xml make_for_wurstpack`
 
 The effects should be the same as when invoking ant from eclipse.
+
+The command `ant -buildfile build-wurst.xml clean` can be used to clean the generated and compiled files (sometimes necessary when there are problems after code changes).
+
+### Alternative building (ant + mvn)
+
+Java 8 has a performance bug, which causes long compile times in Wurst.
+As an alternative the project can be compiled with maven and the eclipse compiler.
+This process is used on the build server.
+
+1. change to the compiler directory `de.peeeq.wurstscript`
+1. execute `ant -buildfile build-generate-mvn.xml updateversions`
+2. run `ant -buildfile build-wurst.xml gen` to compile the project
+3. change to the Wurst repository root directory
+3. run `mvn clean package` to compile the project (`clean` is optional )
 
 ## Building the eclipse plugin
 

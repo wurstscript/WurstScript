@@ -22,13 +22,16 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
@@ -88,8 +91,12 @@ import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
+import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.ImMethodCall;
+import de.peeeq.wurstscript.jassIm.ImPrintable.Visitor;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
@@ -200,6 +207,7 @@ public class ImTranslator {
 			}
 			finishInitFunctions();
 			EliminateCallFunctionsWithAnnotation.process(imProg);
+			removeDuplicateNatives(imProg);
 
 			return imProg;
 		} catch (CompileError t) {
@@ -210,6 +218,61 @@ public class ImTranslator {
 					"\nPlease open a ticket with source code and the error log.", t);
 		}
 	}
+
+	/***
+	 * this phase removes duplicate native declarations
+	 */
+	private void removeDuplicateNatives(ImProg imProg) {
+		Map<String, ImFunction> natives = new HashMap<>();
+		Map<ImFunction, ImFunction> removed = new HashMap<>();
+		ListIterator<ImFunction> it = imProg.getFunctions().listIterator();
+		while (it.hasNext()) {
+			ImFunction f = it.next();
+			if (f.isNative() && natives.containsKey(f.getName())) {
+				ImFunction existing = natives.get(f.getName());
+				if (!compatibleTypes(f, existing)) {
+					throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " + existing.attrTrace().attrErrorPos());
+				}
+				// remove duplicate
+				it.remove();
+				removed.put(f, existing);
+			} else {
+				natives.put(f.getName(), f);
+			}
+		}
+		// rewrite removed links
+		imProg.accept(new ImProg.DefaultVisitor() {
+			public void visit(ImFunctionCall e) {
+				if (removed.containsKey(e.getFunc())) {
+					e.setFunc(removed.get(e.getFunc()));
+				}
+			}
+			
+			public void visit(ImFuncRef e) {
+				if (removed.containsKey(e.getFunc())) {
+					e.setFunc(removed.get(e.getFunc()));
+				}
+			}
+		});
+	}
+
+
+	/** checks if two functions f and g have compatible types */
+	private boolean compatibleTypes(ImFunction f, ImFunction g) {
+		if (!f.getReturnType().equalsType(g.getReturnType())) {
+			return false;
+		}
+		if (f.getParameters().size() != g.getParameters().size()) {
+			return false;
+		}
+		for (int i=0; i<f.getParameters().size(); i++) {
+			if (!f.getParameters().get(i).getType().equalsType(g.getParameters().get(i).getType())) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 
 	private ArrayList<FunctionFlag> flags(FunctionFlag ... flags) {
 		return Lists.newArrayList(flags);

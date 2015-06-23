@@ -49,6 +49,7 @@ import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.SwitchCases;
 import de.peeeq.wurstscript.ast.SwitchDefaultCase;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprArray;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
@@ -646,6 +647,14 @@ public class AntlrJurstParseTreeTransformer {
 		OptExpr initialExpr = transformOptionalExpr(v.initial);
 		String name = text(v.name);
 		OptTypeExpr optTyp = transformOptionalType(v.varType);
+		if (v.arraySize != null) {
+			if (optTyp instanceof TypeExprArray) {
+				TypeExprArray arType = (TypeExprArray) optTyp;
+				arType.setArraySize(transformOptionalExpr(v.arraySize));
+			} else {
+				throw error(v.arraySize, "Array size can only be given for array types.");
+			}
+		}
 		return Ast.GlobalVarDef(source, modifiers, optTyp, name, initialExpr);
 	}
 
@@ -1301,11 +1310,12 @@ public class AntlrJurstParseTreeTransformer {
 			return Ast.TypeExprSimple(source(t), text(t.typeName),
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
-			return Ast.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), Ast.NoExpr());
+			return Ast
+					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(t.arraySize));
 		}
-		return Ast.TypeExprSimple(source(t), "???", Ast.TypeExprList());
-//		throw error(t, "not implemented " + t.getText());
+		throw error(t, "not implemented " + t.toStringTree());
 	}
+	
 
 	private CompileError error(WPos source, String msg) {
 		return new CompileError(source, msg);
