@@ -833,7 +833,7 @@ public class AntlrJurstParseTreeTransformer {
 		}
 		
 		String varName = text(varname2);
-		if (indexList != null) {
+		if (indexList != null && !indexList.isEmpty()) {
 			Indexes indexes = transformIndexes(indexList);
 			if (e_dots.getType() == JurstParser.DOT) {
 				return Ast
