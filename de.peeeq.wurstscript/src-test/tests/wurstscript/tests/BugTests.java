@@ -3,9 +3,12 @@ package tests.wurstscript.tests;
 import java.io.File;
 import java.io.IOException;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 public class BugTests extends WurstScriptTest {
+	
+	
 
 	private static final String TEST_DIR = "./testscripts/concept/";
 	
@@ -714,6 +717,22 @@ public class BugTests extends WurstScriptTest {
 				"package other",
 				"native testSuccess()",
 				"init",
+				"	testSuccess()",
+				"endpackage"
+				);
+	}
+	
+	@Test
+	public void optBug() {
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"@extern native I2S(int x) returns string",
+				"init",
+				"	int x = 0",
+				"	x = x + 1",
+				"	x = x",
+				"	I2S(x)",
 				"	testSuccess()",
 				"endpackage"
 				);

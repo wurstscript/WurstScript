@@ -64,8 +64,21 @@ public class TempMerger {
 		Replacement replacement = null;
 		do { // repeat while there are changes found
 			kn.clear();
-			 // this terminates, because each replacement eliminates one set-statement
+			// this terminates, because each replacement eliminates one set-statement
+			// FIXME this is no longer true, because assignments which are used more than once are not removed
 			for (ImStmt s : stmts) {
+				if (s instanceof ImSet) {
+					ImSet imSet = (ImSet) s;
+					if (imSet.getRight() instanceof ImVarAccess) {
+						ImVarAccess right = (ImVarAccess) imSet.getRight();
+						if (imSet.getLeft() == right.getVar()) {
+							// statement has the form 'x = x' so remove it
+							imSet.replaceWith(JassIm.ImNull());
+							continue;
+						}
+					}
+				}
+				
 				replacement = processStatement(s, kn);
 				if (replacement != null) {
 					// do the replacement
@@ -317,6 +330,13 @@ public class TempMerger {
 			if (left.isGlobal()) {
 				// never merge globals
 				return false;
+			}
+			if (e instanceof ImVarAccess) {
+				ImVarAccess va = (ImVarAccess) e;
+				if (va.getVar() == left) {
+					// this is a stupid assignment, ignore it
+					return false;
+				}
 			}
 			if (left.attrReads().size() == 1) {
 				// variable read exactly once can be replaced
