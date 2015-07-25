@@ -98,7 +98,7 @@ public class WurstNature implements IProjectNature {
 		return project;
 	}
 
-	public void setProject(IProject project) {
+	public void setProject(@Nullable IProject project) {
 		this.project = project;
 	}
 
@@ -184,7 +184,7 @@ public class WurstNature implements IProjectNature {
 				getProject().accept(new IResourceVisitor() {
 					
 					@Override
-					public boolean visit(IResource resource) throws CoreException {
+					public boolean visit(@Nullable IResource resource) throws CoreException {
 						// TODO maybe I have to clear markers in folders?
 						if (fileNames.contains(resource.getProjectRelativePath().toString())) {
 							resource.deleteMarkers(markerType, false, IResource.DEPTH_ZERO);
@@ -197,11 +197,11 @@ public class WurstNature implements IProjectNature {
 			}
 	}
 
-	public static WurstNature get(final IProject p) {
+	public static @Nullable WurstNature get(final IProject p) {
 		return get(p, false);
 	}
 	
-	public static WurstNature get(final IProject p, boolean askAddNature) {
+	public static @Nullable WurstNature get(final IProject p, boolean askAddNature) {
 		if (p == null) {
 			return null;
 		}
@@ -245,7 +245,7 @@ public class WurstNature implements IProjectNature {
 		
 	}
 
-	private WurstEditor open(String fileName, int offset) {
+	private @Nullable WurstEditor open(String fileName, int offset) {
 		IFile file = getProject().getFile(fileName);
 		if (file.exists()) {
 			WurstEditor editor = open(file, offset);
@@ -268,7 +268,7 @@ public class WurstNature implements IProjectNature {
 		return null;
 	}
 	
-	public WurstEditor open(IFile file, int offset) {
+	public @Nullable WurstEditor open(IFile file, int offset) {
 		try {
 			IEditorPart editor = IDE.openEditor(getActiveWorkbenchPage(), file);
 			if (editor instanceof WurstEditor) {

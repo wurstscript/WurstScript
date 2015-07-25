@@ -403,7 +403,9 @@ public class WurstREPL {
 	}
 
 	public void runMap(File map, List<String> compileArgs, IProgressMonitor monitor) { 
-		if (modelManager == null) {
+		@Nullable
+		ModelManager modelManager2 = modelManager;
+		if (modelManager2 == null) {
 			throw new RuntimeException("Model manager not set");
 		}
 		
@@ -435,6 +437,18 @@ public class WurstREPL {
 			// first compile the script:
 			monitor.beginTask("Compiling Script", 100);
 			IFile compiledScript = compileScript(compileArgs, testMap);
+			
+			
+			WurstModel model = modelManager2.getModel();
+			if (model == null
+				|| !model.stream()
+					.anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+				println("No 'war3map.j' file could be found");
+				println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
+				println("We will try to start the map now, but it will probably fail. ");
+			}
+			
+			@SuppressWarnings("unused") // for side effects!
 			RunArgs runArgs = new RunArgs(compileArgs);
 
 			println("preparing testmap ... ");
