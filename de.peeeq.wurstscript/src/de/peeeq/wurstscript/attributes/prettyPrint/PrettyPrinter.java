@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.ast.*;
 
 public class PrettyPrinter {
@@ -393,6 +395,11 @@ public class PrettyPrinter {
 	}
 
 	public static void prettyPrint(WImports wImports, Spacer spacer, StringBuilder sb, int indent) {
+		// TODO Auto-generated method stub
+		throw new Error("not implemented");
+	}
+
+	public static void prettyPrint(ClassDefs classDefs, Spacer spacer, StringBuilder sb, int indent) {
 		// TODO Auto-generated method stub
 		throw new Error("not implemented");
 	}

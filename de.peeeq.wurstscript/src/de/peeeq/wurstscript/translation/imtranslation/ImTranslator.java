@@ -1162,7 +1162,7 @@ public class ImTranslator {
 	}
 
 
-	Map<StructureDef, ImClass> classForStructureDef = Maps.newLinkedHashMap();
+	Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 	public ImClass getClassFor(StructureDef s) {
 		ImClass c = classForStructureDef.get(s);
 		if (c == null) {

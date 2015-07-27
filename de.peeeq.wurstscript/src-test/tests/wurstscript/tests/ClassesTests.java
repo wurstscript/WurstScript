@@ -843,4 +843,65 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void testInnerClass_static1() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		static class B",
+				"			function foo() returns int",
+				"				return 4",
+				"		function bar() returns int",
+				"			let b = new B",
+				"			return b.foo()*10+2",
+				"	init",
+				"		let i = new A.bar()",
+				"		if i == 42",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void testInnerClass_module() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	module M",
+				"		static class B",
+				"			function foo() returns int",
+				"				return 4",
+				"		function bar() returns int",
+				"			let b = new B",
+				"			return b.foo()*10+2",
+				"	class A",
+				"		use M",
+				"	init",
+				"		let i = new A.bar()",
+				"		if i == 42",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void testInnerClass_static_from_outside() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		static class B",
+				"			function foo() returns int",
+				"				return 4",
+				"		function getB() returns B",
+				"			return new B",
+				"	init",
+				"		let b = new A.getB()",
+				"		if b.foo() == 4",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 }

@@ -147,6 +147,7 @@ classSlot:
          | ondestroyDef
          | varDef
          | funcDef
+         | classDef
          ;
 
 constructorDef:

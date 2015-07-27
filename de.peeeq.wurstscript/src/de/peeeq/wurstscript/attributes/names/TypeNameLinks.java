@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.EnumDef;
@@ -28,6 +31,9 @@ public class TypeNameLinks {
 	public static ImmutableMultimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
 		ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
 		addTypeParametersIfAny(result, c);
+		for (ClassDef innerClass : c.getInnerClasses()) {
+			result.put(innerClass.getName(), NameLink.create(innerClass, c));
+		}
 		result.put(c.getName(), c.createNameLink(c.attrNextScope()));
 		return result.build();
 	}

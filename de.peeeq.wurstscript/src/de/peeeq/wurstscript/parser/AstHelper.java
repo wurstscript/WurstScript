@@ -57,51 +57,6 @@ public class AstHelper {
 		return result;
 	}
 
-	public static ClassDef ClassDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, OptTypeExpr extendedClass, TypeExprList il,
-			List<ClassSlot> slots) {
-		ClassDef c = Ast.ClassDef(pos, mod, name, typeParams, extendedClass, il, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos.withRightPos(pos.getLeftPos()-1), Ast.WStatements()));
-		addClassSlots(slots, c);		
-		return c;
-	}
-
-	private static void addClassSlots(List<? extends ClassSlot> slots, StructureDef c) throws CompileError {
-		for (ClassSlot s : slots) {
-			if (s instanceof FuncDef) {
-				c.getMethods().add((FuncDef) s);
-			} else if (s instanceof GlobalVarDef) {
-				c.getVars().add((GlobalVarDef) s);
-			} else if (s instanceof ConstructorDef) {
-				c.getConstructors().add((ConstructorDef) s);
-			} else if (s instanceof ModuleUse) {
-				c.getModuleUses().add((ModuleUse) s);
-			} else if (s instanceof OnDestroyDef) {
-				OnDestroyDef odf = (OnDestroyDef) s;
-				if (!c.getOnDestroy().getBody().isEmpty()) {
-					throw new CompileError(odf.getSource(), "There must not be more than one ondestroy block.");
-				}
-				c.setOnDestroy(odf);
-			} else {
-				throw new CompileError(s.getSource(), "Unhandled case for classSlot: " + s.getClass());
-			}
-		}
-	}
-
-	public static ModuleDef ModuleDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, List<ClassSlot> slots) {
-		ModuleDef m = Ast.ModuleDef(pos, mod, name, typeParams, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
-		addClassSlots(slots, m);		
-		return m;
-	}
-
-	public static InterfaceDef InterfaceDef(WPos pos, Modifiers mod, String name, TypeParamDefs typeParams, TypeExprList el,
-			List<ClassSlot> slots) {
-		InterfaceDef i = Ast.InterfaceDef(pos, mod, name, typeParams, el, Ast.FuncDefs(), Ast.GlobalVarDefs(), 
-				Ast.ConstructorDefs(), Ast.ModuleInstanciations(), Ast.ModuleUses(), Ast.OnDestroyDef(pos, Ast.WStatements()));
-		addClassSlots(slots, i);		
-		return i;
-	}
-
 
 	public static CompilationUnit addFront(CompilationUnit c,	TopLevelDeclaration p) {
 		// TODO would it be important to add this to the front?

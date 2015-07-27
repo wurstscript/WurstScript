@@ -32,7 +32,7 @@ WEntity =
 	| InitBlock (de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| NativeFunc(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
 	| ModuleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
-			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	
 
@@ -50,7 +50,7 @@ OptExpr = NoExpr() | Expr
 TypeDef = 
 	  NativeType(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
 	| ClassDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
-			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| InterfaceDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
 			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
@@ -60,6 +60,7 @@ TypeDef =
 	| EnumDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, EnumMembers members )
 	| StructureDef
 	
+ClassDefs * ClassDef
 EnumMembers * EnumMember
 FuncDefs * FuncDef
 GlobalVarDefs * GlobalVarDef
@@ -78,9 +79,10 @@ ClassSlot =
 	| OnDestroyDef(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, String moduleName, TypeExprList typeArgs)
 	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, 
-			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
 	| ClassMember
+	| ClassDef
 	
 ClassMember = 
 	  GlobalVarDef
@@ -575,6 +577,10 @@ ClassDef.attrExtendedClass
 ClassDef.attrExtendedClassType
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClassType
+
+ClassDef.isInnerClass()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.InnerClasses.isInnerClass
 
 ConstructorDef.attrSuperConstructor
 	returns ConstructorDef

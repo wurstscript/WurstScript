@@ -6,11 +6,14 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassDefs;
 import de.peeeq.wurstscript.ast.ClassSlot;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -513,6 +516,8 @@ public class AntlrJurstParseTreeTransformer {
 					}
 				} else if (s instanceof GlobalVarDef) {
 					result.vars.add((GlobalVarDef) s);
+				} else if (s instanceof ClassDef) {
+					result.innerClasses.add((ClassDef) s);
 				} else if (s != null) {
 					throw error(slot, "unexpected classslot: "
 							+ s.getClass().getSimpleName());
@@ -586,7 +591,7 @@ public class AntlrJurstParseTreeTransformer {
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		ClassSlotResult slots = transformClassSlots(src, i.classSlots());
 		return Ast.ModuleDef(src, modifiers, name, typeParameters,
-				slots.methods, slots.vars, slots.constructors,
+				slots.innerClasses, slots.methods, slots.vars, slots.constructors,
 				slots.moduleInstanciations, slots.moduleUses, slots.onDestroy);
 	}
 
@@ -613,7 +618,7 @@ public class AntlrJurstParseTreeTransformer {
 		}
 		ClassSlotResult slots = transformClassSlots(src, i.classSlots());
 		return Ast.ClassDef(src, modifiers, name, typeParameters,
-				extendedClass, implementsList, slots.methods, slots.vars,
+				extendedClass, implementsList, slots.innerClasses, slots.methods, slots.vars,
 				slots.constructors, slots.moduleInstanciations,
 				slots.moduleUses, slots.onDestroy);
 	}
@@ -1413,6 +1418,7 @@ public class AntlrJurstParseTreeTransformer {
 
 	class ClassSlotResult {
 
+		public ClassDefs innerClasses = Ast.ClassDefs();
 		public ConstructorDefs constructors = Ast.ConstructorDefs();
 		public ModuleInstanciations moduleInstanciations = Ast
 				.ModuleInstanciations();

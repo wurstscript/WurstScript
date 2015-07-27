@@ -11,6 +11,8 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -67,6 +69,15 @@ public class ClassTranslator {
 	public static void translate(ClassDef classDef, ImTranslator translator) {
 		new ClassTranslator(classDef, translator).translate();
 
+		// translate inner classes:
+		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
+			for (ClassDef innerClass : mi.getInnerClasses()) {
+				translate(innerClass, translator);
+			}	
+		}
+		for (ClassDef innerClass : classDef.getInnerClasses()) {
+			translate(innerClass, translator);
+		}
 	}
 
 	/**
