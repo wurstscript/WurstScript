@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Lists;
@@ -250,4 +251,19 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		}
 	}
 	
+	@Override
+	public boolean isNestedInside(WurstType other) {
+		if (other instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
+			NamedScope scope = wtns.getDef();
+			AstElement node = this.getDef();
+			while (node != null) {
+				if (node == scope) {
+					return true;
+				}
+				node = node.getParent();
+			}
+		}
+		return false;
+	}
 }

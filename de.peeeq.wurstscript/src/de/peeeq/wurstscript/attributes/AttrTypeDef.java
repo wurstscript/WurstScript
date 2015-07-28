@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -41,32 +42,33 @@ public class AttrTypeDef {
 	}
 
 	private static @Nullable String getTypeName(TypeRef node) {
-		return node.match(new TypeRef.Matcher<String>() {
+		return node.match(new TypeRef.Matcher<@Nullable String>() {
 
 			@Override
-			public String case_TypeExprSimple(@SuppressWarnings("null") TypeExprSimple typeExprSimple) {
+			public String case_TypeExprSimple(TypeExprSimple typeExprSimple) {
 				return typeExprSimple.getTypeName();
 			}
 
 			@Override
-			public String case_ExprNewObject(@SuppressWarnings("null") ExprNewObject exprNewObject) {
+			public String case_ExprNewObject(ExprNewObject exprNewObject) {
 				return exprNewObject.getTypeName();
 			}
 
 			@Override
-			public @Nullable String case_TypeExprThis(@SuppressWarnings("null") TypeExprThis typeExprThis) {
+			public @Nullable String case_TypeExprThis(TypeExprThis typeExprThis) {
 				return null;
 			}
 
 			@Override
-			public @Nullable String case_TypeExprArray(@SuppressWarnings("null") TypeExprArray typeExprArray) {
+			public @Nullable String case_TypeExprArray(TypeExprArray typeExprArray) {
 				return null;
 			}
 
 			@Override
-			public String case_TypeExprResolved(@SuppressWarnings("null") TypeExprResolved t) {
+			public String case_TypeExprResolved(TypeExprResolved t) {
 				return t.attrTyp().getName();
 			}
+
 		});
 	}
 

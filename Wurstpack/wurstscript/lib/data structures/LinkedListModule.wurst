@@ -1,4 +1,5 @@
 package LinkedListModule
+import Wurstunit
 
 public module LinkedListModule
 	static thistype first = null
@@ -42,4 +43,51 @@ public module LinkedListModule
 			
 	ondestroy
 		remove()
+	
+	/** an iterator which iterates over all instances of this class */
+	static function iterator() returns Iterator
+		return new Iterator()
+		
+	static class Iterator
+		LinkedListModule.thistype current = first
+		function hasNext() returns boolean
+			return current != null
+	
+		function next() returns LinkedListModule.thistype
+			let res = current
+			current = current.next
+			return res
+	 		
+		function close() 
+			destroy this
+	
 
+
+class MyClass
+	use LinkedListModule
+	string str
+	construct(string str)
+		this.str = str
+
+function allToString() returns string
+	string res = ""
+ 	for x in MyClass
+		res += x.str
+	return res
+	
+@test
+function test()
+	let a = new MyClass("a")
+	let b = new MyClass("b")
+	let c = new MyClass("c")
+	let d = new MyClass("d")
+ 
+ 	assertTrue(allToString() == "abcd")
+ 	destroy c
+ 	assertTrue(allToString() == "abd")
+ 	destroy d
+ 	assertTrue(allToString() == "ab")
+ 	destroy a
+ 	assertTrue(allToString() == "b")
+ 	destroy b
+ 	assertTrue(allToString() == "")

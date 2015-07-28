@@ -212,6 +212,8 @@ typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
 		| typeExpr 'array' ('[' arraySize=expr ']')?
+		| typeExpr '.' typeName=ID typeArgs
+		| typeExpr '.' thistype='thistype'
 		;
 
 varDef:

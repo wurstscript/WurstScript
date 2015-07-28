@@ -108,9 +108,8 @@ public class AttrNameDef {
 		}
 		if (receiverType instanceof WurstTypeModule) {
 			WurstTypeModule wurstTypeModule = (WurstTypeModule) receiverType;
-			ClassOrModule nearestStructure = left.attrNearestClassOrModule();
 			ModuleDef module = wurstTypeModule.getDef();
-			if (nearestStructure != module) {
+			if (!left.isSubtreeOf(module)) {
 				node.addError("Can only reference module variables from within the module.");
 			}
 		}

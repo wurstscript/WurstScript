@@ -886,6 +886,84 @@ public class ClassesTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void testInnerClass_module_thistype() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	module M",
+				"		static thistype x",
+				"		static class B",
+				"			function foo() returns M.thistype",
+				"				return x",
+				"		function bar() returns thistype",
+				"			let b = new B",
+				"			return b.foo()",
+				"	class A",
+				"		use M",
+				"	init",
+				"		let a = new A",
+				"		A.x = a",
+				"		if a.bar() == a",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
+	public void testInnerClass_module_thistype2() { 
+		testAssertErrorsLines(true, "Cannot access dynamic variable x", 
+				"package test",
+				"	native testSuccess()",
+				"	module M",
+				"		thistype x",
+				"		static class B",
+				"			function foo() returns M.thistype",
+				"				return x",
+				"		function bar() returns thistype",
+				"			let b = new B",
+				"			return b.foo()",
+				"	class A",
+				"		use M",
+				"	init",
+				"		let a = new A",
+				"		a.x = a",
+				"		if a.bar() == a",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
+	public void testInnerClass_module_thistype3() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	module M",
+				"		thistype x",
+				"		static class B",
+				"			thistype.M parent",
+				"			construct(M.thistype parent)",
+				"				this.parent = parent",
+				"			function foo() returns M.thistype",
+				"				return parent.x",
+				"		function bar() returns thistype",
+				"			let b = new B(this)",
+				"			return b.foo()",
+				"	class A",
+				"		use M",
+				"	init",
+				"		let a = new A",
+				"		a.x = a",
+				"		if a.bar() == a",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
 	public void testInnerClass_static_from_outside() { 
 		testAssertOkLines(true, 
 				"package test",

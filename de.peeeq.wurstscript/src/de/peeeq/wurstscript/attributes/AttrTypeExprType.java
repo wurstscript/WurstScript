@@ -3,7 +3,12 @@ package de.peeeq.wurstscript.attributes;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
+
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.NoTypeExpr;
 import de.peeeq.wurstscript.ast.OptTypeExpr;
@@ -47,8 +52,17 @@ public class AttrTypeExprType {
 		return baseType;
 	}
 	
+	
 	public static WurstType calculate(TypeExprThis node) {
-		return AttrExprType.caclulateThistype(node, false, "thistype");
+		WurstType scopeType = node.getScopeType().attrTyp();
+		AstElement scope;
+		if (scopeType instanceof WurstTypeNamedScope) {
+			WurstTypeNamedScope wtns = (WurstTypeNamedScope) scopeType;
+			scope = wtns.getDef();
+		} else {
+			scope = node;
+		}
+		return AttrExprType.caclulateThistype(scope, false, "thistype");
 //		ClassOrModule n = node.attrNearestClassOrModule();
 //		if (n == null) {
 //			node.addError("'thistype' can only be used in classes and modules.");
@@ -120,5 +134,7 @@ public class AttrTypeExprType {
 	public static WurstType calculate(TypeExprResolved e) {
 		return e.getResolvedType();
 	}
+
+	
 
 }

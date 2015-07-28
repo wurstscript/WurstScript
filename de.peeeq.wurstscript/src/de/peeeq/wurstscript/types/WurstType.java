@@ -166,5 +166,13 @@ public abstract class WurstType {
 		return WurstTypeUnion.create(this, t);
 	}
 
+	/**
+	 * checks if this type is nested inside another type or the same class
+	 * for example inner classes are nested inside the outer classes 
+	 */
+	public boolean isNestedInside(WurstType other) {
+		return false;
+	}
+
 
 }

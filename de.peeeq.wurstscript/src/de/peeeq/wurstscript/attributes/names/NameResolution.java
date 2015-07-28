@@ -129,10 +129,22 @@ public class NameResolution {
 			
 			for (NameLink n : scope.attrNameLinks().get(name)) {
 				WurstType n_receiverType = n.getReceiverType();
-				if (n.getType() == NameLinkType.VAR
-						&& (n_receiverType == null
-						|| (receiverType != null && receiverType.isSubtypeOf(n_receiverType, node))
-						)) {
+				if (n.getType() == NameLinkType.VAR) {
+
+					if (n_receiverType != null) {
+						// when we have a receiver type we have to check that it matches with the receiver type of the variable
+						// for example vec2.x could be in scope so we have to check that the current receiver is a vec2
+						if (receiverType == null) { 
+							continue;
+						}
+						if (!receiverType.isSubtypeOf(n_receiverType, node)
+								&& !receiverType.isNestedInside(n_receiverType)) {
+							continue;
+						}
+					}
+//						&& (n_receiverType == null
+//						|| (receiverType != null && receiverType.isSubtypeOf(n_receiverType, node))
+//						)) {
 					
 					if (n.getVisibility() != Visibility.PRIVATE_OTHER 
 						&& n.getVisibility() != Visibility.PROTECTED_OTHER) {

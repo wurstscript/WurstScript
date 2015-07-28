@@ -627,7 +627,7 @@ public class AntlrJurstParseTreeTransformer {
 		OptTypeExpr extended;
 		if (n.extended != null) {
 			extended = Ast.TypeExprSimple(source(n.extended),
-					text(n.extended), Ast.TypeExprList());
+					Ast.NoTypeExpr(), text(n.extended), Ast.TypeExprList());
 		} else {
 			extended = Ast.NoTypeExpr();
 		}
@@ -1312,10 +1312,17 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private TypeExpr transformTypeExpr(TypeExprContext t) throws Error {
+		OptTypeExpr scopeType;
+		if (t.typeExpr() != null) {
+			scopeType = transformTypeExpr(t.typeExpr());
+		} else {
+			scopeType = Ast.NoTypeExpr();
+		}
+		
 		if (t.thistype != null) {
-			return Ast.TypeExprThis(source(t));
+			return Ast.TypeExprThis(source(t), scopeType);
 		} else if (t.typeName != null) {
-			return Ast.TypeExprSimple(source(t), text(t.typeName),
+			return Ast.TypeExprSimple(source(t), scopeType, text(t.typeName),
 					transformTypeArgs(t.typeArgs()));
 		} else if (t.typeExpr() != null) {
 			ExprContext arrSize = null; 
@@ -1327,7 +1334,7 @@ public class AntlrJurstParseTreeTransformer {
 			}
 			
 			return Ast
-					.TypeExprArray(source(t), transformTypeExpr(t.typeExpr()), transformOptionalExpr(arrSize));
+					.TypeExprArray(source(t), (TypeExpr) scopeType, transformOptionalExpr(arrSize));
 		}
 		throw error(t, "not implemented " + t.toStringTree());
 	}
