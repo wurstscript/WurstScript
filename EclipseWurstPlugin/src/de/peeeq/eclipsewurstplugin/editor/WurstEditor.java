@@ -4,8 +4,13 @@ import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKE
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
 import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -14,12 +19,15 @@ import java.util.Set;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.Position;
 import org.eclipse.jface.text.source.Annotation;
 import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
+import org.eclipse.jface.text.source.IAnnotationModel;
+import org.eclipse.jface.text.source.IAnnotationModelExtension;
 import org.eclipse.jface.text.source.ICharacterPairMatcher;
 import org.eclipse.jface.text.source.ISourceViewer;
 import org.eclipse.jface.text.source.IVerticalRuler;
@@ -59,7 +67,13 @@ import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WPosition;
 import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.FuncRef;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.NameRef;
+import de.peeeq.wurstscript.ast.TypeRef;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
@@ -70,8 +84,9 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	private CompilationUnit compiationUnit;
 	private WurstReconcilingStategy reconciler;
 	private ProjectionSupport projectionSupport;
-	private ProjectionAnnotationModel annotationModel;
+	private ProjectionAnnotationModel projectionAnnotationModel;
 	private int reconcileCount;
+	private IAnnotationModel annotationModel;
 
 	public WurstEditor() {
 		super();
@@ -100,6 +115,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		//Enable bracket highlighting in the preference store
 		store.setDefault(EDITOR_MATCHING_BRACKETS, true);
 		store.setDefault(EDITOR_MATCHING_BRACKETS_COLOR, DEFAULT_MATCHING_BRACKETS_COLOR);
+		
 	}
 	
 	@Override
@@ -197,7 +213,8 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	    viewer.enableProjection();
 	    viewer.doOperation(ProjectionViewer.COLLAPSE);
 
-	    annotationModel = viewer.getProjectionAnnotationModel();
+	    projectionAnnotationModel = viewer.getProjectionAnnotationModel();
+	    annotationModel = viewer.getAnnotationModel();
 	
 	}
 
@@ -214,15 +231,14 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	
 	
 	private Map<WPosition, Annotation> oldAnnotations = new HashMap<>();
+	private @Nullable ITextSelection currentSelection;
 
 	public void updateFoldingStructure(List<WPosition> positions) {
 		Map<Annotation, Position> newAnnotations = new HashMap<>();
 		
 		Set<Annotation> removed = new HashSet<>(oldAnnotations.values());
-		System.out.println("old annotations: " + oldAnnotations);
 		for (WPosition position : positions) {
 			Annotation a = oldAnnotations.get(position);
-			System.out.println("position " + position + " ---> " + a);
 			if (a == null) {
 				ProjectionAnnotation annotation = new ProjectionAnnotation();
 				newAnnotations.put(annotation, position.toEclipsePosition());
@@ -237,9 +253,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 			oldAnnotations.put(new WPosition(a.getValue()), a.getKey());
 		}
 		
-		System.out.println("removed = "  +removed);
-		System.out.println("new = " + newAnnotations);
-		annotationModel.modifyAnnotations(removed.toArray(new Annotation[0]), newAnnotations, null);
+		projectionAnnotationModel.modifyAnnotations(removed.toArray(new Annotation[0]), newAnnotations, null);
 		ProjectionViewer viewer = (ProjectionViewer) getSourceViewer();
 		if (reconcileCount < 2 && viewer != null) {
 			viewer.doOperation(ProjectionViewer.COLLAPSE_ALL);
@@ -255,6 +269,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		for (CompilationUnitChangeListener cl : changeListeners) {
 			cl.onCompilationUnitChanged(newCu);
 		}
+		updateMarkOccurences();
 	}
 
 
@@ -268,13 +283,92 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		ISelection selection = event.getSelection();
 		if (selection instanceof ITextSelection) {
 			ITextSelection ts = (ITextSelection) selection;
+			currentSelection = ts;
 			if (fOutlinePage != null) {
 				fOutlinePage.selectNodeByPos(ts.getOffset());
 			}
+			updateMarkOccurences();
 		}
 		
 	}
 
+
+	private void updateMarkOccurences() {
+		if (currentSelection == null) {
+			return;
+		}
+		
+		// remove old mark-occurences:
+		Iterator<?> it = annotationModel.getAnnotationIterator();
+		List<Annotation> toRemove = new ArrayList<>();
+		String type = "de.peeeq.wurstscript.occurence";
+		while (it.hasNext()) {
+			Annotation a = (Annotation) it.next();
+			if (a.getType().equals(type)) {
+				toRemove.add(a);
+			}
+		}
+//		for (Annotation a : toRemove) {
+//			annotationModel.removeAnnotation(a);
+//		}
+		
+		
+		CompilationUnit cu = getCompilationUnit();
+		if (cu == null) {
+			return;
+		}
+		AstElement elem = Utils.getAstElementAtPos(cu, currentSelection.getOffset(), false);
+		final NameDef def = getNameDef(elem);
+//		System.out.println("elem under cursor " + Utils.printElement(elem));
+//		System.out.println("	def = " + def);
+		Map<Annotation, Position> newAnnotations = new LinkedHashMap<>();
+		if (def != null) {
+			Deque<AstElement> todo = new ArrayDeque<>();
+			todo.push(cu);
+			while (!todo.isEmpty()) {
+				AstElement e = todo.pop();
+				// visit children:
+				for (int i=0; i<e.size(); i++) {
+					todo.push(e.get(i));
+				}
+				if (getNameDef(e) == def) {
+					Annotation annotation = new Annotation(type, false, "marking occurrence");
+					WPos pos = e.attrErrorPos();
+					int length = pos.getRightPos() - pos.getLeftPos();
+					if (length > 0) {
+						Position position = new Position(pos.getLeftPos(), length);
+						newAnnotations.put(annotation, position);
+					}
+				}
+			}
+		}
+		if (!(toRemove.isEmpty() && newAnnotations.isEmpty())) {
+			// not sure if this is correct to call from this thread ...
+			((IAnnotationModelExtension) annotationModel).replaceAnnotations(toRemove.toArray(new Annotation[0]), newAnnotations);
+		}
+	}
+
+	/**
+	 * returns the element itself if it is a NameDef 
+	 * or returns the referenced NameDef if the elem is a reference
+	 * or returns null otherwise 
+	 */
+	private @Nullable NameDef getNameDef(AstElement elem) {
+		if (elem instanceof NameRef) {
+			NameRef nameRef = (NameRef) elem;
+			return nameRef.attrNameDef();
+		} else if (elem instanceof NameDef) {
+			return (NameDef) elem;
+		} else if (elem instanceof FuncRef) {
+			FuncRef funcRef = (FuncRef) elem;
+			return funcRef.attrFuncDef();
+		} else if (elem instanceof TypeRef) {
+			TypeRef typeRef = (TypeRef) elem;
+			return typeRef.attrTypeDef();
+		} else {
+			return null;
+		}
+	}
 
 	public CompilationUnit reconcile(boolean doTypecheck) {
 		return reconciler.reconcile(doTypecheck);

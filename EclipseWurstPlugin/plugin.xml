@@ -378,4 +378,38 @@
 	    </enablement>
 	  </decorator>
 	</extension>
+	<!-- custom mark occurence annotation -->
+	<extension
+         point="org.eclipse.ui.editors.markerAnnotationSpecification">
+        <specification
+            annotationType="de.peeeq.wurstscript.occurence"
+            label="Wurst mark occurence"
+            colorPreferenceValue="230,230,230"
+            isGoToPreviousNavigationTargetKey="de.peeeq.wurstscript.occurence.isGoToPreviousNavigationTargetKey"
+            showInNextPrevDropdownToolbarActionKey="de.peeeq.wurstscript.occurence.showInNextPrevDropdownToolbarActionKey"
+            isGoToNextNavigationTargetKey="de.peeeq.wurstscript.occurence.isGoToNextNavigationTargetKey"
+            textPreferenceKey="de.peeeq.wurstscript.occurence.textPreferenceKey"
+            colorPreferenceKey="de.peeeq.wurstscript.occurence.colorPreferenceKey"
+            highlightPreferenceKey="de.peeeq.wurstscript.occurence.highlightPreferenceKey"
+            textStylePreferenceKey="de.peeeq.wurstscript.occurence.textStylePreferenceKey"
+            verticalRulerPreferenceKey="de.peeeq.wurstscript.occurence.verticalRulerPreferenceKey"
+            overviewRulerPreferenceKey="de.peeeq.wurstscript.occurence.overviewRulerPreferenceKey"
+            isGoToPreviousNavigationTarget="false"
+            showInNextPrevDropdownToolbarAction="false"
+            isGoToNextNavigationTarget="false"
+            contributesToHeader="false"
+            overviewRulerPreferenceValue="true"
+            presentationLayer="4"
+            textPreferenceValue="false"
+            highlightPreferenceValue="true"
+            textStylePreferenceValue="NONE"
+            verticalRulerPreferenceValue="false"
+            includeOnPreferencePage="true"
+            >
+      </specification>  
+   </extension>
+   <extension
+      point="org.eclipse.ui.editors.annotationTypes">
+      <type name="de.peeeq.wurstscript.occurence"/> 
+    </extension>
 </plugin>

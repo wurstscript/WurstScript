@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.parser;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -89,6 +90,11 @@ public class WPos {
 		s = s.substring(s.lastIndexOf("lib/")+4);
 		s = s.replace(".wurst", "");
 		return s;
+	}
+
+	/** makes this position artificial by setting the rightPost = leftPos-1 */
+	public WPos artificial() {
+		return new WPos(file, lineOffsets, leftPos, leftPos-1);
 	}
 	
 }

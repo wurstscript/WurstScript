@@ -491,7 +491,7 @@ public class AntlrWurstParseTreeTransformer {
 			}
 		}
 		if (result.onDestroy == null) {
-			result.onDestroy = Ast.OnDestroyDef(src, Ast.WStatements());
+			result.onDestroy = Ast.OnDestroyDef(src.artificial(), Ast.WStatements());
 		}
 		return result;
 	}
@@ -1259,7 +1259,7 @@ public class AntlrWurstParseTreeTransformer {
 			boolean makeConstant) {
 		Modifiers modifiers = Ast.Modifiers();
 		if (makeConstant) {
-			modifiers.add(Ast.ModConstant(source(p)));
+			modifiers.add(Ast.ModConstant(source(p).artificial()));
 		}
 		return Ast.WParameter(source(p), modifiers,
 				transformTypeExpr(p.typeExpr()), text(p.name));
