@@ -184,6 +184,24 @@ public class Fx
 		dummy.setXY(pos.x, pos.y)
 		setZ(pos.z-getTerrainZ(pos.x, pos.y))
 		
+	/** Set the position to the given xyz vector tuple
+	 * this function ignores the terrain height and only sets the fly-height to the z-coordinate */
+	function setXYheight(vec3 pos)
+		dummy.setXY(pos.x, pos.y)
+		setZ(pos.z)
+
+	/** Set the position to the given xyz vector tuple. 
+	 * It is possible to ignore the terrain height when desired.
+	 * Use setXYheight when you never need terrain height. 
+	 * */
+ 	function setXYZ(vec3 pos, boolean ignoreTerrainHeight)
+		dummy.setXY(pos.x, pos.y)
+		if ignoreTerrainHeight
+			setZ(pos.z)
+		else
+			setZ(pos.z-getTerrainZ(pos.x, pos.y))
+	
+	
 	/** Set the z coordinate (flyHeight) */
 	function setZ(real z)
 		dummy.setFlyHeight(z, 0.)
