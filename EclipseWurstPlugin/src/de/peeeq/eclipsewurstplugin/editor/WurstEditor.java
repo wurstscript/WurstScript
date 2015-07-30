@@ -60,6 +60,7 @@ import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
 import com.google.common.collect.Sets;
 
+import de.peeeq.eclipsewurstplugin.WurstOccurencesMarker;
 import de.peeeq.eclipsewurstplugin.builder.ModelManager;
 import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
 import de.peeeq.eclipsewurstplugin.builder.WurstNature;
@@ -87,6 +88,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	private ProjectionAnnotationModel projectionAnnotationModel;
 	private int reconcileCount;
 	private IAnnotationModel annotationModel;
+	private final WurstOccurencesMarker occurencesMarker = new WurstOccurencesMarker();
 
 	public WurstEditor() {
 		super();
@@ -294,81 +296,10 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 
 
 	private void updateMarkOccurences() {
-		if (currentSelection == null) {
-			return;
-		}
-		
-		// remove old mark-occurences:
-		Iterator<?> it = annotationModel.getAnnotationIterator();
-		List<Annotation> toRemove = new ArrayList<>();
-		String type = "de.peeeq.wurstscript.occurence";
-		while (it.hasNext()) {
-			Annotation a = (Annotation) it.next();
-			if (a.getType().equals(type)) {
-				toRemove.add(a);
-			}
-		}
-//		for (Annotation a : toRemove) {
-//			annotationModel.removeAnnotation(a);
-//		}
-		
-		
-		CompilationUnit cu = getCompilationUnit();
-		if (cu == null) {
-			return;
-		}
-		AstElement elem = Utils.getAstElementAtPos(cu, currentSelection.getOffset(), false);
-		final NameDef def = getNameDef(elem);
-//		System.out.println("elem under cursor " + Utils.printElement(elem));
-//		System.out.println("	def = " + def);
-		Map<Annotation, Position> newAnnotations = new LinkedHashMap<>();
-		if (def != null) {
-			Deque<AstElement> todo = new ArrayDeque<>();
-			todo.push(cu);
-			while (!todo.isEmpty()) {
-				AstElement e = todo.pop();
-				// visit children:
-				for (int i=0; i<e.size(); i++) {
-					todo.push(e.get(i));
-				}
-				if (getNameDef(e) == def) {
-					Annotation annotation = new Annotation(type, false, "marking occurrence");
-					WPos pos = e.attrErrorPos();
-					int length = pos.getRightPos() - pos.getLeftPos();
-					if (length > 0) {
-						Position position = new Position(pos.getLeftPos(), length);
-						newAnnotations.put(annotation, position);
-					}
-				}
-			}
-		}
-		if (!(toRemove.isEmpty() && newAnnotations.isEmpty())) {
-			// not sure if this is correct to call from this thread ...
-			((IAnnotationModelExtension) annotationModel).replaceAnnotations(toRemove.toArray(new Annotation[0]), newAnnotations);
-		}
+		occurencesMarker.update(currentSelection, annotationModel, getCompilationUnit(), modelManager);
 	}
 
-	/**
-	 * returns the element itself if it is a NameDef 
-	 * or returns the referenced NameDef if the elem is a reference
-	 * or returns null otherwise 
-	 */
-	private @Nullable NameDef getNameDef(AstElement elem) {
-		if (elem instanceof NameRef) {
-			NameRef nameRef = (NameRef) elem;
-			return nameRef.attrNameDef();
-		} else if (elem instanceof NameDef) {
-			return (NameDef) elem;
-		} else if (elem instanceof FuncRef) {
-			FuncRef funcRef = (FuncRef) elem;
-			return funcRef.attrFuncDef();
-		} else if (elem instanceof TypeRef) {
-			TypeRef typeRef = (TypeRef) elem;
-			return typeRef.attrTypeDef();
-		} else {
-			return null;
-		}
-	}
+	
 
 	public CompilationUnit reconcile(boolean doTypecheck) {
 		return reconciler.reconcile(doTypecheck);

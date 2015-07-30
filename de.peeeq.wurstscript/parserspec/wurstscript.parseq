@@ -471,6 +471,11 @@ AstElement.attrNearestExprStatementsBlock
 
 
 
+AstElement.tryGetNameDef() "returns the element itself if it is a NameDef or returns the referenced NameDef if the elem is a reference or returns null otherwise "
+	returns @Nullable NameDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.tryGetNameDef
+
+
 ExprStatementsBlock.getReturnStmt()
 	returns StmtReturn
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getReturnStatement

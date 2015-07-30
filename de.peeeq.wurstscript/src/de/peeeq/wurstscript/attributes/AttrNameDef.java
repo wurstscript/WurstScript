@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
 import de.peeeq.wurstscript.ast.ExprMemberVar;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.ExprVarArrayAccess;
+import de.peeeq.wurstscript.ast.FuncRef;
 import de.peeeq.wurstscript.ast.GlobalOrLocalVarDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -17,6 +19,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.StmtSet;
 import de.peeeq.wurstscript.ast.SwitchCase;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.TypeRef;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
@@ -116,6 +119,26 @@ public class AttrNameDef {
 			
 		
 		return result;
+	}
+
+	public static @Nullable NameDef tryGetNameDef(NameRef e) {
+		return e.attrNameDef();
+	}
+	
+	public static @Nullable NameDef tryGetNameDef(NameDef e) {
+		return e;
+	}
+	
+	public static @Nullable NameDef tryGetNameDef(FuncRef e) {
+		return e.attrFuncDef();
+	}
+	
+	public static @Nullable NameDef tryGetNameDef(TypeRef e) {
+		return e.attrTypeDef();
+	}
+	
+	public static @Nullable NameDef tryGetNameDef(AstElement elem) {
+		return null;
 	}
 
 
