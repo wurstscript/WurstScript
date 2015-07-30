@@ -19,7 +19,7 @@ public class WurstGuiCliImpl extends WurstGui {
 
 	@Override
 	public void sendFinished() {
-		System.out.println("done");
+		System.out.println("compilation finished (errors: " + getErrorCount() + ", warnings: " + getWarningList().size() + ")");
 	}
 
 	@Override

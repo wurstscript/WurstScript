@@ -94,7 +94,6 @@ public class AttrTypeExprType {
 			return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
 		} else { // otherwise it must be an Expr
 			Expr arSize = (Expr) typeExprArray.getArraySize();
-			System.out.println("has getArraySize " + typeExprArray.getArraySize());
 			// default is to have no array sizes:
 			int[] sizes = {};
 			// when there is an array size given, try to evaluate it:

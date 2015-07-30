@@ -11,6 +11,7 @@ import java.util.logging.SimpleFormatter;
 
 import javax.swing.JOptionPane;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Charsets;
@@ -147,9 +148,19 @@ public class Main {
 		} finally {
 			if (gui != null) {
 				gui.sendFinished();
-				if (!runArgs.isGui() && gui.getErrorCount() > 0) {
-					// signal that there was an error when compiling
-					System.exit(1);
+				if (!runArgs.isGui()) { 
+					if (gui.getErrorCount() > 0) {
+						// 	print error messages
+						for (CompileError err : gui.getErrorList()) {
+							System.out.println(err);
+						}
+						// signal that there was an error when compiling
+						System.exit(1);
+					}
+					// print warnings:
+					for (CompileError err : gui.getWarningList()) {
+						System.out.println(err);
+					}
 				}
 			}
 		}
