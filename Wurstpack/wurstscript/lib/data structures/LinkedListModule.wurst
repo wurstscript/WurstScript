@@ -91,3 +91,21 @@ function test()
  	assertTrue(allToString() == "b")
  	destroy b
  	assertTrue(allToString() == "")
+ 	
+ @test 
+ function testDestroy()
+ 	new MyClass("a")
+	let b = new MyClass("b")
+	new MyClass("c")
+	new MyClass("d")
+ 	string s = ""
+ 	for x in MyClass
+		s += x.str
+		if x == b
+			destroy x
+	assertTrue(s=="abcd")
+	assertTrue(allToString() == "acd")
+	for x in MyClass
+		destroy x
+	assertTrue(allToString() == "")
+
