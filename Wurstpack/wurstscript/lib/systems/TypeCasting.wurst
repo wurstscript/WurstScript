@@ -131,6 +131,13 @@ function questFromIndex(int index) returns quest
 function questToIndex(quest object) returns int
 	return object.getHandleId()
 
+function questitemFromIndex(int index) returns questitem
+	typecastdata.saveFogState(0,ConvertFogState(index))
+	return typecastdata.loadQuestItem(0)
+
+function questitemToIndex(questitem object) returns int
+	return object.getHandleId()
+
 function leaderboardFromIndex(int index) returns leaderboard
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadLeaderboard(0)
