@@ -684,6 +684,45 @@ public class ClassesTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void method_private() {
+		testAssertErrorsLines(false, "foo is not visible here",
+				"package test",
+				"	class A",
+				"		private function foo(int x)",
+				"	init",
+				"		new A().foo(5)",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void constructor_private() {
+		testAssertErrorsLines(false, "constructor for class A is not visible here",
+				"package test",
+				"	class A",
+				"		private construct(int x)",
+				"	init",
+				"		new A(5)",
+				"endpackage"
+			);
+	}
+	
+	@Test
+	public void constructor_private_ok() {
+		testAssertOkLines(false, 
+				"package test",
+				"	class A",
+				"		private construct(int x)",
+				"		construct()",
+				"		static function foo()",
+				"			new A(5)",
+				"	init",
+				"		new A()",
+				"endpackage"
+			);
+	}
+	
+	@Test
 	public void constant_fields() {
 		testAssertErrorsLines(false, "constant",
 				"package test",

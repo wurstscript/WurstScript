@@ -28,8 +28,13 @@ public class AttrConstructorDef {
 			
 			List<ConstructorDef> constructors = classDef.getConstructors();
 			
-			return OverloadingResolver.resolveExprNew(constructors, node);
+			ConstructorDef constr = OverloadingResolver.resolveExprNew(constructors, node);
+
+			if (constr != null && constr.attrIsPrivate() && !node.isSubtreeOf(classDef)) {
+				node.addError("This constructor for class " + classDef.getName() + " is not visible here.");
+			}
 			
+			return constr;
 		} else {
 			node.addError("Can only create instances of classes.");
 			return null;
