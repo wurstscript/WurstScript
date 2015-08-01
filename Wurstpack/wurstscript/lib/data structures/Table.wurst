@@ -166,6 +166,12 @@ public class Table
 	
 	function saveQuest( int parentKey, quest value )
 		ht.saveQuestHandle( this castTo int, parentKey, value )
+	
+	function loadQuestItem( int parentKey ) returns questitem
+		return ht.loadQuestItemHandle( this castTo int, parentKey )
+	
+	function saveQuestItem( int parentKey, questitem value )
+		ht.saveQuestItemHandle( this castTo int, parentKey, value )
 			
 	function loadLeaderboard( int parentKey ) returns leaderboard
 		return ht.loadLeaderboardHandle( this castTo int, parentKey )
