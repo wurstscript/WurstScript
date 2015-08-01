@@ -53,6 +53,9 @@ public function trigger.evaluate()
 public function trigger.execute()
 	TriggerExecute( this )
 	
+public function trigger.isEnabled() returns boolean
+	return IsTriggerEnabled(this)
+	
 //Events
 
 public function trigger.registerAnyUnitEvent(playerunitevent whichEvent)
