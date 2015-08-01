@@ -14,11 +14,7 @@ public class DebugPrintError extends Error {
 		super(val);
 	}
 
-	public DebugPrintError(String val, ILStackFrame stackFrame, @Nullable ImStmt imStmt) {
-		super(val);
-		this.stackFrame = stackFrame;
-		this.stmt = imStmt;
-	}
+	
 
 	private static final long serialVersionUID = 629417346498474872L;
 	

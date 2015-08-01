@@ -53,9 +53,7 @@ public class WPos {
 		return new WPos(file, lineOffsets, leftPos, rightPos);
 	}
 
-	public WPos withFile(String source) {
-		return new WPos(source, lineOffsets, leftPos, rightPos);
-	}
+	
 	
 	@Override
 	public String toString() {
@@ -67,9 +65,7 @@ public class WPos {
 		return "[" + file + ", line " + getLine() + "]";
 	}
 	
-	public String printDetails() {
-		return "[" + file + ", line " + getLine() + ", " + leftPos + "-" + rightPos + "]";
-	}
+	
 	
 	public String printShort() {
 		Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^\\.]*$");

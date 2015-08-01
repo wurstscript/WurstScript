@@ -31,27 +31,10 @@ public class UtilsIO {
 		return ste[depth + 2].getMethodName();
 	}
 
-	public static String getMethodNameExt(final int depth) {
-		StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-		StackTraceElement sf = ste[depth + 2];
-		return sf.getMethodName() + "" + sf.getLineNumber();
-	}
+	
 
 	
-	public static void saveToFile(Object object, String filename) {
-		try (FileOutputStream fos = new FileOutputStream(filename);
-				ObjectOutputStream out = new ObjectOutputStream(fos)) {
-			out.writeObject(object);
-		} catch (IOException e) {
-			WLogger.info(e);
-		}
-
-	}
 	
-	public static <T> T[] copyArray(T[] ar) {
-		@SuppressWarnings("unchecked")
-		T[] r = (T[]) Array.newInstance(ar.getClass(), ar.length);
-		System.arraycopy(ar, 0, r, 0, ar.length);
-		return r;
-	}
+	
+	
 }

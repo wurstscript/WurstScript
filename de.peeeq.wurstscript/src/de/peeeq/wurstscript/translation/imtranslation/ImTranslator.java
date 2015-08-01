@@ -151,8 +151,8 @@ public class ImTranslator {
 	private final Set<ClassDef>  translatedClasses = new LinkedHashSet<>();
 
 
-	final Map<ClassDef, Integer> typeIdMap = new LinkedHashMap<>();
-	final Map<ClassDef, Integer> typeIdMapMax = new LinkedHashMap<>();
+	
+	
 
 	private final Map<VarDef, ImVar> varMap = new LinkedHashMap<>();
 
@@ -832,14 +832,7 @@ public class ImTranslator {
 		return r;
 	}
 
-	public List<WStatement> getInitStatement(ClassDef c) {
-		List<WStatement> r = classInitStatements.get(c);
-		if (r == null) {
-			r = Lists.newArrayList();
-			classInitStatements.put(c, r);
-		}
-		return r;
-	}
+	
 
 	Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
 
@@ -904,7 +897,7 @@ public class ImTranslator {
 
 	private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
 
-	public DebugLevel debugLevel = DebugLevel.DEFAULT;
+	
 
 	private boolean isEclipseMode = false;
 
@@ -921,10 +914,7 @@ public class ImTranslator {
 		subclasses = Utils.transientClosure(directSubclasses);
 	}
 
-	public Collection<ClassDef> getDirectSubClasses(ClassDef classDef) {
-		calculateDirectSubclasses();
-		return directSubclasses.get(classDef);
-	}
+	
 
 	private void calculateDirectSubclasses() {
 		if (directSubclasses != null) {
@@ -944,22 +934,7 @@ public class ImTranslator {
 		compiletimeFuncs.add(f);
 	}
 
-	/**
-	 * returns all classes which are subtypes or equal to the given type 
-	 */
-	public Collection<ClassDef> getConcreteSubtypes(WurstType t) {
-		if (t instanceof WurstTypeInterface) {
-			WurstTypeInterface ti = (WurstTypeInterface) t;
-			return getInterfaceInstances(ti.getInterfaceDef());
-		}
-		if (t instanceof WurstTypeClass) {
-			WurstTypeClass tc = (WurstTypeClass) t;
-			ArrayList<ClassDef> result = Lists.newArrayList(getSubClasses(tc.getClassDef()));
-			result.add(tc.getClassDef());
-			return result;
-		}
-		throw new Error("not implemented");
-	}
+	
 
 
 

@@ -87,13 +87,7 @@ public class Utils {
 		}
 	}
 
-	public static <T, R> List<R> map(Iterable<T> list, Function<T, R> function) {
-		List<R> result = new NotNullList<R>();
-		for (T t : list) {
-			result.add(function.apply(t));
-		}
-		return result;
-	}
+	
 	
 
 	@SafeVarargs
@@ -101,18 +95,6 @@ public class Utils {
 		List<T> result = new NotNullList<T>();
 		for (T t : args) {
 			result.add(t);
-		}
-		return result;
-	}
-
-	public static <T> List<T> filter(List<T> list, Function<T, Boolean> filter) {
-		Preconditions.checkNotNull(list);
-		Preconditions.checkNotNull(filter);
-		List<T> result = new NotNullList<T>();
-		for (T t : list) {
-			if (filter.apply(t)) {
-				result.add(t);
-			}
 		}
 		return result;
 	}
@@ -137,15 +119,7 @@ public class Utils {
 	// }
 	// }
 
-	public static <T> void printSep(StringBuilder sb, String seperator,
-			T[] args, Function<T, String> function) {
-		for (int i = 0; i < args.length; i++) {
-			if (i > 0) {
-				sb.append(seperator);
-			}
-			sb.append(function.apply(args[i]));
-		}
-	}
+	
 
 	public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
 		for (int i = 0; i < args.length; i++) {
@@ -156,17 +130,7 @@ public class Utils {
 		}
 	}
 
-	public static <T> void printSep(StringBuilder sb, String seperator,
-			Iterable<T> params, Function<T, String> function) {
-		boolean first = true;
-		for (T t : params) {
-			if (!first) {
-				sb.append(seperator);
-			}
-			sb.append(function.apply(t));
-			first = false;
-		}
-	}
+	
 
 	public static int parseInt(String yytext) {
 		if (yytext.startsWith("0")) {
@@ -216,14 +180,9 @@ public class Utils {
 		return true; // no package found -> jass code
 	}
 
-	@SafeVarargs
-	public static <T> T[] array(T... ar) {
-		return ar;
-	}
+	
 
-	public static int[] array(int... ar) {
-		return ar;
-	}
+	
 
 	public static <T> String join(Iterable<T> hints, String seperator) {
 		StringBuilder result = new StringBuilder();
@@ -251,13 +210,7 @@ public class Utils {
 		return result.toString();
 	}
 
-	public static <S, T> ImmutableList<T> map(ImmutableList<S> items, Function<S, T> function) {
-		ImmutableList.Builder<T> result = ImmutableList.builder();
-		for (S s : items) {
-			result.add(function.apply(s));
-		}
-		return result.build();
-	}
+	
 
 	/**
 	 * sorts a list with partitial ordering topologically. If a > b then a will
@@ -285,22 +238,7 @@ public class Utils {
 		return result;
 	}
 
-	/**
-	 * sorts a list with partitial ordering topologically. If a > b then a will
-	 * appear before b in the result list
-	 * 
-	 * @param items
-	 *            items to sort
-	 * @param biggerItems
-	 *            a multimap to get all the bigger items for a given item
-	 * @return a sorted list
-	 * @throws TopsortCycleException
-	 *             if there exist items a,b so that a > b and b > a
-	 */
-	public static <T> List<T> topSort(Collection<T> items,
-			final Multimap<T, T> biggerItems) throws TopsortCycleException {
-		return topSort(items, x -> biggerItems.get(x));
-	}
+	
 
 	private static <T> void topSortHelper(List<T> result, Set<T> visitedItems,
 			LinkedList<T> activeItems,
@@ -337,9 +275,7 @@ public class Utils {
 		return false;
 	}
 
-	public static String printContext(de.peeeq.immutablecollections.ImmutableList<ClassOrModule> context) {
-		return join(map(context, ClassOrModule::getName), "->");
-	}
+	
 
 	public static <T> T getFirst(Iterable<T> ts) {
 		for (T t : ts) {
@@ -348,34 +284,11 @@ public class Utils {
 		throw new Error("collection has no first element");
 	}
 
-	public static int getCommonPrefixLength(de.peeeq.immutablecollections.ImmutableList<?> list1,
-			de.peeeq.immutablecollections.ImmutableList<?> list2) {
-		if (list1.isEmpty() || list2.isEmpty()) {
-			return 0;
-		}
-		if (list1.head().equals(list2.head())) {
-			return 1 + getCommonPrefixLength(list1.tail(), list2.tail());
-		} else {
-			return 0;
-		}
-	}
+	
 
-	public static <T> List<T> topSortIgnoreCycles(Collection<T> input,
-			final Multimap<T, T> biggerItems) {
-		return topSortIgnoreCycles(input, t -> biggerItems.get(t));
-	}
+	
 
-	public static <T> List<T> topSortIgnoreCycles(Collection<T> items,
-			Function<T, Collection<T>> biggerItems) {
-		Set<T> visitedItems = new HashSet<T>();
-		List<T> result = new ArrayList<T>(items.size());
-		for (T t : items) {
-			if (t == null)
-				throw new IllegalArgumentException();
-			topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
-		}
-		return result;
-	}
+	
 
 	private static <T> void topSortHelperIgnoreCycles(List<T> result,
 			Set<T> visitedItems,
@@ -392,16 +305,7 @@ public class Utils {
 		result.add(item);
 	}
 
-	public static String printScope(@Nullable WScope scope) {
-		if (scope == null) {
-			return "null-scope";
-		} else if (scope instanceof AstElementWithName) {
-			AstElementWithName wn = (AstElementWithName) scope;
-			return wn.getName() + " (" + scope.getClass().getName() + ")";
-		} else {
-			return "scope (" + scope.getClass().getName() + ")";
-		}
-	}
+	
 
 	public static String printElement(@Nullable AstElement e) {
 		if (e == null) {
@@ -474,39 +378,13 @@ public class Utils {
 		return sb.toString();
 	}
 
-	@SuppressWarnings("unchecked")
-	public static <T> T[] conc(List<T> ts, T t) {
-		ArrayList<T> temp = Lists.newArrayList(ts);
-		temp.add(t);
-		return (T[]) temp.toArray();
-	}
+	
 
-	public static <T> void addAll(List<T> result, T[] elements) {
-		for (T t : elements) {
-			result.add(t);
-		}
-	}
+	
 
-	public static <T> List<T> slice(List<T> ts, int firstIndex, int count) {
-		List<T> result = Lists.newArrayListWithCapacity(count);
-		for (int i = 0; i < count; i++) {
-			result.add(ts.get(firstIndex + i));
-		}
-		return result;
-	}
+	
 
-	public static String printElementQualified(AstElementWithName e) {
-		String name = e.getName();
-		AstElement node = e.getParent();
-		while (node != null) {
-			if (node instanceof AstElementWithName) {
-				AstElementWithName n = (AstElementWithName) node;
-				name = n.getName() + "." + name;
-			}
-			node = node.getParent();
-		}
-		return name;
-	}
+	
 
 	/**
 	 * calculates the transient closure of a multimap
@@ -631,17 +509,7 @@ public class Utils {
 		return null;
 	}
 
-	public static String printAlternatives(
-			Iterable<? extends AstElement> alternatives) {
-		List<String> result = Lists.newArrayList();
-		for (AstElement a : alternatives) {
-			WPos source = a.attrSource();
-			String s = Utils.printElement(a) + " defined in line "
-					+ source.getLine() + " (" + source.getFile() + ")";
-			result.add(s);
-		}
-		return " * " + Utils.join(result, "\n * ");
-	}
+	
 
 	public static String printAlternatives(Collection<NameLink> alternatives) {
 		List<String> result = Lists.newArrayList();
@@ -662,18 +530,7 @@ public class Utils {
 		return result;
 	}
 
-	public static boolean visitRec(AstElement e, Predicate<AstElement> f) {
-		if (!f.apply(e)) {
-			return false;
-		}
-		for (int i = 0; i < e.size(); i++) {
-			boolean r = visitRec(e.get(i), f);
-			if (!r) {
-				return false;
-			}
-		}
-		return true;
-	}
+	
 
 	public static boolean isSubsequenceIgnoreCase(String a, String b) {
 		int bPos = -1;
@@ -703,48 +560,10 @@ public class Utils {
 		return true;
 	}
 
-	public static double averageSubsequenceLength1(String a, String b) {
-		List<Integer> subseqLength = Lists.newArrayList();
-		int bPos = 0;
-		int currentLen = 0;
-		for (int i = 0; i < a.length(); i++) {
-			char c = Character.toLowerCase(a.charAt(i));
-			if (Character.toLowerCase(b.charAt(bPos)) == c) {
-				currentLen++;
-			} else {
-				if (currentLen > 0) {
-					subseqLength.add(currentLen);
-				}
-				currentLen = 0;
-				do {
-					bPos++;
-					if (bPos >= b.length())
-						break;
-				} while (Character.toLowerCase(b.charAt(bPos)) != c);
-				currentLen = 1;
-			}
-			bPos++;
-			if (bPos >= b.length())
-				break;
-		}
-		subseqLength.add(currentLen);
-		return average(subseqLength);
-	}
+	
 
-	public static double averageSubsequenceLength(String a, String b) {
-		// TODO performance
-		List<Integer> subseqLength = subsequenceLengthes(a, b);
-		return average(subseqLength);
-	}
 
-	public static double combinedSubsequenceLength(String a, String b) {
-		List<Integer> subseqLength = subsequenceLengthes(a, b);
-		int result = 0;
-		for (int len : subseqLength) {
-			result += len*len;
-		}
-		return Math.sqrt(result);
-	}
+	
 	
 	public static List<Integer> subsequenceLengthes(String a, String b) {
 		List<Integer> subseqLength = Lists.newArrayList();
@@ -846,24 +665,7 @@ public class Utils {
 		return e + "\n" + Utils.printStackTrace(trace);
 	}
 
-	public static String printBinding(Map<TypeParamDef, WurstType> binding) {
-		StringBuilder sb = new StringBuilder();
-		List<TypeParamDef> keys = Lists.newArrayList(binding.keySet());
-		Collections.sort(keys, byName());
-		sb.append("[");
-		boolean first = true;
-		for (TypeParamDef k : keys) {
-			if (!first) {
-				sb.append(", ");
-			}
-			sb.append(k.getName());
-			sb.append(" -> ");
-			sb.append(binding.get(k));
-			first = false;
-		}
-		sb.append("]");
-		return sb.toString();
-	}
+	
 
 	private static <T extends AstElementWithName> Comparator<T> byName() {
 		return new Comparator<T>() {
@@ -910,56 +712,9 @@ public class Utils {
 	}
 	
 	
-	public static <T> Iterable<T> iterateReverse(Iterable<T> elements) {
-		if (elements instanceof List<?>) {
-			List<T> elements2 = (List<T>) elements;
-			return iterateReverse(elements2);
-		}
-		
-		final ArrayList<T> temp = Lists.newArrayList(elements);
-		
-		return new Iterable<T>() {
+	
 
-			@Override
-			public Iterator<T> iterator() {
-				return new Iterator<T>() {
-
-					int i = temp.size();
-					
-					@Override
-					public boolean hasNext() {
-						return i>0;
-					}
-
-					@Override
-					public T next() {
-						i--;
-						return temp.get(i);
-					}
-
-					@Override
-					public void remove() {
-						throw new Error("not implemented");
-					}
-					
-				};
-			}
-		};
-	}
-
-	public static <T> String arrayToString(T[] ar) {
-		StringBuilder sb = new StringBuilder("[");
-		boolean first = true;
-		for (Object o : ar) {
-			if (!first) {
-				sb.append(", ");
-			}
-			sb.append(o);
-			first = false;
-		}
-		sb.append("]");
-		return sb.toString();
-	}
+	
 
 	public static String readWholeStream(BufferedReader r) throws IOException {
 		StringBuilder sb = new StringBuilder();
@@ -970,10 +725,7 @@ public class Utils {
 		return sb.toString();
 	}
 
-	public static String readWholeStream(InputStream inputStream) throws IOException {
-		BufferedReader r = new BufferedReader(new InputStreamReader(inputStream));
-		return readWholeStream(r);
-	}
+	
 
 	@SuppressWarnings("unchecked")
 	public static <T extends AstElement> Optional<T> getNearestByType(@Nullable AstElement e, Class<T> clazz) {
@@ -986,15 +738,7 @@ public class Utils {
 		return Optional.empty();
 	}
 
-	public static <T extends AstElementWithName> Comparator<T> compareByName() {
-		return new Comparator<T>() {
-
-			@Override
-			public int compare(T a, T b) {
-				return a.getName().compareTo(b.getName());
-			}
-		};
-	}
+	
 	
 	public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
 		return new Comparator<T>() {

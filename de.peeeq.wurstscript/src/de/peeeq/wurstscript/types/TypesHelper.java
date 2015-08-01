@@ -10,24 +10,7 @@ public class TypesHelper {
 
 	private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
 
-	public static WurstType typeOf(ClassOrModule classOrModule, final boolean isStatic) {
-		return classOrModule.match(new ClassOrModule.Matcher<WurstType>() {
-
-			@Override
-			public WurstType case_ClassDef(ClassDef classDef) {
-				WurstType t = classDef.attrTyp();
-				if (!isStatic)  {
-					t = t.dynamic();
-				}
-				return t;
-			}
-
-			@Override
-			public WurstType case_ModuleDef(ModuleDef moduleDef) {
-				return new WurstTypeModule(moduleDef, isStatic);
-			}
-		});
-	}
+	
 
 
 	public static ImSimpleType imInt() {

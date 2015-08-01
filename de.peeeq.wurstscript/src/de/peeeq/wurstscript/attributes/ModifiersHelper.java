@@ -66,9 +66,7 @@ public class ModifiersHelper {
 	}
 
 
-	static void checkAllowedModifiers(HasModifier e) {
-		// TODO check allowed modifiers and call this method from checker
-	}
+	
 
 	public static boolean isCompiletime(HasModifier e) {
 		return hasAnnotation(e, "compiletime");

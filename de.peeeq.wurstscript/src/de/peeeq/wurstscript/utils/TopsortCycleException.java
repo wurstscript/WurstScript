@@ -4,6 +4,7 @@ import java.util.List;
 
 public class TopsortCycleException extends Exception {
 
+	@SuppressWarnings("ucd")
 	public List<?> activeItems;
 
 	public TopsortCycleException(List<?> activeItems2) {

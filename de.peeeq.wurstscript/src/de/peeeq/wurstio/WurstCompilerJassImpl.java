@@ -338,22 +338,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 	}
 
-	public void checkAndTranslate(WurstModel root) {
-		WLogger.info("begin checkAndTranslate");
-		checkProg(root);
-		
-		
-		if (errorHandler.getErrorCount() > 0) {
-			return;
-		}
-		
-		try {
-			prog = translateProg(root);
-		} catch (CompileError e) {
-			WLogger.severe(e);
-			errorHandler.sendError(e);
-		}
-	}
+	
 
 	public void checkProg(WurstModel model) {
 		checkProg(model, model);

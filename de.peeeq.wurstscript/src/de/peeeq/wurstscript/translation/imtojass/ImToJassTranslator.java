@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -45,7 +47,6 @@ import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class ImToJassTranslator {
@@ -54,7 +55,7 @@ public class ImToJassTranslator {
 	private Multimap<ImFunction, ImFunction> calledFunctions;
 	private ImFunction mainFunc;
 	private ImFunction confFunction;
-	private JassProg prog;
+	private @Nullable JassProg prog;
 	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
 	private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
 	private Set<String> usedNames = Sets.newLinkedHashSet();
@@ -139,7 +140,7 @@ public class ImToJassTranslator {
 		return r;
 	}
 
-	public static AstElement getTrace(JassImElement elem) {
+	private static AstElement getTrace(@Nullable JassImElement elem) {
 		while (elem != null) {
 			if (elem instanceof JassImElementWithTrace) {
 				JassImElementWithTrace jassImElementWithTrace = (JassImElementWithTrace) elem;
@@ -215,23 +216,14 @@ public class ImToJassTranslator {
 		return name2;
 	}
 
-	Map<Pair<String, Integer>, JassVar> tempReturnVars = Maps.newLinkedHashMap();
 	
-	public JassVar getTempReturnVar(String type, int nr) {
-		Pair<String, Integer> key = Pair.create(type, nr);
-		JassVar v = tempReturnVars.get(key);
-		if (v == null) {
-			v = JassAst.JassSimpleVar(type, getUniqueGlobalName("temp_return_"+type+"_"+nr));
-			prog.getGlobals().add(v);
-			tempReturnVars.put(key, v);
-		}
-		return v;
-	}
+	
+	
 
-	Map<ImVar, JassVar> jassVars = Maps.newLinkedHashMap();
+	private Map<ImVar, JassVar> jassVars = Maps.newLinkedHashMap();
 	private Set<ImVar> globalImVars = Sets.newLinkedHashSet();
 	
-	public JassVar getJassVarFor(ImVar v) {
+	JassVar getJassVarFor(ImVar v) {
 		JassVar result = jassVars.get(v);
 		if (result == null) {
 			boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
@@ -277,13 +269,9 @@ public class ImToJassTranslator {
 		return globalImVars.contains(v);
 	}
 
-	public JassVar newTempVar(JassFunction f, String type, String name) {
-		JassSimpleVar v = JassAst.JassSimpleVar(type, getUniqueGlobalName(name));
-		f.getLocals().add(v);
-		return v;
-	}
+	
 
-	Map<ImFunction, JassFunctionOrNative> jassFuncs = Maps.newLinkedHashMap();
+	private Map<ImFunction, JassFunctionOrNative> jassFuncs = Maps.newLinkedHashMap();
 	
 	public JassFunctionOrNative getJassFuncFor(ImFunction func) {
 		JassFunctionOrNative f = jassFuncs.get(func);
@@ -305,7 +293,7 @@ public class ImToJassTranslator {
 		return f;
 	}
 	
-	Map<ImFunction, JassNative> jassJassNatives = Maps.newLinkedHashMap();
+	
 	
 
 	

@@ -76,11 +76,7 @@ public class ImHelper {
 		});
 	}
 	
-	public static void replaceVars(List<ImStmt> stmts, Map<ImVar, ImVar> substitutions) {
-		for (ImStmt s : stmts) {
-			replaceVar(s, substitutions);
-		}
-	}
+	
 
 	public static void replaceVar(ImStmt s, final Map<ImVar, ImVar> substitutions) {
 		s.accept(new VarReplaceVisitor() {
@@ -196,15 +192,5 @@ public class ImHelper {
 		}
 	}
 	
-	public static <T extends JassImElement> T findNearest(JassImElement e, Class<T> c) {
-		while (e != null) {
-			if (c.isInstance(e)) {
-				@SuppressWarnings("unchecked")
-				T r = (T) e;
-				return r;
-			}
-			e = e.getParent();
-		}
-		return null;
-	}
+	
 }

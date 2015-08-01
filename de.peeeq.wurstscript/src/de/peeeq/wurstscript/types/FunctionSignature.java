@@ -57,18 +57,7 @@ public class FunctionSignature {
 	}
 	
 	
-	public WurstTypeClosure asClosureType() {
-		if (receiverType == null) {
-			return new WurstTypeClosure(paramTypes, returnType);
-		} else {
-			ArrayList<WurstType> params = Lists.newArrayListWithCapacity(paramTypes.size() + 1);
-			params.add(receiverType);
-			params.addAll(paramTypes);
-			return new WurstTypeClosure(params, returnType);
-		}
-		
-		
-	}
+	
 
 
 	public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
@@ -97,9 +86,7 @@ public class FunctionSignature {
 	}
 
 
-	public FunctionSignature withReturnType(WurstTypeInt r) {
-		return new FunctionSignature(receiverType, paramTypes, paramNames, r);
-	}
+	
 
 
 	public static FunctionSignature fromNameLink(NameLink f) {

@@ -27,9 +27,7 @@ public class ILconstBool extends ILconstAbstract {
 		return val ? "true" : "false";
 	}
 
-	public boolean not() {
-		return !val;
-	}
+	
 
 
 	public WurstType getType() {

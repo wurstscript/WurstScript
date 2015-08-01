@@ -82,10 +82,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		return typeParameters;
 	}
 
-	public WurstType getTypeParameterBinding(TypeParamDef def) {
-		WurstType t = getTypeParamBounds().get(def);
-		return t != null ? t : WurstTypeUnknown.instance();
-	}
+	
 	
 	
 	@Nullable Map<TypeParamDef, WurstType> cache_typeParamBounds;

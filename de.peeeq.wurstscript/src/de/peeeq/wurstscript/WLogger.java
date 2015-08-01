@@ -66,10 +66,7 @@ public abstract class WLogger {
 		
 	}
 	
-	public static void setInstance(WLoggerI instance) {
-		WLogger.instance = instance;
-		instance.setLevel(level);
-	}
+	
 
 	public static void keepLogs(boolean keepLogs) {
 		if (keepLogs) {

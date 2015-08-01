@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.ast.WStatement;
 public abstract class ForwardMethod<T, Target extends AstElementWithBody> {
 
 	private Target f;
-	boolean debug = false;
+	
 	
 	abstract T calculate(WStatement s, T incoming);
 	abstract T merge(Collection<T> values);

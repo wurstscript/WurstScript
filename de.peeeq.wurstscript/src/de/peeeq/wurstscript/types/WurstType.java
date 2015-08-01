@@ -158,9 +158,7 @@ public abstract class WurstType {
 				|| t instanceof WurstTypeIntLiteral;
 	}
 
-	public TypeDef tryGetTypeDef() {
-		throw new Error("not implemented");
-	}
+	
 
 	public WurstType typeUnion(WurstType t) {
 		return WurstTypeUnion.create(this, t);

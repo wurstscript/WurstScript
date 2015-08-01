@@ -21,16 +21,6 @@ public class UtilsTest {
     Assert.assertArrayEquals(ar2, ar1);
   }
 
-  @Test
-  public void filter() {
-	  
-    List<Integer> list = Utils.list(1,2,3,4,5,6,7,8);
-	List<Integer> list2 = Utils.filter(list , i -> i % 3 == 0);
-	Assert.assertEquals(8, list.size());
-	Assert.assertEquals(2, list2.size());
-	Object[] ar = {3, 6};
-	Assert.assertArrayEquals(ar, list2.toArray());
-  }
   
   @Test
   public void topSort_1() throws TopsortCycleException {
@@ -59,17 +49,6 @@ public class UtilsTest {
 	  Assert.assertTrue(Utils.isSubsequenceIgnoreCase("d", "OrderId2StringBJ"));
   }
   
-  
-  @Test
-  public void testAvgSubseqLen() {
-	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("KilUn", "KillUnit"), 0.05);
-	  Assert.assertEquals(2.0, Utils.averageSubsequenceLength("llUt", "KillUnit"), 0.05);
-	  Assert.assertEquals(1.33, Utils.averageSubsequenceLength("llnt", "KillUnit"), 0.05);
-	  
-	  Assert.assertEquals(5.0, Utils.averageSubsequenceLength("light", "LoadLightning".toLowerCase()), 0.05);
-	  Assert.assertEquals(2.5, Utils.averageSubsequenceLength("light", "GetUnitFlyHeight".toLowerCase()), 0.05);
-	  
-  }
   
   @Test
   public void testSubseqLen() {

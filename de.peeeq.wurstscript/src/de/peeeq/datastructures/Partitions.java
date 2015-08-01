@@ -35,11 +35,7 @@ public class Partitions<T> {
 	public Partitions() {
 	}
 	
-	public Partitions(Collection<T> items) {
-		for (T t : items) {
-			partitions.put(t, new Partition(t));
-		}
-	}
+	
 
 	/**
 	 * unions the partition of a and the partition of b.
@@ -67,7 +63,7 @@ public class Partitions<T> {
 		return partitions.computeIfAbsent(b, k -> new Partition(b));
 	}
 
-	public boolean contains(T t) {
+	public boolean contains(T t) { // NO_UCD (unused code)
 		return partitions.containsKey(t);
 	}
 }

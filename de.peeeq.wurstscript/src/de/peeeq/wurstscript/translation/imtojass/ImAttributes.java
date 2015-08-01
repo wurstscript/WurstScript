@@ -56,9 +56,7 @@ public class ImAttributes {
 	}
 
 
-	public static String translateTypeFirst(ImTupleArrayType t) {
-		throw new Error("tuples should be eliminated in earlier phase");
-	}
+	
 
 
 	public static String translateType(ImTupleArrayType t) {

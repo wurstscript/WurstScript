@@ -19,15 +19,6 @@ public class GuiUtils {
 				center_y - frm.getHeight() / 2);
 	}
 
-	public static <K, V> Map<V, K> filterByType(Class<? extends K> type,
-			Map<V, K> map) {
-		Map<V, K> result = Maps.newLinkedHashMap();
-		for (Entry<V, K> e : map.entrySet()) {
-			if (type.isInstance(e.getValue())) {
-				result.put(e.getKey(), (K) e.getValue());
-			}
-		}
-		return result;
-	}
+	
 
 }

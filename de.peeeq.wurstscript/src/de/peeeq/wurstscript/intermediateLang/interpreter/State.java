@@ -50,15 +50,6 @@ public abstract class State {
 		return null;
 	}
 	
-	public void printVarValues() {
-		System.out.print("vars = [");
-		for (Entry<ImVar, ILconst> e : values.entrySet()) {
-			System.out.print(e.getKey().getName());
-			System.out.print(" = ");
-			System.out.print(e.getValue());
-			System.out.print(", ");
-		}
-		System.out.println("]");
-	}
+	
 	
 }

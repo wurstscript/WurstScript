@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
  * 
  * remember that all functions must be
  */
+@SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements NativesProvider {
 
 	private Random r = new Random(0);

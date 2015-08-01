@@ -25,10 +25,10 @@ public class GlobalsInliner {
 	private ImProg prog;
 
 	
-	ImSet s = null;
-	ImSetArray sa = null;
 	
-	boolean notUsed = true;
+	
+	
+	
 
 	public GlobalsInliner(ImTranslator translator) {
 		this.prog = translator.getImProg();

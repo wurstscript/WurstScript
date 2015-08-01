@@ -35,10 +35,7 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 		this.data = data;
 	}
 
-	public void setLevelData(int levelCount, int dataPointer) {
-		this.levelCount = levelCount;
-		this.dataPointer = dataPointer;
-	}
+	
 
 	
 	static ObjectModification<?> readFromStream(BinaryDataInputStream in, ObjectFileType fileType, ObjectDefinition parent) throws IOException {

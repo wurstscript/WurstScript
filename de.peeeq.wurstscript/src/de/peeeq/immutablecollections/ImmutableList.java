@@ -62,16 +62,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 		return result;
 	}
 	
-	public static <T> ImmutableList<T> of(Collection<T> elems) {
-		@SuppressWarnings("unchecked")
-		T[] ar = (T[]) new Object[elems.size()];
-		int i = 0;
-		for (T t : elems) {
-			ar[i] = t;
-			i++;
-		}
-		return of(ar);
-	}
+	
 	
 	@Override
 	public String toString() {

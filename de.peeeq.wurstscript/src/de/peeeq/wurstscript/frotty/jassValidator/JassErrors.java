@@ -12,9 +12,7 @@ public class JassErrors {
 		errors.add("Line : " + line + " - " + error );
 	}
 
-	public static int errorCount() {
-		return errors.size();
-	}
+	
 
 	public static List<String> getErrors() {
 		return Lists.newArrayList(errors);

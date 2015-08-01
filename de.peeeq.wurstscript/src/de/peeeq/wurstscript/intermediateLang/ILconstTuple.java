@@ -64,9 +64,7 @@ public class ILconstTuple extends ILconstAbstract {
 	}
 
 
-	public int size() {
-		return values.length;
-	}
+	
 
 
 }

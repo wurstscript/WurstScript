@@ -28,10 +28,10 @@ import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class PossibleFuncDefs {
-	public final static String overloadingPlus = "op_plus";
-	public final static String overloadingMinus = "op_minus";
-	public final static String overloadingMult = "op_mult";
-	public final static String overloadingDiv = "op_divReal";
+	
+	
+	
+	
 
 	public static ImmutableCollection<FunctionDefinition> calculate(final ExprFuncRef node) {
 
@@ -60,9 +60,7 @@ public class PossibleFuncDefs {
 	}
 
 
-	public static ImmutableCollection<FunctionDefinition> calculate(ExprBinary node) {
-		return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
-	}
+	
 
 	public static ImmutableCollection<FunctionDefinition> calculate(final ExprMemberMethod node) {
 

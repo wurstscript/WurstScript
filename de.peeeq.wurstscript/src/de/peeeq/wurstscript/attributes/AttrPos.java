@@ -86,11 +86,7 @@ public class AttrPos {
 	}
 	
 	
-	public static int getColumn(WPos p) {
-		LineOffsets lineOffsets = getLineOffsets(p);
-		if (lineOffsets == null) return 0;
-		return p.getLeftPos() - lineOffsets.get(p.getLine() - 1);
-	}
+	
 
 	private static @Nullable LineOffsets getLineOffsets(WPos p) {
 		LineOffsets lineOffsets;
@@ -102,28 +98,17 @@ public class AttrPos {
 		return lineOffsets;
 	}
 	
-	public static int getLine(WPos p) {
-		LineOffsets lineOffsets = getLineOffsets(p);
-		if (lineOffsets == null) return 0;
-		return lineOffsets.getLine(p.getLeftPos()) + 1;
-	}
 	
-	public static int getEndColumn(WPos p) {
-		LineOffsets lineOffsets = getLineOffsets(p);
-		if (lineOffsets == null) return 0;
-		return p.getRightPos() - lineOffsets.get(p.getEndLine() - 1);
-	}
 	
-	public static int getEndLine(WPos p) {
-		LineOffsets lineOffsets = getLineOffsets(p);
-		if (lineOffsets == null) return 0;
-		return lineOffsets.getLine(p.getRightPos()) + 1;
-	}
+	
+	
+	
 
 
 	public static WPos getErrorPos(AstElement e) {
 		return e.attrSource();
 	}
+	
 	
 	public static WPos getErrorPos(WPackage e) {
 		WPos pos = e.getSource();

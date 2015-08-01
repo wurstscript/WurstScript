@@ -67,17 +67,6 @@ public class CheckHelper {
 		return t.setTypeArgs(typeParamMapping);
 	}
 
-	/**
-	 * checks if overridingFunc is a refinement of all the overriddenFuntions
-	 * @param overridingFunc
-	 * @param overriddenFuntions
-	 */
-	public static void checkIfIsRefinement(FuncDef overridingFunc,	Collection<FuncDef> overriddenFuntions, String errorMessage) {
-		Map<TypeParamDef, WurstType> typeParamBinding = Collections.emptyMap();		
-		for (FuncDef f: overriddenFuntions) {
-			checkIfIsRefinement(typeParamBinding, overridingFunc, f, errorMessage, false);
-		}
-		
-	}
+	
 
 }

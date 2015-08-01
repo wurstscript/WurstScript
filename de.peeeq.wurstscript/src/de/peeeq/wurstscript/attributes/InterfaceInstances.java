@@ -21,15 +21,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class InterfaceInstances {
 
-	public static Multimap<InterfaceDef, ClassDef> getInterfaceInstances(CompilationUnit cu) {
-		Multimap<InterfaceDef, ClassDef> result = HashMultimap.create();
-		for (ClassDef c : cu.attrGetByType().classes) {
-			for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-				result.put(i.getInterfaceDef(), c);
-			}
-		}
-		return result;
-	}
+	
 
 	public static ImmutableCollection<WurstTypeInterface> getImplementedInterfaces(ClassDef c) {
 		ImmutableCollection.Builder<WurstTypeInterface> result = ImmutableList.builder();

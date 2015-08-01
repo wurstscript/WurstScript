@@ -12,20 +12,13 @@ public class VariableType<T> {
 	
 	
 	
-	public VariableType<?> fromInt(int encoding) {
-		if (encoding >= 0 && encoding <= 3) {
-			return bw[encoding];
-		}
-		throw new Error("Encoding out of range: " + encoding);
-	}
+	
 	
 	private VariableType(int encoding) {
 		this.encoding = encoding;
 		bw[encoding] = this;
 	}
 	
-	public int toInt() {
-		return encoding;
-	}
+	
 
 }

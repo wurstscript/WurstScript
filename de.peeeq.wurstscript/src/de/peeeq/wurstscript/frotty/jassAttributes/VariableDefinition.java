@@ -61,11 +61,7 @@ public class VariableDefinition {
 		
 	}
 
-	public static Map<String, JassVar> getVariableMap(JassProg p) {
-		Map<String, JassVar> result = Maps.newLinkedHashMap();
-		addVarsToMap(result, p.getGlobals());
-		return result ;
-	}
+	
 
 	public static @Nullable JassStmtSet get(JassStmtSet e) {
 		String varName = e.getLeft();

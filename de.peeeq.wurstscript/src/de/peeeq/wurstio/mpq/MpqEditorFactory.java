@@ -10,9 +10,7 @@ public class MpqEditorFactory {
 		return new Jmpq2BasedEditor(f);
 	}
 
-	public static String getTempfolder() {
-		return tempfolder;
-	}
+	
 
 	public static void setTempfolder(String tempfolder) {
 		MpqEditorFactory.tempfolder = tempfolder;

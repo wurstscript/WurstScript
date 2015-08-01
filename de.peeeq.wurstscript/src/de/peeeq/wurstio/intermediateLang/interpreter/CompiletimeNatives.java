@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
+import org.junit.Ignore;
+
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;
 import de.peeeq.wurstio.objectreader.ObjectFile;
@@ -17,6 +19,7 @@ import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
 
+@SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
 	private ProgramStateIO globalState;
 	public CompiletimeNatives(ProgramStateIO globalState) {

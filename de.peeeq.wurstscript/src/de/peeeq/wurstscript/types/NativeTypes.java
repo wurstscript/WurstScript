@@ -36,28 +36,5 @@ public class NativeTypes {
 		return null;
 	}
 
-	public static ILconst getDefaultValue(WurstType type) {
-		if (type.isSubtypeOf(WurstTypeInt.instance(), null)) {
-			return new ILconstInt(0);
-		}
-		if (type.isSubtypeOf(WurstTypeBool.instance(), null)) {
-			return ILconstBool.FALSE;
-		}
-		if (type.isSubtypeOf(WurstTypeReal.instance(), null)) {
-			return new ILconstReal(0.0);
-		}
-		if (type.isSubtypeOf(WurstTypeString.instance(), null)) {
-			return new ILconstString(null);
-		}
-		if (type.isSubtypeOf(WurstTypeCode.instance(), null)) {
-			return ILconstNull.instance();
-		}
-		if (type.isSubtypeOf(WurstTypeHandle.instance(), null)) {
-			return ILconstNull.instance();
-		}
-		if (type instanceof WurstTypeClass) {
-			return new ILconstInt(0);
-		}
-		throw new Error("default value for type " + type + " not implemented");
-	}
+	
 }

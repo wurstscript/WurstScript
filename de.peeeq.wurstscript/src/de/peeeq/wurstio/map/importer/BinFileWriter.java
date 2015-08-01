@@ -51,20 +51,11 @@ public class BinFileWriter {
 		writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(i).array());
 	}
 	
-	public void writeShort(short i){
-		writeBytes(ByteBuffer.allocate(2).order(ByteOrder.LITTLE_ENDIAN).putShort(i).array());
-	}
 	
-	public void writeFloat(float f){
-		writeBytes(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putFloat(f).array());
-	}
 	
-	public void writeFourchar(String s){
-		if(s.length() != 4){
-			throw new IllegalArgumentException("String length != 4");
-		}
-		writeBytes(s.getBytes());
-	}
+	
+	
+	
 	
 	public void close(){
 		try {

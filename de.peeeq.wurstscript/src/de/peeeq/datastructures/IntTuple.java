@@ -19,9 +19,7 @@ public class IntTuple {
 		return r;
 	}
 	
-	public int get(int i) {
-		return ar[i];
-	}
+	
 	
 	public int head() {
 		return ar[0];

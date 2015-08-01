@@ -23,16 +23,7 @@ import de.peeeq.wurstscript.utils.Utils;
 public class SubClasses {
 
 
-	public static Multimap<ClassDef, ClassDef> getSubClasses(CompilationUnit cu) {
-		Multimap<ClassDef, ClassDef> result = HashMultimap.create();
-		for (ClassDef c : cu.attrGetByType().classes) {
-			if (c.attrExtendedClass() != null) {
-				result.put(c.attrExtendedClass(), c);
-			}
-		}
-		result = Utils.transientClosure(result);
-		return result ;
-	}
+	
 
 	public static @Nullable ClassDef getExtendedClass(ClassDef classDef) {
 		assertNonCyclicClassHierarchy(classDef, new ArrayList<ClassDef>());

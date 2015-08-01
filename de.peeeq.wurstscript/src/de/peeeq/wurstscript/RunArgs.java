@@ -193,9 +193,7 @@ public class RunArgs {
 		return optionRunCompileTimeFunctions.isSet;
 	}
 
-	public boolean runtests() {
-		return optionRuntests.isSet;
-	}
+	
 
 	public boolean createHotDoc() {
 		return optionHotdoc.isSet;
