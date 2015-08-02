@@ -44,6 +44,7 @@ public class AttrClosureCapturedVariables {
 			NameRef nr = (NameRef) e;
 			NameDef def = nr.attrNameDef();
 			if (def instanceof LocalVarDef || def instanceof WParameter) {
+				assert def != null; // instanceof-checks ensure this, but eclipse does not get it
 				VarDef v = (VarDef) def;
 				if (v.attrNearestExprClosure() != closure) {
 					result.put(nr, v);

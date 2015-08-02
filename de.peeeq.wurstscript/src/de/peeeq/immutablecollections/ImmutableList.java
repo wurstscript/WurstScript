@@ -1,7 +1,6 @@
 package de.peeeq.immutablecollections;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 

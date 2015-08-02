@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.prefs.Preferences;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 // source: http://stackoverflow.com/questions/62289/read-write-to-windows-registry-using-java
 public class WinRegistry {
 	public final static int HKEY_CURRENT_USER = 0x80000001;
@@ -21,16 +23,16 @@ public class WinRegistry {
 	private Preferences userRoot = Preferences.userRoot();
 	private Preferences systemRoot = Preferences.systemRoot();
 	private Class<? extends Preferences> userClass = userRoot.getClass();
-	private Method regOpenKey = null;
-	private Method regCloseKey = null;
-	private Method regQueryValueEx = null;
-	private Method regEnumValue = null;
-	private Method regQueryInfoKey = null;
-	private Method regEnumKeyEx = null;
-	private Method regCreateKeyEx = null;
-	private Method regSetValueEx = null;
-	private Method regDeleteKey = null;
-	private Method regDeleteValue = null;
+	private Method regOpenKey;
+	private Method regCloseKey;
+	private Method regQueryValueEx ;
+	private Method regEnumValue;
+	private Method regQueryInfoKey;
+	private Method regEnumKeyEx;
+	private Method regCreateKeyEx;
+	private Method regSetValueEx;
+	private Method regDeleteKey;
+	private Method regDeleteValue;
 
 	public WinRegistry() throws NoSuchMethodException, SecurityException {
 		regOpenKey = userClass.getDeclaredMethod("WindowsRegOpenKey",
@@ -81,7 +83,7 @@ public class WinRegistry {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	public String readString(int hkey, String key, String valueName)
+	public @Nullable String readString(int hkey, String key, String valueName)
 			throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
 		if (hkey == HKEY_LOCAL_MACHINE) {
@@ -104,7 +106,7 @@ public class WinRegistry {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	public Map<String, String> readStringValues(int hkey, String key)
+	public @Nullable Map<String, @Nullable String> readStringValues(int hkey, String key)
 			throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
 		if (hkey == HKEY_LOCAL_MACHINE) {
@@ -127,7 +129,7 @@ public class WinRegistry {
 	 * @throws IllegalAccessException
 	 * @throws InvocationTargetException
 	 */
-	public List<String> readStringSubKeys(int hkey, String key)
+	public @Nullable List<String> readStringSubKeys(int hkey, String key)
 			throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
 		if (hkey == HKEY_LOCAL_MACHINE) {
@@ -263,7 +265,7 @@ public class WinRegistry {
 		return rc; // can REG_NOTFOUND, REG_ACCESSDENIED, REG_SUCCESS
 	}
 
-	private String readString(Preferences root, int hkey, String key,
+	private @Nullable String readString(Preferences root, int hkey, String key,
 			String value) throws IllegalArgumentException,
 			IllegalAccessException, InvocationTargetException {
 		int[] handles = (int[]) regOpenKey.invoke(root, new Object[] {
@@ -277,10 +279,10 @@ public class WinRegistry {
 		return (valb != null ? new String(valb).trim() : null);
 	}
 
-	private Map<String, String> readStringValues(Preferences root,
+	private @Nullable Map<String, @Nullable String> readStringValues(Preferences root,
 			int hkey, String key) throws IllegalArgumentException,
 			IllegalAccessException, InvocationTargetException {
-		HashMap<String, String> results = new HashMap<String, String>();
+		HashMap<String, @Nullable String> results = new HashMap<>();
 		int[] handles = (int[]) regOpenKey.invoke(root, new Object[] {
 				new Integer(hkey), toCstr(key), new Integer(KEY_READ) });
 		if (handles[1] != REG_SUCCESS) {
@@ -302,7 +304,7 @@ public class WinRegistry {
 		return results;
 	}
 
-	private List<String> readStringSubKeys(Preferences root, int hkey,
+	private @Nullable List<String> readStringSubKeys(Preferences root, int hkey,
 			String key) throws IllegalArgumentException,
 			IllegalAccessException, InvocationTargetException {
 		List<String> results = new ArrayList<String>();

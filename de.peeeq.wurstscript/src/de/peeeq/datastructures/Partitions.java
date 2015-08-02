@@ -1,6 +1,5 @@
 package de.peeeq.datastructures;
 
-import java.util.Collection;
 import java.util.Map;
 
 import com.google.common.collect.Maps;

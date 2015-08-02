@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -15,7 +13,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassDefs;
 import de.peeeq.wurstscript.ast.ClassOrModuleOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.EnumDef;

@@ -1,7 +1,5 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSetMultimap;
 
@@ -34,7 +32,10 @@ public class TypeNameLinks {
 		for (ClassDef innerClass : c.getInnerClasses()) {
 			result.put(innerClass.getName(), NameLink.create(innerClass, c));
 		}
-		result.put(c.getName(), c.createNameLink(c.attrNextScope()));
+		WScope nextScope = c.attrNextScope();
+		if (nextScope != null) {
+			result.put(c.getName(), c.createNameLink(nextScope));
+		}
 		return result.build();
 	}
 

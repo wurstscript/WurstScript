@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
@@ -21,10 +22,11 @@ import de.peeeq.wurstscript.utils.Utils;
 public class NameResolution {
 
 	public static ImmutableCollection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
-		if (node.attrNearestStructureDef() != null) {
+		StructureDef nearestStructureDef = node.attrNearestStructureDef();
+		if (nearestStructureDef != null) {
 			// inside a class one can write foo instead of this.foo()
 			// so the receiver type is implicitly given by the enclosing class
-			WurstType receiverType = node.attrNearestStructureDef().attrTyp();
+			WurstType receiverType = nearestStructureDef.attrTyp();
 			ImmutableCollection<NameLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
 			if (!funcs.isEmpty()) {
 				return funcs;
@@ -74,14 +76,14 @@ public class NameResolution {
 		if (parent == null) {
 			return null;
 		}
-		if (scope instanceof ModuleInstanciation) {
-			ModuleInstanciation moduleInstanciation = (ModuleInstanciation) scope;
+		WScope currentScope = scope;
+		if (currentScope instanceof ModuleInstanciation) {
+			ModuleInstanciation moduleInstanciation = (ModuleInstanciation) currentScope;
 			// for module instanciations the next scope is the package in which
 			// the module was defined
 			return nextScope(moduleInstanciation.attrModuleOrigin());
 		}
-		scope = parent.attrNearestScope();
-		return scope;
+		return parent.attrNearestScope();
 	}
 
 	public static ImmutableCollection<NameLink> lookupMemberFuncs(AstElement node, WurstType receiverType, String name, boolean showErrors) {
@@ -109,10 +111,12 @@ public class NameResolution {
 	
 	public static @Nullable NameDef lookupVarNoConfig(AstElement node, String name, boolean showErrors) {
 		WurstType receiverType;
-		if (node.attrNearestStructureDef() != null) {
+		@Nullable
+		StructureDef nearestStructureDef = node.attrNearestStructureDef();
+		if (nearestStructureDef != null) {
 			// inside a class one can write bar instead of this.bar
 			// so the receiver type is implicitly given by the enclosing class
-			receiverType = node.attrNearestStructureDef().attrTyp();
+			receiverType = nearestStructureDef.attrTyp();
 		} else {
 			receiverType = null;
 		}
