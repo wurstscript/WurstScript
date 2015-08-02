@@ -11,6 +11,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.core.resources.IFile;
@@ -44,7 +46,7 @@ import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 /**
- * keeps a version of the model which is always the most recent one 
+ * keeps a version of the model which is always the most recent one
  */
 public class ModelManagerImpl implements ModelManager {
 
@@ -53,11 +55,11 @@ public class ModelManagerImpl implements ModelManager {
 	private final Multimap<String, CompilationUnitChangeListener> changeListeners = HashMultimap.create();
 	private volatile boolean needsFullBuild = true;
 	private final Set<String> dependencies = Sets.newLinkedHashSet();
-	
+
 	public ModelManagerImpl(WurstNature nature) {
 		this.nature = nature;
 	}
-	
+
 	@Override
 	public synchronized boolean removeCompilationUnit(IResource resource) {
 		WurstModel model2 = model;
@@ -90,14 +92,14 @@ public class ModelManagerImpl implements ModelManager {
 		needsFullBuild = true;
 		WLogger.info("Clean done.");
 	}
-	
-	
+
 	@Override
 	public void typeCheckModel(WurstGui gui, boolean addErrorMarkers) {
 		if (needsFullBuild) {
 			WLogger.info("needs full build...");
 			try {
-				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
+
+				buildProject(IncrementalProjectBuilder.FULL_BUILD);
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
@@ -106,27 +108,35 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		doTypeCheck(gui, addErrorMarkers);
 	}
-	
+
+	private void buildProject(int buildType) throws CoreException {
+		if (Thread.holdsLock(this)) {
+			throw new RuntimeException("Modelmanager was locked for build");
+		}
+		nature.getProject().build(buildType, null);
+	}
+
 	@Override
-	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
+	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
 		if (needsFullBuild) {
 			WLogger.info("needs full build...");
 			try {
-				nature.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
+				buildProject(IncrementalProjectBuilder.FULL_BUILD);
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
 			// full build will trigger a new run of typeCheckModel ...
 			return;
 		}
-		doTypeCheckPartial(gui, addErrorMarkers, toCheck);
+		doTypeCheckPartial(gui, addErrorMarkers, toCheckFilenames);
 	}
 
-	
-	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<CompilationUnit> toCheck) {
-		// this line is not synchronized, because it can trigger a build in a different thread
+	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
+		// this line is not synchronized, because it can trigger a build in a
+		// different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
+			List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
 			long time = System.currentTimeMillis();
 			if (gui.getErrorCount() > 0) {
 				if (addErrorMarkers) {
@@ -139,7 +149,7 @@ public class ModelManagerImpl implements ModelManager {
 			if (model2 == null) {
 				return;
 			}
-			
+
 			try {
 				clearAttributes(toCheck);
 				comp.addImportedLibs(model2);
@@ -150,8 +160,9 @@ public class ModelManagerImpl implements ModelManager {
 			} catch (CompileError e) {
 				gui.sendError(e);
 			}
-			List<String> fileNames = getfileNames(toCheck); 
-			WLogger.info("finished partial typechecking " + fileNames + " in " + (System.currentTimeMillis() - time) + "ms");
+			List<String> fileNames = getfileNames(toCheck);
+			WLogger.info(
+					"finished partial typechecking " + fileNames + " in " + (System.currentTimeMillis() - time) + "ms");
 			if (addErrorMarkers) {
 				nature.clearMarkers(WurstBuilder.MARKER_TYPE_TYPES, fileNames);
 				nature.addErrorMarkers(gui, WurstBuilder.MARKER_TYPE_TYPES);
@@ -159,13 +170,22 @@ public class ModelManagerImpl implements ModelManager {
 		}
 	}
 
-	private List<String> getfileNames(List<CompilationUnit> compilationUnits) {
-		return compilationUnits.stream()
-				.map(CompilationUnit::getFile)
-				.collect(Collectors.toList());
+	private List<CompilationUnit> getCompilationUnits(List<String> fileNames) {
+		WurstModel model2 = model;
+		if (model2 == null) {
+			return Collections.emptyList();
+		}
+		return model2.stream().filter(cu -> fileNames.contains(cu.getFile())).collect(Collectors.toList());
 	}
-	
-    /** clear the attributes for all compilation units that import something from 'toCheck' */
+
+	private List<String> getfileNames(List<CompilationUnit> compilationUnits) {
+		return compilationUnits.stream().map(CompilationUnit::getFile).collect(Collectors.toList());
+	}
+
+	/**
+	 * clear the attributes for all compilation units that import something from
+	 * 'toCheck'
+	 */
 	private void clearAttributes(List<CompilationUnit> toCheck) {
 		WurstModel model2 = model;
 		if (model2 == null) {
@@ -184,22 +204,25 @@ public class ModelManagerImpl implements ModelManager {
 				cu.clearAttributes();
 			}
 		}
-		
+
 	}
 
 	/** check whether cu imports something from 'toCheck' */
 	private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
 		for (WPackage p : cu.getPackages()) {
-			if (imports(p, packageNames, false, Sets.<WPackage>newHashSet())) {
+			if (imports(p, packageNames, false, Sets.<WPackage> newHashSet())) {
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
-	
-	/** check whether p imports something from 'toCheck' 
-	 * @param hashSet */
+
+	/**
+	 * check whether p imports something from 'toCheck'
+	 * 
+	 * @param hashSet
+	 */
 	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic, HashSet<WPackage> visited) {
 		if (visited.contains(p)) {
 			return false;
@@ -221,7 +244,8 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
-		// this line is not synchronized, because it can trigger a build in a different thread
+		// this line is not synchronized, because it can trigger a build in a
+		// different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		synchronized (this) {
 			long time = System.currentTimeMillis();
@@ -237,10 +261,10 @@ public class ModelManagerImpl implements ModelManager {
 			if (model2 == null) {
 				return;
 			}
-			
+
 			try {
 				model2.clearAttributes();
-				comp.addImportedLibs(model2);		
+				comp.addImportedLibs(model2);
 				comp.checkProg(model2);
 			} catch (CompileError e) {
 				gui.sendError(e);
@@ -255,14 +279,14 @@ public class ModelManagerImpl implements ModelManager {
 
 	private WurstCompilerJassImpl getCompiler(WurstGui gui) {
 		try {
-			nature.getProject().build(IncrementalProjectBuilder.INCREMENTAL_BUILD, null);
+			buildProject(IncrementalProjectBuilder.INCREMENTAL_BUILD);
 		} catch (CoreException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new Error(e);
 		}
 		WLogger.info("dependencies = " + dependencies);
-//		config.setSetting("lib", Utils.join(dependencies, ";"));
+		// config.setSetting("lib", Utils.join(dependencies, ";"));
 		// TODO set dependencies
 		RunArgs runArgs = RunArgs.defaults();
 		runArgs.addLibs(dependencies);
@@ -271,7 +295,6 @@ public class ModelManagerImpl implements ModelManager {
 		return comp;
 	}
 
-	
 	@Override
 	public synchronized void updateModel(CompilationUnit cu, WurstGui gui) {
 		@Nullable
@@ -307,7 +330,7 @@ public class ModelManagerImpl implements ModelManager {
 		try {
 			CompilationUnit commonJ = compileFromBundle(gui, bundle, "resources/common.j");
 			CompilationUnit blizzardJ = compileFromBundle(gui, bundle, "resources/Blizzard.j");
-			return Ast.WurstModel(blizzardJ , commonJ, cu);
+			return Ast.WurstModel(blizzardJ, commonJ, cu);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return Ast.WurstModel(cu);
@@ -317,7 +340,7 @@ public class ModelManagerImpl implements ModelManager {
 	private CompilationUnit compileFromBundle(WurstGui gui, Bundle bundle, String fileName) throws IOException {
 		InputStream source = FileLocator.openStream(bundle, new Path(fileName), false);
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
-		
+
 		try (InputStreamReader reader = new InputStreamReader(source)) {
 			URL fileUrl = FileLocator.find(bundle, new Path(fileName), Collections.emptyMap());
 			String bundleFile = FileLocator.toFileURL(fileUrl).getFile();
@@ -331,14 +354,22 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public @Nullable CompilationUnit getCompilationUnit(String fileName) {
+	public synchronized void doWithCompilationUnit(String fileName, Consumer<CompilationUnit> action) {
+		doWithCompilationUnitR(fileName, cu -> {
+			action.accept(cu);
+			return null;
+		});
+	}
+
+	@Override
+	public synchronized <T> @Nullable T doWithCompilationUnitR(String fileName, Function<CompilationUnit, T> action) {
 		WurstModel model2 = model;
 		if (model2 == null) {
 			return null;
 		}
 		for (CompilationUnit cu : model2) {
 			if (cu.getFile().equals(fileName)) {
-				return cu;
+				return action.apply(cu);
 			}
 		}
 		return null;
@@ -347,27 +378,27 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void registerChangeListener(String fileName, CompilationUnitChangeListener listener) {
 		this.changeListeners.put(fileName, listener);
-		
+
 	}
 
 	@Override
-	public synchronized CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
+	public synchronized void parse(WurstGui gui, String fileName, Reader source) {
 		gui = new WurstGuiLogger();
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
-		comp.setHasCommonJ(true); // we always want to have a common.j if we have an eclipse plugin
+		comp.setHasCommonJ(true); // we always want to have a common.j if we
+									// have an eclipse plugin
 		CompilationUnit cu = comp.parse(fileName, source);
-		
+
 		IFile file = nature.getProject().getFile(fileName);
 		if (file != null) {
 			WurstNature.deleteMarkers(file, WurstBuilder.MARKER_TYPE_GRAMMAR);
 		}
 		nature.renewErrorMarkers(gui, file);
-		
+
 		if (cu.getJassDecls().size() + cu.getPackages().size() > 0) {
 			cu.setFile(fileName);
 			updateModel(cu, gui);
 		}
-		return cu;
 	}
 
 	@Override
@@ -386,11 +417,6 @@ public class ModelManagerImpl implements ModelManager {
 		dependencies.clear();
 	}
 
-	@Override
-	public @Nullable WurstModel getModel() {
-		return model;
-	}
-	
 	public WurstNature getNature() {
 		return nature;
 	}
@@ -414,25 +440,25 @@ public class ModelManagerImpl implements ModelManager {
 	@Override
 	public synchronized void resolveImports(WurstGui gui) {
 		WurstCompilerJassImpl comp = getCompiler(gui);
-		
+
 		try {
 			WurstModel m = model;
 			if (m == null) {
 				return;
 			}
-			comp.addImportedLibs(m);		
+			comp.addImportedLibs(m);
 		} catch (CompileError e) {
 			gui.sendError(e);
 		}
 	}
 
 	@Override
-	public Set<String> getDependencies() {
+	public synchronized Set<String> getDependencies() {
 		return Collections.unmodifiableSet(dependencies);
 	}
 
 	@Override
-	public Set<File> getDependencyWurstFiles() {
+	public synchronized Set<File> getDependencyWurstFiles() {
 		Set<File> result = Sets.newHashSet();
 		for (String dep : dependencies) {
 			addDependencyWurstFiles(result, new File(dep));
@@ -449,5 +475,15 @@ public class ModelManagerImpl implements ModelManager {
 			result.add(file);
 		}
 	}
-	
+
+	@Override
+	public synchronized void doWithModel(Consumer<@Nullable WurstModel> action) {
+		action.accept(model);
+	}
+
+	@Override
+	public synchronized <T> T doWithModelR(Function<@Nullable WurstModel, T> action) {
+		return action.apply(model);
+	}
+
 }

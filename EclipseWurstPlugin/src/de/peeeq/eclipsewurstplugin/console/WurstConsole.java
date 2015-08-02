@@ -76,7 +76,7 @@ public class WurstConsole extends IOConsole implements Runnable {
 					}
 				} else {
 					repl.setModelManager(editor.getModelManager());
-					repl.setEditorCompilationUnit(editor.getCompilationUnit());
+					repl.setEditorFilename(editor.getFilename());
 				}
 				synchronized (locked) {
 					locked[0] = false;

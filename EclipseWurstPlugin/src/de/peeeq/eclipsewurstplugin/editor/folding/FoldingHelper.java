@@ -78,7 +78,7 @@ public class FoldingHelper {
 			return;
 		}
 		clearFoldings(model);
-		editor.getCompilationUnit().accept(new CompilationUnit.DefaultVisitor() {
+		editor.doWithCompilationUnit(cu -> cu.accept(new CompilationUnit.DefaultVisitor() {
 			@Override
 			public void visit(ClassDef e) {
 				addFolding(model, e);
@@ -105,7 +105,7 @@ public class FoldingHelper {
 			public void visit(ExtensionFuncDef e) {
 				addFolding(model, e);
 			}
-		});
+		}));
 	}
 
 

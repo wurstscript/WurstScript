@@ -48,17 +48,19 @@ public class WurstContextInformationValidator implements IContextInformationVali
 		fCurrentParameter= -1;
 		
 		// adjust installOffset to the beginning of the argument list
-		CompilationUnit cu = editor.getCompilationUnit();
-		AstElement elem = Utils.getAstElementAtPos(cu, offset, false);
-		if (elem instanceof ExprEmpty) {
-			if (elem.getParent() instanceof Arguments) {
-				Arguments args = (Arguments) elem.getParent();
-				if (!args.isEmpty()) {
-					installOffset = args.get(0).getSource().getLeftPos();
+		editor.doWithCompilationUnit(cu -> {
+			
+			AstElement elem = Utils.getAstElementAtPos(cu, offset, false);
+			if (elem instanceof ExprEmpty) {
+				if (elem.getParent() instanceof Arguments) {
+					Arguments args = (Arguments) elem.getParent();
+					if (!args.isEmpty()) {
+						installOffset = args.get(0).getSource().getLeftPos();
+					}
+					
 				}
-				
 			}
-		}
+		});
 	}
 
 	@Override

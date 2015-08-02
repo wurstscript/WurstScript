@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
@@ -134,15 +136,20 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		return super.getAdapter(adapter);
 	}
 
-	public CompilationUnit getCompilationUnit() {
+	public void doWithCompilationUnit(Consumer<CompilationUnit> action) { // TODO rename
+		getNature().getModelManager().doWithCompilationUnit(getFilename(), action);
+	}
+	public <T> T doWithCompilationUnitR(Function<CompilationUnit,T> action) { // TODO rename
+		return getNature().getModelManager().doWithCompilationUnitR(getFilename(), action);
+	}
+
+	public String getFilename() {
 		WurstNature nature = getNature();
 		IFile file = getFile();
-		if (file != null && nature != null) {
-			String fileName = file.getProjectRelativePath().toString();
-			CompilationUnit cu = nature.getModelManager().getCompilationUnit(fileName);
-			return cu;
+		if (file == null || nature == null) {
+			return null;
 		}
-		return null;
+		return file.getProjectRelativePath().toString();
 	}
 
 	public IFile getFile() {
@@ -296,14 +303,21 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 
 
 	private void updateMarkOccurences() {
-		occurencesMarker.update(currentSelection, annotationModel, getCompilationUnit(), modelManager);
+		occurencesMarker.update(currentSelection, annotationModel, getFilename(), modelManager);
 	}
 
 	
 
-	public CompilationUnit reconcile(boolean doTypecheck) {
-		return reconciler.reconcile(doTypecheck);
+	public void reconcile(boolean doTypecheck) {
+		reconciler.reconcile(doTypecheck);
 	}
+	
+	public void reconcileIfNecessary(int lastdocumentHash, boolean doTypecheck) {
+		if (getLastReconcileDocumentHashcode() != lastdocumentHash) {
+			reconcile(doTypecheck);
+		}
+	}
+	
 
 	public static WurstEditor getActiveEditor() {
 		IWorkbenchWindow wb = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
@@ -358,5 +372,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	public int getLastReconcileDocumentHashcode() {
 		return reconciler.getLastReconcileDocumentHashcode();
 	}
+
+	
 	
 }

@@ -5,14 +5,18 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.eclipse.core.resources.IResource;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.eclipsewurstplugin.editor.CompilationUnitChangeListener;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
+
 /*
  * model manager which does nothing
  */
@@ -32,23 +36,12 @@ public class ModelManagerStub implements ModelManager {
 	public void clean() {
 	}
 
-
 	@Override
 	public void updateModel(CompilationUnit cu, WurstGui gui) {
 	}
 
 	@Override
-	public CompilationUnit getCompilationUnit(String fileName) {
-		return null;
-	}
-
-	@Override
 	public void registerChangeListener(String fileName, CompilationUnitChangeListener listener) {
-	}
-
-	@Override
-	public CompilationUnit parse(WurstGui gui, String fileName, Reader source) {
-		return null;
 	}
 
 	@Override
@@ -61,12 +54,7 @@ public class ModelManagerStub implements ModelManager {
 
 	@Override
 	public void clearDependencies() {
-		
-	}
 
-	@Override
-	public WurstModel getModel() {
-		return null;
 	}
 
 	@Override
@@ -87,18 +75,39 @@ public class ModelManagerStub implements ModelManager {
 	}
 
 	@Override
-	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers,
-			List<CompilationUnit> toCheck) {
+	public void typeCheckModelPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheck) {
 	}
 
 	@Override
-	public @NonNull Set<String> getDependencies() {
+	public Set<String> getDependencies() {
 		return Collections.emptySet();
 	}
 
 	@Override
-	public @NonNull Set<@NonNull File> getDependencyWurstFiles() {
+	public Set<File> getDependencyWurstFiles() {
 		return Collections.emptySet();
+	}
+
+	@Override
+	public void doWithCompilationUnit(String fileName, Consumer<CompilationUnit> action) {
+	}
+
+	@Override
+	public void parse(WurstGui gui, String fileName, Reader source) {
+	}
+
+	@Override
+	public void doWithModel(Consumer<@Nullable WurstModel> action) {
+	}
+
+	@Override
+	public <T> T doWithCompilationUnitR(String fileName, Function<CompilationUnit, T> action) {
+		return null;
+	}
+
+	@Override
+	public <T> T doWithModelR(Function<@Nullable WurstModel, T> action) {
+		return null;
 	}
 
 }

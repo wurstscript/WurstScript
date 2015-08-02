@@ -17,6 +17,7 @@ import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
+import org.eclipse.ui.part.EditorInputTransfer.EditorInputData;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -100,24 +101,18 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 		int startPos = offset - alreadyEntered.length();
 
-		CompilationUnit cu = null;
-		if (startPos == lastStartPos 
-				&& lastdocumentHash == editor.getLastReconcileDocumentHashcode()) {
-			// we have already parsed the document, just use the old compilation unit
-			cu = editor.getCompilationUnit();
-		}
-		lastStartPos = startPos;
-		lastdocumentHash = viewer.getDocument().get().hashCode();
-		if (cu == null) {
-			cu = editor.reconcile(false);
-		}
-		if (Utils.isEmptyCU(cu)) {
-			errorMessage = "Could not parse file.";
-			return null;
-		}
-
-
-		return calculateCompletion(viewer, offset, cu);
+		editor.reconcileIfNecessary(lastdocumentHash, false);
+		
+		ICompletionProposal[][] result = {null};
+		editor.doWithCompilationUnit(cu -> {
+			lastStartPos = startPos;
+			lastdocumentHash = viewer.getDocument().get().hashCode();
+			if (Utils.isEmptyCU(cu)) {
+				errorMessage = "Could not parse file.";
+			}
+			result[0] = calculateCompletion(viewer, offset, cu);
+		});
+		return result[0];
 	}
 
 

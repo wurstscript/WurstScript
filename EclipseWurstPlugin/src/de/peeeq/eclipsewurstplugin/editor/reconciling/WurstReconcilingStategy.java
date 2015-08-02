@@ -51,7 +51,7 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 		reconcile(true);
 	}
 
-	public CompilationUnit reconcile(boolean doTypecheck) {
+	public void reconcile(boolean doTypecheck) {
 		ModelManager mm = editor.getModelManager();
 		WurstGui gui = new WurstGuiLogger();
 		IFile file = editor.getFile();
@@ -60,21 +60,19 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 			
 			String doc = document.get();
 			lastReconcileDocumentHashcode = doc.hashCode();
-			CompilationUnit cu = mm.parse(gui, file.getProjectRelativePath().toString(), new StringReader(doc));
-			if (gui.getErrorCount() > 0 || cu == null) {
+			String fileName = file.getProjectRelativePath().toString();
+			mm.parse(gui, fileName, new StringReader(doc));
+			if (gui.getErrorCount() > 0) {
 				// errors after parse, abort
-				return cu;
+				return;
 			}
 			if (doTypecheck) {
 				// check only the updated compilation unit
-				mm.typeCheckModelPartial(gui, true, ImmutableList.of(cu));
+				mm.typeCheckModelPartial(gui, true, ImmutableList.of(fileName));
 			}
 			
-			codeFolding(cu);
-			
-			return cu;
+			mm.doWithCompilationUnit(fileName, cu -> codeFolding(cu));
 		}
-		return null;
 	}
 
 	/**

@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -26,6 +27,7 @@ import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.NullProgressMonitor;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Display;
@@ -108,7 +110,6 @@ public class WurstREPL {
 	private IOConsoleOutputStream out;
 	private @Nullable ModelManager modelManager;
 	private ReplGui gui;
-	private @Nullable CompilationUnit editorCu;
 	private ILInterpreter interpreter;
 	private Map<String, String> currentState;
 	private Set<String> importedPackages;
@@ -160,6 +161,7 @@ public class WurstREPL {
 	Pattern asignmentPattern = Pattern.compile("^\\s*([a-zA-Z0-9_]*\\s+)?([a-zA-Z][a-zA-Z0-9_]*)\\s*=.*");
 	private @Nullable ImProg imProg;
 	private @Nullable WurstServer wurstServer;
+	private @NonNull String filename;
 	
 	public void putLine(String line) {
 		
@@ -224,12 +226,14 @@ public class WurstREPL {
 			StringBuilder code = new StringBuilder();
 			code.append("package WurstREPL\n");
 			// import packages from current compilation unit
-			for (WPackage p : editorCu.getPackages()) {
-				importedPackages.add(p.getName());
-				for (WImport imp : p.getImports()) {
-					importedPackages.add(imp.getPackagename());
+			modelManager.doWithCompilationUnit(filename, editorCu -> {
+				for (WPackage p : editorCu.getPackages()) {
+					importedPackages.add(p.getName());
+					for (WImport imp : p.getImports()) {
+						importedPackages.add(imp.getPackagename());
+					}
 				}
-			}
+			});
 			for (String pName : importedPackages) {
 				code.append("import " + pName + "\n");
 			}
@@ -249,109 +253,8 @@ public class WurstREPL {
 			WLogger.info(code.toString());
 			
 			
-			CompilationUnit cu = parse(code);
-			WStatement assignment = getTranslatedCommand(cu);
+			parse(code, cu -> extractReplValue(varName, cu));
 			
-			String tempName = null;
-			if (assignment instanceof LocalVarDef) {
-				LocalVarDef def = (LocalVarDef) assignment;
-				// change name to some temporary name
-				tempName = "tempName" + (rand.nextInt());
-				def.setName(tempName);
-			}
-			
-			LocalState val = null;
-			try {
-				val = executeReplCode(cu);
-			} catch (CompileError err) {
-				handleCompileError(err);
-				return;
-			} catch (TestFailException e) {
-				print(e + "\n");
-			} catch (TestSuccessException e) {
-				print("Test successful.\n");
-			} catch (Throwable t) {
-				// if there was an error, check if there is a problem in typechecking:
-				
-				try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
-					modelManager.typeCheckModelPartial(gui, false, ImmutableList.of(cu));
-				} catch (CompileError err) {
-					handleCompileError(err);
-					return;
-				}
-				
-				// if there was no comile error
-				// this is probably a bug
-				if (t instanceof InterpreterException
-						|| t instanceof DebugPrintError) {
-					print(t.getMessage() + "\n");
-				}  else {
-					print("You discovered a bug in the interpreter: \n");
-					print(t+"\n");
-				}
-				
-				try {
-					WPos source = interpreter.getLastStatement().attrTrace().attrSource();
-					print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
-				} catch (Throwable e) {
-					e.printStackTrace();
-				}
-				
-				for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
-					print(sf.getMessage() + "\n");
-				}
-				
-				WLogger.severe(t);
-			}
-			
-			if (val == null) {
-				return;
-			}
-			
-			if (assignment instanceof LocalVarDef) {
-				LocalVarDef lvd = (LocalVarDef) assignment;
-				WurstType typ = lvd.attrTyp();
-				ILconst value = val.getVarValue(tempName);
-				
-				
-				
-				String valueTranslated = getTranslatedValue(typ, value);
-				if (valueTranslated == null) return;
-				
-				if (value instanceof ILconstReal) {
-					ILconstReal r = (ILconstReal) value;
-					if (Float.isNaN(r.getVal()) || r.getVal() == Float.NEGATIVE_INFINITY || r.getVal() == Float.POSITIVE_INFINITY) {
-						print("cannot store result of computation: " + r.getVal() + "\n");
-						return;
-					}
-				}
-				String valueToString = value.toString();
-				Collection<NameLink> toStringFuncs = assignment.lookupMemberFuncs(typ, "toString");
-				if (!toStringFuncs.isEmpty()) {
-					NameLink toStringFunc = Utils.getFirst(toStringFuncs);
-					NameDef f = toStringFunc.getNameDef();
-					for (ImFunction imFunc : imProg.getFunctions()) {
-						if (imFunc.getTrace() == f) {
-							ProgramState globalState = interpreter.getGlobalState();
-							LocalState result = ILInterpreter.runFunc(globalState, imFunc, value);
-							valueToString = ((ILconstString) result.getReturnVal()).getVal();
-							break;
-						}
-					}
-				}
-				
-				print(varName + " = " + valueToString + "     // " + typ + "\n");
-				
-				
-				
-				currentState.put(varName, "let " + varName + " = " + valueTranslated);
-				
-			} else if (assignment instanceof StmtSet) {
-				StmtSet stmtSet = (StmtSet) assignment;
-				WurstType typ = stmtSet.getRight().attrTyp();
-				ILconst value = interpreter.getGlobalState().getVarValue(varName);
-				print(varName + " = " + value + "     // " + typ + "\n");
-			}
 			
 			
 		} catch (CompileError e) {
@@ -370,6 +273,111 @@ public class WurstREPL {
 			// remove repl file again
 			modelManager.removeCompilationUnitByName(REPL_DUMMY_FILENAME);
 			imProg = null;
+		}
+	}
+
+	private void extractReplValue(String varName, CompilationUnit cu) {
+		WStatement assignment = getTranslatedCommand(cu);
+		
+		String tempName = null;
+		if (assignment instanceof LocalVarDef) {
+			LocalVarDef def = (LocalVarDef) assignment;
+			// change name to some temporary name
+			tempName = "tempName" + (rand.nextInt());
+			def.setName(tempName);
+		}
+		
+		LocalState val = null;
+		try {
+			val = executeReplCode(cu);
+		} catch (CompileError err) {
+			handleCompileError(err);
+			return;
+		} catch (TestFailException e) {
+			print(e + "\n");
+		} catch (TestSuccessException e) {
+			print("Test successful.\n");
+		} catch (Throwable t) {
+			// if there was an error, check if there is a problem in typechecking:
+			
+			try (ExecutiontimeMeasure tt = new ExecutiontimeMeasure("type checking")) {
+				modelManager.typeCheckModelPartial(gui, false, ImmutableList.of(REPL_DUMMY_FILENAME));
+			} catch (CompileError err) {
+				handleCompileError(err);
+				return;
+			}
+			
+			// if there was no comile error
+			// this is probably a bug
+			if (t instanceof InterpreterException
+					|| t instanceof DebugPrintError) {
+				print(t.getMessage() + "\n");
+			}  else {
+				print("You discovered a bug in the interpreter: \n");
+				print(t+"\n");
+			}
+			
+			try {
+				WPos source = interpreter.getLastStatement().attrTrace().attrSource();
+				print("When executing line " + source.getLine() + " in " + source.getFile() + "\n");
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
+			
+			for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
+				print(sf.getMessage() + "\n");
+			}
+			
+			WLogger.severe(t);
+		}
+		
+		if (val == null) {
+			return;
+		}
+		
+		if (assignment instanceof LocalVarDef) {
+			LocalVarDef lvd = (LocalVarDef) assignment;
+			WurstType typ = lvd.attrTyp();
+			ILconst value = val.getVarValue(tempName);
+			
+			
+			
+			String valueTranslated = getTranslatedValue(typ, value);
+			if (valueTranslated == null) return;
+			
+			if (value instanceof ILconstReal) {
+				ILconstReal r = (ILconstReal) value;
+				if (Float.isNaN(r.getVal()) || r.getVal() == Float.NEGATIVE_INFINITY || r.getVal() == Float.POSITIVE_INFINITY) {
+					print("cannot store result of computation: " + r.getVal() + "\n");
+					return;
+				}
+			}
+			String valueToString = value.toString();
+			Collection<NameLink> toStringFuncs = assignment.lookupMemberFuncs(typ, "toString");
+			if (!toStringFuncs.isEmpty()) {
+				NameLink toStringFunc = Utils.getFirst(toStringFuncs);
+				NameDef f = toStringFunc.getNameDef();
+				for (ImFunction imFunc : imProg.getFunctions()) {
+					if (imFunc.getTrace() == f) {
+						ProgramState globalState = interpreter.getGlobalState();
+						LocalState result = ILInterpreter.runFunc(globalState, imFunc, value);
+						valueToString = ((ILconstString) result.getReturnVal()).getVal();
+						break;
+					}
+				}
+			}
+			
+			print(varName + " = " + valueToString + "     // " + typ + "\n");
+			
+			
+			
+			currentState.put(varName, "let " + varName + " = " + valueTranslated);
+			
+		} else if (assignment instanceof StmtSet) {
+			StmtSet stmtSet = (StmtSet) assignment;
+			WurstType typ = stmtSet.getRight().attrTyp();
+			ILconst value = interpreter.getGlobalState().getVarValue(varName);
+			print(varName + " = " + value + "     // " + typ + "\n");
 		}
 	}
 
@@ -439,14 +447,15 @@ public class WurstREPL {
 			IFile compiledScript = compileScript(compileArgs, testMap);
 			
 			
-			WurstModel model = modelManager2.getModel();
-			if (model == null
-				|| !model.stream()
-					.anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-				println("No 'war3map.j' file could be found");
-				println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
-				println("We will try to start the map now, but it will probably fail. ");
-			}
+			modelManager2.doWithModel(model -> {
+				if (model == null
+					|| !model.stream()
+						.anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+					println("No 'war3map.j' file could be found");
+					println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
+					println("We will try to start the map now, but it will probably fail. ");
+				}
+			});
 			
 			@SuppressWarnings("unused") // for side effects!
 			RunArgs runArgs = new RunArgs(compileArgs);
@@ -518,22 +527,22 @@ public class WurstREPL {
 	}
 
 	private void printClasses() {
-		WurstModel model = modelManager.getModel();
-		for (CompilationUnit cu : model) {
-			for(ClassDef c: cu.attrGetByType().classes) {
-				String s = "class "+ c.getName();
-				if (c.attrExtendedClass() != null) {
-					s += " extends " + c.attrExtendedClass().getName();
+		modelManager.doWithModel(model -> {
+			for (CompilationUnit cu : model) {
+				for(ClassDef c: cu.attrGetByType().classes) {
+					String s = "class "+ c.getName();
+					if (c.attrExtendedClass() != null) {
+						s += " extends " + c.attrExtendedClass().getName();
+					}
+					s += "\n";
+					if (!c.getOnDestroy().attrHasEmptyBody()) {
+						s += "	ondestroy\n";
+						s += "		s+=\""+c.getName()+"\"\n";
+					}
+					print(s);
 				}
-				s += "\n";
-				if (!c.getOnDestroy().attrHasEmptyBody()) {
-					s += "	ondestroy\n";
-					s += "		s+=\""+c.getName()+"\"\n";
-				}
-				print(s);
 			}
-		}
-		
+		});
 	}
 
 	public void handleCompileError(CompileError err) {
@@ -609,20 +618,21 @@ public class WurstREPL {
 			print("Could not compile project\n");
 			return null;
 		}
-		
-		WurstModel theModel = modelMngr.getModel();
-		if (theModel == null) {
-			throw new RuntimeException("Wurst model is null, make sure that there are no compilation errors.");
-		}
-		
-		for (CompilationUnit cu: theModel) {
-			for (WPackage p : cu.getPackages()) {
-				System.out.println(p.getName());
-				for (WImport imp : p.getImports()) {
-					System.out.println("\t" + imp.getPackagename());
+		WurstModel[] modelCopy = {null}; 
+		modelMngr.doWithModel(theModel -> {
+			if (theModel == null) {
+				throw new RuntimeException("Wurst model is null, make sure that there are no compilation errors.");
+			}
+			for (CompilationUnit cu: theModel) {
+				for (WPackage p : cu.getPackages()) {
+					System.out.println(p.getName());
+					for (WImport imp : p.getImports()) {
+						System.out.println("\t" + imp.getPackagename());
+					}
 				}
 			}
-		}
+			modelCopy[0] = theModel.copy();
+		});
 		
 		RunArgs runArgs = new RunArgs(compileArgs);
 		
@@ -632,7 +642,7 @@ public class WurstREPL {
 		}
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
-		WurstModel model = theModel.copy(); // TODO maybe create a copy
+		WurstModel model = modelCopy[0]; 
 		purgeUnimportedFiles(model);
 		model.clearAttributes();
 		
@@ -789,15 +799,16 @@ public class WurstREPL {
 
 	private @Nullable ImProg translateProg() {
 		gui.clearErrors();
-		WurstModel model = modelManager.getModel();
-		modelManager.typeCheckModel(gui, false);
-		if (gui.getErrorCount() > 0) {
-			print(gui.getErrors() + "\n");
-			return null;
-		}
-		ImProg imProg = translate(model);
-		interpreter.setProgram(imProg);
-		return imProg;
+		return modelManager.doWithModelR(model -> {
+			modelManager.typeCheckModel(gui, false);
+			if (gui.getErrorCount() > 0) {
+				print(gui.getErrors() + "\n");
+				return null;
+			}
+			ImProg imProg = translate(model);
+			interpreter.setProgram(imProg);
+			return imProg;
+		});
 	}
 
 	private void printHelp() {
@@ -855,11 +866,11 @@ public class WurstREPL {
 		return imProg;
 	}
 
-	private CompilationUnit parse(StringBuilder code) {
+	private void parse(StringBuilder code, Consumer<CompilationUnit> action) {
 		Reader source = new StringReader(code.toString());
-		CompilationUnit cu = modelManager.parse(gui, REPL_DUMMY_FILENAME, source);
+		modelManager.parse(gui, REPL_DUMMY_FILENAME, source);
 		modelManager.resolveImports(gui);
-		return cu;
+		modelManager.doWithCompilationUnit(REPL_DUMMY_FILENAME, action);
 	}
 
 	private String addEnteredCommand(String enteredLine, StringBuilder code) {
@@ -881,10 +892,6 @@ public class WurstREPL {
 		this.modelManager = modelManager2;
 	}
 
-	public void setEditorCompilationUnit(CompilationUnit editorCu) {
-		this.editorCu = editorCu;
-		
-	}
 	
 	private long getTimeSinceLastMeasure() {
 		long t = System.currentTimeMillis();
@@ -895,6 +902,10 @@ public class WurstREPL {
 	
 	private String getTimeSinceLastMeasureString() {
 		return getTimeSinceLastMeasure() + "ms";
+	}
+
+	public void setEditorFilename(String filename) {
+		this.filename = filename;
 	}
 	
 }

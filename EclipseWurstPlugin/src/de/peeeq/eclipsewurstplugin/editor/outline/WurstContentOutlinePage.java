@@ -53,9 +53,9 @@ public class WurstContentOutlinePage extends ContentOutlinePage implements Compi
 		viewer.addSelectionChangedListener(this);
 		
 
-		if (editor.getCompilationUnit() != null) {
-			viewer.setInput(new OutlineNode(editor.getCompilationUnit(), null));
-		}
+		editor.doWithCompilationUnit(cu -> {
+			viewer.setInput(new OutlineNode(cu, null));
+		});
 		
 		editor.registerCompilationUnitChangeListener(this);
 	}

@@ -43,17 +43,18 @@ public class WurstTextHover implements ITextHover,
 	}
 
 	private String getAstHover(ITextViewer textViewer, IRegion hoverRegion) {
-		CompilationUnit cu = editor.getCompilationUnit();
-		if (cu == null) {
-			return null;
-		}
-		AstElement elem = Utils.getAstElementAtPosIgnoringLists(cu, hoverRegion.getOffset(), true);
-		try {
-			return elem.descriptionHtml();
-		} catch (Throwable t) {
-//			t.printStackTrace();
-			return null;
-		}
+		return editor.doWithCompilationUnitR(cu -> {
+			if (cu == null) {
+				return null;
+			}
+			AstElement elem = Utils.getAstElementAtPosIgnoringLists(cu, hoverRegion.getOffset(), true);
+			try {
+				return elem.descriptionHtml();
+			} catch (Throwable t) {
+	//			t.printStackTrace();
+				return null;
+			}
+		});
 	}
 
 	public String getAnnotationHover(IRegion hoverRegion) {
