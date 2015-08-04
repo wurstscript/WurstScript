@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -70,6 +72,11 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	public void addMemberMethods(AstElement node, String name,
 			List<NameLink> result) {
 		baseType.addMemberMethods(node, name, result);
+	}
+	
+	@Override
+	public Stream<NameLink> getMemberMethods(AstElement node) {
+		return baseType.getMemberMethods(node);
 	}
 	
 	@Override

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -164,6 +165,15 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 			}
 
 			WurstType leftType = e.getLeft().attrTyp();
+			System.out.println("leftType = " + leftType);
+			
+			leftType.getMemberMethods(elem).forEach(nameLink -> {
+				if (isSuitableCompletion(nameLink.getName())) {
+					WurstCompletion completion = makeNameDefCompletion(nameLink.getNameDef());
+					completions.add(completion);
+				}
+			});
+			
 			isMemberAccess = true;
 			WScope scope = elem.attrNearestScope();
 			// add member vars
@@ -376,7 +386,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 				return true;
 			}
 		} catch (BadLocationException e1) {
-			e1.printStackTrace();
+			// ignore
 		}
 		return false;
 	}
@@ -479,6 +489,9 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
 
 	private WurstCompletion makeNameDefCompletion(NameDef n) {
+		if (n instanceof FunctionDefinition) {
+			return makeFunctionCompletion((FunctionDefinition) n);
+		}
 		String replacementString = n.getName();
 		int replacementOffset = offset - alreadyEntered.length();
 		int replacementLength = alreadyEntered.length();

@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -120,6 +122,10 @@ public abstract class WurstType {
 
 	public void addMemberMethods(AstElement node, String name,
 			List<NameLink> result) {
+	}
+	
+	public Stream<NameLink> getMemberMethods(AstElement node) {
+		return Collections.<NameLink>emptyList().stream();
 	}
 
 	public boolean isStaticRef() {

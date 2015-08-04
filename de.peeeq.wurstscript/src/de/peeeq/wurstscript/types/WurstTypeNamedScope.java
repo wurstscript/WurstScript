@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
@@ -246,6 +247,26 @@ public abstract class WurstTypeNamedScope extends WurstType {
 				}
 			}
 		}
+	}
+	
+	@Override
+	public Stream<NameLink> getMemberMethods(AstElement node) {
+		NamedScope scope = getDef();
+		if (scope instanceof ModuleDef) {
+			// cannot access functions from outside of module 
+		} else if (scope != null) {
+			return scope.attrNameLinks()
+					.values()
+					.stream()
+					.filter(n -> {
+						WurstType receiverType = n.getReceiverType();
+						return n.getType() == NameLinkType.FUNCTION
+								&& receiverType != null
+								&& receiverType.isSupertypeOf(this, node);
+					})
+					.map(n -> n.hidingPrivateAndProtected());
+		}
+		return Collections.<NameLink>emptyList().stream();
 	}
 	
 	@Override
