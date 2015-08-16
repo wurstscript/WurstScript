@@ -11,6 +11,8 @@ public class InstantDummyCaster
 	static unit caster
 	static int id
 	
+	private construct()
+	
 	private static function prepare(player owner, integer lvl)
 		caster.addAbility(id)
 		if lvl > 1

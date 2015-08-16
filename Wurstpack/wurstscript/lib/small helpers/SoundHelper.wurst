@@ -18,6 +18,7 @@ class SData
 	sound snd
 	Sound soundData
 	unit onUnit
+	player p
 	Sim3DSound s3s = null
 
 public class Sound
@@ -137,6 +138,13 @@ public class Sound
 			..setData(s castTo int)
 			..start(0., function Sound.playSound)
 			
+	function playForPlayer(player p)
+		var s = getSound()
+		s.p = p
+		getTimer()
+			..setData(s castTo int)
+			..start(0., function Sound.playSound)	
+			
 	private static function playSound()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
@@ -151,7 +159,11 @@ public class Sound
 			sdata.s3s = bindSoundToUnit(sdata.snd, data.emuUnit, SOUND_MIN_DIST, SOUND_MAX_DIST, SOUND_DIST_CUT)
 		else
 			SetSoundVolume(sdata.snd, 100)
-			StartSound(sdata.snd)
+			if sdata.p != null
+				if GetLocalPlayer() == sdata.p
+					StartSound(sdata.snd)
+			else 
+				StartSound(sdata.snd)
 		tm.release()
 		getTimer()
 			..setData(sdata castTo int)
@@ -160,6 +172,7 @@ public class Sound
 	private static function recycle()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
+		sdata.p = null
 		if sdata.s3s != null
 			destroy sdata.s3s
 		if sdata.soundData.soundStack.getSize() < 4
