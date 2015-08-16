@@ -1,6 +1,8 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.dialogs.DialogSettings;
+import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.text.IAutoEditStrategy;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.jface.text.IInformationControl;
@@ -125,7 +127,8 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 		return WurstConstants.WURST_PARTITIONING;
 	}
 	
-	@Nullable ContentAssistant assistant;
+	private @Nullable ContentAssistant assistant;
+	
 
 	@Override
 	public IContentAssistant getContentAssistant(@Nullable ISourceViewer sourceViewer) {
@@ -137,7 +140,7 @@ public class WurstEditorConfig extends SourceViewerConfiguration {
 			
 			a.setProposalPopupOrientation(IContentAssistant.PROPOSAL_OVERLAY);
 			a.setContextInformationPopupOrientation(IContentAssistant.CONTEXT_INFO_ABOVE);
-	//		assistant.setContextInformationPopupBackground(...);
+			a.setRestoreCompletionProposalSize(WurstPlugin.getDefault().getDialogSettingsSection("proposalDialogSettings"));
 			a.setInformationControlCreator(getInformationControlCreator(sourceViewer));
 			a.enableAutoInsert(true);
 		}

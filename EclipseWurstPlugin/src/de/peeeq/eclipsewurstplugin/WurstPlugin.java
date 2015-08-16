@@ -41,6 +41,7 @@ import java.util.logging.LogRecord;
 import org.eclipse.core.runtime.ILog;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.preference.PreferenceConverter;
 import org.eclipse.jface.resource.ImageDescriptor;
@@ -302,6 +303,15 @@ public class WurstPlugin extends AbstractUIPlugin {
 				ed.refresh();
 			}
 		}
+	}
+	
+	public IDialogSettings getDialogSettingsSection(String name) {
+		IDialogSettings dialogSettings= getDialogSettings();
+		IDialogSettings section= dialogSettings.getSection(name);
+		if (section == null) {
+			section= dialogSettings.addNewSection(name);
+		}
+		return section;
 	}
 	
 }
