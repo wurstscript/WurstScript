@@ -4,6 +4,9 @@ import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
+import org.eclipse.jdt.annotation.NonNull;
+
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImBoolVal;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -159,10 +162,46 @@ public class SimpleRewrites {
 					default : result = false; break;
 				}
 				opc.replaceWith(JassIm.ImBoolVal(result));
+			} else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall) {
+				// optimize negation of some operators
+				ImOperatorCall inner = (ImOperatorCall) expr;
+				switch (inner.getOp()) {
+				case NOT: 
+					opc.replaceWith(inner.getArguments().remove(0));
+					break;
+				case EQ:
+				case NOTEQ:
+				case LESS:
+				case LESS_EQ:
+				case GREATER:
+				case GREATER_EQ:
+					opc.replaceWith(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
+					break;
+				}
 			}
 			
 		}
 		
+	}
+
+	/** returns the opposite of an operator */
+	private WurstOperator oppositeOperator(WurstOperator op) {
+		switch (op) {
+		case EQ:
+			return WurstOperator.NOTEQ;
+		case GREATER:
+			return WurstOperator.LESS_EQ;
+		case GREATER_EQ:
+			return WurstOperator.LESS;
+		case LESS:
+			return WurstOperator.GREATER_EQ;
+		case LESS_EQ:
+			return WurstOperator.GREATER;
+		case NOTEQ:
+			return WurstOperator.EQ;
+		default:
+			throw new Error("operator " + op + " does not have an opposite.");
+		}
 	}
 
 	private static String floatToStringWith4decimalDigits(float resultVal) {
