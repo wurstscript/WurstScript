@@ -158,6 +158,14 @@ public class ArrayList<T>
 		// move data to the left
 		copy(pos+index+1, size-index, pos+index)
 		size--
+	
+	/** removes the given element from the list */
+	function remove(T t)
+		for i = 0 to size - 1
+			if data[pos + i] castTo T == t
+				removeAt(pos + i)
+				break
+		error("element not in list")
 		
 	/** get the elemt at the given index */
 	function get(int index) returns T

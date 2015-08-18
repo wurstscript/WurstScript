@@ -1,17 +1,10 @@
 package BitSet
+import NoWurst
+import Integer
 import Wurstunit
 
 /** a bitset is a set of small integers represented by a single integer */
 public tuple bitset(int val)
-
-function int.pow(int x) returns int
-	int result = 1
-	for int i=1 to x
-		result *= this
-	return result
-	
-
-
 
 function bitset.containsPow(int pow) returns boolean
 	return (this.val mod (pow*2)) >= pow
