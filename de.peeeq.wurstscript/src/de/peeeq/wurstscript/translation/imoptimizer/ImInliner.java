@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -161,8 +162,13 @@ public class ImInliner {
 			return Double.MAX_VALUE;
 		}
 		
-		double callCount = getCallCount(f);
 		double size = getFuncSize(f);
+		if (size < 20) {
+			// always inline small functions
+			return 1;
+		}
+		
+		double callCount = getCallCount(f);
 		double rating = size * (callCount-1);
 		return rating;
 	}
