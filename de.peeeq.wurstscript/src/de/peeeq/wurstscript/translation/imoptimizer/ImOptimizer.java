@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.intermediateLang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -46,6 +47,7 @@ public class ImOptimizer {
 		removeGarbage();
 		new TempMerger(trans).optimize();
 		new SimpleRewrites(trans).optimize();
+		new LocalMerger(trans).optimize();
 		removeGarbage();
 	}
 
