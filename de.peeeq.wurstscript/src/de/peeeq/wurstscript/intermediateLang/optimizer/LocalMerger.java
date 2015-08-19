@@ -189,7 +189,7 @@ public class LocalMerger {
 				}
 			}
 		}
-		System.out.println("result after " + iterations + " iterations with " + nodes.size() + " nodes in func " + func.getName());
+//		System.out.println("result after " + iterations + " iterations with " + nodes.size() + " nodes in func " + func.getName());
 		
 		Multimap<ImStmt, ImVar> result = HashMultimap.create();
 //		System.out.println("//#########################################");
@@ -253,7 +253,7 @@ public class LocalMerger {
 				todo.addLast(node);
 			}
 		}
-		System.out.println("result after " + iterations + " iterations in func " + func.getName());
+//		System.out.println("result after " + iterations + " iterations in func " + func.getName());
 		
 		Multimap<ImStmt, ImVar> result = HashMultimap.create();
 //		System.out.println("//#########################################");
