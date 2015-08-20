@@ -202,7 +202,9 @@ ImExpr.translate(
 		returns de.peeeq.wurstscript.jassAst.JassExpr
 		implemented by de.peeeq.wurstscript.translation.imtojass.ExprTranslation.translate
 
-		
+ImConst.equalValue(ImConst other)
+	returns boolean
+	implemented by de.peeeq.wurstscript.translation.imtojass.Equality.equalValue
 	
 ImExpr.attrTyp
 	returns ImType
