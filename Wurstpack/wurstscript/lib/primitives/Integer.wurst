@@ -24,3 +24,8 @@ public function int.toReal() returns real
 public function int.toString() returns string
 	return I2S(this)
 
+public function int.pow(int x) returns int
+	int result = 1
+	for int i=1 to x
+		result *= this
+	return result

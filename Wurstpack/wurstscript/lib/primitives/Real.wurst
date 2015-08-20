@@ -1,50 +1,51 @@
 package Real
-	import NoWurst
+import NoWurst
+
+public function real.abs() returns real
+	if this >= 0
+		return this
+	else
+		return -this
+
+public function real.squared() returns real
+	return this*this
+		
+public function real.sign() returns real
+	if this > 0.0
+		return 1.0
+	else if this < 0.0
+		return -1.0
+	else
+		return 0.0
+		
+public function real.round() returns int
+	if this > 0
+		return (this+.5).toInt()
+	return (this-.5).toInt()
+
+public function real.toInt() returns int
+	return R2I(this)
+
+public function real.toString() returns string
+	return R2S(this)
 	
-	public function real.abs() returns real
-		if this >= 0
-			return this
-		else
-			return -this
-
-	public function real.squared() returns real
-		return this*this
-			
-	public function real.sign() returns real
-		if this > 0.0
-			return 1.0
-		else if this < 0.0
-			return -1.0
-		else
-			return 0.0
-			
-	public function real.round() returns int
-		if this > 0
-			return (this+.5).toInt()
-		return (this-.5).toInt()
-
-	public function real.toInt() returns int
-		return R2I(this)
+public function real.toString(int precision) returns string
+	return R2SW(this, precision, precision)
 	
-	public function real.toString() returns string
-		return R2S(this)
-		
-	public function real.toString(int precision) returns string
-		return R2SW(this, precision, precision)
-		
-	public function real.acos() returns real
-		return Acos(this)
-		
-	public function real.asin() returns real
-		return Asin(this)
+public function real.acos() returns real
+	return Acos(this)
+	
+public function real.asin() returns real
+	return Asin(this)
 
-	public function real.atan() returns real
-		return Atan(this)
+public function real.atan() returns real
+	return Atan(this)
+	
+public function real.cos() returns real
+	return Cos(this)
+	
+public function real.sin() returns real
+	return Sin(this)
 		
-	public function real.cos() returns real
-		return Cos(this)
-		
-	public function real.sin() returns real
-		return Sin(this)
-		
-endpackage
+public function real.pow(real x) returns real
+	return Pow(this, x)
