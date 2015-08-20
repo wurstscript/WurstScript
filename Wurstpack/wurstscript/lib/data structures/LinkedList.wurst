@@ -96,9 +96,8 @@ public class LinkedList<T>
 	ondestroy
 		LLEntry<T> current = dummy.next
 		while current != dummy
-			let temp = current
 			current = current.next
-			destroy temp
+			destroy current.prev
 		destroy dummy
 	
 	function removeWhen(LinkedListPredicate<T> predicate) 

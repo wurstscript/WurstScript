@@ -164,7 +164,7 @@ public class ArrayList<T>
 		for i = 0 to size - 1
 			if data[pos + i] castTo T == t
 				removeAt(pos + i)
-				break
+				return
 		error("element not in list")
 		
 	/** get the elemt at the given index */

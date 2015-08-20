@@ -34,12 +34,13 @@ public module LinkedListModule
 		size--
 		if this != first
 			prev.next = next
+		else
+			first = next
 		if this != last
 			next.prev = prev	
-		if this == last
+		else
 			last = prev
-		if this == first
-			first = next
+			
 			
 	ondestroy
 		remove()
