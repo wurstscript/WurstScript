@@ -431,6 +431,36 @@ public class OptimizerTests extends WurstScriptTest {
 		assertFalse(output.contains("blablub"));
 	}
 	
+	@Test
+	public void test_localVarMerger() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	init",
+				"		int a = 0",
+				"		int b = 0",
+				"		int c = 0",
+				"		int d = 0",
+				"		int e = 0",
+				"		while c<1000",
+				"			d = a+2",
+				"			b = d-1",
+				"			if b < a",
+				"				c = c+b",
+				"			else",
+				"				c = c-b",
+				"			e = b*4",
+				"			d = e + 1",
+				"			e = d - 1",
+				"			a = e div 2",
+				"			if a >= 20",
+				"				break",
+				"		if c == -26",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
 	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
 	DestroyEffect(blablub)
 		*/

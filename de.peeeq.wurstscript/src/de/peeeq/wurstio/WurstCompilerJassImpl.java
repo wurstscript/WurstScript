@@ -274,16 +274,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 					}
 				}
 				if (!foundPackage) {
-					throw new CompileError(imp.getSource(), "The import " + imp.getPackagename() + " could not be found in file " + lib.getFile());
+					imp.addError("The import " + imp.getPackagename() + " could not be found in file " + lib.getFile());
 				}
 			} else {
 				if (imp.getPackagename().equals("Wurst")) {
-					throw new CompileError(imp.getSource(), "The standard library could not be imported.");
+					imp.addError("The standard library could not be imported.");
 				}
 				if (imp.getPackagename().equals("NoWurst")) {
 					// ignore this package
 				} else {
-					throw new CompileError(imp.getSource(), "The import '" + imp.getPackagename() + "' could not be resolved.\n" + 
+					imp.addError("The import '" + imp.getPackagename() + "' could not be resolved.\n" + 
 						"Available packages: " + Utils.join(getLibs().keySet(), ", "));
 				}
 			}

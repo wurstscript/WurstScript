@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.intermediateLang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
 import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -46,6 +47,7 @@ public class ImOptimizer {
 		removeGarbage();
 		new TempMerger(trans).optimize();
 		new SimpleRewrites(trans).optimize();
+		new LocalMerger(trans).optimize();
 		removeGarbage();
 	}
 
@@ -59,49 +61,57 @@ public class ImOptimizer {
 		if (trans.isUnitTestMode()) {
 //			return;
 		}
-		ImProg prog = trans.imProg();
-		trans.calculateCallRelationsAndUsedVariables();
-		// keep only used variables
-		prog.getGlobals().retainAll(trans.getUsedVariables());
-		// keep only functions reachable from main and config
-		prog.getFunctions().retainAll(trans.getUsedFunctions());
-		
-		for (ImFunction f: prog.getFunctions()) {
-			// remove set statements to unread variables
-			final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();
-			f.accept(new ImFunction.DefaultVisitor() {
-				@Override
-				public void visit(ImSet e) {
-					if (!trans.getReadVariables().contains(e.getLeft())) {
-						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
-					}
-				}
-				@Override
-				public void visit(ImSetArrayTuple e) {
-					if (!trans.getReadVariables().contains(e.getLeft())) {
-						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
-					}
-				}
-				@Override
-				public void visit(ImSetArray e) {
-					if (!trans.getReadVariables().contains(e.getLeft())) {
-						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
-					}
-				}
-				@Override
-				public void visit(ImSetTuple e) {
-					if (!trans.getReadVariables().contains(e.getLeft())) {
-						replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
-					}
-				}
-			});
-			for (Pair<ImStmt, ImStmt> pair : replacements) {
-				pair.getB().setParent(null);
-				pair.getA().replaceWith(pair.getB());
-			}
+		boolean changes = true;
+		int iterations = 0;
+		while (changes && iterations++ < 100) {
+			changes = false;
 			
-			// keep only read local variables
-			f.getLocals().retainAll(trans.getReadVariables());
+			ImProg prog = trans.imProg();
+			trans.calculateCallRelationsAndUsedVariables();
+			
+			// keep only used variables
+			changes |= prog.getGlobals().retainAll(trans.getReadVariables());
+			// keep only functions reachable from main and config
+			changes |= prog.getFunctions().retainAll(trans.getUsedFunctions());
+			
+			for (ImFunction f: prog.getFunctions()) {
+				// remove set statements to unread variables
+				final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();
+				f.accept(new ImFunction.DefaultVisitor() {
+					@Override
+					public void visit(ImSet e) {
+						if (!trans.getReadVariables().contains(e.getLeft())) {
+							replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+						}
+					}
+					@Override
+					public void visit(ImSetArrayTuple e) {
+						if (!trans.getReadVariables().contains(e.getLeft())) {
+							replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+						}
+					}
+					@Override
+					public void visit(ImSetArray e) {
+						if (!trans.getReadVariables().contains(e.getLeft())) {
+							replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+						}
+					}
+					@Override
+					public void visit(ImSetTuple e) {
+						if (!trans.getReadVariables().contains(e.getLeft())) {
+							replacements.add(Pair.<ImStmt,ImStmt>create(e, e.getRight()));
+						}
+					}
+				});
+				for (Pair<ImStmt, ImStmt> pair : replacements) {
+					changes = true;
+					pair.getB().setParent(null);
+					pair.getA().replaceWith(pair.getB());
+				}
+				
+				// keep only read local variables
+				changes |= f.getLocals().retainAll(trans.getReadVariables());
+			}
 		}
 	}
 	

@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jface.text.BadLocationException;
 import org.eclipse.jface.text.IDocument;
@@ -18,7 +17,6 @@ import org.eclipse.jface.text.contentassist.IContentAssistProcessor;
 import org.eclipse.jface.text.contentassist.IContextInformation;
 import org.eclipse.jface.text.contentassist.IContextInformationValidator;
 import org.eclipse.swt.graphics.Image;
-import org.eclipse.ui.part.EditorInputTransfer.EditorInputData;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -453,10 +451,16 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 					continue;
 				}
 			} else { // leftType != null
-
-				if (receiverType == null || !leftType.isSubtypeOf(receiverType, pos)) {
-					// skip elements with wrong receiver type
-					continue;
+				if (receiverType == null) {
+					if (isMemberAccess) {
+						// if this is a member access and receiver type is null, then don't show completion
+						continue;
+					}
+				} else {
+					if (!leftType.isSubtypeOf(receiverType, pos)) {
+						// skip elements with wrong receiver type
+						continue;
+					}
 				}
 			}
 
