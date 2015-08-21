@@ -10,6 +10,8 @@ import static de.peeeq.wurstscript.jassAst.JassAst.JassStmtSet;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
@@ -72,10 +74,13 @@ public class StatementTranslation {
 
 	public static void translate(ImExpr imExpr, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
 		JassExpr expr = imExpr.translate(translator);
-		if (expr instanceof JassExprFunctionCall) {
-			JassExprFunctionCall fc = (JassExprFunctionCall) expr;
-			stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
-		}
+		// only add the function calls from this expression, the rest can not have any side effects
+		expr.accept(new JassExpr.DefaultVisitor() {
+			@Override
+			public void visit(JassExprFunctionCall fc) {
+				stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
+			}
+		});
 	}
 
 	
