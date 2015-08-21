@@ -456,6 +456,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 			printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
 		}
 		
+		optimizer.removeGarbage();
+		
 		
 		// translate flattened intermediate lang to jass:
 		

@@ -461,6 +461,23 @@ public class OptimizerTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+	public void test_localVarMerger2() {
+		assertOk(true,
+				"package test",
+				"	native testSuccess()",
+				"	native testFail(string s)",
+				"	@extern native Sin(real r) returns real",
+				"	init",
+				"		var i = 5",
+				"		var x = Sin(5)",
+				"		if x < 20",
+				"			x = x + 1",
+				"		if i == 5",
+				"			testSuccess()",
+				"endpackage");
+	}
+	
 	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
 	DestroyEffect(blablub)
 		*/

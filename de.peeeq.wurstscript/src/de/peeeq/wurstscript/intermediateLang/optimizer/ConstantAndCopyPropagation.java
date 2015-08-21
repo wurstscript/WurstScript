@@ -160,7 +160,7 @@ public class ConstantAndCopyPropagation {
 			}
 
 			// at the output get all from the input knowledge
-			HashMap<ImVar, Value> newOut = new HashMap<>(kn.varKnowledge);
+			HashMap<ImVar, Value> newOut = new HashMap<>(newKnowledge);
 
 			ImStmt stmt = n.getStmt();
 			if (stmt instanceof ImSet) {
