@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -120,12 +122,33 @@ public class Flatten {
 	}
 
 	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
-		if (e instanceof ImCall) {
+		if (e instanceof ImFunctionCall) {
 			result.add((ImStmt) ((ImStmt) e).copy());			
 		} else if (e instanceof ImStatementExpr) {
 			ImStatementExpr e2 = (ImStatementExpr) e;
 			flattenStatementsInto(result, e2.getStatements(), t, f);
 			exprToStatements(result, e2, t, f);
+		} else if (e instanceof ImOperatorCall &&
+				(((ImOperatorCall) e).getOp() == WurstOperator.AND
+				|| ((ImOperatorCall) e).getOp() == WurstOperator.OR)) {
+			// short circuiting operators have to be handled in a special way:
+			// we translate them to if statements when necessary
+			ImOperatorCall oc = (ImOperatorCall) e;
+			ImStmts rightStmts = JassIm.ImStmts();
+			ImExpr right = oc.getArguments().get(1);
+			ImExpr left = oc.getArguments().get(0);
+			exprToStatements(rightStmts, right, t, f);
+			if (rightStmts.isEmpty()) {
+				// if no statements for righthand side, then just use left hand side as result
+				exprToStatements(result, left, t, f);
+			} else {
+				// if righthandside contains some statements, transform the whole thing to an if statement:
+				if (oc.getOp() == WurstOperator.AND) {
+					result.add(JassIm.ImIf(e.attrTrace(), (ImExpr) left.copy(), rightStmts, JassIm.ImStmts()));
+				} else { // WurstOperator.OR
+					result.add(JassIm.ImIf(e.attrTrace(), (ImExpr) left.copy(), JassIm.ImStmts(), rightStmts));
+				}
+			}
 		} else {
 			// visit children:
 			for (int i=0; i<e.size(); i++) {

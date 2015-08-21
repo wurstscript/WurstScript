@@ -13,6 +13,7 @@ import java.util.List;
 import org.eclipse.jdt.annotation.NonNull;
 
 import de.peeeq.wurstscript.jassAst.JassAst;
+import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassFunction;
@@ -32,6 +33,7 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 
 public class StatementTranslation {
 
@@ -75,15 +77,22 @@ public class StatementTranslation {
 	public static void translate(ImExpr imExpr, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
 		JassExpr expr = imExpr.translate(translator);
 		// only add the function calls from this expression, the rest can not have any side effects
-		expr.accept(new JassExpr.DefaultVisitor() {
-			@Override
-			public void visit(JassExprFunctionCall fc) {
-				stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
-			}
-		});
+		addAllCalls(stmts, expr);
 	}
 
 	
+
+	private static void addAllCalls(List<JassStatement> stmts, JassAstElement expr) {
+		if (expr instanceof JassExprFunctionCall) {
+			JassExprFunctionCall fc = (JassExprFunctionCall) expr;
+			stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));
+		} else {
+			// visit children
+			for (int i=0; i<expr.size(); i++) {
+				addAllCalls(stmts, expr.get(i));
+			}
+		}
+	}
 
 	public static void translate(ImSetArray imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
 		JassVar leftVar = translator.getJassVarFor(imSet.getLeft());

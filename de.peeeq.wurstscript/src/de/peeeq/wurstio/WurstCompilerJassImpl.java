@@ -445,6 +445,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		
 		
 		optimizer.removeGarbage();
+		imProg.flatten(imTranslator);
+		
+		printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
 		
 		if (runArgs.isOptimize()) {
 			beginPhase(12, "froptimize");

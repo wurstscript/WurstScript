@@ -177,20 +177,13 @@ public class WurstScriptTest {
 		
 		// translate with different options:
 		
-		// test without inlining and optimization
-		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
+		testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model);
 		
-		// test with local optimization
-		compiler.setRunArgs(new RunArgs(new String[] {"-localOptimizations"	}));
-		translateAndTest(name+"_opt", executeProg, executeTests, gui, compiler,	model);
+		testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model);
 				
-		// test with inlining	
-		compiler.setRunArgs(new RunArgs(new String[] {"-inline"	}));
-		translateAndTest(name+"_inl", executeProg, executeTests, gui, compiler,	model);
+		testWithInlining(name, executeProg, executeTests, gui, compiler, model);
 		
-		// test with inlining and local optimization
-		compiler.setRunArgs(new RunArgs(new String[] {"-inline", "-localOptimizations"}));
-		translateAndTest(name+"_inlopt", executeProg, executeTests, gui, compiler,	model);
+		testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model);
 		
 		if (testLua && !withStdLib) {
 			// test lua translation
@@ -199,6 +192,34 @@ public class WurstScriptTest {
 		}
 		
 		
+	}
+
+	private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
+			WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+		// test with inlining and local optimization
+		compiler.setRunArgs(new RunArgs(new String[] {"-inline", "-localOptimizations"}));
+		translateAndTest(name+"_inlopt", executeProg, executeTests, gui, compiler,	model);
+	}
+
+	private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui,
+			WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+		// test with inlining	
+		compiler.setRunArgs(new RunArgs(new String[] {"-inline"	}));
+		translateAndTest(name+"_inl", executeProg, executeTests, gui, compiler,	model);
+	}
+
+	private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
+			WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+		// test with local optimization
+		compiler.setRunArgs(new RunArgs(new String[] {"-localOptimizations"	}));
+		translateAndTest(name+"_opt", executeProg, executeTests, gui, compiler,	model);
+	}
+
+	private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
+			WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model)
+					throws CompileError, Error, TestFailException {
+		// test without inlining and optimization
+		translateAndTest(name, executeProg, executeTests, gui, compiler,	model);
 	}
 	
 	private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model) {
