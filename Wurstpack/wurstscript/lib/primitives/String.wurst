@@ -1,9 +1,7 @@
 package String
 import NoWurst
 import initlater Char
-import Integer
 import Real
-import PrintingHelper
 
 string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 string numberset = "0123456789"

@@ -1,6 +1,4 @@
 package ObjectIdGenerator
-import ObjectIds
-import ObjEditingNatives
 
 public constant UNIT_ID_GEN = new IdGenerator('s000')
 public constant HERO_ID_GEN = new IdGenerator('H000')

@@ -1,6 +1,5 @@
 package UpgradeObjEditing
 import ObjEditingNatives
-import UnitObjEditing
 import NoWurst
 
 public class W3QDefinition

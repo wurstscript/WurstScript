@@ -68,10 +68,10 @@ class Active
 		// If this is the first Active DamageEvent we start the timer to apply this and all further
 		if this == first
 			inst_timer.start(0., () -> begin
-				real resetlife = 0
 				while Active.first != null
 					var moddat = Active.first
 					var actlife = GetWidgetLife( moddat.target )
+					real resetlife
 					if moddat.setlifed and not moddat.setbonus
 						resetlife = actlife
 					else

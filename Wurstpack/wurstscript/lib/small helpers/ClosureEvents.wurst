@@ -1,6 +1,5 @@
 package ClosureEvents
 import HashMap
-import LinkedList
 import DelayedDestroy
 
 //CastStuff

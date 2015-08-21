@@ -169,7 +169,6 @@ public class File
 				//from the buffer
 				data = data + SubString(this.data, 0, length)
 				this.data = SubString(this.data, length, StringLength(this.data))
-				length = 0
 				return data
 
 		return null

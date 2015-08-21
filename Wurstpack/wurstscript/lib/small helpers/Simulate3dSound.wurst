@@ -1,5 +1,4 @@
 package Simulate3dSound
-import Stack
 /*
 *********************************************************************
 *
@@ -94,10 +93,8 @@ public class Sim3DSound
 		
 	private static function expire()
 		let data = GetExpiredTimer().getData() castTo Sim3DSound
-		real dx  = 0
-		real dy	 = 0	
-		real dist = 0
-		integer volume = 0
+		real dx
+		real dy	
 		
 		if data.source.x == 0
 			dx = data.source.x - GetCameraTargetPositionX()
@@ -106,13 +103,13 @@ public class Sim3DSound
 			dx = data.sourceUnit.getX() - GetCameraTargetPositionX()
 			dy = data.sourceUnit.getY() - GetCameraTargetPositionY()
 			
-		dist = SquareRoot(dx * dx + dy * dy)
+		let dist = SquareRoot(dx * dx + dy * dy)
 		
 		if data.adjust
 			if dist > data.maxD and dist < data.distCut
 				SetSoundVolume(data.snd, R2I(data.initial -data. maxD * data.factor))
 			else
-				volume = R2I(data.initial - dist * data.factor) // linear reduction
+				let volume = R2I(data.initial - dist * data.factor) // linear reduction
 				if volume < 0
 					SetSoundVolume(data.snd, 1)
 				else

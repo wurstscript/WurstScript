@@ -1,5 +1,4 @@
 package DebugLog
-import GameTimer
 import FileIO
 
 public class DebugLog

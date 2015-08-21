@@ -49,16 +49,12 @@ public class BigNum_l
 
 	
 	function divSmall ( int base, int denom ) returns int
-		int quotient = 0
 		int remainder = 0
-		int num = 0
-		
 		if next != null
 			remainder = next.divSmall(base,denom)
-
 		
-		num = leaf + remainder * base
-		quotient = num div denom
+		let num = leaf + remainder * base
+		let quotient = num div denom
 		remainder = num - quotient * denom
 		leaf = quotient
 		return remainder
@@ -189,7 +185,6 @@ function prop_Allocator1() returns boolean
 
 function prop_Allocator2() returns boolean
 	BigNum b1
-	boolean b = false
 	b1 = new BigNum(37)
 	b1.addSmall(17)
 	b1.mulSmall(19)
@@ -197,8 +192,7 @@ function prop_Allocator2() returns boolean
 		return false
 
 	destroy b1
-	b = BigNum_l.count == 0
-	return b
+	return BigNum_l.count == 0
 
 
 function prop_Arith() returns boolean
