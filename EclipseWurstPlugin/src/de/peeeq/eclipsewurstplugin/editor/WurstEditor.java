@@ -137,10 +137,19 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 	}
 
 	public void doWithCompilationUnit(Consumer<CompilationUnit> action) { // TODO rename
-		getNature().getModelManager().doWithCompilationUnit(getFilename(), action);
+		WurstNature nature = getNature();
+		if (nature != null) {
+			nature.getModelManager().doWithCompilationUnit(getFilename(), action);
+		}
 	}
-	public <T> T doWithCompilationUnitR(Function<CompilationUnit,T> action) { // TODO rename
-		return getNature().getModelManager().doWithCompilationUnitR(getFilename(), action);
+	public <T> @Nullable T doWithCompilationUnitR(Function<CompilationUnit,T> action) { // TODO rename
+		WurstNature nature = getNature();
+		if (nature != null) {
+			return nature.getModelManager().doWithCompilationUnitR(getFilename(), action);
+		} else {
+			// or throw exception?
+			return null;
+		}
 	}
 
 	public String getFilename() {
@@ -168,7 +177,7 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		return null;
 	}
 	
-	private WurstNature getNature() {
+	private @Nullable WurstNature getNature() {
 		IProject project = getProject();
 		return WurstNature.get(project);
 	}
