@@ -55,6 +55,14 @@ public class ConstantAndCopyPropagation {
 			this.copyVar = null;
 			this.constantValue = constantValue;
 		}
+		
+		@Override
+		public boolean equals(@Nullable Object obj) {
+			if (obj instanceof Value) {
+				return equalValue((Value) obj);
+			}
+			return false;
+		}
 
 		public boolean equalValue(Value other) {
 			if (copyVar == other.copyVar) {
@@ -148,7 +156,7 @@ public class ConstantAndCopyPropagation {
 					for (int i = 1; i < n.getPredecessors().size(); i++) {
 						Node predi = n.getPredecessors().get(i);
 						Value predi_val = knowledge.get(predi).varKnowledgeOut.get(var);
-						if (predi_val == null || !predi_val.equals(val)) {
+						if (predi_val == null || !predi_val.equalValue(val)) {
 							allSame = false;
 							break;
 						}
