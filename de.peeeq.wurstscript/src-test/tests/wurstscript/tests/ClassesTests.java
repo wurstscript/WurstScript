@@ -1021,4 +1021,22 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	
+	@Test
+	public void testNoOverride() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	class A",
+				"		function foo() returns int",
+				"			return 42",
+				"	class B extends A",
+				"	init",
+				"		let b = new B()",
+				"		if b.foo() == 42",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
 }
