@@ -65,8 +65,8 @@ public class ConstantAndCopyPropagation {
 		}
 
 		public boolean equalValue(Value other) {
-			if (copyVar == other.copyVar) {
-				return true;
+			if (copyVar != null && other.copyVar != null) {
+				return copyVar == other.copyVar;
 			} else if (constantValue != null && other.constantValue != null) {
 				return constantValue.equalValue(other.constantValue);
 			}
