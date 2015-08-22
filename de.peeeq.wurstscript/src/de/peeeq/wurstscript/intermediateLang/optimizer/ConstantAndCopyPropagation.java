@@ -121,6 +121,8 @@ public class ConstantAndCopyPropagation {
 						va.replaceWith(val.constantValue.copy());
 					} else if (val.copyVar != null) {
 						va.setVar(val.copyVar);
+						// recursive call, because maybe it is possible to also replace the new var
+						visit(va);
 					}
 				}
 			});
