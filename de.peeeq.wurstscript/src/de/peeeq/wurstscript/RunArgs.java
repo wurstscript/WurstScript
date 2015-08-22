@@ -28,6 +28,7 @@ public class RunArgs {
 	private RunOption optionShowErrors;
 	private RunOption optionRunCompileTimeFunctions;
 	private RunOption optionStacktraces;
+	private RunOption uncheckedDispatch;
 	private RunOption optionNodebug;
 	private RunOption optionInjectCompiletimeObjects;
 	private RunOption optionExtractImports;
@@ -67,6 +68,9 @@ public class RunArgs {
 		// debug options
 		optionStacktraces = addOption("stacktraces", "Generate stacktrace information in the script (useful for debugging).");
 		optionNodebug = addOption("nodebug", "Remove all error messages from the script. (Not recommended)");
+		uncheckedDispatch = addOption("uncheckedDispatch", "Removes checks from method-dispatch code. With unchecked dispatch "
+				+ "some programming errors like null-pointer-dereferences or accessing of destroyed objects can no longer be detected. "
+				+ "It is strongly recommended to not use this option, but it can give some performance benefits.");
 		// interpreter
 		optionRuntests = addOption("runtests", "Run all test functions found in the scripts.");
 		optionRunCompileTimeFunctions = addOption("runcompiletimefunctions", "Run all compiletime functions found in the scripts.");
@@ -239,5 +243,9 @@ public class RunArgs {
 	
 	public boolean isGenerateLua() {
 		return optionGenerateLua.isSet;
+	}
+	
+	public boolean isUncheckedDispatch() {
+		return uncheckedDispatch.isSet;
 	}
 }

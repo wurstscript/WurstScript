@@ -44,10 +44,12 @@ public class EliminateClasses {
 	private final Map<ImVar, ImVar> fieldToArray = Maps.newLinkedHashMap();
 	private final Map<ImMethod, ImFunction> dispatchFuncs = Maps.newLinkedHashMap();
 	private final RecycleCodeGenerator recycleCodeGen = new RecycleCodeGeneratorQueue();
+	private boolean checkedDispatch;
 
-	public EliminateClasses(ImTranslator tr, ImProg prog) {
+	public EliminateClasses(ImTranslator tr, ImProg prog, boolean checkedDispatch) {
 		translator = tr;
 		this.prog = prog;
+		this.checkedDispatch = checkedDispatch;
 	}
 
 	public void eliminateClasses() {
@@ -126,27 +128,29 @@ public class EliminateClasses {
 		ImExpr typeId = JassIm.ImVarArrayAccess(mVars.typeId,
 				JassIm.ImVarAccess(thisVar));
 		
-		// ckeck if destroyed
-		df.getBody().add(
-			// if typeId[this] == 0
-			JassIm.ImIf(
-				df.getTrace(), JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-				(ImExpr) typeId.copy(), JassIm.ImIntVal(0)
-				)), 
-			// then
-				// if this == 0
-				JassIm.ImStmts(JassIm.ImIf(df.getTrace(), JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-						JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)
-						)), 
-						// then error(NPE)
-						JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
-						, 
-						// else error(unallocated)
-						JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
-						)) 
-				
-				,JassIm.ImStmts())
-		);
+		// ckeck if destroyed or nullpointer
+		if (checkedDispatch) {
+			df.getBody().add(
+				// if typeId[this] == 0
+				JassIm.ImIf(
+					df.getTrace(), JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
+					(ImExpr) typeId.copy(), JassIm.ImIntVal(0)
+					)), 
+				// then
+					// if this == 0
+					JassIm.ImStmts(JassIm.ImIf(df.getTrace(), JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
+							JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)
+							)), 
+							// then error(NPE)
+							JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
+							, 
+							// else error(unallocated)
+							JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
+							)) 
+					
+					,JassIm.ImStmts())
+			);
+		}
 		
 		
 		createDispatch(df, df.getBody(), resultVar, typeId, ranges, 0,

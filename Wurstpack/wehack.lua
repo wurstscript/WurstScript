@@ -123,6 +123,7 @@ if havewurst then
 	
 	-- debug options
 	wurst_stacktraces = TogMenuEntry:New(wurstmenu, "Enable stack-traces",nil,false)
+	wurst_uncheckedDispatch = TogMenuEntry:New(wurstmenu, "Enable unchecked dispatch",nil,false)
 	wurst_nodebug = TogMenuEntry:New(wurstmenu, "Disable debug messages",nil,false)
 	wurst_debug = TogMenuEntry:New(wurstmenu,"Debug Mode",nil,false)
 	
@@ -557,6 +558,9 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_stacktraces.checked then
 			cmdline = cmdline  .. " -stacktraces"
+		end
+		if wurst_uncheckedDispatch.checked then
+			cmdline = cmdline .. " -uncheckedDispatch"
 		end
 		if wurst_nodebug.checked then
 			cmdline = cmdline  .. " -nodebug"
