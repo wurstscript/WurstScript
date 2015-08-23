@@ -10,7 +10,7 @@ public class DummyRecycler
 	static ArrayQueue array angleQueues
 	
 	static function get(vec2 pos, angle a) returns unit
-		let angleIndex = (a.degrees() % 360).toInt() div DIFFERENT_ANGLES
+		let angleIndex = ((a.degrees() % 360).toInt() / ANGLE_DEGREE).toInt()
 		if angleQueues[angleIndex].size > 0
 			return angleQueues[angleIndex].dequeue()..setXY(pos)..unpause()
 		else
