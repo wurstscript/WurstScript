@@ -17,7 +17,7 @@ public abstract class WLogger {
 			return;
 		logSb.append(level + "Exception " + "\n");
 		logSb.append(e.getMessage() + " \n");
-		logSb.append(Utils.printStackTrace(e.getStackTrace()));
+		logSb.append(Utils.printExceptionWithStackTrace(e));
 		logSb.append("\n\n\n");
 	}
 	

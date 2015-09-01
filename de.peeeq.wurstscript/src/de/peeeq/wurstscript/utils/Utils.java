@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Function;
@@ -377,6 +378,25 @@ public class Utils {
 		}
 		return sb.toString();
 	}
+	
+	public static String printExceptionWithStackTrace(Throwable t) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(t);
+		sb.append("\n");
+		for (;;) {
+			for (StackTraceElement s : t.getStackTrace()) {
+				sb.append(s.toString());
+				sb.append("\n");
+			}
+			t = t.getCause();
+			if (t == null) {
+				break;
+			}
+			sb.append("Caused by:\n");
+		}
+		return sb.toString();
+	}
+
 
 	
 
@@ -661,8 +681,7 @@ public class Utils {
 	}
 
 	public static String printException(Throwable e) {
-		StackTraceElement[] trace = e.getStackTrace();
-		return e + "\n" + Utils.printStackTrace(trace);
+		return e + "\n" + Utils.printExceptionWithStackTrace(e);
 	}
 
 	
@@ -891,6 +910,7 @@ public class Utils {
 	public static String getLibName(File f) {
 		return f.getName().replaceAll("\\.[jw]urst$", "");
 	}
+
 
 	
 	

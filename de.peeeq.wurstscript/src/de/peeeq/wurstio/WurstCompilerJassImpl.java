@@ -708,8 +708,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				}
 			}
 		} catch (Throwable t) {
-			sb.append(t.getMessage());
-			sb.append(Utils.printStackTrace(t.getStackTrace()));
+			sb.append(Utils.printExceptionWithStackTrace(t));
 			WLogger.severe(t);
 		}
 		return sb.toString();
