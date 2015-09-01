@@ -19,6 +19,7 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_NATIVE;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_TEST;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -30,6 +31,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
@@ -54,6 +56,7 @@ import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.AstElementWithName;
 import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.EnumMember;
@@ -839,7 +842,7 @@ public class ImTranslator {
 	public ImFunction getConstructFunc(ConstructorDef constr) {
 		ImFunction f = constructorFuncs.get(constr);
 		if (f == null) {
-			String name = "construct_" + constr.attrNearestClassDef().getName();
+			String name = constructorName(constr);
 			ImVars params = ImVars(getThisVar(constr));
 			for (WParameter p : constr.getParameters()) {
 				params.add(getVarFor(p));
@@ -849,6 +852,24 @@ public class ImTranslator {
 			constructorFuncs.put(constr, f);
 		}
 		return f;
+	}
+
+
+	private String constructorName(ConstructorDef constr) {
+		ArrayDeque<String> names = new ArrayDeque<>();
+		AstElement e = constr;
+		while (e != null) {
+			if (e instanceof ClassOrModuleInstanciation) {
+				ClassOrModuleInstanciation mi = (ClassOrModuleInstanciation) e;
+				int index = mi.getConstructors().indexOf(constr);
+				names.addFirst(mi.getName() + (index > 0 ? 1+index : ""));
+				if (e instanceof ClassDef) {
+					break;
+				}
+			}
+			e = e.getParent();
+		}
+		return "construct_" + names.stream().collect(Collectors.joining("_"));
 	}
 
 

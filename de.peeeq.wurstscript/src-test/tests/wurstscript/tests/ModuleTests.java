@@ -292,4 +292,45 @@ public class ModuleTests extends WurstScriptTest {
 				"		skip"
 				);
 	}
+	
+	@Test
+	public void localInModuleConstructor() {
+		testAssertOkLines(false, 
+				"package Test",
+				"module Test",
+				"	construct()",
+				"		int x = 5",
+				"class A",
+				"	use Test",
+				"	construct()",
+				"	construct(int i)"
+				);
+	}
+	
+	@Test
+	public void localInModuleConstructor2() {
+		testAssertOkLines(true, 
+				"package Test",
+				"native testSuccess()",
+				"int res = 1", // 1) res == 1
+				"module Test",
+				"	construct()",
+				"		int x = 2",
+				"		res += x", // 2) res == 3 // 4) res == 6
+				"	construct()",
+				"		int y = 1",
+				"		res -= y", // 3) res == 2  // 5) res == 5
+				"class A",
+				"	use Test",
+				"	construct()",
+				"		res *= 2", // 3) res == 4
+				"	construct(int i)",
+				"		res *= i", // 6) res == 15
+				"init",
+				"	new A()",
+				"	new A(3)",
+				"	if res == 15",
+				"		testSuccess()"
+				);
+	}
 }

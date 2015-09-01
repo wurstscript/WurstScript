@@ -238,15 +238,26 @@ public class ClassTranslator {
 	}
 
 	private void translateConstructors() {
-//		// collect init statements from module instantiations:
-//		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
-//			collectModuleInitializers(mi);
-//		}
+		// translate constructors of module instantiations:
+		for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
+			translateModuleConstructors(mi);
+		}
 
 		for (ConstructorDef c : classDef.getConstructors()) {
 			translateConstructor(c);
 		}
 
+	}
+
+
+	private void translateModuleConstructors(ModuleInstanciation mi) {
+		for (ModuleInstanciation child : mi.getModuleInstanciations()) {
+			translateModuleConstructors(child);
+		}
+		
+		for (ConstructorDef c : mi.getConstructors()) {
+			translateModuleConstructor(c, mi);
+		}
 	}
 
 
@@ -385,17 +396,35 @@ public class ClassTranslator {
 
 	private void addModuleInits(ImFunction f, ModuleInstanciation mi,	ImVar thisVar) {
 		// add initializers from modules
-		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
-			addModuleInits(f, mi2, thisVar);
-		}
+//		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
+//			addModuleInits(f, mi2, thisVar);
+//		}
 		
 		for (ConstructorDef c : mi.getConstructors()) {
-			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
-			ImHelper.replaceVar(stmts, translator.getThisVar(c), thisVar);
-			f.getBody().addAll(stmts);
+			ImFunction moduleConstr = translator.getConstructFunc(c);
+			f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+			
+//			TODO
+//			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
+//			ImHelper.replaceVar(stmts, translator.getThisVar(c), thisVar);
+//			f.getBody().addAll(stmts);
 		}
 	}
 
+	
+	private void translateModuleConstructor(ConstructorDef constr, ModuleInstanciation mi) {
+		ImFunction f = translator.getConstructFunc(constr);
+		ImVar thisVar = translator.getThisVar(constr);
+		// first call constructors of children:
+		for (ModuleInstanciation child : mi.getModuleInstanciations()) {
+			addModuleInits(f, child, thisVar);
+		}
+		
+		// constructor user code
+		f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
+		
+		
+	}
 	
 	
 
