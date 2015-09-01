@@ -41,6 +41,15 @@ public function getTerrainZ(vec2 v) returns real
 public function vec2.withTerrainZ() returns vec3
 	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
 	
+public function vec2.withTerrainZ(real zoffset) returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+
+public function vec3.withTerrainZ() returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
+	
+public function vec3.withTerrainZ(real zoffset) returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+	
 public function isTerrainDeepWater(real x, real y) returns boolean
 	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
 
