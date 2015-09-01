@@ -127,4 +127,15 @@ public class FunctionSignature {
 		return "";
 	}
 	
+	@Override
+	public String toString() {
+		StringBuilder result = new StringBuilder();
+		result.append(returnType + " ");
+		if (receiverType != null) {
+			result.append(receiverType + ".");
+		}
+		result.append(getParameterDescription());
+		return result.toString();
+	}
+	
 }
