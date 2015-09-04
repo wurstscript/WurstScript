@@ -2223,5 +2223,61 @@ Expressions containing only constants are calculated at compiletime.
 Ifs with constant conditions are removed. 
 Both mechanics work together to remove unneeded and unreachable code.
 
+# Errors and Warnings
 
+Wurst provides some errors and warnings to help finding bugs early in the development process.
+In this chapter some of these errors and warnings are explained, as well as some ways to fix them.
 
+## Warnings
+
+* The assignment to local variable x is never read
+
+	This warning means that a value used in an assignment is never read in all possible executions.
+	This often means that you forgot to use it, so it probably is a bug you have to fix.
+	Sometimes it is just some unnecessary code as in the following example: 
+
+		int x = 0
+		if someCondition
+			x = 2
+		else
+			x = 3
+		print(x.toString())
+
+	The fix for this warning is straight forward in this case, just remove the unused value:
+
+		int x
+		if someCondition
+			x = 2
+		else
+			x = 3
+		print(x.toString())
+	
+	
+* The variable x is never read.
+
+	Usually this warning also means that you have some unnecessary code or that you forgot to use something.
+	In some rare cases you need to give a parameter but do not want to use it.
+	In these cases you can **suppress the warning** by starting the variable name with an underscore:
+
+		function foo(int _x)
+			return 5 
+
+* The assignment to ... probably has no effect
+
+	This warning usually appears with assignments like the following:
+
+		construct(int emeny)
+			this.enemy = enemy
+
+	Note that there is a typo in the parameter which causes the assignment to be wrong.
+
+* The import .... is never used directly.
+
+	Usually this means that you are importing a package and never using it, so that you can remove the import.
+	There are some corner cases like implicit generic conversions, which are not detected correctly at the moment.
+
+Some warnings are just there to ensure some common coding standards in Wurst:
+
+* Function names should start with an lower case character.
+* Variable names should start with a lower case character.
+* Type names should start with upper case characters.
