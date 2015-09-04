@@ -1797,7 +1797,8 @@ must be generated with the magic function `function error(string msg)`.
 # Standard Library 
 
 Wurst comes with a library of some useful standard functions
-Look here for a documentation [The Wurstscript Standardlibrary](http://peq.github.com/WurstScript/standardlib.html)
+You can find the generated HotDoc pages here: [The Wurstscript Standardlibrary](http://peeeq.de/hudson/job/Wurst/HotDoc_Standard_Library_Documentation/index.html)
+However, the best way to learn about the library is still to look at the source code.
 
 # Wurst Style
 
