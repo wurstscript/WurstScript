@@ -2209,12 +2209,16 @@ Smaller names execute faster and take less space, so all names of functions and 
 Inlining is not an easy task, but brings great performance boosts to systems which use many different functions. 
 It also makes coding easier and more readable, because you don't have to care about the performance loss
 when splitting stuff into too many functions.
+Also blizzard.j functions, such as BJs and Swaps, can get inlined.
 
-In the current state, every function that has none or only 1 return statement gets inlined (when the inliner is activated).
-Unlike the vJass Inliner, the Wurst Inliner can handle functions with more than 1 line,
-also the parameter-order and usage doesn't matter.
+In the current implementation, a function can be inlined when it has only one exit-point.
+This is the case, when there is no return statement or when the only return statement is at the end of a function.
 
-All blizzard.j functions, such as BJs and Swaps, also get inlined.
+Whether a function actually gets inlined depends on some heuristics in the compiler.
+The heuristic tries to balance execution speed and size of the mapscript, as inlining usually makes the code longer but faster.
+A function is more likely to get inlined, when it is short.
+A function is less likely to get inlined, when it is called in many different places.
+It is best to not rely on more guarantees about the inliner, as the heuristics are changed from time to time.
 
 Global variables that have a constant value get inlined as well as constant locals.
 
