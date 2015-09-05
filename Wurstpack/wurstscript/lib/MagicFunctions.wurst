@@ -17,4 +17,7 @@ The called functions must not take any parameters.
 */
 public function callFunctionsWithAnnotation(string _annotation)
 
-
+/** this is a magic constant. 
+It is always false at runtime and true during compiletime.
+*/
+public constant compiletime = false

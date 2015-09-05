@@ -44,8 +44,8 @@ public class ProgramStateIO extends ProgramState {
 	private @Nullable Map<Integer, String> trigStrings = null;
 	private final File mapFile;
 
-	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui, ImProg prog) {
-		super(gui, prog);
+	public ProgramStateIO(File mapFile, MpqEditor mpqEditor, WurstGui gui, ImProg prog, boolean isCompiletime) {
+		super(gui, prog, isCompiletime);
 		this.mapFile = mapFile;
 		this.mpqEditor = mpqEditor;
 	}

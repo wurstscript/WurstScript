@@ -31,15 +31,15 @@ public class ILInterpreter {
 	
 
 	
-	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile, ProgramState globalState) {
+	public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
 		this.prog = prog;
 		this.globalState = globalState;
 		globalState.addNativeProvider(new BuiltinFuncs(globalState));
 		globalState.addNativeProvider(new NativeFunctions());
 	}
 
-	public ILInterpreter(ImProg prog, WurstGui gui, File mapFile) {
-		this(prog, gui, mapFile, new ProgramState(gui, prog));
+	public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, boolean isCompiletime) {
+		this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
 	}
 
 	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {

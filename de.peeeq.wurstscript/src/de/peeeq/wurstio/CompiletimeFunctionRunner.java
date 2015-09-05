@@ -45,7 +45,7 @@ public class CompiletimeFunctionRunner {
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlag flag) {
 		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
-		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg);
+		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
 		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());
