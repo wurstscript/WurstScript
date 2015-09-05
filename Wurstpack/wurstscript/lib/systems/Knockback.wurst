@@ -1,185 +1,127 @@
-package Knockback 
+/**
+ * Simple 2d knockback with unit collision detection.
+ * By muzzel
+ */
+package Knockback
 import Terrain
 import TimerUtils
-import TimedLoop
+import LinkedList
 
-//Please check the Knockback Info Trigger for more information about this system.
+@configurable constant string SFX_EARTH = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+@configurable constant string SFX_WATER = "Abilities\\Spells\\Undead\\AbsorbMana\\AbsorbManaBirthMissile.mdl"
+@configurable constant string SFX_ATTACHPOINT = "origin"
 
+/** Filter for unit collision. No collision action will be executed for units where this function returns false. */
+@configurable function unitValid(unit u) returns boolean
+		return not IsUnitType(u, UNIT_TYPE_DEAD) and (GetUnitTypeId(u) != DUMMY_UNIT_ID)
 
-constant real STANDARD_DEST_RADIUS	  = 100.00
-constant real STANDARD_UNIT_RADIUS	  = 75.00
-constant boolean STOP_WHEN_IMPASSABLE   = false
-constant boolean USE_KNOCKBACK_EFFECTS  = false
-//will only be used, if USE_KNOCKBACK_EFFECTS is true
-constant string EARTH_EFFECT					= "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
-constant string WATER_EFFECT					= "Abilities\\Spells\\Undead\\AbsorbMana\\AbsorbManaBirthMissile.mdl"
-constant string KNOCKBACK_EFFECT_ATTACHPOINT	= "origin"
-constant boolean IGNORE_FLYING_UNITS			= true
+public interface UnitCollision
+	/**
+	 * Action that is run for every collision.
+	 * unit knockbackUnit: unit currenly performing the knockback
+	 * unit hitUnit: unit the knockbackUnit collided with
+	 */
+	function onCollide(unit knockbackUnit, unit hitUnit)
 
-
-//The Knockback Struct
-public class Knockback 
-	use TimedLoop
-
-	boolean autodestroy = true
-
-	private unit caster = null
-	private unit target = null
-	private real timeOver = 0.00
-	private real currentSpeed = 0.00
-	private real movedDistance = 0.00
-	private real duration = 0.00
-	private real distance = 0.00
-	private real knockbackAngle = 0.00
-	
-	//variables you can change while the unit is being knocked back
-	real aoeUnit = STANDARD_UNIT_RADIUS
-	real aoeDest = STANDARD_DEST_RADIUS
-	
-	
-	//private variables
-	private real deceleration = 0.00
-	private real cos = 0.00
-	private real sin = 0.00
-	private effect fx = null
-	private effect kbEffect = null
-	private int kbEffectMode = 0
-	private boolean ranDeathAction = false
-	private boolean isGround = false
-	
-
-	
-	//just some static variables to make the system faster/work
-	private static boolexpr unitFilter  = null 
-	private static boolexpr destFilter  = Condition(function destFilterMethod)
-	private static code unitActions	 = null
-	private static code destActions	 = null
-	private static thistype temp		= null
-	private static rect destRect		= Rect(0,0,1,1)
-	private static real tx			  = 0.00
-	private static real ty			  = 0.00
-	
-	//this is the filter for destructables around the target
-	private static function destFilterMethod() returns boolean
-		real x = GetDestructableX(GetFilterDestructable())
-		real y = GetDestructableY(GetFilterDestructable())
-		return (Knockback.tx-x)*(Knockback.tx-x) + (Knockback.ty-y)*(Knockback.ty-y) <= Knockback.temp.aoeDest * Knockback.temp.aoeDest
-	
-	
-	//cleans up the struct and runs the onEnd actions
-	ondestroy
-		if fx != null
-			DestroyEffect(fx)
 		
-		if USE_KNOCKBACK_EFFECTS
-			DestroyEffect(kbEffect)
-
-
+public class Knockback
+	use Periodic
+	unit u
+	vec2 acc
+	vec2 vel
+	int steps
+	boolean useEffects
+	boolean stopImpassable
+	effect sfx
+	int sfxCurr
+	UnitCollision collisionAction
+	LinkedList<unit> collisionUnits
+	real collisionSize
 	
-	//this method will be called every TIMER_INTERVAL and update the units position as well as runs the onLoop action
-	override function onTimedLoop()
-		real x
-		real y 
-					
-		//print("yes")
-		//change the time which has been gone
-		timeOver += ANIMATION_PERIOD
-		currentSpeed -= deceleration
-		movedDistance += currentSpeed
-		
-		x = GetUnitX(target) + (currentSpeed) * cos
-		y = GetUnitY(target) + (currentSpeed) * sin
-		
-		///check for destructables arround the target
-		Knockback.tx = x
-		Knockback.ty = y
-		SetRect(Knockback.destRect, -aoeDest, -aoeDest, aoeDest, aoeDest)
-		MoveRectTo(Knockback.destRect, x, y)
-		EnumDestructablesInRect(Knockback.destRect, Knockback.destFilter, Knockback.destActions)
-		
-		//check pathability and new unit position if walkable
-		if isTerrainWalkable(x, y)
-			SetUnitX(target, x)
-			SetUnitY(target, y)
-			//print("foo")
+	/**
+	 * Performs a simple 2d knockback. The knockback object is automatically destroyed afterwards.
+	 * unit u: the unit to be knocked back.
+	 * vec2 moveVec: defines the knockback distance and direction.
+	 * real time: specifies the duration of the knockback.
+	 * boolean useEffects: if true, if special effects should be displayed for knockbacks on the ground or shallow water.
+	 * boolean stopImpassable: if true, the knockback is stopped if the unit is about to enter impassable terrain.
+	 */
+	construct(unit u, vec2 moveVec, real time, boolean useEffects, boolean stopImpassable)
+		let speed = 2 * moveVec.length() / ((time / ANIMATION_PERIOD) + 1)
+		let acceleration = speed / (time / ANIMATION_PERIOD)
+		let dir = moveVec.norm()
+		this.u = u
+		this.acc = dir * acceleration
+		this.vel = dir * speed
+		this.steps = (time / ANIMATION_PERIOD).toInt()
+		this.useEffects = useEffects
+		this.stopImpassable = stopImpassable
+		this.collisionAction = null
+		if useEffects
+			if isTerrainLand(u.getX(), u.getY())
+				sfx = u.addEffect(SFX_EARTH, SFX_ATTACHPOINT)
+				sfxCurr = 1
+			else if isTerrainShallowWater(u.getX(), u.getY())
+				sfx = u.addEffect(SFX_WATER, SFX_ATTACHPOINT)
+				sfxCurr = 2
+		startPeriodic(ANIMATION_PERIOD)
+	
+	/**
+	 * Enables/disable collision for this knockback. Each unit can only collide once with each knockback.
+	 * You can call this directly after creating a new Knockback object or at any other time.
+	 * real size: range for collision checks, must be > 0.
+	 * UnitCollision action: action that is executed for each collision. Use null to disable collision.
+	 */
+	function enableCollision(real size, UnitCollision action)
+		if action == null // disable
+			if this.collisionAction != null
+				destroy this.collisionAction
+				this.collisionAction = null
+				destroy this.collisionUnits
+		else // enable
+			if this.collisionAction == null
+				this.collisionAction = action
+				this.collisionUnits = new LinkedList<unit>()
+		this.collisionSize = size
+
+	override function periodic()
+		vel -= acc
+		var newPos = u.getPos() + vel
+		// effects:
+		if useEffects
+			if isTerrainLand(u.getX(), u.getY()) and sfxCurr != 1
+				sfx.destr()
+				sfx = u.addEffect(SFX_EARTH, SFX_ATTACHPOINT)
+				sfxCurr = 1
+			else if isTerrainShallowWater(u.getX(), u.getY()) and sfxCurr != 2
+				sfx.destr()
+				sfx = u.addEffect(SFX_WATER, SFX_ATTACHPOINT)
+				sfxCurr = 2
+		// terrain walkable check:
+		if isTerrainWalkable(newPos.x, newPos.y)
+			u.setXY(newPos)
 		else
-			if STOP_WHEN_IMPASSABLE
-				//print("impassable")
-				stopTimedLoop()
-			
-		//change the knockback effect if the user want to use it
-		if USE_KNOCKBACK_EFFECTS
-			if isGround or not IGNORE_FLYING_UNITS
-				if kbEffectMode == 2 and isTerrainLand(x, y)
-					DestroyEffect(kbEffect)
-					kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-				else if kbEffectMode == 1 and isTerrainShallowWater(x, y)
-					DestroyEffect(kbEffect)
-					kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-				
-		
-		//if the knockback ended because the target reached the end or the speed is smaller than 0
-		if currentSpeed <= 0 or movedDistance >= distance
-			if autodestroy
-				stopTimedLoopAndDestroy()
-			else
-				stopTimedLoop()
-
-		
-		
-		
-		
-		//get next instance
-
-
-	//adds or changes the current effect attached to the target
-	function addSpecialEffect( string fxpath, string attachPoint )
-		if fx != null
-			DestroyEffect(fx)
-		
-		fx = AddSpecialEffectTarget(fxpath, target, attachPoint)
+			if stopImpassable
+				destroy this
+				return
+		// check for unit collisions
+		if collisionAction != null
+			if collisionSize > 0.
+				ENUM_GROUP.clear()
+				ENUM_GROUP.enumUnitsInRange(u.getPos(), collisionSize)
+				for unit cu in ENUM_GROUP
+					if unitValid(cu) and cu != u
+						if not collisionUnits.contains(cu)
+							collisionUnits.add(cu)
+							collisionAction.onCollide(u, cu)
+		// destroy if last iteration:
+		steps--
+		if steps <= 0
+			destroy this
 	
-	//changes the angle of the knockback
-	function setAngle( real newAngle )
-		knockbackAngle = newAngle
-		cos = Cos(knockbackAngle * bj_DEGTORAD)
-		sin = Sin(knockbackAngle * bj_DEGTORAD)
-
-			
-	
-	//this method creates a new knockback
-	construct( unit caster, unit target, real distance, real time, angle xyangle )
-		real speed = 2 * distance / ((time / ANIMATION_PERIOD) + 1)
-		real deceleration = speed / (time / ANIMATION_PERIOD)
-					
-		//variables
-		this.caster = caster
-		this.target = target
-		this.knockbackAngle = xyangle.radians()
-		this.distance = distance
-		this.duration = time
-		this.currentSpeed = speed
-		this.deceleration = deceleration
-		this.cos = Cos(this.knockbackAngle)
-		this.sin = Sin(this.knockbackAngle)
-		
-		this.isGround = not IsUnitType(this.target, UNIT_TYPE_FLYING)
-		
-		//Adds the knockback effect when USE_KNOCKBACK_EFFECTS is to true
-		if USE_KNOCKBACK_EFFECTS
-			if isGround or not IGNORE_FLYING_UNITS
-				if isTerrainLand(GetUnitX(target), GetUnitY(target))
-					kbEffect = AddSpecialEffectTarget(EARTH_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-					kbEffectMode = 1
-				else if isTerrainShallowWater(GetUnitX(target), GetUnitY(target))
-					kbEffect = AddSpecialEffectTarget(WATER_EFFECT, target, KNOCKBACK_EFFECT_ATTACHPOINT)
-					kbEffectMode = 2
-				
-			
-		
-		//start the timer if the new instance is the only one
-		startTimedLoop()
-
-
-
-
+	ondestroy
+		if sfx != null
+			sfx.destr()
+		if collisionUnits != null
+			destroy collisionUnits
+			collisionUnits = null
