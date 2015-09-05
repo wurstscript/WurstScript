@@ -1709,6 +1709,23 @@ When you use compiletime functions to generate objects, Wurst will generate the 
 next to your map and you can import them into your map using the object editors normal import
 function. Compared to ObjectMerger this has the advantage, that you can directly see your new 
 objects in the object editor.
+You can also enable an option to directly inject the objects into the map file, though the changes will not be visible in the object-editor directly.
+
+You can use the same code during runtime and compiletime.
+The special constant `compiletime` can be used to distinguish the two.
+The constant is `true` when the function was called at compiletime and `false` otherwise.
+The following example shows how this could be useful:
+
+	init
+		doInit()
+
+	@compiletime
+	function doInit()
+		for i = 1 to 100
+			if compiletime
+				// create item object
+			else
+				// place item on map
 
 
 ### Object Editing Natives
