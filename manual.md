@@ -66,7 +66,8 @@ brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must no
 
 A block has to be indented by one or more tabs. Using spaces for indentation is not permitted.
 
-In general newlines come at the end of a statement, with some exceptions: 
+In general newlines come at the end of a statement, with some exceptions:
+
 - A newline is ignored after a line ending with `(` or `[`
 - A newline is ignored before a line beginning with `)`, `]`,`.` or `..`
 - A newline is ignored, when one of the following tokens comes before or after the newline: 
