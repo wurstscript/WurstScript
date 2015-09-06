@@ -33,7 +33,7 @@ HashMap<int, trigger> onCastMap = new HashMap<int, trigger>()
 init
 	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT, () -> TriggerEvaluate(onCastMap.get(GetSpellAbilityId())))
  
-function registerSpellEffectEvent(int abil, code onCast)
+public function registerSpellEffectEvent(int abil, code onCast)
 	if not onCastMap.has(abil)
 		onCastMap.put(abil, CreateTrigger())
 	TriggerAddCondition(onCastMap.get(abil), Filter(onCast))

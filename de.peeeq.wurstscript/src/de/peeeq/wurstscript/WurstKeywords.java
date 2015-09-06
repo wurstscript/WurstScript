@@ -11,7 +11,7 @@ public class WurstKeywords {
 		"compiletime",
 	// jurst keywords, maybe split the highlighters later...:	
 	     "library","endlibrary","scope","endscope","requires","uses","needs","struct","endstruct",
-	     "then","endif","loop","exithwhen","endloop","method","takes","endmethod","set","call","exitwhen",
+	     "then","endif","loop","exitwhen","endloop","method","takes","endmethod","set","call",
 	     "globals","endglobals","initializer","elseif"
 	};
 	
