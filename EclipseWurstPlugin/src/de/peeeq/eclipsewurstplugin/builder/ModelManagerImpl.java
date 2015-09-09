@@ -438,17 +438,18 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public synchronized void resolveImports(WurstGui gui) {
+	public void resolveImports(WurstGui gui) {
 		WurstCompilerJassImpl comp = getCompiler(gui);
-
-		try {
-			WurstModel m = model;
-			if (m == null) {
-				return;
+		synchronized (this) {
+			try {
+				WurstModel m = model;
+				if (m == null) {
+					return;
+				}
+				comp.addImportedLibs(m);
+			} catch (CompileError e) {
+				gui.sendError(e);
 			}
-			comp.addImportedLibs(m);
-		} catch (CompileError e) {
-			gui.sendError(e);
 		}
 	}
 
