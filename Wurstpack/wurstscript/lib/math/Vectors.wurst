@@ -39,8 +39,12 @@ public function vec3.op_mult(real factor) returns vec3
 /** * Operator */	
 public function real.op_mult(vec3 v) returns vec3
 	return vec3(v.x*this, v.y*this, v.z*this) 
+	
+/**  Operator Same as dot product */
+public function vec2.op_mult(vec2 v) returns real
+	return this.x * v.x + this.y + v.y
 
-/** add 3 realvalues to the coordinates of this Vector */
+/** add 3 real values to the coordinates of this Vector */
 public function vec3.addReals( real x, real y, real z )	returns vec3
 	return vec3(this.x + x, this.y + y, this.z + z)
 
