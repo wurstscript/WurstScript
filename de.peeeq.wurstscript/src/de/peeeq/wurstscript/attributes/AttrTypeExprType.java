@@ -100,7 +100,11 @@ public class AttrTypeExprType {
 			try {
 				ILconst i = arSize.attrConstantValue();
 				if (i instanceof ILconstInt) {
-					sizes = new int[] {((ILconstInt) i).getVal()};
+					int val = ((ILconstInt) i).getVal();
+					sizes = new int[] {val};
+					if (val <= 0) {
+						arSize.addError("Array size must be at least 1");
+					}
 				} else {
 					arSize.addError("Array sizes should be integer...");
 				}
