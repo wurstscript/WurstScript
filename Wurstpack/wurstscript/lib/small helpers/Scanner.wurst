@@ -33,4 +33,11 @@ public class Scanner
 			remainingInput = remainingInput.substring(tokenLength+1, remainingInput.length())
 		tokenLength = 0
 		return token
+		
+	function close()
+		destroy this
+		
+	function iterator() returns Scanner
+		return this
 			
+		
