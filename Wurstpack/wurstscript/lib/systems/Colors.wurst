@@ -5,6 +5,9 @@ import Integer
 import Table
 import ErrorHandling
 
+public constant COLOR_WHITE = color(255,255,255)
+public constant COLOR_BLACK = color(0,0,0)
+
 /** Tuple for your RGB color needs */
 public tuple color(int red, int green, int blue)
 /** Tuple for your RGBA color needs (with Alpha) */
