@@ -182,7 +182,7 @@ public class WurstREPL {
 				return;
 			} else if (line.equals("main")) {
 				if (translateProg() != null) {
-					interpreter.executeFunction("main");
+					interpreter.executeFunction("main", null);
 				}
 				return;
 			} else if (line.equals("help")) {
@@ -360,7 +360,7 @@ public class WurstREPL {
 				for (ImFunction imFunc : imProg.getFunctions()) {
 					if (imFunc.getTrace() == f) {
 						ProgramState globalState = interpreter.getGlobalState();
-						LocalState result = ILInterpreter.runFunc(globalState, imFunc, value);
+						LocalState result = ILInterpreter.runFunc(globalState, imFunc, null, value);
 						valueToString = ((ILconstString) result.getReturnVal()).getVal();
 						break;
 					}
@@ -566,7 +566,7 @@ public class WurstREPL {
 		LocalState val;
 		try (ExecutiontimeMeasure t = new ExecutiontimeMeasure("interpretation")) {
 			interpreter.setProgram(imProg);
-			val = interpreter.executeFunction("repl_start");
+			val = interpreter.executeFunction("repl_start", null);
 		}
 		return val;
 	}
@@ -775,7 +775,7 @@ public class WurstREPL {
 			if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
 				print("Testing " + Utils.printElementWithSource(f.attrTrace()) + "	... ");
 				try {
-					interpreter.runVoidFunc(f);
+					interpreter.runVoidFunc(f, null);
 					successTests.add(f);
 				} catch (TestSuccessException e) {
 					print("  ✓");

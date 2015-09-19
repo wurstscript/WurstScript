@@ -743,6 +743,10 @@ public class Utils {
 		}
 		return sb.toString();
 	}
+	
+	public static String readWholeStream(InputStream inputStream) throws IOException {
+		return readWholeStream(new BufferedReader(new InputStreamReader(inputStream)));
+	}
 
 	
 
@@ -910,6 +914,8 @@ public class Utils {
 	public static String getLibName(File f) {
 		return f.getName().replaceAll("\\.[jw]urst$", "");
 	}
+
+	
 
 
 	
