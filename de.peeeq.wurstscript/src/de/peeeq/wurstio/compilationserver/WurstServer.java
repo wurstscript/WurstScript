@@ -15,6 +15,9 @@ import java.util.function.Consumer;
 
 import javax.swing.SwingUtilities;
 
+import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
 
@@ -23,13 +26,16 @@ public class WurstServer {
 	private int portNumber = 27425;
 	private volatile boolean stopped;
 	private Consumer<String> printer = System.out::println;
+	private @Nullable ServerSocket serverSocket;
 
 	public void start() {
 		try (ServerSocket serverSocket = new ServerSocket(portNumber, 1, InetAddress.getLoopbackAddress())) {
-			serverSocket.setSoTimeout(1000);
+			this.serverSocket = serverSocket;
 			println("Server started.");
 			while (!stopped) {
 				handleRequest(serverSocket);
+				// clean up after request
+				System.gc();
 			}
 			println("Server stopped.");
 		} catch (IOException e) {
@@ -50,6 +56,14 @@ public class WurstServer {
 
 	public void stop() {
 		stopped = true;
+		ServerSocket socket = serverSocket;
+		if (socket != null) {
+			try {
+				socket.close();
+			} catch (IOException e) {
+				// ignore
+			}
+		}
 	}
 
 	private void handleRequest(ServerSocket sock) {
@@ -68,6 +82,10 @@ public class WurstServer {
 			}
 			println(args.toString());
 			long time = System.currentTimeMillis();
+			if (args.contains("-stopServer")) {
+				stop();
+				return;
+			}
 			wurstMain(args);
 			println("Server finished compilation in " + (System.currentTimeMillis() - time) + "ms");
 
@@ -83,13 +101,7 @@ public class WurstServer {
 	private void wurstMain(final List<String> args) {
 		String[] array = args.toArray(new String[0]);
 		assert array != null;
-		try {
-			SwingUtilities.invokeAndWait(() -> Main.main(array));
-		} catch (InvocationTargetException | InterruptedException e) {
-			println("Error when running wurst: " + e.getMessage());
-			e.printStackTrace();
-			throw new Error(e);
-		}
+		Main.main(array);
 	}
 	
 

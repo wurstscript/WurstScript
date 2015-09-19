@@ -191,6 +191,9 @@ public class WurstREPL {
 			} else if (line.equals("tests")) {
 				runTests();
 				return;
+			} else if (line.equals("server")) {
+				startWurstServer();
+				return;
 			} else if (line.startsWith("compile")) {
 				compileProject(line.substring("compile".length()));
 				return;
@@ -274,6 +277,11 @@ public class WurstREPL {
 			modelManager.removeCompilationUnitByName(REPL_DUMMY_FILENAME);
 			imProg = null;
 		}
+	}
+
+	private void startWurstServer() {
+		new Thread(() -> WurstServer.startServer()).start();
+		println("Wurst Server started");
 	}
 
 	private void extractReplValue(String varName, CompilationUnit cu) {
@@ -817,6 +825,7 @@ public class WurstREPL {
 		pw.println("  'reset'    resets the console to the inital state.");
 		pw.println("  'main'     run the main function of the program. ");
 		pw.println("  'tests'    run all the tests (functions annotated with @test). ");
+		pw.println("  'server'   start a wurst compilation server inside eclipse. ");
 		pw.println();
 		pw.println("Cou can write down any wurst expression, variable assignment or local variable definition.");
 		pw.println("All functions from the currently opened editor can be used.");

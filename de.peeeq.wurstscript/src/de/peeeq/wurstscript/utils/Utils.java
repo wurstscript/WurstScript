@@ -392,7 +392,7 @@ public class Utils {
 			if (t == null) {
 				break;
 			}
-			sb.append("Caused by:\n");
+			sb.append("Caused by: " + t.toString() +"\n");
 		}
 		return sb.toString();
 	}
