@@ -65,11 +65,12 @@ Build Process
 
 Building this project with eclipse is recommended.
 
-- import the project de.peeeq.wurstscript into your workspace
+- import the project de.peeeq.wurstscript into your workspace (import the Eclipse project from the repository, do not try to import it as a new Maven project)
 - the project depends on some generated sources which are generated using the ant task "gen" from the build.xml
 	- to execute this task open the ant view in eclipse (window -> show view -> ant)
 	- drag and drop build.xml into the ant view
 	- doubleclick "gen" from the list of tasks
+	- refresh the project manually (F5) or enable automatic refresh in the Eclipse settings (Preferences -> General -> Workspace -> Refresh using native hooks or polling)
 - (optional) you can now run the test suite in /src-test/de/peeeq/wurstscript/tests/AllTests.java using jUnit
 - Execute the "make_for_wurstpack" task from the build-jar.xml file. This will generate a new compiler jar and place it into the 
 	Wurstpack folder.
