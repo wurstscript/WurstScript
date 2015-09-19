@@ -114,7 +114,7 @@ public class RunArgs {
 				throw new RuntimeException("Unknown option: " + a);
 			} else {
 				files.add(a);
-				if (a.endsWith(".w3x") || a.endsWith(".w3g")) {
+				if (a.endsWith(".w3x") || a.endsWith(".w3m")) {
 					mapFile = a;
 				}
 			}
