@@ -13,6 +13,7 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.RunArgs;
 
 public class MpqTest {
 
@@ -37,8 +38,7 @@ public class MpqTest {
 
 	@Test
 	public void test_extract() throws Exception {
-		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X), RunArgs.defaults())) {
 			byte[] f = edit.extractFile("war3map.j");
 			// edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j",
 			// f);
@@ -68,8 +68,7 @@ public class MpqTest {
 
 	@Test
 	public void test_insert() throws Exception {
-		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X), RunArgs.defaults())) {
 			edit.insertFile("test.txt", Files.toByteArray(new File(
 					"./testscripts/mpq/test.txt")));
 		}
@@ -79,8 +78,7 @@ public class MpqTest {
 
 	@Test
 	public void test_delete() throws Exception {
-		MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+		try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X), RunArgs.defaults())) {
 			edit.deleteFile("test.txt");
 		}
 		Assert.assertTrue(true);
