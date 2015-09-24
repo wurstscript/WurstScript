@@ -34,7 +34,6 @@ The Wurst Pack contains a version of the editor with the Wurst compiler built in
 
 If you prefer manual downloads over the automatic updater, you can use the links below:
 
-
 * [Complete Pack](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_complete.zip) 
 			This is the complete pack. You usually should download this, but you can use the other downloads if you only want to update
 			parts of the Wurst Pack.
@@ -47,8 +46,9 @@ If you prefer manual downloads over the automatic updater, you can use the links
 			This is only the main jar file for the compiler. For small bugfixes it is often sufficient to replace this file, but
 			to be sure you should usually choose the bigger downloads.
 
-All downloads use the latest successful build from our build-server. If you have problems with the latest version you might want to check out older versions
-by clicking on the "Previous Build" arrow on the [download page](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/).
+All downloads above use the latest successful build from our build-server.
+
+There is also [Bundle](http://peeeq.de/wurst/Wurstscript_2015_09.zip) (134MB) availble, which includes everything you need: the Wurst Pack, a Java Runtime, and Eclipse. This might be the easiest option to get started. Run the updater included in the Bundle to get the latest version.
 
 ## Intro video
 
