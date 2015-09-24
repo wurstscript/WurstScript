@@ -365,7 +365,7 @@ public class WurstScriptTest {
 			ILInterpreter interpreter = new ILInterpreter(imProg, gui, null, false);
 			interpreter.addNativeProvider(new NativeFunctionsIO());
 //				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
-			interpreter.executeFunction("main");
+			interpreter.executeFunction("main", null);
 		} catch (TestFailException e) {
 			throw e;
 		} catch (TestSuccessException e)  {
