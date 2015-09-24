@@ -35,6 +35,7 @@ import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.WCTFile;
 import de.peeeq.wurstio.objectreader.WCTFile.CustomTextTrigger;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jurst.ExtendedJurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
@@ -57,7 +58,7 @@ public class ExtractJurstCommand extends AbstractHandler implements IHandler {
 		try {
 			IPath mpqPath = file.getRawLocation();
 			File mpq = mpqPath.toFile();
-			MpqEditor mpqEd = MpqEditorFactory.getEditor(mpq);
+			MpqEditor mpqEd = MpqEditorFactory.getEditor(mpq, RunArgs.defaults());
 			byte[] tempWct = mpqEd.extractFile("war3map.wct");
 			mpqEd.close();
 			

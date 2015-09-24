@@ -136,7 +136,7 @@ if havewurst then
 	wehack.addmenuseparator(wurstmenu)
 	
 	-- other tools
-	
+	wurst_useJmpq2 = TogMenuEntry:New(wurstmenu, "Use JMpq-v2 (deprecated)",nil,false)
 	
 	
 	function wurst_runfileexporter()
@@ -530,7 +530,7 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		cmdline = cmdline .. " "..jh_path.."jasshelper\\common.j "..jh_path.."jasshelper\\blizzard.j \"" .. mappath .."\""
 		toolresult = 0
-		toolresult = wehack.runprocess2(cmdline)
+		toolresult = wehack.runprocess(cmdline)
 		if toolresult == 0 then 
 			mapvalid = true
 		else
@@ -570,6 +570,9 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_injectObjects.checked then
 			cmdline = cmdline .. " -injectobjects"
+		end
+		if wurst_useJmpq2.checked then
+			cmdline = cmdline .. " --jmpq2"
 		end
 		
 		-- cmdline = cmdline .. " -lib ./wurstscript/lib/"

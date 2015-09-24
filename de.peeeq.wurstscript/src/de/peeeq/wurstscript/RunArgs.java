@@ -34,6 +34,7 @@ public class RunArgs {
 	private RunOption optionExtractImports;
 	private RunOption optionStartServer;
 	private RunOption optionGenerateLua;
+	private RunOption optionUseJmpq2;
 	
 	private class RunOption {
 		final String name;
@@ -84,6 +85,7 @@ public class RunArgs {
 		// backends
 		optionGenerateLua = addOption("lua", "generate lua output");
 		// other
+		optionUseJmpq2 = addOption("-jmpq2", "Use JMpq-v2 as mpq editor");
 		optionGui = addOption("gui", "Show a graphical user interface (progress bar and error window).");
 		addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", arg -> {
 			libDirs.add(new File(arg));
@@ -247,5 +249,9 @@ public class RunArgs {
 	
 	public boolean isUncheckedDispatch() {
 		return uncheckedDispatch.isSet;
+	}
+	
+	public boolean useJmpq2(){
+		return optionUseJmpq2.isSet;
 	}
 }

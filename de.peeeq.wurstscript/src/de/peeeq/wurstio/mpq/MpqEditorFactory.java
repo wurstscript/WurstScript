@@ -2,17 +2,16 @@ package de.peeeq.wurstio.mpq;
 
 import java.io.File;
 
+import de.peeeq.wurstscript.RunArgs;
+
 
 public class MpqEditorFactory {
-	private static String tempfolder = "";
 	
-	static public MpqEditor getEditor(File f) throws Exception {
-		return new Jmpq2BasedEditor(f);
-	}
-
-	
-
-	public static void setTempfolder(String tempfolder) {
-		MpqEditorFactory.tempfolder = tempfolder;
+	static public MpqEditor getEditor(File f, RunArgs args) throws Exception {
+		if(args.useJmpq2()){
+			return new Jmpq2BasedEditor(f);
+		}else{
+			return new Jmpq3BasedEditor(f);
+		}
 	}
 }

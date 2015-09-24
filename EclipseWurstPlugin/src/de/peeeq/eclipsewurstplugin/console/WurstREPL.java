@@ -470,7 +470,7 @@ public class WurstREPL {
 			
 			// then inject the script into the map
 			File outputMapscript = new File(compiledScript.getRawLocationURI());
-			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
 				//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
 				mpqEditor.deleteFile("war3map.j");
 				mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
@@ -638,7 +638,7 @@ public class WurstREPL {
 		
 		MpqEditor mpqEditor = null;
 		if (mapFile != null) {
-			mpqEditor = MpqEditorFactory.getEditor(mapFile);
+			mpqEditor = MpqEditorFactory.getEditor(mapFile, runArgs);
 		}
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
