@@ -81,6 +81,10 @@ public class WurstReconcilingStategy implements IReconcilingStrategy, IReconcili
 	private void codeFolding(CompilationUnit cu) {
 		final List<WPosition> positions = new ArrayList<>();
 		for (WPackage p : cu.getPackages()) {
+			if (p.getImports().size() <= 2) {
+				// do not fold when there is only one import (and the implicit Wurst import)
+				continue;
+			}
 			WPos importsPos = p.getImports().attrSource();
 			int start = importsPos.getLeftPos();
 			int length = importsPos.getRightPos() - start;

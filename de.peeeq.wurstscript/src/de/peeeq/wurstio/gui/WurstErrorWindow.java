@@ -101,7 +101,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
         initComponents();
         this.setSize(800,650);
-        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         GuiUtils.setWindowToCenterOfScreen(this);
         toFront();
         setState(Frame.NORMAL);
@@ -140,7 +140,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
 		});
         
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         
         codeArea.setEditable(false);
         

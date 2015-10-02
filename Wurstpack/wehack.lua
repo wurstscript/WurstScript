@@ -83,6 +83,14 @@ function aboutpopup()
 end
 wh_about = MenuEntry:New(whmenu,"About Grimoire ...",aboutpopup)
 
+function wurst_compilationserver_start()
+	wehack.execprocess("wurstscript\\wurstscript.exe --startServer")
+end
+
+function wurst_compilationserver_stop()
+	wehack.execprocess("wurstscript\\wurstscript_b.exe -stopServer")
+end
+
 -- ##WurstScript##
 havewurst = grim.exists("wurstscript\\wurstscript.exe")
 if havewurst then
@@ -101,17 +109,11 @@ if havewurst then
 	wurst_b_enable = TogMenuEntry:New(wurstmenu,"Use Wurst compilation server",nil,false)
 	
 	
-	function wurst_compilationserver_start()
-		wehack.execprocess("wurstscript\\wurstscript.exe -startServer")
-	end
 	
-	function wurst_compilationserver_stop()
-		wehack.execprocess("wurstscript\\wurstscript.exe -stopServer")
-	end
 	
 	-- TODO
-	--MenuEntry:New(wurstmenu,"Start Wurst compilation server ",wurst_compilationserver_start)
-	--MenuEntry:New(wurstmenu,"Stop Wurst compilation server ",wurst_compilationserver_stop)
+	-- MenuEntry:New(wurstmenu,"Start Wurst compilation server ",wurst_compilationserver_start)
+	MenuEntry:New(wurstmenu,"Stop Wurst compilation server ",wurst_compilationserver_stop)
 	
 	wehack.addmenuseparator(wurstmenu)
 	-- optimizer options
@@ -136,7 +138,7 @@ if havewurst then
 	wehack.addmenuseparator(wurstmenu)
 	
 	-- other tools
-	
+	wurst_useJmpq2 = TogMenuEntry:New(wurstmenu, "Use JMpq-v2 (deprecated)",nil,false)
 	
 	
 	function wurst_runfileexporter()
@@ -464,7 +466,11 @@ function showfirstsavewarning()
 	if wh_firstsavenag.checked then
 		return
 	else
-		wehack.messagebox("Could not find path to map, please try saving again","Grimoire",false)
+		local msg = "Could not find path to map, please try saving again"
+		if wurst_b_enable.checked then
+			msg = msg .. "\nMake sure that the compilation server is running or try disabling the server!"
+		end
+		wehack.messagebox(msg,"Grimoire",false)
 	end
 end
 
@@ -493,7 +499,7 @@ function testmap(cmdline)
 	wehack.execprocess(cmdline)
 end
 
-function compilemap_path(mappath)
+function compilemap_path(mappath,tries)
 	if mappath == "" then
 		showfirstsavewarning()
 		return
@@ -530,7 +536,7 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		cmdline = cmdline .. " "..jh_path.."jasshelper\\common.j "..jh_path.."jasshelper\\blizzard.j \"" .. mappath .."\""
 		toolresult = 0
-		toolresult = wehack.runprocess2(cmdline)
+		toolresult = wehack.runprocess(cmdline)
 		if toolresult == 0 then 
 			mapvalid = true
 		else
@@ -571,6 +577,9 @@ grim.log("running tool on save: "..cmdargs)
 		if wurst_injectObjects.checked then
 			cmdline = cmdline .. " -injectobjects"
 		end
+		if wurst_useJmpq2.checked then
+			cmdline = cmdline .. " --jmpq2"
+		end
 		
 		-- cmdline = cmdline .. " -lib ./wurstscript/lib/"
 		cmdline = cmdline .. " wurstscript\\common.j wurstscript\\Blizzard.j \"" .. mappath .."\""
@@ -583,16 +592,27 @@ grim.log("running tool on save: "..cmdargs)
 --		end
 		if toolresult == 0 then 
 			mapvalid = true
-		else
-			wehack.messagebox("Could not run Wurst.","Wurst",false)
+		else 
 			mapvalid = false
+			if wurst_b_enable.checked then
+				if tries == 0 then
+					-- try starting compilation server
+					wurst_compilationserver_start()
+					-- try again
+					compilemap_path(mappath,tries+1)
+				else
+					wehack.messagebox("Could not run Wurst with compilation server.","Wurst",false)
+				end
+			else
+				wehack.messagebox("Could not run Wurst.","Wurst",false)
+			end
 		end
 	end
 end
 
 function compilemap()
 	mappath = wehack.findmappath()
-	compilemap_path(mappath)
+	compilemap_path(mappath,0)
 end
 
 if haveext then

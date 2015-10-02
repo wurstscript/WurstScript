@@ -63,7 +63,7 @@ public class CompiletimeFunctionRunner {
 				if (f.hasFlag(functionFlag)) {
 					try {
 						WLogger.info("running " +functionFlag+" function " + f.getName());
-						interpreter.runVoidFunc(f);
+						interpreter.runVoidFunc(f, null);
 						successTests.add(f);
 					} catch (TestSuccessException e) {
 						successTests.add(f);

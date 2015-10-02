@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
+import de.peeeq.wurstscript.jassIm.JassImElement;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -42,7 +43,7 @@ public class ILInterpreter {
 		this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
 	}
 
-	public static LocalState runFunc(ProgramState globalState, ImFunction f, ILconst ... args) {
+	public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable JassImElement caller, ILconst ... args) {
 		String[] parameterTypes = new String[args.length];
 		for (int i=0; i<args.length; i++) {
 			parameterTypes[i] = "" + args[i];
@@ -75,17 +76,17 @@ public class ILInterpreter {
 			i++;
 		}
 		
-		globalState.pushStackframe(f, args, f.attrTrace().attrSource());
+		globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
 		
 		
 		try {
 			f.getBody().runStatements(globalState, localState);
+			globalState.popStackframe();
 		} catch (ReturnException e) {
+			globalState.popStackframe();
 			ILconst retVal = e.getVal();
 			retVal = adjustTypeOfConstant(retVal, f.getReturnType());
 			return localState.setReturnVal(retVal);
-		} finally {
-			globalState.popStackframe();
 		}
 		if (f.getReturnType() instanceof ImVoid) {
 			return localState;
@@ -148,19 +149,19 @@ public class ILInterpreter {
 		return false;
 	}
 
-	public LocalState executeFunction(String funcName) {
+	public LocalState executeFunction(String funcName, @Nullable JassImElement trace) {
 		globalState.resetStackframes();
 		for (ImFunction f : prog.getFunctions()) {
 			if (f.getName().equals(funcName)) {
-				return runFunc(globalState, f);
+				return runFunc(globalState, f, trace);
 			}
 		}
 		throw new Error("no function with name "+ funcName + "was found.");
 	}
 
-	public void runVoidFunc(ImFunction f) {
+	public void runVoidFunc(ImFunction f, @Nullable JassImElement trace) {
 		globalState.resetStackframes();
-		runFunc(globalState, f);
+		runFunc(globalState, f, trace);
 	}
 
 	public @Nullable ImStmt getLastStatement() {
