@@ -1,15 +1,14 @@
-package ErrorHandling
+package ErrorHandling_config
 import NoWurst
 import PrintingHelper
 import MagicFunctions
 import Table
-import initlater GameTimer
+import GameTimer
 import Real
 
 constant MUTE_ERROR_DURATION = 60
 
 Table traceHashs = new Table()
-
 /** error handing function.
 This function is used by libraries and for internal Wurst errors like 
 accessing a null-pointer. Overwrite this function to customize error handling.
@@ -18,7 +17,7 @@ Outputs an error message and terminates the current thread.
 There is a compiler flag to augment the error messages with stack traces.
 Error messages can also be disabled.
 */
-@configurable public function error(string msg)
+@config public function error(string msg)
 	let hash = StringHash(msg)
 	if traceHashs.hasInt(hash)
 		// Error has been printed before

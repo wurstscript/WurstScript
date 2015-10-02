@@ -1,7 +1,7 @@
 package TimerUtils
 import NoWurst
 import Table
-import ErrorHandling
+import initlater ErrorHandling
 
 //	Credits: 
 //		* Vexorian (original TimerUtils + TimedLoop)
