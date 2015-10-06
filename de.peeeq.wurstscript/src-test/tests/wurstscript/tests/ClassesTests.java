@@ -1039,4 +1039,42 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+	public void testArraySize() { 
+		testAssertOkLines(true, 
+				"package test",
+				"	native testSuccess()",
+				"	constant x = 4",
+				"	constant y = 5",
+				"	constant z = x*(10+(-y))",
+				"	class A",
+				"		int array[z] foo",
+				"	init",
+				"		let a = new A()",
+				"		a.foo[13] = 42",
+				"		if a.foo[13] == 42",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
+	
+	
+	@Test
+	public void testArraySize2() { 
+		testAssertErrorsLines(true, "must be at least 1",
+				"package test",
+				"	native testSuccess()",
+				"	constant x = 4",
+				"	constant y = 5",
+				"	constant z = x*(4+(-y))",
+				"	class A",
+				"		int array[z] foo",
+				"	init",
+				"		let a = new A()",
+				"		a.foo[13] = 42",
+				"		if a.foo[13] == 42",
+				"			testSuccess()",
+				"endpackage"
+			);
+	}
 }

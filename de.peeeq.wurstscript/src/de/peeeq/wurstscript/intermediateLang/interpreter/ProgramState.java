@@ -32,11 +32,13 @@ public class ProgramState extends State {
 	private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
 	private Stack<ILStackFrame> stackFrames = new Stack<>();
 	private Stack<ImStmt> lastStatements = new Stack<>();
+	private boolean isCompiletime;
 	
 	
-	public ProgramState(WurstGui gui, ImProg prog) {
+	public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
 		this.gui = gui;
 		this.prog = prog;
+		this.isCompiletime = isCompiletime;
 	}
 
 	public void setLastStatement(ImStmt s) {
@@ -156,6 +158,10 @@ public class ProgramState extends State {
 	
 	public Stack<ILStackFrame> getStackFrames() {
 		return stackFrames;
+	}
+
+	public boolean isCompiletime() {
+		return isCompiletime;
 	}
 
 

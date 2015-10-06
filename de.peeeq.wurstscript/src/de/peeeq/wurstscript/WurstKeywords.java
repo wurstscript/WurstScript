@@ -6,10 +6,12 @@ public class WurstKeywords {
 		"interface", "implements", "module", "use", "abstract", "static", "thistype", "override", "immutable", "it", "array", "and",
 		"or", "not", "this", "construct", "ondestroy", "destroy", "type", "constant", "endfunction", "nothing", "init", "castTo",
 		"tuple", "div", "mod", "let", "from", "to", "downto", "step", "endpackage", "skip", "true", "false", "var", "instanceof",
-		"super", "enum", "switch", "case", "default", "typeId", "begin", "end",
+		"super", "enum", "switch", "case", "default", "typeId", "begin", "end", 
+	// not really a keyword, but it should feel like one:
+		"compiletime",
 	// jurst keywords, maybe split the highlighters later...:	
 	     "library","endlibrary","scope","endscope","requires","uses","needs","struct","endstruct",
-	     "then","endif","loop","exithwhen","endloop","method","takes","endmethod","set","call","exitwhen",
+	     "then","endif","loop","exitwhen","endloop","method","takes","endmethod","set","call",
 	     "globals","endglobals","initializer","elseif"
 	};
 	

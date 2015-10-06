@@ -9,6 +9,7 @@ Bundle-ClassPath: wurstscript.jar,
  lib/guava-14.0-rc1.jar,
  lib/velocity-1.7-dep.jar,
  lib/jmpq2.jar,
+ lib/jmpq3.jar,
  lib/antlr-runtime-4.4.jar,
  lib/jna-4.0.0.jar,
  lib/org.eclipse.jdt.annotation-2.0.0.jar

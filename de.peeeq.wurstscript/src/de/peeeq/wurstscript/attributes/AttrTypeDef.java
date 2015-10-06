@@ -42,7 +42,7 @@ public class AttrTypeDef {
 	}
 
 	private static @Nullable String getTypeName(TypeRef node) {
-		return node.match(new TypeRef.Matcher<@Nullable String>() {
+		return node.match(new TypeRef.Matcher<String>() {
 
 			@Override
 			public String case_TypeExprSimple(TypeExprSimple typeExprSimple) {

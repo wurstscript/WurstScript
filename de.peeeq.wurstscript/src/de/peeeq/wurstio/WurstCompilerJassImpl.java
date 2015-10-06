@@ -119,6 +119,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				loadFile(f);
 			} else if (f.getName().equals("wurst.dependencies")) {
 				addDependencyFile(f);
+			} else if (mapFile == null && f.getName().equals("war3map.j")) {
+				loadFile(f);
 			}
 		}
 	}

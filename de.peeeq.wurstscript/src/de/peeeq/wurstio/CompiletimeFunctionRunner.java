@@ -45,7 +45,7 @@ public class CompiletimeFunctionRunner {
 	public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlag flag) {
 		Preconditions.checkNotNull(imProg);
 		this.imProg = imProg;
-		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg);
+		ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
 		this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 		
 		interpreter.addNativeProvider(new NativeFunctionsIO());
@@ -63,7 +63,7 @@ public class CompiletimeFunctionRunner {
 				if (f.hasFlag(functionFlag)) {
 					try {
 						WLogger.info("running " +functionFlag+" function " + f.getName());
-						interpreter.runVoidFunc(f);
+						interpreter.runVoidFunc(f, null);
 						successTests.add(f);
 					} catch (TestSuccessException e) {
 						successTests.add(f);

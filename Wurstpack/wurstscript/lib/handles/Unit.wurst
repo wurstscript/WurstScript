@@ -256,6 +256,9 @@ public function unit.issuePointOrderById(int id, vec2 target) returns boolean
 	
 public function unit.issueImmediateOrderById(int id) returns boolean
 	return IssueImmediateOrderById(this, id)
+
+public function unit.issueImmediateOrder(string order) returns boolean
+	return IssueImmediateOrder(this, order)
 	
 public function unit.removeItem(item itm)
 	UnitRemoveItem(this, itm)

@@ -1,7 +1,6 @@
 package Collider
 import Fx
 import TimedLoop
-import TempGroups
 import LinkedList
 
 constant real DEFAULT_COLLISION_SIZE  	=   50.0 // These are defaults, on one hand you can change them

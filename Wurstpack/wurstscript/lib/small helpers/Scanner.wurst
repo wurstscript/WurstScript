@@ -1,0 +1,43 @@
+package Scanner
+
+/*
+*	Scans the input string for tokens based on delimiters
+*/
+public class Scanner
+	string remainingInput
+	string delimiter
+	int tokenLength = 0
+	
+	
+	construct(string input, string delimiter)
+		remainingInput = input
+		this.delimiter = delimiter
+		
+	function hasNext() returns boolean
+		return remainingInput.length() > 0
+		
+	function next() returns string
+		string char = remainingInput.charAt(tokenLength)
+		string token = ""
+		while tokenLength < remainingInput.length()-1
+			if char == delimiter
+				token = remainingInput.substring(0, tokenLength)
+				break
+			else
+				tokenLength ++
+				char = remainingInput.charAt(tokenLength)
+		if token.length() < 1
+			token = remainingInput
+			remainingInput = ""
+		else
+			remainingInput = remainingInput.substring(tokenLength+1, remainingInput.length())
+		tokenLength = 0
+		return token
+		
+	function close()
+		destroy this
+		
+	function iterator() returns Scanner
+		return this
+			
+		

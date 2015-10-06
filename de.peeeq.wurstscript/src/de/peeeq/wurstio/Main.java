@@ -86,7 +86,7 @@ public class Main {
 			String mapFilePath = runArgs.getMapFile();
 			if (runArgs.isExtractImports()) {
 				File mapFile = new File(mapFilePath);
-				ImportFile.extractImportedFiles(mapFile);
+				ImportFile.extractImportedFiles(mapFile, runArgs);
 				return;
 			}
 
@@ -120,7 +120,7 @@ public class Main {
 
 					
 				if (mapFilePath != null) {
-					try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
+					try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath), runArgs)) {
 						CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
 						if (mapScript != null) {
 							gui.sendProgress("Writing to map", 0.99);

@@ -89,7 +89,11 @@ public class Fx
 	function getDummy() returns unit
 		return dummy
 		
-	/** Recolor the Fx object with the given color tuple (colorA) 
+	/** Backwards-compatability */
+	function recolor(colorA newColor)
+		setColor(newColor)
+		
+	/** Sets the color of the Fx object to the given color 
 	Color: 0 = no color - 255 = full color
 	Alpha: 0 = transparent - 255 = visible */
 	function setColor(colorA newColor)

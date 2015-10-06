@@ -19,7 +19,7 @@ public function int.sign() returns int
 		return 0
 
 public function int.toReal() returns real
-	return I2R(this)
+	return this * 1.
 
 public function int.toString() returns string
 	return I2S(this)

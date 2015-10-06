@@ -58,6 +58,10 @@ public class WurstGuiImpl extends WurstGui {
 					public void run() {
 						statusWindow = new WurstStatusWindow();
 						errorWindow = new WurstErrorWindow();
+						errorWindow.toFront();
+						statusWindow.toFront();
+						errorWindow.repaint();
+						statusWindow.repaint();
 					}
 				});
 				

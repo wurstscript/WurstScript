@@ -7,10 +7,10 @@ public constant BUFF_ID_GEN = new IdGenerator('B000')
 public constant ITEM_ID_GEN = new IdGenerator('I000')
 
 public class IdGenerator
-	int i1
-	int i2
-	int i3
-	int i4
+	private int i1
+	private int i2
+	private int i3
+	private int i4
 	
 	construct(int start)
 		i1 = start mod 256

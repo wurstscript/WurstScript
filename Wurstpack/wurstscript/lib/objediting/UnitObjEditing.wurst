@@ -69,6 +69,39 @@ public enum ArmorSoundType
 	Stone
 	Wood
 	
+public enum WeaponType
+	None
+	Normal
+	Instant
+	Artillery
+	ArtilleryLine
+	Missile
+	MissileSplash
+	MissileBounce
+	MissileLine
+	
+public function WeaponType.toObjectString() returns string
+	switch this
+		case Normal
+			return "normal"
+		case Instant
+			return "instant"
+		case Artillery
+			return "artillery"
+		case ArtilleryLine
+			return "aline"
+		case Missile
+			return "missile"
+		case MissileSplash
+			return "msplash"
+		case MissileBounce
+			return "mbounce"
+		case MissileLine
+			return "mline"
+		default
+			return "_"
+		
+	
 public function WeaponSound.toString() returns string
 	switch this
 		case WeaponSound.Nothing
@@ -558,8 +591,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttacksEnabled(int data)
 		def.setInt("uaen", data)
 
-	function setAttack2WeaponType(string data)
-		def.setString("ua2w", data)
+	function setAttack2WeaponType(WeaponType wepType)
+		def.setString("ua2w", wepType.toObjectString())
 
 	function setAttack2WeaponSound(WeaponSound data)
 		def.setString("ucs2", data.toString())
@@ -642,8 +675,8 @@ public class UnitOrBuildingOrHeroDefinition extends W3UDefinition
 	function setAttack2AnimationBackswingPoint(real data)
 		def.setUnreal("ubs2", data)
 
-	function setAttack1WeaponType(string data)
-		def.setString("ua1w", data)
+	function setAttack1WeaponType(WeaponType weaponType)
+		def.setString("ua1w", weaponType.toObjectString())
 
 	function setAttack1WeaponSound(WeaponSound data)
 		def.setString("ucs1", data.toString())

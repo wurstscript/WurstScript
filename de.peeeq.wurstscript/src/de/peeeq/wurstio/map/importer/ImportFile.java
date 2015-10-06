@@ -13,6 +13,7 @@ import com.google.common.io.LittleEndianDataInputStream;
 
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 
 
@@ -123,7 +124,7 @@ public class ImportFile {
 		mpq.insertFile("war3map.imp",Files.toByteArray(temp));	
 	}
 	
-	public static void extractImportedFiles(File mapFile) {
+	public static void extractImportedFiles(File mapFile, RunArgs runArgs) {
 		if (!mapFile.exists() || !mapFile.isFile()) {
 			JOptionPane.showMessageDialog(null, "Map " + mapFile.getAbsolutePath() + " does not exist.");
 			return;
@@ -131,7 +132,7 @@ public class ImportFile {
 		try {
 			File mapTemp = File.createTempFile("temp", "w3x");
 			Files.copy(mapFile, mapTemp);
-			try (MpqEditor ed = MpqEditorFactory.getEditor(mapTemp)) {
+			try (MpqEditor ed = MpqEditorFactory.getEditor(mapTemp, runArgs)) {
 				File importDirectory = getImportDirectory(mapFile);
 				LinkedList<String> failed = extractImportedFiles(ed, importDirectory);
 				if (failed.isEmpty()){

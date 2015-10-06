@@ -1,7 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.NonNull;
+
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprIntVal;
+import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExprVarAccess;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -45,6 +50,17 @@ public class AttrConstantValue {
 		// otherwise we cannot calculate the value
 		throw new ConstantValueCalculationException(e.toString());
 	}
+	
+	public static ILconst calculate(ExprBinary e) {
+		WurstOperator op = e.getOp();
+		return op.evaluateBinaryOperator(e.getLeft().attrConstantValue(), () -> e.getRight().attrConstantValue());
+	}
+	
+	public static ILconst calculate(ExprUnary e) {
+		WurstOperator op = e.getOpU();
+		return op.evaluateUnaryOperator(e.getRight().attrConstantValue());
+	}
+	
 	
 	
 }

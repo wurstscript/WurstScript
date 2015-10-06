@@ -29,7 +29,7 @@ public class RobustProgramState extends ProgramState {
 	private Map<String, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 	
 	public RobustProgramState(@Nullable File mapFile, WurstGui gui, ImProg prog) {
-		super(gui, prog);
+		super(gui, prog, false);
 	}
 	
 	
