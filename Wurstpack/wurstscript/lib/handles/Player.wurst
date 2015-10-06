@@ -8,20 +8,26 @@ init
 	for i = 0 to bj_MAX_PLAYER_SLOTS-1
 		players[i] = Player(i)
 
+/** Use this enum for comfortable player access without leaks */
 public enum PlayerId
-	RED
-	BLUE
-	TEAL
-	PURPLE
-	YELLOW
-	ORANGE
-	GREEN
-	PINK
-	GRAY
-	LIGHTBLUE
-	DARKGREEN
-	BROWN
+	ONE
+	TWO
+	THREE
+	FOUR
+	FIVE
+	SIX
+	SEVEN
+	EIGHT
+	NINE
+	TEN
+	ELEVEN
+	TWELVE
 	
+public function PlayerId.getPlayer() returns player
+	return players[this castTo int]
+			
+public function PlayerId.getId() returns int
+	return this castTo int
 
 public function player.getId() returns int
 	return GetPlayerId(this)
@@ -58,7 +64,6 @@ public function player.subState(playerstate state, int val)
 	
 public function player.getState(playerstate state) returns int
 	return GetPlayerState(this, state)
-
 	
 public function player.getName() returns string
 	return GetPlayerName(this)
