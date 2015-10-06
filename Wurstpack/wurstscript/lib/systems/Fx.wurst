@@ -99,10 +99,6 @@ public class Fx
 	function setColor(colorA newColor)
 		col = newColor
 		dummy.setVertexColor(newColor)
-		
-	/** Compatability function */
-	function recolor(colorA newColor)
-		setColor(newColor)
 
 	/** "flashs" the given effect.
 	Flashing plays the death animation of the effect at the fx' position. */

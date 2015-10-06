@@ -45,6 +45,7 @@ Visit our GitHub Repository: https://github.com/peq/WurstScript/
       <update label="Wurst Eclipse" url="http://sunayama.de/WurstUpdt/site"/>
       <discovery label="The precious source" url="https://github.com/peq/WurstScript"/>
       <discovery label="Got a question? RTFM" url="http://peq.github.com/WurstScript/manual.html"/>
+	  <discovery label="Need someone to talk to?" url="http://irc.lc/quakenet/inwc.de-maps/irctc@@@"/>
    </url>
 
    <plugin download-size="0" id="de.peeeq.wurstscript" install-size="0" version="1.5.0.0-3891bb1"/>
