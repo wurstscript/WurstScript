@@ -36,7 +36,7 @@ public function modifyDamage( real newdmg )
 		
 		moddat.setbonus = not target.hasAbility(DAMAGE_ABIL_ID)
 		if moddat.setbonus
-			UnitAddAbility( target, DAMAGE_ABIL_ID )
+			target.addAbility(DAMAGE_ABIL_ID)
 			actlife = target.getHP()
 		
 		moddat.setlifed = actlife-0.405 < dmgtake

@@ -1,5 +1,6 @@
 package ObjectIdGenerator
-
+import NoWurst
+import ErrorHandling
 public constant UNIT_ID_GEN = new IdGenerator('s000')
 public constant HERO_ID_GEN = new IdGenerator('H000')
 public constant ABIL_ID_GEN = new IdGenerator('A000')

@@ -58,7 +58,7 @@ public function vec3.dot( vec3 v ) returns real
 	
 /** Project this vector onto the given directional vector */		
 public function vec3.project( vec3 direction ) returns vec3
-	real l = direction.x*direction.x+direction.y*direction.y+direction.z*direction.z
+	real l = direction.lengthSquared()
 	if l == 0.0
 		error("vector.projectVector error: The length of the direction vector is 0.0!")
 		return vec3(0.,0.,0.)
@@ -68,7 +68,7 @@ public function vec3.project( vec3 direction ) returns vec3
 	
 /** Normalize this Vector */
 public function vec3.norm() returns vec3
-	real len = this.length()
+	let len = this.length()
 	real x = 0 
 	real y = 0
 	real z = 0
@@ -80,7 +80,7 @@ public function vec3.norm() returns vec3
 
 /** Trim this Vector */
 public function vec3.trim( real value ) returns vec3
-	vec3 result = this
+	var result = this
 	if result.x > -value and result.x < value
 		result.x = 0.
 	if result.y > -value and result.y < value
@@ -331,7 +331,7 @@ public function vec2.distToVecSquared( vec2 v ) returns real
 	return (v.x - this.x).squared() + (v.y - this.y).squared()
 	 
 /** Get squared distance to a line segment */
-public function vec2.distToSegmentSquared( vec2 v1, vec2 v2) returns real
+public function vec2.distToSegmentSquared(vec2 v1, vec2 v2) returns real
 	var l2 = v1.distToVecSquared(v2)
 	if l2 == 0 
 		return this.distToVecSquared(v1)
