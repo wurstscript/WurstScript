@@ -100,7 +100,9 @@ public class AbilityDefinition
 		def.setLvlDataString("arar", 0, 0, value)
 		
 	function presetIcon(string name)
-		string s = "ReplaceableTextures\\CommandButtons\\" + name
+		string s = name
+		if name.length() < 20 or not name.startsWith("ReplaceableTextures")
+			 s = "ReplaceableTextures\\CommandButtons\\" + s
 		if not name.endsWith(".blp")
 			s += ".blp"
 
