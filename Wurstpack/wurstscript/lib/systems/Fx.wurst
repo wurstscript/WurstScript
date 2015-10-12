@@ -24,7 +24,7 @@ public class Fx
 	private real 	zAngle  = 0.
 	private string 	sfxPath 
 	
-	private colorA col
+	private colorA col = colorA(255,255,255,255)
 	
 	construct(real x, real y, angle facing)
 		dummy = DummyRecycler.get( vec2(x, y), facing)
@@ -81,6 +81,10 @@ public class Fx
 	function getAlpha() returns int
 		return col.alpha
 		
+	/** Get the color (rgba) */
+	function getColor() returns colorA
+		return col
+		
 	/** Get the dummyunit */
 	function getDummy() returns unit
 		return dummy
@@ -93,14 +97,8 @@ public class Fx
 	Color: 0 = no color - 255 = full color
 	Alpha: 0 = transparent - 255 = visible */
 	function setColor(colorA newColor)
-		col.red = newColor.red
-		col.green = newColor.green
-		col.blue = newColor.blue
-		col.alpha = newColor.alpha
+		col = newColor
 		dummy.setVertexColor(newColor)
-		
-	function getColor() returns colorA
-		return col
 
 	/** "flashs" the given effect.
 	Flashing plays the death animation of the effect at the fx' position. */

@@ -9,7 +9,7 @@ Need additional Information?
 -No you don't!
 
 I do!
--okay http://peq.github.com/WurstScript/
+-okay https://peq.github.io/WurstScript/
    </description>
 
    <copyright>
@@ -32,16 +32,20 @@ IS ANGRY AND SHOUTING AT YOU.
    </copyright>
 
    <license url="">
-      By installing the plugin you agree to the Copyright Notice and give your blessing to any money transfer we may or may not dispose from your bank account.
-We do this instead of donating since most people are avaricious scumbags when it comes to free software.
+      By installing this plugin you agree to the Copyright Notice
+and give your blessing to any money transfer we may or may not 
+dispose from your bank account. We do this instead of accepting donations
+since most people are avaricious scumbags when it comes to free software.
 Any more questions? Ask your doctor or pharmacist!
-Want to contribute to WurstScript? We welcome every proper pull-request with open arms and/or legs!
+Want to contribute to WurstScript? 
+Visit our GitHub Repository: https://github.com/peq/WurstScript/
    </license>
 
    <url>
       <update label="Wurst Eclipse" url="http://sunayama.de/WurstUpdt/site"/>
       <discovery label="The precious source" url="https://github.com/peq/WurstScript"/>
       <discovery label="Got a question? RTFM" url="http://peq.github.com/WurstScript/manual.html"/>
+	  <discovery label="Need someone to talk to?" url="http://irc.lc/quakenet/inwc.de-maps/irctc@@@"/>
    </url>
 
    <plugin download-size="0" id="de.peeeq.wurstscript" install-size="0" version="1.5.0.0-3891bb1"/>

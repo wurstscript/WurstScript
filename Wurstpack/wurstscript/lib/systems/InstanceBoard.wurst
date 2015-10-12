@@ -1,0 +1,52 @@
+package InstanceBoard
+
+
+int classes = 0
+hashtable ht = InitHashtable()
+multiboard mb = null
+int array count
+string array nameOfClass
+	
+init
+	getTimer().start(0.0, function createMultiboard)
+		
+function createMultiboard()
+	mb = CreateMultiboard()
+	mb.setColumnCount(2)
+	mb.setRowCount(classes + 1)
+	mb.setItemsStyle(true, false)
+	mb.setItemsWidth(0.10)
+	mb.setTitle("Instance Board")
+	multiboarditem mbi= mb.getItem(0, 0)
+	mbi.setValue("ClassName")
+	mbi = mb.getItem(0, 1)
+	mbi.setValue("Instance count")
+	for int i = 1 to classes
+		string s = nameOfClass[i]
+		if s != null
+			mbi = mb.getItem(i, 0)
+			mbi.setValue(s)
+			mbi = mb.getItem(i, 1)
+			mbi.setValue(count[i].toString())
+	mb.display(true)
+	
+	
+function registerNewInstanceEntry(string name) returns int
+	classes++
+	nameOfClass[classes] = name
+	return classes
+
+public module ShowInstances
+	static int classId = registerNewInstanceEntry(classname())
+	
+	abstract static function classname() returns string
+		
+	construct()
+		count[classId]++
+		multiboarditem mbi = mb.getItem(classId, 1)
+		mbi..setValue(count[classId].toString()).release()
+		
+	ondestroy 
+		count[classId]--
+		multiboarditem mbi = mb.getItem(classId, 1)
+		mbi..setValue(count[classId].toString()).release()
