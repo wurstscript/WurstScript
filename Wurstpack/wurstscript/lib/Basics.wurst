@@ -10,6 +10,8 @@ public constant HEIGHT_ENABLER	 		= 'Amrf'
 public constant TREE_RECOGNITION  		= 'Aeat'
 /** Id of Locust */
 public constant LOCUST_ID				= 'Aloc'
+/** Id of Ghost (Visible) */
+public constant GHOST_ID				= 'Aeth'
 /** Standard Period for animation.
 	Note that 0.03125 is also possible, but doesn't work with order cancel from SetUnitPos */
 public constant ANIMATION_PERIOD   		=  0.03
