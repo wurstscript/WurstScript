@@ -263,6 +263,12 @@ public function unit.issueImmediateOrder(string order) returns boolean
 public function unit.removeItem(item itm)
 	UnitRemoveItem(this, itm)
 	
+public function unit.inventorySize() returns integer
+	return UnitInventorySize(this)
+
+public function unit.itemInSlot(int inventoryIndex) returns item
+	return UnitItemInSlot(this, inventoryIndex)
+
 public function unit.revive(vec2 pos, boolean doEyecandy)
 	ReviveHero(this, pos.x, pos.y, doEyecandy)
 	
