@@ -254,7 +254,7 @@ public class Damager
 
 
 		i=fcn-1
-		while i > 0
+		while i >= 0
 
 			if( IsUnitType(target, ConvertUnitType(fct[i]) ) ) 
 				f=f*this.fc[i]
@@ -265,7 +265,7 @@ public class Damager
 			i=i-1
 
 		i= abifcn-1
-		while i > 0
+		while i >= 0
 			if( GetUnitAbilityLevel(target,this.abifct.loadInt(i) )>0 ) 
 				f=f*this.abifc.loadReal(i)
 				if(f <= -EPSILON) 
