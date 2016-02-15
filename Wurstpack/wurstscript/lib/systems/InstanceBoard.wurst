@@ -42,11 +42,13 @@ public module ShowInstances
 	abstract static function classname() returns string
 		
 	construct()
-		count[classId]++
-		multiboarditem mbi = mb.getItem(classId, 1)
-		mbi..setValue(count[classId].toString()).release()
+		if not compiletime
+			count[classId]++
+			multiboarditem mbi = mb.getItem(classId, 1)
+			mbi..setValue(count[classId].toString()).release()
 		
 	ondestroy 
-		count[classId]--
-		multiboarditem mbi = mb.getItem(classId, 1)
-		mbi..setValue(count[classId].toString()).release()
+		if not compiletime
+			count[classId]--
+			multiboarditem mbi = mb.getItem(classId, 1)
+			mbi..setValue(count[classId].toString()).release()
