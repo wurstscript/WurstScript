@@ -3,7 +3,6 @@ import NoWurst
 import InstanceBoard
 
 public class LinkedList<T>
-	use ShowInstances
 	private LLEntry<T> dummy
 	private int size = 0
 	
