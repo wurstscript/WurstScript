@@ -11,12 +11,11 @@ public function trigger.registerUnitInRangeSource( unit whichUnit, real range, b
 	triggerData.saveTrigger(u,this)
 	return TriggerRegisterUnitInRange(this, whichUnit, range, filter)
 
-
+public function trigger.registerUnitInRangeSource( unit whichUnit, real range ) returns event
+	return this.registerUnitInRangeSource(whichUnit, range, null)
 
 public function trigger.getSource() returns unit
 	return triggerData.loadUnit(GetHandleId(this))
-
-
 
 public function unit.clearRegister()
 	int h = GetHandleId(this)
