@@ -4,9 +4,6 @@ import NoWurst
 public class LinkedList<T>
 	private LLEntry<T> dummy
 	private int size = 0
-	
-	override static function classname() returns string
-		return "linkedlist"
 
 	/** create a new, empty list */
 	construct()
@@ -136,10 +133,6 @@ class LLEntry<S>
 	LLEntry<S> prev
 	LLEntry<S> next
 	
-		
-	override static function classname() returns string
-		return "llelem"
-
 	construct(S elem, LLEntry<S> prev, LLEntry<S> next)
 		this.elem = elem
 		this.prev = prev
