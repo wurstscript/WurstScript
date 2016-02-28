@@ -24,6 +24,7 @@ Error messages can also be disabled.
 		if traceHashs.loadInt(hash) + MUTE_ERROR_DURATION < currentTime
 			// Time to print the error again
 			print("|cffFF3A29Error:|r " + msg + getStackTraceString())
+			traceHashs.saveInt(hash, currentTime.toInt())
 			traceHashs.saveBoolean(hash, false)
 		else if traceHashs.hasBoolean(hash)
 			if not traceHashs.loadBoolean(hash)
