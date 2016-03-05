@@ -1,5 +1,6 @@
 package Colors
 import NoWurst
+import Maths
 import String
 import Integer
 import Table
@@ -28,7 +29,9 @@ public function fromHexString( string number ) returns colorA
 public function color.normalize() returns color
 	return color(this.red.abs(), this.green.abs(), this.blue.abs())
 
-
+public function color.lerp(color target, real smoothness) returns color
+	return color(this.red.lerp(target.red, smoothness),this.green.lerp(target.green, smoothness),this.blue.lerp(target.blue, smoothness))
+	
 public function makeColor(int colo) returns colorA
 	int a = 0
 	int r = 0
@@ -99,10 +102,6 @@ public function colorA.mix( colorA c2, real s ) returns colorA
 					R2I(c2.blue*s+this.blue*(1-s)+0.5), 						
 					R2I(c2.alpha*s+this.alpha*(1-s)+0.5))
 
-/** Convert the colortuple to a debug String */
-public function colorA.toString() returns string
-	return "colorRBGA [" + this.red.toString() + "|" +this.green.toString() + "|" +this.blue.toString() + "|"+this.alpha.toString() +"]"
-		
 /** Set a units color to the tuplevalues with alpha */
 public function unit.setVertexColor(colorA col)
 	SetUnitVertexColor(this, col.red, col.green, col.blue, col.alpha)
@@ -114,10 +113,18 @@ public function unit.setVertexColor(color col)
 /** Returns a string that is in the wc3 hexcolor format (|caarrggbb) */
 public function colorA.toColorString() returns string
 	return "|c" + toHex(this.alpha) + toHex(this.red) + toHex(this.green) + toHex(this.blue)
-
+	
 /** Returns a string that is in the wc3 hexcolor format (|crrggbb) */
 public function color.toColorString() returns string
 	return "|cff" + toHex(this.red) + toHex(this.green) + toHex(this.blue)
+	
+/** Returns the tuple in string format color(r,g,b) */
+public function color.toString() returns string
+	return "color(" + (this.red).toString() + ", " + (this.green).toString() + ", " + (this.blue).toString() + ")"
+	
+/** Returns the tuple in string format colorA(r,g,b,a) */
+public function colorA.toString() returns string
+	return "colorA(" + (this.red).toString() + ", " + (this.green).toString() + ", " + (this.blue).toString() + ", " + (this.alpha).toString() + ")"
 
 /** Converts and int to a hexnumber */
 public function toHex( int number ) returns string
