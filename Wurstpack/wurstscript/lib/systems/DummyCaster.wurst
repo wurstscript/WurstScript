@@ -1,5 +1,5 @@
 package DummyCaster
-import NewDummyRecycler
+import DummyRecycler
 import ClosureTimers
 // @credit Anitarf
 
