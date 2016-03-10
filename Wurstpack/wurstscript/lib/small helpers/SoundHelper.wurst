@@ -190,23 +190,39 @@ public class DynamicSound
 	use TimedLoop
 	real targetPitch = 1.0
 	real currentPitch = 1.0
+	real smoothness = 0.015
+	real minimumLength = 0.5
 	
 	SData soundData
 	Sound soundHandle
 	
 	construct(Sound soundHandle)
 		this.soundHandle = soundHandle
-		startTimedLoop()
+		this.minimumLength = soundHandle.duration * 0.001
 		
 	function setTargetPitch(real pitch)
 		targetPitch = pitch
 		
 	function play()
 		soundData = soundHandle.play()
+		startTimedLoop()
+		
+	function setAbsolutePitch(real pitch)
+		if not soundData.snd.isPlaying()
+			if pitch == 1
+				soundData.snd.setPitch(1.0001)
+			else
+				soundData.snd.setPitch(pitch)
+		else
+			soundData.snd.setPitch(1/currentPitch)
+			soundData.snd.setPitch(pitch)
+		currentPitch = pitch
 		
 	override function onTimedLoop()
-		currentPitch = currentPitch.lerp(targetPitch, 0.05)
 		if soundData != null
-			soundData.snd.setPitch(currentPitch)
+			setAbsolutePitch(currentPitch.lerp(targetPitch, smoothness))
+			minimumLength -= ANIMATION_PERIOD
+			if not soundData.snd.isPlaying() and minimumLength <= 0
+				stopTimedLoopAndDestroy()
 		
 	

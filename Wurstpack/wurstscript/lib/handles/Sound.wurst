@@ -30,5 +30,7 @@ public function sound.playPosition(int millisecs)
 			
 public function sound.getDuration() returns int
 	return GetSoundDuration(this)
-			
+
+public function sound.isPlaying() returns boolean
+	return GetSoundIsPlaying(this)		
 			
