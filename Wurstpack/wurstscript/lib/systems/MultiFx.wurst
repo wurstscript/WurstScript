@@ -1,5 +1,5 @@
 package MultiFx
-import NewDummyRecycler
+import DummyRecycler
 import Effect
 import Colors
 import Vectors

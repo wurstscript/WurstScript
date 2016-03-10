@@ -1,4 +1,4 @@
-package NewDummyRecycler
+package DummyRecycler
 import MapBounds
 import GameTimer
 constant DIFFERENT_ANGLES		= 8
