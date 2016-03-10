@@ -28,6 +28,7 @@ public function sound.setCutoff(real cutoff)
 public function sound.playPosition(int millisecs)
 	SetSoundPlayPosition(this, millisecs)
 			
-			
+public function sound.getDuration() returns int
+	return GetSoundDuration(this)
 			
 			

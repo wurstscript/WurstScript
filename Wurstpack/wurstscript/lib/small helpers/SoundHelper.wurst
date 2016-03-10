@@ -1,6 +1,7 @@
 package SoundHelper
 import Stack
 import Simulate3dSound
+import TimedLoop
 
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
 constant int DEFAULT_SOUND_FADE_IN_RATE = 10
@@ -100,10 +101,12 @@ public class Sound
 			
 			return sdata
 			
-	function play()
+	function play() returns SData
+		let snd = getSound()
 		getTimer()
-			..setData(getSound() castTo int)
+			..setData(snd castTo int)
 			..start(0., function Sound.playSound)
+		return snd
 			
 	function playSimulatePoint(vec2 point)
 		emuPos = point
@@ -182,3 +185,28 @@ public class Sound
 			destroy sdata
 			
 		tm.release()
+
+public class DynamicSound
+	use TimedLoop
+	real targetPitch = 1.0
+	real currentPitch = 1.0
+	
+	SData soundData
+	Sound soundHandle
+	
+	construct(Sound soundHandle)
+		this.soundHandle = soundHandle
+		startTimedLoop()
+		
+	function setTargetPitch(real pitch)
+		targetPitch = pitch
+		
+	function play()
+		soundData = soundHandle.play()
+		
+	override function onTimedLoop()
+		currentPitch = currentPitch.lerp(targetPitch, 0.05)
+		if soundData != null
+			soundData.snd.setPitch(currentPitch)
+		
+	

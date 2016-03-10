@@ -31,3 +31,6 @@ public function item.setUserData(int data)
 	
 public function item.remove()
 	RemoveItem(this)
+
+public function item.getTypeId() returns int
+	return GetItemTypeId(this)
