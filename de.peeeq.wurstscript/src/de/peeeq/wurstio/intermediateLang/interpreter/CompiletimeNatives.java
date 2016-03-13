@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
-import org.junit.Ignore;
 
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.ObjectDefinition;

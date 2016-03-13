@@ -1,22 +1,8 @@
 package tests.wurstscript.tests;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import junit.framework.Assert;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
-
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
@@ -45,6 +31,13 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import junit.framework.Assert;
+
+import java.io.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class WurstScriptTest {
 
@@ -117,20 +110,20 @@ public class WurstScriptTest {
 		testScript(Collections.singleton(file), null, file.getName(), executeProg, false, false);
 		reader.close();
 	}
-	
+
 	public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
 		String input = Files.toString(file, Charsets.UTF_8);
 		testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
 	}
-	
+
 	public void testAssertOkLinesWithStdLib(boolean executeProg, String ... input) {
 		String prog = Utils.join(input, "\n") + "\n";
 		String name = UtilsIO.getMethodName(1);
 		testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, true);
 	}
-	
+
 	public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
-		try { 
+		try {
 			String input = Files.toString(file, Charsets.UTF_8);
 			testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
 		} catch (CompileError e) {
@@ -148,17 +141,24 @@ public class WurstScriptTest {
 				throw e;
 			}
 		}
-		
-		
+
+
 	}
 
-	protected void testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
+	public WurstModel testScript(String name, boolean executeProg, String prog) {
+		if (name.length() == 0) {
+			name = UtilsIO.getMethodName(1);
+		}
+		return testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
+	}
+
+	protected WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
 		Map<String, String> inputs = Maps.newLinkedHashMap();
 		inputs.put(inputName, input);
-		testScript(null, inputs, name, executeProg, withStdLib, false);
+		return testScript(null, inputs, name, executeProg, withStdLib, false);
 	}
-	
-	protected void testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
+
+	protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
 		RunArgs runArgs = new RunArgs(new String[] {"-lib", "../Wurstpack/wurstscript/lib/"});
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
@@ -190,7 +190,7 @@ public class WurstScriptTest {
 			compiler.setRunArgs(new RunArgs(new String[] {"-lua"}));
 			translateAndTestLua(name, executeProg, gui, model);
 		}
-		
+		return model;
 		
 	}
 
