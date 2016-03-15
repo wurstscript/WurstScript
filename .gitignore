@@ -50,3 +50,5 @@ Wurstpack/wurstscript/common.j
 Wurstpack/winmpq/temp/*
 Wurstpack/wurstscript/logs/*
 Checksums/testmd5.txt
+/.idea
+*.iml
