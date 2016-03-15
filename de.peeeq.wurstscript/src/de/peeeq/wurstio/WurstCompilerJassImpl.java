@@ -297,7 +297,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	private CompilationUnit loadLibPackage(List<CompilationUnit> compilationUnits, String imp) {
 		File file = getLibs().get(imp);
 		if (file == null) {
-			gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp));
+			gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
 			return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
 		} else {
 			CompilationUnit lib = parseFile(file);
