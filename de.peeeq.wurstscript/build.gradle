@@ -1,0 +1,12 @@
+apply plugin: "java"
+
+sourceCompatibility = 1.8
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+sourceSets.main.java.srcDirs += [ "src/" ]
+sourceSets.main.java.srcDirs += [ "src-gen/" ]
+sourceSets.test.java.srcDirs += [ "src-test/" ]
+
+eclipse.project {
+    name = appName + "-wurstscript"
+}

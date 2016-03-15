@@ -1,0 +1,98 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.5.0'
+    }
+}
+
+allprojects {
+    apply plugin: "eclipse"
+    apply plugin: "idea"
+
+    version = '1.0'
+    ext {
+        appName = "WurstScript"
+
+    }
+
+    repositories {
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+        maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+    }
+}
+
+project(":de.peeeq.wurstscript") {
+    apply plugin: "java"
+    repositories {
+        flatDir {
+            dirs 'lib'
+        }
+    }
+
+    dependencies {
+        compile name: 'jmpq2'
+        compile name: 'jmpq3'
+        compile 'com.google.guava:guava:19.0'
+        compile 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.0.0'
+        compile 'net.sourceforge.jchardet:jchardet:1.0'
+        compile group: "org.antlr", name: "antlr4-runtime", version: "4.5"
+        compile 'org.apache.velocity:velocity:1.7'
+        testCompile group: 'junit', name: 'junit', version: '4.11'
+
+    }
+}
+
+project(":EclipseWurstPlugin") {
+    apply plugin: "java"
+
+
+    dependencies {
+        compile project(":de.peeeq.wurstscript")
+        compile 'org.eclipse.core:runtime:3.10.0-v20140318-2214'
+        compile 'org.eclipse.swt:org.eclipse.swt.win32.win32.x86:4.3'
+        compile 'org.eclipse.jface:text:3.3.0-v20070606-0010'
+        compile 'org.eclipse:jface:3.2.1-M20060908-1000'
+        compile 'org.mod4j.org.eclipse.ui:ide:3.5.0'
+        compile 'org.eclipse.debug:ui:3.3.0-v20070607-1800'
+        compile 'org.eclipse.scout.sdk.deps:org.eclipse.jface.text:3.10.0.v20150603-1752'
+        compile 'org.eclipse.text:org.eclipse.text:3.5.101'
+        compile 'org.eclipse.core:resources:3.3.0-v20070604'
+        compile 'org.eclipse.ui:views:3.2.100-I20070319-0010'
+        compile 'org.eclipse.ui:editors:3.3.0-v20070606-0010'
+        compile 'org.eclipse.ui.workbench:texteditor:3.2.0-v20060605-1400'
+        compile 'org.eclipse.core:filebuffers:3.3.0-v20070606-0010'
+        compile 'org.eclipse.debug:core:3.3.0-v20070607-1800'
+        compile 'org.eclipse.ui:console:3.1.100-v20060605'
+        compile group: 'junit', name: 'junit', version: '4.11'
+    }
+}
+
+project(":HelperScripts") {
+    apply plugin: "java"
+
+
+    dependencies {
+        compile 'com.google.guava:guava:19.0'
+        compile 'net.sourceforge.javacsv:javacsv:2.0'
+    }
+}
+
+project(":parseq") {
+    apply plugin: "java"
+
+
+    dependencies {
+        compile 'com.google.guava:guava:19.0'
+        compile group: "org.antlr", name: "antlr4-runtime", version: "4.5"
+        testCompile group: 'junit', name: 'junit', version: '4.11'
+    }
+}
+
+
+tasks.eclipse.doLast {
+    delete ".project"
+}
