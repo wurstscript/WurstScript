@@ -50,5 +50,10 @@ Wurstpack/wurstscript/common.j
 Wurstpack/winmpq/temp/*
 Wurstpack/wurstscript/logs/*
 Checksums/testmd5.txt
+<<<<<<< Updated upstream
 /.idea
 *.iml
+=======
+
+/.idea
+>>>>>>> Stashed changes
