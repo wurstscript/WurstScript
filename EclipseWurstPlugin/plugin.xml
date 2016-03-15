@@ -195,6 +195,10 @@
              name="Toggle Comment">
        </command>
        <command
+             id="de.peeeq.eclipsewurstplugin.wurstformatter"
+             name="Format Code">
+       </command>
+       <command
              id="de.peeeq.eclipsewurstplugin.ui.ExtractJurstCommand"
              defaultHandler="de.peeeq.eclipsewurstplugin.ui.ExtractJurstCommand"
              name="Extract code to files">
@@ -211,6 +215,10 @@
 			commandId="de.peeeq.eclipsewurstplugin.togglecomment"
 			schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
 			contextId="de.peeeq.eclipsewurstplugin.wursteditorscope"/>
+       <key sequence="Ctrl+Shift+F"
+            commandId="de.peeeq.eclipsewurstplugin.wurstformatter"
+            schemeId="org.eclipse.ui.defaultAcceleratorConfiguration"
+            contextId="de.peeeq.eclipsewurstplugin.wursteditorscope"/>
     </extension>
         <extension
           point="org.eclipse.ui.contexts">
@@ -244,6 +252,17 @@
                 style="push">
           </action>
        </editorContribution>
+       <editorContribution
+               id="de.peeeq.eclipsewurstplugin.editorContribution3"
+               targetID="de.peeeq.eclipsewurstplugin.editorWurstEditor">
+           <action
+               class="de.peeeq.eclipsewurstplugin.editor.WurstFormatter"
+               definitionId="de.peeeq.eclipsewurstplugin.wurstformatter"
+               id="de.peeeq.eclipsewurstplugin.wurstFormatter"
+               label="Toggle Comment"
+               style="push">
+           </action>
+       </editorContribution>
     </extension>
         <extension
           point="org.eclipse.ui.popupMenus">
@@ -271,6 +290,18 @@
                 style="push">
           </action>
        </viewerContribution>
+        <viewerContribution
+                id="de.peeeq.eclipsewurstplugin.viewerContribution3"
+                targetID="#TextEditorContext">
+            <action
+                    class="de.peeeq.eclipsewurstplugin.editor.WurstFormatter"
+                    definitionId="de.peeeq.eclipsewurstplugin.wurstformatter"
+                    id="de.peeeq.eclipsewurstplugin.wurstFormatter"
+                    label="Format Code"
+                    menubarPath="additions"
+                    style="push">
+            </action>
+        </viewerContribution>
     </extension>
     <!-- console -->
     <extension point="org.eclipse.ui.console.consoleFactories">

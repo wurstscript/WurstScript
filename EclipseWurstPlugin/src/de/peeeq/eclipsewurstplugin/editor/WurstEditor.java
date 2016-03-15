@@ -1,23 +1,16 @@
 package de.peeeq.eclipsewurstplugin.editor;
 
-import static de.peeeq.eclipsewurstplugin.WurstConstants.DEFAULT_MATCHING_BRACKETS_COLOR;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS;
-import static de.peeeq.eclipsewurstplugin.WurstConstants.EDITOR_MATCHING_BRACKETS_COLOR;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
-
+import com.google.common.collect.Sets;
+import de.peeeq.eclipsewurstplugin.WurstOccurencesMarker;
+import de.peeeq.eclipsewurstplugin.builder.ModelManager;
+import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
+import de.peeeq.eclipsewurstplugin.builder.WurstNature;
+import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
+import de.peeeq.eclipsewurstplugin.editor.reconciling.WPosition;
+import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
 import org.eclipse.core.runtime.CoreException;
@@ -26,13 +19,7 @@ import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.jface.text.IDocumentExtension3;
 import org.eclipse.jface.text.ITextSelection;
 import org.eclipse.jface.text.Position;
-import org.eclipse.jface.text.source.Annotation;
-import org.eclipse.jface.text.source.DefaultCharacterPairMatcher;
-import org.eclipse.jface.text.source.IAnnotationModel;
-import org.eclipse.jface.text.source.IAnnotationModelExtension;
-import org.eclipse.jface.text.source.ICharacterPairMatcher;
-import org.eclipse.jface.text.source.ISourceViewer;
-import org.eclipse.jface.text.source.IVerticalRuler;
+import org.eclipse.jface.text.source.*;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotation;
 import org.eclipse.jface.text.source.projection.ProjectionAnnotationModel;
 import org.eclipse.jface.text.source.projection.ProjectionSupport;
@@ -42,17 +29,7 @@ import org.eclipse.jface.viewers.ISelection;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.ui.IEditorInput;
-import org.eclipse.ui.IEditorPart;
-import org.eclipse.ui.IEditorReference;
-import org.eclipse.ui.IEditorSite;
-import org.eclipse.ui.IFileEditorInput;
-import org.eclipse.ui.IPersistableEditor;
-import org.eclipse.ui.IStorageEditorInput;
-import org.eclipse.ui.IWorkbenchPage;
-import org.eclipse.ui.IWorkbenchWindow;
-import org.eclipse.ui.PartInitException;
-import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.*;
 import org.eclipse.ui.contexts.IContextService;
 import org.eclipse.ui.editors.text.TextEditor;
 import org.eclipse.ui.ide.FileStoreEditorInput;
@@ -60,24 +37,12 @@ import org.eclipse.ui.texteditor.IDocumentProvider;
 import org.eclipse.ui.texteditor.SourceViewerDecorationSupport;
 import org.eclipse.ui.views.contentoutline.IContentOutlinePage;
 
-import com.google.common.collect.Sets;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-import de.peeeq.eclipsewurstplugin.WurstOccurencesMarker;
-import de.peeeq.eclipsewurstplugin.builder.ModelManager;
-import de.peeeq.eclipsewurstplugin.builder.ModelManagerStub;
-import de.peeeq.eclipsewurstplugin.builder.WurstNature;
-import de.peeeq.eclipsewurstplugin.editor.outline.WurstContentOutlinePage;
-import de.peeeq.eclipsewurstplugin.editor.reconciling.WPosition;
-import de.peeeq.eclipsewurstplugin.editor.reconciling.WurstReconcilingStategy;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.FuncRef;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.TypeRef;
-import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.utils.Utils;
+import static de.peeeq.eclipsewurstplugin.WurstConstants.*;
 
 public class WurstEditor extends TextEditor implements IPersistableEditor, CompilationUnitChangeListener, ISelectionChangedListener {
 	
@@ -382,6 +347,14 @@ public class WurstEditor extends TextEditor implements IPersistableEditor, Compi
 		return reconciler.getLastReconcileDocumentHashcode();
 	}
 
-	
-	
+
+	@Override
+	public void restoreState(IMemento iMemento) {
+
+	}
+
+	@Override
+	public void saveState(IMemento iMemento) {
+
+	}
 }

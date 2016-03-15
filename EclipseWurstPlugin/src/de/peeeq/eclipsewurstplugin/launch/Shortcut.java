@@ -1,14 +1,9 @@
 package de.peeeq.eclipsewurstplugin.launch;
 
-import java.io.File;
-
+import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
 import org.eclipse.core.resources.IFile;
 import org.eclipse.core.resources.IProject;
-import org.eclipse.debug.core.DebugPlugin;
-import org.eclipse.debug.core.ILaunchConfiguration;
-import org.eclipse.debug.core.ILaunchConfigurationType;
-import org.eclipse.debug.core.ILaunchConfigurationWorkingCopy;
-import org.eclipse.debug.core.ILaunchManager;
+import org.eclipse.debug.core.*;
 import org.eclipse.debug.ui.DebugUITools;
 import org.eclipse.debug.ui.ILaunchShortcut;
 import org.eclipse.jface.viewers.ISelection;
@@ -18,7 +13,7 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.ui.IEditorPart;
 
-import de.peeeq.eclipsewurstplugin.editor.WurstEditor;
+import java.io.File;
 
 public class Shortcut implements ILaunchShortcut {
 
@@ -68,7 +63,7 @@ public class Shortcut implements ILaunchShortcut {
 	
     private void launchMap(IProject project, File mapFile) {
         try {
-            String launchName = getLaunchManager().generateLaunchConfigurationName(project.getName());
+            String launchName = getLaunchManager().generateUniqueLaunchConfigurationNameFrom(project.getName());
             
             ILaunchConfigurationWorkingCopy launchConfig =
                     getLaunchConfigType().newInstance(null, launchName);

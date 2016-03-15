@@ -281,7 +281,6 @@ public class ModelManagerImpl implements ModelManager {
 		try {
 			buildProject(IncrementalProjectBuilder.INCREMENTAL_BUILD);
 		} catch (CoreException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new Error(e);
 		}

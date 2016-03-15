@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
+import org.apache.commons.lang.StringUtils;
 
 public class PrettyPrinter {
 
@@ -43,15 +44,17 @@ public class PrettyPrinter {
         }
         sb.append("\n");
 
-        e.getModuleUses().prettyPrint(spacer, sb, indent+1);
-        e.getVars().prettyPrint(spacer, sb, indent+1);
-        e.getConstructors().prettyPrint(spacer, sb, indent+1);
-        e.getMethods().prettyPrint(spacer, sb, indent+1);
+        e.getModuleUses().prettyPrint(spacer, sb, indent + 1);
+        e.getVars().prettyPrint(spacer, sb, indent + 1);
+        e.getConstructors().prettyPrint(spacer, sb, indent + 1);
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
     }
 
     private static void printIndent(StringBuilder sb, int indent) {
-        for (int i = 0; i < indent; i++) {
-            sb.append("\t");
+        if (sb.toString().substring(sb.length() - 1).equals("\n")) {
+            for (int i = 0; i < indent; i++) {
+                sb.append("\t");
+            }
         }
     }
 
@@ -60,18 +63,19 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ConstructorDef e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("\n");
         printIndent(sb, indent);
         e.getModifiers().prettyPrint(spacer, sb, indent);
         sb.append("construct");
         e.getParameters().prettyPrint(spacer, sb, indent);
         sb.append("\n");
-        if(!e.getSuperArgs().isEmpty()) {
+        if (!e.getSuperArgs().isEmpty()) {
             printIndent(sb, indent + 1);
             sb.append("super(");
             e.getSuperArgs().prettyPrint(spacer, sb, indent);
             sb.append(")\n");
         }
-        e.getBody().prettyPrint(spacer, sb, indent+1);
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
@@ -83,7 +87,6 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(EndFunctionStatement e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent-1);
     }
 
     public static void prettyPrint(EnumDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -140,9 +143,21 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprFuncRef e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("function");
+        spacer.addSpace(sb);
+        if (!StringUtils.isBlank(e.getScopeName())) {
+            sb.append(e.getScopeName());
+            sb.append(".");
+        }
+        sb.append(e.getFuncName());
     }
 
     public static void prettyPrint(ExprFunctionCall e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append(e.getFuncName());
+        sb.append("(");
+        e.getArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")");
     }
 
     public static void prettyPrint(ExprIncomplete e, Spacer spacer, StringBuilder sb, int indent) {
@@ -156,15 +171,42 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprMemberArrayVarDot e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append(".");
+        sb.append(e.getVarName());
+        sb.append("[");
+        e.getIndexes().prettyPrint(spacer, sb, indent);
+        sb.append("]");
     }
 
     public static void prettyPrint(ExprMemberArrayVarDotDot e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append("..");
+        sb.append(e.getVarName());
+        sb.append("[");
+        e.getIndexes().prettyPrint(spacer, sb, indent);
+        sb.append("]");
     }
 
     public static void prettyPrint(ExprMemberMethodDot e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append(".");
+        sb.append(e.getFuncName());
+        sb.append("(");
+        e.getArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")");
     }
 
     public static void prettyPrint(ExprMemberMethodDotDot e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append("..");
+        sb.append(e.getFuncName());
+        sb.append("(");
+        e.getArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")");
+        if (!(e.getParent() instanceof ExprMemberMethodDotDot)) {
+            sb.append("\n");
+        }
     }
 
     public static void prettyPrint(ExprMemberVarDot e, Spacer spacer, StringBuilder sb, int indent) {
@@ -174,12 +216,25 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprMemberVarDotDot e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append("..");
+        sb.append(e.getVarName());
     }
 
     public static void prettyPrint(ExprNewObject e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("new");
+        spacer.addSpace(sb);
+        sb.append(e.getTypeName());
+        e.getTypeArgs().prettyPrint(spacer, sb, indent);
+        sb.append("(");
+        e.getArgs().prettyPrint(spacer, sb, indent);
+        sb.append(")");
     }
 
     public static void prettyPrint(ExprNull e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("null");
     }
 
     public static void prettyPrint(ExprRealVal e, Spacer spacer, StringBuilder sb, int indent) {
@@ -205,6 +260,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprUnary e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append(e.getOpU().toString());
+        spacer.addSpace(sb);
+        e.getRight().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(ExprVarAccess e, Spacer spacer, StringBuilder sb, int indent) {
@@ -218,31 +276,44 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
+
         printIndent(sb, indent);
+        e.getModifiers().prettyPrint(spacer, sb, indent);
         sb.append("function");
         spacer.addSpace(sb);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
         e.getTypeParameters().prettyPrint(spacer, sb, indent);
         sb.append(e.getName());
         e.getParameters().prettyPrint(spacer, sb, indent);
-        if(!(e.getReturnTyp() instanceof NoTypeExpr)) {
+        if (!(e.getReturnTyp() instanceof NoTypeExpr)) {
             spacer.addSpace(sb);
             sb.append("returns");
             spacer.addSpace(sb);
             e.getReturnTyp().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
-        e.getBody().prettyPrint(spacer, sb, indent+1);
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
     public static void prettyPrint(FuncDefs e, Spacer spacer, StringBuilder sb, int indent) {
-        for(FuncDef funcDef : e) {
+        for (FuncDef funcDef : e) {
             funcDef.prettyPrint(spacer, sb, indent);
-            sb.append("\n");
         }
     }
 
     public static void prettyPrint(FuncSignature e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("function");
+        spacer.addSpace(sb);
+        sb.append(e.getName());
+        e.getParameters().prettyPrint(spacer, sb, indent);
+        if (!(e.getReturnTyp() instanceof NoTypeExpr)) {
+            spacer.addSpace(sb);
+            sb.append("returns");
+            spacer.addSpace(sb);
+            e.getReturnTyp().prettyPrint(spacer, sb, indent);
+        }
+        sb.append("\n");
     }
 
     public static void prettyPrint(GlobalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -251,11 +322,10 @@ public class PrettyPrinter {
         e.getOptTyp().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
         sb.append(e.getName());
-        StringBuilder stringBuilder = new StringBuilder();
-        e.getInitialExpr().prettyPrint(spacer, stringBuilder, indent);
-        if (stringBuilder.length() > 0) {
+
+        if (!(e.getInitialExpr() instanceof NoExpr)) {
             sb.append(" = ");
-            sb.append(stringBuilder.toString());
+            e.getInitialExpr().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
     }
@@ -288,6 +358,19 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(LocalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        if ((e.getOptTyp() instanceof NoTypeExpr)) {
+            sb.append("var");
+        } else {
+            e.getOptTyp().prettyPrint(spacer, sb, indent);
+        }
+        spacer.addSpace(sb);
+        sb.append(e.getName());
+        if (!(e.getInitialExpr() instanceof NoExpr)) {
+            sb.append(" = ");
+            e.getInitialExpr().prettyPrint(spacer, sb, indent);
+        }
+        sb.append("\n");
     }
 
     public static void prettyPrint(ModAbstract e, Spacer spacer, StringBuilder sb, int indent) {
@@ -306,9 +389,11 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ModOverride e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("override");
     }
 
     public static void prettyPrint(ModStatic e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("static");
     }
 
     public static void prettyPrint(ModuleDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -345,7 +430,6 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StartFunctionStatement e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
     }
 
     public static void prettyPrint(StmtErr e, Spacer spacer, StringBuilder sb, int indent) {
@@ -367,12 +451,29 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StmtIf e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("if");
+        spacer.addSpace(sb);
+        e.getCond().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getThenBlock().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
+        if (e.getElseBlock().size() > 0) {
+            printIndent(sb, indent);
+            sb.append("else\n");
+            e.getElseBlock().prettyPrint(spacer, sb, indent + 1);
+        }
     }
 
     public static void prettyPrint(StmtLoop e, Spacer spacer, StringBuilder sb, int indent) {
     }
 
     public static void prettyPrint(StmtReturn e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("return");
+        spacer.addSpace(sb);
+        e.getReturnedObj().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
     }
 
     public static void prettyPrint(StmtSet e, Spacer spacer, StringBuilder sb, int indent) {
@@ -416,6 +517,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeExprArray e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("array");
     }
 
     public static void prettyPrint(TypeExprList e, Spacer spacer, StringBuilder sb, int indent) {
@@ -476,6 +578,7 @@ public class PrettyPrinter {
         sb.append(wImport.getIsPublic() ? "public" : "");
         spacer.addSpace(sb);
         sb.append(wImport.getPackagename());
+        sb.append("\n");
     }
 
     public static void prettyPrint(WurstModel wurstModel, Spacer spacer, StringBuilder sb, int indent) {
@@ -530,7 +633,9 @@ public class PrettyPrinter {
 
     public static void prettyPrint(WImports wImports, Spacer spacer, StringBuilder sb, int indent) {
         for (WImport wImport : wImports) {
-            prettyPrint(wImport, spacer, sb, indent);
+            if (!wImport.getPackagename().equals("Wurst")) {
+                prettyPrint(wImport, spacer, sb, indent);
+            }
         }
     }
 
