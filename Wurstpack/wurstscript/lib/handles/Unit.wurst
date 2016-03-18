@@ -186,6 +186,9 @@ public function unit.damageTarget(unit target, real amount)
 public function unit.setAnimation(string animation)
 	SetUnitAnimation(this, animation)
 	
+public function unit.setAnimation(int index)
+	SetUnitAnimationByIndex(this, index)
+	
 public function unit.queueAnimation(string animation)
 	QueueUnitAnimation(this, animation)
 	

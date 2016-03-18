@@ -8,7 +8,6 @@ import public PrintingHelper
 import public Basics
 import public Maths
 import public Table
-import public TimerUtils
 import public Vectors
 import public Angle
 import public TypeCasting

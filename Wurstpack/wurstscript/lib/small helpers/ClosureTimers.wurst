@@ -1,5 +1,5 @@
 package ClosureTimers
-
+import TimerUtils
 /** execute an action periodically.
 	The callback has to be destroyed manually.
 	

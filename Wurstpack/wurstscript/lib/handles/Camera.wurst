@@ -1,7 +1,6 @@
 package Camera
 import NoWurst
 import TimerUtils
-
 timer array noiseTimer
 
 public function cinematicModeForPlayer(boolean cineMode, player forPlayer, real interfaceFadeTime)

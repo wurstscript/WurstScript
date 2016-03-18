@@ -6,6 +6,7 @@ import Trigger
 import Player
 import TempGroups
 import AbilityObjEditing
+import ClosureTimers
 import initlater RegisterEvents
 
 constant eventTrigger = CreateTrigger()
@@ -40,11 +41,11 @@ init
 	for i = 0 to bj_MAX_PLAYER_SLOTS-1
 		players[i].setAbilityAvailable(ABILITY_ID, false)
     
-	GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> begin
+	nullTimer(() -> GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> begin
 		tempUnit = GetFilterUnit()..addAbility(ABILITY_ID)..makeAbilityPermanent(ABILITY_ID, true)
 		eventTrigger.evaluate()
 		tempUnit = null
-	end))
+	end)))
 
 int ABILITY_ID = '!e@$'
 

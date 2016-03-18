@@ -5,186 +5,186 @@ import Unit
 
 Table typecastdata = new Table()
 
-function playerFromIndex(int index) returns player
+public function playerFromIndex(int index) returns player
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadPlayer(0)
 
-function playerToIndex(player object) returns int
+public function playerToIndex(player object) returns int
 	return object.getHandleId()
 
-function widgetFromIndex(int index) returns widget
+public function widgetFromIndex(int index) returns widget
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadWidget(0)
 
-function widgetToIndex(widget object) returns int
+public function widgetToIndex(widget object) returns int
 	return object.getHandleId()
 
-function unitFromIndex(int index) returns unit
+public function unitFromIndex(int index) returns unit
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadUnit(0)
 
-function unitToIndex(unit object) returns int
+public function unitToIndex(unit object) returns int
 	return object.getHandleId()
 
-function destructableFromIndex(int index) returns destructable
+public function destructableFromIndex(int index) returns destructable
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadDestructable(0)
 
-function destructableToIndex(destructable object) returns int
+public function destructableToIndex(destructable object) returns int
 	return object.getHandleId()
 
-function itemFromIndex(int index) returns item
+public function itemFromIndex(int index) returns item
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadItem(0)
 
-function itemToIndex(item object) returns int
+public function itemToIndex(item object) returns int
 	return object.getHandleId()
 
-function abilityFromIndex(int index) returns ability
+public function abilityFromIndex(int index) returns ability
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadAbility(0)
 
-function abilityToIndex(ability object) returns int
+public function abilityToIndex(ability object) returns int
 	return object.getHandleId()
 
-function forceFromIndex(int index) returns force
+public function forceFromIndex(int index) returns force
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadForce(0)
 
-function forceToIndex(force object) returns int
+public function forceToIndex(force object) returns int
 	return object.getHandleId()
 
-function groupFromIndex(int index) returns group
+public function groupFromIndex(int index) returns group
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadGroup(0)
 
-function groupToIndex(group object) returns int
+public function groupToIndex(group object) returns int
 	return object.getHandleId()
 
-function triggerFromIndex(int index) returns trigger
+public function triggerFromIndex(int index) returns trigger
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadTrigger(0)
 
-function triggerToIndex(trigger object) returns int
+public function triggerToIndex(trigger object) returns int
 	return object.getHandleId()
 
-function timerFromIndex(int index) returns timer
+public function timerFromIndex(int index) returns timer
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadTimer(0)
 
-function timerToIndex(timer object) returns int
+public function timerToIndex(timer object) returns int
 	return object.getHandleId()
 
-function locationFromIndex(int index) returns location
+public function locationFromIndex(int index) returns location
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadLocation(0)
 
-function locationToIndex(location object) returns int
+public function locationToIndex(location object) returns int
 	return object.getHandleId()
 
-function regionFromIndex(int index) returns region
+public function regionFromIndex(int index) returns region
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadRegion(0)
 
-function regionToIndex(region object) returns int
+public function regionToIndex(region object) returns int
 	return object.getHandleId()
 
-function rectFromIndex(int index) returns rect
+public function rectFromIndex(int index) returns rect
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadRect(0)
 
-function rectToIndex(rect object) returns int
+public function rectToIndex(rect object) returns int
 	return object.getHandleId()
 
-function soundFromIndex(int index) returns sound
+public function soundFromIndex(int index) returns sound
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadSound(0)
 
-function soundToIndex(sound object) returns int
+public function soundToIndex(sound object) returns int
 	return object.getHandleId()
 
-function effectFromIndex(int index) returns effect
+public function effectFromIndex(int index) returns effect
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadEffect(0)
 
-function effectToIndex(effect object) returns int
+public function effectToIndex(effect object) returns int
 	return object.getHandleId()
 
-function dialogFromIndex(int index) returns dialog
+public function dialogFromIndex(int index) returns dialog
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadDialog(0)
 
-function dialogToIndex(dialog object) returns int
+public function dialogToIndex(dialog object) returns int
 	return object.getHandleId()
 
-function buttonFromIndex(int index) returns button
+public function buttonFromIndex(int index) returns button
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadButton(0)
 
-function buttonToIndex(button object) returns int
+public function buttonToIndex(button object) returns int
 	return object.getHandleId()
 
-function questFromIndex(int index) returns quest
+public function questFromIndex(int index) returns quest
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadQuest(0)
 
-function questToIndex(quest object) returns int
+public function questToIndex(quest object) returns int
 	return object.getHandleId()
 
-function questitemFromIndex(int index) returns questitem
+public function questitemFromIndex(int index) returns questitem
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadQuestItem(0)
 
-function questitemToIndex(questitem object) returns int
+public function questitemToIndex(questitem object) returns int
 	return object.getHandleId()
 
-function leaderboardFromIndex(int index) returns leaderboard
+public function leaderboardFromIndex(int index) returns leaderboard
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadLeaderboard(0)
 
-function leaderboardToIndex(leaderboard object) returns int
+public function leaderboardToIndex(leaderboard object) returns int
 	return object.getHandleId()
 
-function multiboardFromIndex(int index) returns multiboard
+public function multiboardFromIndex(int index) returns multiboard
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadMultiboard(0)
 
-function multiboardToIndex(multiboard object) returns int
+public function multiboardToIndex(multiboard object) returns int
 	return object.getHandleId()
 
-function trackableFromIndex(int index) returns trackable
+public function trackableFromIndex(int index) returns trackable
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadTrackable(0)
 
-function trackableToIndex(trackable object) returns int
+public function trackableToIndex(trackable object) returns int
 	return object.getHandleId()
 
-function lightningFromIndex(int index) returns lightning
+public function lightningFromIndex(int index) returns lightning
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadLightning(0)
 
-function lightningToIndex(lightning object) returns int
+public function lightningToIndex(lightning object) returns int
 	return object.getHandleId()
 
-function imageFromIndex(int index) returns image
+public function imageFromIndex(int index) returns image
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadImage(0)
 
-function imageToIndex(image object) returns int
+public function imageToIndex(image object) returns int
 	return object.getHandleId()
 
-function ubersplatFromIndex(int index) returns ubersplat
+public function ubersplatFromIndex(int index) returns ubersplat
 	typecastdata.saveFogState(0,ConvertFogState(index))
 	return typecastdata.loadUbersplat(0)
 
-function ubersplatToIndex(ubersplat object) returns int
+public function ubersplatToIndex(ubersplat object) returns int
 	return object.getHandleId()
 	
-function booleanToIndex(boolean u) returns int
+public function booleanToIndex(boolean u) returns int
 	if u
 		return 1
 	return 0
 
-function booleanFromIndex(int index) returns boolean
+public function booleanFromIndex(int index) returns boolean
 	return index > 0
 

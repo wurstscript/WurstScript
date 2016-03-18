@@ -126,13 +126,13 @@ public class Fx
 		
 	/** Set the z angle in radians */
 	function setZAngle(real value)
-		int i = R2I(value*bj_RADTODEG + 90.5)
+		int i = (value * DEGTORAD + 90.5).toInt()
 		zAngle = value
 		if i >= 180
 			i = 179
 		else if i < 0
 			i = 0
-		SetUnitAnimationByIndex(dummy, i)
+		dummy.setAnimation(i)
 		
 	/** Set the z angle with an angle tuple */
 	function setZAngle(angle value)

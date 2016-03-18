@@ -1,0 +1,20 @@
+package Timer
+import NoWurst
+
+public function timer.pause()
+	PauseTimer(this)
+	
+public function timer.resume()
+	ResumeTimer(this)
+	
+public function timer.getElapsed() returns real
+	return TimerGetElapsed(this)
+	
+public function timer.getRemaining() returns real
+	return TimerGetRemaining(this)
+
+public function timer.start(real time, code timerCallBack)
+	TimerStart(this, time, false, timerCallBack)
+	
+public function timer.startPeriodic(real time, code timerCallBack)
+	TimerStart(this, time, true, timerCallBack)

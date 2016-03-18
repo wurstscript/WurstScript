@@ -1,8 +1,8 @@
 package TimerUtils
 import NoWurst
 import Table
-import initlater ErrorHandling
-
+import ErrorHandling
+import public Timer
 //	Credits: 
 //		* Vexorian (original TimerUtils + TimedLoop)
 //		* Nestharus (orignial Constant Timer Loop 32)
@@ -13,6 +13,14 @@ timer array freeTimers
 int freeTimersCount = 0
 Table timerData = new Table()
 constant HELD = 0x28829022
+
+/** Attach Data to this timer */
+public function timer.setData(integer data)
+	timerData.saveInt( GetHandleId(this), data )
+	
+/** Retrieve the data attached to this timer */
+public function timer.getData() returns integer
+	return timerData.loadInt( GetHandleId(this) )
 
 /** Get a new timer. Use this instead of "CreateTimer".
 You can attach data to the timer with .setData and retrieve it with .getData
@@ -25,14 +33,6 @@ public function getTimer() returns timer
 	else
 		return CreateTimer()..setData(0)
 		
-/** Attach Data to this timer */
-public function timer.setData(integer data)
-	timerData.saveInt( GetHandleId(this), data )
-	
-/** Retrieve the data attached to this timer */
-public function timer.getData() returns integer
-	return timerData.loadInt( GetHandleId(this) )
-
 /** Release the timer. Use this instead of "DestroyTimer" ! */
 public function timer.release()
 	if this == null
@@ -46,23 +46,6 @@ public function timer.release()
 	freeTimers[freeTimersCount] = this
 	freeTimersCount++
 
-public function timer.pause()
-	PauseTimer(this)
-	
-public function timer.resume()
-	ResumeTimer(this)
-	
-public function timer.getElapsed() returns real
-	return TimerGetElapsed(this)
-	
-public function timer.getRemaining() returns real
-	return TimerGetRemaining(this)
-
-public function timer.start(real time, code timerCallBack)
-	TimerStart(this, time, false, timerCallBack)
-	
-public function timer.startPeriodic(real time, code timerCallBack)
-	TimerStart(this, time, true, timerCallBack)
 
 // module to execute a function after a certain time
 public module Timed
