@@ -27,15 +27,9 @@ allprojects {
 
 project(":de.peeeq.wurstscript") {
     apply plugin: "java"
-    repositories {
-        flatDir {
-            dirs 'lib'
-        }
-    }
 
     dependencies {
-        compile name: 'jmpq2'
-        compile name: 'jmpq3'
+        compile 'systems.crigges:jmpq3:1.0.2'
         compile 'com.google.guava:guava:19.0'
         compile 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.0.0'
         compile 'net.sourceforge.jchardet:jchardet:1.0'
