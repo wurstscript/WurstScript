@@ -5,8 +5,3 @@ sourceCompatibility = 1.8
 
 sourceSets.main.java.srcDirs += [ "src/" ]
 sourceSets.main.java.srcDirs += [ "src-gen/" ]
-
-
-eclipse.project {
-    name = appName + "-wurstscript"
-}

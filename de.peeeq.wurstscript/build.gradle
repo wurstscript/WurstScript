@@ -7,6 +7,3 @@ sourceSets.main.java.srcDirs += [ "src/" ]
 sourceSets.main.java.srcDirs += [ "src-gen/" ]
 sourceSets.test.java.srcDirs += [ "src-test/" ]
 
-eclipse.project {
-    name = appName + "-wurstscript"
-}
