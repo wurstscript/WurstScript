@@ -1,4 +1,4 @@
-package ErrorHandling
+package ErrorHandling_config
 import NoWurst
 import PrintingHelper
 import MagicFunctions
