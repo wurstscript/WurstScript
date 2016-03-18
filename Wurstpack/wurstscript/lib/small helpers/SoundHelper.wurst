@@ -2,7 +2,6 @@ package SoundHelper
 import Stack
 import Simulate3dSound
 import TimedLoop
-import TimerUtils
 constant boolean DEFAULT_SOUND_STOPS_ON_LEAVE_RANGE = true
 constant int DEFAULT_SOUND_FADE_IN_RATE = 10
 constant int DEFAULT_SOUND_FADE_OUT_RATE = 10

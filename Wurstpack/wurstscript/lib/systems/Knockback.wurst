@@ -4,7 +4,6 @@
  */
 package Knockback
 import Terrain
-import TimerUtils
 import LinkedList
 
 @configurable constant string SFX_EARTH = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"

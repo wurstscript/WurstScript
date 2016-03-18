@@ -85,7 +85,6 @@
 // *************************************************************
 
 package CustomBar
-import TimerUtils
 import Colors
 import Vectors
 import Texttag

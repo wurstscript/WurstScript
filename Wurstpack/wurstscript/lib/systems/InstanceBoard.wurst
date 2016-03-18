@@ -1,5 +1,4 @@
 package InstanceBoard
-import TimerUtils
 
 int classes = 0
 hashtable ht = InitHashtable()

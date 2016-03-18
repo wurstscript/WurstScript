@@ -134,9 +134,20 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprClosure e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("(");
+        e.getParameters().prettyPrint(spacer, sb, indent);
+        sb.append(")");
+        spacer.addSpace(sb);
+        sb.append("->");
+        spacer.addSpace(sb);
+        e.getImplementation().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(ExprDestroy e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("destroy");
+        spacer.addSpace(sb);
+        e.getDestroyedObj().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(ExprEmpty e, Spacer spacer, StringBuilder sb, int indent) {
@@ -164,6 +175,11 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprInstanceOf e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getExpr().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("instanceof");
+        spacer.addSpace(sb);
+        e.getTyp().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(ExprIntVal e, Spacer spacer, StringBuilder sb, int indent) {
@@ -257,6 +273,8 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprTypeId e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getLeft().prettyPrint(spacer, sb, indent);
+        sb.append(".typeId");
     }
 
     public static void prettyPrint(ExprUnary e, Spacer spacer, StringBuilder sb, int indent) {
@@ -270,13 +288,30 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprVarArrayAccess e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append(e.getVarName());
+        sb.append("[");
+        e.getIndexes().prettyPrint(spacer, sb, indent);
+        sb.append("]");
     }
 
     public static void prettyPrint(ExtensionFuncDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        e.getModifiers().prettyPrint(spacer, sb, indent);
+        sb.append("function");
+        spacer.addSpace(sb);
+        e.getExtendedType().prettyPrint(spacer, sb, indent);
+        sb.append(".");
+        sb.append(e.getName());
+        sb.append("(");
+        e.getParameters().prettyPrint(spacer, sb, indent);
+        sb.append(")");
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent+1);
     }
 
     public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
-
+        sb.append("\n");
         printIndent(sb, indent);
         e.getModifiers().prettyPrint(spacer, sb, indent);
         sb.append("function");
@@ -343,12 +378,26 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(Indexes e, Spacer spacer, StringBuilder sb, int indent) {
+        for(Expr expr : e) {
+            expr.prettyPrint(spacer, sb, indent);
+        }
     }
 
     public static void prettyPrint(InitBlock e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("init\n");
+        e.getBody().prettyPrint(spacer, sb, indent+1);
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("interface");
+        spacer.addSpace(sb);
+        sb.append(e.getName());
+        sb.append("\n");
+        e.getVars().prettyPrint(spacer, sb, indent);
+        e.getConstructors().prettyPrint(spacer, sb, indent);
+        e.getMethods().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
@@ -397,6 +446,12 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ModuleDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("modules");
+        spacer.addSpace(sb);
+        e.getVars().prettyPrint(spacer, sb, indent);
+        e.getConstructors().prettyPrint(spacer, sb, indent);
+        e.getMethods().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(ModuleInstanciation e, Spacer spacer, StringBuilder sb, int indent) {
@@ -517,6 +572,8 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeExprArray e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getBase().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
         sb.append("array");
     }
 
@@ -532,6 +589,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeExprThis e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("thistype");
     }
 
     public static void prettyPrint(TypeParamDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -588,8 +646,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(WurstDoc wurstDoc, Spacer spacer, StringBuilder sb, int indent) {
-        // TODO Auto-generated method stub
-        throw new Error("not implemented");
+        printIndent(sb, indent);
+        sb.append(wurstDoc.getRawComment());
+        sb.append("\n");
     }
 
     public static void prettyPrint(WStatements wStatements, Spacer spacer, StringBuilder sb, int indent) {
@@ -640,8 +699,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ClassDefs classDefs, Spacer spacer, StringBuilder sb, int indent) {
-        // TODO Auto-generated method stub
-        throw new Error("not implemented");
+        for(ClassDef classDef : classDefs) {
+            classDef.prettyPrint(spacer, sb, indent);
+        }
     }
 
 }
