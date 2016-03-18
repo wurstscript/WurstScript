@@ -16,6 +16,13 @@ constant string DEFAULT_STRING = ""
 
 public tuple char(int c)
 
+/** Returns the width of the string */
+public function string.getWidth() returns int
+	int width = 0
+	for int i = 0 to this.length() - 1
+		width += char(this.charAt(i)).getWidth()
+	return width
+
 public function char(string s) returns char
 	if ("\\" == s)
 		return char('\')

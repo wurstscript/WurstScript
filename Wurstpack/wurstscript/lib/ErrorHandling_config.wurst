@@ -1,4 +1,4 @@
-package ErrorHandling_config
+package ErrorHandling
 import NoWurst
 import PrintingHelper
 import MagicFunctions
@@ -7,8 +7,8 @@ import GameTimer
 import Real
 
 constant MUTE_ERROR_DURATION = 60
+constant PRIMARY_ERROR_KEY = -1
 
-Table traceHashs = new Table()
 /** error handing function.
 This function is used by libraries and for internal Wurst errors like 
 accessing a null-pointer. Overwrite this function to customize error handling.
@@ -17,25 +17,25 @@ Outputs an error message and terminates the current thread.
 There is a compiler flag to augment the error messages with stack traces.
 Error messages can also be disabled.
 */
-@config public function error(string msg)
+@configurable public function error(string msg)
 	let hash = StringHash(msg)
-	if traceHashs.hasInt(hash)
+	if Table.ht.hasInt(PRIMARY_ERROR_KEY, hash)
 		// Error has been printed before
-		if traceHashs.loadInt(hash) + MUTE_ERROR_DURATION < currentTime
+		if Table.ht.loadInt(PRIMARY_ERROR_KEY, hash) + MUTE_ERROR_DURATION < currentTime
 			// Time to print the error again
 			print("|cffFF3A29Error:|r " + msg + getStackTraceString())
-			traceHashs.saveInt(hash, currentTime.toInt())
-			traceHashs.saveBoolean(hash, false)
-		else if traceHashs.hasBoolean(hash)
-			if not traceHashs.loadBoolean(hash)
+			Table.ht.saveInt(PRIMARY_ERROR_KEY, hash, currentTime.toInt())
+			Table.ht.saveBoolean(PRIMARY_ERROR_KEY, hash, false)
+		else if Table.ht.hasBoolean(PRIMARY_ERROR_KEY, hash)
+			if not Table.ht.loadBoolean(PRIMARY_ERROR_KEY, hash)
 				print("|cffFF3A29Excessive repeating errors are being omitted")
-				traceHashs.saveBoolean(hash, true)	
+				Table.ht.saveBoolean(PRIMARY_ERROR_KEY, hash, true)	
 		else
 			print("|cffFF3A29Excessive repeating errors are being omitted")
-			traceHashs.saveBoolean(hash, true)	
+			Table.ht.saveBoolean(PRIMARY_ERROR_KEY, hash, true)	
 			//
 	else
-		traceHashs.saveInt(hash, currentTime.toInt())
+		Table.ht.saveInt(PRIMARY_ERROR_KEY, hash, currentTime.toInt())
 		print("|cffFF3A29Error:|r " + msg + getStackTraceString())
 	// crash the thread:
 	I2S(1 div 0)

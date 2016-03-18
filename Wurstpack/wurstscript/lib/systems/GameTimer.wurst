@@ -1,7 +1,7 @@
 package GameTimer
 import NoWurst
 import Basics
-import TimerUtils
+import Timer
 timer gameTimer
 
 public real currentTime

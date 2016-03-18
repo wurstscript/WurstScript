@@ -1,6 +1,5 @@
 package UnitObjEditing
 import NoWurst
-import ErrorHandling
 
 import ObjEditingNatives
 
@@ -882,7 +881,6 @@ public class HeroDefinition extends UnitOrHeroDefinition
 			case 9
 				def.setString("urq8", data)
 			default
-				error("Tier must be >= 2 and <= 9, but was " + I2S(tier))
 
 public class UnitDefinition extends UnitOrHeroDefinition
 	

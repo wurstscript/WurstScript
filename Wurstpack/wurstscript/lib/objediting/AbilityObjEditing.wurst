@@ -6,13 +6,16 @@ import Boolean
 import public ObjEditingNatives
 import String
 import public UnitObjEditing
-import initlater AbilityTooltipGenerator
 
+public interface TooltipGenerator
+	function addProperty(string title, StringLevelClosure lc)
+	function applyToDef(AbilityDefinition def)
+		
 public class AbilityDefinition
 	protected ObjectDefinition def
 	int lvls = 1
 	
-	AbilityTooltipGenerator tooltipGen = null
+	TooltipGenerator tooltipGen = null
 	boolean listen = false
 	
 	construct(int newAbilityId, int origAbilityId)
@@ -35,7 +38,7 @@ public class AbilityDefinition
 	function addTooltipProperty(string pName, BooleanLevelClosure lc)
 		addTooltipProperty(pName, (int lvl) -> lc.run(lvl).toString())
 		
-	function registerTooltipGegenrator(AbilityTooltipGenerator tgen)
+	function registerTooltipGegenrator(TooltipGenerator tgen)
 		tooltipGen = tgen
 		
 	function tgenStartListen()

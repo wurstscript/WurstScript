@@ -1,12 +1,12 @@
 package InstanceBoard
-
+import TimerUtils
 
 int classes = 0
 hashtable ht = InitHashtable()
 multiboard mb = null
 int array count
 string array nameOfClass
-	
+
 init
 	getTimer().start(0.0, function createMultiboard)
 		

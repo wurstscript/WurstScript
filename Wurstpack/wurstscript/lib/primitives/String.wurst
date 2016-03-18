@@ -1,6 +1,5 @@
 package String
 import NoWurst
-import initlater Char
 import Real
 
 string charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -49,13 +48,6 @@ public function string.length() returns int
 public function string.charAt(int index) returns string
 	return SubString(this, index, index+1)
 	
-/** Returns the width of the string */
-public function string.getWidth() returns int
-	int width = 0
-	for int i = 0 to this.length() - 1
-		width += char(this.charAt(i)).getWidth()
-	return width
-
 /**	Converts a string to an ability id */
 public function string.toAbilityId() returns int
 	return AbilityId(this)
