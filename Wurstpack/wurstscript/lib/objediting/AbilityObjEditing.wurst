@@ -26,7 +26,7 @@ public class AbilityDefinition
 		setLevels(lvls)
 		
 	function addTooltipProperty(string pName, StringLevelClosure lc)
-		if tooltipGen != null
+		if tooltipGen != null and listen
 			tooltipGen.addProperty(pName, lc)
 			
 	function addTooltipProperty(string pName, IntLevelClosure lc)

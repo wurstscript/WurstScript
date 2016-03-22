@@ -1,6 +1,7 @@
 package ChannelAbilityPreset
 import public AbilityObjEditing
 import OrderStringFactory
+import BitSet
 
 OrderStringFactory odf = new OrderStringFactory()
 @compiletime function initOdf()
@@ -13,13 +14,7 @@ public enum Option
 	PHYSICALSPELL
 	UNIVERSALSPELL
 	UNIQUECAST
-	
-constant visibleval = 1
-constant targetimageval = 2
-constant physicalspellval = 4
-constant universalspellval = 8
-constant uniquecastval = 16
-	
+
 public enum Targettype
 	NOTARGET
 	UTARGET
@@ -42,18 +37,16 @@ public function Targettype.toString() returns string
 	return ""
 
 public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
-	boolean VISIBLE
-	boolean TARGETIMAGE
-	boolean PHYSICALSPELL
-	boolean UNIVERSALSPELL
-	boolean UNIQUECAST
-	int optionval = 0
+	private bitset optionSet = bitset(0)
 	
-	construct(int newId, int lvls)
+	construct(int newId, int lvls, boolean removeChannelProperties)
 		super(newId)
 		this.lvls = lvls
 		setLevels(lvls)
-		presetBaseOrderID((int _lvl) -> odf.getOrderString(true))
+		let orderString = odf.getOrderString(true)
+		presetBaseOrderID((int _lvl) -> orderString)
+		if removeChannelProperties
+			removeChannelProperties(true)
 		
 	function removeChannelProperties(boolean removeVisuals)
 		removeChannelProperties(removeVisuals, true)
@@ -74,36 +67,15 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 		presetTargetType((int lvl) -> ttype castTo int + 0)
 					
 	function presetOption(Option opt, boolean flag)
-		switch opt
-			case Option.VISIBLE
-				VISIBLE = flag
-				if VISIBLE
-					optionval+=visibleval
-				else
-					optionval-=visibleval
-			case Option.TARGETIMAGE
-				TARGETIMAGE = flag
-				if VISIBLE
-					optionval+=targetimageval
-				else
-					optionval-=targetimageval
-			case Option.PHYSICALSPELL
-				PHYSICALSPELL = flag
-				if VISIBLE
-					optionval+=physicalspellval
-				else
-					optionval-=physicalspellval
-			case Option.UNIVERSALSPELL
-				UNIVERSALSPELL = flag
-				if VISIBLE
-					optionval+=universalspellval
-				else
-					optionval-=universalspellval
-			case Option.UNIQUECAST
-				UNIQUECAST = flag
-				if VISIBLE
-					optionval+=uniquecastval
-				else
-					optionval-=uniquecastval
+		let pow = opt castTo int
+		if optionSet.contains(pow)
+			if not flag
+				optionSet = optionSet.remove(pow)
+		else if flag
+			optionSet = optionSet.add(pow)
 
-		presetOptions((int lvl) -> optionval)
+		presetOptions((int lvl) -> optionSet.val)
+	
+	function hasOption(Option option) returns boolean
+		return optionSet.contains(option castTo int)
+		
