@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.map.importer;
 
 import java.io.ByteArrayInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -73,12 +74,16 @@ public class ImportFile {
 	
 	private static String readString(LittleEndianDataInputStream reader) throws IOException {
 		StringBuilder sb = new StringBuilder();
-		while (true) {
-			char c = reader.readChar();
-			if (c==0) {
-				return sb.toString();
+		try {
+			while (true) {
+				char c = reader.readChar();
+				if (c==0) {
+					return sb.toString();
+				}
+				sb.append(c);
 			}
-			sb.append(c);
+		} catch (EOFException e) {
+			return sb.toString();
 		}
 	}
 
