@@ -792,7 +792,6 @@ public class WurstREPL {
 					print("FAIL\n");
 					continue;
 				}
-				successTests.add(f);
 				print("✓\n");
 			}
 		}
@@ -807,8 +806,8 @@ public class WurstREPL {
 
 	private @Nullable ImProg translateProg() {
 		gui.clearErrors();
+		modelManager.typeCheckModel(gui, false);
 		return modelManager.doWithModelR(model -> {
-			modelManager.typeCheckModel(gui, false);
 			if (gui.getErrorCount() > 0) {
 				print(gui.getErrors() + "\n");
 				return null;
