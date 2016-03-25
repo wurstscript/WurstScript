@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import java.io.File;
 import java.io.IOException;
 
+import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 
 import com.google.common.base.Charsets;
@@ -12,6 +13,8 @@ import com.google.common.io.Files;
 
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
+
+import static org.hamcrest.CoreMatchers.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
@@ -476,6 +479,20 @@ public class OptimizerTests extends WurstScriptTest {
 				"		if i == 5",
 				"			testSuccess()",
 				"endpackage");
+	}
+	
+	@Test
+	public void test_unused_func_remover() throws IOException {
+		assertOk(true,
+				"package test",
+				"	@extern native I2S(int i) returns string",
+				"	native testSuccess()",
+				"	init",
+				"		I2S(5)",
+				"		testSuccess()",
+				"endpackage");
+		String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover_opt.j"), Charsets.UTF_8);
+		assertFalse("I2S should be removed",compiledAndOptimized.contains("I2S"));
 	}
 	
 	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
