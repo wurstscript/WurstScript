@@ -1,6 +1,7 @@
 package tests.wurstscript.tests;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -493,6 +494,18 @@ public class OptimizerTests extends WurstScriptTest {
 				"endpackage");
 		String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover_opt.j"), Charsets.UTF_8);
 		assertFalse("I2S should be removed",compiledAndOptimized.contains("I2S"));
+	}
+	
+	@Test
+	public void test_unused_func_remover2() throws IOException {
+		assertOk(false,
+				"package test",
+				"	@extern native I2S(int i) returns string",
+				"	init",
+				"		I2S(1 div 0)",
+				"endpackage");
+		String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unused_func_remover2_opt.j"), Charsets.UTF_8);
+		assertTrue("I2S should not be removed",compiledAndOptimized.contains("I2S"));
 	}
 	
 	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)

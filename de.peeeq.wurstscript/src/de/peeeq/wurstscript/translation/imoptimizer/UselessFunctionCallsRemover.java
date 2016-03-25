@@ -5,9 +5,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
+import de.peeeq.wurstscript.jassIm.ImIntVal;
+import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
@@ -51,20 +54,48 @@ public class UselessFunctionCallsRemover {
 			if (s instanceof ImFunctionCall) {
 				ImFunctionCall fc = (ImFunctionCall) s;
 				if (isNativeWithoutSideEffect(fc.getFunc())) {
-					// put arguments into a list of statements
-					ImStmts newStmts = JassIm.ImStmts();
-					for (ImExpr arg : fc.getArguments()) {
-						// remove from current call
-						arg.setParent(null);
-						// and move to new statements
-						newStmts.add(arg);
+					if (!isWantedError(fc)) {
+						
+					
+						// put arguments into a list of statements
+						ImStmts newStmts = JassIm.ImStmts();
+						for (ImExpr arg : fc.getArguments()) {
+							// remove from current call
+							arg.setParent(null);
+							// and move to new statements
+							newStmts.add(arg);
+						}
+						s = JassIm.ImStatementExpr(newStmts, JassIm.ImNull());
+						it.set(s);
 					}
-					s = JassIm.ImStatementExpr(newStmts, JassIm.ImNull());
-					it.set(s);
 				}
 			}
 			optimizeChildren(s);
 		}
+	}
+
+	/** a call like fooo(_ / 0) is considered a wanted error and kept*/
+	private boolean isWantedError(ImFunctionCall fc) {
+		if (fc.getArguments().size() != 1) {
+			return false;
+		}
+		return isDivisionByZero(fc.getArguments().get(0));
+	}
+
+	private boolean isDivisionByZero(ImExpr e) {
+		if (e instanceof ImOperatorCall) {
+			ImOperatorCall oc = (ImOperatorCall) e;
+			if (oc.getOp() == WurstOperator.DIV_INT) {
+				ImExpr dividend = oc.getArguments().get(1);
+				if (dividend instanceof ImIntVal) {
+					ImIntVal v = (ImIntVal) dividend;
+					if (v.getValI() == 0) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	private void optimizeChildren(JassImElement e) {
