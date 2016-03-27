@@ -779,8 +779,15 @@ public class WurstREPL {
 		}
 		List<ImFunction> successTests = Lists.newArrayList();
 		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+		IProject project = modelManager.getNature().getProject();
 		for (ImFunction f : imProg.getFunctions()) {
 			if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
+				String origFilename = f.attrTrace().attrSource().getFile();
+				IFile file = project.getFile(origFilename);
+				if (!file.exists()) {
+					continue; // with next function
+				}
+				
 				print("Testing " + Utils.printElementWithSource(f.attrTrace()) + "	... ");
 				try {
 					interpreter.runVoidFunc(f, null);
@@ -792,7 +799,6 @@ public class WurstREPL {
 					print("FAIL\n");
 					continue;
 				}
-				successTests.add(f);
 				print("✓\n");
 			}
 		}
@@ -807,8 +813,8 @@ public class WurstREPL {
 
 	private @Nullable ImProg translateProg() {
 		gui.clearErrors();
+		modelManager.typeCheckModel(gui, false);
 		return modelManager.doWithModelR(model -> {
-			modelManager.typeCheckModel(gui, false);
 			if (gui.getErrorCount() > 0) {
 				print(gui.getErrors() + "\n");
 				return null;

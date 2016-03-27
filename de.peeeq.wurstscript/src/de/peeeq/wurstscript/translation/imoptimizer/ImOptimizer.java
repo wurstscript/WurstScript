@@ -50,6 +50,7 @@ public class ImOptimizer {
 		new ConstantAndCopyPropagation(trans).optimize();
 		new SimpleRewrites(trans).optimize();
 		new LocalMerger(trans).optimize();
+		new UselessFunctionCallsRemover(trans).optimize();
 		removeGarbage();
 	}
 
