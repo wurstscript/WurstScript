@@ -62,9 +62,9 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 			setArtEffect("")
 			setArtSpecial("")
 			setArtTarget("")
-			
+
 	function presetTargetTypes(Targettype ttype)
-		presetTargetType((int lvl) -> ttype castTo int + 0)
+		presetTargetType((int lvl) -> ttype castTo int)
 					
 	function presetOption(Option opt, boolean flag)
 		let pow = opt castTo int
