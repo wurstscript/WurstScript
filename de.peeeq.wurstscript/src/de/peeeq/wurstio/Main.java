@@ -86,7 +86,7 @@ public class Main {
 			String mapFilePath = runArgs.getMapFile();
 			if (runArgs.isExtractImports()) {
 				File mapFile = new File(mapFilePath);
-				ImportFile.extractImportedFiles(mapFile, runArgs);
+				ImportFile.extractImportsFromMap(mapFile, runArgs);
 				return;
 			}
 
