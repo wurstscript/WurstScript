@@ -412,7 +412,7 @@ public class WurstCompletionProcessor implements IContentAssistProcessor {
 
             WurstType receiverType = e.getValue().getReceiverType();
             if (leftType == null) {
-                if (receiverType != null) {
+                if (receiverType != null && !receiverType.isStaticRef()) {
                     // skip extension functions, when not needed 
                     continue;
                 }
