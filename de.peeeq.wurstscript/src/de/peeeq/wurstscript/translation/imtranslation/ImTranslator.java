@@ -23,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -92,6 +93,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClasses;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
@@ -211,7 +213,7 @@ public class ImTranslator {
 			finishInitFunctions();
 			EliminateCallFunctionsWithAnnotation.process(imProg);
 			removeDuplicateNatives(imProg);
-
+			sortEverything();
 			return imProg;
 		} catch (CompileError t) {
 			throw t;
@@ -221,6 +223,62 @@ public class ImTranslator {
 					"\nPlease open a ticket with source code and the error log.", t);
 		}
 	}
+
+	/**
+	 * sorting everything is supposed to make the translation deterministic
+	 */
+	private void sortEverything() {
+		sortList(imProg.getClasses());
+		sortList(imProg.getGlobals());
+		sortList(imProg.getFunctions());
+		for (ImClass c : imProg.getClasses()) {
+			sortList(c.getFields());
+			sortList(c.getMethods());
+		}
+	}
+
+
+	private <T extends JassImElement> void sortList(List<T> list) {
+		List<T> classes = removeAll(list);
+		Collections.sort(classes, 
+				Comparator
+					.comparing(this::getQualifiedClassName));
+		list.addAll(classes);
+	}
+	
+	public <T> List<T> removeAll(List<T> list) {
+		List<T> result = new ArrayList<T>();
+		while (!list.isEmpty()) {
+			result.add(0, list.remove(list.size()-1));
+		}
+		return result;
+	}
+	
+	private String getQualifiedClassName(JassImElement c) {
+		return getQualifiedClassName(c.attrTrace());
+	}
+	
+	
+	
+
+
+	private String getQualifiedClassName(AstElement e) {
+		String result = "";
+		if (e instanceof NamedScope) {
+			NamedScope ns = (NamedScope) e;
+			result = ns.getName();
+		}
+		AstElement parent = e.getParent();
+		if (parent == null) {
+			return result;
+		}
+		parent = parent.attrNearestNamedScope();
+		if (parent == null) {
+			return result;
+		}
+		return getQualifiedClassName(parent) + "_" + result;
+	}
+
 
 	/***
 	 * this phase removes duplicate native declarations
