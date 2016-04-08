@@ -738,4 +738,31 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void unreadVarWarning() { // #380
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"init",
+				"	var done = false",
+				"	while not done",
+				"		done = true",
+				"	testSuccess()"
+				);
+	}
+	
+	@Test
+	public void unreadVarWarning2() { // #380
+		testAssertErrorsLines(true, "i is never read", 
+				"package test",
+				"@extern native I2S(int x) returns string",
+				"native testSuccess()",
+				"init",
+				"	var i = 5",
+				"	I2S(i)",
+				"	i = i + 1",
+				"	testSuccess()"
+				);
+	}
+	
 }

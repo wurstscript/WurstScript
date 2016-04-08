@@ -33,7 +33,7 @@ public abstract class ForwardMethod<T, Target extends AstElementWithBody> {
 	
 	public void execute(Target f) {
 		this.f = f;
-		ForwardExecution<T, Target> ex = new ForwardExecution<T, Target>(f, (ForwardMethod<T, Target>) this);
+		ForwardExecution<T, Target> ex = new ForwardExecution<T, Target>(f, this);
 		ex.execute();
 	}
 	

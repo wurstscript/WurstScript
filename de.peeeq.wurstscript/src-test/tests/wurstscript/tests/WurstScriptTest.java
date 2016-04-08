@@ -169,10 +169,18 @@ public class WurstScriptTest {
 			throw gui.getErrorList().get(0);
 		}
 		
+
+		
 		// check prog
 		compiler.checkProg(model);
 		if (!gui.getErrorList().isEmpty()) {
 			throw gui.getErrorList().get(0);
+		}
+		
+		
+		if (name.toLowerCase().contains("warning") && !gui.getWarningList().isEmpty()) {
+			// report warnings based on naming convention
+			throw gui.getWarningList().get(0);
 		}
 		
 		// translate with different options:

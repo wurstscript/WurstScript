@@ -390,6 +390,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 
 	@Override
 	String print(VarStates t) {
+		if (t == null) {
+			return "null";
+		}
 		return t.toString();
 	}
 	

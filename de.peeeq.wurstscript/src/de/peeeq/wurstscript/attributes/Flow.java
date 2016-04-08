@@ -231,9 +231,8 @@ public class Flow {
 	public static List<WStatement> getAfterBody(LoopStatement loop) {
 		List<WStatement> r = Lists.newArrayList();
 		// at the end of an loop we can go to the beginning of the loop body...
-		if (loop.getBody().size() > 0) {
-			r.add(loop.getBody().get(0));
-		}
+		r.add(loop);
+		
 		// ... or after the loop
 //		int index = loop.attrListIndex();
 //		WStatements parent = (WStatements) loop.getParent();
