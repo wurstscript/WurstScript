@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
+import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.types.CallSignature;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -248,11 +249,21 @@ public class WurstValidator {
 			if (e instanceof WScope) checkForDuplicateNames((WScope) e);
 			if (e instanceof WStatement) checkReachability((WStatement) e);
 			if (e instanceof WurstModel) checkForDuplicatePackages((WurstModel) e);
+			if (e instanceof WStatements) checkForInvalidStmts((WStatements) e);
 		} catch (CyclicDependencyError cde) {
 			cde.printStackTrace();
 			AstElement element = cde.getElement();
 			String attr = cde.getAttributeName().replaceFirst("^attr", "");
 			throw new CompileError(element.attrSource(), Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+		}
+	}
+
+	private void checkForInvalidStmts(WStatements stmts) {
+		for (WStatement s : stmts) {
+			if (s instanceof ExprVarAccess) {
+				ExprVarAccess ev = (ExprVarAccess) s;
+				s.addError("Use of variable " + ev.getVarName() + " is an incomplete statement.");
+			}
 		}
 	}
 

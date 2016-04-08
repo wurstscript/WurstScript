@@ -125,6 +125,7 @@ ActionStatement =
 	| StmtCall
 	| StmtErr(de.peeeq.wurstscript.parser.WPos source)
 	| ExprMemberVar
+	| ExprVarAccess
 	| ExprDestroy
 	
 	  

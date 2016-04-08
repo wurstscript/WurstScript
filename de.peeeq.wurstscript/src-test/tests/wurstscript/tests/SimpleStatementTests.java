@@ -480,5 +480,15 @@ public class SimpleStatementTests extends WurstScriptTest {
 				"endpackage\n";
 		testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, expected);
 	}
+	
+	@Test
+	public void test_varAsStmt() {
+		testAssertErrorsLines(false, "Use of variable x is an incomplete statement", 
+				"package test",
+				"init",
+				"	var x = 5",
+				"	x"
+				);
+	}
 
 }
