@@ -43,6 +43,37 @@ public class NameLink {
 	private @Nullable List<WurstType> parameterTypes;
 
 	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((definedIn == null) ? 0 : definedIn.hashCode());
+		result = prime * result + ((nameDef == null) ? 0 : nameDef.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
+		result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		NameLink other = (NameLink) obj;
+		if (definedIn != other.definedIn)
+			return false;
+		if (nameDef != other.nameDef)
+			return false;
+		if (type != other.type)
+			return false;
+		if (visibility != other.visibility)
+			return false;
+		return true;
+	}
+
 	private NameLink(Visibility visibility, NameLinkType type,
 			WScope definedIn, NameDef nameDef) {
 		super();
@@ -295,6 +326,8 @@ public class NameLink {
 		NameDef def = (NameDef) nameDef.attrConfigActualNameDef();
 		return new NameLink(visibility, type, definedIn, def, returnType, parameterTypes);
 	}
+	
+	
 	
 	
 	
