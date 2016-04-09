@@ -439,6 +439,15 @@ public class WurstValidator {
 			new DataflowAnomalyAnalysis().execute(block);
 		}
 		
+		if (e.attrExpectedTyp() instanceof WurstTypeClass) {
+			WurstTypeClass ct = (WurstTypeClass) e.attrExpectedTyp();
+			
+			ClassDef cd = ct.getClassDef();
+			if (cd.getConstructors().stream().noneMatch(constr -> constr.getParameters().isEmpty())) {
+				e.addError("No default constructor for class " + ct + " found, so it cannot be instantiated using an anonymous function.");
+			}
+		}
+		
 	}
 
 	private void checkConstructorsUnique(ClassDef c) {

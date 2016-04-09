@@ -7,12 +7,15 @@ import java.util.Map.Entry;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethods;
@@ -61,6 +64,7 @@ public class ClosureTranslator {
 			ImStmts stmts = JassIm.ImStmts();
 			// allocate closure
 			stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
+			callSuperConstructor(clVar, stmts, c);
 			// set closure vars
 			for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
 				ImVar orig = entry.getKey();
@@ -69,6 +73,32 @@ public class ClosureTranslator {
 			}
 			return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
 		}
+	}
+
+
+
+	private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c) {
+		WurstType t = e.attrExpectedTyp();
+		if (t instanceof WurstTypeClass) {
+			WurstTypeClass ct = (WurstTypeClass) t;
+			ClassDef cd = ct.getClassDef();
+			
+			for (ConstructorDef constr : cd.getConstructors()) {
+				if (constr.getParameters().isEmpty()) {
+					callSuperConstructor(clVar, stmts, c, constr);
+					return;
+				}
+			}
+			throw new CompileError(e.attrErrorPos(), "Cannot construct closure. Superclass has no default constructor.");
+		}
+	}
+
+
+
+	private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c, ConstructorDef constr) {
+		ImFunction cn = tr.getConstructFunc(constr);
+		ImExprs arguments = JassIm.ImExprs(JassIm.ImVarAccess(clVar));
+		stmts.add(JassIm.ImFunctionCall(e, cn, arguments, false, CallType.NORMAL));
 	}
 
 

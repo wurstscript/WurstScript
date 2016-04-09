@@ -765,4 +765,34 @@ public class BugTests extends WurstScriptTest {
 				);
 	}
 	
+	
+	@Test
+	public void closureClassConstructor() { // # 440
+		testAssertOkLines(true, 
+				"package test",
+				"native testSuccess()",
+				"abstract class Hey",
+				"	construct()",
+				"		testSuccess()",
+				"	abstract function foo(int x) returns int",
+				"init",
+				"	Hey you = (int x) -> x + 1",
+				"endpackage"
+				);
+	}
+	
+	
+	@Test
+	public void closureClassConstructorInvalid() { 
+		testAssertErrorsLines(false, "No default constructor for class", 
+				"package test",
+				"abstract class Hey",
+				"	construct(int x)",
+				"	abstract function foo(int x) returns int",
+				"init",
+				"	Hey you = (int x) -> x + 1",
+				"endpackage"
+				);
+	}
+	
 }
