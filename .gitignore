@@ -49,6 +49,7 @@ Wurstpack/wurstscript/Blizzard.j
 Wurstpack/wurstscript/common.j
 Wurstpack/winmpq/temp/*
 Wurstpack/wurstscript/logs/*
+Wurstpack/tesh/TESH.ini
 Checksums/testmd5.txt
 <<<<<<< Updated upstream
 /.idea
