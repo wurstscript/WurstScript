@@ -23,6 +23,7 @@ import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
+import de.peeeq.wurstio.languageserver.LanguageServer;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -79,6 +80,11 @@ public class Main {
 			
 			if (runArgs.isStartServer()) {
 				WurstServer.startServer();
+				return;
+			}
+			
+			if (runArgs.isLanguageServer()) {
+				new LanguageServer().start();
 				return;
 			}
 			

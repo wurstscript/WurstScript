@@ -35,6 +35,7 @@ public class RunArgs {
 	private RunOption optionStartServer;
 	private RunOption optionGenerateLua;
 	private RunOption optionUseJmpq2;
+	private RunOption optionLanguageServer;
 	
 	private class RunOption {
 		final String name;
@@ -98,6 +99,10 @@ public class RunArgs {
 		addOptionWithArg("out", "Outputs the compiled script to this file.", arg -> {
 			outFile = arg;
 		});
+		
+		optionLanguageServer = addOption("languageServer", "Starts a language server which can be used by editors to get services "
+				+ "like code completion, validations, and find declaration. The communication to the "
+				+ "language server is via standard input output.");
 		
 		nextArg: for (int i=0; i<args.length; i++) {
 			String a = args[i];
@@ -253,5 +258,9 @@ public class RunArgs {
 	
 	public boolean useJmpq2(){
 		return optionUseJmpq2.isSet;
+	}
+
+	public boolean isLanguageServer() {
+		return optionLanguageServer.isSet;
 	}
 }

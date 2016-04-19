@@ -7,7 +7,7 @@
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.wurstio.Main" />
-				<attribute name="Class-Path" value=". wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq2.jar wurstscript_lib/jmpq3.jar wurstscript_lib/antlr-runtime-4.4.jar wurstscript_lib/jna-4.0.0.jar wurstscript_lib/org.eclipse.jdt.annotation-2.0.0.jar" />
+				<attribute name="Class-Path" value=". wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq2.jar wurstscript_lib/jmpq3.jar wurstscript_lib/antlr-runtime-4.4.jar wurstscript_lib/jna-4.0.0.jar wurstscript_lib/org.eclipse.jdt.annotation-2.0.0.jar wurstscript_lib/gson-2.6.2.jar" />
 			</manifest>
 			<fileset dir="./bin" />
 			<fileset dir="./resources" />
@@ -24,6 +24,7 @@
 		<copy file="./lib/antlr-runtime-4.4.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/org.eclipse.jdt.annotation-2.0.0.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/jna-4.0.0.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/gson-2.6.2.jar" todir="./dist/wurstscript_lib" />
 	</target>
 
 	<target name="make_for_wurstpack" depends="create_run_jar">
