@@ -13,11 +13,11 @@ import java.util.logging.SimpleFormatter;
 import com.google.gson.Gson;
 
 public class LanguageServer {
-	
+
 	private boolean stopped = false;
 
 	private Logger logger = Logger.getLogger("wurstlog");
-	
+
 	public LanguageServer() throws IOException {
 		setupLogger();
 	}
@@ -35,12 +35,11 @@ public class LanguageServer {
 
 	public void start() throws IOException {
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-		
+
 		Gson gson = new Gson();
-		
+
 		logger.info("Started language server");
-		
-		
+
 		while (!stopped) {
 			String line = in.readLine();
 			logger.info("Got message: " + line);
@@ -51,7 +50,20 @@ public class LanguageServer {
 
 	private void handleRequest(RequestPacket req) {
 		logger.info("req = " + req);
-		
+		switch (req.getPath()) {
+		case "fileChanged":
+			handleFileChanged(req.getData().getAsJsonPrimitive().getAsString());
+			break;
+		default:
+			
+
+		}
+
+	}
+
+	private void handleFileChanged(String asString) {
+		// TODO Auto-generated method stub
+
 	}
 
 }
