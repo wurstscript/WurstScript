@@ -53,4 +53,9 @@ public class LineOffsets {
 		}
 		return min;
 	}
+
+	public int getColumn(int offset) {
+		int line = getLine(offset);
+		return offset - get(line-1);
+	}
 }

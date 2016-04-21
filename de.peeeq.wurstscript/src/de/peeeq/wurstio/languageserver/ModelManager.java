@@ -9,15 +9,15 @@ public interface ModelManager {
 
 	/** synchronizes with file system 
 	 * @throws IOException */
-	boolean syncCompilationUnit(String filename) throws IOException;
+	void syncCompilationUnit(String filename);
 
 	/** cleans the model */
 	void clean();
 
-	boolean updateCompilationUnit(String filename, String contents);
+	void updateCompilationUnit(String filename, String contents, boolean reportErrors);
 
 	void onCompilationResult(Consumer<CompilationResult> f);
 
-	void buildProject() throws IOException;
+	void buildProject();
 	
 }

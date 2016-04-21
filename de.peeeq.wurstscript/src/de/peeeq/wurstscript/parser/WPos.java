@@ -46,7 +46,7 @@ public class WPos {
 	public int getEndLine() {
 		LineOffsets lo = lineOffsets;
 		if (lo == null) return 0;
-		return lo.getLine(rightPos) + 1;
+		return lo.getLine(rightPos);
 	}
 
 	public WPos withRightPos(int rightPos) {

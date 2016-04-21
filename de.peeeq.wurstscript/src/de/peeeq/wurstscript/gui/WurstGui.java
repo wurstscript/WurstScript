@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.gui;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -51,5 +52,8 @@ public abstract class WurstGui {
 				.collect(Collectors.toList());
 	}
 
+	public final List<CompileError> getErrorsAndWarnings() {
+		return Collections.unmodifiableList(errors);
+	}
 	
 }
