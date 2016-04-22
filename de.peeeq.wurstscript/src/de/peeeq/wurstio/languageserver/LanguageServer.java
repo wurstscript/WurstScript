@@ -99,8 +99,8 @@ public class LanguageServer {
 	private void handleFileChanged(String changedFilePath) {
 		requestExecutor.submit(() -> {
 			// TODO only sync one file and typecheck the changed file and its dependencies
-			//modelManager.syncCompilationUnit(changedFilePath);
-			modelManager.buildProject();
+			modelManager.syncCompilationUnit(changedFilePath);
+//			modelManager.buildProject();
 		});
 	}
 
