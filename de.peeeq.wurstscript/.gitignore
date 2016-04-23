@@ -1,2 +1,5 @@
 /bin
 /bin
+build/
+.idea
+.gradle/

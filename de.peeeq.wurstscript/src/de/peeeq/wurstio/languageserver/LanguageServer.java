@@ -8,29 +8,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 import com.google.gson.Gson;
 
+import com.google.gson.JsonObject;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class LanguageServer {
 
-	private boolean stopped = false;
-
-	private ModelManager modelManager;
-	private ExecutorService requestExecutor = Executors.newSingleThreadExecutor();
 	private ExecutorService responseExecutor = Executors.newSingleThreadExecutor();
-	
-	private Logger logger = Logger.getLogger("wurstlog");
+	private LanguageWorker worker = new LanguageWorker(this);
+
 
 	public LanguageServer() throws IOException {
 		setupLogger();
 	}
-	
-	
+
 
 	private void setupLogger() throws IOException {
 		File logFolder = new File("logs");
@@ -38,69 +33,62 @@ public class LanguageServer {
 		File logFile = new File(logFolder, "languageServer.log");
 		Handler handler = new FileHandler(logFile.getAbsolutePath(), Integer.MAX_VALUE, 20);
 		handler.setFormatter(new SimpleFormatter());
-		logger.addHandler(handler);
-		logger.setLevel(Level.INFO);
 		System.out.println("logging to " + logFile.getAbsolutePath());
+		WLogger.setHandler(handler);
 	}
 
 	public void start() throws IOException {
+		new Thread(worker).start();
+
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
 		Gson gson = new Gson();
 
-		logger.info("Started language server");
+		log("Started language server");
 
-		while (!stopped) {
+		while (!Thread.currentThread().isInterrupted()) {
 			String line = in.readLine();
-			logger.info("Got message: " + line);
 			RequestPacket req = gson.fromJson(line, RequestPacket.class);
 			handleRequest(req);
 		}
 	}
 
 	private void handleRequest(RequestPacket req) {
-		try {
-			logger.info("req = " + req);
-			switch (req.getPath()) {
-			case "fileChanged":
-				handleFileChanged(req.getData().getAsJsonPrimitive().getAsString());
+		switch (req.getPath()) {
+			case "fileChanged": {
+				String filePath = req.getData().getAsJsonPrimitive().getAsString();
+				worker.handleFileChanged(filePath);
 				break;
-			case "init":
-				handleInit(req.getData().getAsJsonPrimitive().getAsString());
-				break;
-			default:
-				logger.info("unhandled request: " + req.getPath());
 			}
-		} catch (IOException e) {
-			logger.warning("request got exception: " + Utils.printExceptionWithStackTrace(e));
+			case "init": {
+				String file = req.getData().getAsJsonPrimitive().getAsString();
+				worker.handleInit(file);
+				break;
+			}
+			case "reconcile": {
+				JsonObject obj = req.getData().getAsJsonObject();
+				String file = obj.get("filename").getAsString();
+				String content = obj.get("content").getAsString();
+				worker.handleReconcile(file, content);
+				break;
+			}
+			default:
+				log("unhandled request: " + req.getPath());
 		}
-
 	}
 
-	private void handleInit(String rootPath) throws IOException {
-		modelManager = new ModelManagerImpl(rootPath);
-		modelManager.onCompilationResult(this::onCompilationResult);
-		
-		requestExecutor.submit(() -> {
-			modelManager.buildProject();
-		});
-		
-		
+
+	private void log(String string) {
+		WLogger.info(string);
 	}
-	
-	private void onCompilationResult(CompilationResult res) {
+
+
+	void onCompilationResult(CompilationResult res) {
+		log("Checked " + res.getFilename() + " in " + res.getExtra() + " -> " + res.getErrors().size() + " errors.");
 		responseExecutor.submit(() -> {
 			Gson gson = new Gson();
 			EventPackage p = new EventPackage("compilationResult", gson.toJsonTree(res));
 			System.out.println(gson.toJson(p));
-		});
-	}
-
-	private void handleFileChanged(String changedFilePath) {
-		requestExecutor.submit(() -> {
-			// TODO only sync one file and typecheck the changed file and its dependencies
-			modelManager.syncCompilationUnit(changedFilePath);
-//			modelManager.buildProject();
 		});
 	}
 

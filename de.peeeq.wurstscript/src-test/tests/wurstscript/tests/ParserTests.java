@@ -37,6 +37,19 @@ public class ParserTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+
+	@Test
+	public void halfAssign() {
+		testAssertErrorsLines(false, "dasfdss",
+				"package Test",
+				"init",
+				"	int x =",
+				"	int y =",
+				"	x = 1",
+				"	y = 2",
+				"	foo(x, y)",
+				"function foo(int x, int y)");
+	}
 	
 	
 	

@@ -9,7 +9,7 @@ public interface ModelManager {
 
 	/** synchronizes with file system 
 	 * @throws IOException */
-	void syncCompilationUnit(String filename);
+	void replaceCompilationUnit(String filename);
 
 	/** cleans the model */
 	void clean();
@@ -19,5 +19,8 @@ public interface ModelManager {
 	void onCompilationResult(Consumer<CompilationResult> f);
 
 	void buildProject();
-	
+
+	void syncCompilationUnit(String changedFilePath);
+
+	void syncCompilationUnitContent(String filename, String contents);
 }

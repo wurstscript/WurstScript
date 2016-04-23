@@ -7,14 +7,16 @@ import java.util.stream.Collectors;
 import de.peeeq.wurstscript.attributes.CompileError;
 
 public class CompilationResult {
-	private String filename;
-	private List<ExternCompileError> errors;
+	private final String extra;
+	private final String filename;
+	private final List<ExternCompileError> errors;
 
-	public static CompilationResult create(String filename, List<CompileError> errors) {
-		return new CompilationResult(filename, errors.stream().map(ExternCompileError::convert).collect(Collectors.toList()));
+	public static CompilationResult create(String extra, String filename, List<CompileError> errors) {
+		return new CompilationResult(extra, filename, errors.stream().map(ExternCompileError::convert).collect(Collectors.toList()));
 	}
 
-	public CompilationResult(String filename, List<ExternCompileError> errors) {
+	public CompilationResult(String extra, String filename, List<ExternCompileError> errors) {
+		this.extra = extra;
 		this.filename = filename;
 		this.errors = errors;
 	}
@@ -27,4 +29,7 @@ public class CompilationResult {
 		return Collections.unmodifiableList(errors);
 	}
 
+	public String getExtra() {
+		return extra;
+	}
 }

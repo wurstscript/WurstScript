@@ -22,10 +22,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
@@ -51,14 +51,13 @@ public class ModelManagerImpl implements ModelManager {
 
 	private volatile @Nullable WurstModel model;
 	private File projectPath;
-	private boolean needsFullBuild;
+	private boolean needsFullBuild = true;
 	// dependency folders (folders mentioned in wurst.dependencies)
 	private final Set<String> dependencies = Sets.newLinkedHashSet();
 	// private WurstGui gui = new WurstGuiLogger();
 	private List<Consumer<CompilationResult>> onCompilationResultListeners = new ArrayList<>();
 	// compile errors for each file
 	private Map<String, List<CompileError>> parseErrors = new LinkedHashMap<>();
-	private Map<String, List<CompileError>> typeErrors = new LinkedHashMap<>();
 
 	public ModelManagerImpl(String projectPath) {
 		this(new File(projectPath));
@@ -80,7 +79,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public synchronized boolean removeCompilationUnit(String resource) {
+	public boolean removeCompilationUnit(String resource) {
 		parseErrors.remove(resource);
 		WurstModel model2 = model;
 		if (model2 == null) {
@@ -98,7 +97,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public synchronized void clean() {
+	public void clean() {
 		model = null;
 		dependencies.clear();
 		needsFullBuild = true;
@@ -107,7 +106,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	/**
 	 * does a full build, reading whole directory
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public void buildProject() {
@@ -123,6 +122,7 @@ public class ModelManagerImpl implements ModelManager {
 			doTypeCheck(gui, true);
 			// TODO report errors
 
+			needsFullBuild = false;
 			// Map<String, List<CompileError>> groupedByFile =
 			// gui.getErrorsAndWarnings().stream().collect(Collectors.groupingBy(err
 			// -> err.getSource().getFile()));
@@ -133,9 +133,12 @@ public class ModelManagerImpl implements ModelManager {
 			// onCompilationResultListeners.forEach(c -> c.accept(r));
 			// }
 		} catch (IOException e) {
+			WLogger.severe(e);
 			throw new ModelManagerException(e);
 		}
 	}
+
+
 
 	private void processWurstFiles(File dir) throws IOException {
 		for (File f : dir.listFiles()) {
@@ -149,7 +152,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	private void processWurstFile(File f) throws IOException {
 		System.out.println("processing file " + f);
-		syncCompilationUnit(f);
+		replaceCompilationUnit(f);
 	}
 
 	private void readDependencies(WurstGui gui) throws IOException {
@@ -183,7 +186,8 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void addDependency(WurstGui gui, File depfile, String fileName, LineOffsets lineOffsets, int offset,
-			int endOffset) {
+							   int endOffset) {
+		WLogger.info("Adding dependency: " + fileName);
 		File f = new File(fileName);
 		WPos pos = new WPos(getProjectRelativePath(depfile), lineOffsets, offset, endOffset);
 		if (!f.exists()) {
@@ -212,6 +216,7 @@ public class ModelManagerImpl implements ModelManager {
 	/**
 	 * clear the attributes for all compilation units that import something from
 	 * 'toCheck' and for 'toCheck'
+	 *
 	 * @return a list of all the CUs which have been cleared
 	 */
 	private List<CompilationUnit> clearAttributes(List<CompilationUnit> toCheck) {
@@ -237,10 +242,12 @@ public class ModelManagerImpl implements ModelManager {
 		return cleared;
 	}
 
-	/** check whether cu imports something from 'toCheck' */
+	/**
+	 * check whether cu imports something from 'toCheck'
+	 */
 	private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
 		for (WPackage p : cu.getPackages()) {
-			if (imports(p, packageNames, false, Sets.<WPackage> newHashSet())) {
+			if (imports(p, packageNames, false, Sets.<WPackage>newHashSet())) {
 				return true;
 			}
 		}
@@ -250,8 +257,6 @@ public class ModelManagerImpl implements ModelManager {
 
 	/**
 	 * check whether p imports something from 'toCheck'
-	 * 
-	 * @param hashSet
 	 */
 	private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic, HashSet<WPackage> visited) {
 		if (visited.contains(p)) {
@@ -274,39 +279,35 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void doTypeCheck(WurstGui gui, boolean addErrorMarkers) {
-		// this line is not synchronized, because it can trigger a build in a
-		// different thread
 		WurstCompilerJassImpl comp = getCompiler(gui);
-		synchronized (this) {
-			long time = System.currentTimeMillis();
-			if (gui.getErrorCount() > 0) {
-				if (addErrorMarkers) {
-					reportErrorsForProject(gui);
-				}
-				WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
-				return;
-			}
-			@Nullable
-			WurstModel model2 = model;
-			if (model2 == null) {
-				return;
-			}
-
-			try {
-				model2.clearAttributes();
-				comp.addImportedLibs(model2);
-				comp.checkProg(model2);
-			} catch (CompileError e) {
-				gui.sendError(e);
-			}
-			WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+		long time = System.currentTimeMillis();
+		if (gui.getErrorCount() > 0) {
 			if (addErrorMarkers) {
-				reportErrorsForProject(gui);
+				reportErrorsForProject("build project, doTypecheck, early", gui);
 			}
+			WLogger.info("finished typechecking* in " + (System.currentTimeMillis() - time) + "ms");
+			return;
+		}
+		@Nullable
+		WurstModel model2 = model;
+		if (model2 == null) {
+			return;
+		}
+
+		try {
+			model2.clearAttributes();
+			comp.addImportedLibs(model2);
+			comp.checkProg(model2);
+		} catch (CompileError e) {
+			gui.sendError(e);
+		}
+		WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
+		if (addErrorMarkers) {
+			reportErrorsForProject("build project, doTypecheck, end", gui);
 		}
 	}
 
-	private void reportErrorsForProject(WurstGui gui) {
+	private void reportErrorsForProject(String extra, WurstGui gui) {
 		Multimap<String, CompileError> typeErrors = ArrayListMultimap.create();
 		for (CompileError e : gui.getErrorsAndWarnings()) {
 			typeErrors.put(e.getSource().getFile(), e);
@@ -315,11 +316,11 @@ public class ModelManagerImpl implements ModelManager {
 		for (String file : parseErrors.keySet()) {
 			List<CompileError> errors = new ArrayList<>(parseErrors.get(file));
 			errors.addAll(typeErrors.get(file));
-			reportErrors(file, errors);
+			reportErrors(extra, file, errors);
 		}
 	}
 
-	private void reportErrorsForFiles(List<String> filenames, WurstGui gui) {
+	private void reportErrorsForFiles(String extra, List<String> filenames, WurstGui gui) {
 		Multimap<String, CompileError> typeErrors = ArrayListMultimap.create();
 		for (CompileError e : gui.getErrorsAndWarnings()) {
 			typeErrors.put(e.getSource().getFile(), e);
@@ -328,12 +329,12 @@ public class ModelManagerImpl implements ModelManager {
 		for (String file : filenames) {
 			List<CompileError> errors = new ArrayList<>(parseErrors.get(file));
 			errors.addAll(typeErrors.get(file));
-			reportErrors(file, errors);
+			reportErrors(extra, file, errors);
 		}
 	}
 
-	private void reportErrors(String filename, List<CompileError> errors) {
-		CompilationResult cr = CompilationResult.create(filename, errors);
+	private void reportErrors(String extra, String filename, List<CompileError> errors) {
+		CompilationResult cr = CompilationResult.create(extra, filename, errors);
 		for (Consumer<CompilationResult> consumer : onCompilationResultListeners) {
 			consumer.accept(cr);
 		}
@@ -347,12 +348,10 @@ public class ModelManagerImpl implements ModelManager {
 		return comp;
 	}
 
-	private void updateModel(CompilationUnit cu, WurstGui gui, boolean reportErrors) {
+	private void updateModel(CompilationUnit cu, WurstGui gui) {
 		System.out.println("update model with " + cu.getFile());
-		if (reportErrors) {
-			// TODO remove
-			parseErrors.put(cu.getFile(), new ArrayList<>(gui.getErrorsAndWarnings()));
-		}
+		parseErrors.put(cu.getFile(), new ArrayList<>(gui.getErrorsAndWarnings()));
+
 
 		WurstModel model2 = model;
 		if (model2 == null) {
@@ -373,7 +372,7 @@ public class ModelManagerImpl implements ModelManager {
 				model2.add(cu);
 			}
 		}
-		doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
+		//doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
 	}
 
 	private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
@@ -393,35 +392,91 @@ public class ModelManagerImpl implements ModelManager {
 
 	private void resolveImports(WurstGui gui) {
 		WurstCompilerJassImpl comp = getCompiler(gui);
-		synchronized (this) {
-			try {
-				WurstModel m = model;
-				if (m == null) {
-					return;
-				}
-				comp.addImportedLibs(m);
-			} catch (CompileError e) {
-				gui.sendError(e);
+		try {
+			WurstModel m = model;
+			if (m == null) {
+				return;
 			}
+			comp.addImportedLibs(m);
+		} catch (CompileError e) {
+			gui.sendError(e);
 		}
 	}
 
 	@Override
-	public void syncCompilationUnit(String filename) {
+	public void replaceCompilationUnit(String filename) {
 		try {
-			File f = new File(projectPath, filename);
-			syncCompilationUnit(f);
+			File f = getFile(filename);
+			replaceCompilationUnit(f);
 		} catch (IOException e) {
+			WLogger.severe(e);
 			throw new ModelManagerException(e);
 		}
 	}
 
-	private void syncCompilationUnit(File f) throws IOException, FileNotFoundException {
-		String filename = getProjectRelativePath(f);
-		syncCompilationUnit(filename, new FileReader(f), true);
+	/**
+	 * get a file object, where relative files are resolved with respect to
+	 * the project root
+	 */
+	private File getFile(String filename) {
+		File f = new File(filename);
+		if (f.isAbsolute()) {
+			return f;
+		}
+		return new File(projectPath, filename);
 	}
 
-	private void syncCompilationUnit(String filename, Reader fReader, boolean reportErrors) throws IOException {
+	private void replaceCompilationUnit(File f) throws IOException {
+		WLogger.info("replaceCompilationUnit 1 " + f);
+		String filename = getProjectRelativePath(f);
+		WLogger.info("replaceCompilationUnit 2 " + f);
+		replaceCompilationUnit(filename, new FileReader(f), true);
+		WLogger.info("replaceCompilationUnit 3 " + f);
+	}
+
+	@Override
+	public void syncCompilationUnit(String filename) {
+		WLogger.info("syncCompilationUnit " + filename);
+		try {
+			File f = getFile(filename);
+			syncCompilationUnit(f);
+		} catch (IOException e) {
+			WLogger.severe(e);
+			throw new ModelManagerException(e);
+		}
+	}
+
+	@Override
+	public void syncCompilationUnitContent(String filename, String contents) {
+		WLogger.info("sync contents for " + filename + " with content: " + contents);
+		filename = normalizeFilename(filename);
+		Reader reader = new StringReader(contents);
+		try {
+			replaceCompilationUnit(filename, reader, true);
+			WurstGui gui = new WurstGuiLogger();
+			doTypeCheckPartial(gui, true, ImmutableList.of(filename));
+		} catch (IOException e) {
+			WLogger.severe(e);
+			throw new ModelManagerException(e);
+		}
+	}
+
+	private String normalizeFilename(String filename) {
+		File f = getFile(filename);
+		filename = getProjectRelativePath(f);
+		return filename;
+	}
+
+	private void syncCompilationUnit(File f) throws IOException {
+		WLogger.info("syncCompilationUnit File " + f);
+		replaceCompilationUnit(f);
+		WLogger.info("replaced file " + f);
+		WurstGui gui = new WurstGuiLogger();
+		doTypeCheckPartial(gui, true, ImmutableList.of(getProjectRelativePath(f)));
+	}
+
+	private void replaceCompilationUnit(String filename, Reader fReader, boolean reportErrors) throws IOException {
+		WLogger.info("replace CU " + filename);
 		WurstGui gui = new WurstGuiLogger();
 		WurstCompilerJassImpl c = getCompiler(gui);
 		CompilationUnit cu;
@@ -429,18 +484,19 @@ public class ModelManagerImpl implements ModelManager {
 			cu = c.parse(filename, reader);
 			cu.setFile(filename);
 		}
-		updateModel(cu, gui, reportErrors);
+		updateModel(cu, gui);
 		if (reportErrors) {
 			System.out.println("found " + gui.getErrorCount() + " errors in file " + filename);
-			reportErrors(filename, gui.getErrorsAndWarnings());
+			reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
 		}
 	}
 
 	@Override
 	public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
 		try {
-			syncCompilationUnit(filename, new StringReader(contents), reportErrors);
+			replaceCompilationUnit(filename, new StringReader(contents), reportErrors);
 		} catch (IOException e) {
+			WLogger.severe(e);
 			throw new ModelManagerException(e);
 		}
 	}
@@ -474,6 +530,7 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
+		WLogger.info("do typecheck partial of " + toCheckFilenames);
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
 		WurstModel model2 = model;
@@ -494,7 +551,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		if (addErrorMarkers) {
 			List<String> fileNames = getfileNames(clearedCUs);
-			reportErrorsForFiles(fileNames, gui);
+			reportErrorsForFiles("partial ", fileNames, gui);
 		}
 	}
 

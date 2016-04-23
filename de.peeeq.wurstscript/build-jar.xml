@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="create_run_jar" name="Create Runnable Jar for Project de.peeeq.wurstio">
+<project default="make_for_wurstpack" name="Create Runnable Jar for Project de.peeeq.wurstio">
 	<!--this file was created by Eclipse Runnable JAR Export Wizard-->
 	<!--ANT 1.7 is required                                        -->
-	<target name="create_run_jar">
+
+	<property name="root" location="." />
+	<property name="lib" location="./lib" />
+	<property name="src" location="./src" />
+	<property name="srcgen" location="./src-gen" />
+	<property name="srctest" location="./src-test" />
+	<property name="build" location="./bin" />
+
+	<path id="classpath">
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="create_run_jar" depends="just_compile">
 		<mkdir dir="./dist/" />
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
@@ -63,6 +77,20 @@
 			<arg value="../downloads/Wurstpack/" />
 			<arg value="../downloads/wurstpack.md5" />
 		</java>
+	</target>
+
+	<target name="just_compile">
+		<mkdir dir="${build}" />
+		<javac srcdir="${src}" destdir="${build}" includeantruntime="false" debug="true" debuglevel="vars,lines,source"
+			   encoding="UTF-8">
+			<compilerarg value="-Xlint" />
+			<compilerarg value="-Xmaxwarns" />
+			<compilerarg value="100000" />
+
+			<src path="${srcgen}" />
+			<src path="${srctest}" />
+			<classpath refid="classpath" />
+		</javac>
 	</target>
 
 </project>
