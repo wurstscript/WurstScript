@@ -444,7 +444,26 @@ public class Utils {
 			return bestResult(betterResults);
 		}
 	}
-	
+
+	public static AstElement getAstElementAtPos(AstElement elem, int line, int column, boolean usesMouse) {
+		List<AstElement> betterResults = Lists.newArrayList();
+		for (int i = 0; i < elem.size(); i++) {
+			AstElement e = elem.get(i);
+			if (elementContainsPos(e, line, column, usesMouse)) {
+				betterResults.add(getAstElementAtPos(e, line, column, usesMouse));
+			}
+		}
+		if (betterResults.size() == 0) {
+			return elem;
+		} else {
+			return bestResult(betterResults);
+		}
+
+
+	}
+
+
+
 	public static AstElement getAstElementAtPosIgnoringLists(AstElement elem,
 			int caretPosition, boolean usesMouse) {
 		AstElement r = getAstElementAtPos(elem, caretPosition, usesMouse);
@@ -476,6 +495,18 @@ public class Utils {
 	public static boolean elementContainsPos(AstElement e, int pos, boolean usesMouse) {
 		return e.attrSource().getLeftPos() <= pos
 				&& e.attrSource().getRightPos() >= pos + (usesMouse ? 1 : 0);
+	}
+
+	private static boolean elementContainsPos(AstElement e, int line, int column, boolean usesMouse) {
+		WPos pos = e.attrSource();
+		if (pos.getLine() == line) {
+			// same line
+			return pos.getStartColumn() <= column
+					&& pos.getEndColumn() >= column;
+		} else {
+			return pos.getLine() <= line
+					&& pos.getEndLine() >= line;
+		}
 	}
 
 	public static <T extends AstElementWithName> List<T> sortByName(
@@ -915,9 +946,6 @@ public class Utils {
 		return f.getName().replaceAll("\\.[jw]urst$", "");
 	}
 
-	
 
 
-	
-	
 }

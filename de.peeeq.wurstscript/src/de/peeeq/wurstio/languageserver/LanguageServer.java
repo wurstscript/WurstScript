@@ -72,6 +72,15 @@ public class LanguageServer {
 				worker.handleReconcile(file, content);
 				break;
 			}
+			case "provideDefinition": {
+				JsonObject obj = req.getData().getAsJsonObject();
+				String filename = obj.get("filename").getAsString();
+				String buffer = obj.get("buffer").getAsString();
+				int line = obj.get("line").getAsInt();
+				int column = obj.get("column").getAsInt();
+				worker.handleGetDefinition(req.getSequenceNr(), filename, buffer, line, column);
+				break;
+			}
 			default:
 				log("unhandled request: " + req.getPath());
 		}
@@ -92,4 +101,11 @@ public class LanguageServer {
 		});
 	}
 
+	public void reply(int requestNr, Object response) {
+		responseExecutor.submit(() -> {
+			Gson gson = new Gson();
+			ReplyPackage p = new ReplyPackage(requestNr, response);
+			System.out.println(gson.toJson(p));
+		});
+	}
 }

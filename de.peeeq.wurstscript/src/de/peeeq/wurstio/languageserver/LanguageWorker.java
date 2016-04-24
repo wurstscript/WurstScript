@@ -1,11 +1,11 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.GetDefinition;
+import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -14,6 +14,7 @@ public class LanguageWorker implements Runnable {
 	private final Map<String, PendingChange> changes = new LinkedHashMap<>();
 	private final AtomicLong currentTime = new AtomicLong();
 	private final LanguageServer server;
+	private final Queue<UserRequest> userRequests = new ArrayDeque<>();
 
 	private ModelManager modelManager;
 	private String rootPath;
@@ -52,6 +53,13 @@ public class LanguageWorker implements Runnable {
 	public void handleReconcile(String file, String content) {
 		synchronized (lock) {
 			changes.put(file, new FileReconcile(file, content));
+			lock.notifyAll();
+		}
+	}
+
+	public void handleGetDefinition(int sequenceNr, String filename, String buffer, int line, int column) {
+		synchronized (lock) {
+			userRequests.add(new GetDefinition(sequenceNr, filename, buffer, line, column));
 			lock.notifyAll();
 		}
 	}
@@ -132,6 +140,10 @@ public class LanguageWorker implements Runnable {
 				// cannot do anything useful at the moment
 				WLogger.info("LanguageWorker is waiting for init ... ");
 			}
+		} else if (!userRequests.isEmpty()) {
+			UserRequest req = userRequests.remove();
+			Object response = req.execute(modelManager);
+			server.reply(req.getRequestNr(), response);
 		} else if (!changes.isEmpty()) {
 			// TODO this can be done more efficiently than doing one at a time
 			PendingChange change = removeFirst(changes);

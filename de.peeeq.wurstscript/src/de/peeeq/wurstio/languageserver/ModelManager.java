@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.ast.CompilationUnit;
+
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -23,4 +25,6 @@ public interface ModelManager {
 	void syncCompilationUnit(String changedFilePath);
 
 	void syncCompilationUnitContent(String filename, String contents);
+
+	CompilationUnit replaceCompilationUnitContent(String filename, String buffer);
 }

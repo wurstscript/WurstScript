@@ -3,7 +3,6 @@ package de.peeeq.wurstio.languageserver;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -461,6 +460,18 @@ public class ModelManagerImpl implements ModelManager {
 		}
 	}
 
+	@Override
+	public CompilationUnit replaceCompilationUnitContent(String filename, String contents) {
+		filename = normalizeFilename(filename);
+		Reader reader = new StringReader(contents);
+		try {
+			return replaceCompilationUnit(filename, reader, true);
+		} catch (IOException e) {
+			WLogger.severe(e);
+			throw new ModelManagerException(e);
+		}
+	}
+
 	private String normalizeFilename(String filename) {
 		File f = getFile(filename);
 		filename = getProjectRelativePath(f);
@@ -475,7 +486,7 @@ public class ModelManagerImpl implements ModelManager {
 		doTypeCheckPartial(gui, true, ImmutableList.of(getProjectRelativePath(f)));
 	}
 
-	private void replaceCompilationUnit(String filename, Reader fReader, boolean reportErrors) throws IOException {
+	private CompilationUnit replaceCompilationUnit(String filename, Reader fReader, boolean reportErrors) throws IOException {
 		WLogger.info("replace CU " + filename);
 		WurstGui gui = new WurstGuiLogger();
 		WurstCompilerJassImpl c = getCompiler(gui);
@@ -489,6 +500,7 @@ public class ModelManagerImpl implements ModelManager {
 			System.out.println("found " + gui.getErrorCount() + " errors in file " + filename);
 			reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
 		}
+		return cu;
 	}
 
 	@Override

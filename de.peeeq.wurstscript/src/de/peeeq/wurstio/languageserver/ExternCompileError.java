@@ -35,17 +35,11 @@ public class ExternCompileError {
 
 	public ExternCompileError(CompileError err) {
 		WPos pos = err.getSource();
-		LineOffsets offsets = pos.getLineOffsets();
 		this.fileName = pos.getFile();
 		startLine = pos.getLine();
 		endLine = pos.getEndLine();
-		if (offsets != null) {
-			startColumn = offsets.getColumn(pos.getLeftPos());
-			endColumn = offsets.getColumn(pos.getRightPos());
-		} else {
-			startColumn = 0;
-			endColumn = 0;
-		}
+		startColumn = pos.getStartColumn();
+		endColumn = pos.getEndColumn();
 		message = err.getMessage();
 		errorType = err.getErrorType();
 	}

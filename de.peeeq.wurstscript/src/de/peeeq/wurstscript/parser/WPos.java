@@ -49,6 +49,18 @@ public class WPos {
 		return lo.getLine(rightPos);
 	}
 
+	public int getStartColumn() {
+		LineOffsets lo = lineOffsets;
+		if (lo == null) return 0;
+		return lo.getColumn(leftPos);
+	}
+
+	public int getEndColumn() {
+		LineOffsets lo = lineOffsets;
+		if (lo == null) return 0;
+		return lo.getColumn(rightPos);
+	}
+
 	public WPos withRightPos(int rightPos) {
 		return new WPos(file, lineOffsets, leftPos, rightPos);
 	}
