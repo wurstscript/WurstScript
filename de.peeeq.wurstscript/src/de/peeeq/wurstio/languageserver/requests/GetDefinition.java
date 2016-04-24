@@ -26,7 +26,7 @@ public class GetDefinition extends UserRequest {
 	public Object execute(ModelManager modelManager) {
 		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer);
 		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
-		WLogger.info("	hover: " + e.getClass().getSimpleName());
+		WLogger.info("get definition at: " + e.getClass().getSimpleName());
 		if (e instanceof FuncRef) {
 			FuncRef funcRef = (FuncRef) e;
 			FunctionDefinition decl = funcRef.attrFuncDef();

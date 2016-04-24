@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
+import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
@@ -14,7 +15,7 @@ public class LanguageWorker implements Runnable {
 	private final Map<String, PendingChange> changes = new LinkedHashMap<>();
 	private final AtomicLong currentTime = new AtomicLong();
 	private final LanguageServer server;
-	private final Queue<UserRequest> userRequests = new ArrayDeque<>();
+	private final Queue<UserRequest> userRequests = new LinkedList<>();
 
 	private ModelManager modelManager;
 	private String rootPath;
@@ -59,7 +60,16 @@ public class LanguageWorker implements Runnable {
 
 	public void handleGetDefinition(int sequenceNr, String filename, String buffer, int line, int column) {
 		synchronized (lock) {
+			userRequests.removeIf(req -> req instanceof  GetDefinition);
 			userRequests.add(new GetDefinition(sequenceNr, filename, buffer, line, column));
+			lock.notifyAll();
+		}
+	}
+
+	public void handleGetHoverInfo(int sequenceNr, String filename, String buffer, int line, int column) {
+		synchronized (lock) {
+			userRequests.removeIf(req -> req instanceof HoverInfo);
+			userRequests.add(new HoverInfo(sequenceNr, filename, buffer, line, column));
 			lock.notifyAll();
 		}
 	}
@@ -123,7 +133,12 @@ public class LanguageWorker implements Runnable {
 				}
 				if (work != null) {
 					// actual work is not synchronized, so that requests can come in while the work is done
-					work.run();
+					try {
+						work.run();
+					} catch (Exception e) {
+						WLogger.severe(e);
+						System.err.println("Error in request " + work + " (see log for details): " + e.getMessage());
+					}
 				}
 			}
 		} catch (InterruptedException e) {

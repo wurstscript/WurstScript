@@ -47,10 +47,16 @@ public class LanguageServer {
 		log("Started language server");
 
 		while (!Thread.currentThread().isInterrupted()) {
-			String line = in.readLine();
-			RequestPacket req = gson.fromJson(line, RequestPacket.class);
-			handleRequest(req);
+			try {
+				String line = in.readLine();
+				RequestPacket req = gson.fromJson(line, RequestPacket.class);
+				handleRequest(req);
+			} catch (Exception e) {
+				WLogger.severe(e);
+				System.err.println("Wurst error (see log for more details): " + e);
+			}
 		}
+		log("Stopped language server");
 	}
 
 	private void handleRequest(RequestPacket req) {
@@ -79,6 +85,15 @@ public class LanguageServer {
 				int line = obj.get("line").getAsInt();
 				int column = obj.get("column").getAsInt();
 				worker.handleGetDefinition(req.getSequenceNr(), filename, buffer, line, column);
+				break;
+			}
+			case "hoverInfo": {
+				JsonObject obj = req.getData().getAsJsonObject();
+				String filename = obj.get("filename").getAsString();
+				String buffer = obj.get("buffer").getAsString();
+				int line = obj.get("line").getAsInt();
+				int column = obj.get("column").getAsInt();
+				worker.handleGetHoverInfo(req.getSequenceNr(), filename, buffer, line, column);
 				break;
 			}
 			default:

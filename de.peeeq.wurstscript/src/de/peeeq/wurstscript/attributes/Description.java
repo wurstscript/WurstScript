@@ -6,8 +6,11 @@ import de.peeeq.wurstscript.utils.Utils;
 public class Description {
 
 	public static String description(AstElement e) {
-		
-		return Utils.stripHtml(e.descriptionHtml());
+		String html = e.descriptionHtml();
+		if (html == null) {
+			return null;
+		}
+		return Utils.stripHtml(html);
 	}
 
 }
