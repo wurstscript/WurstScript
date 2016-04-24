@@ -499,14 +499,14 @@ public class Utils {
 
 	private static boolean elementContainsPos(AstElement e, int line, int column, boolean usesMouse) {
 		WPos pos = e.attrSource();
-		if (pos.getLine() == line) {
-			// same line
-			return pos.getStartColumn() <= column
-					&& pos.getEndColumn() >= column;
-		} else {
-			return pos.getLine() <= line
-					&& pos.getEndLine() >= line;
+		if (pos.getLine() > line) {
+			return false;
 		}
+		if (pos.getEndLine() < line) {
+			return false;
+		}
+		return (pos.getLine() < line || pos.getStartColumn() <= column)
+				&& (pos.getEndLine() > line || pos.getEndColumn() >= column);
 	}
 
 	public static <T extends AstElementWithName> List<T> sortByName(

@@ -65,6 +65,9 @@ public class GetDefinition extends UserRequest {
 	}
 
 	private DefinitionInfo linkTo(AstElementWithSource decl) {
+		if (decl == null) {
+			return null;
+		}
 		WPos pos = decl.getSource();
 		return new DefinitionInfo(pos.getFile(), pos.getLine(), pos.getStartColumn());
 	}

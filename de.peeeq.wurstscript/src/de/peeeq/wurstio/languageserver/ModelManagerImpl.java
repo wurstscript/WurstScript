@@ -10,18 +10,13 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.common.io.Files;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -57,6 +52,10 @@ public class ModelManagerImpl implements ModelManager {
 	private List<Consumer<CompilationResult>> onCompilationResultListeners = new ArrayList<>();
 	// compile errors for each file
 	private Map<String, List<CompileError>> parseErrors = new LinkedHashMap<>();
+
+	// hashcode for each compilation unit content as string
+	private Map<String, Integer> fileHashcodes = new HashMap<>();
+
 
 	public ModelManagerImpl(String projectPath) {
 		this(new File(projectPath));
@@ -429,7 +428,8 @@ public class ModelManagerImpl implements ModelManager {
 		WLogger.info("replaceCompilationUnit 1 " + f);
 		String filename = getProjectRelativePath(f);
 		WLogger.info("replaceCompilationUnit 2 " + f);
-		replaceCompilationUnit(filename, new FileReader(f), true);
+		String contents = Files.toString(f, Charsets.UTF_8);
+		replaceCompilationUnit(filename, contents, true);
 		WLogger.info("replaceCompilationUnit 3 " + f);
 	}
 
@@ -449,27 +449,15 @@ public class ModelManagerImpl implements ModelManager {
 	public void syncCompilationUnitContent(String filename, String contents) {
 		WLogger.info("sync contents for " + filename + " with content: " + contents);
 		filename = normalizeFilename(filename);
-		Reader reader = new StringReader(contents);
-		try {
-			replaceCompilationUnit(filename, reader, true);
-			WurstGui gui = new WurstGuiLogger();
-			doTypeCheckPartial(gui, true, ImmutableList.of(filename));
-		} catch (IOException e) {
-			WLogger.severe(e);
-			throw new ModelManagerException(e);
-		}
+		replaceCompilationUnit(filename, contents, true);
+		WurstGui gui = new WurstGuiLogger();
+		doTypeCheckPartial(gui, true, ImmutableList.of(filename));
 	}
 
 	@Override
 	public CompilationUnit replaceCompilationUnitContent(String filename, String contents) {
 		filename = normalizeFilename(filename);
-		Reader reader = new StringReader(contents);
-		try {
-			return replaceCompilationUnit(filename, reader, true);
-		} catch (IOException e) {
-			WLogger.severe(e);
-			throw new ModelManagerException(e);
-		}
+		return replaceCompilationUnit(filename, contents, true);
 	}
 
 	private String normalizeFilename(String filename) {
@@ -486,16 +474,26 @@ public class ModelManagerImpl implements ModelManager {
 		doTypeCheckPartial(gui, true, ImmutableList.of(getProjectRelativePath(f)));
 	}
 
-	private CompilationUnit replaceCompilationUnit(String filename, Reader fReader, boolean reportErrors) throws IOException {
+
+
+	private CompilationUnit replaceCompilationUnit(String filename, String contents, boolean reportErrors) {
+		if (fileHashcodes.containsKey(filename)) {
+			int oldHash = fileHashcodes.get(filename);
+			WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
+			if (oldHash == contents.hashCode()) {
+				// no change
+				WLogger.info("CU " + filename + " was unchanged.");
+				return getCompilationUnit(filename);
+			}
+		}
+
 		WLogger.info("replace CU " + filename);
 		WurstGui gui = new WurstGuiLogger();
 		WurstCompilerJassImpl c = getCompiler(gui);
-		CompilationUnit cu;
-		try (Reader reader = fReader) {
-			cu = c.parse(filename, reader);
-			cu.setFile(filename);
-		}
+		CompilationUnit cu = c.parse(filename, new StringReader(contents));
+		cu.setFile(filename);
 		updateModel(cu, gui);
+		fileHashcodes.put(filename, contents.hashCode());
 		if (reportErrors) {
 			System.out.println("found " + gui.getErrorCount() + " errors in file " + filename);
 			reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
@@ -503,14 +501,13 @@ public class ModelManagerImpl implements ModelManager {
 		return cu;
 	}
 
+	private CompilationUnit getCompilationUnit(String filename) {
+		return getCompilationUnits(Collections.singletonList(filename)).get(0);
+	}
+
 	@Override
 	public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
-		try {
-			replaceCompilationUnit(filename, new StringReader(contents), reportErrors);
-		} catch (IOException e) {
-			WLogger.severe(e);
-			throw new ModelManagerException(e);
-		}
+		replaceCompilationUnit(filename, contents, reportErrors);
 	}
 
 	@Override
