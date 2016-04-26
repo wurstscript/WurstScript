@@ -947,5 +947,11 @@ public class Utils {
 	}
 
 
-
+	public static String repeat(char c, int size) {
+		StringBuilder result = new StringBuilder(size);
+		for (int i=0; i<size; i++) {
+			result.append(c);
+		}
+		return result.toString();
+	}
 }

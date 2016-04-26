@@ -101,6 +101,7 @@ public class WurstParser {
 
 			};
 			lexer.addErrorListener(l);
+			parser.removeErrorListeners();
 			parser.addErrorListener(l);
 
 			CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule

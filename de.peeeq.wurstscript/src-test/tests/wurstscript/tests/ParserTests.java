@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class ParserTests extends WurstScriptTest {
@@ -38,7 +39,7 @@ public class ParserTests extends WurstScriptTest {
 			);
 	}
 
-	@Test
+	@Test @Ignore
 	public void halfAssign() {
 		testAssertErrorsLines(false, "dasfdss",
 				"package Test",
@@ -50,7 +51,16 @@ public class ParserTests extends WurstScriptTest {
 				"	foo(x, y)",
 				"function foo(int x, int y)");
 	}
-	
+
+
+	@Test
+	public void dotTo() {
+		testAssertErrorsLines(false, "extraneous input 'to'",
+				"package Test",
+				"init",
+				"	let x = 1",
+				"	string s = 1.to");
+	}
 	
 	
 }

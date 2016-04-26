@@ -96,6 +96,15 @@ public class LanguageServer {
 				worker.handleGetHoverInfo(req.getSequenceNr(), filename, buffer, line, column);
 				break;
 			}
+			case "getCompletions": {
+				JsonObject obj = req.getData().getAsJsonObject();
+				String filename = obj.get("filename").getAsString();
+				String buffer = obj.get("buffer").getAsString();
+				int line = obj.get("line").getAsInt();
+				int column = obj.get("column").getAsInt();
+				worker.handleGetCompletions(req.getSequenceNr(), filename, buffer, line, column);
+				break;
+			}
 			default:
 				log("unhandled request: " + req.getPath());
 		}

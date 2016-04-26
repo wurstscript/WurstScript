@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.GetCompletions;
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
@@ -70,6 +71,14 @@ public class LanguageWorker implements Runnable {
 		synchronized (lock) {
 			userRequests.removeIf(req -> req instanceof HoverInfo);
 			userRequests.add(new HoverInfo(sequenceNr, filename, buffer, line, column));
+			lock.notifyAll();
+		}
+	}
+
+	public void handleGetCompletions(int sequenceNr, String filename, String buffer, int line, int column) {
+		synchronized (lock) {
+			userRequests.removeIf(req -> req instanceof GetCompletions);
+			userRequests.add(new GetCompletions(sequenceNr, filename, buffer, line, column));
 			lock.notifyAll();
 		}
 	}

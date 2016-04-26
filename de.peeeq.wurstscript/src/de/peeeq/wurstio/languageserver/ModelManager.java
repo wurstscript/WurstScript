@@ -2,7 +2,9 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.function.Consumer;
 
 public interface ModelManager {
@@ -27,4 +29,7 @@ public interface ModelManager {
 	void syncCompilationUnitContent(String filename, String contents);
 
 	CompilationUnit replaceCompilationUnitContent(String filename, String buffer);
+
+	/** get all wurst files in dependency folders */
+	Set<File> getDependencyWurstFiles();
 }

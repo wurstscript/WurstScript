@@ -223,7 +223,11 @@ public class DescriptionHtml {
 	}
 	
 	public static String description(NameRef nr) {
-		return nr.attrNameDef().descriptionHtml();
+		NameDef nameDef = nr.attrNameDef();
+		if (nameDef == null) {
+			return nr.getVarName() + " is not defined yet.";
+		}
+		return nameDef.descriptionHtml();
 	}
 
 	public static @Nullable String description(ExprIncomplete exprIncomplete) {

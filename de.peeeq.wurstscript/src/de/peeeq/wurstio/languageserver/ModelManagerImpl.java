@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -447,7 +448,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public void syncCompilationUnitContent(String filename, String contents) {
-		WLogger.info("sync contents for " + filename + " with content: " + contents);
+		WLogger.info("sync contents for " + filename);
 		filename = normalizeFilename(filename);
 		replaceCompilationUnit(filename, contents, true);
 		WurstGui gui = new WurstGuiLogger();
@@ -561,6 +562,26 @@ public class ModelManagerImpl implements ModelManager {
 		if (addErrorMarkers) {
 			List<String> fileNames = getfileNames(clearedCUs);
 			reportErrorsForFiles("partial ", fileNames, gui);
+		}
+	}
+
+
+	@Override
+	public synchronized Set<File> getDependencyWurstFiles() {
+		Set<File> result = Sets.newHashSet();
+		for (String dep : dependencies) {
+			addDependencyWurstFiles(result, new File(dep));
+		}
+		return result;
+	}
+
+	private void addDependencyWurstFiles(Set<File> result, File file) {
+		if (file.isDirectory()) {
+			for (File child : file.listFiles()) {
+				addDependencyWurstFiles(result, child);
+			}
+		} else if (Utils.isWurstFile(file)) {
+			result.add(file);
 		}
 	}
 
