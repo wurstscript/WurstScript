@@ -502,8 +502,16 @@ public class ModelManagerImpl implements ModelManager {
 		return cu;
 	}
 
-	private CompilationUnit getCompilationUnit(String filename) {
-		return getCompilationUnits(Collections.singletonList(filename)).get(0);
+	@Override
+	public CompilationUnit getCompilationUnit(String filename) {
+		filename = normalizeFilename(filename);
+		List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
+		if (matches.isEmpty()) {
+			WLogger.info("compilation unit not found: " + filename);
+			WLogger.info("available: " + model.stream().map(cu -> cu.getFile()).collect(Collectors.joining(", ")));
+			return null;
+		}
+		return matches.get(0);
 	}
 
 	@Override

@@ -32,4 +32,6 @@ public interface ModelManager {
 
 	/** get all wurst files in dependency folders */
 	Set<File> getDependencyWurstFiles();
+
+	CompilationUnit getCompilationUnit(String filename);
 }

@@ -105,6 +105,14 @@ public class LanguageServer {
 				worker.handleGetCompletions(req.getSequenceNr(), filename, buffer, line, column);
 				break;
 			}
+			case "signatureHelp": {
+				JsonObject obj = req.getData().getAsJsonObject();
+				String filename = obj.get("filename").getAsString();
+				int line = obj.get("line").getAsInt();
+				int column = obj.get("column").getAsInt();
+				worker.handleSignatureHelp(req.getSequenceNr(), filename, line, column);
+				break;
+			}
 			default:
 				log("unhandled request: " + req.getPath());
 		}

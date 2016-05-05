@@ -1,9 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
-import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstio.languageserver.requests.GetDefinition;
-import de.peeeq.wurstio.languageserver.requests.HoverInfo;
-import de.peeeq.wurstio.languageserver.requests.UserRequest;
+import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -79,6 +76,14 @@ public class LanguageWorker implements Runnable {
 		synchronized (lock) {
 			userRequests.removeIf(req -> req instanceof GetCompletions);
 			userRequests.add(new GetCompletions(sequenceNr, filename, buffer, line, column));
+			lock.notifyAll();
+		}
+	}
+
+	public void handleSignatureHelp(int sequenceNr, String filename, int line, int column) {
+		synchronized (lock) {
+			userRequests.removeIf(req -> req instanceof SignatureInfo);
+			userRequests.add(new SignatureInfo(sequenceNr, filename, line, column));
 			lock.notifyAll();
 		}
 	}
