@@ -88,6 +88,14 @@ public class LanguageWorker implements Runnable {
 		}
 	}
 
+	public void handleClean(int sequenceNr) {
+		synchronized (lock) {
+			userRequests.removeIf(req -> req instanceof CleanProject);
+			userRequests.add(new CleanProject(sequenceNr));
+			lock.notifyAll();
+		}
+	}
+
 
 	private abstract class PendingChange {
 		private long time;

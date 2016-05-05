@@ -97,6 +97,8 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public void clean() {
+		fileHashcodes.clear();
+		parseErrors.clear();
 		model = null;
 		dependencies.clear();
 		needsFullBuild = true;

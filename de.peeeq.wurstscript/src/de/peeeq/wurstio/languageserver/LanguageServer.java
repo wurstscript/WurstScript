@@ -113,6 +113,10 @@ public class LanguageServer {
 				worker.handleSignatureHelp(req.getSequenceNr(), filename, line, column);
 				break;
 			}
+			case "clean": {
+				worker.handleClean(req.getSequenceNr());
+				break;
+			}
 			default:
 				log("unhandled request: " + req.getPath());
 		}
