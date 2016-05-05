@@ -86,7 +86,7 @@ public class GetCompletions extends UserRequest {
 			searchMode = mode;
 			List<WurstCompletion> completions = Lists.newArrayList();
 
-			elem = Utils.getAstElementAtPos(cu, line, column, false);
+			elem = Utils.getAstElementAtPos(cu, line, column+1, false);
 			WLogger.info("get completions at " + Utils.printElement(elem));
 			expectedType = null;
 			if (elem instanceof Expr) {
@@ -497,9 +497,11 @@ public class GetCompletions extends UserRequest {
 
 	private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
 		String replacementString = f.getName();
-//		if (!isBeforeParenthesis()) {
-//			replacementString += "()";
-//		}
+		if (!isBeforeParenthesis()) {
+			if (f.getParameters().isEmpty()) {
+				replacementString += "()";
+			}
+		}
 
 		WurstCompletion completion = new WurstCompletion(f.getName());
 		completion.kind = CompletionItemKind.Function;

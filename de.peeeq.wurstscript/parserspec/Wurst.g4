@@ -307,7 +307,7 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=ID indexes?
+				 expr dots=('.'|'..') varname=ID? indexes?
 			 ;
 
 

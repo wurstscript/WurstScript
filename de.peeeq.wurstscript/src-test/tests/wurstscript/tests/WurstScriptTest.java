@@ -334,7 +334,7 @@ public class WurstScriptTest {
 		}
 	}
 
-	private WurstModel parseFiles(Iterable<File> inputFiles,
+	protected WurstModel parseFiles(Iterable<File> inputFiles,
 			Map<String, String> inputs, boolean withStdLib,
 			WurstCompilerJassImpl compiler) {
 		if (inputFiles == null) {
