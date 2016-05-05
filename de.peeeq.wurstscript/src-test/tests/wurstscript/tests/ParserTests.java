@@ -61,6 +61,29 @@ public class ParserTests extends WurstScriptTest {
 				"	let x = 1",
 				"	string s = 1.to");
 	}
-	
-	
+
+	@Test
+	public void indentWithSpaces() {
+		testAssertOkLines(false,
+				"package Test",
+				"init",
+				"    var x = 1",
+				"    if x > 10",
+				"		x -= 1",
+				"	 x += 1");
+	}
+
+	@Test
+	public void indentWithSpaces2() {
+		testAssertOkLines(false,
+				"package Test",
+				"init",
+				"    var x = 1",
+				"    int y = 2",
+				"    if x > 10",
+				"        x -= 1",
+				"        y += 1",
+				"	 x += 1");
+	}
+
 }

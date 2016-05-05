@@ -93,6 +93,10 @@ public class WPos {
 		return new WPos(file, lineOffsets, leftPos, rightPos);
 	}
 
+	public WPos withFile(String file) {
+		return new WPos(file, lineOffsets, leftPos, rightPos);
+	}
+
 	public String shortFile() {
 		String s = getFile();
 		s = s.substring(s.lastIndexOf("lib/")+4);
@@ -104,5 +108,6 @@ public class WPos {
 	public WPos artificial() {
 		return new WPos(file, lineOffsets, leftPos, leftPos-1);
 	}
-	
+
+
 }

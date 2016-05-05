@@ -4,6 +4,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Stack;
 
+import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.parser.WPos;
 import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CommonToken;
@@ -33,9 +35,37 @@ public class ExtendedWurstLexer implements TokenSource {
 	private boolean isWurst = false;
 	private boolean lastCharWasWrap = false;
 	private @Nullable Token lastToken = null;
+	// which character is used for indentation
+	private TabChoice tabChoice = TabChoice.Unknown;
+	private CompileError tabWarning = null;
 
 	enum State {
 		INIT, NEWLINES, BEGIN_LINE
+	}
+
+	enum TabChoice {
+		Unknown(0),
+		Spaces(WurstParser.SPACETAB),
+		Tabs(WurstParser.TAB);
+
+		private int symbol;
+
+		TabChoice(int symbol) {
+
+			this.symbol = symbol;
+		}
+
+		public static TabChoice from(Token token) {
+			if (token.getType() == WurstParser.SPACETAB) {
+				return Spaces;
+			} else {
+				return Tabs;
+			}
+		}
+
+		public boolean isConsistentWith(Token token) {
+			return symbol == token.getType();
+		}
 	}
 
 
@@ -77,7 +107,7 @@ public class ExtendedWurstLexer implements TokenSource {
 		lastToken = t;
 
 		if (debug) System.out.println("		new token: " + t);
-		return t;		
+		return t;
 	}
 
 
@@ -149,7 +179,7 @@ public class ExtendedWurstLexer implements TokenSource {
 					firstNewline = token;
 					state(State.NEWLINES);
 					continue;
-				} else if (token.getType() == WurstParser.TAB) {
+				} else if (isTab(token)) {
 					continue;
 				}
 				lastCharWasWrap = isWrapCharEndLine(token.getType());
@@ -162,8 +192,9 @@ public class ExtendedWurstLexer implements TokenSource {
 					return token;
 				} else if (token.getType() == WurstParser.NL) {
 					continue;
-				} else if (token.getType() == WurstParser.TAB) {
+				} else if (isTab(token)) {
 					state(State.BEGIN_LINE);
+					readTabChar(token);
 					numberOfTabs = 1; 
 					continue;
 				} else {
@@ -195,7 +226,8 @@ public class ExtendedWurstLexer implements TokenSource {
 //					}
 //				}
 			case BEGIN_LINE:
-				if (token.getType() == WurstParser.TAB) {
+				if (isTab(token)) {
+					readTabChar(token);
 					numberOfTabs++;
 					continue;
 				} else if (token.getType() == WurstParser.NL) {
@@ -222,8 +254,18 @@ public class ExtendedWurstLexer implements TokenSource {
 		}
 	}
 
+	private void readTabChar(Token token) {
+		if (tabChoice == TabChoice.Unknown) {
+			tabChoice = TabChoice.from(token);
+		} else if (tabWarning == null && !tabChoice.isConsistentWith(token)) {
+			tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
+		}
+	}
 
-	
+	private boolean isTab(Token token) {
+		return token.getType() == WurstParser.TAB
+				|| token.getType() == WurstParser.SPACETAB;
+	}
 
 
 	private boolean isWurstOnlyKeyword(Token token) {
@@ -352,5 +394,9 @@ public class ExtendedWurstLexer implements TokenSource {
 	public void setErrorListener(ANTLRErrorListener listener) {
 		orig.removeErrorListeners();
 		orig.addErrorListener(listener);
+	}
+
+	public CompileError getTabWarning() {
+		return tabWarning;
 	}
 }

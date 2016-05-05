@@ -105,6 +105,13 @@ public class WurstParser {
 			parser.addErrorListener(l);
 
 			CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
+
+			if (lexer.getTabWarning() != null) {
+				CompileError warning = lexer.getTabWarning();
+				warning = new CompileError(warning.getSource().withFile(source), warning.getMessage(), CompileError.ErrorType.WARNING);
+				gui.sendError(warning);
+			}
+
 			CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
 			removeSyntacticSugar(root, hasCommonJ);
 			return root;
