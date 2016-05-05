@@ -137,8 +137,11 @@ public class LanguageWorker implements Runnable {
 			while (!Thread.currentThread().isInterrupted()) {
 				Runnable work;
 				synchronized (lock) {
-					lock.wait(10000);
 					work = getNextWorkItem();
+					if (work == null) {
+						lock.wait(10000);
+						work = getNextWorkItem();
+					}
 				}
 				if (work != null) {
 					// actual work is not synchronized, so that requests can come in while the work is done

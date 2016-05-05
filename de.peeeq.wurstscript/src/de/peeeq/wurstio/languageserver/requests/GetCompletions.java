@@ -497,9 +497,9 @@ public class GetCompletions extends UserRequest {
 
 	private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
 		String replacementString = f.getName();
-		if (!isBeforeParenthesis()) {
-			replacementString += "()";
-		}
+//		if (!isBeforeParenthesis()) {
+//			replacementString += "()";
+//		}
 
 		WurstCompletion completion = new WurstCompletion(f.getName());
 		completion.kind = CompletionItemKind.Function;
@@ -526,9 +526,9 @@ public class GetCompletions extends UserRequest {
 
 	private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
 		String replacementString = c.getName();
-		if (!isBeforeParenthesis()) {
-			replacementString += "()";
-		}
+//		if (!isBeforeParenthesis()) {
+//			replacementString += "()";
+//		}
 
 		WurstCompletion completion = new WurstCompletion(c.getName());
 		completion.kind = CompletionItemKind.Constructor;

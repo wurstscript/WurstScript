@@ -219,7 +219,11 @@ public class DescriptionHtml {
 	}
 
 	public static String description(FuncRef fr) {
-		return fr.attrFuncDef().descriptionHtml();
+		@Nullable FunctionDefinition def = fr.attrFuncDef();
+		if (def != null) {
+			return def.descriptionHtml();
+		}
+		return "";
 	}
 	
 	public static String description(NameRef nr) {
