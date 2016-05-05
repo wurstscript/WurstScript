@@ -100,7 +100,7 @@ public class DescriptionHtml {
 		if (f.attrComment().length() > 1) {
 			functionDescription = comment;
 		}else{
-			functionDescription = "<i>No hotdoc provided</i>";
+			functionDescription = "";
 		}
 		
 		String funcName = f.getName();
@@ -138,7 +138,7 @@ public class DescriptionHtml {
 		if (constr.attrComment().length() > 1) {
 			descr = comment;
 		}else{
-			descr = "<i>No hotdoc provided</i>";
+			descr = "";
 		}
 		descr += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" + 
 				"construct</font></b>(" + getParameterString(constr) + ") "
@@ -172,7 +172,7 @@ public class DescriptionHtml {
 		if (n.attrComment().length() > 1) {
 			additionalProposalInfo = comment;
 		}else{
-			additionalProposalInfo = "<i>No hotdoc provided</i>";
+			additionalProposalInfo = "";
 		}
 		additionalProposalInfo += "<pre><hr />" + htmlType(n.attrTyp()) + " " + n.getName()
 					+ "<br /></pre>" + "defined in " + nearestScopeName(n);

@@ -501,7 +501,7 @@ public class GetCompletions extends UserRequest {
 			replacementString += "()";
 		}
 
-		WurstCompletion completion = new WurstCompletion(getFunctionDescriptionShort(f));
+		WurstCompletion completion = new WurstCompletion(f.getName());
 		completion.kind = CompletionItemKind.Function;
 		completion.detail = getFunctionDescriptionShort(f);
 		completion.documentation = getFunctionDescriptionHtml(f);
@@ -511,13 +511,12 @@ public class GetCompletions extends UserRequest {
 	}
 
 	private String getFunctionDescriptionShort(FunctionDefinition f) {
-		String comment = f.attrComment();
-		comment = comment.replaceAll("\n", "<br />");
-		String displayString = f.getName() + "(" + Utils.getParameterListText(f) + ")";
+		String displayString = "(" + Utils.getParameterListText(f) + ")";
 		WurstType returnType = f.getReturnTyp().attrTyp();
 		if (!(returnType instanceof WurstTypeVoid)) {
-			displayString += "returns " + returnType + " - [" + nearestScopeName(f) + "]";
+			displayString += " returns " + returnType;
 		}
+		displayString +=  " [" + nearestScopeName(f) + "]";
 		return displayString;
 	}
 
@@ -531,10 +530,10 @@ public class GetCompletions extends UserRequest {
 			replacementString += "()";
 		}
 
-		WurstCompletion completion = new WurstCompletion(c.getName() + "(" + Utils.getParameterListText(constr) + ")");
+		WurstCompletion completion = new WurstCompletion(c.getName());
 		completion.kind = CompletionItemKind.Constructor;
 		String params = Utils.getParameterListText(constr);
-		completion.detail = c.getName() + params;
+		completion.detail = "(" + params + ")";
 		completion.documentation = constr.descriptionHtml();
 		completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), replacementString);
 		completion.rating = calculateRating(c.getName(), c.attrTyp().dynamic());
@@ -609,49 +608,6 @@ public class GetCompletions extends UserRequest {
 
 		static TextEdit delete(Range range) {
 			return new TextEdit(range, "");
-		}
-	}
-
-	// TODO adjust to VScode interface
-	private class WurstCompletion2 implements Comparable<WurstCompletion2> {
-		private final String replacementString;
-		private final int replacementOffset;
-		private final int replacementLength;
-		private final int cursorPosition;
-		private final CompletionItemKind kind;
-		private final String label;
-		private final String detail;
-		private final String comment;
-		private double rating;
-
-		public WurstCompletion2(String replacementString, int replacementOffset, int replacementLength, int cursorPosition, CompletionItemKind kind, String label, String detail, String comment, double rating) {
-
-			this.replacementString = replacementString;
-			this.replacementOffset = replacementOffset;
-			this.replacementLength = replacementLength;
-			this.cursorPosition = cursorPosition;
-			this.kind = kind;
-			this.label = label;
-			this.detail = detail;
-			this.comment = comment;
-			this.rating = rating;
-		}
-
-		public WurstCompletion withDisableAction() {
-			return null;
-		}
-
-		public String getDisplayString() {
-			return label;
-		}
-
-		@Override
-		public int compareTo(WurstCompletion2 o) {
-			return 0;
-		}
-
-		public double getRating() {
-			return rating;
 		}
 	}
 
