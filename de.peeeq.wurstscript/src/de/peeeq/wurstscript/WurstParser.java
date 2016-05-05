@@ -100,7 +100,7 @@ public class WurstParser {
 				}
 
 			};
-			lexer.addErrorListener(l);
+			lexer.setErrorListener(l);
 			parser.removeErrorListeners();
 			parser.addErrorListener(l);
 

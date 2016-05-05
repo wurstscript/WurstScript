@@ -349,7 +349,8 @@ public class ExtendedWurstLexer implements TokenSource {
 	}
 
 	
-	public void addErrorListener(ANTLRErrorListener listener) {
+	public void setErrorListener(ANTLRErrorListener listener) {
+		orig.removeErrorListeners();
 		orig.addErrorListener(listener);
 	}
 }
