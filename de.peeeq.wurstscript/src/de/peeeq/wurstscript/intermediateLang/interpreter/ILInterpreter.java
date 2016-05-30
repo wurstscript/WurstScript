@@ -113,20 +113,22 @@ public class ILInterpreter {
 	}
 
 	private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-		
+		String errors = "";
 		for (NativesProvider natives : globalState.getNativeProviders()) {
 			try {
 				return new LocalState(natives.invoke(f.getName(), args));
 			} catch (NoSuchNativeException e) {
+				errors += "\n" + e.getMessage();
 				// ignore
 			}
 		}
 		ImStmt lastStatement = globalState.getLastStatement();
+		String errorMessage = "function " + f.getName() + " not found." + errors;
 		if (lastStatement != null) {
 			WPos source = lastStatement.attrTrace().attrSource();
-			globalState.getGui().sendError(new CompileError(source, "function " + f.getName() + " not found"));
+			globalState.getGui().sendError(new CompileError(source, errorMessage));
 		} else {
-			globalState.getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), "function " + f.getName() + " not found"));
+			globalState.getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
 		}
 		for (ILStackFrame sf : globalState.getStackFrames()) {
 			globalState.getGui().sendError(new CompileError(sf.trace, sf.trace.printShort()));
