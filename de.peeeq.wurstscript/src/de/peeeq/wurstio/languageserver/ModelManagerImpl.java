@@ -102,7 +102,15 @@ public class ModelManagerImpl implements ModelManager {
 			WurstGui gui = new WurstGuiLogger();
 			readDependencies(gui);
 
+			if (!projectPath.exists()) {
+				throw new RuntimeException("Folder " + projectPath + " does not exist!");
+			}
+
 			File wurstFolder = new File(projectPath, "wurst");
+			if (!wurstFolder.exists()) {
+				System.err.println("No wurst folder found, using complete directory instead.");
+				wurstFolder = projectPath;
+			}
 			processWurstFiles(wurstFolder);
 
 			resolveImports(gui);
