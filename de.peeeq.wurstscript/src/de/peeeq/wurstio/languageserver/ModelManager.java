@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WurstModel;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,4 +35,8 @@ public interface ModelManager {
 	Set<File> getDependencyWurstFiles();
 
 	CompilationUnit getCompilationUnit(String filename);
+
+	WurstModel getModel();
+
+	boolean hasErrors();
 }

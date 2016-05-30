@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
@@ -19,6 +20,7 @@ public class LanguageWorker implements Runnable {
 	private String rootPath;
 
 	private final Object lock = new Object();
+	private int initRequestSequenceNr = -1;
 
 	public LanguageWorker(LanguageServer server) {
 		this.server = server;
@@ -39,19 +41,22 @@ public class LanguageWorker implements Runnable {
 		WLogger.info("handle handleFileChanged END " + filePath);
 	}
 
-	public void handleInit(String rootPath) {
+	public void handleInit(int sequenceNr, String rootPath) {
 		WLogger.info("handle init " + rootPath);
 		synchronized (lock) {
 			this.rootPath = rootPath;
 			this.modelManager = null;
+			this.initRequestSequenceNr = sequenceNr;
 			lock.notifyAll();
 		}
 		WLogger.info("handle init END " + rootPath);
 	}
 
-	public void handleReconcile(String file, String content) {
+	public void handleReconcile(int sequenceNr, String file, String content) {
 		synchronized (lock) {
 			changes.put(file, new FileReconcile(file, content));
+			// reply directly
+			server.reply(sequenceNr, "request queued");
 			lock.notifyAll();
 		}
 	}
@@ -144,6 +149,7 @@ public class LanguageWorker implements Runnable {
 	}
 
 
+
 	@Override
 	public void run() {
 		try {
@@ -181,9 +187,11 @@ public class LanguageWorker implements Runnable {
 				WLogger.info("LanguageWorker is waiting for init ... ");
 			}
 		} else if (!userRequests.isEmpty()) {
-			UserRequest req = userRequests.remove();
-			Object response = req.execute(modelManager);
-			server.reply(req.getRequestNr(), response);
+			return () -> {
+				UserRequest req = userRequests.remove();
+				Object response = req.execute(modelManager);
+				server.reply(req.getRequestNr(), response);
+			};
 		} else if (!changes.isEmpty()) {
 			// TODO this can be done more efficiently than doing one at a time
 			PendingChange change = removeFirst(changes);
@@ -195,7 +203,6 @@ public class LanguageWorker implements Runnable {
 				} else if (change instanceof FileReconcile) {
 					FileReconcile fr = (FileReconcile) change;
 					modelManager.syncCompilationUnitContent(fr.getFilename(), fr.getContents());
-
 				} else {
 					WLogger.info("unhandled change request: " + change);
 				}
@@ -221,7 +228,9 @@ public class LanguageWorker implements Runnable {
 
 			log("Start building " + rootPath);
 			modelManager.buildProject();
+
 			log("Finished building " + rootPath);
+			server.reply(initRequestSequenceNr, "done");
 		} catch (Exception e) {
 			WLogger.severe(e);
 		}

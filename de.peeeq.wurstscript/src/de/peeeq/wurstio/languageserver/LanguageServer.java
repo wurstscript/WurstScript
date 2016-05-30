@@ -68,14 +68,14 @@ public class LanguageServer {
 			}
 			case "init": {
 				String file = req.getData().getAsJsonPrimitive().getAsString();
-				worker.handleInit(file);
+				worker.handleInit(req.getSequenceNr(), file);
 				break;
 			}
 			case "reconcile": {
 				JsonObject obj = req.getData().getAsJsonObject();
 				String file = obj.get("filename").getAsString();
 				String content = obj.get("content").getAsString();
-				worker.handleReconcile(file, content);
+				worker.handleReconcile(req.getSequenceNr(), file, content);
 				break;
 			}
 			case "provideDefinition": {

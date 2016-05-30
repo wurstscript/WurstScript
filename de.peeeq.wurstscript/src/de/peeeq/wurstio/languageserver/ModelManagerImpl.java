@@ -1,43 +1,30 @@
 package de.peeeq.wurstio.languageserver;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.nio.file.Path;
-import java.util.*;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
-import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
-
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
+import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * keeps a version of the model which is always the most recent one
@@ -378,15 +365,21 @@ public class ModelManagerImpl implements ModelManager {
 
 	private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
 		InputStream source = this.getClass().getResourceAsStream("/" + filename);
+		File sourceFile;
 		if (source == null) {
 			System.err.println("could not find " + filename + " in jar");
-			source = new FileInputStream("./resources/" + filename);
+			sourceFile = new File("./resources/" + filename);
+		} else {
+			sourceFile = File.createTempFile("wurst", filename);
+			java.nio.file.Files.copy(source, sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
+
+
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
 
-		try (InputStreamReader reader = new InputStreamReader(source)) {
-			CompilationUnit cu = comp.parse(filename, reader);
-			cu.setFile(filename);
+		try (InputStreamReader reader = new FileReader(sourceFile)) {
+			CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
+			cu.setFile(sourceFile.getAbsolutePath());
 			return cu;
 		}
 	}
@@ -515,6 +508,18 @@ public class ModelManagerImpl implements ModelManager {
 		}
 		return matches.get(0);
 	}
+
+	@Override
+	public WurstModel getModel() {
+		return model;
+	}
+
+	@Override
+	public boolean hasErrors() {
+		// TODO add type errors as well
+		return parseErrors.values().stream().anyMatch(l -> !l.isEmpty());
+	}
+
 
 	@Override
 	public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
