@@ -119,7 +119,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				loadFile(f);
 			} else if (f.getName().equals("wurst.dependencies")) {
 				addDependencyFile(f);
-			} else if (mapFile == null && f.getName().equals("war3map.j")) {
+			} else if ((mapFile == null || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
 				loadFile(f);
 			}
 		}
@@ -198,7 +198,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 				// ignore dirs
 			} else if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
 				CompilationUnit r = processMap(file);
-				compilationUnits.add(r );				
+				if (r != null) {
+					compilationUnits.add(r);
+				}
 			} else {
 				if (file.getName().endsWith("common.j")) {
 					hasCommonJ = true;
@@ -562,6 +564,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		MpqEditor mapMpq = mapFileMpq;
 		if (mapMpq == null) {
 			throw new RuntimeException("map mpq is null");
+		}
+
+
+		if (runArgs.isNoExtractMapScript()) {
+			return null;
 		}
 
 		// extract mapscript:

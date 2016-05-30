@@ -12,6 +12,7 @@ import com.google.common.collect.Lists;
 
 public class RunArgs {
 
+
 	private List<String> files  = Lists.newArrayList();
 	private @Nullable String mapFile = null;
 	private @Nullable String outFile = null;
@@ -36,32 +37,33 @@ public class RunArgs {
 	private RunOption optionGenerateLua;
 	private RunOption optionUseJmpq2;
 	private RunOption optionLanguageServer;
-	
+	private RunOption optionNoExtractMapScript;
+
 	private class RunOption {
 		final String name;
 		final String descr;
 		final @Nullable Consumer<String> argHandler;
 		boolean isSet;
-		
+
 		public RunOption(String name, String descr) {
 			this.name = name;
 			this.descr = descr;
 			this.argHandler = null;
 		}
-		
+
 		public RunOption(String name, String descr, Consumer<String> argHandler2) {
 			this.name = name;
 			this.descr = descr;
 			this.argHandler = argHandler2;
 		}
 	}
-	
 
-	
+
+
 	public static RunArgs defaults() {
 		return new RunArgs(new String[] {});
 	}
-	
+
 	public RunArgs(String ... args) {
 		// optimization 
 		optionOpt = addOption("opt", "Enable the Froptimizer. Compresses names.");
@@ -86,6 +88,7 @@ public class RunArgs {
 		// backends
 		optionGenerateLua = addOption("lua", "generate lua output");
 		// other
+		optionNoExtractMapScript = addOption("noExtractMapScript", "Do not extract the map script from the map and use the one from the Wurst folder instead.");
 		optionUseJmpq2 = addOption("-jmpq2", "Use JMpq-v2 as mpq editor");
 		optionGui = addOption("gui", "Show a graphical user interface (progress bar and error window).");
 		addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", arg -> {
@@ -94,16 +97,16 @@ public class RunArgs {
 		optionExtractImports = addOptionWithArg("-extractImports", "Extract all files from a map into a folder next to the mapp.", arg -> {
 			mapFile = arg;
 		});
-		
-		
+
+
 		addOptionWithArg("out", "Outputs the compiled script to this file.", arg -> {
 			outFile = arg;
 		});
-		
+
 		optionLanguageServer = addOption("languageServer", "Starts a language server which can be used by editors to get services "
 				+ "like code completion, validations, and find declaration. The communication to the "
 				+ "language server is via standard input output.");
-		
+
 		nextArg: for (int i=0; i<args.length; i++) {
 			String a = args[i];
 			if (a.startsWith("-")) {
@@ -126,7 +129,7 @@ public class RunArgs {
 				}
 			}
 		}
-		
+
 		if (optionHelp.isSet) {
 			printHelpAndExit();
 		}
@@ -187,7 +190,7 @@ public class RunArgs {
 	public boolean showAbout() {
 		return optionAbout.isSet;
 	}
-	
+
 	public boolean isStartServer() {
 		return optionStartServer.isSet;
 	}
@@ -204,7 +207,7 @@ public class RunArgs {
 		return optionRunCompileTimeFunctions.isSet;
 	}
 
-	
+
 
 	public boolean createHotDoc() {
 		return optionHotdoc.isSet;
@@ -221,7 +224,7 @@ public class RunArgs {
 	public boolean isIncludeStacktraces() {
 		return optionStacktraces.isSet;
 	}
-	
+
 	public boolean isNoDebugMessages() {
 		return optionNodebug.isSet;
 	}
@@ -247,20 +250,24 @@ public class RunArgs {
 	public boolean isExtractImports() {
 		return optionExtractImports.isSet;
 	}
-	
+
 	public boolean isGenerateLua() {
 		return optionGenerateLua.isSet;
 	}
-	
+
 	public boolean isUncheckedDispatch() {
 		return uncheckedDispatch.isSet;
 	}
-	
+
 	public boolean useJmpq2(){
 		return optionUseJmpq2.isSet;
 	}
 
 	public boolean isLanguageServer() {
 		return optionLanguageServer.isSet;
+	}
+
+	public boolean isNoExtractMapScript() {
+		return optionNoExtractMapScript.isSet;
 	}
 }
