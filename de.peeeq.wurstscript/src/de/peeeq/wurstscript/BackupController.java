@@ -30,7 +30,8 @@ public class BackupController {
 		}
 		backupFolder.mkdirs();
 		WLogger.info(mapFileName);
-		String mapName = mapFileName.substring(mapFileName.lastIndexOf("\\")+1,mapFileName.lastIndexOf("."));
+		mapFileName = new File(mapFileName).getName();
+		String mapName = mapFileName.substring(0,mapFileName.lastIndexOf("."));
 		WLogger.info(mapName);
 		int count = backupCount(mapName);
 		WLogger.info("Count " + count);
