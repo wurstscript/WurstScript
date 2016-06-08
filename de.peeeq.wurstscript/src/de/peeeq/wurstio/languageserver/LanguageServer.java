@@ -28,12 +28,8 @@ public class LanguageServer {
 
 
 	private void setupLogger() throws IOException {
-		File logFolder = new File("logs");
-		logFolder.mkdirs();
-		File logFile = new File(logFolder, "languageServer.log");
-		Handler handler = new FileHandler(logFile.getAbsolutePath(), Integer.MAX_VALUE, 20);
+		FileHandler handler = new FileHandler("%t/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
 		handler.setFormatter(new SimpleFormatter());
-		System.out.println("logging to " + logFile.getAbsolutePath());
 		WLogger.setHandler(handler);
 	}
 

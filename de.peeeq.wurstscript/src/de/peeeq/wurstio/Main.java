@@ -273,9 +273,7 @@ public class Main {
 	public static void setUpFileLogging() {
 		try {
 			// set up file logging:
-			String logFile = "logs/test.log";
-			new File(logFile).mkdirs();
-			Handler handler = new FileHandler(logFile, Integer.MAX_VALUE, 20);
+			Handler handler = new FileHandler("%t/wurst%g.log", Integer.MAX_VALUE, 20);
 			handler.setFormatter(new SimpleFormatter());
 			WLogger.setHandler(handler);
 			WLogger.setLevel(Level.INFO);
