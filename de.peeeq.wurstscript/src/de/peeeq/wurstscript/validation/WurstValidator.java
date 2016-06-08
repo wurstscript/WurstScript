@@ -913,7 +913,8 @@ public class WurstValidator {
 		}
 
 		// special check for filter & condition:
-		if (Utils.oneOf(funcName, "Condition", "Filter")) {
+		if (Utils.oneOf(funcName, "Condition", "Filter")
+				&& !stmtCall.getArgs().isEmpty()) {
 			Expr firstArg = stmtCall.getArgs().get(0);
 			if (firstArg instanceof ExprFuncRef) {
 				ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
