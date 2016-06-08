@@ -120,7 +120,7 @@ public class ExtendedJurstLexer implements TokenSource {
 
 
 			if (token.getType() == JurstParser.NL) {
-				lineOffsets.set(token.getLine(), token.getStartIndex());
+				lineOffsets.set(token.getLine(), token.getStopIndex());
 			}
 
 			if (token.getType() == JurstParser.EOF) {

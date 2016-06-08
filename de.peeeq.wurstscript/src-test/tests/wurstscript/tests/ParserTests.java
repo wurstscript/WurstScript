@@ -1,7 +1,18 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.utils.LineOffsets;
+import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.StringReader;
+
+import static org.junit.Assert.assertEquals;
 
 public class ParserTests extends WurstScriptTest {
 	
@@ -84,6 +95,77 @@ public class ParserTests extends WurstScriptTest {
 				"        x -= 1",
 				"        y += 1",
 				"	 x += 1");
+	}
+
+	@Test
+	public void positionsNormalLineBreaks() {
+		CompilationUnit cu = parse(
+				"package Test\n" +
+				"init\n" +
+				"    var x = 1\n" +
+				"    int y = 2\n" +
+				"    if x > 10\n" +
+				"        x -= 1\n" +
+				"        y += 1\n" +
+				"	 x += 1\n");
+
+		WPackage p = cu.getPackages().get(0);
+
+		InitBlock initBlock = (InitBlock) p.getElements().get(0);
+		assertEquals(2, initBlock.getSource().getLine());
+		assertEquals(1, initBlock.getSource().getStartColumn());
+
+		WStatements stmts = initBlock.getBody();
+		StmtIf stmtIf = (StmtIf) stmts.get(3);
+		assertEquals(5, stmtIf.getSource().getLine());
+		assertEquals(5, stmtIf.getSource().getStartColumn());
+
+		Expr cond = stmtIf.getCond();
+		assertEquals(5, cond.getSource().getLine());
+		assertEquals(8, cond.getSource().getStartColumn());
+		assertEquals(5, cond.getSource().getEndLine());
+		assertEquals(14, cond.getSource().getEndColumn());
+
+
+	}
+
+	@Test
+	public void positionsWindowsTypewriterLinebreaks() {
+		CompilationUnit cu = parse(
+				"package Test\r\n" +
+						"init\r\n" +
+						"    var x = 1\r\n" +
+						"    int y = 2\r\n" +
+						"    if x > 10\r\n" +
+						"        x -= 1\r\n" +
+						"        y += 1\r\n" +
+						"	 x += 1\r\n");
+
+		WPackage p = cu.getPackages().get(0);
+
+		InitBlock initBlock = (InitBlock) p.getElements().get(0);
+		assertEquals(2, initBlock.getSource().getLine());
+		assertEquals(1, initBlock.getSource().getStartColumn());
+
+		WStatements stmts = initBlock.getBody();
+		StmtIf stmtIf = (StmtIf) stmts.get(3);
+		assertEquals(5, stmtIf.getSource().getLine());
+		assertEquals(5, stmtIf.getSource().getStartColumn());
+
+		Expr cond = stmtIf.getCond();
+		assertEquals(5, cond.getSource().getLine());
+		assertEquals(8, cond.getSource().getStartColumn());
+		assertEquals(5, cond.getSource().getEndLine());
+		assertEquals(14, cond.getSource().getEndColumn());
+
+
+	}
+
+	private CompilationUnit parse(String input) {
+		WurstGui gui = new WurstGuiCliImpl();
+		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+		compiler.getErrorHandler().enableUnitTestMode();
+		return compiler.parse("test", new StringReader(input));
 	}
 
 }

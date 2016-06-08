@@ -154,7 +154,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
 			if (token.getType() == WurstParser.NL) {
-				lineOffsets.set(token.getLine(), token.getStartIndex());
+				lineOffsets.set(token.getLine(), token.getStopIndex());
 			}
 
 			if (token.getType() == WurstParser.EOF) {
