@@ -46,7 +46,7 @@ public class GetCompletions extends UserRequest {
 		this.buffer = buffer;
 		this.line = line;
 		this.column = column-1;
-		this.lines = buffer.split("[\\n]|[\\r\\n]|[\\r\\n]");
+		this.lines = buffer.split("\\n|\\r\\n");
 		WLogger.info("Get completions in line " + line + ": \n" +
 				"" +  currentLine().replace('\t',' ') + "\n" +
 				"" + Utils.repeat(' ', column-1) + "^\n" +
