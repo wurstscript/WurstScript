@@ -196,7 +196,11 @@ public class LanguageWorker implements Runnable {
 			// TODO this can be done more efficiently than doing one at a time
 			PendingChange change = removeFirst(changes);
 			return () -> {
-				if (change instanceof FileDeleted) {
+				if (change.getFilename().endsWith("wurst.dependencies")) {
+					if (!(change instanceof FileReconcile)) {
+						modelManager.clean();
+					}
+				} else if (change instanceof FileDeleted) {
 					modelManager.removeCompilationUnit(change.getFilename());
 				} else if (change instanceof FileUpdated) {
 					modelManager.syncCompilationUnit(change.getFilename());
