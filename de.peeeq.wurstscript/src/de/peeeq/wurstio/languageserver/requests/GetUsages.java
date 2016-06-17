@@ -43,7 +43,11 @@ public class GetUsages extends UserRequest {
         NameDef nameDef = astElem.tryGetNameDef();
         List<UsagesData> usages = new ArrayList<>();
         if (nameDef != null) {
-            usages.add(new UsagesData(filename, nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
+
+            if (nameDef.getSource().getFile().equals(filename)) {
+                // add declaration
+                usages.add(new UsagesData(filename, nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
+            }
             Deque<AstElement> todo = new ArrayDeque<>();
             todo.push(cu);
             while (!todo.isEmpty()) {
