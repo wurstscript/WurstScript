@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.ast
 
 abstract syntax:
 
+Identifier(de.peeeq.wurstscript.parser.WPos source, String name)
+
 WurstModel * CompilationUnit
 
 CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
@@ -17,49 +19,49 @@ WPackages * WPackage
 TopLevelDeclaration = JassToplevelDeclaration | WPackage
 TopLevelDeclarations * TopLevelDeclaration
 
-WPackage(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WImports imports, WEntities elements)
+WPackage(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, WImports imports, WEntities elements)
 
 WImports * WImport
 WEntities * WEntity
 
-WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, boolean isInitLater, String packagename)
+WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, boolean isInitLater, Identifier packagenameId)
 
-WEntity = 
+WEntity =
 	  TypeDef
 	| FuncDef
 	| GlobalVarDef
-	| ExtensionFuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr extendedType, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+	| ExtensionFuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr extendedType, Identifier nameId, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
 	| InitBlock (de.peeeq.wurstscript.parser.WPos source, WStatements body)
-	| NativeFunc(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
-	| ModuleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, 
-			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+	| NativeFunc(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, WParameters parameters, OptTypeExpr returnTyp)
+	| ModuleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters,
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	
 
 
-TypeExpr = 
+
+TypeExpr =
 	  TypeExprSimple(de.peeeq.wurstscript.parser.WPos source, OptTypeExpr scopeType, String typeName, TypeExprList typeArgs)
 	| TypeExprArray(de.peeeq.wurstscript.parser.WPos source, TypeExpr base, OptExpr arraySize)
 	| TypeExprThis(de.peeeq.wurstscript.parser.WPos source, OptTypeExpr scopeType)
 	| TypeExprResolved(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.types.WurstType resolvedType)
-	
-	
+
+
 OptTypeExpr = NoTypeExpr() | TypeExpr
 OptExpr = NoExpr() | Expr
-	
-TypeDef = 
-	  NativeType(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, OptTypeExpr optTyp)
-	| ClassDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList, 
-			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+
+TypeDef =
+	  NativeType(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, OptTypeExpr optTyp)
+	| ClassDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters, OptTypeExpr extendedClass, TypeExprList implementsList,
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	| InterfaceDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, TypeExprList extendsList, 
-			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
+	| InterfaceDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters, TypeExprList extendsList,
+			FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	| TupleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, WParameters parameters, OptTypeExpr returnTyp)
+	| TupleDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, WParameters parameters, OptTypeExpr returnTyp)
 	| TypeParamDef
-	| EnumDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, EnumMembers members )
+	| EnumDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, EnumMembers members )
 	| StructureDef
-	
+
 ClassDefs * ClassDef
 EnumMembers * EnumMember
 FuncDefs * FuncDef
@@ -74,51 +76,51 @@ SwitchCases * SwitchCase
 SwitchCase( de.peeeq.wurstscript.parser.WPos source, Expr expr, WStatements stmts )
 SwitchDefaultCase = SwitchDefaultCaseStatements(de.peeeq.wurstscript.parser.WPos source, WStatements stmts) | NoDefaultCase()
 
-ClassSlot = 
+ClassSlot =
 	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
 	| OnDestroyDef(de.peeeq.wurstscript.parser.WPos source, WStatements body)
-	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, String moduleName, TypeExprList typeArgs)
-	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, 
-			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors, 
-			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy) 
+	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, Identifier moduleNameId, TypeExprList typeArgs)
+	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId,
+			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
+			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
 	| ClassMember
 	| ClassDef
-	
-ClassMember = 
+
+ClassMember =
 	  GlobalVarDef
 	| FuncDef
-	
-EnumMember(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name)
-	
 
-GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr)
-LocalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, String name, OptExpr initialExpr) 
+EnumMember(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId)
 
-	
-FuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
-	
+
+GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, OptExpr initialExpr)
+LocalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, OptExpr initialExpr)
+
+
+FuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
+
 
 
 ArraySizes * Expr
-	
-FuncSignature(de.peeeq.wurstscript.parser.WPos source, String name, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp)	
+
+//FuncSignature(de.peeeq.wurstscript.parser.WPos source, Identifier nameId, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp)
 
 TypeParamDefs * TypeParamDef
 
-TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, String name)
+TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId)
 
 
 WParameters * WParameter
-WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, String name)
-	
-	
+WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, Identifier nameId)
+
+
 WStatements * WStatement
 
 ExprOrStatements = WStatements | WStatement | Expr
-	
+
 WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(de.peeeq.wurstscript.parser.WPos source) | StartFunctionStatement(de.peeeq.wurstscript.parser.WPos source)
 
-ActionStatement = 
+ActionStatement =
 	  StmtSkip(de.peeeq.wurstscript.parser.WPos source)
 	| LocalVarDef
 	| StmtSet(de.peeeq.wurstscript.parser.WPos source, NameRef updatedExpr, Expr right)
@@ -127,30 +129,30 @@ ActionStatement =
 	| ExprMemberVar
 	| ExprVarAccess
 	| ExprDestroy
-	
-	  
-ControlflowStatement = 
+
+
+ControlflowStatement =
 	  CompoundStatement
 	| StmtReturn(de.peeeq.wurstscript.parser.WPos source, OptExpr returnedObj)
 	| StmtExitwhen(de.peeeq.wurstscript.parser.WPos source, Expr cond)
-	  
-CompoundStatement = 
+
+CompoundStatement =
 	  StmtIf(de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements thenBlock, WStatements elseBlock)
 	| SwitchStmt(de.peeeq.wurstscript.parser.WPos source, Expr expr, SwitchCases cases, SwitchDefaultCase switchDefault)
 	| WBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| LoopStatement
 
-LoopStatement = 
+LoopStatement =
 	  StmtWhile(de.peeeq.wurstscript.parser.WPos source, Expr cond, WStatements body)
 	| StmtLoop(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| LoopStatementWithVarDef
-	
-LoopStatementWithVarDef = 
+
+LoopStatementWithVarDef =
 	  StmtForRange
 	| StmtForIn(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 	| StmtForFrom(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
-	
-StmtForRange = 
+
+StmtForRange =
 	  StmtForRangeUp(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 	| StmtForRangeDown(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 
@@ -160,8 +162,8 @@ Expr =
 	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
 	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
 	| ExprMember
-	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, String funcName, TypeExprList typeArgs, Arguments args)
-	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, String typeName, TypeExprList typeArgs, Arguments args)
+	| ExprFunctionCall(de.peeeq.wurstscript.parser.WPos source, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
+	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, Identifier typeNameId, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
@@ -169,78 +171,78 @@ Expr =
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
-	
-ExprMember = 
+
+ExprMember =
 	  ExprMemberVar
 	| ExprMemberArrayVar
 	| ExprMemberMethod
 	| ExprTypeId(de.peeeq.wurstscript.parser.WPos source, Expr left)
-	
+
 
 ExprMemberVar =
-	  ExprMemberVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
-	| ExprMemberVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName)
+	  ExprMemberVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId)
+	| ExprMemberVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId)
 
 ExprMemberArrayVar =
-	  ExprMemberArrayVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
-	| ExprMemberArrayVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String varName, Indexes indexes)
+	  ExprMemberArrayVarDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId, Indexes indexes)
+	| ExprMemberArrayVarDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier varNameId, Indexes indexes)
 
 ExprMemberMethod =
-	  ExprMemberMethodDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
-	| ExprMemberMethodDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, String funcName, TypeExprList typeArgs, Arguments args)
+	  ExprMemberMethodDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
+	| ExprMemberMethodDotDot(de.peeeq.wurstscript.parser.WPos source, Expr left, Identifier funcNameId, TypeExprList typeArgs, Arguments args)
 
 
-ExprAtomic = 
+ExprAtomic =
 	  ExprIntVal(de.peeeq.wurstscript.parser.WPos source, String valIraw)
 	| ExprRealVal(de.peeeq.wurstscript.parser.WPos source, String valR)
 	| ExprStringVal(de.peeeq.wurstscript.parser.WPos source, String valS)
 	| ExprBoolVal(de.peeeq.wurstscript.parser.WPos source, boolean valB)
-	| ExprFuncRef(de.peeeq.wurstscript.parser.WPos source, String scopeName, String funcName)
-	| ExprVarAccess(de.peeeq.wurstscript.parser.WPos source, String varName)
-	| ExprVarArrayAccess(de.peeeq.wurstscript.parser.WPos source, String varName, Indexes indexes)
+	| ExprFuncRef(de.peeeq.wurstscript.parser.WPos source, String scopeName, Identifier funcNameId)
+	| ExprVarAccess(de.peeeq.wurstscript.parser.WPos source, Identifier varNameId)
+	| ExprVarArrayAccess(de.peeeq.wurstscript.parser.WPos source, Identifier varNameId, Indexes indexes)
 	| ExprThis(de.peeeq.wurstscript.parser.WPos source)
 	| ExprNull(de.peeeq.wurstscript.parser.WPos source)
 	| ExprSuper(de.peeeq.wurstscript.parser.WPos source)
 	| ExprEmpty(de.peeeq.wurstscript.parser.WPos source)
-	
-	
+
+
 Indexes * Expr
 Arguments * Expr
-	
-	
 
-	
+
+
+
 // auxiliary types:
 
-IdentifierWithTypeArgs(de.peeeq.wurstscript.parser.WPos source, String name, &TypeExprList typeArgs)
+IdentifierWithTypeArgs(de.peeeq.wurstscript.parser.WPos source, Identifier nameId, &TypeExprList typeArgs)
 
-IdentifierWithTypeParamDefs(de.peeeq.wurstscript.parser.WPos source, String name, &TypeParamDefs typeParams)
+IdentifierWithTypeParamDefs(de.peeeq.wurstscript.parser.WPos source, Identifier nameId, &TypeParamDefs typeParams)
 
 
 // a reference to a variable, needs a varName:String attribute
 NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
 
-VarDef = 
+VarDef =
 	  GlobalOrLocalVarDef
 	| WParameter
-	
-GlobalOrLocalVarDef = 
+
+GlobalOrLocalVarDef =
 	  GlobalVarDef
 	| LocalVarDef
 
 // has funcName:String attribute
 
 StmtCall = FunctionCall | ExprNewObject
-	
+
 FunctionCall = ExprMemberMethod | ExprFunctionCall
 
 FuncRef = ExprFuncRef | FunctionCall
-	
-	
+
+
 NotExtensionFunction = NativeFunc | FuncDef | TupleDef
 
 FunctionDefinition = NotExtensionFunction | ExtensionFuncDef | FunctionImplementation
-	
+
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
 FunctionLike = FunctionImplementation | ConstructorDef | InitBlock | OnDestroyDef
@@ -249,11 +251,11 @@ Documentable = NameDef | ConstructorDef
 
 
 
-WScope = 
-	  NamedScope 
-	| PackageOrGlobal 
+WScope =
+	  NamedScope
+	| PackageOrGlobal
 	| FunctionDefinition
-	| FunctionLike 
+	| FunctionLike
 	| WurstModel
 	| WStatements
 	| LoopStatementWithVarDef
@@ -261,22 +263,22 @@ WScope =
 	| WEntities
 	| ExprClosure
 
-PackageOrGlobal = WPackage | CompilationUnit	
-	
+PackageOrGlobal = WPackage | CompilationUnit
+
 TypeRef = TypeExpr | ExprNewObject
 
-NameDef = VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage | EnumDef | EnumMember
+NameDef = NamedScope | VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage | EnumDef | EnumMember
 
-VisibilityModifier = 
-	  VisibilityPublic(de.peeeq.wurstscript.parser.WPos source) 
-	| VisibilityPrivate(de.peeeq.wurstscript.parser.WPos source) 
-	| VisibilityPublicread(de.peeeq.wurstscript.parser.WPos source) 
+VisibilityModifier =
+	  VisibilityPublic(de.peeeq.wurstscript.parser.WPos source)
+	| VisibilityPrivate(de.peeeq.wurstscript.parser.WPos source)
+	| VisibilityPublicread(de.peeeq.wurstscript.parser.WPos source)
 	| VisibilityProtected(de.peeeq.wurstscript.parser.WPos source)
 	| VisibilityDefault(de.peeeq.wurstscript.parser.WPos source)
 
 Modifiers * Modifier
 
-Modifier = 
+Modifier =
 	  VisibilityModifier
 	| Annotation(de.peeeq.wurstscript.parser.WPos source, String annotationType)
 	| ModStatic(de.peeeq.wurstscript.parser.WPos source)
@@ -284,7 +286,7 @@ Modifier =
 	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
 	| ModConstant(de.peeeq.wurstscript.parser.WPos source)
 	| WurstDoc(de.peeeq.wurstscript.parser.WPos source, String rawComment)
-	
+
 // AstElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //AstElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
@@ -293,7 +295,7 @@ HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSim
 
 ClassOrModule = ClassDef | ModuleDef
 
-StructureDef = ClassOrModuleOrModuleInstanciation | InterfaceDef	
+StructureDef = ClassOrModuleOrModuleInstanciation | InterfaceDef
 
 ClassOrModuleInstanciation = ClassDef | ModuleInstanciation
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
@@ -324,8 +326,8 @@ WStatement.attrNextStatements "returns all statements which can be executed afte
 WStatement.attrPreviousStatements "returns all statements which could have been executed before this statement"
 	returns java.util.List<WStatement>
 	implemented by de.peeeq.wurstscript.attributes.Flow.getPrevious
-	
-	
+
+
 CompoundStatement.attrAfterBodyStatements "returns all statements which can be executed after the body/thenBlock/elseBlock of this statement is executed"
 	returns java.util.List<WStatement>
 	implemented by de.peeeq.wurstscript.attributes.Flow.getAfterBody
@@ -345,12 +347,12 @@ OptTypeExpr.attrTyp
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.normalizedType
 
 Expr.attrTyp
-	returns de.peeeq.wurstscript.types.WurstType 
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.normalizedType
 
 
 Expr.attrConstantValue
-	returns de.peeeq.wurstscript.intermediateLang.ILconst 
+	returns de.peeeq.wurstscript.intermediateLang.ILconst
 	implemented by de.peeeq.wurstscript.attributes.AttrConstantValue.calculate
 
 
@@ -359,10 +361,10 @@ OptTypeExpr.attrTypRaw
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.calculate
 
 Expr.attrTypRaw
-	returns de.peeeq.wurstscript.types.WurstType 
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprType.calculate
 
-Expr.attrExpectedTypRaw 
+Expr.attrExpectedTypRaw
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.calculate
 
@@ -389,11 +391,11 @@ NameRef.attrImplicitParameter
 
 
 NameDef.attrTyp
-	returns de.peeeq.wurstscript.types.WurstType 
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
 FunctionLike.attrReturnType
-	returns de.peeeq.wurstscript.types.WurstType 
+	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
 VarDef.attrIsDynamicClassMember
@@ -418,7 +420,7 @@ FunctionDefinition.attrReceiverType
 
 AstElement.attrIsDynamicContext
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate	
+	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate
 
 AstElement.attrNearestPackage
 	returns @Nullable PackageOrGlobal
@@ -427,7 +429,7 @@ AstElement.attrNearestPackage
 AstElement.attrNearestNamedScope
 	returns @Nullable NamedScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestNamedScope
-	
+
 AstElement.attrNearestScope
 	returns @Nullable WScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestScope
@@ -444,19 +446,19 @@ AstElement.attrPathDescription
 AstElement.attrCompilationUnit
 	returns CompilationUnit
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestCompilationUnit
-	
+
 AstElement.attrNearestClassDef
 	returns @Nullable ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassDef
 
 AstElement.attrNearestClassOrModule
 	returns @Nullable ClassOrModule
-	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrModule	
-	
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrModule
+
 AstElement.attrNearestStructureDef
 	returns @Nullable StructureDef
-	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestStructureDef	
-	
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestStructureDef
+
 AstElement.attrNearestFuncDef
 	returns @Nullable FunctionImplementation
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
@@ -485,7 +487,7 @@ ExprStatementsBlock.getReturnStmt()
 
 HasModifier.attrIsCompiletime
 	returns boolean
-	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isCompiletime	
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isCompiletime
 
 HasModifier.attrHasAnnotation(String name)
 	returns boolean
@@ -506,7 +508,7 @@ HasModifier.attrIsPrivate
 HasModifier.attrIsProtected
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isProtected
-	
+
 HasModifier.attrIsStatic
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic
@@ -522,8 +524,8 @@ HasModifier.attrIsAbstract
 HasModifier.attrIsConstant
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
-	
-	
+
+
 
 ClassOrModuleOrModuleInstanciation.getModuleInstanciations
 	returns ModuleInstanciations
@@ -538,41 +540,41 @@ WImport.attrImportedPackage
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getImportedPackage
 
 
-	
+
 ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
 
 StmtCall.attrPossibleFunctionSignatures
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.FunctionSignature>
-	implemented by de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.calculate	
-	
+	implemented by de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.calculate
+
 StmtCall.attrFunctionSignature
 	returns de.peeeq.wurstscript.types.FunctionSignature
 	implemented by de.peeeq.wurstscript.attributes.AttrFunctionSignature.calculate
-	
+
 StmtCall.attrCallSignature
 	returns de.peeeq.wurstscript.types.CallSignature
 	implemented by de.peeeq.wurstscript.attributes.AttrCallSignature.calculate
-	
+
 AstElement.attrSource()
 	returns de.peeeq.wurstscript.parser.WPos
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getPos
-	
+
 AstElement.attrErrorPos() "returns the position where errors are marked"
 	returns de.peeeq.wurstscript.parser.WPos
-	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos	
+	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos
 
-	
+
 HasTypeArgs.attrTypeParameterBindings
 	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
-	
 
 
 
-	
-InterfaceDef.attrExtendedInterfaces	
+
+
+InterfaceDef.attrExtendedInterfaces
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
 
@@ -592,13 +594,13 @@ ConstructorDef.attrSuperConstructor
 	returns ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
 
-	
-	
+
+
 WurstModel.attrPackages
 	returns com.google.common.collect.ImmutableMap<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
-	
-	
+
+
 AstElement.getModel()
 	returns WurstModel
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getModel
@@ -606,12 +608,12 @@ AstElement.getModel()
 CompilationUnit.attrGetByType
 	returns de.peeeq.wurstscript.attributes.ByTypes
 	implemented by de.peeeq.wurstscript.attributes.GetByType.calculate
-	
+
 
 WurstModel.attrConfigOverridePackages
 	returns com.google.common.collect.ImmutableMap<WPackage, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.CofigOverridePackages.calculate
-	
+
 NameDef.attrConfigActualNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.CofigActualDef.calculate
@@ -624,51 +626,51 @@ NameDef.hasAnnotation(String annotation)
 
 
 // Im translation
-	
+
 	WPackage.imTranslateTLD(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
-	
+
 	JassToplevelDeclaration.imTranslateTLD(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
-		)
-		returns void
-		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate	
-		
-		
-	WEntity.imTranslateEntity(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
-	
+
+
+	WEntity.imTranslateEntity(
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator
+		)
+		returns void
+		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
+
 	Expr.imTranslateExpr(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImExpr
 		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translate
-	
+
 	OptExpr.imTranslateExprOpt(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImExprOpt
 		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translate
-		
-		
+
+
 	WStatement.imTranslateStmt(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns de.peeeq.wurstscript.jassIm.ImStmt
 		implemented by de.peeeq.wurstscript.translation.imtranslation.StmtTranslation.translate
-		
+
 
 	TranslatedToImFunction.imCreateFuncSkeleton(
-			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
+			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
 			de.peeeq.wurstscript.jassIm.ImFunction f
 		)
 		returns void
@@ -677,9 +679,9 @@ NameDef.hasAnnotation(String annotation)
 	ClassDef.attrImplementedInterfaces
 		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
-		
-		
-	
+
+
+
 AstElement.addError(String msg)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addError
@@ -688,12 +690,12 @@ AstElement.addWarning(String msg)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.addWarning
 
-	
+
 AstElement.getErrorHandler()
 	returns de.peeeq.wurstscript.attributes.ErrorHandler
-	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.getErrorHandler	
-	
-	
+	implemented by de.peeeq.wurstscript.attributes.ErrorHandling.getErrorHandler
+
+
 FunctionLike.attrHasEmptyBody()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.hasEmptyBody
@@ -712,11 +714,11 @@ FuncRef.attrPossibleFuncDefs
 FuncRef.attrFuncDef
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
-	
-ExprNewObject.attrConstructorDef 
-	returns @Nullable ConstructorDef 
+
+ExprNewObject.attrConstructorDef
+	returns @Nullable ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
-	
+
 ExprBinary.attrFuncDef
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
@@ -725,15 +727,15 @@ ExprBinary.attrFuncDef
 FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.OverriddenFunctions.getRealFuncDef
-	
+
 StructureDef.attrLevel "returns the level in the hierarchy. no supertype -> level 1"
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.Level.get
-	
+
 NameDef.createNameLink(WScope definedIn) "returns a namelink pointing to this NameDef"
 	returns de.peeeq.wurstscript.attributes.names.NameLink
-	implemented by de.peeeq.wurstscript.attributes.names.NameLink.create	
-	
+	implemented by de.peeeq.wurstscript.attributes.names.NameLink.create
+
 ModuleUse.attrModuleDef
 	returns @Nullable ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate
@@ -741,7 +743,7 @@ ModuleUse.attrModuleDef
 TypeRef.attrTypeDef
 	returns @Nullable TypeDef
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeDef.calculate
-	
+
 
 //WPackage.attrExportedNames "get the exported names of a package"
 //	returns  com.google.common.collect.ImmutableMultimap<String, NameDef>
@@ -762,14 +764,14 @@ TypeRef.attrTypeDef
 //WScope.attrVisibleNamesPublic
 //	returns com.google.common.collect.ImmutableMultimap<String, NameDef>
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
-	
+
 WScope.attrNameLinks "returns a map of all the names visible in this scope."
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameLinks.calculate
 
 WScope.attrTypeNameLinks "returns a map of all the names visible in this scope."
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
-	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate	
+	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate
 
 WPackage.attrExportedNameLinks
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
@@ -778,16 +780,16 @@ WPackage.attrExportedNameLinks
 WPackage.attrExportedTypeNameLinks
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedTypeNameLinks
-	
-	
+
+
 AstElement.lookupType(String name, boolean showErrors)
 	returns @Nullable TypeDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupType
-	
+
 AstElement.lookupPackage(String name, boolean showErrors)
 	returns @Nullable WPackage
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackage
-	
+
 AstElement.lookupVar(String name, boolean showErrors)
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVar
@@ -795,11 +797,11 @@ AstElement.lookupVar(String name, boolean showErrors)
 AstElement.lookupVarNoConfig(String name, boolean showErrors)
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarNoConfig
-	
+
 AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
-	
+
 AstElement.lookupFuncs(String name, boolean showErrors)
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncs
@@ -807,32 +809,32 @@ AstElement.lookupFuncs(String name, boolean showErrors)
 AstElement.lookupFuncsNoConfig(String name, boolean showErrors)
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsNoConfig
-	
+
 AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs
 
-	
+
 AstElement.lookupType(String name)
 	returns @Nullable TypeDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupTypeShort
-	
+
 AstElement.lookupPackage(String name)
 	returns @Nullable WPackage
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackageShort
-	
+
 AstElement.lookupVar(String name)
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarShort
-	
+
 AstElement.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name)
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
-	
+
 AstElement.lookupFuncs(String name)
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsShort
-	
+
 AstElement.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name)
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncsShort
@@ -914,3 +916,31 @@ TypeParamDef.isStructureDefTypeParam()
 AstElement.prettyPrint(de.peeeq.wurstscript.attributes.prettyPrint.Spacer spacer, StringBuilder sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter.prettyPrint
+
+
+NameDef.getName()
+    returns String
+    implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getName
+    
+WImport.getPackagename()
+	returns String    
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getPackagename
+	
+	
+ExprNewObject.getTypeName()
+	returns String    
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getTypeName	
+
+NameRef.getVarName()
+	returns String    
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getVarName
+
+FuncRef.getFuncName()
+	returns String    
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getFuncName
+
+	
+	
+ModuleUse.getModuleName()	
+	returns String    
+	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getModuleName

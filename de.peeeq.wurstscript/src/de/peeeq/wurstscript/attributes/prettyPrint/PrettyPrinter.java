@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
+
 import org.apache.commons.lang.StringUtils;
+import org.eclipse.jdt.annotation.NonNull;
 
 public class PrettyPrinter {
 
@@ -336,20 +338,6 @@ public class PrettyPrinter {
         }
     }
 
-    public static void prettyPrint(FuncSignature e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        sb.append("function");
-        spacer.addSpace(sb);
-        sb.append(e.getName());
-        e.getParameters().prettyPrint(spacer, sb, indent);
-        if (!(e.getReturnTyp() instanceof NoTypeExpr)) {
-            spacer.addSpace(sb);
-            sb.append("returns");
-            spacer.addSpace(sb);
-            e.getReturnTyp().prettyPrint(spacer, sb, indent);
-        }
-        sb.append("\n");
-    }
 
     public static void prettyPrint(GlobalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
@@ -703,5 +691,9 @@ public class PrettyPrinter {
             classDef.prettyPrint(spacer, sb, indent);
         }
     }
+
+	public static void prettyPrint(Identifier identifier, Spacer spacer, StringBuilder sb, int indent) {
+		sb.append(identifier.getName());
+	}
 
 }

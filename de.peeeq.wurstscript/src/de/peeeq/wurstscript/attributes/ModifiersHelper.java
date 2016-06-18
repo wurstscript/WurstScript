@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -69,7 +71,10 @@ public class ModifiersHelper {
 	
 
 	public static boolean isCompiletime(HasModifier e) {
-		return hasAnnotation(e, "compiletime");
+		if (e instanceof AstElementWithModifiers) {
+			return hasAnnotation((AstElementWithModifiers) e, "compiletime");
+		}
+		return false;
 	}
 
 	public static boolean hasAnnotation(AstElementWithModifiers e, String name) {
@@ -88,5 +93,6 @@ public class ModifiersHelper {
 		}
 		return false;
 	}
+
 	
 }

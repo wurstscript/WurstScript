@@ -32,6 +32,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncDefs;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDefs;
+import de.peeeq.wurstscript.ast.Identifier;
 import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
@@ -204,7 +205,14 @@ public class AntlrJurstParseTreeTransformer {
 		throw error(d, "unhandled case: " + text(d));
 	}
 
-	private String text(@Nullable ParserRuleContext c) {
+	private Identifier text(@Nullable ParserRuleContext c) {
+		if (c==null) {
+			return Ast.Identifier(new WPos(file, lineOffsets, 1, 0) , "");
+		}
+		return Ast.Identifier(source(c), c.getText());
+	}
+	
+	private String rawText(@Nullable ParserRuleContext c) {
 		if (c==null) {
 			return "";
 		}
@@ -213,7 +221,7 @@ public class AntlrJurstParseTreeTransformer {
 
 	private JassToplevelDeclaration transformJassTypeDecl(JassTypeDeclContext t) {
 		Modifiers modifiers = Ast.Modifiers();
-		String name = text(t.name);
+		Identifier name = text(t.name);
 		OptTypeExpr optTyp = transformOptionalType(t.typeExpr());
 		return Ast.NativeType(source(t), modifiers, name, optTyp);
 	}
@@ -235,7 +243,7 @@ public class AntlrJurstParseTreeTransformer {
 				modifiers.add(Ast.ModConstant(source(v.constant)));
 			}
 			OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
-			String name = text(v.name);
+			Identifier name = text(v.name);
 			OptExpr initialExpr = transformOptionalExpr(v.initial);
 			result.add(Ast.GlobalVarDef(source(v), modifiers, optTyp, name,
 					initialExpr));
@@ -257,7 +265,7 @@ public class AntlrJurstParseTreeTransformer {
 		for (JassLocalContext l : jassLocals) {
 			Modifiers modifiers = Ast.Modifiers();
 			OptTypeExpr optTyp = transformOptionalType(l.typeExpr());
-			String name = text(l.name);
+			Identifier name = text(l.name);
 			OptExpr initialExpr = transformOptionalExpr(l.initial);
 			result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
 					initialExpr));
@@ -339,7 +347,7 @@ public class AntlrJurstParseTreeTransformer {
 		WImports imports = Ast.WImports();
 
 		for (IdContext i : p.requires) {
-			imports.add(Ast.WImport(source(i), true, false, i.getText()));
+			imports.add(Ast.WImport(source(i), true, false, text(i)));
 		}
 		
 		for (WImportContext i : p.imports) {
@@ -364,15 +372,11 @@ public class AntlrJurstParseTreeTransformer {
 		if (p.initializer != null) {
 			// add initializer
 			WPos src = source(p.initializer);
-			String funcName = p.initializer.getText();
+			Identifier funcName = text(p.initializer);
 			elements.add(Ast.InitBlock(src, Ast.WStatements(Ast.ExprFunctionCall(src, funcName, Ast.TypeExprList(), Ast.Arguments()))));
 		}
 
-		String name = "UnknownName";
-		if (p.name != null) {
-			name = text(p.name);
-		}
-		return Ast.WPackage(source, modifiers, name, imports, elements);
+		return Ast.WPackage(source, modifiers, text(p.name), imports, elements);
 	}
 	
 
@@ -473,7 +477,7 @@ public class AntlrJurstParseTreeTransformer {
 
 		WPos src = source(t);
 		Modifiers modifiers = transformModifiers(t.modifiersWithDoc());
-		String name = text(t.name);
+		Identifier name = text(t.name);
 		WParameters parameters = transformFormalParameters(
 				t.formalParameters(), false);
 		OptTypeExpr returnTyp = Ast.NoTypeExpr();
@@ -483,7 +487,7 @@ public class AntlrJurstParseTreeTransformer {
 	private WEntity transformInterfaceDef(InterfaceDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		TypeExprList extendsList = Ast.TypeExprList();
 		for (TypeExprContext ex : i.extended) {
@@ -587,7 +591,7 @@ public class AntlrJurstParseTreeTransformer {
 	private WEntity transformModuleDef(ModuleDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		ClassSlotResult slots = transformClassSlots(src, i.classSlots());
 		return Ast.ModuleDef(src, modifiers, name, typeParameters,
@@ -598,7 +602,7 @@ public class AntlrJurstParseTreeTransformer {
 	private WEntity transformEnumDef(EnumDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		EnumMembers members = Ast.EnumMembers();
 		for (IdContext m : i.enumMembers) {
 			members.add(Ast.EnumMember(source(m), Ast.Modifiers(), text(m)));
@@ -609,7 +613,7 @@ public class AntlrJurstParseTreeTransformer {
 	private WEntity transformClassDef(ClassDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		OptTypeExpr extendedClass = transformOptionalType(i.extended);
 		TypeExprList implementsList = Ast.TypeExprList();
@@ -627,7 +631,7 @@ public class AntlrJurstParseTreeTransformer {
 		OptTypeExpr extended;
 		if (n.extended != null) {
 			extended = Ast.TypeExprSimple(source(n.extended),
-					Ast.NoTypeExpr(), text(n.extended), Ast.TypeExprList());
+					Ast.NoTypeExpr(), rawText(n.extended), Ast.TypeExprList());
 		} else {
 			extended = Ast.NoTypeExpr();
 		}
@@ -650,7 +654,7 @@ public class AntlrJurstParseTreeTransformer {
 			modifiers.add(Ast.ModConstant(source(v.constant)));
 		}
 		OptExpr initialExpr = transformOptionalExpr(v.initial);
-		String name = text(v.name);
+		Identifier name = text(v.name);
 		OptTypeExpr optTyp = transformOptionalType(v.varType);
 		if (v.arraySizes != null && !v.arraySizes.isEmpty()) {
 			if (optTyp instanceof TypeExprArray) {
@@ -811,7 +815,7 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (e.exprVarAccess() != null) {
 			return transformExprVarAccess(e.exprVarAccess());
 		}
-		return Ast.ExprVarAccess(source(e), e.getText());
+		return Ast.ExprVarAccess(source(e), text(e));
 	}
 
 	private NameRef transformExprVarAccess(ExprVarAccessContext e) {
@@ -837,7 +841,7 @@ public class AntlrJurstParseTreeTransformer {
 			left = Ast.ExprThis(left.getSource());
 		}
 		
-		String varName = text(varname2);
+		Identifier varName = text(varname2);
 		if (indexList != null && !indexList.isEmpty()) {
 			Indexes indexes = transformIndexes(indexList);
 			if (e_dots.getType() == JurstParser.DOT) {
@@ -895,7 +899,7 @@ public class AntlrJurstParseTreeTransformer {
 	private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v) {
 		Modifiers modifiers = Ast.Modifiers();
 		OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
-		String name = text(v.name);
+		Identifier name = text(v.name);
 		OptExpr initialExpr = Ast.NoExpr();
 		return Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr);
 	}
@@ -918,7 +922,7 @@ public class AntlrJurstParseTreeTransformer {
 			modifiers.add(Ast.ModConstant(source(l.let)));
 		}
 		OptTypeExpr optTyp = transformOptionalType(l.type);
-		String name = text(l.name);
+		Identifier name = text(l.name);
 		OptExpr initialExpr = transformOptionalExpr(l.initial);
 		return Ast.LocalVarDef(source(l), modifiers, optTyp, name, initialExpr);
 	}
@@ -948,7 +952,7 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
-		String typeName = text(e.className);
+		Identifier typeName = text(e.className);
 		TypeExprList typeArgs = transformTypeArgs(e.typeArgs());
 		Arguments args = transformExprs(e.exprList());
 		return Ast.ExprNewObject(source(e), typeName, typeArgs, args);
@@ -1192,8 +1196,8 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private ExprFuncRef transformExprFuncRef(ExprFuncRefContext e) {
-		String scopeName = e.scopeName == null ? "" : text(e.scopeName);
-		String funcName = text(e.funcName);
+		String scopeName = e.scopeName == null ? "" : rawText(e.scopeName);
+		Identifier funcName = text(e.funcName);
 		return Ast.ExprFuncRef(source(e), scopeName, funcName);
 	}
 
@@ -1408,12 +1412,12 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	class FuncSig {
-		String name;
+		Identifier name;
 		TypeParamDefs typeParams;
 		WParameters formalParameters;
 		OptTypeExpr returnType;
 
-		public FuncSig(String name, TypeParamDefs typeParams,
+		public FuncSig(Identifier name, TypeParamDefs typeParams,
 				WParameters formalParameters, OptTypeExpr returnType) {
 			this.name = name;
 			this.typeParams = typeParams;

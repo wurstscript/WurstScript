@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.annotation.NonNull;
+import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
@@ -105,6 +106,7 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FuncDefs;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
 import de.peeeq.wurstscript.ast.GlobalVarDefs;
+import de.peeeq.wurstscript.ast.Identifier;
 import de.peeeq.wurstscript.ast.Indexes;
 import de.peeeq.wurstscript.ast.InitBlock;
 import de.peeeq.wurstscript.ast.JassGlobalBlock;
@@ -195,8 +197,29 @@ public class AntlrWurstParseTreeTransformer {
 		}
 		throw error(d, "unhandled case: " + text(d));
 	}
+	
+	private Identifier text(@Nullable Token t) {
+		if (t==null) {
+			return Ast.Identifier(new WPos(file, lineOffsets, 1, 0) , "");
+		}
+		return Ast.Identifier(source(t), t.getText());
+	}
 
-	private String text(ParserRuleContext c) {
+	private Identifier text(@Nullable ParserRuleContext c) {
+		if (c==null) {
+			return Ast.Identifier(new WPos(file, lineOffsets, 1, 0) , "");
+		}
+		return Ast.Identifier(source(c), c.getText());
+	}
+	
+	private String rawText(@Nullable ParserRuleContext c) {
+		if (c==null) {
+			return "";
+		}
+		return c.getText();
+	}
+	
+	private String rawText(@Nullable Token c) {
 		if (c==null) {
 			return "";
 		}
@@ -205,7 +228,7 @@ public class AntlrWurstParseTreeTransformer {
 
 	private JassToplevelDeclaration transformJassTypeDecl(JassTypeDeclContext t) {
 		Modifiers modifiers = Ast.Modifiers();
-		String name = text(t.name);
+		Identifier name = text(t.name);
 		OptTypeExpr optTyp = transformOptionalType(t.typeExpr());
 		return Ast.NativeType(source(t), modifiers, name, optTyp);
 	}
@@ -227,7 +250,7 @@ public class AntlrWurstParseTreeTransformer {
 				modifiers.add(Ast.ModConstant(source(v.constant)));
 			}
 			OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
-			String name = text(v.name);
+			Identifier name = text(v.name);
 			OptExpr initialExpr = transformOptionalExpr(v.initial);
 			result.add(Ast.GlobalVarDef(source(v), modifiers, optTyp, name,
 					initialExpr));
@@ -249,7 +272,7 @@ public class AntlrWurstParseTreeTransformer {
 		for (JassLocalContext l : jassLocals) {
 			Modifiers modifiers = Ast.Modifiers();
 			OptTypeExpr optTyp = transformOptionalType(l.typeExpr());
-			String name = text(l.name);
+			Identifier name = text(l.name);
 			OptExpr initialExpr = transformOptionalExpr(l.initial);
 			result.add(Ast.LocalVarDef(source(l), modifiers, optTyp, name,
 					initialExpr));
@@ -342,11 +365,7 @@ public class AntlrWurstParseTreeTransformer {
 			}
 		}
 
-		String name = "UnknownName";
-		if (p.name != null) {
-			name = text(p.name);
-		}
-		return Ast.WPackage(source, modifiers, name, imports, elements);
+		return Ast.WPackage(source, modifiers, text(p.name), imports, elements);
 	}
 
 	private WEntity transformEntity(EntityContext e) {
@@ -439,7 +458,7 @@ public class AntlrWurstParseTreeTransformer {
 
 		WPos src = source(t);
 		Modifiers modifiers = transformModifiers(t.modifiersWithDoc());
-		String name = text(t.name);
+		Identifier name = text(t.name);
 		WParameters parameters = transformFormalParameters(
 				t.formalParameters(), false);
 		OptTypeExpr returnTyp = Ast.NoTypeExpr();
@@ -449,7 +468,7 @@ public class AntlrWurstParseTreeTransformer {
 	private WEntity transformInterfaceDef(InterfaceDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		TypeExprList extendsList = Ast.TypeExprList();
 		for (TypeExprContext ex : i.extended) {
@@ -555,7 +574,7 @@ public class AntlrWurstParseTreeTransformer {
 	private WEntity transformModuleDef(ModuleDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		ClassSlotResult slots = transformClassSlots(src, i.classSlots());
 		return Ast.ModuleDef(src, modifiers, name, typeParameters,
@@ -566,7 +585,7 @@ public class AntlrWurstParseTreeTransformer {
 	private WEntity transformEnumDef(EnumDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		EnumMembers members = Ast.EnumMembers();
 		for (Token m : i.enumMembers) {
 			members.add(Ast.EnumMember(source(m), Ast.Modifiers(), text(m)));
@@ -577,7 +596,7 @@ public class AntlrWurstParseTreeTransformer {
 	private ClassDef transformClassDef(ClassDefContext i) {
 		WPos src = source(i);
 		Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
-		String name = text(i.name);
+		Identifier name = text(i.name);
 		TypeParamDefs typeParameters = transformTypeParams(i.typeParams());
 		OptTypeExpr extendedClass = transformOptionalType(i.extended);
 		TypeExprList implementsList = Ast.TypeExprList();
@@ -595,7 +614,7 @@ public class AntlrWurstParseTreeTransformer {
 		OptTypeExpr extended;
 		if (n.extended != null) {
 			extended = Ast.TypeExprSimple(source(n.extended),
-					Ast.NoTypeExpr(), text(n.extended), Ast.TypeExprList());
+					Ast.NoTypeExpr(), rawText(n.extended), Ast.TypeExprList());
 		} else {
 			extended = Ast.NoTypeExpr();
 		}
@@ -618,7 +637,7 @@ public class AntlrWurstParseTreeTransformer {
 			modifiers.add(Ast.ModConstant(source(v.constant)));
 		}
 		OptExpr initialExpr = transformOptionalExpr(v.initial);
-		String name = text(v.name);
+		Identifier name = text(v.name);
 		OptTypeExpr optTyp = transformOptionalType(v.varType);
 		return Ast.GlobalVarDef(source, modifiers, optTyp, name, initialExpr);
 	}
@@ -773,9 +792,9 @@ public class AntlrWurstParseTreeTransformer {
 
 	private NameRef transformExprMemberVarAccess2(WPos source,
 			ExprContext e_expr, Token e_dots, Token e_varname,
-			IndexesContext e_indexes) {
+			@Nullable IndexesContext e_indexes) {
 		Expr left = transformExpr(e_expr);
-		String varName = text(e_varname);
+		Identifier varName = text(e_varname);
 		if (e_indexes != null) {
 			Indexes indexes = transformIndexes(e_indexes);
 			if (e_dots.getType() == WurstParser.DOT) {
@@ -794,12 +813,6 @@ public class AntlrWurstParseTreeTransformer {
 		}
 	}
 
-	private String text(Token t) {
-		if (t==null) {
-			return "";
-		}
-		return t.getText();
-	}
 
 	private WStatement transformForLoop(StmtForLoopContext s) {
 		if (s.forRangeLoop() != null) {
@@ -833,7 +846,7 @@ public class AntlrWurstParseTreeTransformer {
 	private LocalVarDef transformLocalVarDef(LocalVarDefInlineContext v) {
 		Modifiers modifiers = Ast.Modifiers();
 		OptTypeExpr optTyp = transformOptionalType(v.typeExpr());
-		String name = text(v.name);
+		Identifier name = text(v.name);
 		OptExpr initialExpr = Ast.NoExpr();
 		return Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr);
 	}
@@ -856,7 +869,7 @@ public class AntlrWurstParseTreeTransformer {
 			modifiers.add(Ast.ModConstant(source(l.let)));
 		}
 		OptTypeExpr optTyp = transformOptionalType(l.type);
-		String name = text(l.name);
+		Identifier name = text(l.name);
 		OptExpr initialExpr = transformOptionalExpr(l.initial);
 		return Ast.LocalVarDef(source(l), modifiers, optTyp, name, initialExpr);
 	}
@@ -873,7 +886,7 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
-		String typeName = text(e.className);
+		Identifier typeName = text(e.className);
 		TypeExprList typeArgs = transformTypeArgs(e.typeArgs());
 		Arguments args = transformExprs(e.exprList());
 		return Ast.ExprNewObject(source(e), typeName, typeArgs, args);
@@ -1092,8 +1105,8 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private ExprFuncRef transformExprFuncRef(ExprFuncRefContext e) {
-		String scopeName = e.scopeName == null ? "" : text(e.scopeName);
-		String funcName = text(e.funcName);
+		String scopeName = e.scopeName == null ? "" : rawText(e.scopeName);
+		Identifier funcName = text(e.funcName);
 		return Ast.ExprFuncRef(source(e), scopeName, funcName);
 	}
 
@@ -1119,11 +1132,11 @@ public class AntlrWurstParseTreeTransformer {
 	private Expr transformAtom(Token a) {
 		WPos source = source(a);
 		if (a.getType() == WurstParser.INT) {
-			return Ast.ExprIntVal(source, text(a));
+			return Ast.ExprIntVal(source, rawText(a));
 		} else if (a.getType() == WurstParser.REAL) {
-			return Ast.ExprRealVal(source, text(a));
+			return Ast.ExprRealVal(source, rawText(a));
 		} else if (a.getType() == WurstParser.STRING) {
-			return Ast.ExprStringVal(source, getStringVal(source, text(a)));
+			return Ast.ExprStringVal(source, getStringVal(source, rawText(a)));
 		} else if (a.getType() == WurstParser.NULL) {
 			return Ast.ExprNull(source);
 		} else if (a.getType() == WurstParser.TRUE) {
@@ -1220,7 +1233,7 @@ public class AntlrWurstParseTreeTransformer {
 		if (t.thistype != null) {
 			return Ast.TypeExprThis(source(t), scopeType);
 		} else if (t.typeName != null) {
-			String typeName = text(t.typeName);
+			String typeName = rawText(t.typeName);
 			TypeExprList typeArgs = transformTypeArgs(t.typeArgs());
 			return Ast.TypeExprSimple(source(t), scopeType, typeName, typeArgs);
 		} else if (t.typeExpr() != null) {
@@ -1302,12 +1315,12 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	class FuncSig {
-		String name;
+		Identifier name;
 		TypeParamDefs typeParams;
 		WParameters formalParameters;
 		OptTypeExpr returnType;
 
-		public FuncSig(String name, TypeParamDefs typeParams,
+		public FuncSig(Identifier name, TypeParamDefs typeParams,
 				WParameters formalParameters, OptTypeExpr returnType) {
 			this.name = name;
 			this.typeParams = typeParams;

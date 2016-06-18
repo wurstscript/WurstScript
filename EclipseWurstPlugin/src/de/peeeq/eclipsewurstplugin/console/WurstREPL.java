@@ -292,7 +292,7 @@ public class WurstREPL {
 			LocalVarDef def = (LocalVarDef) assignment;
 			// change name to some temporary name
 			tempName = "tempName" + (rand.nextInt());
-			def.setName(tempName);
+			def.getNameId().setName(tempName);
 		}
 		
 		LocalState val = null;

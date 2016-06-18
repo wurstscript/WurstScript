@@ -192,7 +192,7 @@ public class WurstValidator {
 	private void check(AstElement e) {
 		try {
 			if (e instanceof AstElementWithTypeParameters) checkTypeParameters((AstElementWithTypeParameters) e);
-			if (e instanceof AstElementWithName) checkName((AstElementWithName) e);
+			if (e instanceof AstElementWithNameId) checkName((AstElementWithNameId) e);
 			if (e instanceof ClassDef) checkInstanceDef((ClassDef) e);
 			if (e instanceof ClassDef) checkOverrides((ClassDef) e);
 			if (e instanceof ClassDef) checkConstructorsUnique((ClassDef) e);
@@ -267,8 +267,8 @@ public class WurstValidator {
 		}
 	}
 
-	private void checkName(AstElementWithName e) {
-		String name = e.getName();
+	private void checkName(AstElementWithNameId e) {
+		String name = e.getNameId().getName();
 		TypeDef def = e.lookupType(name, false);
 		
 		if (def != e && def instanceof NativeType) {

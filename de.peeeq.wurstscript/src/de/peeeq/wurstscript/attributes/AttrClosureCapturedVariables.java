@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 
 public class AttrClosureCapturedVariables {
@@ -71,7 +72,7 @@ public class AttrClosureCapturedVariables {
 	}
 
 	private static LocalVarDef dummyThisVar(ExprClosure closure) {
-		return Ast.LocalVarDef(closure.getSource(), Ast.Modifiers(), Ast.NoTypeExpr(), "this", Ast.NoExpr());
+		return Ast.LocalVarDef(closure.getSource(), Ast.Modifiers(), Ast.NoTypeExpr(), Ast.Identifier(closure.getSource(), "this"), Ast.NoExpr());
 	}
 
 }

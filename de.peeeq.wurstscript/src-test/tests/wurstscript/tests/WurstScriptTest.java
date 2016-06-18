@@ -3,6 +3,7 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import com.google.common.io.Files;
+
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
@@ -15,6 +16,8 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
+import de.peeeq.wurstscript.attributes.prettyPrint.Spacer;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
@@ -38,6 +41,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import org.eclipse.jdt.annotation.NonNull;
 
 public class WurstScriptTest {
 
@@ -164,6 +169,7 @@ public class WurstScriptTest {
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();
 		WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
+		
 		
 		if (!gui.getErrorList().isEmpty()) {
 			throw gui.getErrorList().get(0);

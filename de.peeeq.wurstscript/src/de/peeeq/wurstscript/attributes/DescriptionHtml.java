@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Annotation;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -31,9 +33,9 @@ import de.peeeq.wurstscript.ast.ExprTypeId;
 import de.peeeq.wurstscript.ast.ExprUnary;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncRef;
-import de.peeeq.wurstscript.ast.FuncSignature;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.FunctionImplementation;
+import de.peeeq.wurstscript.ast.Identifier;
 import de.peeeq.wurstscript.ast.IdentifierWithTypeArgs;
 import de.peeeq.wurstscript.ast.IdentifierWithTypeParamDefs;
 import de.peeeq.wurstscript.ast.InitBlock;
@@ -283,9 +285,6 @@ public class DescriptionHtml {
 		return null;
 	}
 
-	public static @Nullable String description(FuncSignature funcSignature) {
-		return null;
-	}
 
 	public static @Nullable String description(
 			IdentifierWithTypeArgs identifierWithTypeArgs) {
@@ -462,6 +461,14 @@ public class DescriptionHtml {
 
 	public static @Nullable String description(ExprEmpty exprEmpty) {
 		return null;
+	}
+
+	public static String description(Identifier identifier) {
+		AstElement parent = identifier.getParent();
+		if (parent != null) {
+			return parent.descriptionHtml();
+		}
+		return "";
 	}
 	
 }

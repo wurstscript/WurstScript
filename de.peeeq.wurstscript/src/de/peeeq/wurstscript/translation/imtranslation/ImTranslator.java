@@ -56,6 +56,7 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithModifiers;
 import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -648,21 +649,17 @@ public class ImTranslator {
 
 
 
-		if (e instanceof AstElementWithName) {
-			AstElementWithName wn = (AstElementWithName) e;
-			return wn.getName();
+		if (e instanceof AstElementWithNameId) {
+			AstElementWithNameId wn = (AstElementWithNameId) e;
+			return wn.getNameId().getName();
 		} else if (e instanceof ConstructorDef) {
 			return "new_" + e.attrNearestClassDef().getName();
+		} else if (e instanceof OnDestroyDef) {
+			return "ondestroy_" + e.attrNearestClassDef().getName();
+		} else if (e instanceof ExprClosure) {
+			return e.attrNearestNamedScope().getName() + "_closure";
 		}
-		String r = e.getClass().getName();
-		while (e != null) {
-			if (e instanceof AstElementWithName) {
-				AstElementWithName wn = (AstElementWithName) e;
-				r = wn + "_" + r;
-			}
-			e = e.getParent();
-		}
-		return r;
+		throw new RuntimeException("unhandled case: " + e.getClass().getName());
 	}
 
 	public ImVar getThisVar(TranslatedToImFunction f) {

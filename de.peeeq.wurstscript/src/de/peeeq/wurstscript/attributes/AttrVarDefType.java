@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNull;
+
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -147,5 +149,6 @@ public class AttrVarDefType {
 	public static WurstType calculate(OnDestroyDef constructorDef) {
 		return WurstTypeVoid.instance();
 	}
+
 
 }

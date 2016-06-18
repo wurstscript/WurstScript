@@ -71,7 +71,7 @@ public class ModuleExpander {
 			
 			m.getP_moduleInstanciations().add(
 					Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(), 
-							usedModule.getName(), 
+							Ast.Identifier(moduleUse.getModuleNameId().getSource(), usedModule.getName()), 
 							smartCopy(usedModule.getInnerClasses(), typeReplacements),
 							smartCopy(usedModule.getMethods(), typeReplacements), 
 							smartCopy(usedModule.getVars(), typeReplacements),  

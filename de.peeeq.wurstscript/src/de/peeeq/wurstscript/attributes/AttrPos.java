@@ -9,6 +9,8 @@ import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprMember;
 import de.peeeq.wurstscript.ast.ExprMemberMethod;
+import de.peeeq.wurstscript.ast.ExprMemberVar;
+import de.peeeq.wurstscript.ast.ExprNewObject;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InitBlock;
@@ -20,6 +22,7 @@ import de.peeeq.wurstscript.ast.StmtLoop;
 import de.peeeq.wurstscript.ast.StmtWhile;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.SwitchStmt;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WImports;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -115,32 +118,19 @@ public class AttrPos {
 	
 	
 	public static WPos getErrorPos(WPackage e) {
-		WPos pos = e.getSource();
-		return updateRight(pos, pos.getLeftPos() + ("package " + e.getName()).length());
+		return e.getNameId().getSource();
 	}
 	
 	public static WPos getErrorPos(FuncDef e) {
-		WPos pos = e.getSource();
-		int start;
-		if (e.getModifiers().isEmpty()) {
-			start = pos.getLeftPos();
-		} else {
-			start = e.getModifiers().attrSource().getRightPos() + 1;
-		}
-		start += "function ".length();
-		return pos
-				.withLeftPos(start)
-				.withRightPos(start + e.getName().length());
+		return e.getNameId().getSource();
 	}
 	
 	public static WPos getErrorPos(ExtensionFuncDef e) {
-		WPos pos = e.getSource();
-		return updateRight(pos, e.getExtendedType().getSource().getRightPos() + (".function " + e.getName()).length());
+		return e.getNameId().getSource();
 	}
 	
 	public static WPos getErrorPos(ClassDef e) {
-		WPos pos = e.getSource();
-		return updateRight(pos, pos.getLeftPos() + ("class " + e.getName()).length());
+		return e.getNameId().getSource();
 	}
 	
 	public static WPos getErrorPos(ConstructorDef e) {
@@ -159,8 +149,7 @@ public class AttrPos {
 	}
 	
 	public static WPos getErrorPos(StructureDef e) {
-		WPos pos = e.getSource();
-		return updateRight(pos, pos.getLeftPos() + 5 + e.getName().length());
+		return e.getNameId().getSource();
 	}
 	
 	
@@ -190,30 +179,20 @@ public class AttrPos {
 	}
 	
 	
-	public static WPos getErrorPos(ExprMember e) {
-		WPos pos = e.getSource();
-		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos());
-		return pos;
+	public static WPos getErrorPos(ExprMemberVar e) {
+		return e.getVarNameId().getSource();
 	}
 	
 	public static WPos getErrorPos(ExprMemberMethod e) {
-		WPos pos = e.getSource();
-		pos = pos.withLeftPos(e.getLeft().attrSource().getRightPos() + 1);
-		if (!e.getArgs().isEmpty()) {
-			pos = updateRight(pos, e.getArgs().attrSource().getLeftPos() - 1);
-		} else {
-			pos = updateRight(pos, pos.getRightPos() - 2);
-		}
-		return pos;
+		return e.getFuncNameId().getSource();
 	}
 	
+	public static WPos getErrorPos(ExprNewObject e) {
+		return e.getTypeNameId().getSource();
+	}
 	
-	public static WPos getErrorPos(LocalVarDef e) {
-		WPos pos = e.getSource();
-		if (e.getInitialExpr() instanceof Expr) {
-			pos = updateRight(pos, e.getInitialExpr().attrSource().getLeftPos() - 3);
-		}
-		return pos;
+	public static WPos getErrorPos(VarDef e) {
+		return e.getNameId().getSource();
 	}
 
 	private static WPos updateRight(WPos pos, int newRight) {

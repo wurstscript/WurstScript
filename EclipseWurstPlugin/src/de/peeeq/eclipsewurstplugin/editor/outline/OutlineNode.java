@@ -11,6 +11,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -132,8 +133,8 @@ public class OutlineNode {
 		if (node instanceof ExtensionFuncDef) {
 			ExtensionFuncDef extensionFuncDef = (ExtensionFuncDef) node;
 			return printTypeExpr(extensionFuncDef.getExtendedType()) + "." + extensionFuncDef.getName(); 
-		} else if (node instanceof AstElementWithName) {
-			return ((AstElementWithName) node).getName();
+		} else if (node instanceof AstElementWithNameId) {
+			return ((AstElementWithNameId) node).getNameId().getName();
 		} else if (node instanceof WImports) {
 			return "imports";
 		} else if (node instanceof InitBlock) {

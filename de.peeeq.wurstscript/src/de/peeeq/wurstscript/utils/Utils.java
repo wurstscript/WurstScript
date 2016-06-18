@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import de.peeeq.wurstscript.ast.*;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -44,24 +45,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithName;
-import de.peeeq.wurstscript.ast.AstElementWithParameters;
-import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.ExprFunctionCall;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprSimple;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
@@ -331,8 +314,8 @@ public class Utils {
 		} else if (e instanceof VarDef) {
 			VarDef l = (VarDef) e;
 			return "variable " + l.getName();
-		} else if (e instanceof AstElementWithName) {
-			name = ((AstElementWithName) e).getName();
+		} else if (e instanceof AstElementWithNameId) {
+			name = ((AstElementWithNameId) e).getNameId().getName();
 		} else if (e instanceof WImport) {
 			WImport wImport = (WImport) e;
 			return "import " + wImport.getPackagename();
@@ -439,6 +422,9 @@ public class Utils {
 			}
 		}
 		if (betterResults.size() == 0) {
+			if (elem instanceof Identifier) {
+				return elem.getParent();
+			}
 			return elem;
 		} else {
 			return bestResult(betterResults);
@@ -454,6 +440,9 @@ public class Utils {
 			}
 		}
 		if (betterResults.size() == 0) {
+			if (elem instanceof Identifier) {
+				return elem.getParent();
+			}
 			return elem;
 		} else {
 			return bestResult(betterResults);
@@ -509,16 +498,11 @@ public class Utils {
 				&& (pos.getEndLine() > line || pos.getEndColumn() >= column);
 	}
 
-	public static <T extends AstElementWithName> List<T> sortByName(
+
+	public static <T extends NameDef> List<T> sortByName(
 			Collection<T> c) {
 		List<T> r = Lists.newArrayList(c);
-		Collections.sort(r, new Comparator<T>() {
-
-			@Override
-			public int compare(T o1, T o2) {
-				return o1.getName().compareTo(o2.getName());
-			}
-		});
+		Collections.sort(r, Comparator.comparing(NameDef::getName));
 		return r;
 	}
 
@@ -716,15 +700,6 @@ public class Utils {
 	}
 
 	
-
-	private static <T extends AstElementWithName> Comparator<T> byName() {
-		return new Comparator<T>() {
-			@Override
-			public int compare(T o1, T o2) {
-				return o1.getName().compareTo(o2.getName());
-			}
-		};
-	}
 
 	public static String stripHtml(String s) {
 		return s.replaceAll("\\<.*?\\>", "");
