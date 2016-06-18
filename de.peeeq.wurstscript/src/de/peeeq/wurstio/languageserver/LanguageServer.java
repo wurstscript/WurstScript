@@ -102,7 +102,8 @@ public class LanguageServer {
                 String buffer = obj.get("buffer").getAsString();
                 int line = obj.get("line").getAsInt();
                 int column = obj.get("column").getAsInt();
-                worker.handleGetUsages(req.getSequenceNr(), filename, buffer, line, column);
+                boolean global = obj.has("global") && obj.get("global").getAsBoolean();
+                worker.handleGetUsages(req.getSequenceNr(), filename, buffer, line, column, global);
                 break;
             }
             case "signatureHelp": {

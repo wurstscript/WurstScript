@@ -44,6 +44,10 @@ public class AttrPos {
 			for (int i = 0; i < e.size(); i++) {
 				AstElement child = e.get(i);
 				WPos childSource = child.attrSource();
+				if (childSource.getRightPos() < childSource.getLeftPos()) {
+					// artificial position, ignore
+					continue;
+				}
 				min = Math.min(min, childSource.getLeftPos());
 				max = Math.max(max, childSource.getRightPos());
 			}

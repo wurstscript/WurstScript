@@ -17,24 +17,19 @@ public class GetUsages extends UserRequest {
 
     private final String filename;
     private final String buffer;
-    private final String[] lines;
     private final int line;
     private final int column;
+    private final boolean global;
 
-    public GetUsages(int requestNr, String filename, String buffer, int line, int column) {
+    public GetUsages(int requestNr, String filename, String buffer, int line, int column, boolean global) {
         super(requestNr);
         this.filename = filename;
         this.buffer = buffer;
         this.line = line;
         this.column = column - 1;
-        this.lines = buffer.split("\\n|\\r\\n");
-        WLogger.info("Get completions in line " + line + ": \n" + "" + currentLine().replace('\t', ' ') + "\n" + "" + Utils.repeat(' ', column - 1) + "^\n"
-                + " at column " + column);
+        this.global = global;
     }
 
-    private String currentLine() {
-        return lines[line - 1];
-    }
 
     @Override
     public Object execute(ModelManager modelManager) {
@@ -44,24 +39,26 @@ public class GetUsages extends UserRequest {
         List<UsagesData> usages = new ArrayList<>();
         if (nameDef != null) {
 
-            if (nameDef.getSource().getFile().equals(filename)) {
+            if (global || nameDef.getSource().getFile().equals(filename)) {
                 // add declaration
-                usages.add(new UsagesData(filename, nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
+                usages.add(new UsagesData(nameDef.getSource().getFile(), nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
             }
             Deque<AstElement> todo = new ArrayDeque<>();
-            todo.push(cu);
+            if (global) {
+                todo.push(modelManager.getModel());
+            } else {
+                todo.push(cu);
+            }
             while (!todo.isEmpty()) {
                 AstElement e = todo.pop();
                 // visit children:
                 for (int i = 0; i < e.size(); i++) {
                     todo.push(e.get(i));
                 }
-                NameDef e_def;
-                synchronized (modelManager) {
-                    e_def = e.tryGetNameDef();
-                }
+                NameDef e_def = e.tryGetNameDef();
                 if (e_def == nameDef) {
-                    UsagesData usagesData = new UsagesData(filename, e.attrErrorPos().getRange(), DocumentHighlightKind.Read);
+                    UsagesData usagesData = new UsagesData(e.attrSource().getFile()
+                            , e.attrErrorPos().getRange(), DocumentHighlightKind.Read);
                     usages.add(usagesData);
                 }
             }

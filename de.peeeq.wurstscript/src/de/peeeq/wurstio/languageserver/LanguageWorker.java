@@ -109,10 +109,10 @@ public class LanguageWorker implements Runnable {
         }
     }
 
-    public void handleGetUsages(int sequenceNr, String filename, String buffer, int line, int column) {
+    public void handleGetUsages(int sequenceNr, String filename, String buffer, int line, int column, boolean global) {
         synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof GetCompletions);
-            userRequests.add(new GetUsages(sequenceNr, filename, buffer, line, column));
+            userRequests.removeIf(req -> req instanceof GetUsages);
+            userRequests.add(new GetUsages(sequenceNr, filename, buffer, line, column, global));
             lock.notifyAll();
         }
     }
