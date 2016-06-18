@@ -29,7 +29,7 @@ public interface ModelManager {
 
 	void syncCompilationUnitContent(String filename, String contents);
 
-	CompilationUnit replaceCompilationUnitContent(String filename, String buffer);
+	CompilationUnit replaceCompilationUnitContent(String filename, String buffer, boolean reportErrors);
 
 	/** get all wurst files in dependency folders */
 	Set<File> getDependencyWurstFiles();

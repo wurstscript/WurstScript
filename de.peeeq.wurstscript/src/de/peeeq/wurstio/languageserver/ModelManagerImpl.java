@@ -463,9 +463,9 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	@Override
-	public CompilationUnit replaceCompilationUnitContent(String filename, String contents) {
+	public CompilationUnit replaceCompilationUnitContent(String filename, String contents, boolean reportErrors) {
 		filename = normalizeFilename(filename);
-		return replaceCompilationUnit(filename, contents, true);
+		return replaceCompilationUnit(filename, contents, reportErrors);
 	}
 
 	private String normalizeFilename(String filename) {

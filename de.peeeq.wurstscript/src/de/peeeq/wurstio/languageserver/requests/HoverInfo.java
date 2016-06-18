@@ -30,7 +30,7 @@ public class HoverInfo extends UserRequest {
 
 	@Override
 	public Object execute(ModelManager modelManager) {
-		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer);
+		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
 		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
 		WLogger.info("hovering over " + Utils.printElement(e));
 		Map<String, Object> result = new HashMap<>();

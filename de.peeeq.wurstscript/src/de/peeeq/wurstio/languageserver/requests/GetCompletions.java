@@ -61,7 +61,7 @@ public class GetCompletions extends UserRequest {
 	@Override
 	public Object execute(ModelManager modelManager) {
 		this.modelManager = modelManager;
-		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer);
+		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
 		return computeCompletionProposals(cu);
 	}
 

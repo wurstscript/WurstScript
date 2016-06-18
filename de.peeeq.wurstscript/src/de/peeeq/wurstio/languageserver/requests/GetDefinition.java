@@ -24,7 +24,7 @@ public class GetDefinition extends UserRequest {
 
 	@Override
 	public Object execute(ModelManager modelManager) {
-		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer);
+		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
 		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
 		WLogger.info("get definition at: " + e.getClass().getSimpleName());
 		if (e instanceof FuncRef) {
