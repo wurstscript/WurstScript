@@ -429,6 +429,10 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private void replaceCompilationUnit(File f) throws IOException {
+		if (!f.exists()) {
+			removeCompilationUnit(getProjectRelativePath(f));
+			return;
+		}
 		WLogger.info("replaceCompilationUnit 1 " + f);
 		String filename = getProjectRelativePath(f);
 		WLogger.info("replaceCompilationUnit 2 " + f);
