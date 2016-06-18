@@ -1,31 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.ast.*;
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithSource;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprMember;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
-import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.LoopStatement;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtLoop;
-import de.peeeq.wurstscript.ast.StmtWhile;
-import de.peeeq.wurstscript.ast.StructureDef;
-import de.peeeq.wurstscript.ast.SwitchStmt;
-import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WImports;
-import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 
@@ -177,7 +154,14 @@ public class AttrPos {
 		WPos pos = e.getSource();
 		return updateRight(pos, pos.getLeftPos() + 6);
 	}
-	
+
+	public static WPos getErrorPos(FuncRef e) {
+		return e.getFuncNameId().getSource();
+	}
+
+	public static WPos getErrorPos(FunctionCall e) {
+		return e.getFuncNameId().getSource();
+	}
 	
 	public static WPos getErrorPos(ExprMemberVar e) {
 		return e.getVarNameId().getSource();
@@ -186,7 +170,12 @@ public class AttrPos {
 	public static WPos getErrorPos(ExprMemberMethod e) {
 		return e.getFuncNameId().getSource();
 	}
-	
+
+	public static WPos getErrorPos(ExprFunctionCall e) {
+		return e.getFuncNameId().getSource();
+	}
+
+
 	public static WPos getErrorPos(ExprNewObject e) {
 		return e.getTypeNameId().getSource();
 	}
