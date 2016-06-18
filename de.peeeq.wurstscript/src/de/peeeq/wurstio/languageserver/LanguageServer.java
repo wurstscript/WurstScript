@@ -29,7 +29,9 @@ public class LanguageServer {
     }
 
     public void start() throws IOException {
-        new Thread(worker).start();
+        Thread serverThread = new Thread(worker);
+        serverThread.start();
+        serverThread.setName("LanguageServer Worker");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 
