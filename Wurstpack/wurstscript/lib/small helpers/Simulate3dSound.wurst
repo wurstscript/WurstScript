@@ -3,7 +3,7 @@ package Simulate3dSound
 *********************************************************************
 *
 *   Simulates a 3D Sound using a regular sound. This extends the
-*   functionality for regular sounds, allowing you to apply 3D 
+*   functionality for regular sounds, allowing you to apply 3D
 *   sound effects and positioning. In addition, you can use the
 *   sound functions that require the sound to be normal (non-3D).
 *
@@ -16,30 +16,30 @@ package Simulate3dSound
 *
 *	   sound s
 *
-*		   - The base sound to be played. The function will play 
-*			 the sound for you. This sound must already exist as 
-*			 an object (you have to create it). 
-* 
+*		   - The base sound to be played. The function will play
+*			 the sound for you. This sound must already exist as
+*			 an object (you have to create it).
+*
 *	   unit u
-*	   
+*
 *		   - The sound will follow this unit around. The closer
 *			 the camera is to this unit, the louder the sound.
 *
 *	   real x, y
 *
 *		   - The sound will project from this point. The volume
-*			 is loudest within the point's area. 
+*			 is loudest within the point's area.
 *
 *	   real minD (minimum distance)
 *
 *		   - Determines how far the camera can go without attenuating
 *			 the volume. From the origin to this distance, the sound's
-*			 volume will be 100%. 
+*			 volume will be 100%.
 *
 *	   real maxD (maximum distance)
 *
 *		   - Once the camera is past the minimum distance, it will
-*			 gradually reduce until it hits the maximum distance. 
+*			 gradually reduce until it hits the maximum distance.
 *			 Once it is at the maximum distance or beyond, it will
 *			 no longer lose volume unless it hits the distance cutoff.
 *
@@ -47,20 +47,20 @@ package Simulate3dSound
 *
 *		   - The sound will fade to 0% volume once it hits this distance.
 *			 If the camera is farther than "distCutoff" when the sound
-*			 is played, the sound will not be heard by that player. 
+*			 is played, the sound will not be heard by that player.
 *
 ********************************************************************
 *
 *   Functions
 *
 *	   function BindSoundToUnit takes sound s, unit u, real minD, real maxD, real distCut returns Sim3DSound
-*		   - Attaches a regular sound to a unit. 
+*		   - Attaches a regular sound to a unit.
 *	   function BindSoundToPoint takes sound s, real x, real y, real minD, real maxD, real distCut returns Sim3DSound
-*		   - Attaches a regular sound to a point. 
+*		   - Attaches a regular sound to a point.
 *	   function SetSoundUnit takes Sim3DSound s, unit u returns nothing
-*		   - Allows you to switch the unit the sound is projecting from. 
+*		   - Allows you to switch the unit the sound is projecting from.
 *	   function SetSoundCoordinates takes Sim3DSound s, real x, real y returns nothing
-*		   - Allows you to move the sound to another point. 
+*		   - Allows you to move the sound to another point.
 *	   function BindSoundToUnitForPlayer takes player p, sound s, unit u, real minD, real maxD, real distCut returns Sim3DSound
 *	   function BindSoundToPointForPlayer takes player p, sound s, real x, real y, real minD, real maxD, real distCut returns Sim3DSound
 *
@@ -71,11 +71,11 @@ package Simulate3dSound
 *	   This doesn't behave 100% like Warcraft 3 3D sounds. It does
 *	   not increase volume in relation to zoom (I may add that feature
 *	   in the future), and the "minimum distance" does not behave
-*	   exactly like Warcraft 3's. I'm still trying to figure it out. 
-*	   However, it is realistic and works well. 
+*	   exactly like Warcraft 3's. I'm still trying to figure it out.
+*	   However, it is realistic and works well.
 *
 ********************************************************************/
- 
+
 		// Determines how often the volume is updated
 constant PERIOD = 0.2
 
@@ -84,27 +84,27 @@ public class Sim3DSound
 	private unit sourceUnit = null
 	private vec2 source = vec2(0,0)
 	private boolean adjust
-	
+
 	private real initial
 	private real factor
 	private real dur
 	private real maxD
 	private real distCut
-		
+
 	private static function expire()
 		let data = GetExpiredTimer().getData() castTo Sim3DSound
 		real dx
-		real dy	
-		
+		real dy
+
 		if data.source.x == 0
 			dx = data.source.x - GetCameraTargetPositionX()
 			dy = data.source.y - GetCameraTargetPositionY()
 		else
 			dx = data.sourceUnit.getX() - GetCameraTargetPositionX()
 			dy = data.sourceUnit.getY() - GetCameraTargetPositionY()
-			
+
 		let dist = SquareRoot(dx * dx + dy * dy)
-		
+
 		if data.adjust
 			if dist > data.maxD and dist < data.distCut
 				SetSoundVolume(data.snd, R2I(data.initial -data. maxD * data.factor))
@@ -117,18 +117,18 @@ public class Sim3DSound
 		if data.dur <= 0
 			GetExpiredTimer().release()
 		data.dur -= PERIOD
-	
+
 	function setSoundPosition(vec2 pos)
 		this.source= pos
-	
+
 	function setSoundPosition(unit u)
 		sourceUnit = u
-	
+
 	construct(sound s, real x, real y, real minDist, real maxDist, real distCutoff)
 		real dx = x - GetCameraTargetPositionX()
 		real dy = y - GetCameraTargetPositionY()
 		real dist = dx*dx + dy*dy
-		
+
 		this.snd = s
 		this.source.x = x
 		this.source.y = y
@@ -140,14 +140,14 @@ public class Sim3DSound
 		this.adjust = dist < distCutoff * distCutoff
 		if not this.adjust
 			SetSoundVolume(s, 1)
-		
+
 		getTimer()..setData(this castTo int)..startPeriodic(PERIOD, function Sim3DSound.expire)
-	
+
 	construct( sound s, unit u, real minDist, real maxDist, real distCutoff )
 		real dx = GetUnitX(u) - GetCameraTargetPositionX()
 		real dy = GetUnitY(u) - GetCameraTargetPositionY()
 		real dist = dx*dx + dy*dy
-		
+
 		this.snd = s
 		this.sourceUnit = u
 		this.distCut = distCutoff
@@ -158,7 +158,7 @@ public class Sim3DSound
 		this.adjust = dist < distCutoff * distCutoff
 		if not this.adjust
 			SetSoundVolume(s, 1)
-		
+
 		getTimer()..setData(this castTo int)..startPeriodic(PERIOD, function Sim3DSound.expire)
 
 public function bindSoundToUnit(sound s, unit u, real minD, real maxD, real distCut) returns Sim3DSound
@@ -187,4 +187,3 @@ public function bindSoundToPointForPlayer(player p, sound s, real x, real y, rea
 			StartSound(s)
 
 	return new Sim3DSound(s, x, y, minD, maxD, distCut)
-	

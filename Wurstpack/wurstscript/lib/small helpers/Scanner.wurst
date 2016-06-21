@@ -7,15 +7,15 @@ public class Scanner
 	string remainingInput
 	string delimiter
 	int tokenLength = 0
-	
-	
+
+
 	construct(string input, string delimiter)
 		remainingInput = input
 		this.delimiter = delimiter
-		
+
 	function hasNext() returns boolean
 		return remainingInput.length() > 0
-		
+
 	function next() returns string
 		string char = remainingInput.charAt(tokenLength)
 		string token = ""
@@ -33,11 +33,9 @@ public class Scanner
 			remainingInput = remainingInput.substring(tokenLength+1, remainingInput.length())
 		tokenLength = 0
 		return token
-		
+
 	function close()
 		destroy this
-		
+
 	function iterator() returns Scanner
 		return this
-			
-		

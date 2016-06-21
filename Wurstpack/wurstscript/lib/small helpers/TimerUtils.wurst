@@ -3,12 +3,12 @@ import NoWurst
 import Table
 import ErrorHandling
 import public Timer
-//	Credits: 
+//	Credits:
 //		* Vexorian (original TimerUtils + TimedLoop)
 //		* Nestharus (orignial Constant Timer Loop 32)
 
 // basic TimerUtils functions with Timer-Pool and setData/getData functions
-	
+
 timer array freeTimers
 int freeTimersCount = 0
 Table timerData = new Table()
@@ -17,7 +17,7 @@ constant HELD = 0x28829022
 /** Attach Data to this timer */
 public function timer.setData(integer data)
 	timerData.saveInt( GetHandleId(this), data )
-	
+
 /** Retrieve the data attached to this timer */
 public function timer.getData() returns integer
 	return timerData.loadInt( GetHandleId(this) )
@@ -32,7 +32,7 @@ public function getTimer() returns timer
 		return freeTimers[freeTimersCount]
 	else
 		return CreateTimer()..setData(0)
-		
+
 /** Release the timer. Use this instead of "DestroyTimer" ! */
 public function timer.release()
 	if this == null
@@ -50,13 +50,13 @@ public function timer.release()
 // module to execute a function after a certain time
 public module Timed
 	abstract function onTimer()
-	
+
 	private static function timerCallback()
 		timer t = GetExpiredTimer()
 		thistype c = t.getData() castTo thistype
 		c.onTimer()
 		t.release()
-	
+
 	function startTimer(real time)
 		timer t = getTimer()
 		t.setData(this castTo integer)
@@ -68,23 +68,20 @@ public module Periodic
 	private timer t
 
 	abstract function periodic()
-	
+
 	function stopPeriodic()
 		t.release()
 		t = null
-	
+
 	private static function timerCallback()
 		timer t = GetExpiredTimer()
 		thistype c = t.getData() castTo thistype
 		c.periodic()
-	
+
 	function startPeriodic(real time)
 		t = getTimer()
 		t.setData(this castTo integer)
 		TimerStart(t, time, true, function timerCallback)
-		
+
 	ondestroy
 		stopPeriodic()
-
-
-

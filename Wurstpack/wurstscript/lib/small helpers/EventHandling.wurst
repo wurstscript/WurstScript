@@ -12,21 +12,21 @@ public function unit.registerCastEvent( conditionfunc c )
 	conds[count] = c
 	casters[count] = this
 	count++
-	
+
 public function unit.unregisterCastEvent()
 
 	for i = 0 to count
 		if casters[i] == this
-			
+
 			for j = i to count - 1
-				conds[j] = conds[j+1]	
+				conds[j] = conds[j+1]
 				casters[j] = casters[j+1]
-		
+
 			i--
 			count--
 
-	
-	
+
+
 function evaluateEvent() returns boolean
 	var caster = GetSpellAbilityUnit()
 	debugPrint(caster.getName(), 2)
@@ -36,13 +36,10 @@ function evaluateEvent() returns boolean
 			evalTrig.addCondition(conds[i])
 			evalTrig.evaluate()
 			evalTrig.clearConditions()
-			
+
 	return false
 
 init
 	castTrig = CreateTrigger()
 	castTrig.addCondition( Condition(function evaluateEvent) )
 	evalTrig = CreateTrigger()
-
-	
-		

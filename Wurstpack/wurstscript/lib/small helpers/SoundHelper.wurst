@@ -23,7 +23,7 @@ class SData
 
 public class Sound
 	Stack<SData> soundStack = new Stack<SData>()
-	
+
 	string file
 	int duration
 	boolean looping
@@ -34,8 +34,8 @@ public class Sound
 	string eaxSetting
 	vec2 emuPos = vec2(0,0)
 	unit emuUnit = null
-	
-	construct(string file, int duration, boolean looping, boolean is3D, 
+
+	construct(string file, int duration, boolean looping, boolean is3D,
 			boolean stopOnLeaveRange, int fadeIn, int fadeOut, string eaxSetting )
 		this.file = file
 		this.duration = duration
@@ -45,7 +45,7 @@ public class Sound
 		this.fadeIn = fadeIn
 		this.fadeOut = fadeOut
 		this.eaxSetting = eaxSetting
-		
+
 	construct(string file, int duration, boolean looping )
 		this.file = file
 		this.duration = duration
@@ -55,7 +55,7 @@ public class Sound
 		this.fadeIn = DEFAULT_SOUND_FADE_IN_RATE
 		this.fadeOut = DEFAULT_SOUND_FADE_OUT_RATE
 		this.eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
-		
+
 	construct(string file, int duration, boolean looping, boolean is3D )
 		this.file = file
 		this.duration = duration
@@ -65,7 +65,7 @@ public class Sound
 		this.fadeIn = DEFAULT_SOUND_FADE_IN_RATE
 		this.fadeOut = DEFAULT_SOUND_FADE_OUT_RATE
 		this.eaxSetting = DEFAULT_SOUND_EAX_SETTINGS
-	
+
 
 	private function getSound() returns SData
 		// If there is a handle on the stack
@@ -87,7 +87,7 @@ public class Sound
 			SetSoundChannel(sdata.snd, SOUND_CHANNEL)
 			SetSoundVolume(sdata.snd, DEFAULT_SOUND_VOLUME)
 			SetSoundPitch(sdata.snd, DEFAULT_SOUND_PITCH)
-			
+
 			/*
 			*   Proper 3D sound configuration
 			*/
@@ -96,57 +96,57 @@ public class Sound
 				SetSoundDistanceCutoff(sdata.snd, SOUND_DIST_CUT)
 				SetSoundConeAngles(sdata.snd, 0, 0, DEFAULT_SOUND_VOLUME)
 				SetSoundConeOrientation(sdata.snd, 0, 0, 0)
-				
-			
+
+
 			return sdata
-			
+
 	function play() returns SData
 		let snd = getSound()
 		getTimer()
 			..setData(snd castTo int)
 			..start(0., function Sound.playSound)
 		return snd
-			
+
 	function playSimulatePoint(vec2 point)
 		emuPos = point
 		getTimer()
 			..setData(getSound() castTo int)
 			..start(0., function Sound.playSound)
-			
+
 	function playSimulateUnit(unit u)
 		emuUnit = u
 		getTimer()
 			..setData(getSound() castTo int)
 			..start(0., function Sound.playSound)
-		
+
 	function playOnUnit(unit u)
 		var s = getSound()
 		s.onUnit = u
 		getTimer()
 			..setData(s castTo int)
 			..start(0., function Sound.playSound)
-		
+
 	function playOnPoint(real x, real y, real z)
 		var s = getSound()
 		SetSoundPosition(s.snd, x, y, z)
 		getTimer()
 			..setData(s castTo int)
 			..start(0., function Sound.playSound)
-		
+
 	function playOnPoint(vec3 pos)
 		var s = getSound()
 		SetSoundPosition(s.snd, pos.x, pos.y, pos.z)
 		getTimer()
 			..setData(s castTo int)
 			..start(0., function Sound.playSound)
-			
+
 	function playForPlayer(player p)
 		var s = getSound()
 		s.p = p
 		getTimer()
 			..setData(s castTo int)
-			..start(0., function Sound.playSound)	
-			
+			..start(0., function Sound.playSound)
+
 	private static function playSound()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
@@ -164,13 +164,13 @@ public class Sound
 			if sdata.p != null
 				if GetLocalPlayer() == sdata.p
 					StartSound(sdata.snd)
-			else 
+			else
 				StartSound(sdata.snd)
 		tm.release()
 		getTimer()
 			..setData(sdata castTo int)
 			..start(sdata.soundData.duration * 0.001, function Sound.recycle)
-	
+
 	private static function recycle()
 		var tm = GetExpiredTimer()
 		var sdata = tm.getData() castTo SData
@@ -182,7 +182,7 @@ public class Sound
 		else
 			StopSound(sdata.snd, true, true)
 			destroy sdata
-			
+
 		tm.release()
 
 public class DynamicSound
@@ -191,21 +191,21 @@ public class DynamicSound
 	real currentPitch = 1.0
 	real smoothness = 0.015
 	real minimumLength = 0.5
-	
+
 	SData soundData
 	Sound soundHandle
-	
+
 	construct(Sound soundHandle)
 		this.soundHandle = soundHandle
 		this.minimumLength = soundHandle.duration * 0.001
-		
+
 	function setTargetPitch(real pitch)
 		targetPitch = pitch
-		
+
 	function play()
 		soundData = soundHandle.play()
 		startTimedLoop()
-		
+
 	function setAbsolutePitch(real pitch)
 		if not soundData.snd.isPlaying()
 			if pitch == 1
@@ -216,12 +216,10 @@ public class DynamicSound
 			soundData.snd.setPitch(1/currentPitch)
 			soundData.snd.setPitch(pitch)
 		currentPitch = pitch
-		
+
 	override function onTimedLoop()
 		if soundData != null
 			setAbsolutePitch(currentPitch.lerp(targetPitch, smoothness))
 			minimumLength -= ANIMATION_PERIOD
 			if not soundData.snd.isPlaying() and minimumLength <= 0
 				stopTimedLoopAndDestroy()
-		
-	
