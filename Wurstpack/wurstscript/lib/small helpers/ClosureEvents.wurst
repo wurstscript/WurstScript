@@ -9,9 +9,9 @@ init
 		..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_CAST)
 		..addAction(function handleCasts)
 
-/** run an onCast action whenever an ability without target of type abiCode is cast 
+/** run an onCast action whenever an ability without target of type abiCode is cast
 
-Example usage: 
+Example usage:
 |	onCast('A000', (unit caster, int lvl) -> begin
 |		doStuff()
 |	end)
@@ -19,8 +19,8 @@ Example usage:
 */
 public function onCast(int abiCode, OnCast action)
 	action.register(abiCode)
-	
-/** run an onCast action whenever an ability with point target of type abiCode is cast 
+
+/** run an onCast action whenever an ability with point target of type abiCode is cast
 
 Example usage:
 |	onPointCast('A000', (unit caster, int lvl, vec2 pos) -> begin
@@ -31,44 +31,44 @@ Example usage:
 public function onPointCast(int abiCode, OnPointCast action)
 	action.register(abiCode)
 
-/** run an onCast action whenever an ability with a unit target of type abiCode is cast 
+/** run an onCast action whenever an ability with a unit target of type abiCode is cast
 
 Example usage:
 |	onUnitCast('A000', (unit caster, int lvl, unit target) -> begin
 |		doStuff()
 |	end)
 
-*/	
+*/
 public function onUnitCast(int abiCode, OnUnitCast action)
 	action.register(abiCode)
 
 public abstract class Cast
 	static HashMap<int, thistype> casts = new HashMap<int, thistype>()
 	private int abiCode
-	
+
 	function register(int abiCode)
 		this.abiCode = abiCode
 		casts.put(abiCode, this)
-		
+
 	ondestroy
 		casts.put(abiCode, null)
 
-	
+
 public abstract class OnCast extends Cast
-	
+
 	protected abstract function run(unit caster, int lvl)
-	
-		
+
+
 public abstract class OnPointCast extends Cast
-	
+
 	protected abstract function run(unit caster, int lvl, vec2 pos)
-	
-			
+
+
 public abstract class OnUnitCast extends Cast
 
 	protected abstract function run(unit caster, int lvl, unit target)
-	
-	
+
+
 function handleCasts()
 	unit caster = GetTriggerUnit()
 	int lvl = GetUnitAbilityLevel(caster, GetSpellAbilityId())
@@ -80,8 +80,8 @@ function handleCasts()
 			(c castTo OnPointCast).run(caster, lvl, vec2(GetSpellTargetX(), GetSpellTargetY()))
 		if c instanceof OnUnitCast
 			(c castTo OnUnitCast).run(caster, lvl, GetSpellTargetUnit())
-	
-		
+
+
 public function onDamage(unit u, OnDamage action) returns OnDamage
 	action.register(u)
 	return action
@@ -89,19 +89,17 @@ public function onDamage(unit u, OnDamage action) returns OnDamage
 public abstract class OnDamage
 	private static HashMap<trigger, OnDamage> damageActions = new HashMap<trigger, OnDamage>()
 	protected trigger t
-	
+
 	static function damageHandler() returns boolean
 		damageActions.get(GetTriggeringTrigger()).run(GetTriggerUnit(), GetEventDamageSource(), GetEventDamage())
 		return false
-	
+
 	protected function register(unit u)
 		t = CreateTrigger()..addCondition(Condition(function damageHandler))..registerUnitEvent(u, EVENT_UNIT_DAMAGED)
 		damageActions.put(t, this)
-		
+
 	protected abstract function run(unit damaged, unit source, real amount)
-	
+
 	ondestroy
 		damageActions.remove(t)
 		TriggerDelayedDestroy.destroyDelayed(t)
-	
-

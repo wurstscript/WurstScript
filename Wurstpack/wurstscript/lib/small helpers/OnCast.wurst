@@ -5,13 +5,13 @@ import public Vectors
 public module OnPointCast
 	private static trigger t = null
 	private static integer spellId
-	
+
 	abstract static function onPointCast(unit caster, int level, vec2 target )
 
 	private static function actions() returns boolean
 		if GetSpellAbilityId() == spellId
-			onPointCast(GetSpellAbilityUnit(), 
-				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), 
+			onPointCast(GetSpellAbilityUnit(),
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId),
 				vec2(GetSpellTargetX(), GetSpellTargetY()))
 		return false
 
@@ -21,16 +21,16 @@ public module OnPointCast
 			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
 			..addCondition(Condition(function actions))
 
-		
+
 public module OnCast
 	private static trigger t = null
 	private static integer spellId
-	
+
 	abstract static function onCast(unit caster, int level)
 
 	private static function actions() returns boolean
 		if GetSpellAbilityId() == spellId
-			onCast(GetSpellAbilityUnit(), 
+			onCast(GetSpellAbilityUnit(),
 				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId))
 		return false
 
@@ -39,18 +39,18 @@ public module OnCast
 		CreateTrigger()
 			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
 			..addCondition(Condition(function actions))
-			
+
 
 
 public module OnUnitTargetCast
 	private static trigger t = null
 	private static integer spellId
-	
+
 	abstract static function onUnitTargetCast(unit caster, int level, unit target)
 
 	private static function actions() returns boolean
 		if GetSpellAbilityId() == spellId
-			onUnitTargetCast(GetSpellAbilityUnit(), 
+			onUnitTargetCast(GetSpellAbilityUnit(),
 				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), GetSpellTargetUnit())
 		return false
 
@@ -58,11 +58,9 @@ public module OnUnitTargetCast
 		spellId = p_spellId
 		CreateTrigger()
 			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
-			..addCondition(Condition(function actions))		
-			
-		
+			..addCondition(Condition(function actions))
 
-								
+
+
+
 	// TODO add other onCast modules (unit target etc...)
-	
-		

@@ -29,10 +29,10 @@ public function getPlayerUnitEventTrigger(playerunitevent p) returns trigger
 /*****SpellEffectEvent*****/
 
 HashMap<int, trigger> onCastMap = new HashMap<int, trigger>()
- 
+
 init
 	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT, () -> TriggerEvaluate(onCastMap.get(GetSpellAbilityId())))
- 
+
 public function registerSpellEffectEvent(int abil, code onCast)
 	if not onCastMap.has(abil)
 		onCastMap.put(abil, CreateTrigger())

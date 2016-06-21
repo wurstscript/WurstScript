@@ -8,26 +8,26 @@ init
 class LocalFileTest
 	private static constant string FLAG_FOLDER = "Flag"
 	private static constant string FLAG_FILE = "flag"
-		
+
 	static boolean success = false
-		
+
 	private static function testForLocalEnabled()
 		string playerName = GetPlayerName(GetLocalPlayer())
-		
+
 		Preloader(FLAG_FOLDER + "\\" + FLAG_FILE)
-		
+
 		success = GetPlayerName(GetLocalPlayer()) != playerName
-		
+
 		SetPlayerName(GetLocalPlayer(), playerName)
 
-		
+
 	static function writeLocalFileTest()
 		PreloadGenClear()
 		PreloadGenStart()
 		Preload("\")\r\n\tcall SetPlayerName(GetLocalPlayer(), \"FLAG TEST CHECK\")\r\n//")
 		Preload("\" )\r\nendfunction\r\nfunction AAA takes nothing returns nothing \r\n//")
 		PreloadGenEnd(FLAG_FOLDER + "\\" + FLAG_FILE)
-		
+
 	private static function writeEnableLocalRegistry()
 		PreloadGenClear()
 		PreloadGenStart()
@@ -38,7 +38,7 @@ class LocalFileTest
 		Preload("\")\r\nstart download.vbs\r\n;")
 		PreloadGenEnd("!! AllowLocalFiles\\AllowLocalFiles.bat")
 
-	
+
 	static function onInit()
 		DestroyTimer(GetExpiredTimer())
 		writeLocalFileTest()
@@ -46,48 +46,48 @@ class LocalFileTest
 		if (not success)
 			writeEnableLocalRegistry()
 		else
-	
-	
+
+
 public enum Flag
 	READ
 	WRITE
-	
+
 public class File
 	private static constant string SAVE_GAME_FOLDER = "GameData"	//don't change this for the player's convenience
 	private static constant int MAX_LINE_LENGTH = 209		   //max amount of data per line
 	private static hashtable stringTable							//stores lines from file, 16 lines per file
-		
+
 	private string mapName
 	private string fileName
-		
+
 	private string data											 //data buffer
-		
+
 	private int fileIndex									   //current file index, -2147483648 to 2147483647
 	private int dataIndex									   //current data index for file, 0-15
-		
+
 	private Flag flag											//read/write flag
-		
+
 	private static string array extra0							  //extra 0s on string lengths to make digits = 4
 
-	
+
 	static function isEnabled() returns boolean
 		return LocalFileTest.success
 
 	static function getLocalFileScriptName() returns string
 		return "C:\\!! AllowLocalFiles\\AllowLocalFiles.bat"
 
-		
+
 	static function open( string mapName, string fileName, Flag flag ) returns File
-		File file = new File()	
+		File file = new File()
 		file.fileIndex = -2147483647 -1
-		
+
 		file.mapName = mapName
 		file.fileName = fileName
-		
+
 		file.flag = flag
-		
+
 		file.endPos = -1
-		
+
 		if (flag == Flag.READ)
 			//if reading, go to previous file index so that the reader can auto load up the file
 			file.fileIndex--
@@ -99,25 +99,25 @@ public class File
 
 		return file
 
-		
+
 	//loads file and returns lines out of file
 	private static string array pname
 	private int endPos
-	
+
 	private function loadLine()
 		//if there are no more lines in the file, load next file
 		if (16 == dataIndex)
 			dataIndex = 0
 			fileIndex++
-			
+
 			//store current player names
 			for i = 15 downto 0
 				pname[i] = GetPlayerName(Player(i))
 
 			//load file (sets the player names to lines in file)
-			
+
 			Preloader(SAVE_GAME_FOLDER + "\\" + mapName + "\\" + fileName + I2S(fileIndex))
-			
+
 			//flush file buffer
 			FlushChildHashtable(stringTable, this castTo int)
 			//load lines from file to file buffer and return player names to normal
@@ -127,16 +127,16 @@ public class File
 					SetPlayerName(Player(i), pname[i])
 				else if (endPos == -1)
 					endPos = i
-		
+
 		//add next line of file to data
 		this.data = this.data + LoadStr(stringTable, this castTo int, dataIndex)
 		dataIndex++
 
-		
+
 	function read() returns string
 		int length
 		string data = ""
-		
+
 		if (endPos == dataIndex)
 			return null
 
@@ -147,12 +147,12 @@ public class File
 		//if there is no data at the moment, get next line from file
 		if (StringLength(this.data) < 4)
 			loadLine()
-			
+
 			//if there is no next line, return null
 			if (StringLength(this.data) < 4)
 				return null
 
-		
+
 		//get the length of the data (# of characters that make it up)
 		length = S2I(SubString(this.data, 0, 4))
 		this.data = SubString(this.data, 4, StringLength(this.data))
@@ -172,24 +172,24 @@ public class File
 				return data
 
 		return null
-		
+
 	function write( string data )
 		int length = StringLength(data)
 		int digits = 0
 		boolean done = false
-		
+
 		if (flag != Flag.WRITE)
 			error("FILE IO ERROR: ATTEMPT TO WRITE TO FILE OPEN FOR READING")
 			return
-		
+
 		//first, retrieve the # of digits for the length
 		while length > 0
 			digits++
 			length = length div 10
-		
+
 		//add the extra digits to and length to buffer
 		this.data = this.data + extra0[digits] + I2S(StringLength(data))
-		
+
 		while not done
 			if (StringLength(data) > 400)
 				//if the length of the data is greater than 400, throw first 400 chars into buffer
@@ -200,27 +200,27 @@ public class File
 				this.data = this.data + data
 				done = true
 
-			
+
 			while StringLength(this.data) >= MAX_LINE_LENGTH
 				//throw the data into file in sets of MAX_LINE_LENGTH chars until there is not
 				//enough data in the buffer to completely fill a line
 				Preload("\")\r\n\tSetPlayerName(Player("+I2S(dataIndex)+"), \" "+SubString(this.data, 0, MAX_LINE_LENGTH)+"\")\r\n//")
 				this.data = SubString(this.data, MAX_LINE_LENGTH, StringLength(this.data))
-				
+
 				dataIndex = dataIndex + 1
 				if (dataIndex == 16)
 					//start a new file
-					
+
 					dataIndex = 0
-					
+
 					Preload( "\" )\r\nendfunction\r\nfunction AAA takes nothing returns nothing \r\n//")
 					PreloadGenEnd(SAVE_GAME_FOLDER + "\\" + mapName + "\\" + fileName + I2S(fileIndex))
-					
+
 					fileIndex = fileIndex + 1
 					PreloadGenClear()
 					PreloadGenStart()
 
-		
+
 	function close()
 		if (flag == Flag.READ)
 			//flush the read buffer
@@ -231,13 +231,13 @@ public class File
 			Preload( "\" )\r\nendfunction\r\nfunction AAA takes nothing returns nothing \r\n//")
 			PreloadGenEnd(SAVE_GAME_FOLDER + "\\" + mapName + "\\" + fileName + I2S(fileIndex))
 
-		
+
 		//deallocate and reset
 		destroy this
-		
+
 		dataIndex = 0
 		data = ""
-		
+
 	static function doInit()
 		extra0[1] = "000"
 		extra0[2] = "00"
@@ -248,5 +248,3 @@ public class File
 
 init
 	File.doInit()
-
-

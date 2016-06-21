@@ -12,7 +12,7 @@ public function boolean.sync(player source) returns boolean
 		return false
 	else
 		return true
-			
+
 
 /**
 	syncs the given int from the source player and returns the
@@ -100,7 +100,7 @@ function HashList<int>.sync(player source)
 	FlushStoredMission(gc, missionKey)
 	destroy t
 
-	
+
 function initGamecache()
 	gc = InitGameCache("sync")
 	DestroyTimer(GetExpiredTimer())

@@ -24,31 +24,31 @@ public function debugPrint(string msg, int level)
 		for i = 0 to 11
 			if wantDebug[i]
 				DisplayTimedTextToPlayer(Player(i), 0., 0., DEBUG_MSG_DURATION,"|cff9C9C9CDEBUG - |r" + msg)
-		
+
 /** Prints a simple message */
-public function print(string msg)		
+public function print(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, msg)
 
 /** Prints a special Notification-Message */
 public function printNote(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFFFF00[NOTIFICATION]|r - " + msg)
-	
+
 /** Prints a special Warning-Message */
 public function printWarning(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF8000[WARNING]|r - " + msg)
-	
+
 /** Prints a special Error-Message */
 public function printError(string msg)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., DEBUG_MSG_DURATION, "|cffFF0000[ERROR]|r - " + msg)
-	
+
 /** Prints a simple message that is shown for the given duration */
 public function printTimed(string msg, real duration)
 	DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., duration, msg)
-	
+
 /** Prints a simple message that is shown to the player for the given duration */
 public function printTimedToPlayer(string msg, real duration, player p)
 	DisplayTimedTextToPlayer(p, 0., 0., duration, msg)
-	
+
 /** Prints a simple message after clearing all messages that is shown to the player for the given duration */
 public function printTimedToPlayerClear(string msg, real duration, player p)
 	if GetLocalPlayer() == p
@@ -65,12 +65,11 @@ function switchDebug()
 	else
 		wantDebug[id] = true
 		DisplayTimedTextToPlayer(p, 0., 0., 20., "|cff9C9C9CDEBUG-View|r |cff3AAD42activated")
-		
-// Players can type "-d" ingame to turn on debugmode 
+
+// Players can type "-d" ingame to turn on debugmode
 init
 	let t = CreateTrigger()
 	t.addAction(function switchDebug)
 	for i = 0 to 11
 		wantDebug[i] = false
 		t.registerPlayerChatEvent(Player(i), "-d", true)
-

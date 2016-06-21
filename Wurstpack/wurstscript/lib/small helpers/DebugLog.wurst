@@ -6,7 +6,7 @@ public class DebugLog
 	string name
 	construct(string name)
 		this.name = name
-		
+
 	function println(string line)
 		this.file = File.open("debug", name + ".txt", Flag.READ)
 		let content = file.read()

@@ -3,11 +3,11 @@ import TempGroups
 
 public interface ForGroupCallback
 	function callback(unit u)
-		
+
 function filter() returns boolean
 	currentCallback().callback(GetFilterUnit())
 	return false
-		
+
 ForGroupCallback array tempCallbacks
 int tempCallbacksCount = 0
 constant filter = Condition(function filter)
@@ -15,14 +15,14 @@ constant filter = Condition(function filter)
 function pushCallback(ForGroupCallback c)
 	tempCallbacks[tempCallbacksCount] = c
 	tempCallbacksCount++
-	
+
 function popCallback() returns ForGroupCallback
 	tempCallbacksCount--
 	return tempCallbacks[tempCallbacksCount]
 
 function currentCallback() returns ForGroupCallback
 	return tempCallbacks[tempCallbacksCount - 1]
-		
+
 public function forUnitsOfType(string unitname, ForGroupCallback c)
 	pushCallback(c)
 	GroupEnumUnitsOfType(ENUM_GROUP, unitname, filter)
@@ -62,5 +62,3 @@ public function forUnitsSelected(player p, ForGroupCallback c)
 	pushCallback(c)
 	GroupEnumUnitsSelected(ENUM_GROUP, p, filter)
 	popCallback()
-
-

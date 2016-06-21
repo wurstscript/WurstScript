@@ -21,24 +21,24 @@ public function modifyDamage( real newdmg )
 	unit target = GetTriggerUnit()
 	real actlife = target.getHP()
 	real dmgtake = GetEventDamage()
-	
-	if Active.last != null and GetEventDamageSource()==Active.last.source and target==Active.last.target and dmgtake==Active.last.realdmg 
+
+	if Active.last != null and GetEventDamageSource()==Active.last.source and target==Active.last.target and dmgtake==Active.last.realdmg
 		Active.last.newdmg = newdmg
 	else
 		var moddat = new Active()
-		
+
 		moddat.target = target
 		moddat.taketrg = GetTriggeringTrigger()
 		moddat.source = GetEventDamageSource()
 		moddat.oldlife = actlife
 		moddat.realdmg = dmgtake
 		moddat.newdmg = newdmg
-		
+
 		moddat.setbonus = not target.hasAbility(DAMAGE_ABIL_ID)
 		if moddat.setbonus
 			target.addAbility(DAMAGE_ABIL_ID)
 			actlife = target.getHP()
-		
+
 		moddat.setlifed = actlife-0.405 < dmgtake
 		if moddat.setlifed
 			actlife = actlife + dmgtake
@@ -48,7 +48,7 @@ public function modifyDamage( real newdmg )
 /** Modifies the damage by a certain value */
 public function modifyDamageBy( real damage)
 	modifyDamage( getDamage() + damage )
-	
+
 // End of API
 
 class Active
@@ -63,7 +63,7 @@ class Active
 	real newdmg
 	boolean setlifed
 	boolean setbonus
-	
+
 	construct()
 		// If this is the first Active DamageEvent we start the timer to apply this and all further
 		if this == first
@@ -76,10 +76,10 @@ class Active
 						resetlife = actlife
 					else
 						resetlife = moddat.oldlife + (actlife - moddat.newlife + moddat.realdmg)
-						
+
 					if moddat.setbonus
 						moddat.target.removeAbility(DAMAGE_ABIL_ID)
-					
+
 					if resetlife - moddat.newdmg > 0.405
 						moddat.target.setHP( resetlife - moddat.newdmg )
 					else
@@ -88,7 +88,7 @@ class Active
 						moddat.source.damageTarget( moddat.target, MAX_HP_GAINED + 0. )
 						if b
 							moddat.taketrg.enable()
-					
+
 					destroy moddat
 			end)
 

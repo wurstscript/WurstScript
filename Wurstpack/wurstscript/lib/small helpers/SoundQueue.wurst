@@ -6,13 +6,13 @@ public class SoundQueue
 	Queue<Sound> queue = new Queue<Sound>()
 
 	timer tm = getTimer()
-	
+
 	construct()
 		tm.setData(this castTo int)
-	
+
 	function addSound(Sound snd)
 		queue.enqueue(snd)
-		
+
 	function startQueue()
 		if queue.getSize() > 0
 			let snd = queue.dequeue()
@@ -22,7 +22,7 @@ public class SoundQueue
 		else
 			tm.release()
 			destroy this
-		
+
 	static function nextSound()
 		var tm = GetExpiredTimer()
 		var sndq = tm.getData() castTo SoundQueue
