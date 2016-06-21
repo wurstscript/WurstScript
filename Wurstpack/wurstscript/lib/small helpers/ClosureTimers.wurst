@@ -29,7 +29,7 @@ public function doPeriodicallyCounted(real time, int callAmount, CallbackCounted
 	The callback object is destroyed afterwards.
 	
 	Example use:
-	| doPeriodicallyCounted(0.5, 10., () -> begin
+	| doPeriodicallyTimed(0.5, 10., () -> begin
 	|     doSomething()		
 	| end)
 	
