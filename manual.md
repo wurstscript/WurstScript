@@ -1672,8 +1672,8 @@ A quick example from the standard library (Vectors.wurst):
         return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
         
     // Usage example
-    vec3 a = (1.,1.,1.)
-    vec3 b = (1.,1.,1.)
+    vec3 a = vec3(1.,1.,1.)
+    vec3 b = vec3(1.,1.,1.)
     // Without Operator Overloading (the add function was replaced by it)
     vec3 c = a.add( b )
     // With operator Overloading
