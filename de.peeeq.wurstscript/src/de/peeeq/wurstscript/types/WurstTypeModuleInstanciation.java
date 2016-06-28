@@ -48,7 +48,8 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 			if (ns == null) {
 				return false;
 			}
-			if (ns == n.getDef()) {
+			//if (ns == n.getDef()) {
+			if (n.isSubtypeOf(ns.attrTyp(), ns)) {
 				return true;
 			}
 		}

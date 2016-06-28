@@ -333,4 +333,33 @@ public class ModuleTests extends WurstScriptTest {
 				"		testSuccess()"
 				);
 	}
+
+
+	@Test
+	public void modulesInSubclasses() { // bug #390
+		testAssertOkLines(true,
+				"package Test",
+				"native testSuccess()",
+				"native testFail(string message)",
+				"module M",
+				"	int i = 0",
+				"class A",
+				"	use M",
+				"	function f()",
+				"		i++",
+				"		this.i++",
+				"class B extends A",
+				"	function g()",
+				"		i++", // line 13
+				"		this.i++",
+				"		super.i++",
+				"init",
+				"	let b = new B()",
+				"	A a = b",
+				"	a.f()",
+				"	b.g()",
+				"	if a.i != 5",
+				"		testFail(\"foo\")",
+				"	testSuccess()");
+	}
 }
