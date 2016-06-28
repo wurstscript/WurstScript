@@ -50,9 +50,9 @@ public class ParserTests extends WurstScriptTest {
 			);
 	}
 
-	@Test @Ignore
+	@Test
 	public void halfAssign() {
-		testAssertErrorsLines(false, "dasfdss",
+		testAssertErrorsLines(false, "Missing expression",
 				"package Test",
 				"init",
 				"	int x =",

@@ -14,15 +14,12 @@ public class WurstTypeUnknown extends WurstType {
 
 	public WurstTypeUnknown(String name) {
 		this.name = name;
-		try {
-			throw new Error("unknown type");
-		} catch (Error e) {
-		}
 	}
 
 	@Override
 	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
-		return false;
+		// unknown is a subtype of everything, so that we don't propagate errors
+		return true;
 	}
 
 

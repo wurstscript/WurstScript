@@ -32,6 +32,10 @@ public abstract class WurstType {
 			return this.isSubtypeOf(wtu.getTypeA(), location)
 					&& this.isSubtypeOf(wtu.getTypeB(), location);
 		}
+		if (other instanceof WurstTypeUnknown) {
+			// everything is a subtype of unknown (stops error cascades)
+			return true;
+		}
 		if (this.isSubtypeOfIntern(other, location)) {
 			return true;
 		}

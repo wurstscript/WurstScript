@@ -609,7 +609,8 @@ public class AttrExprType {
 
 
 	public static WurstType calculate(ExprEmpty e) {
-		return new WurstTypeUnknown("empty");
+		e.addError("Missing expression");
+		return new WurstTypeUnknown("empty expression");
 	}
 
 }

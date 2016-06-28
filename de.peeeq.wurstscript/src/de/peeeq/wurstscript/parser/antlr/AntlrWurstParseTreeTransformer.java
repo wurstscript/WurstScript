@@ -310,7 +310,11 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private WStatement transformJassStatementReturn(JassStatementReturnContext s) {
-		return Ast.StmtReturn(source(s), transformOptionalExpr(s.expr()));
+		OptExpr r = transformOptionalExpr(s.expr());
+		if (r instanceof ExprEmpty) {
+			r = Ast.NoExpr();
+		}
+		return Ast.StmtReturn(source(s), r);
 	}
 
 	private WStatement transformJassStatementLoop(JassStatementLoopContext s) {
@@ -724,7 +728,11 @@ public class AntlrWurstParseTreeTransformer {
 	}
 
 	private StmtReturn transformReturn(StmtReturnContext s) {
-		return Ast.StmtReturn(source(s), transformOptionalExpr(s.expr()));
+		OptExpr r = transformOptionalExpr(s.expr());
+		if (r instanceof ExprEmpty) {
+			r = Ast.NoExpr();
+		}
+		return Ast.StmtReturn(source(s), r);
 	}
 
 	private WStatement transformStmtSet(StmtSetContext s) {
@@ -879,9 +887,9 @@ public class AntlrWurstParseTreeTransformer {
 			return Ast.NoExpr();
 		}
 		Expr r = transformExpr(e);
-		if (r instanceof ExprEmpty) {
-			return Ast.NoExpr();
-		}
+//		if (r instanceof ExprEmpty) {
+//			return Ast.NoExpr();
+//		}
 		return r;
 	}
 
