@@ -15,6 +15,9 @@ public function unit.isAlive() returns boolean
 public function unit.isAliveTrick() returns boolean
 	return this.getHP() > .405
 
+public function unit.isEnemy(player p) returns boolean
+	return IsUnitEnemy(this, p)
+
 public function unit.addXp(int toAdd, boolean showEyeCandy)
 	AddHeroXP(this, toAdd, showEyeCandy)
 
