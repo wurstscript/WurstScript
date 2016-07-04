@@ -18,6 +18,9 @@ public function unit.isAliveTrick() returns boolean
 public function unit.isEnemy(player p) returns boolean
 	return IsUnitEnemy(this, p)
 
+public function unit.addToStock(int sellUnitId, int stockCurrent, int stockMax)
+	AddUnitToStock(this, sellUnitId, stockCurrent, stockMax)
+
 public function unit.addXp(int toAdd, boolean showEyeCandy)
 	AddHeroXP(this, toAdd, showEyeCandy)
 
@@ -90,7 +93,10 @@ public function unit.removeAbility(int abil)
 
 public function unit.getOwner() returns player
 	return GetOwningPlayer(this)
-	
+
+public function unit.removeFromStock(int sellUnitId)
+	RemoveUnitFromStock(this, sellUnitId)
+
 public function unit.setOwner(player p, boolean changeColor)
 	SetUnitOwner(this, p, changeColor)
 	
