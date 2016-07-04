@@ -53,6 +53,11 @@ public function forUnitsInRange(vec2 pos, real radius, ForGroupCallback c)
 	GroupEnumUnitsInRange(ENUM_GROUP, pos.x, pos.y, radius, filter)
 	popCallback()
 
+public function forUnitsInRange(real posX, real posY, real radius, ForGroupCallback c)
+	pushCallback(c)
+	GroupEnumUnitsInRange(ENUM_GROUP, posX, posY, radius, filter)
+	popCallback()
+
 public function forUnitsInRangeCounted(vec2 pos, real radius, int count, ForGroupCallback c)
 	pushCallback(c)
 	GroupEnumUnitsInRangeCounted(ENUM_GROUP, pos.x, pos.y, radius, filter, count)
