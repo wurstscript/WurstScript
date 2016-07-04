@@ -264,8 +264,8 @@ public class JassPrinter {
 		// 4 * /
 		// 3 + -
 		// 2 <= >= > < == !=
-		// 1 and 
-		// 0 or
+		// 1 or
+		// 0 and
 		return op.match(new JassOp.Matcher<Integer>() {
 
 			@Override
@@ -280,7 +280,7 @@ public class JassPrinter {
 
 			@Override
 			public Integer case_JassOpAnd(@SuppressWarnings("null") JassOpAnd jassOpAnd) {
-				return 1;
+				return 0;
 			}
 
 			@Override
@@ -320,7 +320,7 @@ public class JassPrinter {
 
 			@Override
 			public Integer case_JassOpOr(@SuppressWarnings("null") JassOpOr jassOpOr) {
-				return 0;
+				return 1;
 			}
 
 			@Override
