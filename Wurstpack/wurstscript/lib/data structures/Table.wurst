@@ -50,9 +50,14 @@ public class Table
 	function removeReal( integer parentKey )
 		RemoveSavedReal(ht, this castTo int, parentKey)
 
+	// Handle.
+	function hasHandle( int parentKey ) returns bool
+		return ht.hasHandle(this castTo int, parentKey)
+
 	function removeHandle( integer parentKey )
 		RemoveSavedHandle(ht, this castTo int, parentKey)
 
+	// Player.
 	function loadPlayer( int parentKey ) returns player
 		return ht.loadPlayerHandle( this castTo int, parentKey )
 
