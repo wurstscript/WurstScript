@@ -4,7 +4,7 @@ import public Hashtable
 
 public class Table
 	static hashtable ht = InitHashtable()
-	
+
 	function loadBoolean(int parentKey) returns boolean
 		return ht.loadBoolean( this castTo int, parentKey )
 
@@ -13,203 +13,203 @@ public class Table
 
 	function hasBoolean(int parentKey) returns boolean
 		return ht.hasBoolean(this castTo int, parentKey)
-	
+
 	function hasString(int parentKey) returns boolean
 		return ht.hasString(this castTo int, parentKey)
-		
+
 	function removeBoolean( integer parentKey )
 		RemoveSavedBoolean(ht, this castTo int, parentKey)
-	
+
 	function loadInt( int parentKey ) returns int
 		return ht.loadInt(this castTo int, parentKey)
-	
+
 	function saveInt( int parentKey, int value )
 		ht.saveInt(this castTo int, parentKey, value)
 
 	function hasInt( int parentKey ) returns boolean
 		return ht.hasInt(this castTo int, parentKey)
-	
+
 	function removeInt( integer parentKey )
 		RemoveSavedInteger(ht, this castTo int, parentKey)
-		
+
 	function loadReal( int parentKey ) returns real
 		return ht.loadReal(this castTo int, parentKey)
-	
+
 	function saveReal( int parentKey, real value )
 		ht.saveReal(this castTo int, parentKey, value)
-		
+
 	function loadString( int parentKey ) returns string
 		return ht.loadString(this castTo int, parentKey)
-	
+
 	function saveString( int parentKey, string value )
 		ht.saveString(this castTo int, parentKey, value)
 
 	function hasReal( int parentKey ) returns boolean
 		return ht.hasReal(this castTo int, parentKey)
-	
+
 	function removeReal( integer parentKey )
 		RemoveSavedReal(ht, this castTo int, parentKey)
-	
+
 	function removeHandle( integer parentKey )
 		RemoveSavedHandle(ht, this castTo int, parentKey)
-		
+
 	function loadPlayer( int parentKey ) returns player
 		return ht.loadPlayerHandle( this castTo int, parentKey )
-	
+
 	function savePlayer( int parentKey, player value )
 		ht.savePlayerHandle( this castTo int, parentKey, value )
-	
+
 	function loadWidget( int parentKey ) returns widget
 		return ht.loadWidgetHandle( this castTo int, parentKey )
-	
+
 	function saveWidget( int parentKey, widget value )
 		ht.saveWidgetHandle( this castTo int, parentKey, value )
-	
+
 	function loadUnit( int parentKey ) returns unit
 		return ht.loadUnitHandle( this castTo int, parentKey )
-	
+
 	function saveUnit( int parentKey, unit value )
 		ht.saveUnitHandle( this castTo int, parentKey, value )
-	
+
 	function loadDestructable( int parentKey ) returns destructable
 		return ht.loadDestructableHandle( this castTo int, parentKey )
-	
+
 	function saveDestructable( int parentKey, destructable value )
 		ht.saveDestructableHandle( this castTo int, parentKey, value )
-	
+
 	function loadItem( int parentKey ) returns item
 		return ht.loadItemHandle( this castTo int, parentKey )
-	
+
 	function saveItem( int parentKey, item value )
 		ht.saveItemHandle( this castTo int, parentKey, value )
-	
+
 	function loadAbility( int parentKey ) returns ability
 		return ht.loadAbilityHandle( this castTo int, parentKey )
-	
+
 	function saveAbility( int parentKey, ability value )
 		ht.saveAbilityHandle( this castTo int, parentKey, value )
-	
+
 	function loadForce( int parentKey ) returns force
 		return ht.loadForceHandle( this castTo int, parentKey )
-	
+
 	function saveForce( int parentKey, force value )
 		ht.saveForceHandle( this castTo int, parentKey, value )
-	
+
 	function loadGroup( int parentKey ) returns group
 		return ht.loadGroupHandle( this castTo int, parentKey )
-	
+
 	function saveGroup( int parentKey, group value )
 		ht.saveGroupHandle( this castTo int, parentKey, value )
-	
+
 	function loadTrigger( int parentKey ) returns trigger
 		return ht.loadTriggerHandle( this castTo int, parentKey )
-	
+
 	function saveTrigger( int parentKey, trigger value )
 		ht.saveTriggerHandle( this castTo int, parentKey, value )
-			
+
 	function loadTimer( int parentKey ) returns timer
 		return ht.loadTimerHandle( this castTo int, parentKey )
-	
+
 	function saveTimer( int parentKey, timer value )
 		ht.saveTimerHandle( this castTo int, parentKey, value )
-	
+
 	function loadLocation( int parentKey ) returns location
 		return ht.loadLocationHandle( this castTo int, parentKey )
-	
+
 	function saveLocation( int parentKey, location value )
 		ht.saveLocationHandle( this castTo int, parentKey, value )
-	
+
 	function loadRegion( int parentKey ) returns region
 		return ht.loadRegionHandle( this castTo int, parentKey )
-	
+
 	function saveRegion( int parentKey, region value )
 		ht.saveRegionHandle( this castTo int, parentKey, value )
-	
+
 	function loadRect( int parentKey ) returns rect
 		return ht.loadRectHandle( this castTo int, parentKey )
-	
+
 	function saveRect( int parentKey, rect value )
 		ht.saveRectHandle( this castTo int, parentKey, value )
-	
+
 	function loadSound( int parentKey ) returns sound
 		return ht.loadSoundHandle( this castTo int, parentKey )
-	
+
 	function saveSound( int parentKey, sound value )
 		ht.saveSoundHandle( this castTo int, parentKey, value )
-			
+
 	function loadEffect( int parentKey ) returns effect
 		return ht.loadEffectHandle( this castTo int, parentKey )
-	
+
 	function saveEffect( int parentKey, effect value )
 		ht.saveEffectHandle( this castTo int, parentKey, value )
-		
+
 	function loadFogState( int parentKey ) returns fogstate
 		return ht.loadFogStateHandle( this castTo int, parentKey )
-	
+
 	function saveFogState( int parentKey, fogstate value )
 		ht.saveFogStateHandle( this castTo int, parentKey, value )
-			
+
 	function loadDialog( int parentKey ) returns dialog
 		return ht.loadDialogHandle( this castTo int, parentKey )
-	
+
 	function saveDialog( int parentKey, dialog value )
 		ht.saveDialogHandle( this castTo int, parentKey, value )
-	
+
 	function loadButton( int parentKey ) returns button
 		return ht.loadButtonHandle( this castTo int, parentKey )
-	
+
 	function saveButton( int parentKey, button value )
 		ht.saveButtonHandle( this castTo int, parentKey, value )
-	
+
 	function loadQuest( int parentKey ) returns quest
 		return ht.loadQuestHandle( this castTo int, parentKey )
-	
+
 	function saveQuest( int parentKey, quest value )
 		ht.saveQuestHandle( this castTo int, parentKey, value )
-	
+
 	function loadQuestItem( int parentKey ) returns questitem
 		return ht.loadQuestItemHandle( this castTo int, parentKey )
-	
+
 	function saveQuestItem( int parentKey, questitem value )
 		ht.saveQuestItemHandle( this castTo int, parentKey, value )
-			
+
 	function loadLeaderboard( int parentKey ) returns leaderboard
 		return ht.loadLeaderboardHandle( this castTo int, parentKey )
-	
+
 	function saveLeaderboard( int parentKey, leaderboard value )
 		ht.saveLeaderboardHandle( this castTo int, parentKey, value )
-	
+
 	function loadMultiboard( int parentKey ) returns multiboard
 		return ht.loadMultiboardHandle( this castTo int, parentKey )
-	
+
 	function saveMultiboard( int parentKey, multiboard value )
 		ht.saveMultiboardHandle( this castTo int, parentKey, value )
-	
+
 	function loadTrackable( int parentKey ) returns trackable
 		return ht.loadTrackableHandle( this castTo int, parentKey )
-	
+
 	function saveTrackable( int parentKey, trackable value )
 		ht.saveTrackableHandle( this castTo int, parentKey, value )
-	
+
 	function loadLightning( int parentKey ) returns lightning
 		return ht.loadLightningHandle( this castTo int, parentKey )
-	
+
 	function saveLightning( int parentKey, lightning value )
 		ht.saveLightningHandle( this castTo int, parentKey, value )
-			
+
 	function loadImage( int parentKey ) returns image
 		return ht.loadImageHandle( this castTo int, parentKey )
-	
+
 	function saveImage( int parentKey, image value )
 		ht.saveImageHandle( this castTo int, parentKey, value )
-	
+
 	function loadUbersplat( int parentKey ) returns ubersplat
 		return ht.loadUbersplatHandle( this castTo int, parentKey )
-	
+
 	function saveUbersplat( int parentKey, ubersplat value )
 		ht.saveUbersplatHandle( this castTo int, parentKey, value )
-	
-				
+
+
 	//Remove all data from a Table instance
 	function flush()
 		FlushChildHashtable(ht, this castTo int)
