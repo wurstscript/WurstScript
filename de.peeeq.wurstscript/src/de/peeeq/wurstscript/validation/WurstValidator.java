@@ -164,6 +164,13 @@ public class WurstValidator {
 				unused.remove(def.attrNearestPackage());
 			}
 		}
+		if (e instanceof ExprBinary) {
+			ExprBinary binop = (ExprBinary) e;
+			FunctionDefinition def = binop.attrFuncDef();
+			if (def != null) {
+				unused.remove(def.attrNearestPackage());
+			}
+		}
 		if (e instanceof Expr) {
 			WurstType typ = ((Expr) e).attrTyp();
 			if (typ instanceof WurstTypeNamedScope) {
