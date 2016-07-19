@@ -1,13 +1,8 @@
 package de.peeeq.wurstscript.validation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -26,7 +21,6 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
-import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.types.CallSignature;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -118,57 +112,103 @@ public class WurstValidator {
 	}
 
 	private void checkUnusedImports(WPackage p) {
-		Set<WPackage> unused = Sets.newLinkedHashSet();
-		// first assume all are unused
+		Set<PackageOrGlobal> used = Sets.newLinkedHashSet();
+
+
+
+		collectUsedPackages(used, p.getElements());
+
+
+		
+//		String usedToStr = used.stream().map(Utils::printElement).sorted().collect(Collectors.joining(", "));
+//		System.out.println("used = " + usedToStr);
+		
+		// contributed packages for each import
+		Map<WImport, Set<WPackage>> contributions = new HashMap<>(); 
 		for (WImport imp : p.getImports()) {
-			if (!imp.getPackagename().equals("Wurst")) {
-				unused.add(imp.attrImportedPackage());
-			}
+			Set<WPackage> contributedPackages = contributedPackages(imp.attrImportedPackage(), used, new HashSet<>());
+			contributions.put(imp, contributedPackages);
+//			System.out.println( imp.getPackagename() + " contributes = " + contributedPackages.stream().map(Utils::printElement).sorted().collect(Collectors.joining(", ")));
 		}
 		
-		removeUsed(unused, p.getElements());
-		
-		
+		// check for imports, which only contribute a subset of some other import
+		Set<WImport> unused = Sets.newLinkedHashSet();
 		for (WImport imp : p.getImports()) {
-			if (imp.attrImportedPackage() != null 
-				&& !imp.getIsPublic()
-				&& unused.contains(imp.attrImportedPackage()) ) {
-				imp.addWarning("The import " + imp.getPackagename() + " is never used directly.");
+			if (imp.attrImportedPackage() == null 
+					|| imp.getIsPublic()
+					|| imp.getPackagename().equals("Wurst")) {
+				continue;
+			}
+			Set<WPackage> impContributions = contributions.get(imp);
+			if (impContributions.isEmpty()) {
+				imp.addWarning("The import " + imp.getPackagename() + " is never used.");
+			} else {
+				for (WImport imp2 : p.getImports()) {
+					if (imp == imp2) {
+						continue;
+					}
+					if (contributions.get(imp2).containsAll(impContributions)) {
+						imp.addWarning("The import " + imp.getPackagename() + " can be removed, because it is already included in " + imp2.getPackagename() + ".");
+						break;
+					}
+					
+				}
 			}
 		}
 	}
 
-	private void removeUsed(Set<WPackage> unused, AstElement e) {
+	private Set<WPackage> contributedPackages(WPackage p, Set<PackageOrGlobal> used, Set<WPackage> visited) {
+		if (p == null) {
+			return Collections.emptySet();
+		}
+		visited.add(p);
+		Set<WPackage> result = new HashSet<>();
+		if (used.contains(p)) {
+			result.add(p);
+		}
+		for (WImport imp : p.getImports()) {
+			WPackage imported = imp.attrImportedPackage();
+			if (imp.getPackagename().equals("Wurst") || visited.contains(imported)) {
+				continue;
+			}
+			if (imp.getIsPublic()) {
+				result.addAll(contributedPackages(imported, used, visited));
+			}
+		}
+		return result;
+	}
+	
+	private void collectUsedPackages(Set<PackageOrGlobal> used, AstElement e) {
 		for (int i=0; i<e.size(); i++) {
-			removeUsed(unused, e.get(i));
+			collectUsedPackages(used, e.get(i));
 		}
 		
 		if (e instanceof FuncRef) {
 			FuncRef fr = (FuncRef) e;
 			FunctionDefinition def = fr.attrFuncDef();
 			if (def != null) {
-				unused.remove(def.attrNearestPackage());
+				used.add(def.attrNearestPackage());
 			}
 		}
 		if (e instanceof NameRef) {
 			NameRef nr = (NameRef) e;
 			NameDef def = nr.attrNameDef();
 			if (def != null) {
-				unused.remove(def.attrNearestPackage());
+				used.add(def.attrNearestPackage());
 			}
 		}
 		if (e instanceof TypeRef) {
 			TypeRef t = (TypeRef) e;
 			TypeDef def = t.attrTypeDef();
 			if (def != null) {
-				unused.remove(def.attrNearestPackage());
+				used.add(def.attrNearestPackage());
 			}
 		}
 		if (e instanceof ExprBinary) {
 			ExprBinary binop = (ExprBinary) e;
 			FunctionDefinition def = binop.attrFuncDef();
 			if (def != null) {
-				unused.remove(def.attrNearestPackage());
+				used.add(def.attrNearestPackage());
 			}
 		}
 		if (e instanceof Expr) {
@@ -177,11 +217,11 @@ public class WurstValidator {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) typ;
 				NamedScope def = ns.getDef();
 				if (def != null) {
-					unused.remove(def.attrNearestPackage());
+					used.add(def.attrNearestPackage());
 				}
 			} else if (typ instanceof WurstTypeTuple) {
 				TupleDef def = ((WurstTypeTuple) typ).getTupleDef();
-				unused.remove(def.attrNearestPackage());
+				used.add(def.attrNearestPackage());
 			}
 		}
 	}
