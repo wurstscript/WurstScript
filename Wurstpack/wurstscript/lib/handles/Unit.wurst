@@ -6,6 +6,9 @@ import Terrain
 
 native UnitAlive(unit id) returns boolean
 
+public function unit.setInvulnerable(boolean flag)
+	SetUnitInvulnerable(this, flag)
+
 public function vec2.withRealZ(unit u) returns vec3
 	return vec3(this.x, this.y, getTerrainZ(this.x, this.y)+u.getFlyHeight())
 
