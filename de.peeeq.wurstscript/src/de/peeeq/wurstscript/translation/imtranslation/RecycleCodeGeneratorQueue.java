@@ -36,19 +36,33 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 		body.add(JassIm.ImIf(tr, 
 				JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(0))), 
 				thenBlock, elseBlock));
-		// maxIndex = maxIndex + 1
-		thenBlock.add(JassIm.ImSet(tr, mVars.maxIndex, 
+		ImStmts ifEnoughMemory = JassIm.ImStmts();
+		ImStmts ifNotEnoughMemory = JassIm.ImStmts();
+		//     if maxIndex < 8191
+		thenBlock.add(JassIm.ImIf(tr, 
+				JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(8191))),
+				ifEnoughMemory, ifNotEnoughMemory));
+		//         maxIndex = maxIndex + 1
+		ifEnoughMemory.add(JassIm.ImSet(tr, mVars.maxIndex, 
 				JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
-		// this = maxIndex
-		thenBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.maxIndex)));
+		// 		   this = maxIndex
+		ifEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.maxIndex)));
+		//	       typeId[this] = ...
+		ifEnoughMemory.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
+		//     else:
+		//         error("out of memory")
+		ifNotEnoughMemory.add(translator.imError(JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
+        //         this = 0
+		ifNotEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImIntVal(0)));
 		// else:
-		// freeCount = freeCount - 1
+		//     freeCount = freeCount - 1
 		elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(1)))));
-		// this = free[freeCount]
+		//     this = free[freeCount]
 		elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
+		//     typeId[this] = ...
+		elseBlock.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
 		// endif
-		// typeId[this] = ...
-		body.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
+		
 		
 		// return this
 		body.add(JassIm.ImReturn(tr, JassIm.ImVarAccess(thisVar)));
