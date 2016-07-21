@@ -229,8 +229,12 @@ public class SimpleRewrites {
 				// for the replaceWith function
 				// we need to copy the thenBlock because otherwise it would have two parents (we have not removed it from the old if-block)
 				imIf.replaceWith(JassIm.ImStatementExpr(imIf.getThenBlock().copy(), JassIm.ImNull()));
-			}else if ( ! imIf.getElseBlock().isEmpty()){
-				imIf.replaceWith(JassIm.ImStatementExpr(imIf.getElseBlock().copy(), JassIm.ImNull()));
+			} else {
+		                if (!imIf.getElseBlock().isEmpty()) {
+		                    imIf.replaceWith(JassIm.ImStatementExpr(imIf.getElseBlock().copy(), JassIm.ImNull()));
+		                } else {
+		                    imIf.replaceWith(JassIm.ImNull());
+		                }
 			}
 		}
 	}
