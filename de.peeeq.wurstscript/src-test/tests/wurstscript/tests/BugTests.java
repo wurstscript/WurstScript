@@ -2,9 +2,15 @@ package tests.wurstscript.tests;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
-import org.junit.Rule;
+import org.junit.Assert;
 import org.junit.Test;
+
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WurstModel;
 
 public class BugTests extends WurstScriptTest {
 	
@@ -793,6 +799,30 @@ public class BugTests extends WurstScriptTest {
 				"	Hey you = (int x) -> x + 1",
 				"endpackage"
 				);
+	}
+	
+	@Test
+	public void testLinePos() { // #462
+		String input = 
+				"package test\n" +
+				"abstract class Hey\n" +
+				"	function foo()";
+				
+		WurstModel model = testScript("testLine", input, "testLine", false, false);
+		
+		model.accept(new WurstModel.DefaultVisitor() {
+			@Override
+			public void visit(ClassDef c) {
+				Assert.assertEquals(2, c.getSource().getLine());
+			}
+		});
+		
+		model.accept(new WurstModel.DefaultVisitor() {
+			@Override
+			public void visit(FuncDef funcDef) {
+				Assert.assertEquals(3, funcDef.getSource().getLine());
+			}
+		});
 	}
 	
 }

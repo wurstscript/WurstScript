@@ -37,7 +37,7 @@ public class LineOffsets {
 	
 	public int getLine(int offset) {
 		int min = 0;
-		int max = maxLine;
+		int max = maxLine+1;
 		while (min < max) {
 			int test = (min + max) / 2;
 			int v = get(test);
