@@ -13,13 +13,13 @@ boolean autoFinish = false
 /** use this function to preload an ability */
 public function preloadAbility( int abilid )
 	UnitAddAbility(dum, abilid)
-	if dum == null 
+	if dum == null
 		error("PreloadAbility: do not load abilities after map init when autoFinish = true")
 	else if GetUnitAbilityLevel(dum, abilid) == 0
 		printWarning("PreloadAbility: Ability "+idInteger2IdString(abilid)+" does not exist.")
 
 public function preloadUnit( int unitId )
-	if dumg == null 
+	if dumg == null
 		error("PreloadUnit: Group dumg does not exist")
 		return
 	GroupAddUnit(dumg, CreateUnit(DUMMY_PLAYER, unitId, 0, 0, 0))

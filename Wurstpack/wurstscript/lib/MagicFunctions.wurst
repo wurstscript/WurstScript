@@ -1,6 +1,6 @@
 package MagicFunctions
 import NoWurst
-// this package contains functions which are 
+// this package contains functions which are
 // implemented in the wurst compiler
 
 
@@ -13,11 +13,11 @@ public function getStackTraceString() returns string
 /** builtin magic function.
 Calls all functions with the given annotation, for example
 `callFunctionsWithAnnotation("@initializeObject")`.
-The called functions must not take any parameters. 
+The called functions must not take any parameters.
 */
 public function callFunctionsWithAnnotation(string _annotation)
 
-/** this is a magic constant. 
+/** this is a magic constant.
 It is always false at runtime and true during compiletime.
 */
 public constant compiletime = false

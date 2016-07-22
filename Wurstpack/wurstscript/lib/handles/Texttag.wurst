@@ -5,13 +5,13 @@ import public Colors
 
 public function texttag.setPos( real x, real y, real z)
 	SetTextTagPos(this, x ,y , z)
-	
+
 public function texttag.setPos( vec3 pos )
 	SetTextTagPos(this, pos.x , pos.y , pos.z)
 
 public function texttag.setColor( int r, int g, int b, int a )
 	SetTextTagColor(this, r, g , b, a)
-	
+
 public function texttag.setSuspended(boolean flag)
 	SetTextTagSuspended(this, flag)
 
@@ -20,53 +20,53 @@ public function texttag.setColor( colorA col)
 
 public function texttag.setText( string text, real size )
 	SetTextTagText(this, text, size * 0.0023)
-	
+
 public function texttag.setLifespan( real span )
 	SetTextTagLifespan(this, span)
-	
+
 public function texttag.setPermanent( boolean flag )
 	SetTextTagPermanent(this, flag)
-	
+
 public function texttag.setFadepoint( real fadepoint )
 	SetTextTagFadepoint(this, fadepoint)
-	
+
 public function texttag.setAge( real age )
 	SetTextTagAge(this, age)
-	
+
 public function texttag.setVelocity( real xvel, real yvel )
 	SetTextTagVelocity(this, xvel, yvel)
-	
+
 public function texttag.setVisibility( boolean flag )
 	SetTextTagVisibility(this, flag)
-	
+
 public function texttag.destr()
 	DestroyTextTag(this)
-	
+
 public function createTTEx(vec3 pos, string message, real size, colorA col ) returns texttag
 	return CreateTextTag()
 		..setText( message, size )
 		..setPos(pos.toVec2().withZ(20.))
 		..setColor( col )
-		..setLifespan(2000) 
+		..setLifespan(2000)
 		..setPermanent(false)
-	
+
 public function createTTEx(vec3 pos, string message, real size, colorA col, player p ) returns texttag
 	return CreateTextTag()
 		..setPos(pos.toVec2().withZ(20.))
 		..setText( message, size )
 		..setColor( col )
 		..setVisibility(GetLocalPlayer() == p)
-	
+
 public function createTTEx(vec3 pos, vec2 vel, string message, real size, real duration, colorA col ) returns texttag
 	return CreateTextTag()
 		..setPos(pos.toVec2().withZ(20.))
 		..setText( message, size )
 		..setColor( col )
 		..setVelocity( vel.x, vel.y)
-		..setLifespan( duration) 
-		..setFadepoint(.1) 
+		..setLifespan( duration)
+		..setFadepoint(.1)
 		..setPermanent(false)
-	
+
 public function createTTEx(vec3 pos, vec2 vel, string message, real size, real duration, colorA col, player p ) returns texttag
 	return createTTEx(pos, vel, message,size,duration,col)
 		..setVisibility(GetLocalPlayer() == p)

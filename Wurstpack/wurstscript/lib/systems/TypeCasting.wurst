@@ -179,7 +179,7 @@ public function ubersplatFromIndex(int index) returns ubersplat
 
 public function ubersplatToIndex(ubersplat object) returns int
 	return object.getHandleId()
-	
+
 public function booleanToIndex(boolean u) returns int
 	if u
 		return 1

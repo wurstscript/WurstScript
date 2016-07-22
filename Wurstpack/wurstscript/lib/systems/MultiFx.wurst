@@ -17,40 +17,40 @@ import LinkedList
  *														*
  * Credits to Vexorian, Anitarf							*
  ********************************************************/
-		
+
 public class MultiFx
 	private unit 	dummy	= null
 	private LinkedList<effect> fxs = new LinkedList<effect>()
 	private real 	zAngle  = 0.
-	private string 	sMultiFxPath 
-	
+	private string 	sMultiFxPath
+
 	private colorA col
-	
+
 	construct(real x, real y, angle facing)
 		dummy = DummyRecycler.get( vec2(x, y), facing)
-	
+
 	construct(vec2 pos, angle facing)
 		dummy = DummyRecycler.get( pos, facing)
-	
+
 	construct(vec3 pos, angle facing)
 		dummy = DummyRecycler.get( pos.toVec2(), facing)
-		setZ(pos.z)	
+		setZ(pos.z)
 
 	function addFx(string fxPath)
 		fxs.add(dummy.addEffect(fxPath, "origin"))
-			
+
 	/** Get the owner of this MultiFx Object */
 	function getOwner() returns player
 		return dummy.getOwner()
-		
+
 	/** Set the owner of this MultiFx Object */
 	function setOwner(player p, boolean changeColor)
 		dummy.setOwner(p, changeColor)
-		
+
 	/** Set the teamcolor of this MultiFx Object */
 	function setTeamcolor(playercolor c)
 		SetUnitColor(dummy, c)
-	
+
 	/** Set the scale of this MultiFx Object */
 	function setScale(real value)
 		dummy.setScale(value)
@@ -58,20 +58,20 @@ public class MultiFx
 	/** Get the green color value (rgba) */
 	function getGreen() returns int
 		return col.green
-	
+
 	/** Get the blue color value (rgba) */
 	function getBlue() returns int
 		return col.blue
-	
+
 	/** Get the red color value (rgba) */
 	function getRed() returns int
 		return col.red
-	
+
 	/** Get the alpha color value (rgba) */
 	function getAlpha() returns int
 		return col.alpha
-		
-	/** Recolor the MultiFx object with the given color tuple (colorA) 
+
+	/** Recolor the MultiFx object with the given color tuple (colorA)
 	Color: 0 = no color - 255 = full color
 	Alpha: 0 = transparent - 255 = visible */
 	function recolor(colorA newColor)
@@ -81,19 +81,19 @@ public class MultiFx
 		col.alpha = newColor.alpha
 		dummy.setVertexColor(newColor)
 
-		
+
 	/** Get the xy angle in radians */
 	function getXYAngle() returns angle
 		return dummy.getFacing().asAngleDegrees()
- 
+
 	/** Set the angle in degrees */
 	function setXYAngle(angle value)
 		dummy.setFacing(value)
-		
+
 	/** Get the z angle in radians */
 	function getZAngle() returns real
 		return zAngle
-		
+
 	/** Set the z angle in radians */
 	function setZAngle(real value)
 		int i = R2I(value*bj_RADTODEG + 90.5)
@@ -103,68 +103,68 @@ public class MultiFx
 		else if i < 0
 			i = 0
 		SetUnitAnimationByIndex(dummy, i)
-		
+
 	/** Set the z angle with an angle tuple */
 	function setZAngle(angle value)
 		setZAngle(value.radians())
-		
+
 	/** Get the x coordinate */
 	function getX() returns real
 		return dummy.getX()
-	
+
 	/** Get the y coordinate */
 	function getY() returns real
 		return dummy.getY()
-	
+
 	/** Get the z coordinate (fly height) */
 	function getZ() returns real
 		return dummy.getFlyHeight()
-		
-	/** Get the xy position as vector tuple */			
+
+	/** Get the xy position as vector tuple */
 	function getPos2() returns vec2
 		return vec2(getX(), getY())
-	
+
 	/** Set the x coordinate */
 	function setX(real x)
 		dummy.setX(x)
-		
+
 	/** Set the y coordinate */
 	function setY(real y)
 		dummy.setY(y)
-		
+
 	/** Set the position to the given xy coordinates */
 	function setPos(real x, real y)
 		dummy.setPos(x, y)
-	
+
 	/** Set the position to the given xyz coordinates
 	z = flyHeight */
 	function setPos(real x, real y, real z)
 		dummy.setPos(x, y)
 		dummy.setFlyHeight(z, 0.)
-		
+
 	/** Set the position to the given xy vector tuple */
 	function setPos(vec2 pos)
 		dummy.setPos(pos.x, pos.y)
-	
+
 	/** Set the position to the given xyz vector tuple */
 	function setPos(vec3 pos)
 		dummy.setPos(pos.x, pos.y)
 		setZ(pos.z)
-		
+
 	/** Set the z coordinate (flyHeight) */
 	function setZ(real z)
 		dummy.setFlyHeight(z, 0.)
-			
-				
-	ondestroy  			
+
+
+	ondestroy
 		for effect fx in fxs
 			fx.destr()
-			
+
 		destroy fxs
 
 		DummyRecycler.recycle(dummy)
 
-	/** Destroys the MultiFx object without showing the effect's death animation 
+	/** Destroys the MultiFx object without showing the effect's death animation
 		Sort of a workaround by setting the position to the top right corner, hopefully not visible.*/
 	function hiddenDestroy()
 		dummy.setPos( 2147483647, 2147483647)

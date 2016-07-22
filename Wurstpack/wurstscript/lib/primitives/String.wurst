@@ -18,18 +18,18 @@ public function string.toCharsetInt() returns int
 			if charset.substring(i, i+1) == this
 				return i
 		return -1
-		
+
 /** Creates an int from a string that only contains numbers (0-9) */
 public function string.toInt() returns int
 	int result = 0
 	int len = this.length()
-	for i = len downto 1 
+	for i = len downto 1
 		for j = 0 to numbersetlength - 1
 			if numberset.substring(j, j+1) == this.substring(i-1, i)
 				result += j * (Pow(10, (len - i)*1.).toInt())
 				break
-		
-			
+
+
 	return result
 
 /** Converts an int to the representative char */
@@ -43,20 +43,20 @@ public function string.substring(int start, int stop) returns string
 /** Length of the string */
 public function string.length() returns int
 	return StringLength(this)
-	
+
 /** Returns the char at the given position. 0 = first char */
 public function string.charAt(int index) returns string
 	return SubString(this, index, index+1)
-	
+
 /**	Converts a string to an ability id */
 public function string.toAbilityId() returns int
 	return AbilityId(this)
-	
+
 /**	Returns if the given string ends with the specified string.	*/
 public function string.endsWith(string s) returns boolean
 	int l = this.length()
 	return this.substring(l-s.length(), l) == s
-		
+
 /**	Returns if the given string starts with the specified string.	*/
 public function string.startsWith(string s) returns boolean
 	return this.substring(0, s.length()) == s
@@ -68,7 +68,7 @@ public function string.toLowerCase() returns string
 /** Returns the string in uppercase letters */
 public function string.toUpperCase() returns string
 	return StringCase(this, true)
-	
+
 /** True when string contains only uppercase letters */
 function string.isUpper() returns boolean
 	return this == StringCase(this,true)
@@ -116,14 +116,14 @@ public function string.lastIndexOf(string s) returns int
 		if this.substring(i, i + s.length()) == s
 			return i
 	return -1
-	
+
 /** Returns the occurences of a certain string within a string */
 public function string.countOccurences(string findStr) returns int
 	int lastIndex = 0
 	int count = 0
 	while(lastIndex != -1)
 		lastIndex = this.indexOf(findStr,lastIndex)
-	
+
 		if( lastIndex != -1)
 			count++
 			lastIndex+=findStr.length()
@@ -136,7 +136,7 @@ public function string.contains(string s) returns boolean
 /** Returns if the given string is a whitespace (" ",\n,\t,\r) */
 public function string.isWhitespace() returns boolean
 	return this == " " or this == "\n" or this == "\t" or this == "\r"
-	
+
 /** Returns a new string with first letter is upper */
 public function string.firstUpper() returns string
 	if (this == "")
@@ -146,17 +146,17 @@ public function string.firstUpper() returns string
 /** Returns a new string in which all occurrences of a specified string in the current instance are replaced with another specified string */
 public function string.replace(string oldSubstring, string newSubstring) returns string
 	string s = this
-	
+
 	int i = this.indexOf(oldSubstring)
 	while (i != -1)
 		s = s.substring(0, i) + newSubstring + s.substring(i + oldSubstring.length(), s.length())
 		i = s.indexOf(oldSubstring, i + newSubstring.length())
-	return s		
-		
+	return s
+
 /** Replaces 1 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1) returns string
 	return this.replace("{0}", par1)
-	
+
 /** Replaces 2 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1, string par2) returns string
 	return this.replace("{0}", par1)
@@ -174,7 +174,7 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{1}", par2)
 				.replace("{2}", par3)
 				.replace("{3}", par4)
-	
+
 /** Replaces 5 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1, string par2, string par3, string par4, string par5) returns string
 	return this.replace("{0}", par1)
@@ -191,7 +191,7 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{3}", par4)
 				.replace("{4}", par5)
 				.replace("{5}", par6)
-				
+
 /** Replaces 7 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7) returns string
 	return this.replace("{0}", par1)
@@ -201,7 +201,7 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{4}", par5)
 				.replace("{5}", par6)
 				.replace("{6}", par7)
-	
+
 /** Replaces 8 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7, string par8) returns string
 	return this.replace("{0}", par1)
@@ -224,7 +224,7 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{6}", par7)
 				.replace("{7}", par8)
 				.replace("{8}", par9)
-				
+
 /** Replaces 10 format item in a specified string with the string representation of a specified object **/
 public function string.format(string par1, string par2, string par3, string par4, string par5, string par6, string par7, string par8, string par9, string par10) returns string
 	return this.replace("{0}", par1)
@@ -237,61 +237,61 @@ public function string.format(string par1, string par2, string par3, string par4
 				.replace("{7}", par8)
 				.replace("{8}", par9)
 				.replace("{9}", par10)
-				
+
 public function string.iterator() returns StringIterator
 	return new StringIterator(this, 0, this.length())
-	
+
 public class StringIterator
 	string s
 	int currentpos
 	int stringLen
-	
+
 	construct(string s, int currentpos, int stringLen)
 		this.s = s
 		this.currentpos = currentpos
 		this.stringLen = stringLen
-		
+
 	function hasNext() returns boolean
 		return currentpos < stringLen
-		
+
 	function next() returns string
 		let val = s.substring(currentpos, currentpos+1)
 		currentpos++
 		return val
-		
+
 	function close()
 		destroy this
-		
+
 public class StringLines
 	string s
 	int currentLine = 0
 	int lineCount
 	int lastIndex
-	
+
 	construct(string s, int lastIndex, int lineCount)
 		this.s = s
 		this.lineCount = lineCount
 		this.lastIndex = lastIndex
-		
+
 	function iterator() returns thistype
 		return this
-		
+
 	function hasNext() returns boolean
 		return currentLine < lineCount
-	
+
 	function next() returns string
 		let idx = this.lastIndex
 		this.lastIndex = this.s.indexOf("\n", idx) + 1
 		currentLine++
 		return this.s.substring(idx, this.lastIndex)
-		
+
 	function close()
 		destroy this
-		
-	
+
+
 /** Returns a StringLines Object of the given string for iteration */
 public function string.toLines() returns StringLines
 	return new StringLines(this, 0, this.countOccurences("\n")+1)
-		
+
 
 

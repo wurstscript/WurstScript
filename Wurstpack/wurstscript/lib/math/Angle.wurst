@@ -10,7 +10,7 @@ public tuple angle(real radians)
 /** get the real representation of this angle in degrees */
 public function angle.degrees() returns real
 	return this.radians*RADTODEG
-	
+
 /** get the real representation of this angle in radians */
 public function angle.radians() returns real
 	return this.radians
@@ -37,7 +37,7 @@ public function angle.cos() returns real
 
 /** get the tangens of this angle */
 public function angle.tan() returns real
-	return Tan(this.radians)	
+	return Tan(this.radians)
 
 /** returns a vector of the given length pointing into the direction of this angle */
 public function angle.toVec(real len) returns vec2
@@ -46,11 +46,11 @@ public function angle.toVec(real len) returns vec2
 /** returns a vector of length 1 pointing into the direction of this angle */
 public function angle.direction() returns vec2
 	return vec2(Cos(this.radians), Sin(this.radians))
-	
+
 /** returns a vector of length 'dist' pointing into the direction of this angle */
 public function angle.direction(real dist) returns vec2
 	return vec2(dist*Cos(this.radians), dist*Sin(this.radians))
-	
+
 /** adds two angles */
 public function angle.op_plus(angle other) returns angle
 	return angle(this.radians + other.radians)
@@ -71,6 +71,6 @@ public function real.op_mult(angle ang) returns angle
 public function angle.op_divReal(real scalar) returns angle
 	return angle(this.radians/scalar)
 
-/** returns the angle of this vector */	
+/** returns the angle of this vector */
 public function vec2.getAngle() returns angle
 	return angle(Atan2(this.y, this.x))

@@ -6,7 +6,7 @@ public function boolean.toString() returns string
 	if this
 		return "true"
 	return "false"
-	
+
 
 public function boolean.toInt() returns int
 	if this

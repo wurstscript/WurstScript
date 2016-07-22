@@ -7,19 +7,19 @@ constant int UNIT_SYNC_ID = 'h111'
 
 public class Thread
 	unit threadSyncer
-	
+
 	private static trigger syncThreadTrigger
 	// set of players who already have called sync method
 	private bitset syncedPlayers = emptyBitset()
 	// set of all players
 	private static bitset allPlayers = bitset(4095)
-	
+
 	/** adds all offline players to the set of syncedPlayers */
 	private function addOfflinePlayers()
 		for i = 0 to 11
 			if (GetPlayerSlotState(Player(i)) != PLAYER_SLOT_STATE_PLAYING or GetPlayerController(Player(i)) != MAP_CONTROL_USER)
 				syncedPlayers = syncedPlayers.add(i)
-				
+
 	/** returns true when all players have synced */
 	function isSynced() returns boolean
 		if (syncedPlayers == allPlayers)
@@ -27,7 +27,7 @@ public class Thread
 		// call addOfflinePlayers, because in the meantime a player could have leaved the game
 		addOfflinePlayers()
 		return syncedPlayers == allPlayers
-	
+
 	construct()
 		if (null == threadSyncer)
 			threadSyncer = createUnit(Player(0), UNIT_SYNC_ID, boundMax, angle(0))
@@ -39,36 +39,36 @@ public class Thread
 	function sync()
 		SelectUnit(threadSyncer, true)
 		SelectUnit(threadSyncer, false)
-	
+
 	/** wait until all threads have synced */
 	function wait()
 		while syncedPlayers != allPlayers
 			TriggerSyncStart()
 			TriggerSyncReady()
 
-	
+
 	private static function syncThread() returns boolean
 		var thread = GetTriggerUnit().getUserData() castTo Thread
 		int playerId = GetPlayerId(GetTriggerPlayer())
-		
+
 		if (thread.threadSyncer != GetTriggerUnit())
 			return false
-		
+
 		thread.syncedPlayers = thread.syncedPlayers.add(playerId)
-		
+
 		thread.addOfflinePlayers()
 		return false
-	
+
 	static function doInit()
 		Thread.syncThreadTrigger = CreateTrigger()
 		TriggerAddCondition(Thread.syncThreadTrigger, Condition(function Thread.syncThread))
 		for i = 11 downto 0
 			if (GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER)
 				TriggerRegisterPlayerUnitEvent(Thread.syncThreadTrigger, Player(i), EVENT_PLAYER_UNIT_SELECTED, null)
-	
+
 init
 	Thread.doInit()
-	
+
 
 
 

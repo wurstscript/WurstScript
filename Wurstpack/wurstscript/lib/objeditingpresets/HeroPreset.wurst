@@ -6,33 +6,33 @@ import ObjectIds
 
 class StringWrap
 	string s
-	
+
 	construct(string s)
 		this.s = s
 
 public class HeroPreset extends HeroDefinition
 	LinkedList<StringWrap> properNames = new LinkedList<StringWrap>()
 	string heroAbilityString = ""
-	
+
 	construct(int newId, int origId, string name)
 		super(newId, origId)
 		setName(name)
-		
+
 	construct(int origId, string name)
 		super(HERO_ID_GEN.next(), origId)
 		setName(name)
-		
+
 	function buildHero()
 		setNormalAbilities("Ane2, Asud, AInv")
 		buildProperNames()
 		buildHeroAbilities()
-		
-		
+
+
 	/** Adds a proper Name to the Hero.
 		Remember to call .buildHero() after you finished your changes */
 	function addProperName(string name)
 		properNames.add(new StringWrap(name))
-	
+
 	function buildProperNames()
 		string s = ""
 		if properNames.getSize() > 0
@@ -40,12 +40,12 @@ public class HeroPreset extends HeroDefinition
 				s += pn.s + ","
 			s = s.substring(0, s.length()-1)
 		setProperNames(s)
-		
+
 	function addHeroAbility(int id)
 		heroAbilityString += idInteger2IdString(id) + ","
-		
+
 	function buildHeroAbilities()
 		if heroAbilityString.length() > 0
 			setHeroAbilities(heroAbilityString.substring(0,heroAbilityString.length()-1) )
-			
-	
+
+

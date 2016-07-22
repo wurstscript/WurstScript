@@ -2,7 +2,7 @@ package Damager
 
 constant MAX_SUB_OPTIONS = 3
 /** Needs to be around 20 if armor is not wanted to be ignored */
-constant FACTOR_TEST_DAMAGE = 0.01 
+constant FACTOR_TEST_DAMAGE = 0.01
 /** Maximum damage factor */
 constant MAX_DAMAGE_FACTOR = 3.00
 constant EPSILON = 0.000000001
@@ -116,7 +116,7 @@ public class Damager
 	// for example d.abilityFactor('A000', 1.5 ) makes units that have the A000 ability take 50% more
 	// damage than usual.
 	//
-	
+
 	function abilityFactor( int abilityId, real fc )
 		if abifcn == MAX_SUB_OPTIONS
 			printWarning("In one instance of Damager, you are doing too much calls to abilityFactor(), please increase MAX_SUB_OPTIONS to allow more, or cut the number of abilityFactor() calls")
@@ -159,7 +159,7 @@ public class Damager
 	function isInUse() returns boolean
 		return inUse > 0 //inline friendly.
 
-	
+
 	static boolean isDummyDamage = false
 
 	//========================================================================================================
@@ -178,21 +178,21 @@ public class Damager
 
 		SetUnitOwner(dmger,GetOwningPlayer(u),false)
 		r = hp
-		if hp < FACTOR_TEST_DAMAGE*MAX_DAMAGE_FACTOR 
+		if hp < FACTOR_TEST_DAMAGE*MAX_DAMAGE_FACTOR
 			SetWidgetLife(u, hp + FACTOR_TEST_DAMAGE*MAX_DAMAGE_FACTOR )
 			r = hp + FACTOR_TEST_DAMAGE*MAX_DAMAGE_FACTOR
 			fc = GetWidgetLife(u)-hp + EPSILON
 
 		isDummyDamage = true
 		UnitDamageTarget(dmger,u, fc ,false,false,a,d,null)
-		
-		if IsUnitType(u, UNIT_TYPE_DEAD) and (hp>0.405) 
-			error("xedamage: For some reason, the unit being tested by getDamageTypeFactor has died. Verify MAX_DAMAGE_FACTOR is to a correct value. ") 
 
-		
+		if IsUnitType(u, UNIT_TYPE_DEAD) and (hp>0.405)
+			error("xedamage: For some reason, the unit being tested by getDamageTypeFactor has died. Verify MAX_DAMAGE_FACTOR is to a correct value. ")
+
+
 		isDummyDamage = false
 		SetUnitOwner(dmger,Player(15),false)
-		if (mana>GetUnitState(u,UNIT_STATE_MANA)) 
+		if (mana>GetUnitState(u,UNIT_STATE_MANA))
 			//Unit had mana shield, return 1 and restore mana too.
 			SetUnitState(u,UNIT_STATE_MANA,mana)
 			r=1
@@ -223,42 +223,42 @@ public class Damager
 			allied= allied and not(neutral)
 
 
-		if (not this.damageAllies) and allied 
+		if (not this.damageAllies) and allied
 			return 0.0
-		else if (not this.damageEnemies) and enemy 
+		else if (not this.damageEnemies) and enemy
 			return 0.0
-		else if( (not this.damageSelf) and (source==target) ) 
+		else if( (not this.damageSelf) and (source==target) )
 			return 0.0
-		else if (not this.damageNeutral) and neutral  
+		else if (not this.damageNeutral) and neutral
 			return 0.0
-		else if( this.use_ex and IsUnitType(target, this.ex_ut) ) 
+		else if( this.use_ex and IsUnitType(target, this.ex_ut) )
 			return 0.0
-		else if( this.visibleOnly and not IsUnitVisible(target,p) ) 
+		else if( this.visibleOnly and not IsUnitVisible(target,p) )
 			return 0.0
-		else if ( this.deadOnly and not IsUnitType(target,UNIT_TYPE_DEAD) ) 
+		else if ( this.deadOnly and not IsUnitType(target,UNIT_TYPE_DEAD) )
 			return 0.0
-		else if ( not(this.alsoDead) and IsUnitType(target,UNIT_TYPE_DEAD) ) 
-			return 0.0			   
+		else if ( not(this.alsoDead) and IsUnitType(target,UNIT_TYPE_DEAD) )
+			return 0.0
 
 
 		f=1.0
-		
-		if ( IsUnitAlly(target,p) ) 
+
+		if ( IsUnitAlly(target,p) )
 			f=f*this.allyfactor
-			if f <= -EPSILON  
+			if f <= -EPSILON
 				f=-f
 				negf=-1.0
 
-		if (this.use_req and not IsUnitType(target,this.req_ut)) 
+		if (this.use_req and not IsUnitType(target,this.req_ut))
 			return 0.0
 
 
 		i=fcn-1
 		while i >= 0
 
-			if( IsUnitType(target, ConvertUnitType(fct[i]) ) ) 
+			if( IsUnitType(target, ConvertUnitType(fct[i]) ) )
 				f=f*this.fc[i]
-				if(f <= -EPSILON) 
+				if(f <= -EPSILON)
 					f=-f
 					negf=-1.0
 
@@ -266,9 +266,9 @@ public class Damager
 
 		i= abifcn-1
 		while i >= 0
-			if( GetUnitAbilityLevel(target,this.abifct.loadInt(i) )>0 ) 
+			if( GetUnitAbilityLevel(target,this.abifct.loadInt(i) )>0 )
 				f=f*this.abifc.loadReal(i)
-				if(f <= -EPSILON) 
+				if(f <= -EPSILON)
 					f=-f
 					negf=-1.0
 
@@ -276,15 +276,15 @@ public class Damager
 
 		f=f*negf
 
-		if ( f < EPSILON) and (f > -EPSILON) 
+		if ( f < EPSILON) and (f > -EPSILON)
 			return 0.0
 
-		if( this.forceDamage or not usetypes ) 
+		if( this.forceDamage or not usetypes )
 			return f
 
 		f=f*Damager.getDamageTypeFactor(target,this.atype,this.dtype)
 
-		if ( f < EPSILON) and (f > -EPSILON) 
+		if ( f < EPSILON) and (f > -EPSILON)
 			return 0.0
 
 
@@ -306,7 +306,7 @@ public class Damager
 
 
 	//=======================================================================
-	// performs damage to the target unit, for unit 'source'. 
+	// performs damage to the target unit, for unit 'source'.
 	//
 	function damageTarget( unit source, unit target, real damage ) returns boolean
 		damagetype dt=currentDamageType
@@ -315,12 +315,12 @@ public class Damager
 		real	   f = this.getTargetFactorCore(source,target,false)
 		real	   pl
 
-		if(f!=0.0) 
+		if(f!=0.0)
 			currentDamageType = dtype
 			currentAttackType = atype
 			currentDamageTag  = tag
 
-			
+
 			inUse = inUse +1
 			pl=GetWidgetLife(target)
 			UnitDamageTarget(source,target,  f*damage, true, ranged, atype, dtype, wtype )
@@ -328,8 +328,8 @@ public class Damager
 			currentDamageTag = tg
 			currentDamageType = dt
 			currentAttackType = at
-			if(pl != GetWidgetLife(target) ) 
-				if(usefx) 
+			if(pl != GetWidgetLife(target) )
+				if(usefx)
 					DestroyEffect(  AddSpecialEffectTarget(this.fxpath, target, this.fxattach) )
 
 				return true
@@ -351,9 +351,9 @@ public class Damager
 		currentAttackType = atype
 		currentDamageTag  = tag
 
-		if( usefx) 
+		if( usefx)
 			DestroyEffect(  AddSpecialEffectTarget(fxpath, target, fxattach) )
-		
+
 		inUse = inUse +1
 		UnitDamageTarget(source,target,  damage, true, ranged, null, null, wtype )
 		inUse = inUse -1
@@ -379,18 +379,18 @@ public class Damager
 		inUse = inUse +1
 		target=FirstOfGroup(targetGroup)
 		while target != null
-			
+
 
 			GroupRemoveUnit(targetGroup,target)
 			f= this.getTargetFactorCore(source,target,false)
-			if (f!=0.0) 
+			if (f!=0.0)
 				count=count+1
-				if(usefx) 
+				if(usefx)
 					hp = GetWidgetLife(target)
 
 
 				UnitDamageTarget(source,target, f*damage, true, ranged, atype, dtype, wtype )
-				if(usefx and (hp > GetWidgetLife(target)) ) 
+				if(usefx and (hp > GetWidgetLife(target)) )
 					DestroyEffect(  AddSpecialEffectTarget(this.fxpath, target, this.fxattach) )
 
 			target=FirstOfGroup(targetGroup)
@@ -405,7 +405,7 @@ public class Damager
 
 
 	static Damager instc
-	
+
 	int countAOE
 	unit	sourceAOE
 	real	aoeX
@@ -417,11 +417,11 @@ public class Damager
 	static group	enumgroup
 	static rect	 aoeRect
 
-	
+
 
 	//==========================================================================================
 	// will affect trees if damageTrees is true!
-	// 
+	//
 	function damageAOE( unit source, real x, real y, real radius, real damage ) returns int
 		damagetype dt=currentDamageType
 		attacktype at=currentAttackType
@@ -439,7 +439,7 @@ public class Damager
 		aoeY=y
 		aoeDamage=damage
 		GroupEnumUnitsInRange(enumgroup,x,y,radius+MAX_COLLISION_SIZE, filterAOE)
-		if(damageTrees) 
+		if(damageTrees)
 			SetRect(aoeRect, x-radius, y-radius, x+radius, y+radius)
 			aoeRadius=aoeRadius*aoeRadius
 			EnumDestructablesInRect(aoeRect, filterDestAOE, null)
@@ -453,7 +453,7 @@ public class Damager
 
 	//==========================================================================================
 	// only affects trees, ignores damageTrees
-	// 
+	//
 	function damageDestructablesAOE( unit source, real x, real y, real radius, real damage ) returns int
 		instc=this
 		countAOE=0
@@ -462,7 +462,7 @@ public class Damager
 		aoeRadius=radius*radius
 		aoeY=y
 		aoeDamage=damage
-		//if(.damageTrees) 
+		//if(.damageTrees)
 		SetRect(aoeRect, x-radius, y-radius, x+radius, y+radius)
 		EnumDestructablesInRect(aoeRect, filterDestAOE, null)
 		//endif
@@ -475,25 +475,25 @@ public class Damager
 		filterAOE= Condition(function damageAOE_Enum)
 		filterDestAOE = Condition( function damageAOE_DestructablesEnum)
 		enumgroup = CreateGroup()
-		
+
 function damageAOE_Enum() returns boolean
 	unit target=GetFilterUnit()
 	Damager dmg=Damager.instc //adopting a instance.
 	real f
 	real hp = 0.
 
-	if( not IsUnitInRangeXY(target, dmg.aoeX, dmg.aoeY, dmg.aoeRadius) ) 
+	if( not IsUnitInRangeXY(target, dmg.aoeX, dmg.aoeY, dmg.aoeRadius) )
 		target=null
 		return false
 
 	f = dmg.getTargetFactorCore(dmg.sourceAOE, target, false)
-	if(f!=0.0) 
+	if(f!=0.0)
 		dmg.countAOE++
-		if(dmg.usefx) 
+		if(dmg.usefx)
 			hp =GetWidgetLife(target)
 
 		UnitDamageTarget(dmg.sourceAOE,target, f*dmg.aoeDamage, true, dmg.ranged, dmg.atype, dmg.dtype, dmg.wtype )
-		if dmg.usefx and (hp > GetWidgetLife(target) ) 
+		if dmg.usefx and (hp > GetWidgetLife(target) )
 			DestroyEffect(  AddSpecialEffectTarget(dmg.fxpath, target, dmg.fxattach) )
 
 
@@ -508,12 +508,12 @@ function damageAOE_DestructablesEnum() returns boolean
 	real	 dx=dmg.aoeX-GetDestructableX(target)
 	real	 dy=dmg.aoeY-GetDestructableY(target)
 
-	if( dx*dx + dy*dy >= dmg.aoeRadius+EPSILON )  
+	if( dx*dx + dy*dy >= dmg.aoeRadius+EPSILON )
 		target=null
 		return false
 
 	dmg.countAOE++
-	if(dmg.usefx) 
+	if(dmg.usefx)
 		DestroyEffect(  AddSpecialEffectTarget(dmg.fxpath, target, dmg.fxattach) )
 
 	UnitDamageTarget(dmg.sourceAOE,target, dmg.aoeDamage, true, dmg.ranged, dmg.atype, dmg.dtype, dmg.wtype )

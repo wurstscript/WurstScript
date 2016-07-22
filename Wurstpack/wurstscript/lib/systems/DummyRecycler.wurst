@@ -8,14 +8,14 @@ constant SAVED_UNITS_PER_ANGLE	= 6
 
 public class DummyRecycler
 	static ArrayQueue array angleQueues
-	
+
 	static function get(vec2 pos, angle a) returns unit
 		let angleIndex = ((a.degrees() % 360).toInt() / ANGLE_DEGREE).toInt()
 		if angleQueues[angleIndex].size > 0
 			return angleQueues[angleIndex].dequeue()..setXY(pos)..unpause()
 		else
 			return createDummy(pos, DUMMY_PLAYER, a)
-	
+
 	static function recycle(unit u)
 		var smallestQueue = 0
 		for i = 1 to DIFFERENT_ANGLES - 1
@@ -26,11 +26,11 @@ public class DummyRecycler
 		else
 			angleQueues[smallestQueue].enqueue(u)
 			u..setXY(boundMax)..pause()..setFacing(smallestQueue*ANGLE_DEGREE)
-		
-		
+
+
 	static function recycle(unit u, real delay)
 		new DelayNode(u, delay)
-		
+
 
 
 
@@ -47,7 +47,7 @@ class ArrayQueue
 			units[rp] = u
 		else
 			error("Queue Overflow")
-		
+
 	function dequeue() returns unit
 		if size > 0
 			size--
@@ -56,7 +56,7 @@ class ArrayQueue
 		else
 			error("Queue empty")
 			return null
-			
+
 class DelayNode
 	static timer t = CreateTimer()
 	unit u
@@ -65,7 +65,7 @@ class DelayNode
 	DelayNode next = null
 	static DelayNode first = null
 	static DelayNode last = null
-	
+
 	construct(unit u, real time)
 		this.u = u
 		this.delayTime = getElapsedGameTime() + time
@@ -104,7 +104,7 @@ class DelayNode
 				t.start(time, function DelayNode.recycle)
 			else if t.getRemaining() <= 0
 				t.start(time, function DelayNode.recycle)
-				
+
 	static function recycle()
 		DummyRecycler.recycle(first.u)
 		let tmp = first
@@ -117,16 +117,16 @@ class DelayNode
 		else
 			first = null
 		destroy tmp
-			
+
 function createDummy(vec2 pos, player owner, angle facing) returns unit
 	let u = createUnit(owner, DUMMY_UNIT_ID, pos, facing)
 	u..setXY(pos)..addAbility(HEIGHT_ENABLER)..removeAbility(HEIGHT_ENABLER)..addAbility(LOCUST_ID)
 	return u
-	
-	
+
+
 init
 	for i = 0 to DIFFERENT_ANGLES - 1
 		DummyRecycler.angleQueues[i] = new ArrayQueue()
 		for j = 0 to SAVED_UNITS_PER_ANGLE-1
 			DummyRecycler.angleQueues[i].enqueue(createDummy(boundMax, DUMMY_PLAYER, (i* ANGLE_DEGREE).asAngleDegrees()))
-			
+

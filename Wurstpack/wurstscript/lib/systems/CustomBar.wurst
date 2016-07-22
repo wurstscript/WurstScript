@@ -121,7 +121,7 @@ public class CustomBar
 	integer lockindex
 	boolean locked
 	unit u
-	
+
 	real xOffset
 	real yOffset
 	// misc
@@ -130,15 +130,15 @@ public class CustomBar
 	integer NUM_CHARS // number of chars this bar uses
 	string char // primitive char/string
 	string ptext // primitive text without colors
-	
+
 	construct( vec3 pos, string char, integer numochars, real size )
 		t=CreateTextTag()
 		if t==null
 			error("TTBARS: TextTag limit reached!")
-			
+
 		position = pos
 		bg_color = makeColor(DEFAULT_BACKGROUND)
-		
+
 		textsize = size
 		fg_color = makeColor(DEFAULT_FOREGROUND)
 		NUM_CHARS = numochars
@@ -146,7 +146,7 @@ public class CustomBar
 
 		locked = false
 		setValue(.0)
-		
+
 		if t != null
 			t..setAge(0.)
 				..setColor( bg_color.red, bg_color.green, bg_color.blue, bg_color.alpha)
@@ -192,12 +192,12 @@ public class CustomBar
 			newval = 100.
 		else if newval < 0.
 			newval = 0.
-			
+
 		value = newval / 100. // the new value
 		txt = fg_color.toColorString()
 		chars = (R2I((value * NUM_CHARS * char.length())+0.5) div char.length())*char.length() // calculate the number of chars needed to display the new value
 		txt += ptext.substring( 0, chars)
-		
+
 
 		txt += "|r"
 		txt += ptext.substring( 0, ptext.length()-chars)

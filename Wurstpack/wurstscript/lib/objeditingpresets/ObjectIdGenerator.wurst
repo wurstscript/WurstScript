@@ -12,13 +12,13 @@ public class IdGenerator
 	private int i2
 	private int i3
 	private int i4
-	
+
 	construct(int start)
 		i1 = start mod 256
 		i2 = (start mod 65536) div 256
 		i3 = (start mod 16777216) div 65536
 		i4 = start div 16777216
-		
+
 	function next() returns int
 		if i1 < '~'
 			i1++
@@ -46,7 +46,7 @@ public class IdGenerator
 			error("No vaild id left")
 			return 0
 		return i1 + (i2 * 256) + (i3 * 65536) + (i4 * 16777216)
-		
-		
-		
-		
+
+
+
+

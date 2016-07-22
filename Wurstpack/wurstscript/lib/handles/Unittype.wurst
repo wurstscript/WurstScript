@@ -17,7 +17,7 @@ public function convertUnitTypeToInt( unittype ut ) returns int
 	else if ut == UNIT_TYPE_ATTACKS_FLYING
 		return 5
 	else if ut == UNIT_TYPE_ATTACKS_GROUND
-		return 6		
+		return 6
 	else if ut == UNIT_TYPE_MELEE_ATTACKER
 		return 7
 	else if ut == UNIT_TYPE_RANGED_ATTACKER

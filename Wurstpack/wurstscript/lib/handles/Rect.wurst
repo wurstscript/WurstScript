@@ -17,41 +17,41 @@ public function rect.getCenterX() returns real
 
 public function rect.getCenterY() returns real
 	return GetRectCenterY(this)
-	
+
 public function rect.getMaxX() returns real
 	return GetRectMaxX(this)
-	
+
 public function rect.getMaxY() returns real
 	return GetRectMaxY(this)
-	
+
 public function rect.getMinX() returns real
 	return GetRectMinX(this)
-	
+
 public function rect.getMinY() returns real
 	return GetRectMinY(this)
-	
+
 public function rect.getLeftTop() returns vec2
 	return vec2(this.getMinX(), this.getMaxY())
-	
+
 public function rect.getRightTop() returns vec2
 	return vec2(this.getMaxX(), this.getMaxY())
-	
+
 public function rect.getLeftBot() returns vec2
 	return vec2(this.getMinX(), this.getMinY())
-	
+
 public function rect.getRightBot() returns vec2
 	return vec2(this.getMaxX(), this.getMinY())
 
 public function trigger.registerRectEnterEventSource( rect r )
 	TriggerRegisterEnterRectSimple(this, r)
 	sourceTable.saveRect(GetHandleId(this), r)
-	
+
 public function trigger.registerRectLeaveEventSource( rect r )
 	TriggerRegisterLeaveRectSimple(this, r)
 	sourceTable.saveRect(GetHandleId(this), r)
 
 public function trigger.getSourceRect() returns rect
 	return sourceTable.loadRect(GetHandleId(this))
-	
+
 public function trigger.unregisterRectEvent()
 	sourceTable.removeHandle(GetHandleId(this))

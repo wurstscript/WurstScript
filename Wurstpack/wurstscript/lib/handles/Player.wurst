@@ -22,10 +22,10 @@ public enum PlayerId
 	TEN
 	ELEVEN
 	TWELVE
-	
+
 public function PlayerId.getPlayer() returns player
 	return players[this castTo int]
-			
+
 public function PlayerId.getId() returns int
 	return this castTo int
 
@@ -34,77 +34,77 @@ public function player.getId() returns int
 
 public function player.addGold(int val)
 	this.addState(PLAYER_STATE_RESOURCE_GOLD, val)
-	
+
 public function player.subGold(int val)
 	this.subState(PLAYER_STATE_RESOURCE_GOLD, val)
-	
+
 public function player.getGold() returns int
 	return this.getState(PLAYER_STATE_RESOURCE_GOLD)
 
 public function player.getLumber() returns int
 	return this.getState(PLAYER_STATE_RESOURCE_LUMBER)
-	
+
 public function player.addLumber(int val)
 	this.addState(PLAYER_STATE_RESOURCE_LUMBER, val)
-	
+
 public function player.getMaxSupply() returns int
 	return this.getState(PLAYER_STATE_RESOURCE_FOOD_CAP)
-	
+
 public function player.getCurrentSupply() returns int
 	return this.getState(PLAYER_STATE_RESOURCE_FOOD_USED)
-	
+
 public function player.setState(playerstate state, int val)
 	SetPlayerState(this, state, val)
-	
+
 public function player.addState(playerstate state, int val)
 	SetPlayerState(this, state, this.getState(state) + val)
-	
+
 public function player.subState(playerstate state, int val)
 	SetPlayerState(this, state, this.getState(state) - val)
-	
+
 public function player.getState(playerstate state) returns int
 	return GetPlayerState(this, state)
-	
+
 public function player.getName() returns string
 	return GetPlayerName(this)
-	
+
 public function player.getNameColored() returns string
 	return playercolors[this.getId()].toColorString() + GetPlayerName(this) + "|r"
-	
+
 public function player.getSlotState() returns playerslotstate
 	return GetPlayerSlotState(this)
-	
+
 public function player.getController() returns mapcontrol
 	return GetPlayerController(this)
-	
+
 public function player.isEnemyOf(player p) returns boolean
 	return IsPlayerEnemy(this, p)
-	
+
 public function player.isAllyOf(player p) returns boolean
 	return IsPlayerAlly(this, p)
-	
+
 public function player.select(unit u)
 	if GetLocalPlayer() == this
 		SelectUnit(u, true)
-		
+
 public function player.selectSingle(unit u)
 	if GetLocalPlayer() == this
 		ClearSelection()
 		SelectUnit(u, true)
-		
+
 public function player.unselect(unit u)
 	if GetLocalPlayer() == this
 		SelectUnit(u, false)
-		
+
 public function player.panCamToTimed(unit u, real time)
 	if GetLocalPlayer() == this
 		PanCameraToTimed(u.getX(), u.getY(), time)
-		
+
 public function player.setAbilityAvailable(integer abilityId, boolean avail)
 	SetPlayerAbilityAvailable(this, abilityId, avail)
-		
+
 public function player.getColor() returns playercolor
 	return GetPlayerColor(this)
-	
+
 public function player.getStartLocation() returns vec2
 	return vec2(GetPlayerStartLocationX(this), GetPlayerStartLocationY(this))

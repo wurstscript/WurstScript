@@ -31,19 +31,18 @@ public function idString2IdInteger(string value) returns int
 			let pos = charMap.indexOf(value.charAt(3-i))
 			result += factor*pos
 			factor *= 256
-		
-	
-	return result	
-	
-	
+
+
+	return result
+
+
 @test function test_idString2IdInteger()
 	idString2IdInteger("hfoo") .assertEquals('hfoo')
 	idString2IdInteger("abcd") .assertEquals('abcd')
 	idString2IdInteger("ABCD") .assertEquals('ABCD')
 
-	
+
 @test function test_idInteger2IdString()
 	idInteger2IdString('hfoo') .assertEquals("hfoo")
 	idInteger2IdString('abcd') .assertEquals("abcd")
 	idInteger2IdString('ABCD') .assertEquals("ABCD")
-	

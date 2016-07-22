@@ -22,7 +22,7 @@ public interface UnitCollision
 	 */
 	function onCollide(unit knockbackUnit, unit hitUnit)
 
-		
+
 public class Knockback
 	use Periodic
 	unit u
@@ -36,7 +36,7 @@ public class Knockback
 	UnitCollision collisionAction
 	LinkedList<unit> collisionUnits
 	real collisionSize
-	
+
 	/**
 	 * Performs a simple 2d knockback. The knockback object is automatically destroyed afterwards.
 	 * unit u: the unit to be knocked back.
@@ -64,7 +64,7 @@ public class Knockback
 				sfx = u.addEffect(SFX_WATER, SFX_ATTACHPOINT)
 				sfxCurr = 2
 		startPeriodic(ANIMATION_PERIOD)
-	
+
 	/**
 	 * Enables/disable collision for this knockback. Each unit can only collide once with each knockback.
 	 * You can call this directly after creating a new Knockback object or at any other time.
@@ -117,7 +117,7 @@ public class Knockback
 		steps--
 		if steps <= 0
 			destroy this
-	
+
 	ondestroy
 		if sfx != null
 			sfx.destr()
