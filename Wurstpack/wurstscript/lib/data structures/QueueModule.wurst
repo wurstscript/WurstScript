@@ -14,7 +14,7 @@ public module QueueModule
 		else
 			prev = first
 			first = this
-	
+
 	ondestroy
 		count--
 		last = this.prev
@@ -36,7 +36,7 @@ public module SingletonQueue<T>
 			storage[rp] = t
 		else
 			error("Queue Overflow")
-		
+
 	static function dequeue() returns T
 		if size > 0
 			size--
@@ -45,5 +45,4 @@ public module SingletonQueue<T>
 		else
 			error("Queue empty")
 			return null
-			
-	
+

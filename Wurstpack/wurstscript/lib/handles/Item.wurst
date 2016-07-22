@@ -7,28 +7,28 @@ public function createItem(int itemId, vec2 pos) returns item
 
 public function item.getName() returns string
 	return GetItemName( this )
-	
+
 public function item.getX() returns real
 	return GetItemX( this )
-		
+
 public function item.getY() returns real
 	return GetItemY( this )
 
 public function item.setPos( real x, real y )
 	SetItemPosition( this, x, y )
-	
+
 public function item.setPos( vec2 pos )
 	SetItemPosition( this, pos.x, pos.y )
-	
+
 public function item.getPos() returns vec2
 	return vec2(this.getX(), this.getY())
-	
+
 public function item.getUserData() returns int
 	return GetItemUserData(this)
-	
+
 public function item.setUserData(int data)
 	SetItemUserData(this, data)
-	
+
 public function item.remove()
 	RemoveItem(this)
 

@@ -1,6 +1,6 @@
 package Trackable
 	import HashMap
-	
+
 	/*
 	If you need invisible trackable models here are a few downloadlinks:
 	8x8 			"https://dl.dropbox.com/u/103859688/Trackables/8x8Track.mdx"
@@ -11,25 +11,25 @@ package Trackable
 	256x256 	"https://dl.dropbox.com/u/103859688/Trackables/256x256Track.mdx"
 	512x512	"https://dl.dropbox.com/u/103859688/Trackables/512x512Track.mdx"
 	*/
-	
+
 	public interface TrackableAction
-	
+
 		function run(TrackableEx clickedTrackable, player clickingPlayer)
-	
+
 	public class TrackableEx
 		private static constant real doubleClickSpeed = 0.5
-	
+
 		private static timer array playerDoubleClickTimer
 		private static boolean array playerClickBefore
 		private static HashMap<trackable, player> trackableOwner= new HashMap<trackable, player>()
 		private static HashMap<trackable, thistype> trackableObjects = new HashMap<trackable, thistype>()
 		private static trigger trackTrigger = CreateTrigger()..addAction(() -> trackableObjects.get(GetTriggeringTrackable()).trackHandler(trackableOwner.get(GetTriggeringTrackable())))
 		private static trigger clickTrigger = CreateTrigger()..addAction(() -> trackableObjects.get(GetTriggeringTrackable()).clickHandler(trackableOwner.get(GetTriggeringTrackable())))
-		
+
 		private TrackableAction onTrack = null
 		private TrackableAction onClick = null
 		private TrackableAction onDoubleClick = null
-		
+
 		/** Creates a trackable at the target location. The trackable is clickable for all players */
 		construct(vec2 pos, string path)
 			for int i = 0 to 11
@@ -42,11 +42,11 @@ package Trackable
 					trackableObjects.put(t, this)
 					trackTrigger.registerTrackableTrackEvent(t)
 					clickTrigger.registerTrackableHitEvent(t)
-					
+
 		private function trackHandler(player p)
 			if onTrack != null
 				onTrack.run(this, p)
-		
+
 		private function clickHandler(player p)
 			if onDoubleClick != null
 				if playerClickBefore[p.getId()]
@@ -62,15 +62,15 @@ package Trackable
 			else
 				if onClick != null
 					onClick.run(this, p)
-		
+
 		/** Sets the action that is executed when the trackable gets hovered */
 		function onTrack(TrackableAction action)
 			onTrack = action
-			
+
 		/** Sets the action that is executed when the trackable gets clicked */
 		function onClick(TrackableAction action)
 			onClick = action
-			
+
 		/** Sets the action that is executed when the trackable gets doubleclicked */
 		function onDoubleClick(TrackableAction action)
 			if onDoubleClick == null
@@ -78,9 +78,9 @@ package Trackable
 					if GetPlayerSlotState(Player(i)) == PLAYER_SLOT_STATE_PLAYING and GetPlayerController(Player(i)) == MAP_CONTROL_USER
 						playerDoubleClickTimer[i] = getTimer()..setData(i)
 			onDoubleClick = action
-					
+
 	/** Creates a Trackable at the target location*/
 	public function createTrackable(vec2 pos, angle ang, string path) returns trackable
 		return CreateTrackable(path, pos.x, pos.y, ang.degrees())
-		
+
 endpackage

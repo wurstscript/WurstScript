@@ -33,7 +33,7 @@ function inBoundsXY(real x, real y) returns boolean
 
 public function vec2.inBounds() returns boolean
 	return inBoundsXY(this.x, this.y)
-	
+
 public function vec3.inBounds() returns boolean
 	return inBoundsXY(this.x, this.y)
 

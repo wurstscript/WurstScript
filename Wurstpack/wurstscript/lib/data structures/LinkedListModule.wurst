@@ -12,7 +12,7 @@ public module LinkedListModule
 		size++
 		if size == 1
 			first = this
-			prev = null	
+			prev = null
 		else
 			prev = last
 			last.next = this
@@ -22,14 +22,14 @@ public module LinkedListModule
 
 	static function getFirst() returns thistype
 		return first
-		
+
 	function getNext() returns thistype
 		return next
 
 	function getPrev() returns thistype
 		return prev
-		
-		
+
+
 	function remove()
 		size--
 		if this != first
@@ -37,31 +37,31 @@ public module LinkedListModule
 		else
 			first = next
 		if this != last
-			next.prev = prev	
+			next.prev = prev
 		else
 			last = prev
-			
-			
+
+
 	ondestroy
 		remove()
-	
+
 	/** an iterator which iterates over all instances of this class */
 	static function iterator() returns Iterator
 		return new Iterator()
-		
+
 	static class Iterator
 		LinkedListModule.thistype current = first
 		function hasNext() returns boolean
 			return current != null
-	
+
 		function next() returns LinkedListModule.thistype
 			let res = current
 			current = current.next
 			return res
-	 		
-		function close() 
+
+		function close()
 			destroy this
-	
+
 
 
 class MyClass
@@ -75,14 +75,14 @@ function allToString() returns string
  	for x in MyClass
 		res += x.str
 	return res
-	
+
 @test
 function test()
 	let a = new MyClass("a")
 	let b = new MyClass("b")
 	let c = new MyClass("c")
 	let d = new MyClass("d")
- 
+
  	assertTrue(allToString() == "abcd")
  	destroy c
  	assertTrue(allToString() == "abd")
@@ -92,8 +92,8 @@ function test()
  	assertTrue(allToString() == "b")
  	destroy b
  	assertTrue(allToString() == "")
- 	
- @test 
+
+ @test
  function testDestroy()
  	new MyClass("a")
 	let b = new MyClass("b")

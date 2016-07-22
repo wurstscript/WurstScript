@@ -8,19 +8,19 @@ package AbilityTooltipGenerator_config
 		tg.addProperty("Damage:", (int lvl) -> (100*lvl).toString())
 	Apply to an AbilitiyDef
 		tg.applyToDef(someAbilDef)
-		
+
 	Done!
 */
 
 @config constant TITLE_COLOR = "|cff3B97D3"
 @config constant TITLE_TTYPE = "Targettype:"
 @config constant MAX_TITLES = 10
-/* 
+/*
 	Change these Patterns in order to change the non-extended Tooltip design
-	You can use the following references to the dynamic variable by 
+	You can use the following references to the dynamic variable by
 	surrounding it with $
 	For Example: $name$ will reference the value of the variable name
-	
+
 	Available references:
 	name = Name of the Ability
 	hotkey = Hotkey of the Ability

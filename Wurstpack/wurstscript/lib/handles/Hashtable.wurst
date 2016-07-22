@@ -36,7 +36,7 @@ public function hashtable.loadDestructableHandle( integer parentKey, integer chi
 
 public function hashtable.loadDialogHandle( integer parentKey, integer childKey ) returns dialog
 	return LoadDialogHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadEffectHandle( integer parentKey, integer childKey ) returns effect
 	return LoadEffectHandle( this, parentKey, childKey )
 
@@ -51,7 +51,7 @@ public function hashtable.loadInt( int parentKey, int childKey ) returns int
 
 public function hashtable.loadItemPoolHandle( integer parentKey, integer childKey ) returns itempool
 	return LoadItemPoolHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadItemHandle( integer parentKey, integer childKey ) returns item
 	return LoadItemHandle( this, parentKey, childKey )
 
@@ -93,7 +93,7 @@ public function hashtable.loadRectHandle( integer parentKey, integer childKey ) 
 
 public function hashtable.loadRegionHandle( integer parentKey, integer childKey ) returns region
 	return LoadRegionHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadSoundHandle( integer parentKey, integer childKey ) returns sound
 	return LoadSoundHandle( this, parentKey, childKey )
 
@@ -102,7 +102,7 @@ public function hashtable.loadString( integer parentKey, integer childKey ) retu
 
 public function hashtable.loadTextTagHandle( integer parentKey, integer childKey ) returns texttag
 	return LoadTextTagHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadTimerDialogHandle( integer parentKey, integer childKey ) returns timerdialog
 	return LoadTimerDialogHandle( this, parentKey, childKey )
 
@@ -111,28 +111,28 @@ public function hashtable.loadTimerHandle( integer parentKey, integer childKey )
 
 public function hashtable.loadTrackableHandle( integer parentKey, integer childKey ) returns trackable
 	return LoadTrackableHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadTriggerActionHandle( integer parentKey, integer childKey ) returns triggeraction
 	return LoadTriggerActionHandle( this, parentKey, childKey )
 
 public function hashtable.loadTriggerConditionHandle( integer parentKey, integer childKey ) returns triggercondition
 	return LoadTriggerConditionHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadTriggerEventHandle( integer parentKey, integer childKey ) returns event
 	return LoadTriggerEventHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadTriggerHandle( integer parentKey, integer childKey ) returns trigger
 	return LoadTriggerHandle( this, parentKey, childKey )
 
 public function hashtable.loadUbersplatHandle( integer parentKey, integer childKey ) returns ubersplat
 	return LoadUbersplatHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadUnitHandle( integer parentKey, integer childKey ) returns unit
 	return LoadUnitHandle( this, parentKey, childKey )
 
 public function hashtable.loadUnitPoolHandle( integer parentKey, integer childKey ) returns unitpool
 	return LoadUnitPoolHandle( this, parentKey, childKey )
-	
+
 public function hashtable.loadWidgetHandle( integer parentKey, integer childKey ) returns widget
 	return LoadWidgetHandle( this, parentKey, childKey )
 
@@ -156,7 +156,7 @@ public function hashtable.saveDestructableHandle( integer parentKey, integer chi
 
 public function hashtable.saveDialogHandle( integer parentKey, integer childKey, dialog value )
 	SaveDialogHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveEffectHandle( integer parentKey, integer childKey, effect value )
 	SaveEffectHandle( this, parentKey, childKey, value )
 
@@ -213,7 +213,7 @@ public function hashtable.saveRectHandle( integer parentKey, integer childKey, r
 
 public function hashtable.saveRegionHandle( integer parentKey, integer childKey, region value )
 	SaveRegionHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveSoundHandle( integer parentKey, integer childKey, sound value )
 	SaveSoundHandle( this, parentKey, childKey, value )
 
@@ -222,7 +222,7 @@ public function hashtable.saveString( integer parentKey, integer childKey, strin
 
 public function hashtable.saveTextTagHandle( integer parentKey, integer childKey, texttag value )
 	SaveTextTagHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveTimerDialogHandle( integer parentKey, integer childKey, timerdialog value )
 	SaveTimerDialogHandle( this, parentKey, childKey, value )
 
@@ -231,48 +231,48 @@ public function hashtable.saveTimerHandle( integer parentKey, integer childKey, 
 
 public function hashtable.saveTrackableHandle( integer parentKey, integer childKey, trackable value )
 	SaveTrackableHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveTriggerActionHandle( integer parentKey, integer childKey, triggeraction value )
 	SaveTriggerActionHandle( this, parentKey, childKey, value )
 
 public function hashtable.saveTriggerConditionHandle( integer parentKey, integer childKey, triggercondition value )
 	SaveTriggerConditionHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveTriggerEventHandle( integer parentKey, integer childKey, event value )
 	SaveTriggerEventHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveTriggerHandle( integer parentKey, integer childKey, trigger value )
 	SaveTriggerHandle( this, parentKey, childKey, value )
 
 public function hashtable.saveUbersplatHandle( integer parentKey, integer childKey, ubersplat value )
 	SaveUbersplatHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveUnitHandle( integer parentKey, integer childKey, unit value )
 	SaveUnitHandle( this, parentKey, childKey, value )
 
 public function hashtable.saveUnitPoolHandle( integer parentKey, integer childKey, unitpool value )
 	SaveUnitPoolHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.saveWidgetHandle( integer parentKey, integer childKey, widget value )
 	SaveWidgetHandle( this, parentKey, childKey, value )
-	
+
 public function hashtable.removeBoolean(integer parentKey, integer childKey)
 	RemoveSavedBoolean(this, parentKey, childKey)
-	
+
 public function hashtable.removeHandle(integer parentKey, integer childKey)
 	RemoveSavedHandle(this, parentKey, childKey)
-	
+
 public function hashtable.removeInt(integer parentKey, integer childKey)
 	RemoveSavedInteger(this, parentKey, childKey)
-	
+
 public function hashtable.removeReal(integer parentKey, integer childKey)
 	RemoveSavedReal(this, parentKey, childKey)
-	
+
 public function hashtable.removeString(integer parentKey, integer childKey)
 	RemoveSavedString(this, parentKey, childKey)
 
 public function hashtable.flushChild(int parentKey)
 	FlushChildHashtable(this, parentKey)
-	
+
 public function hashtable.flush()
 	FlushParentHashtable(this)

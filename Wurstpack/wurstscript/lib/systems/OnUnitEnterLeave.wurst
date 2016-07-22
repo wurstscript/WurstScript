@@ -13,7 +13,7 @@ constant eventTrigger = CreateTrigger()
 
 public function getEnterLeaveUnit() returns unit
 	return tempUnit
-	
+
 public function onEnter(code c)
 	eventTrigger.addCondition(Condition(c))
 
@@ -21,7 +21,7 @@ public function onLeave(code c)
 	eventTrigger.addAction(c)
 
 unit tempUnit = null
-	
+
 init
 	CreateTrigger()..registerEnterRegion(boundRegion, null)
 	..addCondition(Condition(() -> begin
@@ -29,7 +29,7 @@ init
 		eventTrigger.evaluate()
 		tempUnit = null
 	end))
-	
+
 	registerPlayerUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER, () -> begin
 		let leavingUnit = GetTriggerUnit()
 		if leavingUnit.getAbilityLevel(ABILITY_ID) == 0
@@ -40,7 +40,7 @@ init
 	ABILITY_ID = '!e@$'
 	for i = 0 to bj_MAX_PLAYER_SLOTS-1
 		players[i].setAbilityAvailable(ABILITY_ID, false)
-    
+
 	nullTimer(() -> GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> begin
 		tempUnit = GetFilterUnit()..addAbility(ABILITY_ID)..makeAbilityPermanent(ABILITY_ID, true)
 		eventTrigger.evaluate()
@@ -53,4 +53,4 @@ int ABILITY_ID = '!e@$'
 	new AbilityDefinitionDefend(ABILITY_ID)
 	..setName("Leave Detect")..setEditorSuffix("(OnUnitEnterLeave)")
 	..setArtCaster("")..setIconNormal("")..setRace(Race.Unknown)
-	
+

@@ -5,11 +5,11 @@ import Wurstunit
 /**Look at linear*/
 public function linear(vec2 start, vec2 stop, real p) returns vec2
 	return vec2(linear(start.x, stop.x, p), linear(start.y, stop.y, p))
-	
+
 public function bezier_3(vec2 start, vec2 mid, vec2 stop, real p) returns vec2
 	return vec2(bezier_3(start.x, mid.x, stop.x, p), bezier_3(start.y, mid.y, stop.y, p))
 
-/** 
+/**
 	Linear Interpolation
 	Sample Usage:
 	AddSpecialEffect(TEST_SFX,linear(P1X,P2X,p),linear(P1Y,P2Y,p))
@@ -26,13 +26,13 @@ public function bezier_3( real start, real mid, real stop, real p ) returns real
 	return start + 2.*(mid-start)*p + (stop -2.*mid + start)*p*p
 
 
-/** 
-	This function returns the derivate of the 3-Point-Bezier curve on certain point. 
+/**
+	This function returns the derivate of the 3-Point-Bezier curve on certain point.
 	(d(bezier_3())/dt)
 */
 public function derivBezier_3( real start, real mid, real stop, real p ) returns real
-	return 2.*(mid-start) + 2.*(stop-2.*mid+start)*p 
-	
+	return 2.*(mid-start) + 2.*(stop-2.*mid+start)*p
+
 
 /**
 	4-Point-Bezier Interpolation
@@ -43,14 +43,14 @@ function bezier_4( real start, real mid1, real mid2, real stop, real p ) returns
 	real m = p*p
 	return  start + 3.*p*(mid1 - start) + 3.*m*(mid2 - 2.*mid1 + start) + m*p*(3.*(mid1-mid2) + stop - start)
 
-/** 
-	This function returns the derivate of the 4-Point-Bezier curve on certain point. 
+/**
+	This function returns the derivate of the 4-Point-Bezier curve on certain point.
 	(d(bezier_4())/dt)
-*/	
+*/
 public function derivBezier_4( real start, real mid1, real mid2, real stop, real p ) returns real
 	return 3.*(mid1-start) + 6.*(mid2-2.*mid1+start)*p + 3.*(3.*(mid1-mid2) + stop -start)*p*p
-	
-	
+
+
 //You can use Bezier 3 to graphic perfect parabolas
 //Bezier_4(<Start Point>, <OutTan_of_StartPoint>, <InTan_of_EndPoint>, <EndPoint>)
 
@@ -63,8 +63,8 @@ public function hermite( real start, real stop, real tangent1, real tangent2, re
 	real h4 = s2*(s - 1.0)
 	h1 = h1 + 1
 	return h1*start + h2*stop + h3*tangent1 + h4*tangent2
-	
-	
+
+
 
 // TCB functions for finding the tangents among 3 points
 // Most modellers may know TCB from 3dsmax, in which they are used to make rotations
@@ -83,14 +83,14 @@ public function inTan( real p1, real p2, real p3, real p, real c, real b ) retur
 /** Returns the outtan of p2 */
 public function outTan( real p1, real p2, real p3, real p, real c, real b ) returns real
 	return (1.0-p)*(1.0+c)*(1.0+b)*(p2-p1)/2. + (1.0-p)*(1.0-c)*(1.0-b)*(p3-p2)/2.
-	
+
 public function axiAngle( real dy, real dx ) returns real
 	return Atan2(dy,dx)
 
 public function getCardTan( real p1, real p3 ) returns real
 	return 0.5*(p3-p1)
-	
-	
+
+
 @test function linearVecTest()
 	let v = linear(vec2(3,4), vec2(6,2), 0.5)
 	v.x.assertEquals(4.5, .001)

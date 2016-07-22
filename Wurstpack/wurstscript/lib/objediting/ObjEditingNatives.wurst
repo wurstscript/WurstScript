@@ -4,42 +4,42 @@ import Boolean
 
 public interface StringLevelClosure
 	function run(int lvl) returns string
-		
+
 public interface IntLevelClosure
 	function run(int lvl) returns int
-		
+
 public interface RealLevelClosure
 	function run(int lvl) returns real
-		
+
 public interface BooleanLevelClosure
 	function run(int lvl) returns boolean
 
-// when this function is called at compiletime it generated a compile error with the given message 
+// when this function is called at compiletime it generated a compile error with the given message
 @compiletimenative public function compileError(string msg)
 
 public tuple ObjectDefinition(int key)
 
 // creates a new unit objectdefinition
-// for example to create a new unit with id "h000" which is based on a footman ("hfoo") 
+// for example to create a new unit with id "h000" which is based on a footman ("hfoo")
 // let u = createObjectDefinition("w3u", "h000", "hfoo")
 @compiletimenative public function createObjectDefinition(string fileType, int newId, int deriveFrom) returns ObjectDefinition
 	return ObjectDefinition(0) // dummy implementation
-	
+
 // changes an integer value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setInt(string modification, int value)
 	skip
-	
+
 public function ObjectDefinition.setBoolean(string modification, boolean value)
 	this.setInt(modification, value.toInt())
-	
+
 // changes a string value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setString(string modification, string value)
 	skip
-	
+
 // changes a real of an objectdefinition
 @compiletimenative public function ObjectDefinition.setReal(string modification, real value)
 	skip
-	
+
 // changes a unreal (real between 0.0 and 1.0) of an objectdefinition
 @compiletimenative public function ObjectDefinition.setUnreal(string modification, real value)
 	skip
@@ -48,15 +48,15 @@ public function ObjectDefinition.setBoolean(string modification, boolean value)
 // changes an integer value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlInt(string modification, int lvl, int value)
 	skip
-	
+
 // changes a string value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlString(string modification, int lvl, string value)
 	skip
-	
+
 // changes a real of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlReal(string modification, int lvl, real value)
 	skip
-	
+
 // changes a unreal (real between 0.0 and 1.0) of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlUnreal(string modification, int lvl, real value)
 	skip
@@ -65,42 +65,41 @@ public function ObjectDefinition.setBoolean(string modification, boolean value)
 // changes an integer value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlDataInt(string modification, int lvl, int dataPointer, int value)
 	skip
-	
+
 // changes a string value of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlDataString(string modification, int lvl, int dataPointer, string value)
 	skip
-	
+
 // changes a real of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlDataReal(string modification, int lvl, int dataPointer, real value)
 	skip
-	
+
 // changes a unreal (real between 0.0 and 1.0) of an objectdefinition
 @compiletimenative public function ObjectDefinition.setLvlDataUnreal(string modification, int lvl, int dataPointer, real value)
 	skip
-	
+
 public function ObjectDefinition.setLvlDataBoolean(string modification, int lvl, int dataPointer, boolean value)
 	if value
 		this.setLvlDataInt(modification, lvl, dataPointer, 1)
 	else
 		this.setLvlDataInt(modification, lvl, dataPointer, 0)
-		
+
 public function ObjectDefinition.setLevelsDataString(string modification, int maxLevel, int dataPointer, StringLevelClosure lc)
 	for i = 1 to maxLevel
 		this.setLvlDataString(modification, i, dataPointer, lc.run(i))
-	
+
 public function ObjectDefinition.setLevelsDataInt(string modification, int maxLevel, int dataPointer, IntLevelClosure lc)
 	for i = 1 to maxLevel
-		this.setLvlDataInt(modification, i, dataPointer, lc.run(i))	
-		
+		this.setLvlDataInt(modification, i, dataPointer, lc.run(i))
+
 public function ObjectDefinition.setLevelsDataUnreal(string modification, int maxLevel, int dataPointer, RealLevelClosure lc)
 	for i = 1 to maxLevel
 		this.setLvlDataUnreal(modification, i, dataPointer, lc.run(i))
-		
+
 public function ObjectDefinition.setLevelsDataReal(string modification, int maxLevel, int dataPointer, RealLevelClosure lc)
 	for i = 1 to maxLevel
 		this.setLvlDataReal(modification, i, dataPointer, lc.run(i))
-		
+
 public function ObjectDefinition.setLevelsDataBoolean(string modification, int maxLevel, int dataPointer, BooleanLevelClosure lc)
 	for i = 1 to maxLevel
 		this.setLvlDataBoolean(modification, i, dataPointer, lc.run(i))
-	

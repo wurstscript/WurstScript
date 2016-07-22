@@ -9,17 +9,17 @@ class FreeNode
 	int size
 	/** next free data cell */
 	FreeNode next
-	
+
 	construct(int dataPos, int size, FreeNode next)
 		this.dataPos = dataPos
 		this.size = size
 		this.next = next
-		
+
 	construct(int dataPos, int size)
 		this.dataPos = dataPos
 		this.size = size
 		this.next = null
-		
+
 	function destr(FreeNode prev)
 		prev.next = next
 		destroy this
@@ -29,11 +29,11 @@ function printFreeNodes() returns string
 	var f = freeList
 	string s = ""
 	while f != null
-		s = s + "[" + f.dataPos.toString() + ", " + f.size.toString() + "] -> " 
+		s = s + "[" + f.dataPos.toString() + ", " + f.size.toString() + "] -> "
 		f = f.next
 	return s
 
-/** try to repair the freenode list (for debugging) */	
+/** try to repair the freenode list (for debugging) */
 function repairFreeNodes()
 	var f = freeList
 	while f.next != null
@@ -45,7 +45,7 @@ function tryJoin(FreeNode a, FreeNode b) returns FreeNode
 		a.size += b.size
 		b.destr(a)
 		return a
-	return b 
+	return b
 
 /** stores free memory locations in a simple linked list,
   the list is sorted by dataPos starting with the smallest */
@@ -55,33 +55,33 @@ FreeNode freeList = new FreeNode(0,8191)
 int array data
 
 public class ArrayList<T>
-	
+
 	private int pos
 	protected int size = 0
 	private int capacity
-	
+
 	/** create a new arraylist */
 	construct()
 		alloc(4)
-		
-	/** create a new arraylist with a given initial capacity 
+
+	/** create a new arraylist with a given initial capacity
 		(can give better performance if you alredy know the size of the list) */
 	construct(int initialCapacity)
 		alloc(initialCapacity)
-		
+
 	/** allocate new memory for this list */
 	private function alloc(int allocCapacity)
 		FreeNode f = freeList
 		while true
 			if f.size >= allocCapacity
 				alloc(f, allocCapacity)
-				return		
+				return
 			f = f.next
 			if f == freeList
-				break 
+				break
 		// could try to optimize memory layout before giving up
 		error("Could not allocate enough space.")
-	
+
 	/** allocate new memory at FreeNode f */
 	private function alloc(FreeNode f, int allocCapacity)
 		pos = f.dataPos
@@ -89,7 +89,7 @@ public class ArrayList<T>
 		f.dataPos += allocCapacity
 		f.size -= allocCapacity
 		// TODO remove blocks with size 0 ?
-		
+
 	/** reallocate memory. Allocates new memory and copies elements */
 	private function realloc(int allocCapacity)
 		int oldPos = pos
@@ -97,11 +97,11 @@ public class ArrayList<T>
 		alloc(allocCapacity)
 		copy(oldPos, size, pos)
 		dealloc(oldPos, oldCapacity)
-		
+
 	ondestroy
 		dealloc(pos, capacity)
-	
-	/** deallocate memory */	
+
+	/** deallocate memory */
 	private function dealloc(int pos, int capacity)
 		FreeNode d = new FreeNode(pos, capacity)
 		if pos < freeList.dataPos
@@ -118,24 +118,24 @@ public class ArrayList<T>
 			f.next = d
 			d = tryJoin(f, d)
 			tryJoin(d, d.next)
-		
-	/** copy memory from source to target, starting from left to right */	
+
+	/** copy memory from source to target, starting from left to right */
 	private function copy(int source, int size, int target)
 		for i = 0 to size - 1
 			data[target + i] = data[source + i]
-	
+
 	/** copy memory from source to target, starting from right to left */
 	private function copyRev(int source, int size, int target)
 		for i = size-1 downto 0
-			data[target + i] = data[source + i]		
-	
-	/** add an element to the list */		
+			data[target + i] = data[source + i]
+
+	/** add an element to the list */
 	function add(T t)
 		if size >= capacity
 			realloc(size*2)
 		data[pos+size] = t castTo int
 		size++
-			
+
 	/** adds an element at the given index */
 	function add(int index, T t)
 		if index < 0
@@ -148,7 +148,7 @@ public class ArrayList<T>
 		copyRev(pos+index-1, size-index, pos+index)
 		data[pos+index] = t castTo int
 		size++
-		
+
 	/** removes the element at the given index */
 	function removeAt(int index)
 		if index < 0
@@ -158,7 +158,7 @@ public class ArrayList<T>
 		// move data to the left
 		copy(pos+index+1, size-index, pos+index)
 		size--
-	
+
 	/** removes the given element from the list */
 	function remove(T t)
 		for i = 0 to size - 1
@@ -166,7 +166,7 @@ public class ArrayList<T>
 				removeAt(pos + i)
 				return
 		error("element not in list")
-		
+
 	/** get the elemt at the given index */
 	function get(int index) returns T
 		if index < 0
@@ -174,7 +174,7 @@ public class ArrayList<T>
 		if index >= size
 			error("index must be < size")
 		return data[pos+index] castTo T
-		
+
 	/** set the elemt at the given index */
 	function set(int index, T t)
 		if index < 0
@@ -182,8 +182,8 @@ public class ArrayList<T>
 		if index >= size
 			error("index must be < size")
 		data[pos+index] = t castTo int
-	
-	/** returns a string representation of this list */	
+
+	/** returns a string representation of this list */
 	function toString() returns string
 		string s="["
 		var first = true
@@ -193,36 +193,36 @@ public class ArrayList<T>
 			s += I2S(e castTo int)
 			first = false
 		return s + "]"
-		
+
 	/** returns the number of elements in the list */
 	function getSize() returns int
 		return size
-		
+
 	/** an iterator to iterate over the list */
 	function iterator() returns ArrayListIterator<T>
 		return new ArrayListIterator<T>(pos, size)
-	
-	/** an iterator to iterate over the list 
+
+	/** an iterator to iterate over the list
 		with methods to remove or change elements */
 	function iteratorMut() returns ArrayListIteratorMut<T>
-		return new ArrayListIteratorMut<T>(pos, size, this)	
-		
+		return new ArrayListIteratorMut<T>(pos, size, this)
+
 public class ArrayListIterator<Q>
 	private int pos
 	private int endPos
-	
+
 	construct(int pos, int size)
 		this.pos = pos - 1
 		this.endPos = pos + size - 1
-		
+
 	function hasNext() returns boolean
 		return pos < endPos
 
 	function next() returns Q
 		pos++
 		return data[pos] castTo Q
- 		
-	function close() 
+
+	function close()
 		destroy this
 
 public class ArrayListIteratorMut<Q>
@@ -230,12 +230,12 @@ public class ArrayListIteratorMut<Q>
 	private int endPos
 	private int removed = 0
 	private ArrayList<Q> list
-	
+
 	construct(int pos, int size, ArrayList<Q> list)
 		this.pos = pos - 1
 		this.endPos = pos + size - 1
 		this.list = list
-		
+
 	function hasNext() returns boolean
 		return pos < endPos
 
@@ -243,17 +243,17 @@ public class ArrayListIteratorMut<Q>
 		pos++
 		data[pos-removed] = data[pos]
 		return data[pos] castTo Q
- 		
+
 	function close()
 		list.size -= removed
 		destroy this
-		
+
 	function setCurrent(Q value)
 		data[pos] = value castTo int
-		
+
 	function remove()
 		removed++
-		
+
 
 function assertDataInvariants()
 	assertNotNull(freeList)
@@ -262,8 +262,8 @@ function assertDataInvariants()
 		assertTrue(f.size >= 0, "wrong size")
 		assertTrue(f.dataPos + f.size < f.next.dataPos, "not ordered")
 		f = f.next
-			
-	
+
+
 @test function testAlloc()
 	let a = new ArrayList<int>(1001)
 	assertDataInvariants()
@@ -285,7 +285,7 @@ function assertDataInvariants()
 	assertDataInvariants()
 	destroy e
 	assertDataInvariants()
-	
+
 function testList() returns ArrayList<int>
 	return new ArrayList<int>()
 		..add(1)
@@ -303,7 +303,7 @@ function testList() returns ArrayList<int>
 	iter.close()
 	l.toString().assertEquals("[1, 4, 5]")
 	destroy l
-	
+
 @test function testRemoveIt2()
 	let l = testList()
 	let iter = l.iteratorMut()
@@ -325,15 +325,14 @@ function testList() returns ArrayList<int>
 		..removeAt(2)
 	l.toString().assertEquals("[1, 2, 4, 5]")
 	destroy l
-	
+
 @test function testSet()
 	let l = testList()
 		..set(2,77)
 	l.toString().assertEquals("[1, 2, 77, 4, 5]")
 	destroy l
-	
+
 @test function testGet()
 	let l = testList()
 	l.get(2).assertEquals(3)
 	destroy l
-	

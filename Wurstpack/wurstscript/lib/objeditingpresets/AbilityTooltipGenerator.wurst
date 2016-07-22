@@ -14,45 +14,45 @@ public class AbilityTooltipGenerator
 	private string hotkey 		= ""
 	private string hotkeylearn	= ""
 	private string description 	= ""
-	
+
 	private int maxLevel = 1
-	
+
 	private string array[MAX_TITLES] titles
 	private string array[MAX_TITLES] values
 	private int titleCount = 0
-	
+
 	Targettype targettype = Targettype.NOTARGET
-	
+
 	construct(string name, string hotkey, Targettype ttype, int maxLevel, string description)
 		this.name = name
 		this.hotkey = hotkey
 		this.maxLevel = maxLevel
 		this.description = description
 		this.targettype = ttype
-		
+
 	construct(string name, string hotkey, Targettype ttype, string description)
 		this.name = name
 		this.hotkey = hotkey
 		this.description = description
 		this.targettype = ttype
-		
+
 	construct(string name, Targettype ttype, string description)
 		this.name = name
 		this.description = description
 		this.targettype = ttype
-		
+
 	construct()
-		
+
 	function setExtraLearnHotkey(string hotkey)
 		hotkeylearn = hotkey
-		
+
 	function addProperty(string title, string value)
 		if titleCount >= MAX_TITLES
 			error("Maximum titles reached")
-		titles[titleCount] = TITLE_COLOR + title + "|r " 
+		titles[titleCount] = TITLE_COLOR + title + "|r "
 		values[titleCount] = fixValue(value)
 		titleCount++
-		
+
 	function addProperty(string title, StringLevelClosure lc)
 		if titleCount >= MAX_TITLES
 			error("Maximum titles reached")
@@ -62,26 +62,26 @@ public class AbilityTooltipGenerator
 			values[titleCount] += fixValue(lc.run(i)) + "/"
 		values[titleCount] = values[titleCount].substring(0, values[titleCount].length() -1)
 		titleCount++
-		
-		
+
+
 	function applyToDef(AbilityDefinition def)
 		for i = 1 to maxLevel
 			def..setTooltipNormal(i, generateTooltipNormal(i))
 			..setTooltipNormalExtended(i, generateTooltipExtended(i, false))
-			
+
 		def..setTooltipLearn(generateTooltipLearn())
 		..setTooltipLearnExtended(generateTooltipExtended(-1, true))
 		..presetHotkey(hotkey)..setLevels(maxLevel)..setName(name)
-	
+
 	private function generateTooltipLearn() returns string
 		return replaceRefs(LEARN_PATTERN)
-		
+
 	private function generateTooltipNormal(int lvl) returns string
 		if targettype == Targettype.PASSIVE
 			return replaceRefs(NORMAL_PASSIVE_PATTERN, lvl)
 		else
 			return replaceRefs(NORMAL_ACTIVE_PATTERN, lvl)
-		
+
 	private function replaceRefs(string old, int lvl) returns string
 		var newString = old
 		newString = newString.replace("$name$", name)
@@ -89,14 +89,14 @@ public class AbilityTooltipGenerator
 		newString = newString.replace("$hotkeylearn$", hotkeylearn.toUpperCase())
 		newString = newString.replace("$lvl$", lvl.toString())
 		return newString
-		
+
 	private function replaceRefs(string old) returns string
 		var newString = old
 		newString = newString.replace("$name$", name)
 		newString = newString.replace("$hotkey$", hotkey.toUpperCase())
 		newString = newString.replace("$hotkeylearn$", hotkeylearn.toUpperCase())
 		return newString
-		
+
 	private function generateTooltipExtended(int lvl, boolean learn) returns string
 		var s = ""
 		if targettype == Targettype.PASSIVE
@@ -111,9 +111,9 @@ public class AbilityTooltipGenerator
 		s+= "\n"
 		s+= description
 		return s
-		
-	
-		
+
+
+
 	private static function fixValue(string value) returns string
 		var s = value
 		if s.endsWith(".")
@@ -121,7 +121,7 @@ public class AbilityTooltipGenerator
 		else if s.length() > 1  and s.endsWith(".0")
 			s = s.substring(0, s.length()-2)
 		return s
-		
+
 	private static function colorLevelValue(string oldString, int lvl, int maxLevel) returns string
 		string newString
 		var charCount = 0
@@ -145,6 +145,5 @@ public class AbilityTooltipGenerator
 		else
 			newString = oldString.substring(0, charPos[lvl-2]) + "|cffFFCC00" + oldString.substring(charPos[lvl-2], charPos[lvl-1]) + "|r" + oldString.substring(charPos[lvl-1], oldString.length())
 		return newString
-		
-		
-	
+
+

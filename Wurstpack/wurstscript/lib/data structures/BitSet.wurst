@@ -25,14 +25,14 @@ public function bitset.add(int v) returns bitset
 	else
 		return this
 
-/** removes value v from the bitset */		
+/** removes value v from the bitset */
 public function bitset.remove(int v) returns bitset
 	let pow = 2 .pow(v)
 	if this.containsPow(pow)
 		return bitset(this.val - pow)
 	else
 		return this
-		
+
 // Tests:
 
 @test function testContains()
@@ -47,13 +47,13 @@ public function bitset.remove(int v) returns bitset
 	if bitset(45).contains(4)
 		testFail("e")
 	if not bitset(45).contains(5)
-		testFail("f")	
-			
+		testFail("f")
 
-@test function testAdd()	
-	emptyBitset().add(0).add(2).add(3).add(5).val.assertEquals(45) 	
-	
 
-@test function testRemove()	
-	bitset(45).remove(3).val.assertEquals(37) 
-	
+@test function testAdd()
+	emptyBitset().add(0).add(2).add(3).add(5).val.assertEquals(45)
+
+
+@test function testRemove()
+	bitset(45).remove(3).val.assertEquals(37)
+

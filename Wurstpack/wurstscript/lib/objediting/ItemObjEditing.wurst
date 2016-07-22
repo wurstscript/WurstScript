@@ -5,42 +5,42 @@ import NoWurst
 
 public class W3TDefinition
 	ObjectDefinition def
-	
+
 	construct(int newUnitId, int origUnitId)
 		def = createObjectDefinition("w3t", newUnitId, origUnitId)
-				
+
 	function setTooltipExtended(string data)
 		def.setString("utub", data)
-	
+
 	function setTooltipBasic(string data)
 		def.setString("utip", data)
-	
+
 	function setRequirementsLevels(string data)
 		def.setString("urqa", data)
-	
+
 	function setRequirements(string data)
 		def.setString("ureq", data)
-	
+
 	function setName(string data)
 		def.setString("unam", data)
-	
+
 	function setHotkey(string data)
 		def.setString("uhot", data)
-	
+
 	function setDescription(string data)
 		def.setString("ides", data)
-	
+
 	function setButtonPositionY(int data)
 		def.setInt("ubpy", data)
-	
+
 	function setButtonPositionX(int data)
 		def.setInt("ubpx", data)
 
 public class ItemDefinition extends W3TDefinition
-	
+
 	construct(int newId, int origId)
 		super(newId, origId)
-	
+
 	function setAbilities(string data)
 		def.setString("iabi", data)
 

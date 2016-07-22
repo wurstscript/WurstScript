@@ -23,7 +23,7 @@ constant real FAR_FACTOR = .25//
 constant int UNIT_EXP = 30 //
 /** How much exp per level (of the dying hero) heroes give. */
 constant int HERO_EXP = 45 //
-/** How much exp is granted per allies hero nearby. 
+/** How much exp is granted per allies hero nearby.
 	If this value is positive, more heroes == more exp each
 	if this value is negative, more heroes == less exp each ('Blizzard' method)
 	If this value is 0, the number of heroes effects nothing. */
@@ -34,7 +34,7 @@ constant int BONUS_EXP = 9 //
 /** How long the message will last */
 constant real DURATION = 5.
 /** Font size */
-constant real SIZE = 12 
+constant real SIZE = 12
 /** Red value (of 255) for the text */
 constant int RED = 0
 /** Green value (of 255) for the text */
@@ -44,7 +44,7 @@ constant int BLUE = 255
 /** this to false to stop texttags  */
 constant boolean SHOW_TEXT = true
 /** to true to divide the final exp by the number of heroes */
-constant boolean SPLIT = true 
+constant boolean SPLIT = true
 /** to false if you do not want the
 	distance from the kill to determine how much exp the heroes get. */
 constant boolean DISTANCE_EFFECT = false
@@ -62,7 +62,7 @@ function filter() returns boolean
 	boolean b1 = IsUnitType(u, UNIT_TYPE_DEAD) == false
 	boolean b2 = IsUnitType(u, UNIT_TYPE_HERO) == true
 	boolean b3 = IsUnitAlly(u, GetOwningPlayer(GetKillingUnit())) == true
-	
+
 	return b1 and b2 and b3
 
 
@@ -83,39 +83,39 @@ function giveXP()
 	real kx = killer.getX()
 	real ky = killer.getY()
 
-	
-	
+
+
 	GroupEnumUnitsInRange(ENUM_GROUP, kx, ky, RADIUS, Condition(function filter))
 	ForGroup(ENUM_GROUP, function CountUnitsInGroupEnum)
 	unitNum = bj_groupCountUnits
-	
+
 	//============================================================
 	if IsUnitAlly(deadUnit, killerPlayer) == false
 		if IsUnitType(deadUnit, UNIT_TYPE_HERO) == true
 			killedUnitLevel = GetHeroLevel(deadUnit)
-			add = formula(HERO_EXP, killedUnitLevel, unitNum, BONUS_EXP) 
+			add = formula(HERO_EXP, killedUnitLevel, unitNum, BONUS_EXP)
 		else
 			killedUnitLevel = GetUnitLevel(deadUnit)
 			add = formula(UNIT_EXP, killedUnitLevel, unitNum, BONUS_EXP)
 
-	
+
 	if SPLIT
 		add = R2I(add / unitNum)
 
 	//============================================================
-	 
+
 	if DISTANCE_EFFECT
 
 		add = expFilter(add, deadUnit)
 		for f in ENUM_GROUP
 			let distance = distanceBetweenCoords(dx, dy, kx, ky)
 	      	//Far Away Units
-			if distance > MEDIUM*MEDIUM and distance <= FAR*FAR 
+			if distance > MEDIUM*MEDIUM and distance <= FAR*FAR
 				SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
 				add = R2I(add * FAR_FACTOR)
 				AddHeroXP(f, add, true)
 				SetPlayerHandicapXP(GetOwningPlayer(f), 0.00)
-	      //Medium Distance Units  
+	      //Medium Distance Units
 			else if distance > CLOSE*CLOSE and distance <= MEDIUM*MEDIUM
 				SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)
 				add = R2I(add * MEDIUM_FACTOR)
@@ -131,11 +131,11 @@ function giveXP()
 			if SHOW_TEXT and add > 0
 				createTTEx(f.getPos().toVec3(), vec2(0,0), "+ " + I2S(add), SIZE, DURATION, colorA(RED, GREEN, BLUE, 255))
 
-    
+
 	else
-		add = expFilter(add, deadUnit) 
+		add = expFilter(add, deadUnit)
 		for f in ENUM_GROUP
-  
+
 			if SHOW_TEXT and add > 0
 				createTTEx(f.getPos().toVec3(), vec2(0,0), "+ " + I2S(add), SIZE, DURATION, colorA(RED, GREEN, BLUE, 255))
 			SetPlayerHandicapXP(GetOwningPlayer(f), 1.00)

@@ -7,30 +7,30 @@ public function sound.setDuration(int dur)
 
 public function sound.play(string soundname)
 	PlaySound(soundname)
-	
+
 public function sound.setChannel(int channel)
 	SetSoundChannel(this, channel)
-		
+
 public function sound.setPitch(real pitch)
 	SetSoundPitch(this, pitch)
-	
+
 /** Sets the sound's volume [0-100] */
 public function sound.setVolume(int volume)
-	SetSoundVolume(this, volume) 
-			
+	SetSoundVolume(this, volume)
+
 public function sound.setConeAngles(real inside, real outside, integer outsideVolume)
-	SetSoundConeAngles(this, inside, outside, outsideVolume) 
-	
+	SetSoundConeAngles(this, inside, outside, outsideVolume)
+
 public function sound.setCutoff(real cutoff)
 	SetSoundDistanceCutoff(this, cutoff)
 
-/** Plays the sound, starting at the given position */	
+/** Plays the sound, starting at the given position */
 public function sound.playPosition(int millisecs)
 	SetSoundPlayPosition(this, millisecs)
-			
+
 public function sound.getDuration() returns int
 	return GetSoundDuration(this)
 
 public function sound.isPlaying() returns boolean
-	return GetSoundIsPlaying(this)		
-			
+	return GetSoundIsPlaying(this)
+

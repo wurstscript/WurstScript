@@ -4,7 +4,7 @@ import ClosureTimers
 // @credit Anitarf
 
 constant boolean FORCE_INVISIBLE_CAST = false
-constant boolean AUTO_RESET_MANA_COOLDOWN = true 
+constant boolean AUTO_RESET_MANA_COOLDOWN = true
 
 Table delayTable = new Table()
 public class DummyCaster
@@ -14,26 +14,26 @@ public class DummyCaster
 	private int 	orderId			= 0
 	real 	recycleDelay	= 0.5
 
-	function setOrderId( int id ) 
+	function setOrderId( int id )
 		orderId = id
 
 	function setOrderString( string s )
 		orderId = OrderId(s)
-		
+
 	function setLevel(int lvl)
 		level = lvl
 
 	private boolean customSource = false
 	private vec3 customPos
 
-	/** Set a custom source point from which the dummycaster will 
+	/** Set a custom source point from which the dummycaster will
 		cast the spell. */
 	function setSourcePoint( vec3 cpos )
 		customPos = cpos
 		customSource = true
 
 	private boolean autodestroy  = false
-	
+
 	function setOwner( player p )
 		this.owner = p
 
@@ -59,16 +59,16 @@ public class DummyCaster
 		debugPrint("AbilId: " + abilityId.toString(), 3)
 		if not dummy.hasAbility(abilityId)
 			dummy.addAbility(abilityId)
-			
+
 		if AUTO_RESET_MANA_COOLDOWN
 			UnitResetCooldown( dummy )
 			dummy.setMana( 10000.0 )
 
-		if level > 1 
+		if level > 1
 			dummy.setAbilityLevel(abilityId, level)
 		debugPrint("Dummycaster created", 3)
 		return dummy
-		
+
 
 	function castOnTarget( unit target ) returns boolean
 		debugPrint("cast on target", 3)
@@ -95,7 +95,7 @@ public class DummyCaster
 	// be able to use FORCE_INVISIBLE_CAST if necessary.
 	//
 	function castOnWidgetTarget( widget target ) returns boolean
-		unit dummy = createDummyCaster(vec2(target.getX(), target.getY()))		
+		unit dummy = createDummyCaster(vec2(target.getX(), target.getY()))
 		let res = dummy.issueTargetOrderById(orderId,target)
 		getTimer()..setData(dummy.getHandleId())..start(recycleDelay, () -> begin
 			let t = GetExpiredTimer()
@@ -123,10 +123,10 @@ public class DummyCaster
 		if autodestroy
 			destroy this
 		return res
-			
+
 	function castOnPoint( vec3 target )
 		castOnPoint(vec2(target.x, target.y))
-			
+
 
 
 	//ignores custom source x and y (for obvious reasons)
@@ -155,7 +155,7 @@ public class DummyCaster
 	private static DummyCaster  cinstance
 	private static boolexpr	 aoefunc = Condition(function filterAOE)
 
-	
+
 
 
 	//
@@ -179,7 +179,7 @@ public class DummyCaster
 	// A quick and dirt castOnGroup method, perhaps it'll later have castOntarget inlined, but not now
 	//
 	function castOnGroup( group g )
-		boolean ad = autodestroy	
+		boolean ad = autodestroy
 
 		if ad
 			this.autodestroy=false
@@ -200,5 +200,5 @@ public class DummyCaster
 		if IsUnitInRangeXY(u, DummyCaster.aoex, DummyCaster.aoey, DummyCaster.aoeradius)
 			DummyCaster.cinstance.castOnTarget(u)
 		return false
-		
+
 

@@ -4,9 +4,9 @@ import Vectors
 
 public function effect.destr()
 	DestroyEffect( this )
-	
+
 public function addEffect(string path, vec2 pos) returns effect
 	return AddSpecialEffect(path, pos.x, pos.y)
-	
+
 public function addEffect(string path, vec3 pos) returns effect
 	return AddSpecialEffect(path, pos.x, pos.y)
