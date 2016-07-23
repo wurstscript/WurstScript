@@ -1,6 +1,14 @@
 package de.peeeq.wurstio.gui;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.JOptionPane;
@@ -9,13 +17,12 @@ import javax.swing.SwingUtilities;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.Files;
 
-import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstGuiImpl extends WurstGui {
 
@@ -25,12 +32,23 @@ public class WurstGuiImpl extends WurstGui {
 	private volatile boolean finished = false;
 	private volatile @Nullable String currentlyWorkingOn = "";
 	private GuiUpdater guiUpdater;
+	private final Object progressLock = new Object();
+	private String workspaceRoot;
+	
+	private static ConcurrentHashMap<String, Long> staticLastTimes = new ConcurrentHashMap<>();
+	private Map<String, Long> lastTimes = new HashMap<>(staticLastTimes);
+	
 
 	public WurstGuiImpl() {
 		// this constructor is called from the main thread, so we should not create the gui
 		// here. This would block the main compiler thread until the gui is created.
 		guiUpdater = new GuiUpdater();
 		guiUpdater.start();
+	}
+
+	public WurstGuiImpl(String workspaceRoot) {
+		this();
+		this.workspaceRoot = workspaceRoot;
 	}
 
 	/**
@@ -57,7 +75,7 @@ public class WurstGuiImpl extends WurstGui {
 					@Override
 					public void run() {
 						statusWindow = new WurstStatusWindow();
-						errorWindow = new WurstErrorWindow();
+						errorWindow = new WurstErrorWindow(workspaceRoot);
 						errorWindow.toFront();
 						statusWindow.toFront();
 						errorWindow.repaint();
@@ -87,8 +105,9 @@ public class WurstGuiImpl extends WurstGui {
 							return errorQueue.poll();
 						}
 					});
-					
-					UtilsIO.sleep(300);
+					synchronized (progressLock) {
+						progressLock.wait(300);
+					}
 				}
 				SwingUtilities.invokeAndWait(new Runnable() {
 					@Override
@@ -115,28 +134,50 @@ public class WurstGuiImpl extends WurstGui {
 	}
 
 	boolean show = true;
+	private long startTime = System.currentTimeMillis();
+	private Set<String> done = new HashSet<>();
+	private long taskStartTime = startTime;
 
 	@Override
-	public void sendProgress(@Nullable String whatsRunningNow, double percent) {
+	public void sendProgress(String whatsRunningNow) {
 		if (whatsRunningNow != null) {
 			WLogger.info("progress: " + whatsRunningNow);
+		} 
+		if (whatsRunningNow == null || done.contains(whatsRunningNow)) {
+			return;
 		}
-		if (percent >= progress) {
-			progress = percent;
-		} else {
-			if (show) {
-				WLogger.info("Progress bar going backwards: \n " +
-						"changed from " + progress + " to " + percent + "\n" + whatsRunningNow + "\n " + Utils.printStackTrace(Thread.currentThread().getStackTrace()));
-				show = false;
+		
+		long overAllTime = 0;
+		long doneTime = 0;
+		
+		for (Entry<String, Long> e:  staticLastTimes.entrySet()) {
+			if (done.contains(e.getKey())) {
+				doneTime += e.getValue();
 			}
+			overAllTime += e.getValue();
 		}
+		
+		long currentTime = System.currentTimeMillis();
+		lastTimes.put(whatsRunningNow, currentTime - taskStartTime);
+		taskStartTime = currentTime;
 		this.currentlyWorkingOn = whatsRunningNow;
+		done.add(whatsRunningNow);
+		if (overAllTime > 0) {
+			progress = doneTime*1. / overAllTime;
+		} else {
+			progress = (System.currentTimeMillis() - startTime) / 30000.;
+		}
+		
+		synchronized (progressLock) {
+			progressLock.notifyAll();
+		}
 	}
 
 
 	@Override
 	public void sendFinished() {
 		finished = true;
+		staticLastTimes.putAll(lastTimes);
 	}
 
 

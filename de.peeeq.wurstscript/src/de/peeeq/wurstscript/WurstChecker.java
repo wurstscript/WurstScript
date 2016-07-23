@@ -23,7 +23,7 @@ public class WurstChecker {
 	public void checkProg(WurstModel root, List<CompilationUnit> toCheck) {
 		Preconditions.checkNotNull(root);
 		Preconditions.checkNotNull(toCheck);
-		gui.sendProgress("Checking Files", 0.2);
+		gui.sendProgress("Checking Files");
 		
 		if (errorHandler.getErrorCount() > 0) return;
 		

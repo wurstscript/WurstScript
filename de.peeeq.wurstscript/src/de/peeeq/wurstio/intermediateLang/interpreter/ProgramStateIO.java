@@ -181,7 +181,7 @@ public class ProgramStateIO extends ProgramState {
 
 	@Override
 	public void writeBack(boolean inject) {
-		gui.sendProgress("Writing back generated objects", 0.9);
+		gui.sendProgress("Writing back generated objects");
 
 		for (ObjectFileType fileType : ObjectFileType.values()) {
 			WLogger.info("Writing back " + fileType);

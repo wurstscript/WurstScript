@@ -1,10 +1,20 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import java.io.File;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -16,21 +26,10 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
-
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by peter on 16.05.16.
@@ -41,9 +40,13 @@ public class RunMap extends UserRequest {
 	private final String wc3Path;
 	private final File map;
 	private final List<String> compileArgs;
+	private final String workspaceRoot;
+	/** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
+	private boolean safeCompilation = false;
 
-	public RunMap(int requestNr, String wc3Path, File map, List<String> compileArgs) {
+	public RunMap(int requestNr, String workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
 		super(requestNr);
+		this.workspaceRoot = workspaceRoot;
 		this.wc3Path = wc3Path;
 		this.map = map;
 		this.compileArgs = compileArgs;
@@ -54,13 +57,17 @@ public class RunMap extends UserRequest {
 
 		// TODO use normal compiler for this, avoid code duplication
 		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
+		WurstGui gui = new WurstGuiImpl(workspaceRoot);
 		try {
 			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
-
+			
 
 			if (!map.exists()) {
-				return map.getAbsolutePath() + " does not exist.";
+				throw new RuntimeException(map.getAbsolutePath() + " does not exist.");
 			}
+			
+			
+			gui.sendProgress("Copying map");
 
 			// now copy the map so that we do not corrupt the original
 			// create the file in the wc3 maps directory, because otherwise it does not work sometimes
@@ -74,10 +81,9 @@ public class RunMap extends UserRequest {
 
 
 
-
 			// first compile the script:
-			File compiledScript = compileScript(modelManager, compileArgs, testMap);
-
+			File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
+			
 
 			WurstModel model = modelManager.getModel();
 			if (model == null
@@ -89,9 +95,9 @@ public class RunMap extends UserRequest {
 			}
 
 			@SuppressWarnings("unused") // for side effects!
-					RunArgs runArgs = new RunArgs(compileArgs);
+			RunArgs runArgs = new RunArgs(compileArgs);
 
-			println("preparing testmap ... ");
+			gui.sendProgress("preparing testmap ... ");
 
 
 
@@ -100,6 +106,8 @@ public class RunMap extends UserRequest {
 
 			// then inject the script into the map
 			File outputMapscript = compiledScript;
+			
+			gui.sendProgress("Injecting mapscript");
 			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
 				//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
 				mpqEditor.deleteFile("war3map.j");
@@ -125,17 +133,20 @@ public class RunMap extends UserRequest {
 				cmd.add(0, "wine");
 			}
 
-			println("running " + cmd);
+			gui.sendProgress("running " + cmd);
 			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
 		} catch (CompileError e) {
 			e.printStackTrace();
 			showMessage("There was an error when compiling the map: \n" + e);
 			print("\n" + e + "\n");
-		} catch (final Exception e) {
+		} catch (final Throwable e) {
+			e.printStackTrace();
 			WLogger.severe(e);
 			final String message = "Could not start the map.\n\nPlease check the configuration in Window>Preferences>Wurst. \n\n"
 					+ "The exact error message is:\n " + e.getMessage();
 			showMessage(message);
+		} finally {
+			gui.sendFinished();
 		}
 		return "ok"; // TODO
 	}
@@ -152,53 +163,83 @@ public class RunMap extends UserRequest {
 		WLogger.info(s);
 	}
 
-	private @Nullable File compileScript(ModelManager modelManager, List<String> compileArgs, File mapFile) throws Exception {
-
+	private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapFile) throws Exception {
+		RunArgs runArgs = new RunArgs(compileArgs);
+		
+		
+		File war3mapFile = new File(new File(new File(workspaceRoot), "wurst"), "war3map.j");
+		if (!war3mapFile.exists()) {
+			// if war3map file does not exist yet, try to get it from the map:
+			byte[] mapScript;
+			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapFile, runArgs)) {
+				mapScript = mpqEditor.extractFile("war3map.j");
+			}
+			if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
+				throw new RuntimeException("Cannot use mapscript from map file, because it already was compiled with wurst. Please add war3map.j to the wurst directory.");
+			}
+			// write it to workspace, will be picked up by later build process
+			Files.write(mapScript, war3mapFile);
+		}
+		
 		if (compileArgs.contains("-clean")) {
+			gui.sendProgress("Cleaning project");
 			println("Cleaning project ... ");
 			cleanProject(modelManager);
 			compileArgs.remove("-clean");
 		}
 
 
+		gui.sendProgress("Building project");
 		modelManager.buildProject();
 
 		if (modelManager.hasErrors()) {
-			return null;
+			throw new RuntimeException("Model has errors");
 		}
 
-		WurstModel modelCopy = modelManager.getModel().copy();
-
-		RunArgs runArgs = new RunArgs(compileArgs);
+		WurstModel modelCopy;
+		if (safeCompilation) {
+			gui.sendProgress("Copying model");
+			modelCopy = modelManager.getModel().copy();
+		} else {
+			modelCopy = modelManager.getModel();
+		}
+		
 
 		MpqEditor mpqEditor = null;
 		if (mapFile != null) {
 			mpqEditor = MpqEditorFactory.getEditor(mapFile, runArgs);
 		}
 
-		WurstGui gui = new WurstGuiLogger();
+		//WurstGui gui = new WurstGuiLogger();
+		
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
 		WurstModel model = modelCopy;
 		purgeUnimportedFiles(model);
-		model.clearAttributes();
+		
+		if (safeCompilation) {
+			gui.sendProgress("Clearing model");
+			model.clearAttributes();
+		}
 
 
 
-		print("checking program ... ");
+		gui.sendProgress("Check program");
 		compiler.checkProg(model);
 
 		if (gui.getErrorCount() > 0) {
 			print("Could not compile project\n");
-			return null;
+			System.err.println("Could not compile project: " + gui.getErrorList().get(0));
+			throw new RuntimeException("Could not compile project: " + gui.getErrorList().get(0));
 		}
 
 		print("translating program ... ");
 		compiler.translateProgToIm(model);
 
 		if (gui.getErrorCount() > 0) {
-			print("Could not compile project\n");
-			return null;
+			print("Could not compile project (error in translation)\n");
+			System.err.println("Could not compile project (error in translation): " + gui.getErrorList().get(0));
+			throw new RuntimeException("Could not compile project (error in translation): " + gui.getErrorList().get(0));
 		}
 
 
@@ -206,7 +247,7 @@ public class RunMap extends UserRequest {
 			print("running compiletime functions ... ");
 			// compile & inject object-editor data
 			// TODO run optimizations later?
-			gui.sendProgress("Running compiletime functions", 0.91);
+			gui.sendProgress("Running compiletime functions");
 			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlagEnum.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(System.out));
@@ -220,16 +261,20 @@ public class RunMap extends UserRequest {
 		JassProg jassProg = compiler.getProg();
 		if (jassProg == null) {
 			print("Could not compile project\n");
-			return null;
+			throw new RuntimeException("Could not compile project (error in JASS translation)");
 		}
 
 
+		gui.sendProgress("Printing program");
 		JassPrinter printer = new JassPrinter(true, jassProg);
 		String mapScript = printer.printProg();
 
 
 		// TODO create file
-		return null;
+		
+		File outFile = new File(new File(workspaceRoot), "compiled.j.txt");
+		Files.write(mapScript.getBytes(Charsets.UTF_8), outFile);
+		return outFile;
 		/*
 		IFile f = project.getFile("compiled.j.txt");
 		if (f.exists()) {

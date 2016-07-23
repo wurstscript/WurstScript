@@ -140,7 +140,7 @@ public class ModelManagerImpl implements ModelManager {
 		for (File f : dir.listFiles()) {
 			if (f.isDirectory()) {
 				processWurstFiles(f);
-			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst")) {
+			} else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
 				processWurstFile(f);
 			}
 		}

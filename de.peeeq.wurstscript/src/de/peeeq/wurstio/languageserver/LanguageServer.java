@@ -120,6 +120,12 @@ public class LanguageServer {
                 worker.handleClean(req.getSequenceNr());
                 break;
             }
+            case "runmap" : {
+            	JsonObject obj = req.getData().getAsJsonObject();
+                String mapPath = obj.get("mappath").getAsString();
+                String wc3path = obj.get("wc3path").getAsString();
+            	worker.handleRunmap(req.getSequenceNr(), mapPath, wc3path);
+            }
             default:
                 log("unhandled request: " + req.getPath());
         }

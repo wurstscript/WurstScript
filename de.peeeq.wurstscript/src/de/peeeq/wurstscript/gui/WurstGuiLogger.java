@@ -4,7 +4,7 @@ package de.peeeq.wurstscript.gui;
 public class WurstGuiLogger extends WurstGui {
 
 	@Override
-	public void sendProgress(String whatsRunningNow, double percent) {
+	public void sendProgress(String whatsRunningNow) {
 		// ignore
 	}
 

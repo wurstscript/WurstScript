@@ -1,18 +1,25 @@
 package de.peeeq.wurstio.languageserver;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
+
+import com.google.common.collect.Lists;
 
 import de.peeeq.wurstio.languageserver.requests.CleanProject;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
 import de.peeeq.wurstio.languageserver.requests.GetUsages;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
+import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstio.languageserver.requests.SignatureInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
@@ -116,6 +123,15 @@ public class LanguageWorker implements Runnable {
             lock.notifyAll();
         }
     }
+    
+    public void handleRunmap(int requestNr, String mapPath, String wc3path) {
+		synchronized (lock) {
+			// TODO make args configurable
+			List<String> compileArgs = Lists.newArrayList("-stacktraces", "-runcompiletimefunctions", "-injectobjects");
+			userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs ));
+			lock.notifyAll();
+		}
+	}
 
     private abstract class PendingChange {
         private long time;
@@ -254,5 +270,7 @@ public class LanguageWorker implements Runnable {
     private void log(String s) {
         WLogger.info(s);
     }
+
+	
 
 }

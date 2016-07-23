@@ -683,7 +683,7 @@ public class WurstREPL {
 			print("running compiletime functions ... ");
 			// compile & inject object-editor data
 			// TODO run optimizations later?
-			gui.sendProgress("Running compiletime functions", 0.91);
+			gui.sendProgress("Running compiletime functions");
 			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlagEnum.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(out));

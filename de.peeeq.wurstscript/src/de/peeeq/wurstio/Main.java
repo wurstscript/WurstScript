@@ -129,7 +129,7 @@ public class Main {
 					try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath), runArgs)) {
 						CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
 						if (mapScript != null) {
-							gui.sendProgress("Writing to map", 0.99);
+							gui.sendProgress("Writing to map");
 							mpqEditor.deleteFile("war3map.j");
 							byte[] war3map = mapScript.toString().getBytes(Charsets.UTF_8);
 							mpqEditor.insertFile("war3map.j", war3map);
@@ -140,7 +140,7 @@ public class Main {
 				}
 
 
-				gui.sendProgress("Finished!", 1);
+				gui.sendProgress("Finished!");
 			} catch (AbortCompilationException e) {
 				gui.showInfoMessage(e.getMessage());
 			}
@@ -209,12 +209,12 @@ public class Main {
 				throw new RuntimeException("mpqEditor must not be null when running compiletime functions");
 			}
 			// tests
-			gui.sendProgress("Running tests", 0.9);
+			gui.sendProgress("Running tests");
 			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_TEST);
 			ctr.run();
 		
 			// compiletime functions
-			gui.sendProgress("Running compiletime functions", 0.91);
+			gui.sendProgress("Running compiletime functions");
 			ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_COMPILETIME);
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.run();
@@ -239,7 +239,7 @@ public class Main {
 			withSpace = true;
 		}
 
-		gui.sendProgress("Printing Jass", 0.91);
+		gui.sendProgress("Printing Jass");
 		JassPrinter printer = new JassPrinter(withSpace, jassProg);
 		CharSequence mapScript = printer.printProg();
 
@@ -248,7 +248,7 @@ public class Main {
 
 
 		// output to file
-		gui.sendProgress("Writing output file", 0.98);
+		gui.sendProgress("Writing output file");
 		File outputMapscript; 
 		if (runArgs.getOutFile() != null) {
 			outputMapscript = new File(runArgs.getOutFile());

@@ -19,6 +19,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.Reader;
 import java.net.URISyntaxException;
+import java.util.Objects;
 
 import javax.imageio.ImageIO;
 import javax.swing.DefaultListModel;
@@ -62,14 +63,19 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JButton aboutButton;
     
-    private String currentFile = "";
+    private File currentFile = null;
    
     public About ab;
+
+
+	private String workspaceRoot;
     
-    /** Creates new form WurstErrorWindow */
+    /** Creates new form WurstErrorWindow 
+     * @param workspaceRoot */
     @SuppressWarnings("null")
-	public WurstErrorWindow() {
+	public WurstErrorWindow(String workspaceRoot) {
     	super("Errors");
+		this.workspaceRoot = workspaceRoot;
     	BufferedImage image = null;
         try {
             image = ImageIO.read(
@@ -233,13 +239,18 @@ public class WurstErrorWindow extends javax.swing.JFrame {
     	setVisible(true);
 		this.errorDetailsPanel.setText(err.getMessage());
 		
-		String fileName = err.getSource().getFile();
+		File errFile = new File(err.getSource().getFile());
+		File workspaceErrFile = new File(workspaceRoot + "/" + err.getSource().getFile());
+		
+		if (!errFile.exists() && workspaceErrFile.exists()) {
+			errFile = workspaceErrFile;
+		}
 
 		try {
-			if (!currentFile.equals(fileName)) {
-				currentFile = fileName;
-				try (Reader fr = FileReading.getFileReader(new File(fileName))) {
-					codeArea.read(fr, fileName);
+			if (!Objects.equals(currentFile, errFile)) {
+				currentFile = errFile;
+				try (Reader fr = FileReading.getFileReader(errFile)) {
+					codeArea.read(fr, errFile);
 				}
 			}
 
@@ -293,9 +304,9 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 			codeArea.select(selectionStart, selectionEnd);
 
 		} catch (FileNotFoundException e) {
-			codeArea.setText("Could not load file: " + fileName);
+			codeArea.setText("Could not load file: " + errFile);
 		} catch (IOException e) {
-			codeArea.setText("Could not read file: " + fileName);
+			codeArea.setText("Could not read file: " + errFile);
 			WLogger.info(e);
 		} catch (BadLocationException e) {
 			WLogger.severe(e);

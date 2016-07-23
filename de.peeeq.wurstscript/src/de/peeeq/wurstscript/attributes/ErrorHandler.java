@@ -30,7 +30,7 @@ public class ErrorHandler {
 	}
 	
 	public void setProgress(String message, double percent) {
-		getGui().sendProgress(message, percent);
+		getGui().sendProgress(message);
 	}
 
 	public WurstGui getGui() {

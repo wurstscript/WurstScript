@@ -72,9 +72,9 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 		    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
 		        .addContainerGap()
 		        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-		            .addComponent(progressBar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+		            .addComponent(progressBar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 600, 600)
 		            .addComponent(title, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
-		            .addComponent(currentStatus, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE))
+		            .addComponent(currentStatus, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 600, 600))
 		        .addContainerGap())
 		);
 		layout.setVerticalGroup(

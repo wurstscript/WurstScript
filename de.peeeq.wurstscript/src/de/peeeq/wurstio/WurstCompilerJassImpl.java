@@ -85,7 +85,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 	@Override
 	public void loadFiles(String ... filenames) {
-		gui.sendProgress("Loading Files", 0.01);
+		gui.sendProgress("Loading Files");
 		for (String filename : filenames) {
 			File file = new File(filename);
 			if (!file.exists()) {
@@ -97,7 +97,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	
 	@Override
 	public void loadFiles(File ... files) {
-		gui.sendProgress("Loading Files", 0.01);
+		gui.sendProgress("Loading Files");
 		for (File file : files) {
 			loadFile(file);
 		}
@@ -189,7 +189,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		
-		gui.sendProgress("Parsing Files", 0.02);
+		gui.sendProgress("Parsing Files");
 		// parse all the files:
 		List<CompilationUnit> compilationUnits = new NotNullList<CompilationUnit>();
 		
@@ -543,7 +543,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 //	}
 	
 	private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
-		gui.sendProgress("Merging Files", 0.19);
+		gui.sendProgress("Merging Files");
 		WurstModel result = Ast.WurstModel();
 		for (CompilationUnit compilationUnit : compilationUnits) {
 			// remove from old parent
@@ -554,7 +554,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 	}
 
 	private CompilationUnit processMap(File file) {
-		gui.sendProgress("Processing Map " + file.getName(), 0.05);		
+		gui.sendProgress("Processing Map " + file.getName());		
 		if (!file.equals(mapFile)) {
 			// TODO check if file != mapFile is possible, would be strange
 			// so this should definitely be done differently
@@ -624,7 +624,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		parsedFiles .add(file);
 		
-		gui.sendProgress("Parsing File " + file.getName(), 0.05);
+		gui.sendProgress("Parsing File " + file.getName());
 		String source = file.getAbsolutePath();
 		Reader reader = null;
 		try {

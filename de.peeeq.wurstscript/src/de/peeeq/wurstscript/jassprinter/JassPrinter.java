@@ -44,7 +44,8 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class JassPrinter {
 
-	public static final String WURST_COMMENT = "// this script was compiled with wurst " + About.version;
+	public static final String WURST_COMMENT_RAW = "// this script was compiled with wurst ";
+	public static final String WURST_COMMENT = WURST_COMMENT_RAW + About.version;
 	private boolean withSpace;
 	private JassProg prog;
    

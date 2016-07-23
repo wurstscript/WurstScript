@@ -56,7 +56,6 @@ public class ProgramState extends State {
 
 
 	public void writeBack(boolean injectObjects) {
-		gui.sendProgress("Writing back generated objects", 0.9);
 	}
 
 

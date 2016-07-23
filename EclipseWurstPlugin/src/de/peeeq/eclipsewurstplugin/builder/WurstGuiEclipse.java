@@ -13,7 +13,6 @@ public class WurstGuiEclipse extends WurstGui {
 
 	private IProgressMonitor monitor;
 	private String taskName;
-	private int lastPercent = 0;
 	
 	public WurstGuiEclipse(IProgressMonitor monitor) {
 		this.monitor = monitor;
@@ -23,17 +22,11 @@ public class WurstGuiEclipse extends WurstGui {
 	
 
 	@Override
-	public void sendProgress(String whatsRunningNow, double percent) {
+	public void sendProgress(String whatsRunningNow) {
 		if (whatsRunningNow != null) {
 			WLogger.info("progress: " + whatsRunningNow);
 		}
-		int p = (int) (10000*percent);
-		int workDone = p - lastPercent;
-		if (workDone <= 0) {
-			workDone = 1;
-		}
-		monitor.worked(workDone);
-		lastPercent = p;
+		monitor.worked(1);
 		monitor.subTask(whatsRunningNow);
 	}
 

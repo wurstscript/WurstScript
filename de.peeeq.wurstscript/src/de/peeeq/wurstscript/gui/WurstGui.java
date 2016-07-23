@@ -18,7 +18,7 @@ public abstract class WurstGui {
 	
 	
 	
-	public abstract void sendProgress(@Nullable String whatsRunningNow, double percent);
+	public abstract void sendProgress(String whatsRunningNow);
 	
 	public abstract void sendFinished();
 
