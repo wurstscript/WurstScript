@@ -46,7 +46,9 @@ Or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?chan
 
 # Syntax
 The WurstScript Syntax uses indention to define Blocks, instead of using curly
-brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must not use spaces, only tabs are permitted.
+brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must use tabs or 4 spaces, but not mix both styles in the same file. 
+In the following we use the word "tab" to refer to the tab character or to 4 space characters.
+
 
 	// Some language using curly brackets (e.g. Java or Zinc)
 	if condition 

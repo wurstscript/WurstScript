@@ -24,6 +24,16 @@ Update site: `http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/down
 
 In Eclipse go to "Help - Install New Software" and add the update site mentioned above. You should then be able to install the Wurst plugin from that page.
 
+### Visual Studio Code Plugin
+
+[Visual Studio Code](https://code.visualstudio.com) is an open source, cross-patform code editor. 
+The Wurst plugin is still work in progress, but can already be used: 
+
+You can find more information [in the vscode marketplace](https://marketplace.visualstudio.com/items?itemName=peterzeller.wurst).
+
+The source code is available in a separate GitHub repository: [wurst4vscode on GitHub](https://github.com/peq/wurst4vscode)
+
+
 
 ### Wurst Pack
 
@@ -49,14 +59,6 @@ If you prefer manual downloads over the automatic updater, you can use the links
 All downloads above use the latest successful build from our build-server.
 
 There is also [Bundle](http://peeeq.de/wurst/Wurstscript_2015_09.zip) (134MB) availble, which includes everything you need: the Wurst Pack, a Java Runtime, and Eclipse. This might be the easiest option to get started. Run the updater included in the Bundle to get the latest version.
-
-## Intro video
-
-<div>
-<iframe width="640" height="360" src="https://www.youtube.com/embed/JYhUkRsQe-o" frameborder="0" allowfullscreen="true">
-Please enable iframes to see the video.
-</iframe>
-</div>
 
 
 ## Source Code
