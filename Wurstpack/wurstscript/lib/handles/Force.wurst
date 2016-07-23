@@ -7,29 +7,29 @@ public class ForceIterator
 	private static ForceIterator tempThis
 	private static int tempIndex
 	private static player array players
-	
+
 	construct(force f)
 		tempThis = this
 		pos = this castTo int*16
 		tempIndex = pos
 		ForForce(f, function callback)
 		stop = tempIndex
-		
+
 	static private function callback()
 		players[tempIndex] = GetEnumPlayer()
 		tempIndex++
-		
+
 	function hasNext() returns boolean
 		return pos < stop
-		
+
 	function next() returns player
 		let result = players[pos]
 		pos++
 		return result
-		
+
 	function close()
 		destroy this
-	
+
 	static player array tempPlayers
 
 public function force.iterator() returns ForceIterator

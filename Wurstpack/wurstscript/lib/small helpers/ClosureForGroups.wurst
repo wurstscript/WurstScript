@@ -16,9 +16,9 @@ function pushCallback(ForGroupCallback c)
 	tempCallbacks[tempCallbacksCount] = c
 	tempCallbacksCount++
 
-function popCallback() returns ForGroupCallback
+function popCallback()
 	tempCallbacksCount--
-	return tempCallbacks[tempCallbacksCount]
+	destroy tempCallbacks[tempCallbacksCount]
 
 function currentCallback() returns ForGroupCallback
 	return tempCallbacks[tempCallbacksCount - 1]

@@ -24,37 +24,37 @@ public function unit.clearRegister()
 	DestroyTrigger(t)
 	triggerData.removeHandle(h)
 	triggerData.removeHandle(th)
-	
+
 public function trigger.enable()
 	EnableTrigger( this )
 
 public function trigger.disable()
 	DisableTrigger( this )
-	
+
 public function trigger.destr()
 	DestroyTrigger( this )
 
 public function trigger.reset()
 	ResetTrigger( this )
-	
+
 public function trigger.addAction(code actionFunc)
 	TriggerAddAction( this, actionFunc )
 
 public function trigger.addCondition(boolexpr condition)
 	TriggerAddCondition( this, condition )
-	
+
 public function trigger.removeCondition(triggercondition condition)
 	TriggerRemoveCondition( this, condition )
-	
+
 public function trigger.evaluate()
 	TriggerEvaluate( this )
 
 public function trigger.execute()
 	TriggerExecute( this )
-	
+
 public function trigger.isEnabled() returns boolean
 	return IsTriggerEnabled(this)
-	
+
 //Events
 
 public function trigger.registerAnyUnitEvent(playerunitevent whichEvent)
@@ -62,57 +62,57 @@ public function trigger.registerAnyUnitEvent(playerunitevent whichEvent)
 
 public function trigger.registerPlayerEvent(player whichPlayer, playerevent whichPlayerEvent)
 	TriggerRegisterPlayerEvent(this, whichPlayer, whichPlayerEvent)
-	
+
 public function trigger.registerDeathEvent(widget whichWidget)
 	TriggerRegisterDeathEvent(this, whichWidget)
-	
+
 public function trigger.registerDialogButtonEvent(button whichButton)
 	TriggerRegisterDialogButtonEvent(this, whichButton)
-	
+
 public function trigger.registerDialogEvent(dialog whichDialog)
 	TriggerRegisterDialogEvent(this, whichDialog)
-	
+
 public function trigger.registerEnterRegion(region whichRegion, boolexpr filter)
 	TriggerRegisterEnterRegion(this, whichRegion, filter)
-	
+
 public function trigger.registerGameEvent(gameevent whichGameEvent)
 	TriggerRegisterGameEvent(this, whichGameEvent)
 
 public function trigger.registerGameStateEvent(gamestate whichState, limitop opcode, real limitval)
 	TriggerRegisterGameStateEvent(this, whichState, opcode, limitval)
-	
+
 public function trigger.registerLeaveRegion(region whichRegion, boolexpr filter)
 	TriggerRegisterLeaveRegion(this, whichRegion, filter)
-	
+
 public function trigger.registerPlayerChatEvent(player whichPlayer, string chatMessageToDetect, boolean exactMatchOnly)
 	TriggerRegisterPlayerChatEvent(this, whichPlayer, chatMessageToDetect, exactMatchOnly)
 
 public function trigger.registerPlayerStateEvent(player whichPlayer, playerstate whichState, limitop opcode, real limitval)
 	TriggerRegisterPlayerStateEvent(this, whichPlayer, whichState, opcode, limitval)
-	
+
 public function trigger.registerPlayerUnitEvent(player whichPlayer, playerunitevent whichPlayerUnitEvent, boolexpr filter)
 	TriggerRegisterPlayerUnitEvent(this, whichPlayer, whichPlayerUnitEvent, filter)
-	
+
 public function trigger.registerTimerEvent(real timeout, boolean periodic)
 	TriggerRegisterTimerEvent(this, timeout, periodic)
-	
+
 public function trigger.registerTimerExpireEvent(timer whichTimer)
 	TriggerRegisterTimerExpireEvent(this, whichTimer)
-	
+
 public function trigger.registerTrackableHitEvent(trackable whichTrackable)
 	TriggerRegisterTrackableHitEvent(this, whichTrackable)
-	
+
 public function trigger.registerTrackableTrackEvent(trackable whichTrackable)
 	TriggerRegisterTrackableTrackEvent(this, whichTrackable)
-	
+
 public function trigger.registerUnitEvent(unit whichUnit, unitevent whichEvent )
 	TriggerRegisterUnitEvent(this, whichUnit, whichEvent)
-	
+
 public function trigger.registerUnitInRange(unit whichUnit, real range, boolexpr filter)
 	TriggerRegisterUnitInRange(this, whichUnit, range, filter)
-	
+
 public function trigger.registerUnitStateEvent(unit whichUnit, unitstate whichState, limitop opcode, real limitval)
 	TriggerRegisterUnitStateEvent(this, whichUnit, whichState, opcode, limitval)
-	
+
 public function trigger.clearConditions()
 	TriggerClearConditions(this)

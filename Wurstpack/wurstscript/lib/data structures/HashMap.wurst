@@ -4,18 +4,18 @@ import Hashtable
 
 public class HashMap<K,V>
 	static private hashtable ht = InitHashtable()
-	
+
 	function has(K key) returns boolean
 		return get(key) != null
-	
+
 	/** Saves the given value under the given key */
 	function put(K key, V value)
 		ht.saveInt(this castTo int, key castTo int, value castTo int)
-		
+
 	/** Retrieves the value saved under the given key */
 	function get(K key) returns V
 		return ht.loadInt(this castTo int, key castTo int) castTo V
-	
+
 	/** Removes the value saved under the given key */
 	function remove(K key)
 		ht.removeInt(this castTo int, key castTo int)

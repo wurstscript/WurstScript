@@ -8,7 +8,7 @@ string array nameOfClass
 
 init
 	getTimer().start(0.0, function createMultiboard)
-		
+
 function createMultiboard()
 	mb = CreateMultiboard()
 	mb.setColumnCount(2)
@@ -28,8 +28,8 @@ function createMultiboard()
 			mbi = mb.getItem(i, 1)
 			mbi.setValue(count[i].toString())
 	mb.display(true)
-	
-	
+
+
 function registerNewInstanceEntry(string name) returns int
 	classes++
 	nameOfClass[classes] = name
@@ -37,16 +37,16 @@ function registerNewInstanceEntry(string name) returns int
 
 public module ShowInstances
 	static int classId = registerNewInstanceEntry(classname())
-	
+
 	abstract static function classname() returns string
-		
+
 	construct()
 		if not compiletime
 			count[classId]++
 			multiboarditem mbi = mb.getItem(classId, 1)
 			mbi..setValue(count[classId].toString()).release()
-		
-	ondestroy 
+
+	ondestroy
 		if not compiletime
 			count[classId]--
 			multiboarditem mbi = mb.getItem(classId, 1)

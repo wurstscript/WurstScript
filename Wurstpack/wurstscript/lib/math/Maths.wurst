@@ -1,4 +1,4 @@
-package Maths	
+package Maths
 import NoWurst
 import initlater Angle
 import initlater Wurstunit
@@ -26,7 +26,7 @@ public function polarProjectionY( real y,  real dist, angle ang ) returns real
 /** Polar Projection for z Coordiante */
 public function polarProjectionZ( real z,  real dist, angle ang ) returns real
 	return z + dist * Sin(ang.radians())
-	
+
 /** Returns the angle between two points */
 public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) returns angle
 	return Atan2(y2 - y1, x2 - x1).asAngleRadians()
@@ -34,9 +34,9 @@ public function angleBetweenCoords ( real x1, real y1, real x2, real y2 ) return
 /** Returns the distance between two points */
 public function distanceBetweenCoords ( real x1, real y1, real x2, real y2 ) returns real
 	return SquareRoot((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1))
-	
-/** 
- * Returns the length of the hypotenuse of a right-angle triangle with the 
+
+/**
+ * Returns the length of the hypotenuse of a right-angle triangle with the
  * given side lengths. Does not overflow or underflow as fast as
  * SquareRoot(x^2 + y^2) does.
  */
@@ -51,10 +51,10 @@ public function hypot(real dx, real dy) returns real
 		x = y
 	return x * SquareRoot(1 + t * t)
 
-/** Returns the angle of a height-slope */	
+/** Returns the angle of a height-slope */
 public function getSlopeAngle( real z1, real z2, real dist ) returns angle
 	return angle(Atan2(z2-z1, dist ))
-	
+
 public function int.moduloInt(int divisor) returns int
 	return this - (this div divisor) * divisor
 
@@ -67,7 +67,7 @@ public function max(int x, int y) returns int
 	else
 		r = y
 	return r
-		
+
 /** returns the bigger number of the two parameters */
 public function max(real x, real y) returns real
 	real r
@@ -87,7 +87,7 @@ public function min(int x, int y) returns int
 		r = y
 	return r
 
-/** returns the smaller number of the two parameters */		
+/** returns the smaller number of the two parameters */
 public function min(real x, real y) returns real
 	real r
 	if x < y
@@ -95,23 +95,23 @@ public function min(real x, real y) returns real
 	else
 		r = y
 	return r
-	
+
 public function real.lerp(real target, real alpha) returns real
 	return (this * (1.0-alpha)) + (target * alpha)
-	
+
 public function int.lerp(int target, real alpha) returns int
 	return ((this * (1.0-alpha)) + (target * alpha)).round()
-	
+
 
 @test function minmax()
 	// better test min and max, they are difficult to implement M;D
 	int three = 3
-	max(three,4)	.assertEquals(4)	
+	max(three,4)	.assertEquals(4)
 	max(4,three)	.assertEquals(4)
 	min(three,4)	.assertEquals(3)
 	max(3.,4.)		.assertEquals(4.)
 	min(3.,4.)		.assertEquals(3.)
-	
+
 @test function test_hypot()
 	test_hypot_help(5,6)
 	test_hypot_help(5000000.,6)
@@ -119,8 +119,8 @@ public function int.lerp(int target, real alpha) returns int
 	test_hypot_help(543532403425324.,123456789.)
 	test_hypot_help(0.0000001,0.0000000000023)
 	test_hypot_help(0,0)
-	
-	
+
+
 function test_hypot_help(real x, real y)
 	hypot(x,y).assertEquals(SquareRoot(x*x + y*y), 0.0001)
-	
+

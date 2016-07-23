@@ -2,7 +2,7 @@ package OrderStringFactory
 
 public class OrderStringFactory
 	int counter = -1
-		
+
 	function getOrderString(boolean recycle) returns string
 		counter++
 		if counter > 347

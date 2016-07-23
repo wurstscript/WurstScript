@@ -21,7 +21,7 @@ public enum Targettype
 	PTARGET
 	PUTARGET
 	PASSIVE
-	
+
 public function Targettype.toString() returns string
 	switch this
 		case NOTARGET
@@ -38,7 +38,7 @@ public function Targettype.toString() returns string
 
 public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 	private bitset optionSet = bitset(0)
-	
+
 	construct(int newId, int lvls, boolean removeChannelProperties)
 		super(newId)
 		this.lvls = lvls
@@ -47,10 +47,10 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 		presetBaseOrderID((int _lvl) -> orderString)
 		if removeChannelProperties
 			removeChannelProperties(true)
-		
+
 	function removeChannelProperties(boolean removeVisuals)
 		removeChannelProperties(removeVisuals, true)
-		
+
 	function removeChannelProperties(boolean removeVisuals, boolean makeVisible)
 		presetDisableOtherAbilities((int lvl) -> false)
 		presetFollowThroughTime((int lvl) -> 0.)
@@ -65,7 +65,7 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 
 	function presetTargetTypes(Targettype ttype)
 		presetTargetType((int lvl) -> ttype castTo int)
-					
+
 	function presetOption(Option opt, boolean flag)
 		let pow = opt castTo int
 		if optionSet.contains(pow)
@@ -75,7 +75,6 @@ public class ChannelAbilityPreset extends AbilityDefinitionIllidanChannel
 			optionSet = optionSet.add(pow)
 
 		presetOptions((int lvl) -> optionSet.val)
-	
+
 	function hasOption(Option option) returns boolean
 		return optionSet.contains(option castTo int)
-		

@@ -5,22 +5,22 @@ import public TempGroups
 
 public function group.enumUnitsInRange(vec2 pos, real range)
 	GroupEnumUnitsInRange(this, pos.x, pos.y, range, null)
-	
+
 public function group.enumUnitsInRange(vec2 pos, real range, boolexpr filter)
 	GroupEnumUnitsInRange(this, pos.x, pos.y, range, filter)
 
 public function group.clear()
 	GroupClear(this)
-	
+
 public function group.addUnit(unit u)
 	GroupAddUnit(this, u)
-	
+
 public function group.removeUnit(unit u)
 	GroupRemoveUnit(this, u)
-	
+
 public function group.destr()
 	DestroyGroup(this)
-	
+
 public function group.contains(unit u) returns boolean
 	return IsUnitInGroup(u, this)
 
@@ -34,12 +34,12 @@ public function group.iterator() returns group
 
 public function group.hasNext() returns boolean
 	return FirstOfGroup(this) != null
-	
+
 public function group.next() returns unit
 	let u = FirstOfGroup(this)
-	GroupRemoveUnit(this, u) 
+	GroupRemoveUnit(this, u)
 	return u
-	
+
 public function group.close()
 	DestroyGroup(this)
 

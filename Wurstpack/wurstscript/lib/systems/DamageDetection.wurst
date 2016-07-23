@@ -2,14 +2,14 @@ package DamageDetection
 import MapBounds
 import OnUnitEnterLeave
 
-constant SWAP_TIMEOUT = 600. 
-    
+constant SWAP_TIMEOUT = 600.
+
 boolexpr array func
 integer funcNext = 0
 trigger current = null
 trigger toDestroy = null
 
-/** CONFIGURATION: Add any conditions before the Register-Call 
+/** CONFIGURATION: Add any conditions before the Register-Call
 	to keep units from being registered to the damage event. */
 function unit.detectAddFilter()
 	TriggerRegisterUnitEvent(current, this, EVENT_UNIT_DAMAGED)
@@ -32,24 +32,24 @@ function enableDamageDetect()
 /** Periodic Cleanup-Function */
 function swap()
 	boolean b = IsTriggerEnabled(current)
-	
+
 	current.disable()
 	if toDestroy != null
 		DestroyTrigger(toDestroy)
 
 	toDestroy = current
 	current = CreateTrigger()
-	
+
 	if not(b)
 		DisableTrigger(current)
 
-	
+
 	GroupEnumUnitsInRect(ENUM_GROUP, boundRect, Filter(() -> GetFilterUnit().detectAddFilter()))
-	
+
 	for i = 0 to funcNext-1
 		current.addCondition(func[i])
 
-    
+
 init
 	current = CreateTrigger()
 	for i = 0 to funcNext-1

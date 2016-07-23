@@ -7,12 +7,12 @@ public function destructable.kill()
 
 public function destructable.getX() returns real
 	return GetDestructableX(this)
-	
+
 public function destructable.getY() returns real
 	return GetDestructableY(this)
-	
+
 public function destructable.setAnimation(string anim)
 	SetDestructableAnimation(this, anim)
-	
+
 public function destructable.getTypeId() returns int
 	return GetDestructableTypeId(this)

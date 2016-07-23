@@ -9,7 +9,7 @@ public function int.abs() returns int
 
 public function int.squared() returns int
 	return this*this
-		
+
 public function int.sign() returns int
 	if this > 0
 		return 1

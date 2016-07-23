@@ -10,10 +10,10 @@ public class Queue<T>
 		dummy = new SEntry<T>(null, null)
 		front = dummy
 		back = dummy
-		
+
 	function peek() returns T
 		return front.elem
-		
+
 	// add an element
 	function enqueue(T elem)
 		if front == dummy
@@ -24,28 +24,28 @@ public class Queue<T>
 			back.next = new SEntry(elem, dummy)
 			back = back.next
 		size++
-		
+
 	// get & remove the top element
 	function dequeue() returns T
 		let tmp = front
 		front = front.next
 		size--
 		return tmp.elem
-		
+
 
 	// add all elements from elems to this queue
 	function addAll(Queue<T> elems)
 		for T elem in elems
 			enqueue(elem)
 
-	
+
 	// gets the size of the queue
 	function getSize() returns int
 		return size
 
 	// get an iterator for this queue
 	function iterator() returns SIterator<T>
-		return new SIterator(dummy, front)			
+		return new SIterator(dummy, front)
 
 	ondestroy
 		SEntry<T> current = front
@@ -70,14 +70,14 @@ class SIterator<Q>
 	construct(SEntry<Q> dummy, SEntry<Q> front)
 		this.dummy = dummy
 		this.current = front
-		
+
 	// remove the current element from the queue
 	function remove()
 		if current != dummy
 			let cp = current.next
 			destroy current
 			current = cp
-			
+
 
 	function hasNext() returns boolean
 		return current != dummy

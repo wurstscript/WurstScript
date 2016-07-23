@@ -531,7 +531,7 @@ public class Units
 	static constant zergling = "units\\critters\\zergling\\zergling.mdx"
 	static constant zombie = "units\\creeps\\zombie\\zombie.mdx"
 	static constant zoneIndicator = "doodads\\terrain\\losblocker\\intentionallyleftblank.mdx"
-	
+
 public class Doodads
 	static constant altar = "doodads\\outland\\props\\altar\\altar.mdx"
 	static constant angledArchway = "doodads\\felwood\\structures\\crockarch45\\crockarch45.mdx"
@@ -994,7 +994,7 @@ public class Doodads
 	static constant windMill = "doodads\\lordaeronsummer\\structures\\windmill\\windmill.mdx"
 	static constant woodBench = "doodads\\cityscape\\props\\citywoodbench\\citywoodbench.mdx"
 	static constant worldTree = "doodads\\ashenvale\\structures\\worldtree\\worldtree.mdx"
-	
+
 public class Other
 	static constant abomination_portrait = "units\\undead\\abomination\\abomination_portrait.mdx"
 	static constant abominationcin_portrait = "units\\undead\\abominationcin\\abominationcin_portrait.mdx"
@@ -3366,6 +3366,6 @@ public class Other
 	static constant zigguratmissile = "abilities\\weapons\\zigguratmissile\\zigguratmissile.mdx"
 	static constant zombie_portrait = "units\\creeps\\zombie\\zombie_portrait.mdx"
 	static constant zombifytarget = "abilities\\spells\\demon\\darkconversion\\zombifytarget.mdx"
-	
 
-	
+
+

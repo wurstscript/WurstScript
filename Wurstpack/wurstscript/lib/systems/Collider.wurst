@@ -25,10 +25,10 @@ public abstract class Collider
 	real minSpeed	   		= 0.0
 	real angleSpeed	 		= 0.0
 	real collisionSize 		= DEFAULT_COLLISION_SIZE
-	
+
 	private boolean silent = false
 	private LinkedList<int> seenIds = new LinkedList<int>()
-	
+
 	private boolean dead = false
 
 	private Angle angleMode = Angle.NO_MOVEMENT
@@ -39,7 +39,7 @@ public abstract class Collider
 	construct( vec2 pos, angle dir, string fxPath )
 		fx = new Fx( pos, dir )
 		startTimedLoop()
-		
+
 	abstract function onUnitHit( unit hitTarget )
 
 	abstract function loopControl()
@@ -48,7 +48,7 @@ public abstract class Collider
 		fx.setXYAngle( v )
 
 	function setTarget( unit u )
-		if u == null 
+		if u == null
 			angleMode = Angle.NO_MOVEMENT
 		else
 			angleMode = Angle.HOMING_UNIT
@@ -73,46 +73,46 @@ public abstract class Collider
 
 	override function onTimedLoop()
 		expirationTime -= ANIMATION_PERIOD
-		if dead or expirationTime <= 0.0  
+		if dead or expirationTime <= 0.0
 			destroy this
 		else
-			let anglexy = angleBetweenCoords(fx.getPos2().x, fx.getPos2().y, homingTarget.x, homingTarget.y)	
+			let anglexy = angleBetweenCoords(fx.getPos2().x, fx.getPos2().y, homingTarget.x, homingTarget.y)
 			var df1 = (anglexy - fx.getXYAngle()).radians()
 			var df2 = (PI2 + anglexy.radians()) - fx.getXYAngle().radians()
 			var ns = angleSpeed
-			if ns != 0.0 
-				if angleMode == Angle.HOMING_UNIT 
-					if ( GetUnitTypeId(homingTargetUnit) == 0 ) or IsUnitType( homingTargetUnit, UNIT_TYPE_DEAD )  
+			if ns != 0.0
+				if angleMode == Angle.HOMING_UNIT
+					if ( GetUnitTypeId(homingTargetUnit) == 0 ) or IsUnitType( homingTargetUnit, UNIT_TYPE_DEAD )
 						angleMode = Angle.NO_MOVEMENT
 						homingTargetUnit = null
 					else
 						homingTarget = homingTargetUnit.getPos()
 
-				if not angleMode == Angle.ROTATING and angleMode != Angle.NO_MOVEMENT 
+				if not angleMode == Angle.ROTATING and angleMode != Angle.NO_MOVEMENT
 					if ns <= 0.
 						ns = -ns
 
 					if df1 <= 0
-						if df2 <= 0 
-							if df2 >= df1 
+						if df2 <= 0
+							if df2 >= df1
 								df1 = df2
 						else
 							if -df1 >= df2
 								df1 = df2
 					else
-						if df2 <= 0 
+						if df2 <= 0
 							if -df2 <= df1
 								df1 = df2
 						else
-							if df2 <= df1 
+							if df2 <= df1
 								df1 = df2
-					if df1 <= 0 
-						if -df1 >= ns 
+					if df1 <= 0
+						if -df1 >= ns
 							ns = -ns
 						else
 							ns = df1
 					else
-						if df1 <= ns 
+						if df1 <= ns
 							ns = df1
 					var d = fx.getXYAngle().radians()
 					d += ns
@@ -120,7 +120,7 @@ public abstract class Collider
 						d -= PI2
 					else if d < 0
 						d += PI2
-			
+
 					fx.setXYAngle(angle(d))
 			else
 				ns = 0
@@ -141,13 +141,13 @@ public abstract class Collider
 			GroupEnumUnitsInRange( ENUM_GROUP, newP.x, newP.y, collisionSize + MAX_COLLISION_SIZE, null)
 			let itr = ENUM_GROUP.iterator()
 			for u from itr
-				if not IsUnitType(u, UNIT_TYPE_DEAD)  and not(dead) and (GetUnitTypeId(u) != DUMMY_UNIT_ID) and IsUnitInRangeXY(u, newP.x, newP.y, collisionSize) 
-					if not seenIds.contains(u.getHandleId() ) 
+				if not IsUnitType(u, UNIT_TYPE_DEAD)  and not(dead) and (GetUnitTypeId(u) != DUMMY_UNIT_ID) and IsUnitInRangeXY(u, newP.x, newP.y, collisionSize)
+					if not seenIds.contains(u.getHandleId() )
 						onUnitHit(u)
 			itr.close()
 			ENUM_GROUP.clear()
 
-			if not dead 
+			if not dead
 				loopControl()
 
 	function terminate()
@@ -163,11 +163,11 @@ public abstract class Collider
 			fx.hiddenDestroy()
 		else
 			destroy fx
-			
+
 		stopTimedLoop()
 
 
 
-	
-	
-	
+
+
+

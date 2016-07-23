@@ -28,9 +28,9 @@ public class LinkedList<T>
 		let e = getEntry(index)
 		e.prev.next = e.next
 		e.next.prev = e.prev
-		destroy e	
+		destroy e
 		size--
-		
+
 	/** removes the first occurence of t from this list */
 	function remove(T t)
 		LLEntry<T> r = dummy.next
@@ -42,11 +42,11 @@ public class LinkedList<T>
 				size--
 				return
 			r = r.next
-	
+
 	/** gets the size of the list */
 	function getSize() returns int
 		return size
-		
+
 	function contains(T elem) returns boolean
 		LLEntry<T> r = dummy.next
 		while r != dummy
@@ -67,21 +67,21 @@ public class LinkedList<T>
 
 	/** get an iterator for this list */
 	function iterator() returns LLIterator<T>
-		return new LLIterator(dummy)	
-	
+		return new LLIterator(dummy)
+
 	/** get an iterator for this list */
 	function backiterator() returns LLBIterator<T>
-		return new LLBIterator(dummy)	
+		return new LLBIterator(dummy)
 
-	/** adds an element to the beginning of the list */	
+	/** adds an element to the beginning of the list */
 	function addtoStart(T elem)
 		let entry = new LLEntry<T>(elem, dummy, dummy.next)
 		dummy.next.prev = entry
 		dummy.next = entry
 		size ++
 
-	/** replaces the first occurence of 'whichElement' with 'newElement' 
-		returns true when an element has been replaced, 
+	/** replaces the first occurence of 'whichElement' with 'newElement'
+		returns true when an element has been replaced,
 		false if 'whichelement' is not contained in the list
 	*/
 	function replace(T whichElement, T newElement) returns boolean
@@ -99,8 +99,8 @@ public class LinkedList<T>
 			current = current.next
 			destroy current.prev
 		destroy dummy
-	
-	function removeWhen(LinkedListPredicate<T> predicate) 
+
+	function removeWhen(LinkedListPredicate<T> predicate)
 		LLEntry<T> r = dummy.next
 		while r != dummy
 			if predicate.isTrueFor(r.elem)
@@ -110,14 +110,14 @@ public class LinkedList<T>
 				size--
 			r = r.next
 		destroy predicate
-		
+
 	function updateAll(LinkedListUpdater<T> f)
 		LLEntry<T> r = dummy.next
 		while r != dummy
-			r.elem = f.update(r.elem) 
+			r.elem = f.update(r.elem)
 			r = r.next
 		destroy f
-		
+
 	function toString() returns string
 		string s="["
 		var first = true
@@ -132,7 +132,7 @@ class LLEntry<S>
 	S elem
 	LLEntry<S> prev
 	LLEntry<S> next
-	
+
 	construct(S elem, LLEntry<S> prev, LLEntry<S> next)
 		this.elem = elem
 		this.prev = prev
@@ -154,17 +154,17 @@ public class LLIterator<Q>
 			current = current.prev
 			destroy current
 
-			
+
 	function hasNext() returns boolean
 		return current.next != dummy
 
 	function next() returns Q
-		current = current.next 
-		return current.elem 
- 		
-	function close() 
+		current = current.next
+		return current.elem
+
+	function close()
 		destroy this
-		
+
 public class LLBIterator<Q>
 	LLEntry<Q> dummy
 	LLEntry<Q> current
@@ -172,19 +172,19 @@ public class LLBIterator<Q>
 	construct(LLEntry<Q> dummy)
 		this.dummy = dummy
 		this.current = dummy
-			
+
 	function hasNext() returns boolean
 		return current.prev != dummy
 
 	function next() returns Q
-		current = current.prev 
-		return current.elem 
- 		
-	function close() 
+		current = current.prev
+		return current.elem
+
+	function close()
 		destroy this
 
 
-		
+
 public interface LinkedListPredicate<T>
 	function isTrueFor(T t) returns boolean
 

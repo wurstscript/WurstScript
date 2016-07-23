@@ -12,14 +12,14 @@ public module StackModule
 		else
 			next = first
 			first = this
-	
+
 	ondestroy
 		count--
 		first = this.next
 
 	static function peek() returns thistype
 		return first
-	
+
 	static function pop() returns thistype
 		destroy first //destroying 'first' will make a new item the first one
 		return first
