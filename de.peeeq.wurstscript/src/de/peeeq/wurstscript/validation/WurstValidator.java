@@ -1515,7 +1515,7 @@ public class WurstValidator {
 						if (c_nameDef instanceof FuncDef) {
 							FuncDef c_funcDef = (FuncDef) c_nameDef;
 
-							CheckHelper.checkIfIsRefinement(typeParamMapping, i_funcDef, c_funcDef, "Cannot implement interface because of function ", true);
+							CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef, "Cannot implement interface " + interfaceDef.getName() + " because of function ", true);
 							continue nextFunction;
 						}
 					}
