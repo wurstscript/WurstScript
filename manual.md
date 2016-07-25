@@ -1424,11 +1424,11 @@ Here is an example:
 
 	// the functional interface:
 	interface Predicate<T>
-		function isTrueFor(T t)
+		function isTrueFor(T t) returns bool
 		
 	// a simple implementation
 	class IsEven implements Predicate<int>
-		function isTrueFor(int x)
+		function isTrueFor(int x) returns bool
 			return x mod 2 == 0
 		
 	// and then we can use it like so:
