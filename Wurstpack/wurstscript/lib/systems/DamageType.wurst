@@ -1,0 +1,150 @@
+// Use this package for finding the damage type in the context of a
+// DamageDetection handler. Typically this means differentiating between spells
+// and basic attacks.
+package DamageType
+    import DamageDetection
+    import AbilityObjEditing
+    import TempGroups
+
+
+    class DelayDat
+        unit target
+        unit source
+        real damage
+
+
+    public class DamageType
+        static constant int NULLED = -1
+        static constant int ATTACK =  0
+        static constant int SPELL  =  1
+        static constant int CODE   =  2
+
+        // ConvertAttackType(7) is a hidden attack type with some unique
+        // properties. For more information see goo.gl/9k8tn .
+        private static constant attacktype ATTACK_TYPE_UNIVERSAL = ConvertAttackType(7)
+        private static constant int        DAMAGE_TYPE_CHECK_ID  = '!dt*'
+        private static constant real       DELAY_AMOUNT          = 0.
+
+
+        private static bool useBonusCalculator = false
+        static function setUseBonusCalculator(bool use)
+            useBonusCalculator = use
+
+
+        private static int lastDamageType = NULLED
+        static function get() returns int
+            let sourceDamage = GetEventDamage()
+            if lastDamageType == CODE
+                return CODE
+            else if sourceDamage > 0.
+                return ATTACK
+            else if sourceDamage < 0.
+                return SPELL
+
+            return NULLED
+
+
+        static function dealCodeDamage(unit who, unit target, real damage)
+            let prevType   = lastDamageType
+            let hp         = target.getHP() - .405
+            lastDamageType = CODE
+
+            if hp > damage
+                target.setHP(hp - damage + .405)
+                UnitDamageTarget(who, target, 0. , true, false, ATTACK_TYPE_UNIVERSAL, DAMAGE_TYPE_UNIVERSAL, null)
+            else
+                UnitDamageTarget(who, target, 1000000. + damage, true, false, ATTACK_TYPE_UNIVERSAL, DAMAGE_TYPE_UNIVERSAL, null)
+
+                // Also deal magic damage for the special case of ethereal
+                // units.
+                UnitDamageTarget(who, target, 1000000. + damage, true, false, ATTACK_TYPE_MAGIC,     DAMAGE_TYPE_UNIVERSAL, null)
+
+            lastDamageType = prevType
+
+
+        protected static function c() returns bool
+            GetTriggerUnit()..addAbility(DAMAGE_TYPE_CHECK_ID)
+                            ..makeAbilityPermanent(DAMAGE_TYPE_CHECK_ID, true)
+
+            return false
+
+
+        private static function after()
+            let      time    = GetExpiredTimer()
+            DelayDat tempDat = time.getData() castTo DelayDat
+
+            dealCodeDamage(tempDat.source, tempDat.target, tempDat.damage)
+
+            destroy tempDat
+            DestroyTimer(time)
+
+
+        private static function getUnitBonusSpellResistance(unit u) returns real
+            let prevType = lastDamageType
+            let life     = u.getHP()
+            var scale    = u.getMaxHP()
+
+            u.setHP(scale)
+            lastDamageType = CODE
+            UnitDamageTarget(u, u, -scale/2., false, false, null, DAMAGE_TYPE_UNIVERSAL, null)
+            scale = 2.*(scale - u.getHP())/scale
+            u.setHP(life)
+
+            lastDamageType = prevType
+            return scale
+
+
+        // This is the method that will invert any negative spell damage. To
+        // function properly, it *must* be the first handler in the
+        // DamageDetection handlers. To ensure this, simply import DamageType
+        // in any package where you also import DamageDetection (so long as you
+        // require the DamageType feature).
+        protected static function handler() returns bool
+            if get() == SPELL
+                var attemptedDamage = -1.*GetEventDamage()
+                let tU              = GetTriggerUnit()
+
+                if useBonusCalculator
+                    let scale = getUnitBonusSpellResistance(tU)
+
+                    if scale > 1.
+                        attemptedDamage = attemptedDamage*(scale + 1.)/2.
+
+
+                let sampledLife = tU.getHP() - .405
+                if sampledLife >= attemptedDamage and sampledLife <= 2.*attemptedDamage
+                    tU.setHP(sampledLife - attemptedDamage)
+
+                    let tempDat = new DelayDat
+                    tempDat.target = tU
+                    tempDat.source = GetEventDamageSource()
+                    tempDat.damage = attemptedDamage
+
+                    CreateTimer()..setData(tempDat castTo int)
+                                 ..start(DELAY_AMOUNT, function after)
+                else
+                    dealCodeDamage(GetEventDamageSource(), tU, 2.*attemptedDamage)
+
+            return false
+
+
+    init
+        let reg = CreateRegion()..addRect(bj_mapInitialPlayableArea)
+        CreateTrigger()..registerEnterRegion(reg, null)
+                       ..addCondition(Condition(function DamageType.c))
+
+        GroupEnumUnitsInRect(ENUM_GROUP, bj_mapInitialPlayableArea, null)
+        for iter in ENUM_GROUP
+            iter..addAbility(          DamageType.DAMAGE_TYPE_CHECK_ID)
+                ..makeAbilityPermanent(DamageType.DAMAGE_TYPE_CHECK_ID)
+        ENUM_GROUP.clear()
+
+        addOnDamageFunc(Condition(function DamageType.handler))
+
+
+    @compiletime function generateAbility()
+        new AbilityDefinitionRunedBracers(DamageType.DAMAGE_TYPE_CHECK_ID)
+            ..setName("Runed Bracer Dummy")
+            ..setEditorSuffix("(DamageType)")
+            ..setItemAbility(false)
+            ..setDamageReduction(1, 2.)
