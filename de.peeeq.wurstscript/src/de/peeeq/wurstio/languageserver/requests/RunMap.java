@@ -76,7 +76,6 @@ public class RunMap extends UserRequest {
 			if (testMap.exists()) {
 				testMap.delete();
 			}
-			testMap.delete();
 			Files.copy(map, testMap);
 
 
