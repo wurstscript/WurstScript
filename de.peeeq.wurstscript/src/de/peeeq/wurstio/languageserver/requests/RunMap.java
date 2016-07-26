@@ -42,7 +42,12 @@ public class RunMap extends UserRequest {
 	private final List<String> compileArgs;
 	private final String workspaceRoot;
 	/** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
-	private boolean safeCompilation = false;
+	private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
+	
+	static enum SafetyLevel {
+		QuickAndDirty, 
+		KindOfSafe
+	}
 
 	public RunMap(int requestNr, String workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
 		super(requestNr);
@@ -176,26 +181,29 @@ public class RunMap extends UserRequest {
 			if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
 				throw new RuntimeException("Cannot use mapscript from map file, because it already was compiled with wurst. Please add war3map.j to the wurst directory.");
 			}
-			// write it to workspace, will be picked up by later build process
+			// write it to workspace and push to modelmanager
 			Files.write(mapScript, war3mapFile);
+			modelManager.syncCompilationUnit(war3mapFile.getAbsolutePath());
 		}
 		
-		if (compileArgs.contains("-clean")) {
+		if (safeCompilation != SafetyLevel.QuickAndDirty) {
+			// it is safer to rebuild the project, instead of taking the current editor state
 			gui.sendProgress("Cleaning project");
-			println("Cleaning project ... ");
-			cleanProject(modelManager);
-			compileArgs.remove("-clean");
+			modelManager.clean();
+			gui.sendProgress("Building project");
+			modelManager.buildProject();
 		}
-
-
-		gui.sendProgress("Building project");
-		modelManager.buildProject();
 
 		if (modelManager.hasErrors()) {
 			throw new RuntimeException("Model has errors");
 		}
 
-		WurstModel modelCopy = modelManager.getModel().copy();
+		WurstModel model = modelManager.getModel();
+		if (safeCompilation != SafetyLevel.QuickAndDirty) {
+			// compilation will alter the model (e.g. remove unused imports), 
+			// so it is safer to create a copy
+			model = model.copy();
+		}
 		
 
 		MpqEditor mpqEditor = null;
@@ -207,15 +215,8 @@ public class RunMap extends UserRequest {
 		
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
 		compiler.setMapFile(mapFile);
-		WurstModel model = modelCopy;
 		purgeUnimportedFiles(model);
 		
-		if (safeCompilation) {
-			gui.sendProgress("Clearing model");
-			model.clearAttributes();
-		}
-
-
 
 		gui.sendProgress("Check program");
 		compiler.checkProg(model);
@@ -284,10 +285,6 @@ public class RunMap extends UserRequest {
 
 		return f;
 		*/
-	}
-
-	private void cleanProject(ModelManager modelManager) {
-		modelManager.clean();
 	}
 
 	/**
