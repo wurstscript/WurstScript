@@ -196,13 +196,7 @@ public class RunMap extends UserRequest {
 			throw new RuntimeException("Model has errors");
 		}
 
-		WurstModel modelCopy;
-		if (safeCompilation) {
-			gui.sendProgress("Copying model");
-			modelCopy = modelManager.getModel().copy();
-		} else {
-			modelCopy = modelManager.getModel();
-		}
+		WurstModel modelCopy = modelManager.getModel().copy();
 		
 
 		MpqEditor mpqEditor = null;
@@ -332,6 +326,7 @@ public class RunMap extends UserRequest {
 	}
 
 	private boolean isInWurstFolder(String file) {
-		return file.matches("(.*/|^)wurst/.*") && Utils.isWurstFile(file);
+		File f = new File(workspaceRoot + "/" + file);
+		return f.exists() && Utils.isWurstFile(file);
 	}
 }
