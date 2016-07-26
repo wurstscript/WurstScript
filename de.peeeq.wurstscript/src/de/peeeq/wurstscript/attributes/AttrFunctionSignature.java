@@ -37,7 +37,7 @@ public class AttrFunctionSignature {
 		
 		List<FunctionSignature> candidates = new ArrayList<>();
 		for (FunctionSignature sig : sigs) {
-			sig = sig.setTypeArgs(typeParameterBindings);
+			sig = sig.setTypeArgs(location, typeParameterBindings);
 			if (paramTypesMatch(sig, argTypes, location)) {
 				candidates.add(sig);
 			}

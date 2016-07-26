@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.types;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +10,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TupleDef;
@@ -47,11 +47,11 @@ public class FunctionSignature {
 		return receiverType;
 	}
 
-	public FunctionSignature setTypeArgs(Map<TypeParamDef, WurstType> typeArgBinding) {
-		WurstType r2 = returnType.setTypeArgs(typeArgBinding);
+	public FunctionSignature setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeArgBinding) {
+		WurstType r2 = returnType.setTypeArgs(context, typeArgBinding);
 		List<WurstType> pt2 = Lists.newArrayList();
 		for (WurstType p : paramTypes) {
-			pt2.add(p.setTypeArgs(typeArgBinding));
+			pt2.add(p.setTypeArgs(context, typeArgBinding));
 		}
 		return new FunctionSignature(receiverType, pt2, paramNames, r2);
 	}
@@ -134,7 +134,9 @@ public class FunctionSignature {
 		if (receiverType != null) {
 			result.append(receiverType + ".");
 		}
+		result.append("(");
 		result.append(getParameterDescription());
+		result.append(")");
 		return result.toString();
 	}
 	

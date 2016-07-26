@@ -446,7 +446,7 @@ public class AttrExprType {
 		if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
 			term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
 		}
-		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
+		return varDef.attrTyp().setTypeArgs(term, term.getLeft().attrTyp().getTypeArgBinding());
 	}
 
 

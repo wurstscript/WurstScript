@@ -17,9 +17,6 @@ public class WurstTypeInt extends WurstTypePrimitive {
 	
 	@Override
 	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
-		if (other instanceof WurstTypeFreeTypeParam) {
-			return true;
-		}
 		return other instanceof WurstTypeInt
 				// in jass code we can use an int where a real is expected
 				|| other instanceof WurstTypeReal && Utils.isJassCode(location);

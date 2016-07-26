@@ -194,10 +194,10 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 
 	@Override
-	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
+	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamBounds) {
 		List<WurstType> newTypes = Lists.newArrayList();
 		for (WurstType t : typeParameters) {
-			newTypes.add(t.setTypeArgs(typeParamBounds));
+			newTypes.add(t.setTypeArgs(context, typeParamBounds));
 		}
 		return replaceTypeVars(newTypes);
 	}
@@ -213,8 +213,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		for (int i=0; i<tps1.size(); i++) {
 			WurstType thisTp = tps1.get(i);
 			WurstType otherTp = tps2.get(i);
-			if (otherTp instanceof WurstTypeFreeTypeParam
-					|| otherTp instanceof WurstTypeTypeParam) {
+			if (otherTp instanceof WurstTypeTypeParam) {
 				// free type params can later be bound to the right type
 				continue;
 			}

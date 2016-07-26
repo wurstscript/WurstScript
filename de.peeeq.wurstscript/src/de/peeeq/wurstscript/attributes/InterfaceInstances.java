@@ -49,7 +49,7 @@ public class InterfaceInstances {
 			result.add(i);
 			Map<TypeParamDef, WurstType> typeParamBounds = i.getTypeArgBinding();
 			for (WurstTypeInterface i2 : i.getInterfaceDef().attrExtendedInterfaces()) {
-				result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
+				result.add((WurstTypeInterface) i2.setTypeArgs(t, typeParamBounds));
 			}
 			
 		} else {

@@ -268,11 +268,11 @@ public class NameLink {
 		return r = r + Utils.printElementWithSource(nameDef);
 	}
 
-	public NameLink withTypeArgBinding(Map<TypeParamDef, WurstType> binding) {
+	public NameLink withTypeArgBinding(AstElement context, Map<TypeParamDef, WurstType> binding) {
 		if (binding.isEmpty()) {
 			return this;
 		}
-		WurstType newReturnType = adjustType(getReturnType(), binding);
+		WurstType newReturnType = adjustType(context, getReturnType(), binding);
 		boolean changed = newReturnType != returnType;
 		List<WurstType> newParamTypes;
 		if (getParameterTypes().isEmpty()) {
@@ -280,7 +280,7 @@ public class NameLink {
 		} else {
 			newParamTypes = Lists.newArrayListWithCapacity(getParameterTypes().size());
 			for (WurstType pt : getParameterTypes()) {
-				WurstType newPt = adjustType(pt, binding);
+				WurstType newPt = adjustType(context, pt, binding);
 				if (newPt != pt) {
 					changed = true;
 				}
@@ -294,8 +294,8 @@ public class NameLink {
 		}
 	}
 
-	private WurstType adjustType(WurstType t, Map<TypeParamDef, WurstType> binding) {
-		return t.setTypeArgs(binding);
+	private WurstType adjustType(AstElement context, WurstType t, Map<TypeParamDef, WurstType> binding) {
+		return t.setTypeArgs(context, binding);
 	}
 
 	

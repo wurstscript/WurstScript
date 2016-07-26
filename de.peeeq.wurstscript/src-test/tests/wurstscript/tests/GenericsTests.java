@@ -577,6 +577,48 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void implicitsWithClass() {
+		testAssertOkLines(true,   
+				"package test",
+				"native testSuccess()",
+				"function booleanToIndex(bool b) returns int",
+				"	if b",
+				"		return 1",
+				"	return 0",
+				"function booleanFromIndex(int i) returns bool",
+				"	return i != 0",
+				"interface Comparison<T>",
+				"	function leq(T t, T u) returns bool",
+				"class BoolComp implements Comparison<bool>",
+				"	override function leq(bool a, bool b) returns bool",
+				"		return not a or b",
+				"Comparison<bool> bc = new BoolComp",
+				"init",
+				"	if bc.leq(false, true)",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void implicitsWithClosures() {
+		testAssertOkLines(true,   
+				"package test",
+				"native testSuccess()",
+				"function booleanToIndex(bool b) returns int",
+				"	if b",
+				"		return 1",
+				"	return 0",
+				"function booleanFromIndex(int i) returns bool",
+				"	return i != 0",
+				"interface Comparison<T>",
+				"	function leq(T t, T u) returns bool",
+				"Comparison<bool> bc = (bool a, bool b) -> not a or b",
+				"init",
+				"	if bc.leq(false, true)",
+				"		testSuccess()"
+			);
+	}
 	
 	
 }

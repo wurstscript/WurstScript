@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -28,8 +29,8 @@ public class CheckHelper {
 			f.addError("Function " + funcName + " must be static.");
 		}
 		// check returntype
-		WurstType f_type = getRealType(typeParamMapping, f.getReturnTyp().attrTyp());
-		WurstType of_type = getRealType(typeParamMapping, of.getReturnTyp().attrTyp());
+		WurstType f_type = getRealType(f, typeParamMapping, f.getReturnTyp().attrTyp());
+		WurstType of_type = getRealType(f, typeParamMapping, of.getReturnTyp().attrTyp());
 		if (! f_type.isSubtypeOf(of_type, f)) { 
 			f.addError(errorMessage + funcName + ": The return type is " + f_type + 
 			" but it should be " + of_type + ".");
@@ -47,8 +48,8 @@ public class CheckHelper {
 		int i = 0;
 		for (WParameter f_p : f.getParameters()) {
 			WParameter of_p = of.getParameters().get(i);
-			WurstType f_p_type = getRealType(typeParamMapping, f_p.attrTyp());
-			WurstType of_p_type = getRealType(typeParamMapping, of_p.attrTyp());
+			WurstType f_p_type = getRealType(f, typeParamMapping, f_p.attrTyp());
+			WurstType of_p_type = getRealType(f, typeParamMapping, of_p.attrTyp());
 			if (! f_p_type.isSupertypeOf(of_p_type, f)) {
 				if (reverseErrorMessage) {
 					WurstType temp = f_p_type;
@@ -63,8 +64,8 @@ public class CheckHelper {
 		}
 	}
 
-	private static WurstType getRealType(Map<TypeParamDef, WurstType> typeParamMapping, WurstType t) {
-		return t.setTypeArgs(typeParamMapping);
+	private static WurstType getRealType(AstElement context, Map<TypeParamDef, WurstType> typeParamMapping, WurstType t) {
+		return t.setTypeArgs(context, typeParamMapping);
 	}
 
 	

@@ -97,7 +97,7 @@ public abstract class WurstType {
 
 
 
-	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamMapping) {
+	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamMapping) {
 		return this;
 	}
 
@@ -141,7 +141,6 @@ public abstract class WurstType {
 				|| this instanceof WurstTypeIntLiteral
 				|| this instanceof WurstTypeNamedScope
 				|| this instanceof WurstTypeTypeParam
-				|| this instanceof WurstTypeFreeTypeParam
 				|| this instanceof WurstTypeBoundTypeParam;
 	}
 
@@ -164,7 +163,6 @@ public abstract class WurstType {
 				|| t instanceof WurstTypeNull
 				|| t instanceof WurstTypeInt
 				|| t instanceof WurstTypeTypeParam
-				|| t instanceof WurstTypeFreeTypeParam
 				|| t instanceof WurstTypeIntLiteral;
 	}
 

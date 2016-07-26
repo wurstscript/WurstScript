@@ -17,9 +17,6 @@ public class WurstTypeIntLiteral extends WurstTypePrimitive {
 	
 	@Override
 	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
-		if (other instanceof WurstTypeFreeTypeParam) {
-			return true;
-		}
 		return other instanceof WurstTypeIntLiteral
 			|| other instanceof WurstTypeInt
 			|| other instanceof WurstTypeReal;

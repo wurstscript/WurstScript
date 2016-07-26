@@ -10,6 +10,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -195,7 +196,7 @@ public class NameLinks {
 			Map<TypeParamDef, WurstType> binding = interfaceType.getTypeArgBinding();
 			InterfaceDef i = interfaceType.getInterfaceDef();
 			for (Entry<String, NameLink> e : i.attrNameLinks().entries()) {
-				result.put(e.getKey(), e.getValue().withTypeArgBinding(binding));
+				result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef, binding));
 			}
 		}
 	}
@@ -205,7 +206,7 @@ public class NameLinks {
 			WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			ClassDef extendedClass = wurstTypeClass.getClassDef();
 			Map<TypeParamDef, WurstType> binding = wurstTypeClass.getTypeArgBinding();
-			addHidingPrivate(result, extendedClass.attrNameLinks(), binding);
+			addHidingPrivate(result, extendedClass.attrNameLinks(), binding, classDef);
 		}
 	}
 
@@ -243,12 +244,13 @@ public class NameLinks {
 	
 	private static void addHidingPrivate(Builder<String, NameLink> result,
 			Multimap<String, NameLink> adding,
-			Map<TypeParamDef, WurstType> binding) {
+			Map<TypeParamDef, WurstType> binding,
+			AstElement context) {
 		for (Entry<String, NameLink> e : adding.entries()) {
 			if (e.getValue().getVisibility() == Visibility.LOCAL) {
 				continue;
 			}
-			result.put(e.getKey(), e.getValue().withTypeArgBinding(binding).hidingPrivate());
+			result.put(e.getKey(), e.getValue().withTypeArgBinding(context, binding).hidingPrivate());
 		}
 		
 	}

@@ -31,7 +31,7 @@ public class AttrClosureAbstractMethod {
 				return null;
 			}
 			FunctionSignature sig = FunctionSignature.fromNameLink(abstractMethod);
-			sig = sig.setTypeArgs(ct.getTypeArgBinding());
+			sig = sig.setTypeArgs(abstractMethod.getNameDef(), ct.getTypeArgBinding());
 			return sig;
 		}
 		return null;

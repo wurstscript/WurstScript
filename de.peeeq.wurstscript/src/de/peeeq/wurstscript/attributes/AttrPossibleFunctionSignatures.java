@@ -31,9 +31,9 @@ public class AttrPossibleFunctionSignatures {
 			
 			if (fc.attrImplicitParameter() instanceof Expr) {
 				Expr expr = (Expr) fc.attrImplicitParameter();
-				sig = sig.setTypeArgs(expr.attrTyp().getTypeArgBinding());
+				sig = sig.setTypeArgs(fc, expr.attrTyp().getTypeArgBinding());
 			}
-			sig = sig.setTypeArgs(fc.attrTypeParameterBindings());
+			sig = sig.setTypeArgs(fc, fc.attrTypeParameterBindings());
 			resultBuilder.add(sig);
 		}
 		ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
@@ -85,9 +85,9 @@ public class AttrPossibleFunctionSignatures {
 		Map<TypeParamDef, WurstType> binding2 = fc.attrTypeParameterBindings();
 		List<WurstType> paramTypes = Lists.newArrayList();
 		for (WParameter p : f.getParameters()) {
-			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
+			paramTypes.add(p.attrTyp().setTypeArgs(fc, binding2));
 		}
-		returnType = returnType.setTypeArgs(binding2);
+		returnType = returnType.setTypeArgs(fc, binding2);
 		List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
 		return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType));
 	}

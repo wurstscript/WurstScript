@@ -476,4 +476,9 @@ public class ClosureTests extends WurstScriptTest {
 				"	end"
 			);
 	}
+	
+	
+	
+	
+	
 }

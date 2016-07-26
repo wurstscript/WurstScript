@@ -32,7 +32,6 @@ import de.peeeq.wurstscript.types.WurstNativeType;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
-import de.peeeq.wurstscript.types.WurstTypeFreeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeIntLiteral;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
@@ -67,7 +66,7 @@ public class AttrVarDefType {
 	public static WurstType calculate(ClassDef c) {
 		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : c.getTypeParameters()) {
-			typeArgs.add(new WurstTypeFreeTypeParam(tp));
+			typeArgs.add(new WurstTypeTypeParam(tp));
 		}
 		WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
 		return t;
@@ -118,7 +117,7 @@ public class AttrVarDefType {
 	public static WurstType calculate(InterfaceDef i) {
 		List<WurstType> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : i.getTypeParameters()) {
-			typeArgs.add(new WurstTypeFreeTypeParam(tp));
+			typeArgs.add(new WurstTypeTypeParam(tp));
 		}
 		return new WurstTypeInterface(i, typeArgs, true);
 	}

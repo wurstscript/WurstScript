@@ -158,16 +158,25 @@ public class ExprTranslation {
 		ImFunction fromIndex = null;
 		if (actualType instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
-			if (!wtb.getBaseType().supportsGenerics()) {
-				// if we have a generic type, convert it to the original type using the fromIndex func
-				fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
+			FuncDef fromIndexFunc = wtb.getFromIndex();
+			if (fromIndexFunc != null) {
+				fromIndex = t.getFuncFor(fromIndexFunc);
 			}
+//			if (!wtb.getBaseType().supportsGenerics()) {
+//				// if we have a generic type, convert it to the original type using the fromIndex func
+//				fromIndex = t.getFuncFor(ImplicitFuncs.findFromIndexFunc(wtb.getBaseType(), e));
+//			}
 		} 
 		if (e.attrExpectedTypRaw() instanceof WurstTypeBoundTypeParam) {
-			if (!actualType.supportsGenerics()) {
-				// if we expect a generic type but have something different, use the toIndex func
-				toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));
+			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) e.attrExpectedTypRaw();
+			FuncDef toIndexFunc = wtb.getToIndex();
+			if (toIndexFunc != null) {
+				toIndex = t.getFuncFor(toIndexFunc);
 			}
+//			if (!actualType.supportsGenerics()) {
+//				// if we expect a generic type but have something different, use the toIndex func
+//				toIndex =  t.getFuncFor(ImplicitFuncs.findToIndexFunc(actualType, e));
+//			}
 		}
 		
 		if (toIndex != null && fromIndex != null) {

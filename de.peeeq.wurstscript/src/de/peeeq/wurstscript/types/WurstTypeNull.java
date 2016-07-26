@@ -26,8 +26,7 @@ public class WurstTypeNull extends WurstTypePrimitive {
 				|| other instanceof WurstTypeModule
 				|| other instanceof WurstTypeModuleInstanciation
 				|| other instanceof WurstTypeTypeParam
-				|| other instanceof WurstTypeBoundTypeParam
-				|| other instanceof WurstTypeFreeTypeParam;
+				|| other instanceof WurstTypeBoundTypeParam;
 	}
 
 

@@ -4,7 +4,9 @@ import java.util.Collections;
 import java.util.Map;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -46,10 +48,10 @@ public class WurstTypeTypeParam extends WurstType {
 	}
 
 	@Override
-	public WurstType setTypeArgs(Map<TypeParamDef, WurstType> typeParamBounds) {
+	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamBounds) {
 		if (typeParamBounds.containsKey(def)) {
 			WurstType t = typeParamBounds.get(def);
-			return new WurstTypeBoundTypeParam(def, t);
+			return new WurstTypeBoundTypeParam(def, t, context);
 		} 
 		return this;
 	}

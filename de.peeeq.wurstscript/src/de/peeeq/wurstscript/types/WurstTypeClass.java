@@ -30,7 +30,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 		if (obj instanceof WurstTypeInterface) {
 			WurstTypeInterface pti = (WurstTypeInterface) obj;
 			for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
-				if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
+				if (implementedInterface.setTypeArgs(location, getTypeArgBinding()).isSubtypeOf(pti, location)) {
 					return true;
 				}
 			}

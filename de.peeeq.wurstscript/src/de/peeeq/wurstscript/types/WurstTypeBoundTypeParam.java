@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -14,14 +16,19 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 public class WurstTypeBoundTypeParam extends WurstType {
 
 	
-	private TypeParamDef typeParamDef;
-	private WurstType baseType;
+	private final TypeParamDef typeParamDef;
+	private final WurstType baseType;
+	private FuncDef fromIndex;
+	private FuncDef toIndex;
+	private boolean indexInitialized = false;
+	private AstElement context;
 
-	public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType) {
+	public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, AstElement context) {
 		this.typeParamDef = def;
 		this.baseType = baseType;
+		this.context = context;
 	}
-
+	
 	@Override
 	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
 		return baseType.isSubtypeOfIntern(other, location);
@@ -94,4 +101,28 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	public WurstType normalize() {
 		return baseType.normalize();
 	}
+
+	public FuncDef getFromIndex() {
+		initIndex();
+		return fromIndex;
+	}
+	
+	public FuncDef getToIndex() {
+		initIndex();
+		return toIndex;
+	}
+
+	private void initIndex() {
+		if (indexInitialized) {
+			return;
+		}
+		// if type does support generics natively, try to find implicit conversion functions 
+		if (!baseType.supportsGenerics()) {
+			fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
+			toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
+		}
+		indexInitialized = true;
+	}
+
+	
 }
