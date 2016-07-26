@@ -1,0 +1,240 @@
+package Knockback3
+    import Terrain
+    import MapBounds
+
+    public class Knockback3
+        // Fraction of velocity retained after colliding with
+        // ground/destructable.
+        static var restitutionCoefficientGround       = .2
+        static var restitutionCoefficientDestructable = .3
+
+        // Ratio.
+        static var frictionCoefficientGround = .15
+
+        // In units per second squared.
+        static var gravity = 90.
+
+        // If a unit is not falling faster than this, it will not bounce. Units
+        // per second.
+        static var elasticityThreshold = -300.
+
+        // If a unit's vertical component is not greater than this, it will not
+        // become airborne. Units per second.
+        static var airborneThreshold = 150.
+
+        // For the purposes of friction, distinguish a unit which is airborne
+        // versus one which is sliding. Height in units.
+        static var isAirborneThreshold = 5.
+
+        // Below this speed, slighting units will stop.
+        static var minimumSlideSpeed = 30.
+
+        // Above this speed, sliding units will spawn a dust effect.
+        static var frictionFxThreshold = 180.
+        static var frictionFxPath = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+
+        // Above this speed, destructables hit will be destroyed.
+        static var destroyDestructableSpeedThreshold = 300.
+
+        // Below this height, destructables hit may be destroyed.
+        static var destroyDestructableHeightThreshold = 150.
+
+        // The square rect size used for finding destructables.
+        @configurable static constant real DESTRUCTABLE_ENUM_SIZE = 130.
+
+        // If enabled, units have their move-speed changed while airborne.
+        // Warning: this is not a lock-safe form of crowd control.
+        @configurable static constant bool USE_MOVE_SPEED_MODIFIERS  = true
+
+        // If enabled, units have their prop window changed while airborne.
+        // Warning: this is not a lock-safe form of crowd control.
+        @configurable static constant bool USE_PROP_WINDOW_MODIFIERS = true
+
+
+        // Instance Variables
+        private unit u
+        private vec3 del
+
+
+        private static bool     hitDestructable
+        private static function destructableCallback()
+            let des = GetEnumDestructable()
+            if GetDestructableLife(des) > 0.
+                hitDestructable = true
+
+
+        private   static int            stackPointer     = -1
+        private   static thistype array knockStack
+        private   static timer          clock            = CreateTimer()
+        protected static rect           destructableRect = Rect(-1*Knockback3.DESTRUCTABLE_ENUM_SIZE, -1*Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE)
+        protected static function       tick()
+            Knockback3 iter
+            var         index = 0
+            while index <= stackPointer
+                iter = knockStack[index]
+
+                let unitX     = iter.u.getX()
+                let unitY     = iter.u.getY()
+                let flyHeight = iter.u.getFlyHeight()
+                let newX      = unitX + iter.del.x
+                let newY      = unitY + iter.del.y
+
+                let newInMap = vec2(newX, newY).inPlayable()
+
+                let velXySquared = iter.del.x*iter.del.x + iter.del.y*iter.del.y
+
+                if flyHeight < isAirborneThreshold
+                    if isTerrainWalkable(newX, newY) and newInMap
+                        iter.u..setX(newX)..setY(newY)
+
+                        if iter.del.z <= isAirborneThreshold
+                            iter.del.x = iter.del.x*(1. - frictionCoefficientGround)
+                            iter.del.y = iter.del.y*(1. - frictionCoefficientGround)
+
+                            if velXySquared > frictionFxThreshold*ANIMATION_PERIOD
+                                AddSpecialEffect(frictionFxPath, unitX, unitY).destr()
+
+                        if USE_MOVE_SPEED_MODIFIERS
+                            iter.u.setMoveSpeed(GetUnitDefaultMoveSpeed(iter.u))
+
+                        if USE_PROP_WINDOW_MODIFIERS
+                            iter.u.setPropWindow(GetUnitDefaultPropWindow(iter.u) * bj_DEGTORAD)
+
+                    else
+                        iter.del.x = 0
+                        iter.del.y = 0
+
+                    if iter.del.z < elasticityThreshold*ANIMATION_PERIOD
+                        iter.del.z = iter.del.z*-1.*restitutionCoefficientGround
+
+                    if iter.del.z > airborneThreshold*ANIMATION_PERIOD
+                        iter.u.setFlyHeight(flyHeight + iter.del.z, 0.)
+                        iter.del.z = iter.del.z - gravity*ANIMATION_PERIOD
+                else if newInMap
+                    iter.del.z = iter.del.z - gravity*ANIMATION_PERIOD
+                    let heightDifference = getTerrainZ(newX, newY) - getTerrainZ(unitX, unitY)
+
+                    iter.u..setFlyHeight(flyHeight + iter.del.z - heightDifference, 0.)
+                          ..setX(newX)..setY(newY)
+
+                    if USE_MOVE_SPEED_MODIFIERS
+                        iter.u.setMoveSpeed(0.)
+
+                    if USE_PROP_WINDOW_MODIFIERS
+                        iter.u.setPropWindow(0.)
+
+                if velXySquared < minimumSlideSpeed*ANIMATION_PERIOD and iter.del.z > elasticityThreshold*ANIMATION_PERIOD and iter.del.z < -1*elasticityThreshold*ANIMATION_PERIOD and flyHeight < isAirborneThreshold
+                    knockStack[index] = knockStack[stackPointer]
+                    stackPointer--
+                    iter.u.setFlyHeight(0., 0.)
+
+                    if USE_MOVE_SPEED_MODIFIERS
+                        iter.u.setMoveSpeed(GetUnitDefaultMoveSpeed(iter.u))
+
+                    if USE_PROP_WINDOW_MODIFIERS
+                        iter.u.setPropWindow(GetUnitDefaultPropWindow(iter.u) * bj_DEGTORAD)
+
+                    destroy iter
+                    index--
+
+                    if stackPointer < 0
+                        clock.pause()
+
+                if velXySquared > destroyDestructableSpeedThreshold*ANIMATION_PERIOD and flyHeight < destroyDestructableHeightThreshold
+                    hitDestructable = false
+                    MoveRectTo(destructableRect, newX, newY)
+                    EnumDestructablesInRect(destructableRect, null, function destructableCallback)
+
+                    if hitDestructable
+                        iter.del.x = iter.del.x*restitutionCoefficientDestructable
+                        iter.del.y = iter.del.y*restitutionCoefficientDestructable
+
+                index++
+
+
+        // Get a unit's index from the Knockback3 stack.
+        private static function getUnitIndexFromStack(unit u) returns int
+            Knockback3 iter
+            var         i             =  0
+            var         returnedIndex = -1
+            while i <= stackPointer and returnedIndex == -1
+                iter = knockStack[i]
+
+                if iter.u == u
+                    returnedIndex = i
+
+                i++
+
+            return returnedIndex
+
+
+        // Apply a knockback vector to unit u. Velocity is in units per second.
+        // Angle refers to the angle on the XY plane, in radians. Alhpa refers
+        // to the launch trajectory, in radians, where 0 is flat along the XY
+        // plane.
+        private static constant int ID_CROW_FORM = 'Arav'
+        static function add(unit u, real velocity, real angle, real alpha)
+            let index   = getUnitIndexFromStack(u)
+            let instVel = velocity*ANIMATION_PERIOD
+
+            if index == -1
+                let iter = new Knockback3
+
+                iter.u = u
+                iter.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
+
+                stackPointer++
+                knockStack[stackPointer] = iter
+
+                if iter.u.addAbility(ID_CROW_FORM)
+                    iter.u.removeAbility(ID_CROW_FORM)
+
+                if stackPointer == 0
+                    clock.startPeriodic(ANIMATION_PERIOD, function tick)
+
+            else
+                let iter = knockStack[index]
+                iter.del.x = iter.del.x + instVel*Cos(angle)*Cos(alpha)
+                iter.del.y = iter.del.y + instVel*Sin(angle)*Cos(alpha)
+                iter.del.z = iter.del.z + instVel*Sin(alpha)
+
+
+        static function setVel(unit u, real velocity, real angle, real alpha)
+            let index   = getUnitIndexFromStack(u)
+            let instVel = velocity*ANIMATION_PERIOD
+            Knockback3 iter
+
+            if index == -1
+                iter = new Knockback3
+
+                iter.u = u
+
+                stackPointer++
+                knockStack[stackPointer] = iter
+
+                if iter.u.addAbility(ID_CROW_FORM)
+                    iter.u.removeAbility(ID_CROW_FORM)
+
+                if stackPointer == 0
+                    clock.startPeriodic(ANIMATION_PERIOD, function tick)
+
+            else
+                iter = knockStack[index]
+
+            iter.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
+
+
+        static function getVel(unit u) returns real
+            let index = getUnitIndexFromStack(u)
+            var v     = 0.
+
+            if index != -1
+                let tempDat = knockStack[index]
+                v = tempDat.del.x * tempDat.del.x + tempDat.del.y * tempDat.del.y + tempDat.del.z * tempDat.del.z
+                v = SquareRoot(v)
+
+            return v
+
+
+    init
+        Knockback3.destructableRect
