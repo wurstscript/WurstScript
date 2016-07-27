@@ -69,7 +69,7 @@ public class AutoCompleteTests extends WurstScriptTest {
 	public void onlyFromClasses() {
 		CompletionTestData testData = input(
 				"package test",
-				"	function foo()",
+				"	function fuu()",
 				"	function int.foo()",
 				"	init",
 				"		int x = 5",
@@ -77,7 +77,7 @@ public class AutoCompleteTests extends WurstScriptTest {
 				"endpackage"
 		);
 		
-		testCompletions(testData, "foo", "bar");
+		testCompletions(testData, "foo");
 	}
 	
 

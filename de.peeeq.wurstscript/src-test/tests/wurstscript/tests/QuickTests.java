@@ -41,7 +41,8 @@ import tests.wurstscript.utils.UtilsTest;
 	ObjectHelperTests.class,
 	GraphInterpreterTests.class,
 	ConfigPackageTests.class,
-	ParserTests.class
+	ParserTests.class,
+	AutoCompleteTests.class
 })
 public class QuickTests {
 
