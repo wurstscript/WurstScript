@@ -81,6 +81,23 @@ public class AutoCompleteTests extends WurstScriptTest {
 	}
 	
 
+	@Test
+	public void inForLoop() {
+		CompletionTestData testData = input(
+				"package test",
+				"	function int.foo()",
+				"	function faaa()",
+				"	function int.bar()",
+				"	init",
+				"		int x = 5",
+				"		for i in x.f|",
+				"endpackage"
+		);
+		
+		testCompletions(testData, "foo");
+	}
+	
+	
 	static class CompletionTestData {
 		String buffer;
 		int line;

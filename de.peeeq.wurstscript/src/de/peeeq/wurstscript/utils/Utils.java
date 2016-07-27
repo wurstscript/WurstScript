@@ -432,23 +432,24 @@ public class Utils {
 	}
 
 	public static AstElement getAstElementAtPos(AstElement elem, int line, int column, boolean usesMouse) {
+		System.out.println("get element " + Utils.printElement(elem)  
+			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
 		List<AstElement> betterResults = Lists.newArrayList();
 		for (int i = 0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);
-			if (elementContainsPos(e, line, column, usesMouse)) {
+			if (elementContainsPos(e, line, column, usesMouse) || e.attrSource().isArtificial()) {
 				betterResults.add(getAstElementAtPos(e, line, column, usesMouse));
 			}
 		}
-		if (betterResults.size() == 0) {
+		AstElement bestResult = bestResult(betterResults);
+		if (bestResult == null) {
 			if (elem instanceof Identifier) {
 				return elem.getParent();
 			}
 			return elem;
 		} else {
-			return bestResult(betterResults);
+			return bestResult;
 		}
-
-
 	}
 
 
@@ -466,18 +467,18 @@ public class Utils {
 	 * return the element with the smallest size
 	 */
 	private static AstElement bestResult(List<AstElement> betterResults) {
-		Preconditions.checkArgument(!betterResults.isEmpty(), "List must not be empty.");
 		int minSize = Integer.MAX_VALUE;
 		AstElement min = null;
 		for (AstElement e : betterResults) {
-			int size = e.attrSource().getRightPos()
-					- e.attrSource().getLeftPos();
+			WPos source = e.attrSource();
+			int size = source.isArtificial() ? 
+					Integer.MAX_VALUE 
+					: source.getRightPos() - source.getLeftPos();
 			if (size < minSize) {
 				minSize = size;
 				min = e;
 			}
 		}
-		assert min != null; // because list is not empty and size is always way smaller than MAX_VALUE
 		return min;
 	}
 

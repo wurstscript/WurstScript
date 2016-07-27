@@ -113,4 +113,9 @@ public class WPos {
         return new WPos(file, lineOffsets, leftPos, leftPos - 1);
     }
 
+    /** an artificial position is one created by the compiler (the element is not directly part of the input file) */
+	public boolean isArtificial() {
+		return getRightPos() < getLeftPos();
+	}
+
 }

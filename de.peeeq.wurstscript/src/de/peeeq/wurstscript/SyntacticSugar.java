@@ -224,8 +224,9 @@ public class SyntacticSugar {
 				parent.remove(position);
 				
 				String iteratorName = "wurst__iterator" +  wurstIteratorCounter++;
-				WPos loopVarPos = loop.getLoopVar().getSource();
-				WPos loopInPos = loop.getIn().getSource();
+				WPos loopVarPos = loop.getLoopVar().getSource().artificial();
+				WPos loopInPos = loop.getIn().getSource().artificial();
+				
 				parent.add(position, 
 						Ast.LocalVarDef(
 								loopInPos, 
@@ -263,8 +264,8 @@ public class SyntacticSugar {
 				parent.remove(position);
 				
 				String iteratorName = "wurst__iterator" +  wurstIteratorCounter++;
-				WPos loopVarPos = loop.getLoopVar().getSource();
-				WPos loopInPos = loop.getIn().getSource();
+				WPos loopVarPos = loop.getLoopVar().getSource().artificial();
+				WPos loopInPos = loop.getIn().getSource().artificial();
 				if (loop.getIn() instanceof ExprVarAccess) {
 					ExprVarAccess exprVarAccess = (ExprVarAccess) loop.getIn();
 					iteratorName = exprVarAccess.getVarName();
