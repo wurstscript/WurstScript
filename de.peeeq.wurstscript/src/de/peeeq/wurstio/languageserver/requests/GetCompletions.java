@@ -21,6 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Created by peter on 24.04.16.
@@ -65,9 +66,11 @@ public class GetCompletions extends UserRequest {
 		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
 		List<WurstCompletion> result = computeCompletionProposals(cu);
 		// sort: highest rating first, then sort by label
+		if (result != null) {
 		Collections.sort(result, Comparator
 				.comparingDouble(WurstCompletion::getRating).reversed()
 				.thenComparing(WurstCompletion::getDisplayString));
+		}
 		return result;
 	}
 
@@ -515,6 +518,10 @@ public class GetCompletions extends UserRequest {
 		completion.documentation = getFunctionDescriptionHtml(f);
 		completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), replacementString);
 		completion.rating = calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic()); // TODO use call signature instead for generics
+		completion.parameters = f.getParameters().stream()
+				.map(p -> new ParamInfo(p.getTyp().attrTyp().toString(), p.getName()))
+				.collect(Collectors.toList());
+		
 		return completion;
 	}
 
@@ -571,6 +578,7 @@ public class GetCompletions extends UserRequest {
 		String documentation;
 		TextEdit textEdit;
 		double rating;
+		List<ParamInfo> parameters;
 
 
 		WurstCompletion(String label) {
@@ -594,6 +602,16 @@ public class GetCompletions extends UserRequest {
 
 		public double getRating() {
 			return rating;
+		}
+	}
+	
+	public static class ParamInfo {
+		String type;
+		String name;
+
+		public ParamInfo(String type, String name) {
+			this.type = type;
+			this.name = name;
 		}
 	}
 

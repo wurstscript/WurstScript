@@ -432,8 +432,8 @@ public class Utils {
 	}
 
 	public static AstElement getAstElementAtPos(AstElement elem, int line, int column, boolean usesMouse) {
-		System.out.println("get element " + Utils.printElement(elem)  
-			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
+//		System.out.println("get element " + Utils.printElement(elem)  
+//			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
 		List<AstElement> betterResults = Lists.newArrayList();
 		for (int i = 0; i < elem.size(); i++) {
 			AstElement e = elem.get(i);

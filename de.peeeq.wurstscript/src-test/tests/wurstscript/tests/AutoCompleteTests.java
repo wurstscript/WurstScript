@@ -3,7 +3,6 @@ package tests.wurstscript.tests;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.ConsoleHandler;
@@ -13,6 +12,7 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.gson.GsonBuilder;
 
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -63,6 +63,35 @@ public class AutoCompleteTests extends WurstScriptTest {
 		);
 		
 		testCompletions(testData, "foo");
+	}
+	
+	@Test
+	public void simpleExample3() {
+		CompletionTestData testData = input(
+				"package test",
+				"	function int.foo(int a, bool b)",
+				"	init",
+				"		int x = 5",
+				"		x.f|",
+				"endpackage"
+		);
+		
+		testCompletions(testData, "foo");
+	}
+	
+	@Test
+	public void overload1() {
+		CompletionTestData testData = input(
+				"package test",
+				"	function int.foo()",
+				"	function int.foo(int x)",
+				"	init",
+				"		int x = 5",
+				"		x.f|",
+				"endpackage"
+		);
+		
+		testCompletions(testData, "foo", "foo");
 	}
 	
 	
@@ -157,12 +186,8 @@ public class AutoCompleteTests extends WurstScriptTest {
 
 		List<WurstCompletion> result = getCompletions.execute(modelManager);
 		
-		Collections.sort(result, Comparator
-				.comparingDouble(WurstCompletion::getRating).reversed()
-				.thenComparing(WurstCompletion::getDisplayString));
-		
 		// debug output:
-//		System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
+		System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
 
 		List<String> completionLabels = result.stream()
 			.map(completion -> completion.getDisplayString())
