@@ -237,7 +237,7 @@ public class SyntacticSugar {
 							Ast.LocalVarDef(loopVarPos, 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
-									Ast.Identifier(loopVarPos, loop.getLoopVar().getName()), 
+									Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()), 
 									Ast.ExprMemberMethodDot(loopInPos, 
 											ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), 
 											Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
@@ -282,7 +282,7 @@ public class SyntacticSugar {
 							Ast.LocalVarDef(loopVarPos, 
 									Ast.Modifiers(),
 									(OptTypeExpr) loop.getLoopVar().getOptTyp().copy(), 
-									Ast.Identifier(loopVarPos, loop.getLoopVar().getName()), 
+									Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()), 
 									Ast.ExprMemberMethodDot(loopInPos, 
 											ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
 						);

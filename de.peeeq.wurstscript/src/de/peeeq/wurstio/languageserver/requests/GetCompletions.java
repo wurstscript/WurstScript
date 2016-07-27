@@ -6,6 +6,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.Range;
 import de.peeeq.wurstio.languageserver.TextPos;
+import de.peeeq.wurstio.languageserver.requests.GetCompletions.WurstCompletion;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
@@ -62,7 +63,12 @@ public class GetCompletions extends UserRequest {
 	public List<WurstCompletion> execute(ModelManager modelManager) {
 		this.modelManager = modelManager;
 		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
-		return computeCompletionProposals(cu);
+		List<WurstCompletion> result = computeCompletionProposals(cu);
+		// sort: highest rating first, then sort by label
+		Collections.sort(result, Comparator
+				.comparingDouble(WurstCompletion::getRating).reversed()
+				.thenComparing(WurstCompletion::getDisplayString));
+		return result;
 	}
 
 	private enum SearchMode {
