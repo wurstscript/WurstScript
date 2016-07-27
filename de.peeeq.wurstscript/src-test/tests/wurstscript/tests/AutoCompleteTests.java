@@ -1,64 +1,139 @@
 package tests.wurstscript.tests;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.stream.Collectors;
+
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+
 import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstio.languageserver.LanguageServer;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
+import de.peeeq.wurstio.languageserver.requests.GetCompletions.WurstCompletion;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import junit.framework.Assert;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
-
+/**
+ * tests the autocomplete functionality.
+ * 
+ *  the position of the cursor is denoted by a bar "|" in the test cases 
+ *
+ */
 public class AutoCompleteTests extends WurstScriptTest {
 
-
-
-
+	
 	@Test
-	public void parenthesis1() {
-
-
-
-		String buffer = input(
+	public void simpleExample1() {
+		CompletionTestData testData = input(
 				"package test",
+				"	function int.foo()",
+				"	function int.bar()",
 				"	init",
 				"		int x = 5",
-				"		x.",
+				"		x.|",
 				"endpackage"
 		);
+		
+		testCompletions(testData, "foo", "bar");
+	}
+	
+	@Test
+	public void simpleExample2() {
+		CompletionTestData testData = input(
+				"package test",
+				"	function int.foo()",
+				"	function int.bar()",
+				"	init",
+				"		int x = 5",
+				"		x.f|",
+				"endpackage"
+		);
+		
+		testCompletions(testData, "foo");
+	}
+	
+	
+	@Test
+	public void onlyFromClasses() {
+		CompletionTestData testData = input(
+				"package test",
+				"	function foo()",
+				"	function int.foo()",
+				"	init",
+				"		int x = 5",
+				"		x.f|",
+				"endpackage"
+		);
+		
+		testCompletions(testData, "foo", "bar");
+	}
+	
 
+	static class CompletionTestData {
+		String buffer;
+		int line;
+		int column;
+		
+		public CompletionTestData(String buffer, int line, int column) {
+			this.buffer = buffer;
+			this.line = line;
+			this.column = column;
+		}
+	}
+	
+	
+	private void testCompletions(CompletionTestData testData, String ...expectedCompletions) {
+		testCompletions(testData, Arrays.asList(expectedCompletions));
+	}
 
-		GetCompletions c = new GetCompletions(1, "test", buffer, 4, 5);
+	private void testCompletions(CompletionTestData testData, List<String> expectedCompletions) {
+		GetCompletions getCompletions = new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
 		ModelManager modelManager = new ModelManagerImpl(new File("."));
 
 		Handler h = new ConsoleHandler();
 		WLogger.setHandler(h);
 
-		Object result = c.execute(modelManager);
+		List<WurstCompletion> result = getCompletions.execute(modelManager);
 
-		Gson gson = new GsonBuilder().setPrettyPrinting().create();
-		System.out.println(gson.toJson(result));
-
+		List<String> completionLabels = result.stream()
+			.map(completion -> completion.getDisplayString())
+			.collect(Collectors.toList());
+		
+		Assert.assertEquals(expectedCompletions, completionLabels);
 	}
 
-	private String input(String...lines) {
-		return String.join("\n", lines);
+	private CompletionTestData input(String...lines) {
+		StringBuilder buffer = new StringBuilder();
+		int completionLine = -1;
+		int completionColumn = -1;
+		int lineNr = 0;
+		for (String line : lines) {
+			lineNr++;
+			int cursorIndex = line.indexOf('|');
+			if (cursorIndex >= 0) {
+				completionLine = lineNr;
+				completionColumn = cursorIndex + 1;
+				buffer.append(line.replace("'", ""));
+			} else {
+				buffer.append(line);
+			}
+			buffer.append("\n");
+		}
+		
+		return new CompletionTestData(buffer.toString(), completionLine, completionColumn);
 	}
 
 	private WurstModel compile(String ... lines) {

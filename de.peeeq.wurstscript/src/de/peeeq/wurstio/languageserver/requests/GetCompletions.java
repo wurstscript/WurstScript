@@ -59,7 +59,7 @@ public class GetCompletions extends UserRequest {
 	}
 
 	@Override
-	public Object execute(ModelManager modelManager) {
+	public List<WurstCompletion> execute(ModelManager modelManager) {
 		this.modelManager = modelManager;
 		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
 		return computeCompletionProposals(cu);
@@ -558,7 +558,7 @@ public class GetCompletions extends UserRequest {
 
 	}
 
-	private static class WurstCompletion implements Comparable<WurstCompletion> {
+	public static class WurstCompletion implements Comparable<WurstCompletion> {
 		String label;
 		CompletionItemKind kind;
 		String detail;
