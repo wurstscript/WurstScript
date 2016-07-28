@@ -1,6 +1,7 @@
 package Knockback3
     import Terrain
     import MapBounds
+    import LinkedList
 
     public class Knockback3
         // Fraction of velocity retained after colliding with
@@ -63,82 +64,75 @@ package Knockback3
                 hitDestructable = true
 
 
-        private   static int            stackPointer     = -1
-        private   static thistype array knockStack
+        private   static constant       knockbacks       = new LinkedList<Knockback3>()
         private   static timer          clock            = CreateTimer()
+        private   static constant       unitNodes        = new Table()
         protected static rect           destructableRect = Rect(-1*Knockback3.DESTRUCTABLE_ENUM_SIZE, -1*Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE)
         protected static function       tick()
-            Knockback3 iter
-            var         index = 0
-            while index <= stackPointer
-                iter = knockStack[index]
-
-                let unitX     = iter.u.getX()
-                let unitY     = iter.u.getY()
-                let flyHeight = iter.u.getFlyHeight()
-                let newX      = unitX + iter.del.x
-                let newY      = unitY + iter.del.y
+            let iter = knockbacks.iterator()
+            while iter.hasNext()
+                let knockback = iter.next()
+                let unitX     = knockback.u.getX()
+                let unitY     = knockback.u.getY()
+                let flyHeight = knockback.u.getFlyHeight()
+                let newX      = unitX + knockback.del.x
+                let newY      = unitY + knockback.del.y
 
                 let newInMap = vec2(newX, newY).inPlayable()
 
-                let velXySquared = iter.del.x*iter.del.x + iter.del.y*iter.del.y
+                let velXySquared = knockback.del.x*knockback.del.x + knockback.del.y*knockback.del.y
 
                 if flyHeight < isAirborneThreshold
                     if isTerrainWalkable(newX, newY) and newInMap
-                        iter.u..setX(newX)..setY(newY)
+                        knockback.u..setX(newX)..setY(newY)
 
-                        if iter.del.z <= isAirborneThreshold
-                            iter.del.x = iter.del.x*(1. - frictionCoefficientGround)
-                            iter.del.y = iter.del.y*(1. - frictionCoefficientGround)
+                        if knockback.del.z <= isAirborneThreshold
+                            knockback.del.x = knockback.del.x*(1. - frictionCoefficientGround)
+                            knockback.del.y = knockback.del.y*(1. - frictionCoefficientGround)
 
                             if velXySquared > frictionFxThreshold*ANIMATION_PERIOD
                                 AddSpecialEffect(frictionFxPath, unitX, unitY).destr()
 
                         if USE_MOVE_SPEED_MODIFIERS
-                            iter.u.setMoveSpeed(GetUnitDefaultMoveSpeed(iter.u))
+                            knockback.u.setMoveSpeed(GetUnitDefaultMoveSpeed(knockback.u))
 
                         if USE_PROP_WINDOW_MODIFIERS
-                            iter.u.setPropWindow(GetUnitDefaultPropWindow(iter.u) * bj_DEGTORAD)
+                            knockback.u.setPropWindow(GetUnitDefaultPropWindow(knockback.u) * bj_DEGTORAD)
 
                     else
-                        iter.del.x = 0
-                        iter.del.y = 0
+                        knockback.del.x = 0
+                        knockback.del.y = 0
 
-                    if iter.del.z < elasticityThreshold*ANIMATION_PERIOD
-                        iter.del.z = iter.del.z*-1.*restitutionCoefficientGround
+                    if knockback.del.z < elasticityThreshold*ANIMATION_PERIOD
+                        knockback.del.z = knockback.del.z*-1.*restitutionCoefficientGround
 
-                    if iter.del.z > airborneThreshold*ANIMATION_PERIOD
-                        iter.u.setFlyHeight(flyHeight + iter.del.z, 0.)
-                        iter.del.z = iter.del.z - gravity*ANIMATION_PERIOD
+                    if knockback.del.z > airborneThreshold*ANIMATION_PERIOD
+                        knockback.u.setFlyHeight(flyHeight + knockback.del.z, 0.)
+                        knockback.del.z = knockback.del.z - gravity*ANIMATION_PERIOD
                 else if newInMap
-                    iter.del.z = iter.del.z - gravity*ANIMATION_PERIOD
+                    knockback.del.z = knockback.del.z - gravity*ANIMATION_PERIOD
                     let heightDifference = getTerrainZ(newX, newY) - getTerrainZ(unitX, unitY)
 
-                    iter.u..setFlyHeight(flyHeight + iter.del.z - heightDifference, 0.)
+                    knockback.u..setFlyHeight(flyHeight + knockback.del.z - heightDifference, 0.)
                           ..setX(newX)..setY(newY)
 
                     if USE_MOVE_SPEED_MODIFIERS
-                        iter.u.setMoveSpeed(0.)
+                        knockback.u.setMoveSpeed(0.)
 
                     if USE_PROP_WINDOW_MODIFIERS
-                        iter.u.setPropWindow(0.)
+                        knockback.u.setPropWindow(0.)
 
-                if velXySquared < minimumSlideSpeed*ANIMATION_PERIOD and iter.del.z > elasticityThreshold*ANIMATION_PERIOD and iter.del.z < -1*elasticityThreshold*ANIMATION_PERIOD and flyHeight < isAirborneThreshold
-                    knockStack[index] = knockStack[stackPointer]
-                    stackPointer--
-                    iter.u.setFlyHeight(0., 0.)
+                if velXySquared < minimumSlideSpeed*ANIMATION_PERIOD and knockback.del.z > elasticityThreshold*ANIMATION_PERIOD and knockback.del.z < -1*elasticityThreshold*ANIMATION_PERIOD and flyHeight < isAirborneThreshold
+                    knockback.u.setFlyHeight(0., 0.)
+                    unitNodes.removeInt(knockback.u.getHandleId())
 
                     if USE_MOVE_SPEED_MODIFIERS
-                        iter.u.setMoveSpeed(GetUnitDefaultMoveSpeed(iter.u))
+                        knockback.u.setMoveSpeed(GetUnitDefaultMoveSpeed(knockback.u))
 
                     if USE_PROP_WINDOW_MODIFIERS
-                        iter.u.setPropWindow(GetUnitDefaultPropWindow(iter.u) * bj_DEGTORAD)
+                        knockback.u.setPropWindow(GetUnitDefaultPropWindow(knockback.u) * bj_DEGTORAD)
 
-                    destroy iter
-                    index--
-
-                    if stackPointer < 0
-                        clock.pause()
+                    iter.remove()
 
                 if velXySquared > destroyDestructableSpeedThreshold*ANIMATION_PERIOD and flyHeight < destroyDestructableHeightThreshold
                     hitDestructable = false
@@ -146,26 +140,12 @@ package Knockback3
                     EnumDestructablesInRect(destructableRect, null, function destructableCallback)
 
                     if hitDestructable
-                        iter.del.x = iter.del.x*restitutionCoefficientDestructable
-                        iter.del.y = iter.del.y*restitutionCoefficientDestructable
+                        knockback.del.x = knockback.del.x*restitutionCoefficientDestructable
+                        knockback.del.y = knockback.del.y*restitutionCoefficientDestructable
+            iter.close()
 
-                index++
-
-
-        // Get a unit's index from the Knockback3 stack.
-        private static function getUnitIndexFromStack(unit u) returns int
-            Knockback3 iter
-            var         i             =  0
-            var         returnedIndex = -1
-            while i <= stackPointer and returnedIndex == -1
-                iter = knockStack[i]
-
-                if iter.u == u
-                    returnedIndex = i
-
-                i++
-
-            return returnedIndex
+            if knockbacks.getSize() == 0
+                clock.pause()
 
 
         // Apply a knockback vector to unit u. Velocity is in units per second.
@@ -174,67 +154,43 @@ package Knockback3
         // plane.
         private static constant int ID_CROW_FORM = 'Arav'
         static function add(unit u, real velocity, real angle, real alpha)
-            let index   = getUnitIndexFromStack(u)
             let instVel = velocity*ANIMATION_PERIOD
 
-            if index == -1
-                let iter = new Knockback3
+            Knockback3 knockback
+            if unitNodes.hasInt(u.getHandleId())
+                knockback       = unitNodes.loadInt(u.getHandleId()) castTo Knockback3
+                knockback.del.x = knockback.del.x + instVel*Cos(angle)*Cos(alpha)
+                knockback.del.y = knockback.del.y + instVel*Sin(angle)*Cos(alpha)
+                knockback.del.z = knockback.del.z + instVel*Sin(alpha)
+            else
+                knockback     = new Knockback3()
+                knockback.u   = u
+                knockback.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
 
-                iter.u = u
-                iter.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
-
-                stackPointer++
-                knockStack[stackPointer] = iter
-
-                if iter.u.addAbility(ID_CROW_FORM)
-                    iter.u.removeAbility(ID_CROW_FORM)
-
-                if stackPointer == 0
+                knockbacks.add(knockback)
+                if knockbacks.getSize() == 1
                     clock.startPeriodic(ANIMATION_PERIOD, function tick)
 
-            else
-                let iter = knockStack[index]
-                iter.del.x = iter.del.x + instVel*Cos(angle)*Cos(alpha)
-                iter.del.y = iter.del.y + instVel*Sin(angle)*Cos(alpha)
-                iter.del.z = iter.del.z + instVel*Sin(alpha)
+                if knockback.u.addAbility(ID_CROW_FORM)
+                    knockback.u.removeAbility(ID_CROW_FORM)
 
 
         static function setVel(unit u, real velocity, real angle, real alpha)
-            let index   = getUnitIndexFromStack(u)
-            let instVel = velocity*ANIMATION_PERIOD
-            Knockback3 iter
+            let handleId = u.getHandleId()
+            if unitNodes.hasInt(handleId)
+                let knockback = unitNodes.loadInt(handleId) castTo Knockback3
+                let instVel   = velocity*ANIMATION_PERIOD
 
-            if index == -1
-                iter = new Knockback3
-
-                iter.u = u
-
-                stackPointer++
-                knockStack[stackPointer] = iter
-
-                if iter.u.addAbility(ID_CROW_FORM)
-                    iter.u.removeAbility(ID_CROW_FORM)
-
-                if stackPointer == 0
-                    clock.startPeriodic(ANIMATION_PERIOD, function tick)
-
+                knockback.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
             else
-                iter = knockStack[index]
-
-            iter.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
+                add(u, velocity, angle, alpha)
 
 
         static function getVel(unit u) returns real
-            let index = getUnitIndexFromStack(u)
-            var v     = 0.
-
-            if index != -1
-                let tempDat = knockStack[index]
-                v = tempDat.del.x * tempDat.del.x + tempDat.del.y * tempDat.del.y + tempDat.del.z * tempDat.del.z
-                v = SquareRoot(v)
+            var v = 0.
+            let handleId = u.getHandleId()
+            if unitNodes.hasInt(handleId)
+                let knockback = unitNodes.loadInt(handleId) castTo Knockback3
+                v             = knockback.del.length()
 
             return v
-
-
-    init
-        Knockback3.destructableRect
