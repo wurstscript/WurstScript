@@ -3,6 +3,7 @@ package Knockback3
 import Terrain
 import MapBounds
 import LinkedList
+import HashMap
 
 public class Knockback3
     // Fraction of velocity retained after colliding with
@@ -117,10 +118,10 @@ public class Knockback3
             knockback.del *= restitutionCoefficientDestructable
 
 
-    private static constant unitNodes = new Table()
+    private static constant unitNodes = new HashMap<unit, Knockback3>()
     private static function tickUnitDone(Knockback3 knockback)
         knockback.u.setFlyHeight(0., 0.)
-        unitNodes.removeInt(knockback.u.getHandleId())
+        unitNodes.remove(knockback.u)
 
         if USE_MOVE_SPEED_MODIFIERS
             knockback.u.setMoveSpeed(GetUnitDefaultMoveSpeed(knockback.u))
@@ -167,8 +168,8 @@ public class Knockback3
         let v       = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
 
         Knockback3 knockback
-        if unitNodes.hasInt(u.getHandleId())
-            knockback       = unitNodes.loadInt(u.getHandleId()) castTo Knockback3
+        if unitNodes.has(u)
+            knockback      = unitNodes.get(u)
             knockback.del += v
         else
             knockback     = new Knockback3()
@@ -184,9 +185,8 @@ public class Knockback3
 
 
     static function setVel(unit u, real velocity, angle groundAngle, angle airAngle)
-        let handleId = u.getHandleId()
-        if unitNodes.hasInt(handleId)
-            let knockback = unitNodes.loadInt(handleId) castTo Knockback3
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
             let instVel   = velocity*ANIMATION_PERIOD
 
             knockback.del = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
@@ -196,9 +196,8 @@ public class Knockback3
 
     static function getVel(unit u) returns real
         var v = 0.
-        let handleId = u.getHandleId()
-        if unitNodes.hasInt(handleId)
-            let knockback = unitNodes.loadInt(handleId) castTo Knockback3
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
             v             = knockback.del.length()
 
         return v
