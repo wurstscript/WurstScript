@@ -63,7 +63,7 @@ public class Knockback3
     private static function destructableCallback()
         let des = GetEnumDestructable()
         if GetDestructableLife(des) > 0.
-            KillDestructable(des)
+            des.kill()
             hitDestructable = true
 
 
