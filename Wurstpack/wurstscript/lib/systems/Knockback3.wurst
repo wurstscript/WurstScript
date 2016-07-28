@@ -41,15 +41,15 @@ package Knockback3
         static var destroyDestructableHeightThreshold = 150.
 
         // The square rect size used for finding destructables.
-        @configurable static constant real DESTRUCTABLE_ENUM_SIZE = 130.
+        @configurable static constant DESTRUCTABLE_ENUM_SIZE    = 130.
 
         // If enabled, units have their move-speed changed while airborne.
         // Warning: this is not a lock-safe form of crowd control.
-        @configurable static constant bool USE_MOVE_SPEED_MODIFIERS  = true
+        @configurable static constant USE_MOVE_SPEED_MODIFIERS  = true
 
         // If enabled, units have their prop window changed while airborne.
         // Warning: this is not a lock-safe form of crowd control.
-        @configurable static constant bool USE_PROP_WINDOW_MODIFIERS = true
+        @configurable static constant USE_PROP_WINDOW_MODIFIERS = true
 
 
         // Instance Variables
