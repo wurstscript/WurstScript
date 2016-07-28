@@ -340,10 +340,8 @@ public class GetCompletions extends UserRequest {
 
 	private void removeDuplicates(List<WurstCompletion> completions) {
 		for (int i = 0; i < completions.size() - 1; i++) {
-			String displayStringI = firstPartOfDisplayString(completions.get(i).getDisplayString());
 			for (int j = completions.size() - 1; j > i; j--) {
-				String displayStringJ = firstPartOfDisplayString(completions.get(j).getDisplayString());
-				if (displayStringI.equals(displayStringJ)) {
+				if (completions.get(i).equalsCompletion(completions.get(j))) {
 					completions.remove(j);
 				}
 			}
@@ -585,6 +583,11 @@ public class GetCompletions extends UserRequest {
 			this.label = label;
 		}
 
+		public boolean equalsCompletion(WurstCompletion other) {
+			return Objects.equals(other.label, label)
+					&& Objects.equals(other.parameters, parameters);
+		}
+
 		@Override
 		public int compareTo(WurstCompletion o) {
 			return Double.compare(rating, o.rating);
@@ -612,6 +615,20 @@ public class GetCompletions extends UserRequest {
 		public ParamInfo(String type, String name) {
 			this.type = type;
 			this.name = name;
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(type, name);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj instanceof ParamInfo) {
+				ParamInfo other = (ParamInfo) obj;
+				return name.equals(other.name) && type.equals(other.type);
+			}
+			return false;
 		}
 	}
 
