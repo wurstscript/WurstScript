@@ -120,14 +120,6 @@ public class Knockback3
     private vec3 del
 
 
-    private static bool     hitDestructable
-    private static function destructableCallback()
-        let des = GetEnumDestructable()
-        if GetDestructableLife(des) > 0.
-            des.kill()
-            hitDestructable = true
-
-
     private static function tickNearGround(Knockback3 knockback, vec3 newPos3, vec3 pos3, bool newInMap, real velXySquared)
         if isTerrainWalkable(newPos3.x, newPos3.y) and newInMap
             knockback.u.setXY(newPos3)
@@ -169,11 +161,17 @@ public class Knockback3
             knockback.u.setPropWindow(0.)
 
 
+    private static bool hitDestructable
     private static rect destructableRect = Rect(-1*Knockback3.DESTRUCTABLE_ENUM_SIZE, -1*Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE)
     private static function tickTryDestructable(Knockback3 knockback, vec3 newPos3)
         hitDestructable = false
         MoveRectTo(destructableRect, newPos3.x, newPos3.y)
-        EnumDestructablesInRect(destructableRect, null, function destructableCallback)
+        EnumDestructablesInRect(destructableRect, null, () -> begin
+            let des = GetEnumDestructable()
+            if GetDestructableLife(des) > 0.
+                des.kill()
+                hitDestructable = true
+        end)
 
         if hitDestructable
             knockback.del *= restitutionCoefficientDestructable
