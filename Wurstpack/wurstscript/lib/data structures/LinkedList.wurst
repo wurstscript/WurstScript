@@ -151,8 +151,8 @@ public class LLIterator<Q>
 		if current != dummy
 			current.next.prev = current.prev
 			current.prev.next = current.next
-			current = current.prev
 			destroy current
+			current = current.prev
 
 
 	function hasNext() returns boolean
