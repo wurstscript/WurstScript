@@ -6,52 +6,113 @@ import LinkedList
 import HashMap
 
 public class Knockback3
-    // Fraction of velocity retained after colliding with
-    // ground/destructable.
+    /**
+    // Fraction of velocity retained after colliding with ground/destructable.
+    */
     static var restitutionCoefficientGround       = .2
     static var restitutionCoefficientDestructable = .3
 
-    // Ratio.
+    /** Ratio. */
     static var frictionCoefficientGround = .15
 
-    // In units per second squared.
+    /** In units per second squared. */
     static var gravity = 90.
 
+    /**
     // If a unit is not falling faster than this, it will not bounce. Units
     // per second.
+    */
     static var elasticityThreshold = -300.
 
+    /**
     // If a unit's vertical component is not greater than this, it will not
     // become airborne. Units per second.
+    */
     static var airborneThreshold = 150.
 
+    /**
     // For the purposes of friction, distinguish a unit which is airborne
     // versus one which is sliding. Height in units.
+    */
     static var isAirborneThreshold = 5.
 
-    // Below this speed, slighting units will stop.
+    /** Below this speed, slighting units will stop. */
     static var minimumSlideSpeed = 30.
 
-    // Above this speed, sliding units will spawn a dust effect.
+    /** Above this speed, sliding units will spawn a dust effect. */
     static var frictionFxThreshold = 180.
     static var frictionFxPath = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
 
-    // Above this speed, destructables hit will be destroyed.
+    /** Above this speed, destructables hit will be destroyed. */
     static var destroyDestructableSpeedThreshold = 300.
 
-    // Below this height, destructables hit may be destroyed.
+    /** Below this height, destructables hit may be destroyed. */
     static var destroyDestructableHeightThreshold = 150.
 
-    // The square rect size used for finding destructables.
+    /** The square rect size used for finding destructables. */
     @configurable static constant DESTRUCTABLE_ENUM_SIZE    = 130.
 
+    /**
     // If enabled, units have their move-speed changed while airborne.
     // Warning: this is not a lock-safe form of crowd control.
+    */
     @configurable static constant USE_MOVE_SPEED_MODIFIERS  = true
 
+    /**
     // If enabled, units have their prop window changed while airborne.
     // Warning: this is not a lock-safe form of crowd control.
+    */
     @configurable static constant USE_PROP_WINDOW_MODIFIERS = true
+
+
+    /**
+    // Apply a knockback vector to unit u. `velocity` is initial speed in units
+    // per second. `groundAngle` and `airAngle` are the direction and trajectory
+    // parameters, respectively. Example:
+
+    //     import Knocback3
+    //     ...
+    //     unit u = ...
+    //     Knockback3.add(u, 1000., angle(0.), angle(bj_PI / 4.))
+    */
+    static function add(unit u, real velocity, angle groundAngle, angle airAngle)
+        let instVel = velocity*ANIMATION_PERIOD
+        let v       = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
+
+        Knockback3 knockback
+        if unitNodes.has(u)
+            knockback      = unitNodes.get(u)
+            knockback.del += v
+        else
+            knockback     = new Knockback3()
+            knockback.u   = u
+            knockback.del = v
+
+            knockbacks.add(knockback)
+            if knockbacks.getSize() == 1
+                clock.startPeriodic(ANIMATION_PERIOD, function tick)
+
+            if knockback.u.addAbility(HEIGHT_ENABLER)
+                knockback.u.removeAbility(HEIGHT_ENABLER)
+
+
+    static function setVel(unit u, real velocity, angle groundAngle, angle airAngle)
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
+            let instVel   = velocity*ANIMATION_PERIOD
+
+            knockback.del = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
+        else
+            add(u, velocity, groundAngle, airAngle)
+
+
+    static function getVel(unit u) returns real
+        var v = 0.
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
+            v             = knockback.del.length()
+
+        return v
 
 
     // Instance Variables
@@ -157,47 +218,3 @@ public class Knockback3
 
         if knockbacks.getSize() == 0
             clock.pause()
-
-
-    // Apply a knockback vector to unit u. Velocity is in units per second.
-    // Angle refers to the angle on the XY plane, in radians. Alhpa refers
-    // to the launch trajectory, in radians, where 0 is flat along the XY
-    // plane.
-    static function add(unit u, real velocity, angle groundAngle, angle airAngle)
-        let instVel = velocity*ANIMATION_PERIOD
-        let v       = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
-
-        Knockback3 knockback
-        if unitNodes.has(u)
-            knockback      = unitNodes.get(u)
-            knockback.del += v
-        else
-            knockback     = new Knockback3()
-            knockback.u   = u
-            knockback.del = v
-
-            knockbacks.add(knockback)
-            if knockbacks.getSize() == 1
-                clock.startPeriodic(ANIMATION_PERIOD, function tick)
-
-            if knockback.u.addAbility(HEIGHT_ENABLER)
-                knockback.u.removeAbility(HEIGHT_ENABLER)
-
-
-    static function setVel(unit u, real velocity, angle groundAngle, angle airAngle)
-        if unitNodes.has(u)
-            let knockback = unitNodes.get(u)
-            let instVel   = velocity*ANIMATION_PERIOD
-
-            knockback.del = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
-        else
-            add(u, velocity, groundAngle, airAngle)
-
-
-    static function getVel(unit u) returns real
-        var v = 0.
-        if unitNodes.has(u)
-            let knockback = unitNodes.get(u)
-            v             = knockback.del.length()
-
-        return v
