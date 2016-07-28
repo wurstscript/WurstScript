@@ -161,9 +161,9 @@ package Knockback3
         // Angle refers to the angle on the XY plane, in radians. Alhpa refers
         // to the launch trajectory, in radians, where 0 is flat along the XY
         // plane.
-        static function add(unit u, real velocity, real angle, real alpha)
+        static function add(unit u, real velocity, angle groundAngle, angle airAngle)
             let instVel = velocity*ANIMATION_PERIOD
-            let v       = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
+            let v       = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
 
             Knockback3 knockback
             if unitNodes.hasInt(u.getHandleId())
@@ -182,15 +182,15 @@ package Knockback3
                     knockback.u.removeAbility(HEIGHT_ENABLER)
 
 
-        static function setVel(unit u, real velocity, real angle, real alpha)
+        static function setVel(unit u, real velocity, angle groundAngle, angle airAngle)
             let handleId = u.getHandleId()
             if unitNodes.hasInt(handleId)
                 let knockback = unitNodes.loadInt(handleId) castTo Knockback3
                 let instVel   = velocity*ANIMATION_PERIOD
 
-                knockback.del = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
+                knockback.del = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
             else
-                add(u, velocity, angle, alpha)
+                add(u, velocity, groundAngle, airAngle)
 
 
         static function getVel(unit u) returns real
