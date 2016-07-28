@@ -161,7 +161,6 @@ package Knockback3
         // Angle refers to the angle on the XY plane, in radians. Alhpa refers
         // to the launch trajectory, in radians, where 0 is flat along the XY
         // plane.
-        private static constant int ID_CROW_FORM = 'Arav'
         static function add(unit u, real velocity, real angle, real alpha)
             let instVel = velocity*ANIMATION_PERIOD
             let v       = vec3(instVel*Cos(angle)*Cos(alpha), instVel*Sin(angle)*Cos(alpha), instVel*Sin(alpha))
@@ -179,8 +178,8 @@ package Knockback3
                 if knockbacks.getSize() == 1
                     clock.startPeriodic(ANIMATION_PERIOD, function tick)
 
-                if knockback.u.addAbility(ID_CROW_FORM)
-                    knockback.u.removeAbility(ID_CROW_FORM)
+                if knockback.u.addAbility(HEIGHT_ENABLER)
+                    knockback.u.removeAbility(HEIGHT_ENABLER)
 
 
         static function setVel(unit u, real velocity, real angle, real alpha)
