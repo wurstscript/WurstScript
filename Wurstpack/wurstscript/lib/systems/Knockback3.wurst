@@ -2,10 +2,12 @@ package Knockback3
 
 import Terrain
 import MapBounds
-import LinkedList
+import LinkedListModule
 import HashMap
 
 public class Knockback3
+    use LinkedListModule
+
     /**
     // Fraction of velocity retained after colliding with ground/destructable.
     */
@@ -36,7 +38,7 @@ public class Knockback3
     */
     static var isAirborneThreshold = 5.
 
-    /** Below this speed, slighting units will stop. */
+    /** Below this speed, sliding units will stop. */
     static var minimumSlideSpeed = 30.
 
     /** Above this speed, sliding units will spawn a dust effect. */
@@ -87,9 +89,7 @@ public class Knockback3
             knockback     = new Knockback3()
             knockback.u   = u
             knockback.del = v
-
-            knockbacks.add(knockback)
-            if knockbacks.getSize() == 1
+            if size == 1
                 clock.startPeriodic(ANIMATION_PERIOD, function tick)
 
             if knockback.u.addAbility(HEIGHT_ENABLER)
@@ -191,10 +191,9 @@ public class Knockback3
             knockback.u.setPropWindow(GetUnitDefaultPropWindow(knockback.u) * bj_DEGTORAD)
 
 
-    private static constant knockbacks = new LinkedList<Knockback3>()
     private static timer    clock      = CreateTimer()
     private static function tick()
-        let iter = knockbacks.iterator()
+        let iter = iterator()
         while iter.hasNext()
             let knockback = iter.next()
 
@@ -213,8 +212,8 @@ public class Knockback3
 
             if velXySquared < minimumSlideSpeed*ANIMATION_PERIOD and knockback.del.z > elasticityThreshold*ANIMATION_PERIOD and knockback.del.z < -1*elasticityThreshold*ANIMATION_PERIOD and pos3.z < isAirborneThreshold
                 tickUnitDone(knockback)
-                iter.remove()
+                knockback.remove()
         iter.close()
 
-        if knockbacks.getSize() == 0
+        if size == 0
             clock.pause()
