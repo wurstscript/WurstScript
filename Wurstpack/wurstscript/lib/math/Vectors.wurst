@@ -3,6 +3,7 @@ import NoWurst
 import Real
 import Angle
 import ErrorHandling
+import Wurstunit
 
 /** 3d Vector tuple */
 public tuple vec3( real x, real y, real z )
@@ -172,11 +173,14 @@ public function vec3.angleTo2d(vec2 v) returns angle
 public function vec3.angleTo2d(vec3 v) returns angle
 	return Atan2(v.y - this.y, v.x - this.x).asAngleRadians()
 
-/** Get a polarprojection of this Vector */
+/** Get a polar projection of this Vector. The angleGround parameter controls
+    the direction along the XY axis, where 0 points to the right. The angleAir
+    parameter controls the direction between the XY plane and the Z axis, where
+    0 has no vertical component at all. */
 public function vec3.polarProject( real distance, angle angleGround, angle angleAir ) returns vec3
-	real x = this.x + distance * angleGround.cos() * angleAir.sin()
-	real y = this.y + distance * angleGround.sin() * angleAir.sin()
-	real z = this.z + distance * angleAir.cos()
+	real x = this.x + distance * angleGround.cos() * angleAir.cos()
+	real y = this.y + distance * angleGround.sin() * angleAir.cos()
+	real z = this.z + distance * angleAir.sin()
 	return vec3(x,y,z)
 
 /** returns a vector of length 1 which points into the direction of target,
@@ -351,3 +355,17 @@ public function vec2.isInRange(real range) returns isInRangeHelper2
 public function isInRangeHelper2.of(vec2 other) returns boolean
 	return this.v.distToVecSquared(other) <= this.range*this.range
 
+
+let TEST_TRIG_EPSILON = 1. / 100.
+@test function vec3PolarProjectionVertical()
+	let vec = vec3(0., 0., 0.).polarProject(1., angle(0.), angle(bj_PI / 2.))
+	vec.x.assertEquals(0., TEST_TRIG_EPSILON)
+	vec.y.assertEquals(0., TEST_TRIG_EPSILON)
+	vec.z.assertEquals(1., TEST_TRIG_EPSILON)
+
+
+@test function vec3PolarProjectionLeft()
+	let vec = vec3(0., 0., 0.).polarProject(1., angle(bj_PI), angle(0.))
+	vec.x.assertEquals(-1., TEST_TRIG_EPSILON)
+	vec.y.assertEquals( 0., TEST_TRIG_EPSILON)
+	vec.z.assertEquals( 0., TEST_TRIG_EPSILON)
