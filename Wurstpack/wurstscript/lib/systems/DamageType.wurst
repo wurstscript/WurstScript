@@ -70,7 +70,7 @@ function after()
     dealCodeDamage(tempDat.source, tempDat.target, tempDat.damage)
 
     destroy tempDat
-    DestroyTimer(time)
+    time.release()
 
 
 function getUnitBonusSpellResistance(unit u) returns real
@@ -114,8 +114,8 @@ function handler() returns bool
             tempDat.source = GetEventDamageSource()
             tempDat.damage = attemptedDamage
 
-            CreateTimer()..setData(tempDat castTo int)
-                         ..start(0., function after)
+            getTimer()..setData(tempDat castTo int)
+                      ..start(0., function after)
         else
             dealCodeDamage(GetEventDamageSource(), tU, 2.*attemptedDamage)
 
