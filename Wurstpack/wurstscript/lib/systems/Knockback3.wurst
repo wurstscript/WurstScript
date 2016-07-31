@@ -9,7 +9,7 @@ public class Knockback3
     use LinkedListModule
 
     /**
-    // Fraction of velocity retained after colliding with ground/destructable.
+    Fraction of velocity retained after colliding with ground/destructable.
     */
     static var restitutionCoefficientGround       = .2
     static var restitutionCoefficientDestructable = .3
@@ -21,20 +21,20 @@ public class Knockback3
     static var gravity = 90.
 
     /**
-    // If a unit is not falling faster than this, it will not bounce. Units
-    // per second.
+    If a unit is not falling faster than this, it will not bounce. Units
+    per second.
     */
     static var elasticityThreshold = -300.
 
     /**
-    // If a unit's vertical component is not greater than this, it will not
-    // become airborne. Units per second.
+    If a unit's vertical component is not greater than this, it will not
+    become airborne. Units per second.
     */
     static var airborneThreshold = 150.
 
     /**
-    // For the purposes of friction, distinguish a unit which is airborne
-    // versus one which is sliding. Height in units.
+    For the purposes of friction, distinguish a unit which is airborne
+    versus one which is sliding. Height in units.
     */
     static var isAirborneThreshold = 5.
 
@@ -55,27 +55,27 @@ public class Knockback3
     @configurable static constant DESTRUCTABLE_ENUM_SIZE    = 130.
 
     /**
-    // If enabled, units have their move-speed changed while airborne.
-    // Warning: this is not a lock-safe form of crowd control.
+    If enabled, units have their move-speed changed while airborne.
+    Warning: this is not a lock-safe form of crowd control.
     */
     @configurable static constant USE_MOVE_SPEED_MODIFIERS  = true
 
     /**
-    // If enabled, units have their prop window changed while airborne.
-    // Warning: this is not a lock-safe form of crowd control.
+    If enabled, units have their prop window changed while airborne.
+    Warning: this is not a lock-safe form of crowd control.
     */
     @configurable static constant USE_PROP_WINDOW_MODIFIERS = true
 
 
     /**
-    // Apply a knockback vector to unit u. `velocity` is initial speed in units
-    // per second. `groundAngle` and `airAngle` are the direction and trajectory
-    // parameters, respectively. Example:
+    Apply a knockback vector to unit u. `velocity` is initial speed in units
+    per second. `groundAngle` and `airAngle` are the direction and trajectory
+    parameters, respectively. Example:
 
-    //     import Knocback3
-    //     ...
-    //     unit u = ...
-    //     Knockback3.add(u, 1000., angle(0.), angle(bj_PI / 4.))
+        import Knocback3
+        ...
+        unit u = ...
+        Knockback3.add(u, 1000., angle(0.), angle(bj_PI / 4.))
     */
     static function add(unit u, real velocity, angle groundAngle, angle airAngle)
         let instVel = velocity*ANIMATION_PERIOD
