@@ -107,10 +107,10 @@ public class Knockback3
 
 
     static function getVel(unit u) returns real
-        var v = 0.
+        var v = vec3(0., 0., 0.)
         if unitNodes.has(u)
             let knockback = unitNodes.get(u)
-            v             = knockback.del.length()
+            v             = knockback.del
 
         return v
 
