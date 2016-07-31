@@ -2,9 +2,10 @@
 // DamageDetection handler. Typically this means differentiating between spells
 // and basic attacks.
 package DamageType
-    import DamageDetection
     import AbilityObjEditing
-    import TempGroups
+    import ClosureForGroups
+    import DamageDetection
+    import OnUnitEnterLeave
 
 
     class DelayDat
@@ -21,14 +22,12 @@ package DamageType
 
         // ConvertAttackType(7) is a hidden attack type with some unique
         // properties. For more information see goo.gl/9k8tn .
-        private static constant attacktype ATTACK_TYPE_UNIVERSAL = ConvertAttackType(7)
-        private static constant int        DAMAGE_TYPE_CHECK_ID  = '!dt*'
-        private static constant real       DELAY_AMOUNT          = 0.
+        private   static constant ATTACK_TYPE_UNIVERSAL = ConvertAttackType(7)
+        protected static constant DAMAGE_TYPE_CHECK_ID  = '!dt*'
+        private   static constant DELAY_AMOUNT          = 0.
 
 
-        private static bool useBonusCalculator = false
-        static function setUseBonusCalculator(bool use)
-            useBonusCalculator = use
+        static var useBonusCalculator = false
 
 
         private static int lastDamageType = NULLED
@@ -63,7 +62,7 @@ package DamageType
 
 
         protected static function c() returns bool
-            GetTriggerUnit()..addAbility(DAMAGE_TYPE_CHECK_ID)
+            GetTriggerUnit()..addAbility(          DAMAGE_TYPE_CHECK_ID)
                             ..makeAbilityPermanent(DAMAGE_TYPE_CHECK_ID, true)
 
             return false
@@ -129,15 +128,11 @@ package DamageType
 
 
     init
-        let reg = CreateRegion()..addRect(bj_mapInitialPlayableArea)
-        CreateTrigger()..registerEnterRegion(reg, null)
-                       ..addCondition(Condition(function DamageType.c))
-
-        GroupEnumUnitsInRect(ENUM_GROUP, bj_mapInitialPlayableArea, null)
-        for iter in ENUM_GROUP
+        onEnter(function DamageType.c)
+        forUnitsInRect(bj_mapInitialPlayableArea, (unit iter) -> begin
             iter..addAbility(          DamageType.DAMAGE_TYPE_CHECK_ID)
-                ..makeAbilityPermanent(DamageType.DAMAGE_TYPE_CHECK_ID)
-        ENUM_GROUP.clear()
+                ..makeAbilityPermanent(DamageType.DAMAGE_TYPE_CHECK_ID, true)
+        end)
 
         addOnDamageFunc(Condition(function DamageType.handler))
 
