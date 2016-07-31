@@ -5,7 +5,9 @@ import de.peeeq.wurstscript.ast.WStatement
 
 object Ast {
 
-  case class Position(left: Int, right: Int)
+  case class Position(left: Int, right: Int) {
+    def artificial(): Position = copy(right = left - 1)
+  }
 
   sealed trait AstElement { self: AstElement =>
     var pos: Position
@@ -14,6 +16,8 @@ object Ast {
       this.pos = pos
       return this
     }
+
+    def attrSource(): Position = pos
 
   }
 
@@ -78,11 +82,14 @@ object Ast {
                      body: WStatement)
       extends WEntity
       with JassTopLevelDeclaration
+      with ClassSlot
 
   case class GlobalVarDef(modifiers: List[Modifier],
                           optTyp: Option[TypeExpr],
                           nameId: Identifier,
-                          initialExpr: Option[Expr]) extends WEntity
+                          initialExpr: Option[Expr])
+      extends WEntity
+      with ClassSlot
 
   case class LocalVarDef(modifiers: List[Modifier],
                          optTyp: Option[TypeExpr],
@@ -121,6 +128,7 @@ object Ast {
                        constructors: List[ConstructorDef],
                        moduleUses: List[ModuleUse],
                        onDestroy: OnDestroyDef)
+      extends WEntity
 
   sealed trait TypeExpr extends AstElement
 
@@ -144,7 +152,7 @@ object Ast {
                           nameId: Identifier)
       extends TypeDef
 
-  sealed trait TypeDef extends AstElement
+  sealed trait TypeDef extends WEntity
 
   case class NativeType(modifiers: List[Modifier],
                         nameId: Identifier,
@@ -166,6 +174,7 @@ object Ast {
                       onDestroy: OnDestroyDef)
       extends TypeDef
       with WEntity
+      with ClassSlot
 
   case class InterfaceDef(modifiers: List[Modifier],
                           nameId: Identifier,
@@ -183,6 +192,7 @@ object Ast {
                       typeParameters: List[TypeParamDef],
                       parameters: List[WParameter])
       extends TypeDef
+      with WEntity
 
   case class EnumDef(modifiers: List[Modifier],
                      nameId: Identifier,
@@ -192,7 +202,7 @@ object Ast {
   case class EnumMember(modifers: List[Modifier], nameId: Identifier)
     extends AstElement
 
-  sealed trait ClassSlot {
+  sealed trait ClassSlot extends AstElement {
 
   }
 
@@ -203,10 +213,11 @@ object Ast {
                             body: WStatement)
       extends ClassSlot
 
-  case class OnDestroyDef(body: WStatement)
+  case class OnDestroyDef(body: WStatement) extends ClassSlot
 
   case class ModuleUse(moduleNameId: Identifier,
                        typeArgs: List[TypeExpr])
+      extends ClassSlot
 
   sealed trait WStatement extends AstElement
 
@@ -219,7 +230,7 @@ object Ast {
 
   sealed trait StmtCall extends WStatement
 
-  case class StmtErr()
+  case class StmtErr() extends WStatement
 
   case class StmtReturn(returnedObj: Option[Expr]) extends WStatement
 
@@ -236,6 +247,11 @@ object Ast {
 
   case class StmtLoop(body: WStatement)
     extends WStatement
+
+  case class StmtSwitch(expr: Expr, cases: List[SwitchCase], defaultCase: Option[WStatement])
+    extends WStatement
+
+  case class SwitchCase(expr: Expr, body: WStatement) extends AstElement
 
   case class StmtFor(loopVar: LocalVarDef, in: Expr, iterationMode: IterationMode, body: WStatement)
     extends WStatement

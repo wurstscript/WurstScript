@@ -14,6 +14,8 @@ import _root_.de.peeeq.wurstscript.scalaFrontend.Ast.JassTopLevelDeclaration
 import _root_.de.peeeq.wurstscript.scalaFrontend.Ast._
 
 import scala.collection.JavaConversions._
+import de.peeeq.wurstscript.utils.Utils
+
 //import _root_.de.peeeq.wurstscript.parser.Position
 
 trait ErrorHandler {
@@ -22,13 +24,13 @@ trait ErrorHandler {
 
 trait LineOffsets {}
 
-class CompileError extends RuntimeException {
+class CompileError(pos: Position, message: String) extends RuntimeException {
 
 }
 
 class AntlrWurstParseTreeTransformer(
-    private var file: String,
-    private var cuErrorHandler: ErrorHandler,
+    private var file: String, 
+    private var cuErrorHandler: ErrorHandler, 
     private var lineOffsets: LineOffsets) {
 
   def transform(cu: CompilationUnitContext): CompilationUnit = {
@@ -215,7 +217,6 @@ class AntlrWurstParseTreeTransformer(
   }
 
   private def transformPackage(p: WpackageContext): WPackage = {
-    val source = source(p)
     val modifiers = List[Modifier]()
     val imports = List[WImport]()
     for (i <- p.imports) {
@@ -228,7 +229,7 @@ class AntlrWurstParseTreeTransformer(
         elements.add(en)
       }
     }
-    WPackage(modifiers, text(p.name), imports, elements).withPos(source)
+    WPackage(modifiers, text(p.name), imports, elements).withPos(source(p))
   }
 
   private def transformEntity(e: EntityContext): WEntity = {
@@ -295,14 +296,14 @@ class AntlrWurstParseTreeTransformer(
       return Annotation(m.annotation().getText).withPos(src)
     }
     m.modType.getType match {
-      case WurstParser.PUBLIC     => return VisibilityPublic.withPos(src)
-      case WurstParser.PRIVATE    => return VisibilityPrivate.withPos(src)
-      case WurstParser.PROTECTED  => return VisibilityProtected.withPos(src)
-      case WurstParser.PULBICREAD => return VisibilityPublicread.withPos(src)
-      case WurstParser.STATIC     => return ModStatic.withPos(src)
-      case WurstParser.OVERRIDE   => return ModOverride.withPos(src)
-      case WurstParser.ABSTRACT   => return ModAbstract.withPos(src)
-      case WurstParser.CONSTANT   => return ModConstant.withPos(src)
+      case WurstParser.PUBLIC     => return VisibilityPublic().withPos(src)
+      case WurstParser.PRIVATE    => return VisibilityPrivate().withPos(src)
+      case WurstParser.PROTECTED  => return VisibilityProtected().withPos(src)
+      case WurstParser.PULBICREAD => return VisibilityPublicread().withPos(src)
+      case WurstParser.STATIC     => return ModStatic().withPos(src)
+      case WurstParser.OVERRIDE   => return ModOverride().withPos(src)
+      case WurstParser.ABSTRACT   => return ModAbstract().withPos(src)
+      case WurstParser.CONSTANT   => return ModConstant().withPos(src)
     }
     throw error(m, "not implemented")
   }
@@ -312,8 +313,7 @@ class AntlrWurstParseTreeTransformer(
     val modifiers = transformModifiers(t.modifiersWithDoc())
     val name = text(t.name)
     val parameters = transformFormalParameters(t.formalParameters(), false)
-    val returnTyp = Ast.NoTypeExpr()
-    Ast.TupleDef(src, modifiers, name, parameters, returnTyp)
+    TupleDef(modifiers, name, List(), parameters).withPos(src)
   }
 
   private def transformInterfaceDef(i: InterfaceDefContext): WEntity = {
@@ -321,13 +321,18 @@ class AntlrWurstParseTreeTransformer(
     val modifiers = transformModifiers(i.modifiersWithDoc())
     val name = text(i.name)
     val typeParameters = transformTypeParams(i.typeParams())
-    val extendsList = Ast.TypeExprList()
-    for (ex <- i.extended) {
-      extendsList.add(transformTypeExpr(ex))
-    }
+    val extendsList = i.extended.map(transformTypeExpr(_))
     val slots = transformClassSlots(src, i.classSlots())
-    Ast.InterfaceDef(src, modifiers, name, typeParameters, extendsList, slots.methods, slots.vars, slots.constructors,
-      slots.moduleInstanciations, slots.moduleUses, slots.onDestroy)
+    InterfaceDef(modifiers=modifiers, 
+        nameId=name, 
+        typeParameters=typeParameters, 
+        extendsList=extendsList.toList, 
+        methods=slots.methods, 
+        vars=slots.vars, 
+        constructors=slots.constructors,
+        moduleUses=slots.moduleUses, 
+        onDestroy=slots.onDestroy)
+      .withPos(src)
   }
 
   private def transformClassSlots(src: Position, slots: ClassSlotsContext): ClassSlotResult = {
@@ -357,7 +362,7 @@ class AntlrWurstParseTreeTransformer(
       }
     }
     if (result.onDestroy == null) {
-      result.onDestroy = Ast.OnDestroyDef(src.artificial(), List[WStatement]())
+      result.onDestroy = OnDestroyDef(StmtSkip()).withPos(src.artificial())
     }
     result
   }
@@ -390,29 +395,24 @@ class AntlrWurstParseTreeTransformer(
   }
 
   private def transformOndestroyDef(o: OndestroyDefContext): OnDestroyDef = {
-    Ast.OnDestroyDef(source(o), transformStatements(o.statementsBlock()))
+    OnDestroyDef(transformStatements(o.statementsBlock())).withPos(source(o))
   }
 
   private def transformModuleUse(u: ModuleUseContext): ClassSlot = {
-    Ast.ModuleUse(source(u), text(u.moduleName), transformTypeArgs(u.typeArgs()))
+    ModuleUse(text(u.moduleName), transformTypeArgs(u.typeArgs())).withPos(source(u))
   }
 
   private def transformConstructorDef(c: ConstructorDefContext): ConstructorDef = {
-    val source = source(c)
     val modifiers = transformModifiers(c.modifiersWithDoc())
     val parameters = transformFormalParameters(c.formalParameters(), true)
-    val body = transformStatementList(c.stmts)
+    val body = transformStatementList(c.stmts.toList)
     val isExplicit = c.superArgs != null
     val superArgs = transformExprs(c.superArgs)
-    Ast.ConstructorDef(source, modifiers, parameters, isExplicit, superArgs, body)
+    ConstructorDef(modifiers, parameters, isExplicit, superArgs, body).withPos(source(c))
   }
 
-  private def transformStatementList(stmts: List[StatementContext]): WStatements = {
-    val result = List[WStatement]()
-    for (s <- stmts) {
-      result.add(transformStatement(s))
-    }
-    result
+  private def transformStatementList(stmts: List[StatementContext]): WBlock = {
+    WBlock(stmts.map(transformStatement))
   }
 
   private def transformModuleDef(i: ModuleDefContext): WEntity = {
@@ -421,19 +421,17 @@ class AntlrWurstParseTreeTransformer(
     val name = text(i.name)
     val typeParameters = transformTypeParams(i.typeParams())
     val slots = transformClassSlots(src, i.classSlots())
-    Ast.ModuleDef(src, modifiers, name, typeParameters, slots.innerClasses, slots.methods, slots.vars,
-      slots.constructors, slots.moduleInstanciations, slots.moduleUses, slots.onDestroy)
+    ModuleDef(modifiers, name, typeParameters, slots.innerClasses, slots.methods, slots.vars,
+      slots.constructors, slots.moduleUses, slots.onDestroy)
+      .withPos(src)
   }
 
   private def transformEnumDef(i: EnumDefContext): WEntity = {
     val src = source(i)
     val modifiers = transformModifiers(i.modifiersWithDoc())
     val name = text(i.name)
-    val members = Ast.EnumMembers()
-    for (m <- i.enumMembers) {
-      members.add(Ast.EnumMember(source(m), List[Modifier](), text(m)))
-    }
-    Ast.EnumDef(src, modifiers, name, members)
+    val members = i.enumMembers.map(m => EnumMember(List(), text(m)).withPos(source(m)))
+    EnumDef(modifiers, name, members.toList).withPos(src)
   }
 
   private def transformClassDef(i: ClassDefContext): ClassDef = {
@@ -442,55 +440,49 @@ class AntlrWurstParseTreeTransformer(
     val name = text(i.name)
     val typeParameters = transformTypeParams(i.typeParams())
     val extendedClass = transformOptionalType(i.extended)
-    val implementsList = Ast.TypeExprList()
-    for (ex <- i.implemented) {
-      implementsList.add(transformTypeExpr(ex))
-    }
+    val implementsList = i.implemented.map(transformTypeExpr)
     val slots = transformClassSlots(src, i.classSlots())
-    Ast.ClassDef(src, modifiers, name, typeParameters, extendedClass, implementsList, slots.innerClasses,
-      slots.methods, slots.vars, slots.constructors, slots.moduleInstanciations, slots.moduleUses, slots.onDestroy)
+    ClassDef(modifiers, name, typeParameters, extendedClass, implementsList.toList, slots.innerClasses,
+      slots.methods, slots.vars, slots.constructors, slots.moduleUses, slots.onDestroy)
+      .withPos(src)
   }
 
   private def transformNativeType(n: NativeTypeContext): NativeType = {
-    var extended: OptTypeExpr = null
-    extended = if (n.extended != null) Ast.TypeExprSimple(source(n.extended), Ast.NoTypeExpr(), rawText(n.extended),
-      Ast.TypeExprList())
-    else Ast.NoTypeExpr()
-    Ast.NativeType(source(n), List[Modifier](), text(n.name), extended)
+    var extended = 
+      if (n.extended == null) None 
+      else Some(TypeExprSimple(None, text(n.extended), List()).withPos(source(n.extended)))
+    NativeType(List[Modifier](), text(n.name), extended).withPos(source(n))
   }
 
   private def transformFuncDef(f: FuncDefContext): FuncDef = {
     val sig = transformFuncSig(f.funcSignature())
     val modifiers = transformModifiers(f.modifiersWithDoc())
     val body = transformStatements(f.statementsBlock())
-    Ast.FuncDef(source(f), modifiers, sig.name, sig.typeParams, sig.formalParameters, sig.returnType,
-      body)
+    FuncDef(modifiers, sig.name, sig.typeParams, sig.formalParameters, sig.returnType,
+      body).withPos(source(f))
   }
 
   private def transformVardef(v: VarDefContext): GlobalVarDef = {
-    val source = source(v)
-    val modifiers = transformModifiers(v.modifiersWithDoc())
+    val src = source(v)
+    var modifiers = transformModifiers(v.modifiersWithDoc())
     if (v.constant != null) {
-      modifiers.add(Ast.ModConstant(source(v.constant)))
+      modifiers +:= Ast.ModConstant().withPos(source(v.constant))
     }
     val initialExpr = transformOptionalExpr(v.initial)
     val name = text(v.name)
     val optTyp = transformOptionalType(v.varType)
-    Ast.GlobalVarDef(source, modifiers, optTyp, name, initialExpr)
+    GlobalVarDef(modifiers, optTyp, name, initialExpr).withPos(src)
   }
 
   private def transformInit(i: InitBlockContext): InitBlock = {
-    Ast.InitBlock(source(i), transformStatements(i.statementsBlock()))
+    InitBlock(transformStatements(i.statementsBlock())).withPos(source(i))
   }
 
-  private def transformStatements(b: StatementsBlockContext): WStatements = {
-    val result = List[WStatement]()
-    if (b != null) {
-      for (s <- b.statement()) {
-        result.add(transformStatement(s))
-      }
-    }
-    result
+  private def transformStatements(b: StatementsBlockContext): WStatement = {
+    if (b != null) 
+      WBlock(b.statement().map(transformStatement).toList)
+    else
+      WBlock(List())
   }
 
   private def transformStatement(s: StatementContext): WStatement = {
@@ -507,56 +499,53 @@ class AntlrWurstParseTreeTransformer(
       if (e.isInstanceOf[WStatement]) {
         return e.asInstanceOf[WStatement]
       } else {
-        cuErrorHandler.sendError(new CompileError(source(s), Utils.printElement(e) +
+        cuErrorHandler.sendError(new CompileError(source(s), printElement(e) +
           " cannot be used here. A full statement is required."))
-        return Ast.StmtErr(source(s))
+        return StmtErr().withPos(source(s))
       }
     } else if (s.stmtReturn() != null) {
       return transformReturn(s.stmtReturn())
     } else if (s.stmtForLoop() != null) {
       return transformForLoop(s.stmtForLoop())
     } else if (s.stmtBreak() != null) {
-      return Ast.StmtExitwhen(source(s), Ast.ExprBoolVal(source(s), true))
+      return StmtExitwhen(ExprBoolVal(true).withPos(source(s).artificial())).withPos(source(s))
     } else if (s.stmtSkip() != null) {
-      return Ast.StmtSkip(source(s))
+      return StmtSkip().withPos(source(s))
     } else if (s.stmtSwitch() != null) {
       return transformSwitch(s.stmtSwitch())
     }
     if (s.exception != null) {
-      return Ast.StmtErr(source(s))
+      return StmtErr().withPos(source(s))
     }
     throw error(s, "not implemented: " + text(s) + "\n" + s.toStringTree())
   }
 
   private def transformSwitch(s: StmtSwitchContext): WStatement = {
     val expr = transformExpr(s.expr())
-    val cases = Ast.SwitchCases()
-    for (c <- s.switchCase()) {
-      val e = transformExpr(c.expr())
-      val stmts = transformStatements(c.statementsBlock())
-      cases.add(Ast.SwitchCase(source(c), e, stmts))
-    }
-    var switchDefault: SwitchDefaultCase = null
-    switchDefault = if (s.switchDefaultCase() != null) Ast.SwitchDefaultCaseStatements(source(s.switchDefaultCase()),
-      transformStatements(s.switchDefaultCase().statementsBlock()))
-    else Ast.NoDefaultCase()
-    Ast.SwitchStmt(source(s), expr, cases, switchDefault)
+    val cases = s.switchCase().map(c => 
+      SwitchCase(transformExpr(c.expr()),
+          transformStatements(c.statementsBlock()))
+          .withPos(source(c)))
+    val switchDefault = 
+      if (s.switchDefaultCase() == null) None
+      else Some(transformStatements(s.switchDefaultCase().statementsBlock()))
+    StmtSwitch(expr, cases.toList, switchDefault).withPos(source(s))
   }
 
   private def transformWhile(s: StmtWhileContext): WStatement = {
-    Ast.StmtWhile(source(s), transformExpr(s.cond), transformStatements(s.statementsBlock()))
+    StmtWhile(transformExpr(s.cond), transformStatements(s.statementsBlock())).withPos(source(s))
   }
 
   private def transformExprDestroy(e: ExprDestroyContext): ExprDestroy = {
-    Ast.ExprDestroy(source(e), transformExpr(e.expr()))
+    ExprDestroy(transformExpr(e.expr())).withPos(source(e))
   }
 
   private def transformReturn(s: StmtReturnContext): StmtReturn = {
-    var r = transformOptionalExpr(s.expr())
-    if (r.isInstanceOf[ExprEmpty]) {
-      r = Ast.NoExpr()
-    }
-    Ast.StmtReturn(source(s), r)
+    val r = transformOptionalExpr(s.expr())
+    val r2 = 
+      if (r.isInstanceOf[ExprEmpty]) None
+      else Some(r)
+    StmtReturn(r2).withPos(source(s))
   }
 
   private def transformStmtSet(s: StmtSetContext): WStatement = {
@@ -566,9 +555,9 @@ class AntlrWurstParseTreeTransformer(
       var right = transformExpr(s.right)
       val op = getAssignOp(s.assignOp)
       if (op != null) {
-        right = Ast.ExprBinary(src, updatedExpr.copy().asInstanceOf[Expr], op, right)
+        right = ExprBinary(updatedExpr, op, right).withPos(src.artificial())
       }
-      return Ast.StmtSet(src, updatedExpr, right)
+      StmtSet(updatedExpr, right).withPos(src)
     } else if (s.incOp != null) {
       val right = Ast.ExprBinary(src, updatedExpr.copy().asInstanceOf[Expr], WurstOperator.PLUS, Ast.ExprIntVal(src,
         "1"))
@@ -1067,5 +1056,9 @@ class AntlrWurstParseTreeTransformer(
 
     var onDestroy: OnDestroyDef = null
   }
+
+  def printElement(e: AstElement): String = {
+      e.toString()
+    }
 
 }
