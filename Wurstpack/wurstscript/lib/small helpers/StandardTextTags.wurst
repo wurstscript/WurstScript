@@ -14,6 +14,8 @@ function _standardTextTag(vec2 pos, string text) returns texttag
     return tag
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 Critical
+    Strike ability. */
 public function createCriticalStrikeTextTag(unit u, int damage)
     let text = damage.toString() + "!"
     _standardTextTag(u.getPos(), text)..setColor(255, 0, 0, 255)
@@ -21,6 +23,8 @@ public function createCriticalStrikeTextTag(unit u, int damage)
                                       ..setLifespan(5.)
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 gold
+    bounty. */
 public function createGoldBountyTextTag(unit u, int bounty, player killer)
     let text = "+" + bounty.toString()
     let pos  = u.getPos() - OFFSET
@@ -28,6 +32,8 @@ public function createGoldBountyTextTag(unit u, int bounty, player killer)
                                ..setVisibility(GetLocalPlayer() == killer)
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 lumber
+    bounty. */
 public function createLumberBountyTextTag(unit u, int bounty, player killer)
     let text = "+" + bounty.toString()
     let pos  = u.getPos() - OFFSET
@@ -35,6 +41,8 @@ public function createLumberBountyTextTag(unit u, int bounty, player killer)
                                ..setVisibility(GetLocalPlayer() == killer)
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 Mana Burn
+    ability. */
 public function createManaBurnTextTag(unit u, int damage)
     let text = "-" + damage.toString()
     let pos  = u.getPos() - OFFSET
@@ -43,11 +51,15 @@ public function createManaBurnTextTag(unit u, int damage)
                                ..setLifespan(5.)
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 attack
+    miss indication. */
 public function createMissTextTag(unit u)
     _standardTextTag(u.getPos(), "miss")..setColor(255, 0, 0, 255)
                                         ..setFadepoint(1.)
 
 
+/** Create a texttag that matches the style of the standard warcraft 3 Shadow
+    Strike ability. */
 public function createShadowStrikeTextTag(unit u, int damage, bool isInitialDamage)
     var text = damage.toString()
     if isInitialDamage
