@@ -12,17 +12,17 @@ WurstScript (short Wurst) is a programming language named after the German word 
 The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage meat/Brät) and modularization (cut it into slices!). And because you normally know whats inside a sausage the project is also open source and easy to use (cook).
 
 **Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
-problem with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
+problems with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
 *Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions. 
-This applies only to the compiler & the eclipse plugin, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
+This applies only to the compiler & plugins, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
 
 <div id="tableofcontents">loading TOC ...</div>
 
 
 # Philosophy
 
-WurstScript aims at a fast and easy work-flow with comfort- and safety features.
+WurstScript aims at a fast and easy workflow with comfort- and safety features.
 The execution speed is not the highest priority (even though it is pretty fast, an optimizer is included in the compiler), but instead ease of use
 and stress-free map-development.
 It should be easy to use and learn (especially with knowledge of (v)Jass) to be beginner-friendly and also understandable to non-Jass users.
@@ -41,12 +41,12 @@ You can contact us on Hive:
 Or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?channels=inwc.de-maps).
 
 
-
-
+> Note that this manual is not a beginner's tutorial and expects the reader to have prior knowledge in programming.
 
 # Syntax
+
 The WurstScript Syntax uses indention to define Blocks, instead of using curly
-brackets (as in Java) or keywords like 'endif' (as in Jass). Indentation must use tabs or 4 spaces, but not mix both styles in the same file. 
+brackets (like Java) or keywords like 'endif' (like Jass). You can use either spaces or tabs for indentation, but mixing both will throw a warning. 
 In the following we use the word "tab" to refer to the tab character or to 4 space characters.
 
 
@@ -97,28 +97,29 @@ Packages can have an _init_ block that is executed when the map is loaded.
 
 
 	package HelloWurst
-		// you can import stuff from other packages:
-		import PrintingHelper
-        // NOTE: Since the Wurst.wurst-Update this import isn't needed anymore.
+	// to use resources from other packages you have to import them at the top
+	import PrintingHelper
+
+	// the init block of each package is called when the map starts
+	init
+		/* calling the print function from the PrintingHelper package */
+		print("Hello Wurst!")
+
 	
-		// the init block is called at map start
-		init
-			/* call a function */
-			print("Hello Wurst!")
 
-	endpackage
-
-For more information about packages, read the packages section. 
-You can still use normal Jass syntax/code outside of packages(when using WurstWE, those will be parsed by PJass), but inside packages you have to adhere
-to the wurst rules.
+For more information about packages, refer to the packages section. 
+You can still use normal Jass syntax/code outside of packages (when using WurstWE, those will be parsed by PJass), but inside packages only valid wurst/jurst code is expected.
 
 ## Naming Conventions
 
-Wurst enforces several naming conventions to create a common way of writing code and to provide general readability rules:
--  **Functions** have to start with a **lowercase letter**
--  **Variables** have to either start with a **lowercase letter** *or* be **all uppercase letters and "_"**
--  **Class/Module/Interface/Package** names have to start with an **uppercase letter**
--  **Tuplenames** have to start with a **lowercase letter**
+Wurst encourages several naming conventions to create a common way of writing code and to provide general readability rules:
+
+-  **Functions** should start with a **lowercase letter**
+-  **Variables** should either start with a **lowercase letter** *or* be **all uppercase letters and "_"**
+-  **Class/Module/Interface/Package** names should start with an **uppercase letter**
+-  **Tuplenames** should start with a **lowercase letter**
+
+Since Wurst comes with optimizing tools build-in, you should always choose descriptive names.
 
 
 
@@ -142,10 +143,10 @@ If the function does not return a value this part is omitted.
 	function foo() // parentheses instead of "takes", "returns nothing" obsolete.
 		...
 
-	function foo2( unit u ) // parameters
-		RemoveUnit( u )
+	function foo2(unit u) // parameters
+		RemoveUnit(u)
 
-	function bar( int i ) returns int // "returns" [type]
+	function bar(int i) returns int // "returns" [type]
 		return i + 4
 	
 	function blub() returns int // without parameters
@@ -155,12 +156,12 @@ If the function does not return a value this part is omitted.
 		int i // local variable
 		i = i + 1 // variable assignment
 		int i2 = i // support for locals anywhere inside a function
+		
 
 ## Variables
 
 Global (local) variables can be declared anywhere in a package (function). 
-A constant value may be declared using the _constant_ or _let_ keyword. _let_ is for local variables and
-_constant_ is for global variables.
+A constant value may be declared using the _constant_ or _let_ keyword.
 Mutable variables are declared by using the _var_ keyword or by writing the type of the variable before its name.
 
 	// declaring a constant - the type is inferred from the initial expression
@@ -457,6 +458,7 @@ When working in WurstWE, packages have to end with the **endpackage** keyword an
 In WurstEclipse however, the **endpackage** can be omitted when the code inside is not indented.
 	
 	package SomeWurstWePackage
+		// Only for legacy WurstWE
 		...
 		(code)
 	endpackage
@@ -474,34 +476,31 @@ Packages can import other packages to access classes, functions, variables, etc.
 
 	// declaring
 	package SomePackage
-		...
-	endpackage
+
 	// importing
 	package Blub
-		import SomePackage
-		import AnotherPackge // importing more than 1 package
-		import MyExternalWurstFile // Import a scriptfile from the eclipseProject
-		import public PackageX // public import (see below)
-	endpackage
+	import SomePackage
+	import AnotherPackge // importing more than 1 package
+	import MyExternalWurstFile // Import a scriptfile from the eclipseProject
+	import public PackageX // public import (see below)
 
 
-When importing an external scriptfile you just write the Filename without .wurst.
-**Remember** to name the package inside your file the same as the name of the scriptfile (In the EclipsePlugin this is enforced, when working with WE only, this might be the cause of packages not being found).
+
+The import directive searches for packages in the wurst folder of your project and all linked projects from your wurst.dependencies file.
 
 ### import public
 
 By default imported names are not exported by the package. For example the following will not compile:
 
 	package A
-		public constant x = 5
-	endpackage
+	public constant x = 5
+	
 	package B
-		import A
-	endpackage
+	import A
+	
 	package C
-		import B
-		constant z = x
-	endpackage
+	import B
+	constant z = x
 
 
 The variable x is usable in package B but it is not exported from B. So in package C we cannot use the variable x. 
@@ -509,15 +508,14 @@ We could fix this by simply importing A into C but sometimes you want to avoid t
 Using public imports solves this problem because they will export everything that is imported. Thus the following code will work:
 
 	package A
-		public constant x = 5
-	endpackage
+	public constant x = 5
+	
 	package B
-		import public A
-	endpackage
+	import public A
+	
 	package C
-		import B
-		constant z = x
-	endpackage
+	import B
+	constant z = x
 
 ### The special Wurst package
 
@@ -541,29 +539,23 @@ This has no impact on the generated code but throws an error when trying to comp
 ### Examples
 
 	package First
-		int i // (private by default) Visible inside the package
-		public int j // public, gets exported
-	endpackage
+	int i // (private by default) Visible inside the package
+	public int j // public, gets exported
 
 	package Second
-		import First
+	import First
 	
-		int k = i // Error
-		int m = j // Works, because j is public
-	endpackage
+	int k = i // Error
+	int m = j // Works, because j is public
 
 
 	package Foo
-		constant int myImportantNumber = 21364 // has to be initialized with declaration
+	constant int myImportantNumber = 21364 // has to be initialized with declaration
 
-		function blub()
-			myImportantNumber = 123 // Error
+	function blub()
+		myImportantNumber = 123 // Error
 		
-		public constant int myPrivateNumber2 = 123 // Correct keyword order
-	endpackage
-
-
-
+	public constant int myPrivateNumber2 = 123 // Correct keyword order
 
 
 
@@ -576,8 +568,8 @@ At the beginning of an init block you can assume that all global variables insid
 current package are initialized.
 
 	package MyPackage
-		init
-			print("this is the initblock")
+	init
+		print("this is the initblock")
 
 
 *Note:* Since wc3 has a micro op limitation, too many operations inside init-blocks may stop it from fully executing. In order to avoid this you should only place map-init Stuff inside the init blocks and use timers and own inits for the other stuff.
@@ -621,26 +613,22 @@ In the original package, the variable should be annotated with `@configurable` t
 Here is an example:
 
 	package Example
-		@configurable int x = 5
-	endpackage
+	@configurable int x = 5
 
 	package Example_config
-		@config int x = 42
-	endpackage
+	@config int x = 42
 
 Configuring functions works basically the same:
 
 	package Example
-		@configurable public function math(int x, int y) returns int
-			return x + y
+	@configurable public function math(int x, int y) returns int
+		return x + y
 		
-	endpackage
 
 	package Example_config
-		@config public function math(int x, int y) returns int
-			return x*y
+	@config public function math(int x, int y) returns int
+		return x*y
 
-	endpackage
 
 
 
@@ -894,7 +882,7 @@ the superclass A, calling a function with that reference will automatically call
 the original type.
 It is easier to understand with an example:
 
-###Example 1
+### Example 1
 
 	class A
 		function printOut()
