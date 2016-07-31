@@ -106,7 +106,7 @@ public class Knockback3
             add(u, velocity, groundAngle, airAngle)
 
 
-    static function getVel(unit u) returns real
+    static function getVel(unit u) returns vec3
         var v = vec3(0., 0., 0.)
         if unitNodes.has(u)
             let knockback = unitNodes.get(u)
