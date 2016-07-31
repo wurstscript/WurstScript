@@ -9,12 +9,13 @@ object Ast {
     def artificial(): Position = copy(right = left - 1)
   }
 
-  sealed trait AstElement { self: AstElement =>
-    var pos: Position
+  sealed abstract class AstElement {
+    private var pos: Position = _
 
-    def withPos(pos: Position): self.type = {
-      this.pos = pos
-      return this
+    def withPos(pos: Position): this.type = {
+      val newElem = clone().asInstanceOf[this.type]
+      newElem.pos = pos
+      return newElem
     }
 
     def attrSource(): Position = pos
@@ -225,7 +226,7 @@ object Ast {
 
   case class StmtSkip() extends WStatement
 
-  case class StmtSet(updatedExpr: NameRef, right: Expr)
+  case class StmtSet(updatedExpr: AssignableExpr, right: Expr)
     extends WStatement
 
   sealed trait StmtCall extends WStatement
@@ -266,6 +267,9 @@ object Ast {
     extends WStatement
 
   sealed trait Expr extends AstElement
+  
+  
+  sealed trait AssignableExpr extends Expr
 
   case class ExprBinary(left: Expr,
                         op: WurstOperator,
@@ -306,7 +310,7 @@ object Ast {
 
   case class ExprArrayLookup(arrayExpr: Expr,
                              indexes: List[Expr])
-      extends Expr
+      extends AssignableExpr
 
   case class ExprIntVal(valIraw: String) extends Expr
 
@@ -314,7 +318,7 @@ object Ast {
   case class ExprStringVal(valS: String) extends Expr
   case class ExprBoolVal(valB: Boolean) extends Expr
   case class ExprFuncRef(scopeName: String, funcNameId: Identifier) extends Expr
-  case class ExprVarAccess(varNameId: Identifier) extends Expr with NameRef
+  case class ExprVarAccess(varNameId: Identifier) extends AssignableExpr with NameRef
   case class ExprThis() extends Expr
   case class ExprNull() extends Expr
   case class ExprSuper() extends Expr
@@ -323,7 +327,7 @@ object Ast {
   case class ExprMemberVar(left: Expr,
                            nameId: Identifier,
                            isDotDot: Boolean)
-      extends Expr with NameRef
+      extends AssignableExpr with NameRef
 
   case class ExprMemberCall(left: Expr,
                             nameId: Identifier,

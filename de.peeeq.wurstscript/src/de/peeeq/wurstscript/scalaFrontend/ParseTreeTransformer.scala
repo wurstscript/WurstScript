@@ -15,6 +15,7 @@ import _root_.de.peeeq.wurstscript.scalaFrontend.Ast._
 
 import scala.collection.JavaConversions._
 import de.peeeq.wurstscript.utils.Utils
+import de.peeeq.wurstscript.WurstOperator
 
 //import _root_.de.peeeq.wurstscript.parser.Position
 
@@ -559,13 +560,11 @@ class AntlrWurstParseTreeTransformer(
       }
       StmtSet(updatedExpr, right).withPos(src)
     } else if (s.incOp != null) {
-      val right = Ast.ExprBinary(src, updatedExpr.copy().asInstanceOf[Expr], WurstOperator.PLUS, Ast.ExprIntVal(src,
-        "1"))
-      return Ast.StmtSet(src, updatedExpr, right)
+      val right = ExprBinary(updatedExpr, WurstOperator.PLUS, Ast.ExprIntVal("1").withPos(src.artificial()) ).withPos(src.artificial())
+      return StmtSet(updatedExpr, right).withPos(src)
     } else if (s.decOp != null) {
-      val right = Ast.ExprBinary(src, updatedExpr.copy().asInstanceOf[Expr], WurstOperator.MINUS, Ast.ExprIntVal(src,
-        "1"))
-      return Ast.StmtSet(src, updatedExpr, right)
+      val right = ExprBinary(updatedExpr, WurstOperator.MINUS, Ast.ExprIntVal("1").withPos(src.artificial())).withPos(src.artificial())
+      return Ast.StmtSet(updatedExpr, right).withPos(src)
     }
     throw error(s, "not implemented")
   }
@@ -579,7 +578,7 @@ class AntlrWurstParseTreeTransformer(
     case _                    => throw error(source(assignOp), "unhandled assign op: " + text(assignOp))
   }
 
-  private def transformAssignable(e: ExprAssignableContext): NameRef = {
+  private def transformAssignable(e: ExprAssignableContext): AssignableExpr = {
     if (e.exprMemberVar() != null) {
       return transformExprMemberVar(e.exprMemberVar())
     } else if (e.exprVarAccess() != null) {
@@ -588,15 +587,16 @@ class AntlrWurstParseTreeTransformer(
     throw error(e, "not implemented: " + text(e))
   }
 
-  private def transformExprVarAccess(e: ExprVarAccessContext): NameRef = {
+  private def transformExprVarAccess(e: ExprVarAccessContext): AssignableExpr = {
+    val va = ExprVarAccess(text(e.varname)).withPos(source(e.varname))
     if (e.indexes() == null) {
-      Ast.ExprVarAccess(source(e), text(e.varname))
+      va
     } else {
-      Ast.ExprVarArrayAccess(source(e), text(e.varname), transformIndexes(e.indexes()))
+      ExprArrayLookup(va, transformIndexes(e.indexes())).withPos(source(e))
     }
   }
 
-  private def transformExprMemberVar(e: ExprMemberVarContext): NameRef = {
+  private def transformExprMemberVar(e: ExprMemberVarContext): AssignableExpr = {
     transformExprMemberVarAccess2(source(e), e.expr(), e.dots, e.varname, e.indexes())
   }
 
@@ -604,22 +604,14 @@ class AntlrWurstParseTreeTransformer(
                                             e_expr: ExprContext,
                                             e_dots: Token,
                                             e_varname: Token,
-                                            e_indexes: IndexesContext): NameRef = {
+                                            e_indexes: IndexesContext): AssignableExpr = {
     val left = transformExpr(e_expr)
     val varName = text(e_varname)
-    if (e_indexes != null) {
-      val indexes = transformIndexes(e_indexes)
-      if (e_dots.getType == WurstParser.DOT) {
-        Ast.ExprMemberArrayVarDot(source, left, varName, indexes)
-      } else {
-        Ast.ExprMemberArrayVarDotDot(source, left, varName, indexes)
-      }
+    val va = ExprMemberVar(left, varName, e_dots.getType == WurstParser.DOTDOT).withPos(source)
+    if (e_indexes == null) {
+      va
     } else {
-      if (e_dots.getType == WurstParser.DOT) {
-        Ast.ExprMemberVarDot(source, left, varName)
-      } else {
-        Ast.ExprMemberVarDotDot(source, left, varName)
-      }
+      ExprArrayLookup(va, transformIndexes(e_indexes)).withPos(source)
     }
   }
 
@@ -633,39 +625,32 @@ class AntlrWurstParseTreeTransformer(
   }
 
   private def transformForRangeLoop(s: ForRangeLoopContext): WStatement = {
-    val source = source(s)
-    val loopVar = transformLocalVarDef(s.loopVar)
-    loopVar.setInitialExpr(transformExpr(s.start))
+    val src = source(s)
+    val loopVar = transformLocalVarDef(s.loopVar).copy(initialExpr=Some(transformExpr(s.start)))
     val to = transformExpr(s.end)
-    var step: Expr = null
-    step = if (s.step == null) Ast.ExprIntVal(source(s.direction), "1") else transformExpr(s.step)
+    var step: Expr = 
+      if (s.step == null) Ast.ExprIntVal("1").withPos(source(s.direction).artificial()) 
+      else transformExpr(s.step)
     val body = transformStatements(s.statementsBlock())
-    if (s.direction.getType == WurstParser.TO) {
-      return Ast.StmtForRangeUp(source, loopVar, to, step, body)
-    } else if (s.direction.getType == WurstParser.DOWNTO) {
-      return Ast.StmtForRangeDown(source, loopVar, to, step, body)
-    }
-    throw error(s, "not implemented: " + text(s))
+    StmtForRange(loopVar, to, step, s.direction.getType == WurstParser.TO, body).withPos(src)
   }
 
   private def transformLocalVarDef(v: LocalVarDefInlineContext): LocalVarDef = {
     val modifiers = List[Modifier]()
     val optTyp = transformOptionalType(v.typeExpr())
     val name = text(v.name)
-    val initialExpr = Ast.NoExpr()
-    Ast.LocalVarDef(source(v), modifiers, optTyp, name, initialExpr)
+    LocalVarDef(modifiers, optTyp, name, None).withPos(source(v))
   }
 
   private def transformForIteratorLoop(s: ForIteratorLoopContext): WStatement = {
-    val source = source(s)
+    val src = source(s)
     val loopVar = transformLocalVarDef(s.loopVar)
     val in = transformExpr(s.iteratorExpr)
     val body = transformStatements(s.statementsBlock())
-    if (s.iterStyle.getType == WurstParser.IN) {
-      Ast.StmtForIn(source, loopVar, in, body)
-    } else {
-      Ast.StmtForFrom(source, loopVar, in, body)
-    }
+    val iterationMode = 
+      if (s.iterStyle.getType == WurstParser.IN) ForIn()
+      else ForFrom()
+    StmtFor(loopVar, in, iterationMode, body).withPos(src)
   }
 
   private def transformLocalVarDef(l: LocalVarDefContext): LocalVarDef = {
@@ -878,7 +863,7 @@ class AntlrWurstParseTreeTransformer(
     Ast.ExprClosure(source(e), parameters, implementation)
   }
 
-  private def transformIndexes(indexes: IndexesContext): Indexes = {
+  private def transformIndexes(indexes: IndexesContext): List[Expr] = {
     val result = Ast.Indexes()
     result.add(transformExpr(indexes.expr()))
     result
