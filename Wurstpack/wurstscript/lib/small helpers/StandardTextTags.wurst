@@ -1,64 +1,51 @@
 package StandardTextTags
-    constant real FONT_SIZE  =  0.024 / 0.0023
-    constant real SIGN_SHIFT = 16.0
+    constant FONT_SIZE  =  0.024 / 0.0023
+    constant OFFSET     = vec2(16., 0.)
+
+
+    function _standardTextTag(vec2 pos, string text) returns texttag
+        let tag = CreateTextTag()..setText(text, FONT_SIZE)
+                                 ..setPos(pos.x, pos.y, 0.)
+                                 ..setFadepoint(2.)
+                                 ..setLifespan(3.)
+                                 ..setVelocity(0., .03)
+                                 ..setPermanent(false)
+                                 ..setVisibility(true)
+        return tag
 
 
     public function createCriticalStrikeTextTag(unit u, int damage)
         let text = damage.toString() + "!"
-        CreateTextTag()..setText(text, FONT_SIZE)
-                       ..setPos(u.getX(), u.getY(), 0.)
-                       ..setColor(255, 0, 0, 255)
-                       ..setVelocity(0., .04)
-                       ..setVisibility(true)
-                       ..setFadepoint(2.)
-                       ..setLifespan(5.)
-                       ..setPermanent(false)
+        _standardTextTag(u.getPos(), text)..setColor(255, 0, 0, 255)
+                                          ..setVelocity(0., .04)
+                                          ..setLifespan(5.)
 
 
     public function createGoldBountyTextTag(unit u, int bounty, player killer)
         let text = "+" + bounty.toString()
-        CreateTextTag()..setText(text, FONT_SIZE)
-                       ..setPos(u.getX() - SIGN_SHIFT, u.getY(), 0.)
-                       ..setColor(255, 220, 0, 255)
-                       ..setVelocity(0., .03)
-                       ..setVisibility(GetLocalPlayer() == killer)
-                       ..setFadepoint(2.)
-                       ..setLifespan(3.)
-                       ..setPermanent(false)
+        let pos  = u.getPos() - OFFSET
+        _standardTextTag(pos, text)..setColor(255, 220, 0, 255)
+                                   ..setVisibility(GetLocalPlayer() == killer)
 
 
     public function createLumberBountyTextTag(unit u, int bounty, player killer)
         let text = "+" + bounty.toString()
-        CreateTextTag()..setText(text, FONT_SIZE)
-                       ..setPos(u.getX() - SIGN_SHIFT, u.getY(), 0.)
-                       ..setColor(0, 200, 80, 255)
-                       ..setVelocity(0., .03)
-                       ..setVisibility(GetLocalPlayer() == killer)
-                       ..setFadepoint(2.)
-                       ..setLifespan(3.)
-                       ..setPermanent(false)
+        let pos  = u.getPos() - OFFSET
+        _standardTextTag(pos, text)..setColor(0, 200, 80, 255)
+                                   ..setVisibility(GetLocalPlayer() == killer)
+
 
     public function createManaBurnTextTag(unit u, int damage)
         let text = "-" + damage.toString()
-        CreateTextTag()..setText(text, FONT_SIZE)
-                       ..setPos(u.getX() - SIGN_SHIFT, u.getY(), 0.)
-                       ..setColor(82, 82, 255, 255)
-                       ..setVelocity(0., .04)
-                       ..setVisibility(true)
-                       ..setFadepoint(2.)
-                       ..setLifespan(5.)
-                       ..setPermanent(false)
+        let pos  = u.getPos() - OFFSET
+        _standardTextTag(pos, text)..setColor(82, 82, 255, 255)
+                                   ..setVelocity(0., .04)
+                                   ..setLifespan(5.)
 
 
     public function createMissTextTag(unit u)
-        CreateTextTag()..setText("miss", FONT_SIZE)
-                       ..setPos(u.getX(), u.getY(), 0.)
-                       ..setColor(255, 0, 0, 255)
-                       ..setVelocity(0., .03)
-                       ..setVisibility(true)
-                       ..setFadepoint(1.)
-                       ..setLifespan(3.)
-                       ..setPermanent(false)
+        _standardTextTag(u.getPos(), "miss")..setColor(255, 0, 0, 255)
+                                            ..setFadepoint(1.)
 
 
     public function createShadowStrikeTextTag(unit u, int damage, bool isInitialDamage)
@@ -66,11 +53,6 @@ package StandardTextTags
         if isInitialDamage
             text += "!"
 
-        CreateTextTag()..setText(text, FONT_SIZE)
-                       ..setPos(u.getX(), u.getY(), 0.)
-                       ..setColor(160, 255, 0, 255)
-                       ..setVelocity(0., .04)
-                       ..setVisibility(true)
-                       ..setFadepoint(2.)
-                       ..setLifespan(5.)
-                       ..setPermanent(false)
+        _standardTextTag(u.getPos(), text)..setColor(160, 255, 0, 255)
+                                          ..setVelocity(0., .04)
+                                          ..setLifespan(5.)
