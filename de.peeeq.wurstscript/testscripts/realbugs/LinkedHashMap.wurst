@@ -1,0 +1,140 @@
+package LinkedHashMap
+//import NoWurst
+import HashMap
+import LinkedList
+import Wurstunit
+
+public class LinkedHashMap<K, V> extends HashMap<K, V>
+    private LinkedList<K>  keys
+    private LHMEntry<K, V> dummy
+
+    construct()
+    	super()
+        keys  = new LinkedList<K>()
+        dummy = new LHMEntry<K, V>(null, null)
+
+
+    /** Saves the given value under the given key. */
+    override function put(K key, V value)
+    	print("putting")
+        if not has(key)
+            print("adding")
+            keys.add(key)
+
+        super.put(key, value)
+
+
+    /** Removes the value saved under the given key. */
+    override function remove(K key)
+        super.remove(key)
+        keys. remove(key)
+
+
+    /** Clears the HashMap of all entries */
+    override function flush()
+        super.flush()
+        destroy keys
+        keys = new LinkedList<K>()
+
+
+    /** Gets an iterator for this LinkedHashMap. */
+    function iterator() returns LHMIterator<K, V>
+        return new LHMIterator(this, keys)
+
+
+    ondestroy
+        destroy keys
+        destroy dummy
+
+
+public class LHMEntry<K, V>
+    K key
+    V value
+
+    construct(K key, V value)
+        this.key   = key
+        this.value = value
+
+
+public class LHMIterator<K, V>
+    LHMEntry<K, V>      dummy
+    LinkedList<K>       keys
+    LLIterator<K>       keysIterator
+    LinkedHashMap<K, V> parentMap
+
+    construct(LinkedHashMap<K, V> parentMap, LinkedList<K> keys)
+        this.dummy        = new LHMEntry<K, V>(null, null)
+        this.keys         = keys
+        this.keysIterator = keys.iterator()
+        this.parentMap    = parentMap
+
+
+    /** Remove the current element from the LinkedHashMap. */
+    function remove()
+        if not dummy.key == null
+            parentMap.remove(dummy.key)
+            keysIterator.remove()
+
+
+    function hasNext() returns bool
+        return keysIterator.hasNext()
+
+
+    function next() returns LHMEntry<K, V>
+        dummy.key   = keysIterator.next()
+        dummy.value = parentMap.get(dummy.key)
+        return dummy
+
+
+    function close()
+        keysIterator.close()
+        destroy this
+
+
+@test function checkPutFetch()
+    let map = new LinkedHashMap<int, int>()
+    map.put(5, 6)
+    let six = map.get(5)
+    six.assertEquals(6)
+    // destroy map
+
+
+@test function checkCanIterate()
+    let map = new LinkedHashMap<int, int>()
+
+    map.put(5, 6)
+    print("hello world")
+    map.put(6, 9)
+	print("hello world")
+
+    var sum = 0
+
+    print(".")
+    let iter = map.iterator()
+    print(".")
+    while iter.hasNext()
+        print(".")
+        let entry = iter.next()
+        print(".")
+
+        sum += entry.value
+        print(".")
+    print(".")
+    iter.close()
+    print(".")
+
+    sum.assertEquals(15)
+    // destroy map
+
+@test function canHaveMultipleMaps()
+    let map  = new LinkedHashMap<int, int>()
+    let map2 = new LinkedHashMap<int, int>()
+
+    map. put(1, 2)
+    map2.put(3, 4)
+
+    map. get(1).assertEquals(2)
+    map2.get(3).assertEquals(4)
+
+    destroy map
+    destroy map2
