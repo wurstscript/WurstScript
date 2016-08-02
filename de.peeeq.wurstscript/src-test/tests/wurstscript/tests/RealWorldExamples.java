@@ -2,7 +2,10 @@ package tests.wurstscript.tests;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -29,6 +32,21 @@ public class RealWorldExamples extends WurstScriptTest {
 	public void arrayindex() throws IOException {
 		// see bug #96
 		super.testAssertOkFileWithStdLib(new File(BUG_DIR + "arrayindex.wurst"), false);
+	}
+	
+	@Test
+	public void linkedHashMap() throws IOException { // see bug #478
+		Iterable<File> inputFiles = Arrays.asList(new File(BUG_DIR + "LinkedHashMap.wurst"));
+		
+		Map<String, String> inputs = Collections.emptyMap();
+		String name = "linkedHashMap";
+		boolean executeProg = false;
+		boolean withStdLib = true;
+		boolean executeTests = true;
+		// 
+		//testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
+		testScript(inputFiles , inputs , name , executeProg, withStdLib, executeTests);
+		//super.testAssertOkFileWithStdLib(new File(BUG_DIR + "LinkedHashMap.wurst"), true);
 	}
 	
 	@Test
