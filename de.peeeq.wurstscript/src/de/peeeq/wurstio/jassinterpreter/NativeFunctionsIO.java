@@ -109,11 +109,21 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		@SuppressWarnings("unchecked")
 		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
 		Map<Integer, Object> map2 = map.get(key1.getVal());
-		if (map2 == null) {
-			return ILconstInt.create(0);
+		if (map2 != null) {
+			Object value = map2.get(key2.getVal());
+			if (value instanceof ILconstInt) {
+				return (ILconstInt) value;
+			}
 		}
-		return (ILconstInt) map2.get(key2.getVal());
+		return ILconstInt.create(0);
 	}
+	
+	public ILconstInt FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
+		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+		map.remove(parentKey.getVal());
+		return ILconstInt.create(0);
+	}
+	
 
 	public ILconstReal SquareRoot(ILconstReal r) {
 		return new ILconstReal(Math.sqrt(r.getVal()));

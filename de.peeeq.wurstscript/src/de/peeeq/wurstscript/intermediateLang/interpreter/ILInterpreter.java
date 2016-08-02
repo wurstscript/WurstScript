@@ -29,9 +29,7 @@ import de.peeeq.wurstscript.utils.LineOffsets;
 public class ILInterpreter {
 	private ImProg prog;
 	private final ProgramState globalState;
-	
 
-	
 	public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
 		this.prog = prog;
 		this.globalState = globalState;
@@ -43,61 +41,82 @@ public class ILInterpreter {
 		this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
 	}
 
-	public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable JassImElement caller, ILconst ... args) {
-		String[] parameterTypes = new String[args.length];
-		for (int i=0; i<args.length; i++) {
-			parameterTypes[i] = "" + args[i];
-		}
-		
-		if (f.getParameters().size() != args.length) {
-			throw new Error("wrong number of parameters when calling func " + f.getName());
-		}
-		
-		for (int i = 0; i<f.getParameters().size(); i++) {
-			// TODO could do typecheck here
-			args[i] = adjustTypeOfConstant(args[i], f.getParameters().get(i).getType());
-		}
-		
-		if (isCompiletimeNative(f)) {
-			return runBuiltinFunction(globalState, f, args);
-		}
-		
-		
-		if (f.isNative()) {
-			return runBuiltinFunction(globalState, f, args);
-		}
-		
-		
-		
-		LocalState localState = new LocalState();
-		int i = 0;
-		for (ImVar p : f.getParameters()) {
-			localState.setVal(p, args[i]);
-			i++;
-		}
-		
-		globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
-		
-		
+	public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable JassImElement caller,
+			ILconst... args) {
 		try {
-			f.getBody().runStatements(globalState, localState);
-			globalState.popStackframe();
-		} catch (ReturnException e) {
-			globalState.popStackframe();
-			ILconst retVal = e.getVal();
-			retVal = adjustTypeOfConstant(retVal, f.getReturnType());
-			return localState.setReturnVal(retVal);
+			String[] parameterTypes = new String[args.length];
+			for (int i = 0; i < args.length; i++) {
+				parameterTypes[i] = "" + args[i];
+			}
+
+			if (f.getParameters().size() != args.length) {
+				throw new Error("wrong number of parameters when calling func " + f.getName());
+			}
+
+			for (int i = 0; i < f.getParameters().size(); i++) {
+				// TODO could do typecheck here
+				args[i] = adjustTypeOfConstant(args[i], f.getParameters().get(i).getType());
+			}
+
+			if (isCompiletimeNative(f)) {
+				return runBuiltinFunction(globalState, f, args);
+			}
+
+			if (f.isNative()) {
+				return runBuiltinFunction(globalState, f, args);
+			}
+
+			LocalState localState = new LocalState();
+			int i = 0;
+			for (ImVar p : f.getParameters()) {
+				localState.setVal(p, args[i]);
+				i++;
+			}
+
+			globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
+
+			try {
+				f.getBody().runStatements(globalState, localState);
+				globalState.popStackframe();
+			} catch (ReturnException e) {
+				globalState.popStackframe();
+				ILconst retVal = e.getVal();
+				retVal = adjustTypeOfConstant(retVal, f.getReturnType());
+				return localState.setReturnVal(retVal);
+			}
+			if (f.getReturnType() instanceof ImVoid) {
+				return localState;
+			}
+			throw new InterpreterException("function " + f.getName() + " did not return any value...");
+		} catch (InterpreterException e) {
+			String msg = buildStacktrace(globalState, e);
+			throw e.withStacktrace(msg);
+		} catch (Exception e) {
+			String msg = buildStacktrace(globalState, e);
+			throw new InterpreterException(globalState.getLastStatement().attrTrace(), "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
 		}
-		if (f.getReturnType() instanceof ImVoid) {
-			return localState;
+	}
+
+	private static String buildStacktrace(ProgramState globalState, Exception e) {
+		StringBuilder err = new StringBuilder();
+		try {
+			WPos src = globalState.getLastStatement().attrTrace().attrSource();
+			err.append("at : " + new File(src.getFile()).getName() + ", line " + src.getLine() + "\n");
+		} catch (Exception _e) {
+			// ignore
 		}
-		throw new InterpreterException("function " + f.getName() + " did not return any value...");
+		for (int i=globalState.getStackFrames().size()-1; i>=0; i--) {
+			ILStackFrame sf = globalState.getStackFrames().get(i);
+			err.append(sf.getMessage());
+			err.append("\n");
+		}
+		String msg = err.toString();
+		return msg;
 	}
 
 	@SuppressWarnings("null")
 	private static ILconst adjustTypeOfConstant(@Nullable ILconst retVal, ImType expectedType) {
-		if (retVal instanceof ILconstInt
-				&& isTypeReal(expectedType)) {
+		if (retVal instanceof ILconstInt && isTypeReal(expectedType)) {
 			ILconstInt retValI = (ILconstInt) retVal;
 			retVal = new ILconstReal(retValI.getVal());
 		}
@@ -158,7 +177,8 @@ public class ILInterpreter {
 				return runFunc(globalState, f, trace);
 			}
 		}
-		throw new Error("no function with name "+ funcName + "was found.");
+
+		throw new Error("no function with name " + funcName + "was found.");
 	}
 
 	public void runVoidFunc(ImFunction f, @Nullable JassImElement trace) {
@@ -172,7 +192,7 @@ public class ILInterpreter {
 
 	public void writebackGlobalState(boolean injectObjects) {
 		globalState.writeBack(injectObjects);
-		
+
 	}
 
 	public ProgramState getGlobalState() {
@@ -180,7 +200,7 @@ public class ILInterpreter {
 	}
 
 	public void addNativeProvider(NativesProvider np) {
-		globalState.addNativeProvider(np);		
+		globalState.addNativeProvider(np);
 	}
 
 	public void setProgram(ImProg imProg) {
@@ -191,8 +211,7 @@ public class ILInterpreter {
 
 	public Stack<ILStackFrame> getStackFrames() {
 		return globalState.getStackFrames();
-		
-	}
 
+	}
 
 }

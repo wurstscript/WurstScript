@@ -9,6 +9,8 @@ public class InterpreterException extends RuntimeException {
 	
 	private final AstElement trace;
 
+	private String stackTrace;
+
 	public InterpreterException(ProgramState g, String msg) {
 		super(msg);
 		this.trace = g.getLastStatement().attrTrace();
@@ -24,6 +26,11 @@ public class InterpreterException extends RuntimeException {
 		this.trace = trace;
 	}
 
+	public InterpreterException(AstElement trace, String msg, Exception e) {
+		super(msg, e);
+		this.trace = trace;
+	}
+
 	@Override
 	public String toString() {
 		if (trace == null) {
@@ -32,7 +39,14 @@ public class InterpreterException extends RuntimeException {
 		System.err.println(trace);
 		System.err.println(trace.attrSource());
 		WPos pos = trace.attrSource();
-		return "at " + pos.print() +":\n" + getMessage();
+		return "at " + pos.print() +":\n" + getMessage() 
+			+ (stackTrace != null ? "\nStack trace:\n" + stackTrace : "");
+	}
+
+
+	public InterpreterException withStacktrace(String msg) {
+		this.stackTrace = msg;
+		return this;
 	}
 
 }
