@@ -13,3 +13,7 @@ public function boolean.toInt() returns int
 		return 1
 	else
 		return 0
+
+/** Exclusive Or */
+public function boolean.xor(boolean other) returns boolean
+	return (this or other) and !(this and other)
