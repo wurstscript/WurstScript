@@ -42,6 +42,17 @@ public function texttag.setVisibility( boolean flag )
 public function texttag.destr()
 	DestroyTextTag(this)
 
+function texttag.criticalStrike(unit u, int damage)
+	let text = damage.toString() + "!"
+	this..setText(text, 0.024 / 0.0023)
+		..setPos(u.getX(), u.getY(), 0.)
+		..setColor(255, 0, 0, 255)
+		..setVelocity(0., .04)
+		..setVisibility(true)
+		..setFadepoint(2.)
+		..setLifespan(5.)
+		..setPermanent(false)
+
 public function createTTEx(vec3 pos, string message, real size, colorA col ) returns texttag
 	return CreateTextTag()
 		..setText( message, size )
