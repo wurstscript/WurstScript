@@ -930,4 +930,14 @@ public class Utils {
 		}
 		return result.toString();
 	}
+
+	public static boolean elementContained(AstElement e, AstElement in) {
+		while (e != null) {
+			if (e == in) {
+				return true;
+			}
+			e = e.getParent();
+		}
+		return false;
+	}
 }
