@@ -55,6 +55,7 @@ public class LanguageServer {
     }
 
     private void handleRequest(RequestPacket req) {
+    	log("handleRequest " + req.getPath());
         switch (req.getPath()) {
             case "fileChanged": {
                 String filePath = req.getData().getAsJsonPrimitive().getAsString();
@@ -139,6 +140,8 @@ public class LanguageServer {
             }
             default:
                 log("unhandled request: " + req.getPath());
+                sendConsoleOutput("Unhandled editor request: " + req.getPath() + ". Please check your wurstscript.jar version.\n");
+                
         }
     }
 

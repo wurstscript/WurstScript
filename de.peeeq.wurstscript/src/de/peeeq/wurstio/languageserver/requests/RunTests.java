@@ -15,6 +15,7 @@ import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.languageserver.LanguageServer;
 import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
@@ -53,14 +54,18 @@ public class RunTests extends UserRequest {
 
 	@Override
 	public Object execute(ModelManager modelManager) {
+		WLogger.info("Starting tests "+ filename + ", " + line + ", " + column);
 		print("Running tests ... \n\n\n");
 		
 		CompilationUnit cu = filename == null ? null : modelManager.getCompilationUnit(filename);
+		WLogger.info("test.cu = " + Utils.printElement(cu));
 		FuncDef funcToTest = getFunctionToTest(cu);
+		WLogger.info("test.funcToTest = " + Utils.printElement(funcToTest));
 		
 		
 		ImProg imProg = translateProg(modelManager);
 		if (imProg == null) {
+			print("Could not run tests, because program did not compile.\n");
 			return "Could not translate program";
 		}
 		
@@ -112,7 +117,7 @@ public class RunTests extends UserRequest {
 				+ "\n\tat " + Utils.printElementWithSource(e.getValue().getA().attrTrace())+ "\n");
 		}
 		
-		
+		WLogger.info("finished tests");
 		return "ok";
 	}
 
