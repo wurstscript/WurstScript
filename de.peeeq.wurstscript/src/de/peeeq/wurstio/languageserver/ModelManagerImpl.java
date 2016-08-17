@@ -387,7 +387,7 @@ public class ModelManagerImpl implements ModelManager {
 
 		try (InputStreamReader reader = new FileReader(sourceFile)) {
 			CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
-			cu.setFile(sourceFile.getAbsolutePath());
+			cu.setFile(getProjectRelativePath(sourceFile));
 			return cu;
 		}
 	}
