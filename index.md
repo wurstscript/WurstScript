@@ -50,8 +50,8 @@ If you prefer manual downloads over the automatic updater, you can use the links
 * [Compiler](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip): 
 			This download only contains the wurstscript folder of the Pack. Usually it is sufficient to update this folder, since 
 			other parts of the Pack are rarely changed.
-* [Standard Library](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_lib.zip): 
-			This is standard library.
+* [Standard Library](https://github.com/peq/wurstStdlib): 
+			This is standard library repository.
 * [Wurstscript.jar](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstscript.jar): 
 			This is only the main jar file for the compiler. For small bugfixes it is often sufficient to replace this file, but
 			to be sure you should usually choose the bigger downloads.
