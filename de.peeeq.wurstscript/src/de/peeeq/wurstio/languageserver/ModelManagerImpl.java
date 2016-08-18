@@ -177,9 +177,10 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private String getProjectRelativePath(File f) {
-		Path pathRelative = projectPath.getAbsoluteFile().toPath().relativize(f.getAbsoluteFile().toPath());
+		Path pathRelative = projectPath.getAbsoluteFile().toPath().normalize().relativize(f.getAbsoluteFile().toPath().normalize());
 		return pathRelative.toString();
 	}
+	
 
 	private void addDependency(WurstGui gui, File depfile, String fileName, LineOffsets lineOffsets, int offset,
 							   int endOffset) {
@@ -535,7 +536,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
-		replaceCompilationUnit(filename, contents, reportErrors);
+		replaceCompilationUnit(normalizeFilename(filename), contents, reportErrors);
 	}
 
 	@Override
@@ -563,7 +564,6 @@ public class ModelManagerImpl implements ModelManager {
 			}
 		});
 		m.buildProject();
-
 	}
 
 	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
