@@ -399,6 +399,10 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 	@Override
 	void checkFinal(VarStates fin) {
 		for (LocalVarDef var : fin.states.keySet()) {
+			if (var.getName().startsWith("_")) {
+				// ignore warning, if name starts with "_"
+				continue;
+			}
 			for (WStatement ur : fin.getUnreadWrites(var)) {
 				if (ur instanceof LoopStatement) {
 					// no warnings for loop variables
