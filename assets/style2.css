@@ -23,13 +23,10 @@ canvas {
     height:  500px;
 }
 
-div#content {
-    padding: 20px 20px 600px 20px;
-    background: white;
+#content {
+    padding: 2em;
+    background: #fff;
 }
-
-
-
 
 h1.giant {
     font-size: 80px;
