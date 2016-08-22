@@ -127,6 +127,12 @@ td {
     padding-left: 15px;
 }
 
+.navbar-inner {
+    border-radius: 0;
+    border-width:  0;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+}
+
 #displayCanvas {
     position: fixed;
     z-index: -1;
