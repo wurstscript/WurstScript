@@ -21,6 +21,12 @@ body, html {
     margin:0;
     height:100%;
 }
+
+canvas {
+	width:  1200px;
+	height:  500px;
+}
+
 div#content {
     padding: 20px 20px 600px 20px;
     background: white;
