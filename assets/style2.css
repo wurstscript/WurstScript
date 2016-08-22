@@ -1,21 +1,21 @@
 
 #content pre {
-	background-color: #E6E6FA;
-	border: none;
+    background-color: #E6E6FA;
+    border: none;
 }
 
 
 
 
 .bg {
-	min-height:100%;
+    min-height:100%;
 }
 .bggradient {
-	/*
-	background: -prefix-linear-gradient(right, #282828, white 50%, #282828);
-	background: linear-gradient(to left, #282828, white 50%, #282828);
-	*/
-	background: linear-gradient(to right, rgba(30,30,30,1.0), rgba(200,200,200,1.0) 40%, rgba(200,200,200,1.0) 60%, rgba(30,30,30,1.0));
+    /*
+    background: -prefix-linear-gradient(right, #282828, white 50%, #282828);
+    background: linear-gradient(to left, #282828, white 50%, #282828);
+    */
+    background: linear-gradient(to right, rgba(30,30,30,1.0), rgba(200,200,200,1.0) 40%, rgba(200,200,200,1.0) 60%, rgba(30,30,30,1.0));
 }
 body, html {
     margin:0;
@@ -23,8 +23,8 @@ body, html {
 }
 
 canvas {
-	width:  1200px;
-	height:  500px;
+    width:  1200px;
+    height:  500px;
 }
 
 div#content {
@@ -36,14 +36,14 @@ div#content {
 
 
 h1.giant {
-	font-size: 80px;
+    font-size: 80px;
     line-height: 80px;
     text-shadow: 2px 2px 5px #aaa;
 }
 
 .anchorlink {
-	margin-left: 10px;
-	visibility: hidden;
+    margin-left: 10px;
+    visibility: hidden;
 }
 
 h1:hover .anchorlink,
@@ -52,22 +52,22 @@ h3:hover .anchorlink,
 h4:hover .anchorlink,
 h5:hover .anchorlink,
 h6:hover .anchorlink {
-	visibility: visible;
+    visibility: visible;
 }
 
 /*
 #content code {
-	white-space:pre;
-	white-space:pre-wrap;
-	font-size: 16px;
-	line-height:20px;
+    white-space:pre;
+    white-space:pre-wrap;
+    font-size: 16px;
+    line-height:20px;
 }
 
 #content p > code {
-	border: 1px solid #ccc;
-	background: #eee;
-	padding: 1px;
-	border-radius: 5px;
+    border: 1px solid #ccc;
+    background: #eee;
+    padding: 1px;
+    border-radius: 5px;
 }
 *
 */
@@ -78,10 +78,10 @@ h6:hover .anchorlink {
 
 pre .keyword
 {color:#333366;
-	font-weight:bold;
+    font-weight:bold;
 }
 pre .typename {
-	color: #630;
+    color: #630;
 }
 .style_function
 {color:#906;
@@ -94,14 +94,14 @@ pre .git
 }
 pre .comment
 {color:#999;
-	font-style: italic;
+    font-style: italic;
 }
 .style_type
 {color:#228888;
 }
 .style_symbol
 {color:#000000;
-	font-weight:bold;
+    font-weight:bold;
 }
 pre .number
 {color:#AA0000;
@@ -114,8 +114,8 @@ pre .number
 }
 .highlight_line
 {width:100%;
-	background-color:#ff7;
-	white-space:pre;
+    background-color:#ff7;
+    white-space:pre;
 height:16px;
 display:list-item;
 }
@@ -127,15 +127,15 @@ display:list-item;
 
 code
 {
-	font-family:Consolas, monospace,Courier New,Verdana,Tahoma,Arial;
-	color:#000000;
-	line-height: 110%;
+    font-family:Consolas, monospace,Courier New,Verdana,Tahoma,Arial;
+    color:#000000;
+    line-height: 110%;
     white-space:pre-wrap;
 }
 pre
 {
-	line-height: 110%;
-	margin:20px;
+    line-height: 110%;
+    margin:20px;
 }
 .nullline
 {white-space:pre;
@@ -149,20 +149,20 @@ height:16px;
 }
 
 td {
-	padding-right: 15px;
-	padding-left: 15px;
+    padding-right: 15px;
+    padding-left: 15px;
 }
 
 #displayCanvas {
-	position: fixed;
-	z-index: -1;
-	width: 100%;
-	height: 111%;
+    position: fixed;
+    z-index: -1;
+    width: 100%;
+    height: 111%;
 }
 
 @media (max-width: 1024px) {
-	/* no background for small devices*/
-	#displayCanvas {
-		display: none;
-	}
+    /* no background for small devices*/
+    #displayCanvas {
+        display: none;
+    }
 }
