@@ -1,19 +1,19 @@
 [h1][size=6][color=#fff]WurstScript[/color][/size][/h1]
 [size=2][color=#888]by peq & Frotty[/color][/size]
 [size=2][color=#888]with contributions from Crigges & muzzel[/color][/size]
-    
+
 [center]
 	[IMG]https://dl.dropboxusercontent.com/u/19704285/Wurst.jpg[/IMG]
 	[img]https://dl.dropboxusercontent.com/u/19704285/wurstmall.jpg[/img]
 [/center]
-	
+
 WurstScript is a Scripting language, which can, similar to vJass, cJass and zinc, be translated to Jass.
 
 
 [h2]Why a new Scripting language? [/h2]
 [indent]
 
-The only alternative to Wurst is vJass (or cJass, zinc, ..., which are basically all the same). 
+The only alternative to Wurst is vJass (or cJass, zinc, ..., which are basically all the same).
 
 If you are interested in what we did not like about vJass click the button:
 [hidden="vJass critique"]
@@ -90,30 +90,30 @@ class WarStomb
 	Fx missile
 	vec3 missileVelocity
 	timer t = getTimer()
-	
+
 	construct(unit caster, int spellLvl, vec2 targetPos)
 		this.caster = caster
 		this.spellLvl = spellLvl
 		vec2 casterPos = caster.getPos()
 		angle castDirection = casterPos.angleTo(targetPos)
 		real distToTarget = casterPos.distToVec(targetPos)
-		
+
 		// the initial z-speed is calculated, so that the z-speed will be 0 after half the flytime
 		let flyTime = distToTarget / missileSpeed
 		let speedZ = (flyTime/2) * gravity
-		
+
 		let missileVelocity2D = missileSpeed * castDirection.direction()
 		missileVelocity = missileVelocity2D.withZ(speedZ)
-		
+
 		missile = new Fx(casterPos, castDirection, missileType)
 		missile.setScale(1.5)
-		
+
 		t.setData(this castTo int)
 		t.startPeriodic(ANIMATION_PERIOD, function callMoveMissile)
-		
+
 	static function callMoveMissile()
 		(GetExpiredTimer().getData() castTo WarStomb).moveMissile()
-		
+
 	function moveMissile()
 		vec3 missilePos = missile.getPos3d()
 		missilePos += missileVelocity * ANIMATION_PERIOD
@@ -121,7 +121,7 @@ class WarStomb
 		missileVelocity.z -= gravity * ANIMATION_PERIOD
 		if missilePos.z <= 0
 			onImpact()
-		
+
 	function onImpact()
 		let missilePos = missile.getPos2()
 		//create a big effect at location location of the missile
@@ -130,26 +130,26 @@ class WarStomb
 			..flash(effectType2)
 		//destroy the effect after 2 seconds
 		doAfter(2, () -> destroy fx)
-		
+
 		for unit u from ENUM_GROUP..enumUnitsInRange(missilePos, impactAoe)
 			let distToImpact = missilePos.distToVec(u.getPos())
 			let distanceFactor = 1 - (distToImpact / impactAoe)
 			//damage the unit relative to it's damage distance to the caster
 			let damage = (maxSpellDamage + spellLvl * lvlDamageBonus)*distanceFactor
 			caster.damageTarget(u,  damage)
-			
+
 			//knockback the target unit away from the impact location
-			new Knockback(caster, u, knockbackStrength * distanceFactor, 
+			new Knockback(caster, u, knockbackStrength * distanceFactor,
 							knockbackTime, missilePos.angleTo(u.getPos()))
 		destroy this
-		
+
 	ondestroy
 		t.release()
 		destroy missile
-		
+
 init
 	//Creates a new instance of the class WarStomb if the spell is casted
-	onPointCast(spellId, (unit caster, int spellLvl, vec2 targetPos) -> 
+	onPointCast(spellId, (unit caster, int spellLvl, vec2 targetPos) ->
 		new WarStomb(caster, spellLvl, targetPos))
 [/JASS]
 
@@ -167,7 +167,7 @@ The full list of features is documented in the [url=http://peq.github.io/WurstSc
 
 The type of local variables can automatically be derived from the initial value. Furthermore variables can be declared at any position in a function, not just the beginning.
 
-[JASS]	
+[JASS]
 	// "let" defines a local constant
 	let harald = CreateUnit(Player(0), 'hfoo', x, y, 0)
 	// "var" defines a local variable
@@ -182,18 +182,18 @@ We encourage you to use [b]let[/b] whenever possible, because code is easier rea
 
 Extension functions allow to add specific functions to an already existing type, which can be used via dot-syntax.
 
-Declaration: 
+Declaration:
 [JASS]
 	public function unit.getOwner() returns player
 		return GetOwningPlayer(this)
-		
+
 	function player.getName() returns string
 		return GetPlayerName(this)
 [/JASS]
 
 Usage:
-	
-[JASS]	
+
+[JASS]
 	print(GetKillingUnit().getOwner().getName() + " killed " +
 		GetTriggerUnit().getOwner().getName() + "!")
 [/JASS]
@@ -211,9 +211,9 @@ Extension functions have two pros in comparison to normal functions:
 [/JASS]
 [/list]
 
-        
+
 [h3]Tuples[/h3]
-		
+
 A Tuple is a very simple Datatype. It allows to group several values into one. This allows treating the group of values as a group. Other than classes, tuples don't create any overhead. They don't have to be created or destroyed and can be used for primitive data types (int, string, etc.). A good example are vectors(from the stdlib):
 
 Definition:
@@ -221,35 +221,35 @@ Definition:
 [JASS]
 	// A 2d vector with the components x and y
 	public tuple vec2( real x, real y )
-	
+
 	// Operator overloading functions:
 	public function vec2.op_plus( vec2 v )	returns vec2
 		return vec2(this.x + v.x, this.y + v.y)
-	
+
 	public function vec2.op_minus( vec2 v )	returns vec2
 		return vec2(this.x - v.x, this.y - v.y)
-		
+
 	public function vec2.op_mult(real factor) returns vec2
-		return vec2(this.x*factor, this.y*factor) 
-	
+		return vec2(this.x*factor, this.y*factor)
+
 	// dot product:
 	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y
-	
+
 	// length:
 	public function vec2.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
-	
+
 	// normalized Vector:
 	public function vec2.norm() returns vec2
         real len = this.length()
-        real x = 0 
+        real x = 0
         real y = 0
         if (len != 0.0)
             x = (this.x / len)
             y = (this.y / len)
         return vec2(x,y)
-	
+
 	public function vec2.polarOffset(real angle, real dist) returns vec2
 		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
 [/JASS]
@@ -269,7 +269,7 @@ Usage:
 		fx.setPos(pos.x, pos.y)
 		SetUnitFacing(fx, (angle + bj_PI/2)*bj_RADTODEG)
 		checkCollisions()
-		
+
 	// projectile moving forward
 	function moveForward()
 		// Add velocity to position
@@ -289,7 +289,7 @@ With anonymous you can define a new function where it is needed. This is useful 
 class Fireball
 	timer t
 	//...
-	
+
 	construct(unit caster, vec2 target)
 		// ...
 		t = getTimer()
@@ -297,8 +297,8 @@ class Fireball
 		t.start(0.05, () -> begin
 			let fireball = GetExpiredTimer().getData() castTo Fireball
 			fireball.move()
-		end) 
-	
+		end)
+
 	function move()
 		// do stuff
 [/JASS]
@@ -342,17 +342,17 @@ init
 		let casterPos = caster.getPos()
 		let castDirection = casterPos.angleTo(targetPos)
 		let distToTarget = casterPos.distToVec(targetPos)
-		
+
 		// the initial z-speed is calculated, so that the z-speed will be 0 after half the flytime
 		let flyTime = distToTarget / missileSpeed
 		let speedZ = (flyTime/2) * gravity
-		
+
 		let missileVelocity2D = missileSpeed * castDirection.direction()
 		var missileVelocity = missileVelocity2D.withZ(speedZ)
-		
+
 		let missile = new Fx(casterPos, castDirection, missileType)
 			..setScale(1.5)
-		
+
 		doPeriodically(ANIMATION_PERIOD, (CallbackPeriodic cb) -> begin
 			var missilePos = missile.getPos3d()
 			missilePos += missileVelocity * ANIMATION_PERIOD
@@ -360,7 +360,7 @@ init
 			missileVelocity.z -= gravity * ANIMATION_PERIOD
 			if missilePos.z <= 0
 				let impactPos = missilePos.toVec2()
-				
+
 				//create a big effect at location location of the missile
 				let fx = new Fx(missilePos, angle(0), effectType)
 					..setScale(2)
@@ -374,16 +374,16 @@ init
 					//damage the unit relative to it's damage distance to the caster
 					let damage = (maxSpellDamage + spellLvl * lvlDamageBonus)*distanceFactor
 					caster.damageTarget(u,  damage)
-					
+
 					//knockback the target unit away from the impact location
-					new Knockback(caster, u, knockbackStrength * distanceFactor, 
+					new Knockback(caster, u, knockbackStrength * distanceFactor,
 									knockbackTime, impactPos.angleTo(u.getPos()))
 				end)
-				
+
 				destroy missile
 				// stop periodic call:
 				destroy cb
-				
+
 		end)
 	end)
 [/Jass]
@@ -518,7 +518,7 @@ Other links:
 [/indent]
 [h2]Projects using Wurst[/h2]
 
-[list]	
+[list]
 [*][url]http://www.hiveworkshop.com/forums/map-development-202/heart-night-225166/[/url]
 [*][url]http://www.hiveworkshop.com/forums/maps-564/escape-builder-r-0-82z-184964/[/url]
 [*][url]https://github.com/Frotty/24Challenge[/url]

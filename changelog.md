@@ -44,7 +44,7 @@ Wurst now requires *Java 8*. Download it [here](http://www.oracle.com/technetwor
 - fixed bug with empty switch statements
 - fixed a bug in the interpreter when handling ints/reals and overloading of natives
 - fixed a problem when starting a map from eclipse on certain Windows installations
-- fixed #310: cyclic class hierarchies 
+- fixed #310: cyclic class hierarchies
 
 ### Std-Lib:
 
@@ -71,7 +71,7 @@ Version 1.4.1.0
 
 ### Language Changes:
 
-- The init order now again depends on the import order. 
+- The init order now again depends on the import order.
 	A cyclic init order is forbidden.
 	Use the `initlater` keyword on imports to break cycles.
 - The rules for newlines are changed.
@@ -94,7 +94,7 @@ Version 1.4.1.0
 - Eclipse now has a command to extract all Custom-Text-Triggers from a map to separate files in the current project.
 - The Wurstpack can now automatically import all files from an import-folder into the map.
 - Some improvements in the Wurstpack updater tool.
-- .j files are now parsed as Jurst files. 
+- .j files are now parsed as Jurst files.
 
 
 ### Bugfixes:
@@ -111,7 +111,7 @@ Version 1.4.1.0
 ### Internal changes:
 
 - Compiler now uses Antlr4 instead of Cup and Jflex for parsing.
-- Wurst now uses Jmpq2, a new pure Java mpq library written by Crigges. 
+- Wurst now uses Jmpq2, a new pure Java mpq library written by Crigges.
 	This should eliminate some rare bugs with the old MPQ library and make everything easier to port to different platforms.
 
 
@@ -168,7 +168,7 @@ Version 1.3.0.0
 ### Tools:
 
 * New Updater (still beta, not part of the WurstPack release yet)
-* Changed MPQ editor to Jmpq (loading StormLib via JNA). With this change it is now possible to compile and run Maps 
+* Changed MPQ editor to Jmpq (loading StormLib via JNA). With this change it is now possible to compile and run Maps
 	from Linux systems. Macs should also be supported, but this has not been tested yet.
 * WurstPack now adds an option for starting the map with SharpCraft, when there is a SharpCraft folder in WurstPack (not included by default).
 
@@ -258,7 +258,7 @@ Version 1.1.0.6
 * fixed bug in closure translation, when closure implementation had type void
 
 
-### Standard Library: 
+### Standard Library:
 
 * ClosureEvents and ClosureTimers packages
 
@@ -291,7 +291,7 @@ Version 1.1.0.2
 * fixed bug in closure type calculation
 * eclipse plugin: fixed problem in repl with generics and improved reconciler behavior in case of parse errors
 
-### Standard Library: 
+### Standard Library:
 
 * LinkedList: addded closure functions
 
@@ -299,7 +299,7 @@ Version 1.1.0.2
 version 1.1.0.1
 =========================
 
-### Language: 
+### Language:
 
 * Added [anonymous functions and closures](http://peq.github.io/WurstScript/manual.html#lambda_expressions_and_closures)
 * It is now possible to destroy an object via an interface type

@@ -4,7 +4,7 @@ title: Manual
 ---
 
 
-_by peq & Frotty_ 
+_by peq & Frotty_
 
 
 WurstScript (short Wurst) is a programming language named after the German word for sausage.
@@ -14,7 +14,7 @@ The sausage is a symbol for encapsulation (Peel/Pelle), compactness (sausage mea
 **Remember**: WurstScript and its related tools are in a probably unstable state and under heavy development, so you may encounter errors and bugs we don't know about. Please report any
 problems with our [issue tracker at GitHub](https://github.com/peq/WurstScript/issues/new).
 
-*Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions. 
+*Note*: WurstScript is written in Java and should therefore be usable on Windows, OS/X and most Linux Distributions.
 This applies only to the compiler & plugins, because the Wurstpack is based on the Jass New Gen Pack (and therefore windows-only).
 
 <div id="tableofcontents">loading TOC ...</div>
@@ -46,12 +46,12 @@ Or visit the [IRC channel we usually hang out](http://webchat.quakenet.org/?chan
 # Syntax
 
 The WurstScript Syntax uses indention to define Blocks, instead of using curly
-brackets (like Java) or keywords like 'endif' (like Jass). You can use either spaces or tabs for indentation, but mixing both will throw a warning. 
+brackets (like Java) or keywords like 'endif' (like Jass). You can use either spaces or tabs for indentation, but mixing both will throw a warning.
 In the following we use the word "tab" to refer to the tab character or to 4 space characters.
 
 
 	// Some language using curly brackets (e.g. Java or Zinc)
-	if condition 
+	if condition
 	{
 		ifStatements
 	}
@@ -72,7 +72,7 @@ In general newlines come at the end of a statement, with some exceptions:
 
 - A newline is ignored after a line ending with `(` or `[`
 - A newline is ignored before a line beginning with `)`, `]`,`.` or `..`
-- A newline is ignored, when one of the following tokens comes before or after the newline: 
+- A newline is ignored, when one of the following tokens comes before or after the newline:
     `,`, `+`, `*`, `-`, `div`, `/`, `mod`, `%`, `and`, `or`, `->`
 
 You can use this to break longer expressions or long parameter lists over several lines, or to chain method invocations:
@@ -91,8 +91,8 @@ provide a clear and readable look. At the same time it is less verbose than Jass
 
 # Basics
 
-Wurst code is organized into _packages_. All your wurst code has to be inside a _package_. 
-Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package. 
+Wurst code is organized into _packages_. All your wurst code has to be inside a _package_.
+Packages can also _import_ other packages in order to use variables, functions, classes, etc. from the imported package.
 Packages can have an _init_ block that is executed when the map is loaded.
 
 
@@ -105,9 +105,9 @@ Packages can have an _init_ block that is executed when the map is loaded.
 		/* calling the print function from the PrintingHelper package */
 		print("Hello Wurst!")
 
-	
 
-For more information about packages, refer to the packages section. 
+
+For more information about packages, refer to the packages section.
 You can still use normal Jass syntax/code outside of packages (when using WurstWE, those will be parsed by PJass), but inside packages only valid wurst/jurst code is expected.
 
 ## Naming Conventions
@@ -125,7 +125,7 @@ Since Wurst comes with optimizing tools build-in, you should always choose descr
 
 ## Functions
 
-A _function_ definition consists of a name, a list of formal parameters and a return 
+A _function_ definition consists of a name, a list of formal parameters and a return
 type. The return type is declared after the formal parameters using the _returns_ keyword.
 If the function does not return a value this part is omitted.
 
@@ -135,7 +135,7 @@ If the function does not return a value this part is omitted.
 			return a
 		else
 			return b
-			
+
 	// this function prints the maximum of two integers
 	function printMax(int a, int b)
 		print(max(a,b).toString())
@@ -148,7 +148,7 @@ If the function does not return a value this part is omitted.
 
 	function bar(int i) returns int // "returns" [type]
 		return i + 4
-	
+
 	function blub() returns int // without parameters
 		return someArray[5]
 
@@ -156,11 +156,11 @@ If the function does not return a value this part is omitted.
 		int i // local variable
 		i = i + 1 // variable assignment
 		int i2 = i // support for locals anywhere inside a function
-		
+
 
 ## Variables
 
-Global (local) variables can be declared anywhere in a package (function). 
+Global (local) variables can be declared anywhere in a package (function).
 A constant value may be declared using the _constant_ or _let_ keyword.
 Mutable variables are declared by using the _var_ keyword or by writing the type of the variable before its name.
 
@@ -174,7 +174,7 @@ Mutable variables are declared by using the _var_ keyword or by writing the type
 	int z = 7
 	// declaring an array
 	int array a
-    
+
     // inside a function
     function getUnitInfo( unit u )
         player p = u.getOwner()
@@ -183,8 +183,8 @@ Mutable variables are declared by using the _var_ keyword or by writing the type
         real x = u.getX()
         real y = u.getY()
 		let sum = x + y
-        
-        
+
+
 With these basic concepts you should be able to do anything you already know for Jass.
 The syntax is a little bit different of course, but this is covered in the next chapter.
 
@@ -193,44 +193,44 @@ The syntax is a little bit different of course, but this is covered in the next 
 
 Semi-Formal syntax:
 
-	Expr ::= 
+	Expr ::=
 		  Expr + Expr
-		| Expr - Expr   
+		| Expr - Expr
 		| Expr / Expr       // real division
 		| Expr div Expr     // integer division
 		| Expr % Expr       // real modulo
 		| Expr mod Expr     // integer modulo
-		| Expr and Expr     
+		| Expr and Expr
 		| Expr or Expr
-		| Expr < Expr 
-		| Expr <= Expr 
-		| Expr > Expr 
-		| Expr >= Expr 
-		| Expr == Expr 
-		| Expr != Expr 
-		| - Expr            
-		| not Expr 		
+		| Expr < Expr
+		| Expr <= Expr
+		| Expr > Expr
+		| Expr >= Expr
+		| Expr == Expr
+		| Expr != Expr
+		| - Expr
+		| not Expr
 		| IDENTIFIER 				// variable access
-		| IDENTIFIER(Expr, Expr, ...) 		// function call 	
-		| Expr . IDENTIFIER 			// member variable		
-		| Expr . IDENTIFIER(Expr, Expr, ...) 	// member function	
+		| IDENTIFIER(Expr, Expr, ...) 		// function call
+		| Expr . IDENTIFIER 			// member variable
+		| Expr . IDENTIFIER(Expr, Expr, ...) 	// member function
 		| Expr .. IDENTIFIER(Expr, Expr, ...) 	// member function, same as single dot
 		                                        // but returns the receiver type
 		| new IDENTIFIER(Expr, Expr, ...) 		// constructor call
 		| destroy Expr                  // destroy object
 		| Expr castTo Type				// casting
-		| Expr instanceof Type			// instance checking	
+		| Expr instanceof Type			// instance checking
 		| begin
 		    Statements
 		  end // statement expr
 		| (param1, param2, ...) -> Expr  // anonymous function
 		| (Expr)                        // parantheses
-		
+
 
 An _IDENTIFIER_ is a name of a variable or function. It may start with letters and may
-contain letters, numbers and underscores. 
+contain letters, numbers and underscores.
 
-**Note**: The definition above does not show calls to generic functions. These will be handled in 
+**Note**: The definition above does not show calls to generic functions. These will be handled in
 a separate chapter about generics.
 
 
@@ -244,7 +244,7 @@ Here is a small example
 		..registerAnyUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER)
 		..addCondition(Condition(function cond))
 		..addAction(function action)
-		
+
 The above code is basically equivalent to:
 
 	let temp = CreateTrigger()
@@ -263,7 +263,7 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 ### If
 
 
-	if x > y 
+	if x > y
 		... // the content inside the block simply has to be indent
 	else if x < y // closing the if, opening the elseif-block
 		...
@@ -274,12 +274,12 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
 	if x > y or x <= z and "blub" != "blah"
 		print("if is true")
 	print("if done.")
-	
+
 	if GetSpellAbilityId() == 'A000'
 		AddSpecialEffect( GetSpellTargetX(), GetSpellTargetY(), FX_PATH )
-    
+
 ### Switch
-    
+
     // i is of type int
     switch i
         case 1
@@ -290,7 +290,7 @@ The simplest statement is the _skip_ statement. It has no effect and can be used
             print("88")
         default
             print("not implemented")
-            
+
 As you see in the example, a switch statement is basically a nicer syntax for
 nesting ifs and else ifs, with the special default case.
 
@@ -298,7 +298,7 @@ nesting ifs and else ifs, with the special default case.
 
     while a > b // while-loop with input condition
 		...
-        
+
 	for int i = 0 to 10 // for-loop
 		...
 
@@ -326,13 +326,13 @@ In for loops you can also omit the type of the loop variable.
 
 ### For-in/from Loops
 
-The for-in loop lets you iterate over any object which provides an iterator. 
+The for-in loop lets you iterate over any object which provides an iterator.
 A for-in loop can be transformed into an equivalent while-loop very easily:
 
 
 	for A a in b
 		Statements
-	
+
 	// is equivalent to:
 	let iterator = b.iterator()
 	while iterator.hasNext()
@@ -350,7 +350,7 @@ The translation is very similar:
 	for segment from iterator
 		//Statements
 	iterator.close()
-	
+
 	// is equivalent to:
 	let iterator = myList.iterator()
 	while iterator.hasNext()
@@ -369,13 +369,13 @@ You can provide Wurst with an iterator for your desired type by providing a set 
 
 With this two functions you get an iterator which can be used in for-from loops.
 
-To make a type usable in for-in loops you have to provide 
+To make a type usable in for-in loops you have to provide
 
 -  function *iterator()* returns Iterator
 
-for your type, that returns the object for the iteration. 
+for your type, that returns the object for the iteration.
 This can either be a handle, like in the group-iterator or an object like the List-iterator.
-Your iterator should also provide a close function which clears all resources allocated by it. 
+Your iterator should also provide a close function which clears all resources allocated by it.
 Most often the iterator just destroys itself in the close function.
 
 Look at the 2 examples from the standard library:
@@ -393,24 +393,24 @@ Look at the 2 examples from the standard library:
 
 	public function group.next() returns unit
 		let u = FirstOfGroup(this)
-		GroupRemoveUnit(this, u) 
+		GroupRemoveUnit(this, u)
 		return u
 
 	public function group.close()
 		DestroyGroup(this)
-		
+
 As you can see, the iterator is a group, therefore the group needs to provide the functions mentioned above.
 This is done via extension functions.
-		
+
 **LinkedList-Iterator**
 
 	public class LinkedList<T>
 		...
-		
+
 		// get an iterator for this list
 		function iterator() returns LLIterator<T>
 			return new LLIterator(dummy)
-			
+
 	class LLIterator<Q>
 		LLEntry<Q> dummy
 		LLEntry<Q> current
@@ -428,15 +428,15 @@ This is done via extension functions.
 
 		function close()
 			destroy this
-			
+
 The LinkedList Iterator is a little different, because it's a class. Still it provides the needed functions and is therefore viable as iterator.
 It also contains some members to help iterating. A new instance if LLIterator is returned from the .iterator() function of the LinkedList.
 
 ### Assignment Shorthands
 
-	
+
 WurstScript supports the following shorthands for assignments:
-	
+
 	i++         // i = i + 1
 	i--         // i = i - 1
 	x += y      // x = x + y
@@ -447,7 +447,7 @@ WurstScript supports the following shorthands for assignments:
 Because these shorthands simply get translated into their equivalents, they can
 be used with overloaded operators, too.
 
-# Packages 
+# Packages
 As mentioned above every code-segment written in Wurst has to be inside a _package_,
 packages define the code organization and separate name-spaces.
 Packages can also have global variables - every variable that is not inside another block (function/class/module)
@@ -456,7 +456,7 @@ is declared global for that package.
 When working in WurstWE, packages have to end with the **endpackage** keyword and the code inside has to be indent.
 
 In WurstEclipse however, the **endpackage** can be omitted when the code inside is not indented.
-	
+
 	package SomeWurstWePackage
 		// Only for legacy WurstWE
 		...
@@ -494,25 +494,25 @@ By default imported names are not exported by the package. For example the follo
 
 	package A
 	public constant x = 5
-	
+
 	package B
 	import A
-	
+
 	package C
 	import B
 	constant z = x
 
 
-The variable x is usable in package B but it is not exported from B. So in package C we cannot use the variable x. 
+The variable x is usable in package B but it is not exported from B. So in package C we cannot use the variable x.
 We could fix this by simply importing A into C but sometimes you want to avoid those imports.
 Using public imports solves this problem because they will export everything that is imported. Thus the following code will work:
 
 	package A
 	public constant x = 5
-	
+
 	package B
 	import public A
-	
+
 	package C
 	import B
 	constant z = x
@@ -520,7 +520,7 @@ Using public imports solves this problem because they will export everything tha
 ### The special Wurst package
 
 By default, every package imports a package named Wurst.wurst which is defined in the standard library. This package exports some
-packages which are used very often. 
+packages which are used very often.
 
 If you do not want this standard import you can disable it by importing a package NoWurst. This directive is mainly used to
 resolve some cyclic dependencies in the standard library.
@@ -544,7 +544,7 @@ This has no impact on the generated code but throws an error when trying to comp
 
 	package Second
 	import First
-	
+
 	int k = i // Error
 	int m = j // Works, because j is public
 
@@ -554,17 +554,17 @@ This has no impact on the generated code but throws an error when trying to comp
 
 	function blub()
 		myImportantNumber = 123 // Error
-		
+
 	public constant int myPrivateNumber2 = 123 // Correct keyword order
 
 
 
 ## Init blocks
 Another package feature are init blocks.
-Every package can have one or multiple init blocks anywhere inside it. 
-All operations inside the init block of a package are executed at mapstart. 
+Every package can have one or multiple init blocks anywhere inside it.
+All operations inside the init block of a package are executed at mapstart.
 
-At the beginning of an init block you can assume that all global variables inside the 
+At the beginning of an init block you can assume that all global variables inside the
 current package are initialized.
 
 	package MyPackage
@@ -582,11 +582,11 @@ The initialization rules for Wurst are simple:
 1. Inside a package initialization is done from top to bottom.
 	The initializer of a package is the union of all global variable static initializers
 	(including static class variables) and all init blocks.
-2. If package A imports package B and the import is not a `initlater` import, 
-	then the initializer of package B is run before A's. 
+2. If package A imports package B and the import is not a `initlater` import,
+	then the initializer of package B is run before A's.
 	Cyclic imports without `initlater` are not allowed.
 
-If you get a Cyclic init dependency between packages, you have to manually define which package can be 
+If you get a Cyclic init dependency between packages, you have to manually define which package can be
 initialized later.
 This is done by adding the keyword `initlater` to the import of the package:
 
@@ -600,14 +600,14 @@ Packages `B` and `C` are allowed to be initialized later.
 
 ## Configuring Packages
 
-Global variables and functions can be configured. 
+Global variables and functions can be configured.
 Configuration is done via configuration packages.
 Each package has at most one configuration package and every configuration package configures exactly one package.
-The relation between a package and its configuration package is expressed via the following naming convention: 
+The relation between a package and its configuration package is expressed via the following naming convention:
 For a package named `Blub` the configuration package must be named `Blub_config`.
 
-Inside a configuration global variables can be annotated with the `@config` annotation. 
-This has the effect that the variable with the same name in the original package will be overridden with 
+Inside a configuration global variables can be annotated with the `@config` annotation.
+This has the effect that the variable with the same name in the original package will be overridden with
 the variable in the configuration package.
 In the original package, the variable should be annotated with `@configurable` to signal that it is safe to configure.
 Here is an example:
@@ -623,7 +623,7 @@ Configuring functions works basically the same:
 	package Example
 	@configurable public function math(int x, int y) returns int
 		return x + y
-		
+
 
 	package Example_config
 	@config public function math(int x, int y) returns int
@@ -641,10 +641,10 @@ Classes are easy, powerful and very helpful constructs. A _class_ defines data a
 
 	Caster dummyCaster = new Caster(200.0, 400.0)
 	dummyCaster.castFlameStrike(500.0, 30.0)
-	destroy dummyCaster		
+	destroy dummyCaster
 
 
-In this example we created a Caster named "dummyCaster" at the location(200, 400). 
+In this example we created a Caster named "dummyCaster" at the location(200, 400).
 Then we ordered **dummyCaster** to cast a flame strike at another position and finally we destroyed **dummyCaster**.
 
 This example shows you how to create a new object (line 1), invoke a function on an object (line 2) and how to destroy an object (line 3).
@@ -657,13 +657,13 @@ Defining a caster-class might look like this:
 
 	class Caster // opening the class-block. "Caster" is the name of the class
 		unit u // class variables can be defined anywhere inside a class
-	
+
 		construct(real x, real y)
 			u = CreateUnit(...)
-	
+
 		function castFlameStrike(real x, real y)
 			UnitIssueOrder(u, ...)
-	
+
 		ondestroy
 			KillUnit(u)
 
@@ -696,7 +696,7 @@ The constructor is called when creating the class via the _new_ keyword and allo
 
 
 
-In this example the constructor takes two integers a and b as parameters and sets the class variables to those. 
+In this example the constructor takes two integers a and b as parameters and sets the class variables to those.
 You can define more than one constructor as long as the parameters differ.
 
 
@@ -707,7 +707,7 @@ You can define more than one constructor as long as the parameters differ.
 		construct( int pA, int pB )
 		    	a = pA
 		    	b = pB
-	
+
 		construct( int pA, int pB, int pC )
 		    	a = pA
 		    	b = pB
@@ -724,7 +724,7 @@ You can define more than one constructor as long as the parameters differ.
 In this example the class pair has two constructors - one taking 2 and the second one taking three parameters.
 Depending on parameter-type and -count Wurst automatically decides which constructor to take when using "new".
 
-## This 
+## This
 
 The _this_ keyword refers to the current instance of the class on which the function was called. This also allows us to name the parameters the same as the class variables.
 However it can be left out in classfunctions, as seen above.
@@ -747,9 +747,9 @@ Ondestroy blocks are defined as previously shown
 
 	class UnitWrapper
 		unit u
-	
+
 		...
-	
+
 		ondestroy
 			RemoveUnit(u)
 
@@ -763,17 +763,17 @@ other elements belong to instances of the class. So you can call static function
 
 	class Terrain
 		static real someVal = 12.
-		
+
 		static int array someArr
-	
+
 		static function getZ( real x, real y ) returns real
 			...
-	
+
 	function foo()
 		real z = Terrain.getZ( 0, 0 ) // call with $Classname$.$StaticFunctionName$()
 		real r = Terrain.someVal // Same with members
 		real s = Terrain.someArr[0]
-		
+
 ## Dynamic, Sized Array-Members
 
 Wurstscript supports sized arrays as classmembers by translating it to SIZE times arrays and then resolve the array in a get/set function via binary search.
@@ -782,15 +782,15 @@ Example Usage:
 
 	class Rectangle
 		Point array[4] points
-		
+
 		function getPoint(int index)
 			return points[index]
-			
+
 		function setPoint(int index, Point nP)
 			points[index] = nP
 
 
-## Visibility Rules 
+## Visibility Rules
 
 By default class elements are visible everywhere. You can add the modifiers _private_ or _protected_ in front of a variable or function definition to restrict its visibility.
 Private elements can only be seen from within the class. Protected elements can be seen within the enclosing package and in subclasses.
@@ -798,30 +798,30 @@ Private elements can only be seen from within the class. Protected elements can 
 ## Subclassing
 
 A class can _extend_ an other class. The class then inherits all the non-private functions and variables from that class
-and can be used anywhere where the super class can be used. 
+and can be used anywhere where the super class can be used.
 
-Constructors of the class have to specify how the super class should be constructed. This is done using a _super_ call, 
+Constructors of the class have to specify how the super class should be constructed. This is done using a _super_ call,
 which defines the arguments for the super constructor. There can not be any statement before this call.
 
-If a constructor does not provide a super call, the compiler tries to insert a super call with no arguments. 
+If a constructor does not provide a super call, the compiler tries to insert a super call with no arguments.
 
 
 Functions inherited from super classes can be overridden in the subclass. Such functions have to be annotated with _override_.
-    
-          
+
+
 ### Example
 
-	class Missile 		
+	class Missile
 		construct(string fx, real x, real y)
 			// ...
-		
+
 		function onCollide(unit u)
 			skip
-	
+
 		// ...
-		
+
 	// a fireball missile is a special kind of missile
-	class FireballMissile extends Missile	
+	class FireballMissile extends Missile
 		// we construct it using a fireball fx
 		construct(real x, real y)
 			super("Abilities\\Weapons\\RedDragonBreath\\RedDragonMissile.mdl", x, y)
@@ -830,8 +830,8 @@ Functions inherited from super classes can be overridden in the subclass. Such f
 		override function onCollide(unit u)
 			// create a big explosion here ;)
 			//...
-			
-			
+
+
 ## Typecasting
 
 In order to typecast, you use the _castTo_ operator
@@ -844,23 +844,23 @@ This process can also be reversed (casting from int to a classtype).
 
 	class Test
 		int val
-		
+
 	init
 		Test t = new Test()
 		int i = t castTo int
 
 
 
-Typecasting is sometimes useful when using subtyping. If you have an object of static type A but know 
+Typecasting is sometimes useful when using subtyping. If you have an object of static type A but know
 that the dynamic type of the object is B, you can cast the object to B to change the static type.
 
-			
+
 	class A
-	
+
 	class B extends A
 		function special()
 			...
-	
+
 	init
 		A a = new B()
 		// we know that a is actually of type B, so we can safely cast it to B:
@@ -870,10 +870,10 @@ that the dynamic type of the object is B, you can cast the object to B to change
 
 
 
-_Note_: You should avoid castTo whenever possible. Casts are not checked at runtime so they can go horribly wrong. 
+_Note_: You should avoid castTo whenever possible. Casts are not checked at runtime so they can go horribly wrong.
 Casts can be avoided by using high level libraries and object oriented programming.
 
-		
+
 ## Dynamic dispatch
 
 Wurst features dynamic dispatching when accessing classinstances.
@@ -887,40 +887,40 @@ It is easier to understand with an example:
 	class A
 		function printOut()
 			print("I'm A")
-			
+
 	class B extends A
 		override function printOut()
 			print("I'm B")
-			
+
 	init
 		A a = new B()
 		a.printOut()
 		// this will print "I'm B", even though it's a type A variable
-		
+
 ### Example 2
 
     class A
         string name
-        
+
         construct(string name)
             this.name = name
-            
+
         function printName()
             print("Instance of A named: " + name )
 
 
     class B extends A
-    
+
         construct(string name)
             super(name)
-            
+
         override function printName()
             print("Instance of B named: " + name )
-            
-    init 
+
+    init
         A a = new B("first") // This works because B extends A
         a.printName() // This will print "Instance of B named: first", because a is an Instance of B.
-        
+
 This is especially useful when iterating through ClassInstances of the same supertype,
 meaning you don't have to cast the instance to it's proper subtype.
 
@@ -969,8 +969,8 @@ _Note_: You should avoid instanceof checks whenever possible and prefer object o
 
 The instanceof expression "o instanceof C" returns true, if object o is a subtype of type C.
 
-It is not possible to use instanceof with types from different type partitions, as instanceof 
-is based on typeIds (see following chapter). This is also the reason why you cannot use instanceof 
+It is not possible to use instanceof with types from different type partitions, as instanceof
+is based on typeIds (see following chapter). This is also the reason why you cannot use instanceof
 to check the type of an integer.
 
 The compiler will try to reject instanceof expressions, which will always yield true or always yield false.
@@ -978,15 +978,15 @@ The compiler will try to reject instanceof expressions, which will always yield 
 ###Example
 
 	class A
-	
+
 	class B extends A
 
 	init
 		A a = new B()
-		
+
 		if a instanceof B
 			print("It's a B")
-			
+
 ## typeId
 
 *NOTE*: typeIds are an experimental feature. Try to avoid using them.
@@ -996,7 +996,7 @@ Sometimes it is necessary to check the exact type of an object. To do this you c
 		// check if a is of class A
 		if a.typeId == A.typeId
 			print("It's an A")
-			
+
 The typeId is an integer which is unique for each class inside a type partition.
 
 ### type partitions
@@ -1014,7 +1014,7 @@ but you can create subclasses for it which are not abstract.
 
 An abstract function is declared with the keyword 'abstract' and by leaving out
 an implementation.
-    
+
     abstract function onHit()
 
 Abstract classes are similar to interfaces, but they can have own, implemented
@@ -1032,24 +1032,24 @@ classes like so:
     abstract class CollidableObject
 
 		abstract function onHit()
-	
+
 		function checkCollision(CollidableObject o)
 			if this.inRange(o)
 			  onHit()
 			  o.onHit()
-	    
+
     class Ball extends CollidableObject
-	
+
 		override function onHit()
 			print("I'm a ball")
-		
+
     class Rect extends CollidableObject
-	
+
 		override function onHit()
 			print("I'm a Rect")
-	   
-	   
-	   
+
+
+
 Because CollidableObject requires it's subclasses to implement the function
 onHit; it can be called within the abstract class and without knowing it's
 type.
@@ -1057,21 +1057,21 @@ type.
 If a subclass of an abstract class does not implement all abstract functions
 from its superclass, it has to be abstract, too.
 
-            
-# Interfaces 
+
+# Interfaces
 
 
 	interface Listener
 		function onClick()
 
 		function onAttack( real x, real y ) returns boolean
-	
+
 
 	class ExpertListener implements Listener
 		function onClick()
 			print("clicked")
 
-	
+
 		function onAttack( real x, real y ) returns boolean
 			AddSpecialEffect(EFFECT_STRING, x ,y)
 
@@ -1116,16 +1116,16 @@ written in angled  bracket s  (<  an d >) after the identifier.
 	interface Set<T>
 		// adds an element to the set
 		function add(T t)
-		
+
 		// removes an element from the set
 		function remove(T t)
-		
+
 		// returns the number of elements in the set
 		function size() returns int
-		
+
 		// checks whether a certain element is in the set
 		function contains(T t) returns boolean
-		
+
 	class SetImpl<T> implements Set<T>
 		// [...] implementation of the interface
 
@@ -1138,12 +1138,12 @@ If we have a class defined like this, we can then use it with a concrete type (e
 
 Generic parameters in Wurst can be bound to integers, class types and interface types directly.
 In order to bind generic parameters to primitive-, handle- and tuple types you have to provide the functions
-	
+
 	function [TYPE]ToIndex([TYPE] t) returns int
 
 	function [TYPE]FromIndex(int index) returns [TYPE]
 		return ...
-		
+
 The typecasting functions for primitive- and handle types are provided in _Typecasting.wurst_ using the fogstate bug.
 
 	function unitToIndex(unit u) returns int
@@ -1164,14 +1164,14 @@ The function has to be generic, because it has to work on all kinds of lists.
 			if not pred.isTrueFor(x)
 				return false
 		return true
-		
+
 	// usage:
 		LinkedList<int> l = ...
 		// check if all elements in the list are even
 		if forall<int>(l, (int x) -> x mod 2 == 0)
 			print("true")
 
-When calling a generic function, the type arguments can be omitted if they can be inferred 
+When calling a generic function, the type arguments can be omitted if they can be inferred
 from the arguments to the function:
 
 	...
@@ -1184,7 +1184,7 @@ Extension functions can also be generic, as shown by the following example:
 		for x in this
 			if not pred.isTrueFor(x)
 				return false
-		return true	
+		return true
 
 	// usage:
 		...
@@ -1202,7 +1202,7 @@ You can use the functions from the used module as if they were declared in the c
 
 If you know object oriented languages like Java or C#: Modules are like abstract classes and using a module is like inheriting from an abstract class but *without the sub-typing*. (WurstScript takes a different approach to enable polymorphism, but this is not implemented yet)
 
-## Example 1 
+## Example 1
 
 In this example we just have a class which uses a module A. The resulting program behaves as if the code from module A would be pasted into Class C.
 
@@ -1234,7 +1234,7 @@ Modules are more than just a mechanism to copy code. Classes and modules can ove
 	// a container which only stores positive ints
 	module PositiveIntContainer
 		use IntContainer
-		
+
 		// override the setter to only store positive integers
 		override function setX(int x)
 		    if x >= 0
@@ -1275,18 +1275,18 @@ These Constants can then be accessed via the Enum's name:
         FLYING
         GROUND
         WATER
-        
+
     init
         State s = State.GROUND
-        
+
 You can also use enums inside of classes
 
     class C
         State currentState
-        
+
         construct( State state )
             currentState = state
-            
+
 To check the current value of an enum, you can use the switch statement.
 Note that all Enummembers have to be checked (or a defaut).
 
@@ -1297,7 +1297,7 @@ Note that all Enummembers have to be checked (or a defaut).
             print("ground")
         case State.WATER
             print("water")
-            
+
 In switch statements and variable assignments the qualifier can be ommited so you can also write:
 
     switch currentState
@@ -1306,10 +1306,10 @@ In switch statements and variable assignments the qualifier can be ommited so yo
         case GROUND
             print("ground")
         case WATER
-            print("water")        
+            print("water")
 
 
-# Tuple Types 
+# Tuple Types
 
 With _tuple_ types you can group several variables into one bundle. This can be used to return more than one value from a function, to create custom types and of course for better readability.
 
@@ -1335,8 +1335,8 @@ Note that tuples are not like classes. There are some important differences:
 			u.y = 5
 			if v.x == 4 and v.y == 2 and u.y == 5
 				testSuccess()
-	
-	
+
+
 		// Example 2:
 
 		tuple pair(real x, real y)
@@ -1346,8 +1346,8 @@ Note that tuples are not like classes. There are some important differences:
 			p = pair(p.y, p.x)
 			if p.x == 2 and p.y == 1
 				testSuccess()
-				
-				
+
+
 Because tuples don't have any functions themselves, you can add extension
 functions to an existing tuple type in order to achieve class-like
 functionality.
@@ -1362,7 +1362,7 @@ examples. (Math/Vectors.wurst)
 
 Extension functions enable you to "add" functions to existing types without
 creating a new derived type, recompiling, or otherwise modifying the original
-type. 
+type.
 Extension functions are a special kind of static function, but they are called
 as if they were instance functions of the extended type.
 
@@ -1372,7 +1372,7 @@ as if they were instance functions of the extended type.
 		BODY
 		// The keyword "this" inside the body refers to the instance of the extended type
 
-## Examples 
+## Examples
 
 
 	// Declaration
@@ -1386,7 +1386,7 @@ as if they were instance functions of the extended type.
 	// Parameters
 	public function int.add( int value )
 		return this + value
-	 
+
 	// Usage
 	unit u = CreateUnit(...)
 	...
@@ -1395,7 +1395,7 @@ as if they were instance functions of the extended type.
 	// Also classes, e.g. setter and getter for private vars
 	public function BlubClass.getPrivateMember() returns real
 		return this.privateMember
-		
+
 	// And tuples as mentioned above
 	public function vec2.lengthSquared returns real
 		return this.x*this.x+this.y*this.y
@@ -1405,7 +1405,7 @@ as if they were instance functions of the extended type.
 
 A lambda expression (also called anonymous function) is a lightweight way to provide an implementation
 of a functional interface or abstract class (To keep the text simple, the following
-explanations are all referring to interfaces, but abstract classes can be used in the same way). 
+explanations are all referring to interfaces, but abstract classes can be used in the same way).
 
 A *functional interface* is an interface which has only one method.
 Here is an example:
@@ -1413,12 +1413,12 @@ Here is an example:
 	// the functional interface:
 	interface Predicate<T>
 		function isTrueFor(T t) returns bool
-		
+
 	// a simple implementation
 	class IsEven implements Predicate<int>
 		function isTrueFor(int x) returns bool
 			return x mod 2 == 0
-		
+
 	// and then we can use it like so:
 	let x = 3
 	Predicate<int> pred = new IsEven()
@@ -1427,9 +1427,9 @@ Here is an example:
 	else
 		print("x is odd")
 	destroy pred
-	
 
-When using lambda expressions, it is not necessary to define a new class 
+
+When using lambda expressions, it is not necessary to define a new class
 implementing the functional interface. Instead the only function of the
 functional interface can be implemented where it is used, like so:
 
@@ -1442,25 +1442,25 @@ functional interface can be implemented where it is used, like so:
 		print("x is odd")
 	destroy pred
 
-The important part is: 
+The important part is:
 
 	(int x) -> x mod 2 == 0
-	
-This is a lambda expression. It consists of two parts and an arrow symbol *->* 
-between the two parts. The left hand side of the arrow is a list of formal parameters, 
+
+This is a lambda expression. It consists of two parts and an arrow symbol *->*
+between the two parts. The left hand side of the arrow is a list of formal parameters,
 as you know them from function definitions. On the right hand side there
 is an expression, which is the implementation. The implementation consists only
-of a single expressions, because lambda expressions are typically small and used 
+of a single expressions, because lambda expressions are typically small and used
 in one line. But if one expression is not enough there is the begin-end expression.
 
-Remember that, because closures are just like normal objects, you also have to destroy them 
+Remember that, because closures are just like normal objects, you also have to destroy them
 like normal objects. And you can do all the other stuff you can do with
 other objects like putting them in a list or into a table.
 
 
 ## begin-end expression
 
-Sometimes one expression is not enough for a closure. In this case, the begin-end 
+Sometimes one expression is not enough for a closure. In this case, the begin-end
 expression can be used. It allows to have statements inside an expression. The
 begin keyword has to be followed by a newline and an increase in indentation.
 The rule that newlines are ignored inside parenthesis is ignored for the begin-end
@@ -1488,7 +1488,7 @@ Here is a very simple example:
 	let max = 50
 	// remove all elements not between min and max:
 	myList.removeWhen((int x) ->  x < min or x > max)
-	
+
 In this example the lambda expression captured the local variables min and max.
 
 It is important to know, that variables are captured by value. When a closure
@@ -1516,20 +1516,20 @@ This class implements the interface which is given by the context in which
 the lambda expression is used.
 The generated class has fields for all local variables which are captured.
 Whenever the lambda expression is evaluated, a new object of the class is created
-and the fields are set. 
+and the fields are set.
 
 So the "Hello!" example above is roughly equivalent to the following code:
 
 	// (the interface was not shown in the above code, but it is the same):
 	interface CallbackFunc
 		function run()
-		
+
 	// compiler creates this closure class implementing the interface:
 	class Closure implements CallbackFunc
 		// a field for each captured variable:
 		string s
-	
-		function run()	
+
+		function run()
 			// body of the lambda expression == body of the function
 			print(s)
 			s = s + "!"
@@ -1542,30 +1542,30 @@ So the "Hello!" example above is roughly equivalent to the following code:
 	f.run()  // will print "Hello!"
 	f.run()  // will print "Hello!!"
 	print(s) // will print "Bye!"
-	
+
 ## Function types
 
 A lambda expression has a special type which captures the type of the parameter
 and the return type. This type is called a *function type*. Here are some examples with their type:
 
-	() -> 1   						
+	() -> 1
 		// type: () -> integer
-	
+
 	(real r) -> 2*r
 		// type: (real) -> real
-	
-	(int x, string s) -> s + I2S(x)  
+
+	(int x, string s) -> s + I2S(x)
 		// type: (int,string) -> string
 
 
-While function types are part of the type system, Wurst has no way to write down 
+While function types are part of the type system, Wurst has no way to write down
 a function type. There are no variables of type "(int,string) -> string".
 Because of this, a lambda expression can only be used in places where
-a concrete interface or class type is known. 
-This can be an assignment where the type of the variable is given. 
+a concrete interface or class type is known.
+This can be an assignment where the type of the variable is given.
 
 	Predicate<int> pred = (int x) -> x mod 2 == 0
-	
+
 However it is not possible to use lambda expressions if the type of the variable is only inferred:
 
 	// will not compile, error "Could not get super class for closure"
@@ -1573,9 +1573,9 @@ However it is not possible to use lambda expressions if the type of the variable
 
 ## Lambda expressions as code-type
 
-Lambda expressions can also be used where an expression of type `code` is expected. 
+Lambda expressions can also be used where an expression of type `code` is expected.
 The prerequisite for this is, that the lambda expression does not have any parameters
-and does not capture any variables. For example the following code is _not_ valid, 
+and does not capture any variables. For example the following code is _not_ valid,
 because the local variable `x` is captured.
 
 
@@ -1583,7 +1583,7 @@ because the local variable `x` is captured.
 	let x = 3
 	t.start(3.0, () -> doSomething(x)) // error: Cannot capture local variable 'x'
 
-	
+
 This can be fixed by attaching the data to the timer manually:
 
 	let t = getTimer()
@@ -1593,7 +1593,7 @@ This can be fixed by attaching the data to the timer manually:
 
 If a lambda expression is used as `code`, there is no new object created and
 thus there is no object which has to be destroyed. The lambda expression will just
-be translated to a normal Jass function, so there is no performance overhead when 
+be translated to a normal Jass function, so there is no performance overhead when
 using lambda expressions in this way.
 
 # Advanced Concepts
@@ -1632,23 +1632,23 @@ This works because the parameters are of different types or have a different amo
 
 This does not work because only the returntype is different and the correct function cannot be determined.
 
-	
+
 	class A
 	class B extends A
-	
+
 	function foo(A c)
 		...
 
 	function foo(B c)
 		...
-	
+
 	// somewhere else:
 		foo(new B)
-		
 
 
-This does not work either, because B is a subtype of A. If you would call the function foo 
-with a value of type B, both functions would be viable. Other languages just take the 
+
+This does not work either, because B is a subtype of A. If you would call the function foo
+with a value of type B, both functions would be viable. Other languages just take the
 "most specific type" but Wurst does not allow this. If A and B are incomparable types, the overloading is allowed.
 
 
@@ -1660,7 +1660,7 @@ A quick example from the standard library (Vectors.wurst):
     // Defining the "+" operator for the tupletype vec3
     public function vec3.op_plus( vec3 v ) returns vec3
         return vec3(this.x + v.x, this.y + v.y, this.z + v.z)
-        
+
     // Usage example
     vec3 a = vec3(1.,1.,1.)
     vec3 b = vec3(1.,1.,1.)
@@ -1668,7 +1668,7 @@ A quick example from the standard library (Vectors.wurst):
     vec3 c = a.add( b )
     // With operator Overloading
     vec3 c = a + b
-   
+
 You can overload operators for existing types via Extension-Functions or via class-functions for the specific classtype.
 In order to define an overloading function it has to be named as following:
 
@@ -1676,12 +1676,12 @@ In order to define an overloading function it has to be named as following:
     -  "op_minus"
     *  "op_mult"
     /  "op_divReal"
-    
+
 ## Object Editing
 
 Creating Object-Editor Objects via Wurst code.
 
-*NOTE:* Object Editing hardly works at the moment, so you should only use it for fun but not for profit. 
+*NOTE:* Object Editing hardly works at the moment, so you should only use it for fun but not for profit.
 Do not use it for a real project yet!
 
 ### Compiletime Functions
@@ -1698,7 +1698,7 @@ Compiltetime functions have no parameters and no return value.
 In order to run compiletime functions you have to enable the checkbox in the Wurstpack Menu.
 When you use compiletime functions to generate objects, Wurst will generate the object files
 next to your map and you can import them into your map using the object editors normal import
-function. Compared to ObjectMerger this has the advantage, that you can directly see your new 
+function. Compared to ObjectMerger this has the advantage, that you can directly see your new
 objects in the object editor.
 You can also enable an option to directly inject the objects into the map file, though the changes will not be visible in the object-editor directly.
 
@@ -1721,16 +1721,16 @@ The following example shows how this could be useful:
 
 ### Object Editing Natives
 
-The standard library provides some functions to edit objects in compiletime functions. 
+The standard library provides some functions to edit objects in compiletime functions.
 You can find the corresponding natives and higher level libraries in the objediting folder of the standard library.
 
 The package ObjEditingNatives contains natives to create and manipulate objects. If you are familiar with
-the object format of Wc3 and know similar tools like [Lua Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/) 
-or the ObjectMerger from JNGP, you should have no problems in using them. If you run Wurst with compiletime functions enabled, it will generate 
+the object format of Wc3 and know similar tools like [Lua Object Generation](http://www.hiveworkshop.com/forums/jass-ai-scripts-tutorials-280/lua-object-generation-191740/)
+or the ObjectMerger from JNGP, you should have no problems in using them. If you run Wurst with compiletime functions enabled, it will generate
 the object creation code for all the objects in your map. This code is saved in files named similar to "WurstExportedObjects_w3a.wurst.txt" and
 can be found right next to your map file. You can use this code as a starting point if you want to use the natives.
 
-Wurst also provides a higher level of abstraction. For example the package AbilityObjEditing provides many classes 
+Wurst also provides a higher level of abstraction. For example the package AbilityObjEditing provides many classes
 for the different base abilities of Wc3 with readable method names. That way you do not have to look up the IDs.
 
 The following example creates a new spell based on "Thunder Bolt". The created spell has the ID "A005".
@@ -1741,7 +1741,7 @@ Level specific properties are changed inside the loop.
 	import AbilityObjEditing
 
 	@compiletime function myThunderBolt()
-		// create new spell based on thunder bolt from mountain king	
+		// create new spell based on thunder bolt from mountain king
 		let a = new AbilityDefinitionMountainKingThunderBolt("A005")
 		// change the name
 		a.setName("Wurst Bolt")
@@ -1774,9 +1774,9 @@ Example:
 
 		@test public function a()
 			12 .assertEquals (3*4)
-	
+
 		@test public function b()
-			12 .assertEquals (5+8) 	 
+			12 .assertEquals (5+8)
 
 If you run this, you get the following output:
 
@@ -1787,8 +1787,8 @@ If you run this, you get the following output:
 		function b (Test.wurst, line 8)
 			test failed: expected 13 but was 12
 			at stmtreturn  (.../lib/primitives/Integer.wurst, line 25)
-		> 
-	
+		>
+
 The first line is just to check whether the console is working ;)
 
 You can search the standard library for "@test" to get some more examples.
@@ -1802,7 +1802,7 @@ switch `-stacktraces`. Each error will then be displayed with a stacktrace showi
 the line number and filename of each function-call leading to the error. Errors
 must be generated with the magic function `function error(string msg)`.
 
-# Standard Library 
+# Standard Library
 
 Wurst comes with a library of some useful standard functions
 You can find the generated HotDoc pages here: [The Wurstscript Standardlibrary](http://peeeq.de/hudson/job/Wurst/HotDoc_Standard_Library_Documentation/index.html)
@@ -1847,7 +1847,7 @@ Example:
 
 ## Rule 2: Write checkable code
 
-Your code should be checkable by the compiler. The Wurst compiler provides you with some powerful typechecking tools. Use 
+Your code should be checkable by the compiler. The Wurst compiler provides you with some powerful typechecking tools. Use
 them wisely to reduce the mistakes you can do in your program. You might also want to watch [this awesome talk by Yaron Minsky](http://vimeo.com/14313378) who summarizes it pretty nicely: "make invalid state unrepresentable". Of course Wurst is not as sophisticated as ML
 but there are still a lot of things you can do.
 
@@ -1862,14 +1862,14 @@ When you find the same lines of code at several places of your project, try to p
 
 ## Rule 4: KISS: Keep it simple, stupid!
 
-Always try to choose the most simple solution to your problem. Avoid premature optimization. 
+Always try to choose the most simple solution to your problem. Avoid premature optimization.
 
 
 ## Rule 5: Use Object oriented programming
 
 ### Avoid instanceof
 
-Using *instanceof* is usually a sign for bad use of object orientation. Often instanceof checks can 
+Using *instanceof* is usually a sign for bad use of object orientation. Often instanceof checks can
 be replaced by using dynamic dispatch. Let's look at an example:
 
 	if shape instanceof Circle
@@ -1879,7 +1879,7 @@ be replaced by using dynamic dispatch. Let's look at an example:
 		Rect r = shape castTo Rect
 		area = r.width * r.height
 
-It would be better to have one area function in Shape and then implement it for Circle and Rect. 
+It would be better to have one area function in Shape and then implement it for Circle and Rect.
 That way you can just write:
 
 	area = shape.area()
@@ -1941,7 +1941,7 @@ to Wurst or got replaced.
 </table>
 
 
-## Globals 
+## Globals
 
 Instead of a globals block, every variable outside a block inside a package is considered a global in that package.
 
@@ -1982,7 +1982,7 @@ _*Wurst:*_
 		...
 
 
-## Locals 
+## Locals
 
 locals can be declared and initialized anywhere inside a function.
 
@@ -2004,7 +2004,7 @@ _*Wurst:*_
 		int j = i
 
 
-## Librarys/Scopes 
+## Librarys/Scopes
 
 Name-spaces/code organisation in wurst is handled by packages.
 All code in Wurst has to be inside a package.
@@ -2023,7 +2023,7 @@ _*Wurst:*_
 	endpackage
 
 
-### importing 
+### importing
 
 _*vJass:*_
 
@@ -2042,7 +2042,7 @@ _*Wurst:*_
 	endpackage
 
 
-### init-blocks 
+### init-blocks
 
 _*vJass:*_
 
@@ -2057,14 +2057,14 @@ _*vJass:*_
 _*Wurst:*_
 
 	package foo
-		
+
 		init
 		    ...
 	endpackage
 
 
 
-## Structs / Classes 
+## Structs / Classes
 
 _*vJass:*_
 
@@ -2124,7 +2124,7 @@ _*Wurst:*_
 
 
 
-## Modules 
+## Modules
 
 _*vJass:*_
 
@@ -2165,20 +2165,20 @@ Installation: You can find information on how to install the plugin at the [Wurs
 	As every project depends on the standard library you have to add the path to *Wurstpack/wurstscript/lib* in your Wurstpack folder.
 3. Create a new file with the *.wurst* filename extension and an arbitrary name. You can now start writing your code.
 
-### Useful Shortcuts 
+### Useful Shortcuts
 
 * Press *Ctrl*+*space* to open the auto complete assistant.
-* Hold down *Ctrl* and click on a function or variable to jump to the point where it was defined. 
+* Hold down *Ctrl* and click on a function or variable to jump to the point where it was defined.
 * Press *Ctrl*+*Shift*+*R* to search for a wurst filename.
 * Hover the mouse over some element in your code to get additional information
 
 ### The Wurst-Console
 
-The Wurst-Console provides an Read-Eval-Print-Loop (REPL) for Wurst. 
+The Wurst-Console provides an Read-Eval-Print-Loop (REPL) for Wurst.
 The Console can be activated via Window -> Show View -> Console.
-The Console is always attached to the currently opened document. You can enter 
-expressions into the console and the expression will be evaluated in the context of the currently 
-opened document. 
+The Console is always attached to the currently opened document. You can enter
+expressions into the console and the expression will be evaluated in the context of the currently
+opened document.
 
 ![Wurst Console](./assets/images/wurstConsole1.png)
 
@@ -2186,9 +2186,9 @@ By default the result of the expression will be stored in the variable `res`, bu
 can also use a *let* statement to store the result in a different variable.
 
 The console supports other useful commands, which are not (yet) accessible. A list
-of commands can be displayed by typing `help` into the console. The most important 
-commands are probably `reset` and `tests`. `reset` will reset the state of the 
-console. This is sometimes necessary after switching to other files, or if 
+of commands can be displayed by typing `help` into the console. The most important
+commands are probably `reset` and `tests`. `reset` will reset the state of the
+console. This is sometimes necessary after switching to other files, or if
 the console is in an invalid state because of bugs. `tests` will run all unit tests
 (functions annotated with @test) in the current project and show the test results.
 
@@ -2214,7 +2214,7 @@ Smaller names execute faster and take less space, so all names of functions and 
 
 ## Inlining
 
-Inlining is not an easy task, but brings great performance boosts to systems which use many different functions. 
+Inlining is not an easy task, but brings great performance boosts to systems which use many different functions.
 It also makes coding easier and more readable, because you don't have to care about the performance loss
 when splitting stuff into too many functions.
 Also blizzard.j functions, such as BJs and Swaps, can get inlined.
@@ -2233,7 +2233,7 @@ Global variables that have a constant value get inlined as well as constant loca
 ## Constant Folding and Constant propagation
 
 Expressions containing only constants are calculated at compiletime.
-Ifs with constant conditions are removed. 
+Ifs with constant conditions are removed.
 Both mechanics work together to remove unneeded and unreachable code.
 
 # Errors and Warnings
@@ -2247,7 +2247,7 @@ In this chapter some of these errors and warnings are explained, as well as some
 
 	This warning means that a value used in an assignment is never read in all possible executions.
 	This often means that you forgot to use it, so it probably is a bug you have to fix.
-	Sometimes it is just some unnecessary code as in the following example: 
+	Sometimes it is just some unnecessary code as in the following example:
 
 		int x = 0
 		if someCondition
@@ -2264,8 +2264,8 @@ In this chapter some of these errors and warnings are explained, as well as some
 		else
 			x = 3
 		print(x.toString())
-	
-	
+
+
 * The variable x is never read.
 
 	Usually this warning also means that you have some unnecessary code or that you forgot to use something.
@@ -2273,7 +2273,7 @@ In this chapter some of these errors and warnings are explained, as well as some
 	In these cases you can **suppress the warning** by starting the variable name with an underscore:
 
 		function foo(int _x)
-			return 5 
+			return 5
 
 * The assignment to ... probably has no effect
 

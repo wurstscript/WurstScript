@@ -48,7 +48,7 @@ $(function() {
 	function lastPart(href) {
 		return href.substr(href.lastIndexOf('/') + 1);
 	}
-	
+
 	console.log("hello world");
 	$(".nav a").each(function (i, e) {
 		var l = $(e);
@@ -56,26 +56,26 @@ $(function() {
 			l.parent().addClass('active');
 		}
 	});
-	
+
 	setTimeout(function () {
 		//draw dithered gradient:
 		var displayCanvas = document.getElementById("displayCanvas");
 		var displayContext = displayCanvas.getContext("2d");
 		var displayWidth = displayCanvas.width;
 		var displayHeight = displayCanvas.height;
-		
-			
-		var dgrad = new DitheredLinearGradient(0,0,displayWidth,0);		
+
+
+		var dgrad = new DitheredLinearGradient(0,0,displayWidth,0);
 		dgrad.addColorStop(0,30,30,30);
 		dgrad.addColorStop(0.4,200,200,200);
 		dgrad.addColorStop(0.6,200,200,200);
 		dgrad.addColorStop(1,30,30,30);
 		dgrad.fillRect(displayContext,0,0,displayWidth,displayHeight);
-		
+
 		// hide original gradient
 		$(".bggradient").removeClass('bggradient');
 	}, 1.0);
-	
+
 });
 </script>
 </body>

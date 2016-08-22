@@ -12,7 +12,7 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 	Many systems already have Java installed. In that case you should make sure that you have the latest version installed.
 - [Wurst Pack](http://peq.github.io/WurstScript/#Downloads)
 	Some AnitVirus programs falsely detect harmless injection-dlls. Ignore the warning and/or turn off your AV-Program for the process and add an exception. The Updater might not respond while downloading the required packages.
-- [Eclipse](http://www.eclipse.org/downloads/) 
+- [Eclipse](http://www.eclipse.org/downloads/)
         Eclipse is needed for working with the Wurst-Plugin. The minimal download is probably the [Eclipse Platform Runtime Binary](http://archive.eclipse.org/eclipse/downloads/drops4/R-4.3.2-201402211700/#PlatformRuntime).
 
 
@@ -22,7 +22,7 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 
 1. Start Eclipse from the directory you extracted it to
 2. Open the installation window with _Help_ -> _Install new Software_
-3. Enter _http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/_ into the "Work with:" textfield and press Enter. 
+3. Enter _http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/_ into the "Work with:" textfield and press Enter.
 4. A WurstScript Eclipse Plugin Entry should appear in the list. Select it and press next.
 5. Accept the license agreement, press next and wait for the install to finish.
 6. Restart Eclipse to complete the installation
@@ -63,7 +63,7 @@ There a few ways to get this done, this is in my eyes the best way:
 3. Press on advanced, and select "Link to alternate location"
 4. Click on browse, and go to the place where your maps are stored, or you will store your wurst maps
 5. Create a new folder there, with the name "wurst" ! (The name HAS to be wurst, else it won't work)
-6. Select this folder and press OK. 
+6. Select this folder and press OK.
 	Everything that is stored in your wurst folder, will get imported into your map.
 	The maps must be stored at the same place like the wurst folder, else it won't work.
 
