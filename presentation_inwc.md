@@ -3,17 +3,17 @@ layout: default
 title: WurstScript Präsentation inWarcraft
 ---
 
-Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc zu Jass übersetzt werden kann. 
+Wurst ist eine Sprache, die ähnlich wie vJass, cJass oder zinc zu Jass übersetzt werden kann.
 
-Warum eine neue Sprache? 
+Warum eine neue Sprache?
 ===========================
 
 ## Editor Support
 
-vJass basiert hauptsächlich auf Textersetzungen (vJass modules, textmacros). Das macht es schwer einen 
+vJass basiert hauptsächlich auf Textersetzungen (vJass modules, textmacros). Das macht es schwer einen
 guten Editor, mit Features wie autocomplete, für vJass zu schreiben.
 
-Wurst setzt auf sehr einfach strukturierten Code, welcher in einer einzigen Compiler-Phase analysiert werden kann. 
+Wurst setzt auf sehr einfach strukturierten Code, welcher in einer einzigen Compiler-Phase analysiert werden kann.
 vJass benötigt hingegen [mehrere Phasen](http://www.wc3c.net/vexorian/zincmanual.html#compileerror).
 
 Der Editor Support für Wurst ist als Eclipse Plugin realisiert. Mehr Informationen dazu folgen später.
@@ -39,7 +39,7 @@ vJass ist nicht typsicher. Als Beispiel nehme man den folgenden Code:
 
 vJass prüft nicht, ob in einer Variable vom Typ B auch wirklich nur Objekte vom Typ B gespeichert sind.
 Dies kann zu Fehlern führen, die man erst spät entdeckt oder man bekommt einen pJass Fehler,
-der teilweise nicht leicht zu verstehen ist. 
+der teilweise nicht leicht zu verstehen ist.
 
 Der entsprechende Wurst-Code sieht folgendermaßen aus (Screenshot aus dem Eclipse Plugin):
 
@@ -48,8 +48,8 @@ Der entsprechende Wurst-Code sieht folgendermaßen aus (Screenshot aus dem Eclip
 ## Weniger schreiben, einfacher Lesen
 
 vJass hat einige redundate Syntax-Elemente. Beispiele dafür sind "set", "call"
-oder "takes nothing returns nothing". Gleichzeitg hat vJass sehr wenige Elemente, 
-die es erlauben Code zu schreiben, der besser lesbar ist. Insbesondere gibt es nur 
+oder "takes nothing returns nothing". Gleichzeitg hat vJass sehr wenige Elemente,
+die es erlauben Code zu schreiben, der besser lesbar ist. Insbesondere gibt es nur
 eine Form von Schleife.
 
 
@@ -75,16 +75,16 @@ Außerdem können Variablen an einer beliebigen Stelle in der Funktion definiert
 
 Extension functions erlauben es, einem vorhanden Typ neue Funktionen zu geben, welche mit der Punkt-Syntax von Methodenaufrufen benutzt werden können.
 
-Deklaration: 
+Deklaration:
 
 	public function unit.getOwner() returns player
 		return GetOwningPlayer(this)
-		
+
 	function player.getName() returns string
 		return GetPlayerName(this)
 
 Benutzung:
-	
+
 	print(GetKillingUnit().getOwner().getName() + " killed " +
 		GetTriggerUnit().getOwner().getName() + "!")
 
@@ -106,40 +106,40 @@ Definition:
 
 	// Ein Vektor besteht aus zwei reals x und y
 	public tuple vec2( real x, real y )
-	
+
 	// Operator overloading functions:
 	public function vec2.op_plus( vec2 v )	returns vec2
 		return vec2(this.x + v.x, this.y + v.y)
-	
+
 	public function vec2.op_minus( vec2 v )	returns vec2
 		return vec2(this.x - v.x, this.y - v.y)
-		
+
 	public function vec2.op_mult(real factor) returns vec2
-		return vec2(this.x*factor, this.y*factor) 
-	
+		return vec2(this.x*factor, this.y*factor)
+
 	// Skalarprodukt:
 	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y
-	
+
 	// Laenge:
 	public function vec2.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
-	
+
 	// normalisierter Vektor:
 	public function vec2.norm() returns vec2
         real len = this.length()
-        real x = 0 
+        real x = 0
         real y = 0
         if (len != 0.0)
             x = (this.x / len)
             y = (this.y / len)
         return vec2(x,y)
-	
+
 	public function vec2.polarOffset(real angle, real dist) returns vec2
 		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
 
 Benutzung:
-	
+
 
 	// Geschoss dreht sich um die verfolgte Einheit (variable following)
 	function followHero()
@@ -153,7 +153,7 @@ Benutzung:
 		fx.setPos(pos.x, pos.y)
 		SetUnitFacing(fx, (angle + bj_PI/2)*bj_RADTODEG)
 		checkCollisions()
-		
+
 	// Geschoss bewegt sich vorwaerts
 	function moveForward()
 		// Geschwindigkeit auf die Position addieren:

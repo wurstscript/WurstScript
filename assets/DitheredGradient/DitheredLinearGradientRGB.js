@@ -13,7 +13,7 @@ function DitheredLinearGradient(_x0,_y0,_x1,_y1) {
 	this.y1 = _y1;
 	this.colorStops = [];
 }
-	
+
 DitheredLinearGradient.prototype.addColorStop = function(ratio,r,g,b) {
 	if ((ratio < 0) || (ratio > 1)) {
 		return;
@@ -53,13 +53,13 @@ DitheredLinearGradient.prototype.addColorStop = function(ratio,r,g,b) {
 	}
 }
 
-	
+
 DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW, rectH) {
-	
+
 	if (this.colorStops.length == 0) {
 		return;
 	}
-	
+
 	var image = ctx.getImageData(rectX0, rectY0, rectW, rectH);
 	var pixelData = image.data;
 	var len = pixelData.length;
@@ -67,12 +67,12 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 	var quantError;
 	var x;
 	var y;
-	
+
 	var vx = this.x1 - this.x0;
 	var vy = this.y1 - this.y0;
 	var vMagSquareRecip = 1/(vx*vx+vy*vy);
 	var ratio;
-	
+
 	var r,g,b;
 	var r0,g0,b0,r1,g1,b1;
 	var ratio0,ratio1;
@@ -80,12 +80,12 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 	var stopNumber;
 	var found;
 	var q;
-	
+
 	var rBuffer = [];
 	var gBuffer = [];
 	var bBuffer = [];
 	var aBuffer = [];
-	
+
 	//first complete color stops with 0 and 1 ratios if not already present
 	if (this.colorStops[0].ratio != 0) {
 		var newStop = {	ratio:0,
@@ -104,10 +104,10 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 
 	//create float valued gradient
 	for (i = 0; i<len/4; i++) {
-		
+
 		x = rectX0 + (i % rectW);
 		y = rectY0 + Math.floor(i/rectW);
-		
+
 		ratio = (vx*(x - this.x0) + vy*(y - this.y0))*vMagSquareRecip;
 		if (ratio < 0) {
 			ratio = 0;
@@ -115,7 +115,7 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 		else if (ratio > 1) {
 			ratio = 1;
 		}
-		
+
 		//find out what two stops this is between
 		if (ratio == 1) {
 			stopNumber = this.colorStops.length-1;
@@ -130,7 +130,7 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 				}
 			}
 		}
-		
+
 		//calculate color.
 		r0 = this.colorStops[stopNumber-1].r;
 		g0 = this.colorStops[stopNumber-1].g;
@@ -140,18 +140,18 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 		b1 = this.colorStops[stopNumber].b;
 		ratio0 = this.colorStops[stopNumber-1].ratio;
 		ratio1 = this.colorStops[stopNumber].ratio;
-			
+
 		f = (ratio-ratio0)/(ratio1-ratio0);
 		r = r0 + (r1 - r0)*f;
 		g = g0 + (g1 - g0)*f;
 		b = b0 + (b1 - b0)*f;
-		
+
 		//set color as float values in buffer arrays
 		rBuffer.push(r);
 		gBuffer.push(g);
 		bBuffer.push(b);
 	}
-	
+
 	//While converting floats to integer valued color values, apply Floyd-Steinberg dither.
 	for (i = 0; i<len/4; i++) {
 		nearestValue = ~~(rBuffer[i]);
@@ -160,14 +160,14 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 		rBuffer[i-1+rectW] += 3/16*quantError;
 		rBuffer[i + rectW] += 5/16*quantError;
 		rBuffer[i+1 + rectW] += 1/16*quantError;
-		
+
 		nearestValue = ~~(gBuffer[i]);
 		quantError =gBuffer[i] - nearestValue;
 		gBuffer[i+1] += 7/16*quantError;
 		gBuffer[i-1+rectW] += 3/16*quantError;
 		gBuffer[i + rectW] += 5/16*quantError;
 		gBuffer[i+1 + rectW] += 1/16*quantError;
-		
+
 		nearestValue = ~~(bBuffer[i]);
 		quantError =bBuffer[i] - nearestValue;
 		bBuffer[i+1] += 7/16*quantError;
@@ -175,16 +175,16 @@ DitheredLinearGradient.prototype.fillRect = function(ctx, rectX0, rectY0, rectW,
 		bBuffer[i + rectW] += 5/16*quantError;
 		bBuffer[i+1 + rectW] += 1/16*quantError;
 	}
-		
+
 	//copy to pixel data
 	for (i=0; i<len-4*rectW; i += 4) {
 		q = i/4;
 		pixelData[i] = ~~rBuffer[q];
 		pixelData[i+1] = ~~gBuffer[q];
 		pixelData[i+2] = ~~bBuffer[q];
-		pixelData[i+3] = 255;		
+		pixelData[i+3] = 255;
 	}
-	
+
 	ctx.putImageData(image,0,0);
-	
+
 }

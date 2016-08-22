@@ -6,7 +6,7 @@ title: WurstScript Presentation hiveworkshop
 Wurst is a Scripting language, which can, similar to vJass, cJass and zinc, be translated to Jass.
 
 
-Why a new Scripting language? 
+Why a new Scripting language?
 ===========================
 
 ## Editor Support
@@ -50,7 +50,7 @@ The Wurst counterpart (Screenshot from the Eclipse Plugin):
 
 vJass features several redundant Syntac-Elements. For example "set", "call"
 or "takes nothing returns nothing". Additionally vJass doesn't have many features
-that allow for writing readable, clear code. Particularly there only exists 
+that allow for writing readable, clear code. Particularly there only exists
 one type of loop.
 
 
@@ -76,19 +76,19 @@ Furthermore variables can be declared at any position in a function, nut just th
 ## Extension functions
 
 Extension functions allow to add specific functions to an already existing type,
-which can be used via dot-syntax. 
+which can be used via dot-syntax.
 
 
-Declaration: 
+Declaration:
 
 	public function unit.getOwner() returns player
 		return GetOwningPlayer(this)
-		
+
 	function player.getName() returns string
 		return GetPlayerName(this)
 
 Usage:
-	
+
 	print(GetKillingUnit().getOwner().getName() + " killed " +
 		GetTriggerUnit().getOwner().getName() + "!")
 
@@ -110,40 +110,40 @@ Definition:
 
 	// A 2d vector with the components x and y
 	public tuple vec2( real x, real y )
-	
+
 	// Operator overloading functions:
 	public function vec2.op_plus( vec2 v )	returns vec2
 		return vec2(this.x + v.x, this.y + v.y)
-	
+
 	public function vec2.op_minus( vec2 v )	returns vec2
 		return vec2(this.x - v.x, this.y - v.y)
-		
+
 	public function vec2.op_mult(real factor) returns vec2
-		return vec2(this.x*factor, this.y*factor) 
-	
+		return vec2(this.x*factor, this.y*factor)
+
 	// dot product:
 	public function vec2.dot( vec2 v ) returns real
 		return this.x*v.x+this.y*v.y
-	
+
 	// length:
 	public function vec2.length() returns real
 		return SquareRoot(this.x*this.x+this.y*this.y)
-	
+
 	// normalized Vector:
 	public function vec2.norm() returns vec2
         real len = this.length()
-        real x = 0 
+        real x = 0
         real y = 0
         if (len != 0.0)
             x = (this.x / len)
             y = (this.y / len)
         return vec2(x,y)
-	
+
 	public function vec2.polarOffset(real angle, real dist) returns vec2
 		return vec2(this.x + Cos(angle)*dist, this.y + Sin(angle)*dist)
 
 Usage:
-	
+
 
 	// A projectile homes the target unit(variable following)
 	function followHero()
@@ -157,7 +157,7 @@ Usage:
 		fx.setPos(pos.x, pos.y)
 		SetUnitFacing(fx, (angle + bj_PI/2)*bj_RADTODEG)
 		checkCollisions()
-		
+
 	// projectile moving forward
 	function moveForward()
 		// Add velocity to position
