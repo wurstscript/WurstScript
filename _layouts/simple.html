@@ -18,11 +18,11 @@
 	<div class="navbar-inner">
 		<a class="brand" href="index.html">Wurst</a>
 		<ul class="nav">
-			<li><a href="index.html">Home</a></li>
-			<li><a href="manual.html">Manual</a></li>
-			<li><a href="http://peeeq.de/hudson/job/Wurst/HotDoc_Standard_Library_Documentation/">StandardLib</a></li>
-			<li><a href="https://github.com/peq/WurstScript/issues" target="_blank">Issue Tracker</a></li>
-			<li><a href="changelog.html">Changelog</a></li>
+			<li><a class="internal" href="index.html">Home</a></li>
+			<li><a class="internal" href="manual.html">Manual</a></li>
+			<li><a class="external" href="http://peeeq.de/hudson/job/Wurst/HotDoc_Standard_Library_Documentation/">StandardLib</a></li>
+			<li><a class="external" href="https://github.com/peq/WurstScript/issues" target="_blank">Issue Tracker</a></li>
+			<li><a class="internal" href="changelog.html">Changelog</a></li>
 		</ul>
 	</div>
 </div>
@@ -49,7 +49,7 @@ $(function() {
 		return href.substr(href.lastIndexOf('/') + 1);
 	}
 
-	$(".nav a").each(function (i, e) {
+	$(".nav .internal").each(function (i, e) {
 		var l = $(e);
 		if (lastPart(l.attr('href')) === lastPart(window.location.pathname)) {
 			l.parent().addClass('active');
