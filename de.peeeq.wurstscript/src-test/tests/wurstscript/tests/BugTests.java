@@ -825,4 +825,17 @@ public class BugTests extends WurstScriptTest {
 		});
 	}
 	
+	
+	@Test
+	public void functionWithUnderscore() {
+		testAssertOkLines(true,
+				"package test",
+				"	native testSuccess()",
+				"	function _coke()",
+				"		testSuccess()",
+				"	init",
+				"		_coke()",
+				"endpackage");
+	}
+	
 }
