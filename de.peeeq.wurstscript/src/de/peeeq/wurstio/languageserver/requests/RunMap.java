@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
@@ -16,6 +17,7 @@ import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
@@ -254,6 +256,12 @@ public class RunMap extends UserRequest {
 			ctr.setInjectObjects(runArgs.isInjectObjects());
 			ctr.setOutputStream(new PrintStream(System.out));
 			ctr.run();
+		}
+		
+		if (runArgs.isInjectObjects()) {
+			Preconditions.checkNotNull(mpqEditor);
+			// add the imports
+			ImportFile.importFilesFromImportDirectory(compiler.getMapFile(), mpqEditor);
 		}
 
 		print("translating program to jass ... ");
