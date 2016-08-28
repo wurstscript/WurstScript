@@ -684,8 +684,25 @@ public class WurstValidator {
 
 	private void checkVarNotConstant(NameRef left, @Nullable NameDef var) {
 		if (var != null && var.attrIsConstant()) {
+			if (var instanceof GlobalVarDef) {
+				GlobalVarDef glob = (GlobalVarDef) var;
+				if (glob.attrIsDynamicClassMember() && isInConstructor(left)) {
+					// allow to assign constant members in constructor
+					return;
+				}
+			}
 			left.addError("Cannot assign a new value to constant " + Utils.printElement(var));
 		}
+	}
+
+	private boolean isInConstructor(AstElement e) {
+		while (e != null) {
+			if (e instanceof ConstructorDef) {
+				return true;
+			}
+			e = e.getParent();
+		}
+		return false;
 	}
 
 	private void checkAssignment(boolean isJassCode, AstElement pos, WurstType leftType, WurstType rightType) {
@@ -1995,7 +2012,7 @@ public class WurstValidator {
 		
 		if (v instanceof GlobalOrLocalVarDef) {
 			GlobalOrLocalVarDef g = (GlobalOrLocalVarDef) v;
-			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr) {
+			if (g.attrIsConstant() && g.getInitialExpr() instanceof NoExpr && !g.attrIsDynamicClassMember()) {
 				g.addError("Constant variable " + g.getName() + " needs an initial value.");
 			}
 		}

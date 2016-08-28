@@ -118,6 +118,18 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 		return ILconstInt.create(0);
 	}
 	
+	
+	public ILconstInt RemoveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+		@SuppressWarnings("unchecked")
+		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+		Map<Integer, Object> map2 = map.get(key1.getVal());
+		if (map2 != null) {
+			map2.remove(key2.getVal());
+		}
+		return ILconstInt.create(0);
+	}
+	
+	
 	public ILconstInt FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
 		Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
 		map.remove(parentKey.getVal());

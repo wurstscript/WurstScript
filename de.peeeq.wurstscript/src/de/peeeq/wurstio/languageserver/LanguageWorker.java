@@ -20,6 +20,7 @@ import de.peeeq.wurstio.languageserver.requests.GetDefinition;
 import de.peeeq.wurstio.languageserver.requests.GetUsages;
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
+import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.languageserver.requests.SignatureInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
@@ -131,6 +132,14 @@ public class LanguageWorker implements Runnable {
 			userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs ));
 			lock.notifyAll();
 		}
+	}
+    
+    public void handleRuntests(int sequenceNr, String filename, int line, int column) {
+    	synchronized (lock) {
+			userRequests.add(new RunTests(sequenceNr, server, filename, line, column));
+			lock.notifyAll();
+		}
+		
 	}
 
     private abstract class PendingChange {
@@ -270,6 +279,8 @@ public class LanguageWorker implements Runnable {
     private void log(String s) {
         WLogger.info(s);
     }
+
+	
 
 	
 

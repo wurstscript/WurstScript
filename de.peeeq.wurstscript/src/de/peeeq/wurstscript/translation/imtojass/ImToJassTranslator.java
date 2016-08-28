@@ -20,6 +20,7 @@ import java.util.Stack;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
@@ -59,7 +60,7 @@ public class ImToJassTranslator {
 	private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
 	private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
 	private Set<String> usedNames = Sets.newLinkedHashSet();
-	private static String restrictedNames[] = {"loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call"};
+	private static ImmutableSet<String> restrictedNames = ImmutableSet.of("loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call");
 	private Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
 	public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions, 
@@ -179,19 +180,18 @@ public class ImToJassTranslator {
 
 
 	private String getUniqueGlobalName(String name) { // TODO find local names
-		String name2 = "";
-		for (int i = 0; i < restrictedNames.length; i++) {
-			if ( restrictedNames[i].equals(name)) {
-				name2 = "w" + name;
-			}
+		
+		if (restrictedNames.contains(name) || name.startsWith("_")) {
+			name = "w" + name;
 		}
 		
-		if (name2.length() < 1) {
-			if (!usedNames.contains(name)) {
-				usedNames.add(name);
-				return name;
-			}
+		if (!usedNames.contains(name)) {
+			// name not used yet
+			usedNames.add(name);
+			return name;
 		}
+		// otherwise, try to find an unused name by adding a counter at the end 
+		String name2;
 		int i = 1;
 		do {
 			i++;

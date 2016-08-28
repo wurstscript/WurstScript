@@ -104,6 +104,7 @@ import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethodCall;
 import de.peeeq.wurstscript.jassIm.ImPrintable.Visitor;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
@@ -123,7 +124,9 @@ import de.peeeq.wurstscript.jassIm.JassImElementWithVar;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBool;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeHandle;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Pair;
@@ -174,7 +177,6 @@ public class ImTranslator {
 
 	private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
 
-	private boolean addInitChecks = false;
 
 	AstElement lasttranslatedThing;  
 	
@@ -194,10 +196,6 @@ public class ImTranslator {
 			globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
 			addFunction(getGlobalInitFunc());
 			debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE,IS_BJ));
-
-			if (addInitChecks) {
-				imProg.getGlobals().add(lastInitFunc);
-			}
 
 			for (CompilationUnit cu : wurstProg) {
 				translateCompilationUnit(cu);
@@ -360,58 +358,35 @@ public class ImTranslator {
 	private void finishInitFunctions() {
 		// init globals, at beginning of main func:
 		getMainFunc().getBody().add(0, ImFunctionCall(emptyTrace, globalInitFunc, ImExprs(), false, CallType.NORMAL));
-		if (addInitChecks) {
-			getMainFunc().getBody().add(0, JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("init globals")));
-		}
 		
-		addInitSuccessCheck();
 		
 		
 		for (ImFunction initFunc : initFuncMap.values()) {
 			addFunction(initFunc);
 		}
 		Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
+		
+		ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
+		getMainFunc().getLocals().add(initTrigVar);
+		
 		for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
-			callInitFunc(calledInitializers, p);
+			callInitFunc(calledInitializers, p, initTrigVar);
 		}
-		
-		if (addInitChecks) {
-			getMainFunc().getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal("")));
-		}
-		
 		
 	}
 
 
-	private void addInitSuccessCheck() {
-		if (!addInitChecks) {
-			return;
-		}
-		ImFunction timerStartFunc = getNativeFunc("TimerStart");
-		ImFunction createTimerFunc = getNativeFunc("CreateTimer");
-		ImFunction print = getNativeFunc("BJDebugMsg");
-		ImExpr whichTimer = JassIm.ImFunctionCall(emptyTrace, createTimerFunc, JassIm.ImExprs(), false, CallType.NORMAL);
-		ImExpr timeout = JassIm.ImRealVal("1.");
-		ImExpr periodic = JassIm.ImBoolVal(false);
-		ImStmts thenStatements = JassIm.ImStmts(imError(JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("Initialization thread crashed in "), JassIm.ImVarAccess(lastInitFunc)))));
-		ImStmts body = JassIm.ImStmts(
-				JassIm.ImIf(emptyTrace, JassIm.ImOperatorCall(WurstOperator.NOTEQ, JassIm.ImExprs(JassIm.ImVarAccess(lastInitFunc), JassIm.ImStringVal(""))), 
-						thenStatements, 
-						JassIm.ImStmts()
-				));
-		ImFunction initCheckFunc = JassIm.ImFunction(emptyTrace, "initCheckFunc", JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), body, Lists.<FunctionFlag>newArrayList());
-		ImExpr handlerFunc = JassIm.ImFuncRef(initCheckFunc);
-		
-		getMainFunc().getBody().add(2, JassIm.ImFunctionCall(emptyTrace, print, JassIm.ImExprs(JassIm.ImStringVal("BLUB")), false, CallType.NORMAL));
-		getMainFunc().getBody().add(3, JassIm.ImFunctionCall(emptyTrace, timerStartFunc, JassIm.ImExprs(whichTimer, timeout, periodic, handlerFunc), false, CallType.NORMAL));
-	}
 
 
 	private ImFunction getNativeFunc(String funcName) {
-		return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstProg.lookupFuncs(funcName)).getNameDef());
+		ImmutableCollection<NameLink> wurstFunc = wurstProg.lookupFuncs(funcName);
+		if (wurstFunc.isEmpty()) {
+			return null;
+		}
+		return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getNameDef());
 	}
 
-	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p) {
+	private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
 		Preconditions.checkNotNull(p);
 		if (calledInitializers.contains(p)) {
 			return;
@@ -419,16 +394,83 @@ public class ImTranslator {
 		calledInitializers.add(p);
 		// first initialize all packages imported by this package:
 		for (WPackage dep : p.attrInitDependencies()) {
-			callInitFunc(calledInitializers, dep);
+			callInitFunc(calledInitializers, dep, initTrigVar);
 		}
 		ImFunction initFunc = initFuncMap.get(p);
 		if (initFunc == null) {
 			return;
 		}
-		if (addInitChecks) {
-			getMainFunc().getBody().add(JassIm.ImSet(emptyTrace, lastInitFunc, JassIm.ImStringVal(p.getName())));
+		boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
+		
+		if (!successful) {
+			getMainFunc().getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
 		}
-		getMainFunc().getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
+	}
+
+
+	private boolean createInitFuncCall(WPackage p, ImVar initTrigVar, ImFunction initFunc) {
+		ImStmts mainBody = getMainFunc().getBody();
+
+
+		ImFunction native_CreateTrigger = getNativeFunc("CreateTrigger");
+		ImFunction native_TriggerAddCondition = getNativeFunc("TriggerAddCondition");
+		ImFunction native_Condition = getNativeFunc("Condition");
+		ImFunction native_TriggerEvaluate = getNativeFunc("TriggerEvaluate");
+		ImFunction native_DisplayTimedTextToPlayer = getNativeFunc("DisplayTimedTextToPlayer");
+		ImFunction native_GetLocalPlayer = getNativeFunc("GetLocalPlayer");
+		
+		
+		if (native_CreateTrigger == null
+				|| native_TriggerAddCondition == null
+				|| native_Condition == null
+				|| native_TriggerEvaluate == null
+				|| native_DisplayTimedTextToPlayer == null
+				|| native_GetLocalPlayer == null
+				) {
+			return false;
+		}
+		
+
+		// rewrite init func to return boolean true:
+		initFunc.setReturnType(WurstTypeBool.instance().imTranslateType());
+		initFunc.accept(new ImFunction.DefaultVisitor() {
+			@Override
+			public void visit(ImReturn imReturn) {
+				imReturn.setReturnValue(JassIm.ImBoolVal(true));
+			}
+		});
+		initFunc.getBody().add(JassIm.ImReturn(emptyTrace, JassIm.ImBoolVal(true)));
+		
+
+		// initTrigVar = CreateTrigger()
+		mainBody.add(JassIm.ImSet(emptyTrace, initTrigVar, 
+				JassIm.ImFunctionCall(emptyTrace, native_CreateTrigger, JassIm.ImExprs(), false, CallType.NORMAL)));
+
+		// TriggerAddCondition(initTrigVar, Condition(function myInit))
+		mainBody.add(JassIm.ImFunctionCall(emptyTrace, native_TriggerAddCondition, JassIm.ImExprs(
+				JassIm.ImVarAccess(initTrigVar),
+				JassIm.ImFunctionCall(emptyTrace, native_Condition, JassIm.ImExprs(
+						JassIm.ImFuncRef(initFunc)), false, CallType.NORMAL)
+				), true, CallType.NORMAL));
+		// if not TriggerEvaluate(initTrigVar) ...
+		mainBody.add(JassIm.ImIf(emptyTrace, 
+				JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(
+						JassIm.ImFunctionCall(emptyTrace, native_TriggerEvaluate, 
+								JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL)
+						)),
+				// then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
+				JassIm.ImStmts(
+						JassIm.ImFunctionCall(emptyTrace, native_DisplayTimedTextToPlayer, JassIm.ImExprs(
+								JassIm.ImFunctionCall(emptyTrace, native_GetLocalPlayer, JassIm.ImExprs(), false, CallType.NORMAL),
+								JassIm.ImRealVal("0."),
+								JassIm.ImRealVal("0."),
+								JassIm.ImRealVal("45."),
+								JassIm.ImStringVal("Could not initialize package " + p.getName() + ".")
+								), false, CallType.NORMAL)
+						), 
+				// else:
+				JassIm.ImStmts()));
+		return true;
 	}
 
 	private void addFunction(ImFunction f) {

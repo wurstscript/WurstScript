@@ -126,15 +126,15 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
-		@Test
-		public void constantVars2() {
-			testAssertErrorsLines(false, "", // TODO "initial value", 
-					"package test",
-					"	class C",
-					"		constant int i",
-					"endpackage"
-				);
-		}	
+//		@Test
+//		public void constantVars2() {
+//			testAssertErrorsLines(false, "", // TODO "initial value", 
+//					"package test",
+//					"	class C",
+//					"		constant int i",
+//					"endpackage"
+//				);
+//		}	
 		
 	
 	@Test
@@ -1077,4 +1077,19 @@ public class ClassesTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+	public void initConstant() { 
+		testAssertOkLines(false, 
+				"package test",
+				"	class C",
+				"		constant int x",
+				"		construct()",
+				"			x = 5",
+				"endpackage"
+			);
+	}
+	
+	
+	
 }

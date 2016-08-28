@@ -186,7 +186,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 			if (b.containsKey(tpDef)) {
 				WurstType t2 = b.get(tpDef);
 				if (t != t2) {
-					return normalizeType(t2, b);
+					return t2;
 				}
 			}
 		}

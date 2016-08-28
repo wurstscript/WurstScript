@@ -213,9 +213,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		}
 		
 		try {
-			if (hasCommonJ) {
-				loadLibPackage(compilationUnits, "Wurst");
-			}
 			addImportedLibs(compilationUnits);
 		} catch (CompileError e) {
 			gui.sendError(e);

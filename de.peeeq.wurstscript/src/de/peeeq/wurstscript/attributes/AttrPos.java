@@ -95,19 +95,19 @@ public class AttrPos {
 	
 	
 	public static WPos getErrorPos(WPackage e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 	
 	public static WPos getErrorPos(FuncDef e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 	
 	public static WPos getErrorPos(ExtensionFuncDef e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 	
 	public static WPos getErrorPos(ClassDef e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 	
 	public static WPos getErrorPos(ConstructorDef e) {
@@ -126,7 +126,7 @@ public class AttrPos {
 	}
 	
 	public static WPos getErrorPos(StructureDef e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 	
 	
@@ -156,32 +156,73 @@ public class AttrPos {
 	}
 
 	public static WPos getErrorPos(FuncRef e) {
-		return e.getFuncNameId().getSource();
+		return identifierPos(e, e.getFuncNameId());
+	}
+
+	/**
+	 * if an identifer only has an artificial position, try to 
+	 * find a better position from the parent 
+	 */
+	private static WPos identifierPos(AstElement e, Identifier ident) {
+		WPos source = ident.getSource();
+		if (!source.isArtificial()) {
+			return source;
+		}
+		
+		WPos eSource = e.attrSource();
+		int left = eSource.getLeftPos();
+		int right = eSource.getRightPos();
+		
+		
+		
+		for (int i=0; i<e.size(); i++) {
+			AstElement child = e.get(i);
+			if (child == ident) {
+				break;
+			}
+			WPos childSource = child.attrSource();
+			if (childSource.getRightPos() < right) {
+				left = Math.max(left, childSource.getRightPos());
+			}
+		}
+		
+		for (int i=e.size()-1; i>=0; i--) {
+			AstElement child = e.get(i);
+			if (child == ident) {
+				break;
+			}
+			WPos childSource = child.attrSource();
+			if (childSource.getLeftPos() > left) {
+				right = Math.min(right, childSource.getLeftPos());
+			}
+		}
+		
+		return source.withLeftPos(left).withRightPos(right);
 	}
 
 	public static WPos getErrorPos(FunctionCall e) {
-		return e.getFuncNameId().getSource();
+		return identifierPos(e, e.getFuncNameId());
 	}
 	
 	public static WPos getErrorPos(ExprMemberVar e) {
-		return e.getVarNameId().getSource();
+		return identifierPos(e, e.getVarNameId());
 	}
 	
 	public static WPos getErrorPos(ExprMemberMethod e) {
-		return e.getFuncNameId().getSource();
+		return identifierPos(e, e.getFuncNameId());
 	}
 
 	public static WPos getErrorPos(ExprFunctionCall e) {
-		return e.getFuncNameId().getSource();
+		return identifierPos(e, e.getFuncNameId());
 	}
 
 
 	public static WPos getErrorPos(ExprNewObject e) {
-		return e.getTypeNameId().getSource();
+		return identifierPos(e, e.getTypeNameId());
 	}
 	
 	public static WPos getErrorPos(VarDef e) {
-		return e.getNameId().getSource();
+		return identifierPos(e, e.getNameId());
 	}
 
 	private static WPos updateRight(WPos pos, int newRight) {

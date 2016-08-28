@@ -142,7 +142,7 @@ public class ILInterpreter {
 			}
 		}
 		ImStmt lastStatement = globalState.getLastStatement();
-		String errorMessage = "function " + f.getName() + " not found." + errors;
+		String errorMessage = "function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors;
 		if (lastStatement != null) {
 			WPos source = lastStatement.attrTrace().attrSource();
 			globalState.getGui().sendError(new CompileError(source, errorMessage));

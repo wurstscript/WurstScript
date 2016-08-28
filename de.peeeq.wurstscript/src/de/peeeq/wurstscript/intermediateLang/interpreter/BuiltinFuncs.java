@@ -12,7 +12,7 @@ public class BuiltinFuncs implements NativesProvider {
 
 	@Override
 	public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
-		throw new NoSuchNativeException("No builtin function " + funcname + "found.");
+		throw new NoSuchNativeException("No builtin function " + funcname + " found.");
 	}
 
 	@Override

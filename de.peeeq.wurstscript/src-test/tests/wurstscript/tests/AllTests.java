@@ -7,7 +7,8 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses({ 
 	QuickTests.class,
-	RealWorldExamples.class
+	RealWorldExamples.class,
+	ModelManagerTests.class
 })
 public class AllTests {
 

@@ -489,4 +489,94 @@ public class GenericsTests extends WurstScriptTest {
 				);
 	}
 	
+	@Test
+	public void genericRecursive() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"public class C<K>",
+				"	C<K> x",
+				"	function foo()",
+				"		this.x.x = null"
+				);
+	}
+	
+	@Test
+	public void genericRecursive2() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"public class C<K>",
+				"	C<K> x",
+				"	function foo()",
+				"		C<K> c = new C<K>",
+				"		c.x.x = null"
+				);
+	}
+	
+	@Test
+	public void genericChain1() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class A",
+				"public class C<K>",
+				"	K x",
+				"init",
+				"	C<C<C<A>>> c = null",
+				"	c.x.x.x = new A"
+				);
+	}
+	
+	@Test
+	public void genericChain1Err() { 
+		testAssertErrorsLines(false, "Cannot assign",
+				"package Test",
+				"class A",
+				"public class C<K>",
+				"	K x",
+				"init",
+				"	C<C<C<A>>> c = null",
+				"	c.x.x = new A"
+				);
+	}
+	
+	@Test
+	public void genericChain2() { 
+		testAssertOkLines(false,  
+				"package Test",
+				"class A",
+				"public class C<K>",
+				"	C<C<K>> x",
+				"init",
+				"	C<A> c = null",
+				"	c.x.x.x = new C<C<C<C<A>>>>"
+				);
+	}
+	
+	@Test
+	public void genericChain2ErrA() { 
+		testAssertErrorsLines(false,  "Cannot assign",
+				"package Test",
+				"class A",
+				"public class C<K>",
+				"	C<C<K>> x",
+				"init",
+				"	C<A> c = null",
+				"	c.x.x.x = new C<C<C<C<C<A>>>>>"
+				);
+	}
+	
+	@Test
+	public void genericChain2ErrB() { 
+		testAssertErrorsLines(false, "Cannot assign",
+				"package Test",
+				"class A",
+				"public class C<K>",
+				"	C<C<K>> x",
+				"init",
+				"	C<A> c = null",
+				"	c.x.x.x = new C<C<C<A>>>"
+				);
+	}
+	
+	
+	
 }

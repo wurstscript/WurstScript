@@ -466,7 +466,11 @@ public class GetCompletions extends UserRequest {
 	private double calculateRating(String name, WurstType wurstType) {
 		double r = calculateNameBasedRating(name);
 		if (expectedType != null && wurstType.isSubtypeOf(expectedType, elem)) {
-			return r + 0.1;
+			r += 0.1;
+		}
+		if (name.contains("BJ") || name.contains("Swapped")) {
+			// common.j functions that Frotty does not want to see
+			r -= 0.05;
 		}
 		return r;
 	}

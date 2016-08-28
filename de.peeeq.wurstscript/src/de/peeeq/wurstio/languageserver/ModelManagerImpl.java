@@ -177,9 +177,10 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private String getProjectRelativePath(File f) {
-		Path pathRelative = projectPath.getAbsoluteFile().toPath().relativize(f.getAbsoluteFile().toPath());
+		Path pathRelative = projectPath.getAbsoluteFile().toPath().normalize().relativize(f.getAbsoluteFile().toPath().normalize());
 		return pathRelative.toString();
 	}
+	
 
 	private void addDependency(WurstGui gui, File depfile, String fileName, LineOffsets lineOffsets, int offset,
 							   int endOffset) {
@@ -387,7 +388,7 @@ public class ModelManagerImpl implements ModelManager {
 
 		try (InputStreamReader reader = new FileReader(sourceFile)) {
 			CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
-			cu.setFile(sourceFile.getAbsolutePath());
+			cu.setFile(getProjectRelativePath(sourceFile));
 			return cu;
 		}
 	}
@@ -535,7 +536,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	@Override
 	public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
-		replaceCompilationUnit(filename, contents, reportErrors);
+		replaceCompilationUnit(normalizeFilename(filename), contents, reportErrors);
 	}
 
 	@Override
@@ -563,18 +564,21 @@ public class ModelManagerImpl implements ModelManager {
 			}
 		});
 		m.buildProject();
-
 	}
 
 	private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
 		WLogger.info("do typecheck partial of " + toCheckFilenames);
 		WurstCompilerJassImpl comp = getCompiler(gui);
 		List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
+		
+		
 		WurstModel model2 = model;
 		if (model2 == null) {
 			return;
 		}
 
+		toCheck = new ArrayList<>(addPackageDependencies(toCheck, model2));
+		
 		List<CompilationUnit> clearedCUs = Collections.emptyList();
 		try {
 			clearedCUs = clearAttributes(toCheck);
@@ -592,6 +596,40 @@ public class ModelManagerImpl implements ModelManager {
 		}
 	}
 
+
+	private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, WurstModel model) {
+		Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(CompilationUnit::getFile));
+		result.addAll(toCheck);
+		Collection<String> providedPackages = result.stream()
+			.flatMap(cu -> cu.getPackages().stream())
+			.map(p -> p.getName())
+			.collect(Collectors.toSet());
+		
+		addImportingPackages(providedPackages, model, result);
+		
+		return result;
+	}
+
+	private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {
+		nextCu: for (CompilationUnit compilationUnit : model2) {
+			if (result.contains(compilationUnit)) {
+				continue;
+			}
+			for (WPackage p : compilationUnit.getPackages()) {
+				for (WImport imp : p.getImports()) {
+					String importedPackage = imp.getPackagenameId().getName();
+					if (providedPackages.contains(importedPackage)) {
+						result.add(compilationUnit);
+						if (imp.getIsPublic()) {
+							// recursive call terminates, because it is only called for packages not yet in result 
+							addImportingPackages(Collections.singletonList(p.getName()), model2, result);
+						}
+						continue nextCu;
+					}
+				}
+			}
+		}
+	}
 
 	@Override
 	public synchronized Set<File> getDependencyWurstFiles() {
