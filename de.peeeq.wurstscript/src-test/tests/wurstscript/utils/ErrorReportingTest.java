@@ -24,9 +24,6 @@ public class ErrorReportingTest {
 	
 	@Test
 	public void testBigSource() throws IOException {
-//		StringBuilder source = new StringBuilder();
-//		appendFileContentsOf(new File("../Wurstpack/wurstscript/lib"), source);
-//		
 		String source = Files.toString(new File("/home/peter/kram/errorreport_source.wurst"), Charsets.UTF_8);
 		
 		boolean result = instance.sendErrorReport(new Error("bla"), source);

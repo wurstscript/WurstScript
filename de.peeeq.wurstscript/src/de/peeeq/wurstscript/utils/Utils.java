@@ -940,4 +940,37 @@ public class Utils {
 		}
 		return false;
 	}
+	
+	/**
+	 *  Executes a shell command in a given folder and returns the output of the executed command
+	 */
+	public static String exec(File folder, String ...cmds) {
+		try {
+			Process p = new ProcessBuilder(cmds)
+					.directory(folder)
+					.start();
+			int res = p.waitFor();
+			if (res != 0) {
+				throw new RuntimeException("Could not execute " +  Utils.join(Arrays.asList(cmds), " ")
+						+ "\nErrors:\n"
+						+ convertStreamToString(p.getErrorStream()) 
+						+ "\nOutput:\n"
+						+ convertStreamToString(p.getInputStream()));
+			}
+			return convertStreamToString(p.getInputStream());
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Converts an input stream to a string
+	 *
+	 * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+	 */
+	public static String convertStreamToString(java.io.InputStream is) {
+	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+	    return s.hasNext() ? s.next() : "";
+	}
+	
 }

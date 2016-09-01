@@ -137,11 +137,9 @@ public class RealWorldExamples extends WurstScriptTest {
 	@Test
 	public void test_stdlib() throws IOException {
 		List<File> inputs = Lists.newLinkedList();
-//		settings.put("lib", "./wurstscript/lib/");
-//		config.setSetting("lib", "../Wurstpack/wurstscript/lib/");
 		// TODO set config
 		RunArgs runArgs = RunArgs.defaults();
-		runArgs.addLibs(Sets.newHashSet("../Wurstpack/wurstscript/lib/"));
+		runArgs.addLibs(Sets.newHashSet(StdLib.getLib()));
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
 		for (File f : comp.getLibs().values()) {
 			WLogger.info("Adding file: " + f);

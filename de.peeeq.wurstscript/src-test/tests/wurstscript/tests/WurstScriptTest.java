@@ -164,7 +164,7 @@ public class WurstScriptTest {
 	}
 
 	protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-		RunArgs runArgs = new RunArgs(new String[] {"-lib", "../Wurstpack/wurstscript/lib/"});
+		RunArgs runArgs = new RunArgs(new String[] {"-lib", StdLib.getLib()});
 		WurstGui gui = new WurstGuiCliImpl();
 		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
 		compiler.getErrorHandler().enableUnitTestMode();

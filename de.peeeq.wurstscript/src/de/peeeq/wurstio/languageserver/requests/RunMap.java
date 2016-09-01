@@ -117,7 +117,6 @@ public class RunMap extends UserRequest {
 			
 			gui.sendProgress("Injecting mapscript");
 			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
-				//			MpqEditor mpqEditor = new WinMpq("C:\\work\\WurstScript\\Wurstpack\\winmpq\\WinMPQ.exe");
 				mpqEditor.deleteFile("war3map.j");
 				mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
 			}
