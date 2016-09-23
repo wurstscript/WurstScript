@@ -109,9 +109,9 @@ public class GenerateBotData {
 				Map<TypeParamDef, WurstType> binding2 = Collections.emptyMap(); // Simplified
 				List<WurstType> paramTypes = Lists.newArrayList();
 				for (WParameter p : f.getParameters()) {
-					paramTypes.add(p.attrTyp().setTypeArgs(binding2));
+					paramTypes.add(p.attrTyp().setTypeArgs(p, binding2));
 				}
-				returnType = returnType.setTypeArgs(binding2);
+				returnType = returnType.setTypeArgs(f, binding2);
 				// List<String> pNames =
 				// FunctionSignature.getParamNames(f.getParameters());
 				sigs.add(new Sig("new " + f.attrNearestClassOrModule().getName(), paramTypes, returnType));
