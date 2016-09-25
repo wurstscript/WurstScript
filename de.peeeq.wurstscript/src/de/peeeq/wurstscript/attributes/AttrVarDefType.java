@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.WurstNativeType;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeInt;
@@ -64,9 +65,10 @@ public class AttrVarDefType {
 	}
 	
 	public static WurstType calculate(ClassDef c) {
-		List<WurstType> typeArgs = Lists.newArrayList();
+		List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : c.getTypeParameters()) {
-			typeArgs.add(new WurstTypeTypeParam(tp));
+			WurstTypeTypeParam typParam = new WurstTypeTypeParam(tp);
+			typeArgs.add(new WurstTypeBoundTypeParam(tp, typParam, tp));
 		}
 		WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
 		return t;
@@ -115,9 +117,10 @@ public class AttrVarDefType {
 	}
 
 	public static WurstType calculate(InterfaceDef i) {
-		List<WurstType> typeArgs = Lists.newArrayList();
+		List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
 		for (TypeParamDef tp : i.getTypeParameters()) {
-			typeArgs.add(new WurstTypeTypeParam(tp));
+			WurstTypeTypeParam tpType = new WurstTypeTypeParam(tp);
+			typeArgs.add(new WurstTypeBoundTypeParam(tp, tpType, tp));
 		}
 		return new WurstTypeInterface(i, typeArgs, true);
 	}

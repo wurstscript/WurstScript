@@ -26,6 +26,7 @@ import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClosure;
 import de.peeeq.wurstscript.types.WurstTypeCode;
@@ -1219,8 +1220,9 @@ public class WurstValidator {
 	}
 
 	private void checkTypeBinding(HasTypeArgs e) {
-		for (Entry<TypeParamDef, WurstType> t : e.attrTypeParameterBindings().entrySet()) {
-			WurstType typ = t.getValue();
+		for (Entry<TypeParamDef, WurstTypeBoundTypeParam> t : e.attrTypeParameterBindings().entrySet()) {
+			WurstTypeBoundTypeParam boundTyp = t.getValue();
+			WurstType typ = boundTyp.getBaseType();
 			if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
 				String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
 				String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
@@ -1521,7 +1523,7 @@ public class WurstValidator {
 	private void checkInstanceDef(ClassDef classDef) {
 		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
 			InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
-			Map<TypeParamDef, WurstType> typeParamMapping = interfaceType.getTypeArgBinding();
+			Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
 			// TODO check type mapping
 
 			nextFunction: 

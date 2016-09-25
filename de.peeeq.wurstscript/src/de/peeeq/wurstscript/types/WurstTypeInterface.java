@@ -20,13 +20,13 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 //		this.interfaceDef = interfaceDef;
 //	}
 
-	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstType> newTypes, boolean isStaticRef) {
+	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes, boolean isStaticRef) {
 		super(newTypes, isStaticRef);
 		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
 	}
 	
-	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstType> newTypes) {
+	public WurstTypeInterface(InterfaceDef interfaceDef, List<WurstTypeBoundTypeParam> newTypes) {
 		super(newTypes);
 		if (interfaceDef == null) throw new IllegalArgumentException();
 		this.interfaceDef = interfaceDef;
@@ -55,7 +55,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 	}
 
 	@Override
-	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
 		return new WurstTypeInterface(getInterfaceDef(), newTypes);
 	}
 

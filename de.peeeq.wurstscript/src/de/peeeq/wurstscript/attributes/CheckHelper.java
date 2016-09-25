@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 public class CheckHelper {
 
@@ -19,7 +20,7 @@ public class CheckHelper {
 	 * @param of
 	 * @param b 
 	 */
-	public static void checkIfIsRefinement(Map<TypeParamDef, WurstType> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage, boolean reverseErrorMessage) {
+	public static void checkIfIsRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage, boolean reverseErrorMessage) {
 		String funcName = f.getName();
 		// check static-ness
 		if (f.attrIsStatic() && !of.attrIsStatic()) {
@@ -64,8 +65,8 @@ public class CheckHelper {
 		}
 	}
 
-	private static WurstType getRealType(AstElement context, Map<TypeParamDef, WurstType> typeParamMapping, WurstType t) {
-		return t.setTypeArgs(context, typeParamMapping);
+	private static WurstType getRealType(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
+		return t.setTypeArgs(typeParamMapping);
 	}
 
 	

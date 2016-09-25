@@ -567,7 +567,7 @@ AstElement.attrErrorPos() "returns the position where errors are marked"
 
 
 HasTypeArgs.attrTypeParameterBindings
-	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstType>
+	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstTypeBoundTypeParam>
 	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
 
 

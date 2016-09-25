@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class AttrFunctionSignature {
@@ -26,7 +27,7 @@ public class AttrFunctionSignature {
 
 	private static FunctionSignature filterSigs(
 			Collection<FunctionSignature> sigs,
-			Map<TypeParamDef, WurstType> typeParameterBindings,
+			Map<TypeParamDef, WurstTypeBoundTypeParam> typeParameterBindings,
 			List<WurstType> argTypes, StmtCall location) {
 		if (sigs.isEmpty()) {
 			if (!isInitTrigFunc(location)) {

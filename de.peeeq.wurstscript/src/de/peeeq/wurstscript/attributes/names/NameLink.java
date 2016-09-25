@@ -28,6 +28,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
 
@@ -268,7 +269,7 @@ public class NameLink {
 		return r = r + Utils.printElementWithSource(nameDef);
 	}
 
-	public NameLink withTypeArgBinding(AstElement context, Map<TypeParamDef, WurstType> binding) {
+	public NameLink withTypeArgBinding(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
 		if (binding.isEmpty()) {
 			return this;
 		}
@@ -294,8 +295,8 @@ public class NameLink {
 		}
 	}
 
-	private WurstType adjustType(AstElement context, WurstType t, Map<TypeParamDef, WurstType> binding) {
-		return t.setTypeArgs(context, binding);
+	private WurstType adjustType(AstElement context, WurstType t, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+		return t.setTypeArgs(binding);
 	}
 
 	

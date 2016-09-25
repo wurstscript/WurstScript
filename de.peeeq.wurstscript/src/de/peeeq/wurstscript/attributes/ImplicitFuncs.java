@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.WEntities;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class ImplicitFuncs {
 
@@ -20,7 +21,8 @@ public class ImplicitFuncs {
 				return (FuncDef) nl.getNameDef();
 			}
 		}
-		throw new CompileError(e.attrSource(), "Could not find function " + toIndexFuncName(typ));
+		e.addError("Could not find function " + toIndexFuncName(typ));
+		return null;
 	}
 	
 	public static FuncDef findFromIndexFunc(WurstType typ, AstElement e) {
@@ -30,7 +32,8 @@ public class ImplicitFuncs {
 				return (FuncDef) nl.getNameDef();
 			}
 		}
-		throw new CompileError(e.attrSource(), "Could not find function " + fromIndexFuncName(typ));
+		e.addError("Could not find function " + fromIndexFuncName(typ));
+		return null;
 	}
 
 		
@@ -50,7 +53,8 @@ public class ImplicitFuncs {
 
 	public static Collection<NameLink> findFromIndexFuncs(WurstType typ, AstElement e) {
 		String funcName = fromIndexFuncName(typ);
-		return findFunc(e, funcName);
+		Collection<NameLink> res = findFunc(e, funcName);
+		return res;
 	}
 	
 	

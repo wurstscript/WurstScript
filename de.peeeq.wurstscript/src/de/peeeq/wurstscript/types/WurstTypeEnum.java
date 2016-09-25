@@ -36,7 +36,7 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
 		return this;
 	}
 

@@ -156,9 +156,13 @@ public class ExprTranslation {
 		WurstType actualType = e.attrTypRaw();
 		ImFunction toIndex = null;
 		ImFunction fromIndex = null;
+//		System.out.println("translating " + e);
+//		System.out.println("   actual type: " + actualType);
+//		System.out.println("   expected type: " + e.attrExpectedTypRaw());
 		if (actualType instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
 			FuncDef fromIndexFunc = wtb.getFromIndex();
+//			System.out.println("   fromIndex = " + Utils.printElement(fromIndexFunc));
 			if (fromIndexFunc != null) {
 				fromIndex = t.getFuncFor(fromIndexFunc);
 			}
@@ -170,6 +174,7 @@ public class ExprTranslation {
 		if (e.attrExpectedTypRaw() instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) e.attrExpectedTypRaw();
 			FuncDef toIndexFunc = wtb.getToIndex();
+//			System.out.println("   toIndex = " + Utils.printElement(toIndexFunc));
 			if (toIndexFunc != null) {
 				toIndex = t.getFuncFor(toIndexFunc);
 			}

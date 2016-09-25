@@ -19,6 +19,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
 public class AttrPossibleFunctionSignatures {
@@ -82,12 +83,12 @@ public class AttrPossibleFunctionSignatures {
 		assert struct != null; // because constructors can only appear inside a StructureDef
 		
 		WurstType returnType = struct.attrTyp().dynamic();
-		Map<TypeParamDef, WurstType> binding2 = fc.attrTypeParameterBindings();
+		Map<TypeParamDef, WurstTypeBoundTypeParam> binding2 = fc.attrTypeParameterBindings();
 		List<WurstType> paramTypes = Lists.newArrayList();
 		for (WParameter p : f.getParameters()) {
-			paramTypes.add(p.attrTyp().setTypeArgs(fc, binding2));
+			paramTypes.add(p.attrTyp().setTypeArgs(binding2));
 		}
-		returnType = returnType.setTypeArgs(fc, binding2);
+		returnType = returnType.setTypeArgs(binding2);
 		List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
 		return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType));
 	}

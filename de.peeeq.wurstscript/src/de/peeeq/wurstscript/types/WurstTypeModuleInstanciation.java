@@ -20,7 +20,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 		this.moduleInst = moduleInst;
 	}
 
-	public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<WurstType> newTypes) {
+	public WurstTypeModuleInstanciation(ModuleInstanciation moduleInst2, List<WurstTypeBoundTypeParam> newTypes) {
 		super(newTypes);
 		if (moduleInst2 == null) throw new IllegalArgumentException();
 		moduleInst = moduleInst2;
@@ -74,7 +74,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
 		return new WurstTypeModuleInstanciation(moduleInst, newTypes);
 	}
 

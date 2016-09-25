@@ -41,10 +41,7 @@ public class AttrTypeExprType {
 		if (node.getTypeArgs().size() > 0) {
 			if (baseType instanceof WurstTypeNamedScope) {
 				WurstTypeNamedScope ns = (WurstTypeNamedScope) baseType;
-				List<WurstType> newTypes = node.getTypeArgs().stream()
-						.map((TypeExpr te) -> te.attrTyp().dynamic())
-						.collect(Collectors.toList());
-				return ns.replaceTypeVars(newTypes);
+				return ns.replaceTypeVarsUsingTypeArgs(node.getTypeArgs());
 			} else {
 				node.addError("Type " + baseType + " cannot have type args");
 			}

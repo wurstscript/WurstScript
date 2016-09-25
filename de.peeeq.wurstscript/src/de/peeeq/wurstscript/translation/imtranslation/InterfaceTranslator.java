@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class InterfaceTranslator {
 
@@ -79,7 +80,7 @@ public class InterfaceTranslator {
 		// set sub methods
 		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
 		for (FuncDef subM : subClasses2.values()) {
-			imMeth.getSubMethods().add(translator.getMethodFor(subM));
+			OverrideUtils.addOverride(translator, f, translator.getMethodFor(subM), subM);
 		}
 		
 	}

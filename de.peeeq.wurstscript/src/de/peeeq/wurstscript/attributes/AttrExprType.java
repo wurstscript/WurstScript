@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -48,12 +50,14 @@ import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.StmtReturn;
 import de.peeeq.wurstscript.ast.TypeDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.types.WurstTypeBool;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeClosure;
@@ -219,7 +223,11 @@ public class AttrExprType {
 				@Override	
 				public WurstType case_ClassDef(ClassDef classDef) {
 					WurstTypeClass result = (WurstTypeClass) classDef.attrTyp().dynamic();
-					return result.replaceTypeVars(classDef.getTypeParameters().attrTypes());
+					List<WurstTypeBoundTypeParam> boundTypes = new ArrayList<>();
+					for (TypeParamDef tp : classDef.getTypeParameters()) {
+						boundTypes.add(new WurstTypeBoundTypeParam(tp, tp.attrTyp(), tp));
+					}
+					return result.replaceTypeVars(boundTypes );
 				}
 
 				@SuppressWarnings("null")
@@ -240,7 +248,11 @@ public class AttrExprType {
 				@Override
 				public WurstType case_InterfaceDef(InterfaceDef interfaceDef) {
 					WurstTypeInterface result = (WurstTypeInterface) interfaceDef.attrTyp().dynamic();
-					return result.replaceTypeVars(interfaceDef.getTypeParameters().attrTypes());
+					List<WurstTypeBoundTypeParam> boundTypes = new ArrayList<>();
+					for (TypeParamDef tp : interfaceDef.getTypeParameters()) {
+						boundTypes.add(new WurstTypeBoundTypeParam(tp, tp.attrTyp(), tp));
+					}
+					return result.replaceTypeVars(boundTypes );
 				}
 
 				@SuppressWarnings("null")
@@ -446,7 +458,7 @@ public class AttrExprType {
 		if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
 			term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
 		}
-		return varDef.attrTyp().setTypeArgs(term, term.getLeft().attrTyp().getTypeArgBinding());
+		return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
 	}
 
 

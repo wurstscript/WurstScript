@@ -2,16 +2,19 @@ package de.peeeq.wurstscript.types;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstTypeBoundTypeParam extends WurstType {
 
@@ -36,7 +39,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-		return baseType.getName();
+//		return baseType.getName();
+		return "[" + typeParamDef.getName() + ": " + baseType + "]";
 	}
 
 	@Override
@@ -120,8 +124,48 @@ public class WurstTypeBoundTypeParam extends WurstType {
 		if (!baseType.supportsGenerics()) {
 			fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
 			toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
+		} else if (baseType instanceof WurstTypeBoundTypeParam) {
+			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
+			fromIndex = bt.getFromIndex();
+			toIndex = bt.getToIndex();
 		}
 		indexInitialized = true;
+	}
+	
+	@Override
+	public boolean supportsGenerics() {
+		return baseType.supportsGenerics()
+				|| getFromIndex() != null && getToIndex() != null;
+	}
+
+	@Override
+	public WurstTypeBoundTypeParam setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+		return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
+	}
+	
+//	public WurstTypeBoundTypeParam applyBinding(Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+//		if (baseType instanceof WurstTypeTypeParam) {
+//			WurstTypeTypeParam tp = (WurstTypeTypeParam) baseType;
+//			if (binding.containsKey(tp.getDef())) {
+//				return this.withBaseType(binding.get(tp.getDef()));
+//			}
+//		} else if (baseType instanceof WurstTypeBoundTypeParam) {
+//			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
+//			return this.withBaseType(bt.applyBinding(binding));
+//		}
+//		return this.baseType.
+//		return this;
+//	}
+
+	private WurstTypeBoundTypeParam withBaseType(WurstType t) {
+		if (t == baseType) {
+			return this;
+		}
+		return new WurstTypeBoundTypeParam(typeParamDef, t, context);
+	}
+	
+	public TypeParamDef getTypeParamDef() {
+		return typeParamDef;
 	}
 
 	

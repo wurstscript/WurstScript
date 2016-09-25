@@ -145,7 +145,7 @@ public class ClosureTranslator {
 	private ImClass createClass() {
 		ImClass superClass = getSuperClass();
 		FuncDef superMethod = getSuperMethod();
-		ImMethod superMethodIm = tr.getMethodFor(superMethod);
+		
 		
 		
 		ImVars fields = JassIm.ImVars();
@@ -171,7 +171,9 @@ public class ClosureTranslator {
 		impl = tr.getFuncFor(e);
 		ImMethod m = JassIm.ImMethod(e, superMethod.getName(), impl, JassIm.ImMethods(), false);
 		c.getMethods().add(m);
-		superMethodIm.getSubMethods().add(m);
+		
+		OverrideUtils.addOverride(tr, superMethod, m, e);
+		
 		
 		
 		ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);

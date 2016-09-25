@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -47,9 +48,9 @@ public class InterfaceInstances {
 				return;
 			}
 			result.add(i);
-			Map<TypeParamDef, WurstType> typeParamBounds = i.getTypeArgBinding();
+			Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds = i.getTypeArgBinding();
 			for (WurstTypeInterface i2 : i.getInterfaceDef().attrExtendedInterfaces()) {
-				result.add((WurstTypeInterface) i2.setTypeArgs(t, typeParamBounds));
+				result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
 			}
 			
 		} else {

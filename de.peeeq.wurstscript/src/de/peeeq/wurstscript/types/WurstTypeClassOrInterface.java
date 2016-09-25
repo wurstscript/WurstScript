@@ -6,12 +6,12 @@ import de.peeeq.wurstscript.ast.StructureDef;
 
 public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
-	public WurstTypeClassOrInterface(List<WurstType> typeParameters,
+	public WurstTypeClassOrInterface(List<WurstTypeBoundTypeParam> typeParameters,
 			boolean isStaticRef) {
 		super(typeParameters, isStaticRef);
 	}
 
-	public WurstTypeClassOrInterface(List<WurstType> newTypes) {
+	public WurstTypeClassOrInterface(List<WurstTypeBoundTypeParam> newTypes) {
 		super(newTypes);
 	}
 

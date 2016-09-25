@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.types;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.annotation.NonNull;
@@ -17,6 +19,8 @@ import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.TypeParamDefs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -25,15 +29,15 @@ import de.peeeq.wurstscript.attributes.names.NameLinkType;
 public abstract class WurstTypeNamedScope extends WurstType {
 
 	private final boolean isStaticRef;
-	private final List<WurstType> typeParameters;
+	private final List<WurstTypeBoundTypeParam> typeParameters;
 	
 	
-	public WurstTypeNamedScope(List<WurstType> typeParameters, boolean isStaticRef) {
+	public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
 		this.isStaticRef = isStaticRef;
 		this.typeParameters = typeParameters;
 	}
 
-	public WurstTypeNamedScope(List<WurstType> typeParameters) {
+	public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters) {
 		this.isStaticRef = false;
 		this.typeParameters = typeParameters;
 	}
@@ -79,7 +83,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		return false;
 	}
 
-	public List<WurstType> getTypeParameters() {
+	public List<WurstTypeBoundTypeParam> getTypeParameters() {
 		return typeParameters;
 	}
 
@@ -135,16 +139,16 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 
 	@Override
-	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
 		
 		NamedScope def2 = getDef();
 		if (def2 instanceof AstElementWithTypeParameters) {
 			AstElementWithTypeParameters def = (AstElementWithTypeParameters) def2;
-			Map<TypeParamDef, WurstType> result = Maps.newLinkedHashMap();
+			Map<TypeParamDef, WurstTypeBoundTypeParam> result = Maps.newLinkedHashMap();
 			for (int i=0; i<typeParameters.size(); i++) {
 				WurstType t = typeParameters.get(i);
 				TypeParamDef tDef = def.getTypeParameters().get(i);
-				result.put(tDef, t);
+				result.put(tDef, new WurstTypeBoundTypeParam(tDef, t, def2));
 			}
 			if (def instanceof ClassDef) {
 				ClassDef c = (ClassDef) def;
@@ -170,49 +174,63 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		return super.getTypeArgBinding();
 	}
 
-	private void normalizeTypeArgsBinding(Map<TypeParamDef, WurstType> b) {
+	private void normalizeTypeArgsBinding(Map<TypeParamDef, WurstTypeBoundTypeParam> b) {
 		List<TypeParamDef> keys = Lists.newArrayList(b.keySet());
 		for (TypeParamDef p : keys) {
-			WurstType t = b.get(p);
+			WurstTypeBoundTypeParam t = b.get(p);
 			b.put(p, normalizeType(t,b));
 		}
 	}
 
-	private WurstType normalizeType(WurstType t, Map<TypeParamDef, WurstType> b) {
-		t = t.normalize();
-		if (t instanceof WurstTypeTypeParam) {
-			WurstTypeTypeParam tp = (WurstTypeTypeParam) t;
-			TypeParamDef tpDef = tp.getDef();
-			if (b.containsKey(tpDef)) {
-				WurstType t2 = b.get(tpDef);
-				if (t != t2) {
-					return t2;
-				}
-			}
-		}
-		return t;
+	private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, Map<TypeParamDef, WurstTypeBoundTypeParam> b) {
+		return bt.setTypeArgs(b);
 	}
 
 	@Override
-	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamBounds) {
-		List<WurstType> newTypes = Lists.newArrayList();
-		for (WurstType t : typeParameters) {
-			newTypes.add(t.setTypeArgs(context, typeParamBounds));
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
+		List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();
+		for (WurstTypeBoundTypeParam t : typeParameters) {
+			newTypes.add(t.setTypeArgs(typeParamBounds));
 		}
 		return replaceTypeVars(newTypes);
 	}
 
-	abstract public WurstType replaceTypeVars(List<WurstType> newTypes);
+	abstract public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes);
 
+	public WurstType replaceTypeVarsUsingTypeArgs(TypeExprList typeArgs) {
+		if (typeArgs.isEmpty()) {
+			// TODO replace with unknown types?
+			return this;
+		}
+		List<WurstTypeBoundTypeParam> typeParams = new ArrayList<>();
+		
+		if (typeArgs.size() != typeParameters.size()) {
+			typeArgs.addError("Expected " + typeParameters.size() + " type arguments, but got " + typeArgs.size());
+		}
+		
+		for (int i=0; i<typeArgs.size() && i<typeParameters.size(); i++) {
+			WurstTypeBoundTypeParam tp = typeParameters.get(i);
+			TypeParamDef tpDef = tp.getTypeParamDef();
+			TypeExpr typeArg = typeArgs.get(i);
+			WurstType baseType = typeArg.attrTyp().dynamic();
+			typeParams.add(new WurstTypeBoundTypeParam(tpDef , baseType , typeArg));
+		}
+		
+//		List<WurstType> newTypes = node.getTypeArgs().stream()
+//				.map((TypeExpr te) -> te.attrTyp().dynamic())
+//				.collect(Collectors.toList());
+		
+		return replaceTypeVars(typeParams);
+	}
 	
 	
-	protected boolean checkTypeParametersEqual(List<WurstType> tps1, List<WurstType> tps2, @Nullable AstElement location) {
-		if (tps1.size() != tps2.size()) {
+	protected boolean checkTypeParametersEqual(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable AstElement location) {
+		if (list.size() != list2.size()) {
 			return false;
 		}
-		for (int i=0; i<tps1.size(); i++) {
-			WurstType thisTp = tps1.get(i);
-			WurstType otherTp = tps2.get(i);
+		for (int i=0; i<list.size(); i++) {
+			WurstType thisTp = list.get(i).normalize();
+			WurstType otherTp = list2.get(i).normalize();
 			if (otherTp instanceof WurstTypeTypeParam) {
 				// free type params can later be bound to the right type
 				continue;
@@ -283,4 +301,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		}
 		return false;
 	}
+
+	
 }

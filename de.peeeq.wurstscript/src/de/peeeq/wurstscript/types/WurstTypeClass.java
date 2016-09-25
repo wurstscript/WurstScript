@@ -16,7 +16,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 	ClassDef classDef;
 
 
-	public WurstTypeClass(ClassDef classDef, List<WurstType> typeParameters, boolean staticRef) {
+	public WurstTypeClass(ClassDef classDef, List<WurstTypeBoundTypeParam> typeParameters, boolean staticRef) {
 		super(typeParameters, staticRef);
 		if (classDef == null) throw new IllegalArgumentException();
 		this.classDef = classDef;
@@ -30,7 +30,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 		if (obj instanceof WurstTypeInterface) {
 			WurstTypeInterface pti = (WurstTypeInterface) obj;
 			for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
-				if (implementedInterface.setTypeArgs(location, getTypeArgBinding()).isSubtypeOf(pti, location)) {
+				if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
 					return true;
 				}
 			}
@@ -67,7 +67,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 	}
 
 	@Override
-	public WurstType replaceTypeVars(List<WurstType> newTypes) {
+	public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
 		return new WurstTypeClass(classDef, newTypes, isStaticRef());
 	}
 

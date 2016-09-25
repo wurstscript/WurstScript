@@ -39,6 +39,7 @@ import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.ast.WStatements;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
@@ -193,7 +194,7 @@ public class NameLinks {
 
 	private static void addNamesFromImplementedInterfaces(Builder<String, NameLink> result, ClassDef classDef) {
 		for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
-			Map<TypeParamDef, WurstType> binding = interfaceType.getTypeArgBinding();
+			Map<TypeParamDef, WurstTypeBoundTypeParam> binding = interfaceType.getTypeArgBinding();
 			InterfaceDef i = interfaceType.getInterfaceDef();
 			for (Entry<String, NameLink> e : i.attrNameLinks().entries()) {
 				result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef, binding));
@@ -205,7 +206,7 @@ public class NameLinks {
 		if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
 			WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
 			ClassDef extendedClass = wurstTypeClass.getClassDef();
-			Map<TypeParamDef, WurstType> binding = wurstTypeClass.getTypeArgBinding();
+			Map<TypeParamDef, WurstTypeBoundTypeParam> binding = wurstTypeClass.getTypeArgBinding();
 			addHidingPrivate(result, extendedClass.attrNameLinks(), binding, classDef);
 		}
 	}
@@ -244,7 +245,7 @@ public class NameLinks {
 	
 	private static void addHidingPrivate(Builder<String, NameLink> result,
 			Multimap<String, NameLink> adding,
-			Map<TypeParamDef, WurstType> binding,
+			Map<TypeParamDef, WurstTypeBoundTypeParam> binding,
 			AstElement context) {
 		for (Entry<String, NameLink> e : adding.entries()) {
 			if (e.getValue().getVisibility() == Visibility.LOCAL) {

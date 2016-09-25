@@ -97,12 +97,12 @@ public abstract class WurstType {
 
 
 
-	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamMapping) {
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
 		return this;
 	}
 
 
-	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
 

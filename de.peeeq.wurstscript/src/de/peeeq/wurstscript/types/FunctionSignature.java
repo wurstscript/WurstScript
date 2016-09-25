@@ -47,11 +47,11 @@ public class FunctionSignature {
 		return receiverType;
 	}
 
-	public FunctionSignature setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeArgBinding) {
-		WurstType r2 = returnType.setTypeArgs(context, typeArgBinding);
+	public FunctionSignature setTypeArgs(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
+		WurstType r2 = returnType.setTypeArgs(typeArgBinding);
 		List<WurstType> pt2 = Lists.newArrayList();
 		for (WurstType p : paramTypes) {
-			pt2.add(p.setTypeArgs(context, typeArgBinding));
+			pt2.add(p.setTypeArgs(typeArgBinding));
 		}
 		return new FunctionSignature(receiverType, pt2, paramNames, r2);
 	}

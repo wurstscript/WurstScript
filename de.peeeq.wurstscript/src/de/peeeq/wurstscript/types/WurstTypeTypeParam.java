@@ -43,15 +43,14 @@ public class WurstTypeTypeParam extends WurstType {
 	}
 
 	@Override
-	public Map<TypeParamDef, WurstType> getTypeArgBinding() {
+	public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
 		return Collections.emptyMap();
 	}
 
 	@Override
-	public WurstType setTypeArgs(AstElement context, Map<TypeParamDef, WurstType> typeParamBounds) {
+	public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
 		if (typeParamBounds.containsKey(def)) {
-			WurstType t = typeParamBounds.get(def);
-			return new WurstTypeBoundTypeParam(def, t, context);
+			return typeParamBounds.get(def);
 		} 
 		return this;
 	}
