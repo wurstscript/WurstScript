@@ -39,8 +39,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
 	@Override
 	public String getName() {
-//		return baseType.getName();
-		return "[" + typeParamDef.getName() + ": " + baseType + "]";
+		return baseType.getName();
+//		return "[" + typeParamDef.getName() + ": " + baseType + "]";
 	}
 
 	@Override
@@ -168,5 +168,9 @@ public class WurstTypeBoundTypeParam extends WurstType {
 		return typeParamDef;
 	}
 
+	@Override
+	public boolean isTranslatedToInt() {
+		return baseType.isTranslatedToInt();
+	}
 	
 }

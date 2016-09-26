@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -10,9 +13,12 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class InterfaceTranslator {
@@ -79,8 +85,22 @@ public class InterfaceTranslator {
 		
 		// set sub methods
 		Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, f);
-		for (FuncDef subM : subClasses2.values()) {
-			OverrideUtils.addOverride(translator, f, translator.getMethodFor(subM), subM);
+		for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
+			ClassDef subC = subE.getKey();
+			ImmutableCollection<WurstTypeInterface> interfaces = subC.attrImplementedInterfaces();
+			
+			Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = 
+					interfaces.stream()
+					.filter(t -> t.getDef() == interfaceDef)
+					.map(t -> t.getTypeArgBinding())
+					.findFirst()
+					.orElse(Collections.emptyMap());
+			
+			FuncDef subM = subE.getValue();
+			ImMethod m = translator.getMethodFor(subM);
+			
+			ImClass mClass = translator.getClassFor(subC);
+			OverrideUtils.addOverride(translator, f, mClass, m, subM, typeBinding);
 		}
 		
 	}

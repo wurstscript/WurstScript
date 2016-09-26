@@ -172,7 +172,7 @@ public class ClosureTranslator {
 		ImMethod m = JassIm.ImMethod(e, superMethod.getName(), impl, JassIm.ImMethods(), false);
 		c.getMethods().add(m);
 		
-		OverrideUtils.addOverride(tr, superMethod, m, e);
+		OverrideUtils.addOverrideClosure(tr, superMethod, m, e);
 		
 		
 		

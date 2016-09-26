@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class GenericsTests extends WurstScriptTest {
@@ -594,6 +595,56 @@ public class GenericsTests extends WurstScriptTest {
 				"	override function leq(bool a, bool b) returns bool",
 				"		return not a or b",
 				"Comparison<bool> bc = new BoolComp",
+				"init",
+				"	if bc.leq(false, true)",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	public void implicitsWithClass2() {
+		testAssertOkLines(true,   
+				"package test",
+				"native testSuccess()",
+				"function booleanToIndex(bool b) returns int",
+				"	if b",
+				"		return 1",
+				"	return 0",
+				"function booleanFromIndex(int i) returns bool",
+				"	return i != 0",
+				"class Comparison<T>",
+				"	function leq(T t, T u) returns bool",
+				"		return true",
+				"class BoolComp extends Comparison<bool>",
+				"	override function leq(bool a, bool b) returns bool",
+				"		return not a or b",
+				"Comparison<bool> bc = new BoolComp",
+				"init",
+				"	if bc.leq(false, true)",
+				"		testSuccess()"
+			);
+	}
+	
+	@Test
+	@Ignore // TODO fix this ugly hack and implement generics properly
+	public void implicitsWithClass3() {
+		testAssertOkLines(true,   
+				"package test",
+				"native testSuccess()",
+				"function booleanToIndex(bool b) returns int",
+				"	if b",
+				"		return 1",
+				"	return 0",
+				"function booleanFromIndex(int i) returns bool",
+				"	return i != 0",
+				"class Comparison<T>",
+				"	function leq(T t, T u) returns bool",
+				"		return true",
+				"class Comparison2<U> extends Comparison<U>",
+				"class BoolComp extends Comparison2<bool>",
+				"	override function leq(bool a, bool b) returns bool",
+				"		return not a or b",
+				"Comparison2<bool> bc = new BoolComp",
 				"init",
 				"	if bc.leq(false, true)",
 				"		testSuccess()"

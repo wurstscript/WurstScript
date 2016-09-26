@@ -141,7 +141,7 @@ public abstract class WurstType {
 				|| this instanceof WurstTypeIntLiteral
 				|| this instanceof WurstTypeNamedScope
 				|| this instanceof WurstTypeTypeParam
-				|| this instanceof WurstTypeBoundTypeParam;
+				|| this instanceof WurstTypeBoundTypeParam; //  WurstTypeBoundTypeParam overrides this method
 	}
 
 	public boolean isCastableToInt() {

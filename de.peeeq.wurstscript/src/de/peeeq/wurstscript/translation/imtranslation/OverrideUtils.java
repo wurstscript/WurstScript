@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -27,8 +28,8 @@ import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 
 public class OverrideUtils {
 
-	public static void addOverride(ImTranslator tr, FuncDef superMethod, ImMethod m, ExprClosure exprClosure) {
-		ImMethod superMethodIm = tr.getMethodFor(superMethod);
+	public static void addOverrideClosure(ImTranslator tr, FuncDef superMethod, ImMethod m, ExprClosure exprClosure) {
+		
 
 		WurstType expected = exprClosure.attrExpectedTyp();
 
@@ -39,21 +40,22 @@ public class OverrideUtils {
 			WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) expected;
 			Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = t.getTypeArgBinding();
 
-			addOverride2(tr, superMethod, m, superMethodIm, e, typeBinding);
+			addOverride(tr, superMethod, m.attrClass(), m, e, typeBinding);
 		} else {
+			ImMethod superMethodIm = tr.getMethodFor(superMethod);
 			superMethodIm.getSubMethods().add(m);
 		}
 	}
 	
-	public static void addOverride(ImTranslator tr, FuncDef superMethod, ImMethod m, FuncDef subM) {
-		ImMethod superMethodIm = tr.getMethodFor(superMethod);
-		Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = new HashMap<>();
-		// TODO calculate type binding
-		addOverride2(tr, superMethod, m, superMethodIm, subM, typeBinding);
-	}
 
-	private static void addOverride2(ImTranslator tr, FuncDef superMethod, ImMethod m, ImMethod superMethodIm,
-			AstElement e, Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
+	public static void addOverride(
+			ImTranslator tr, 
+			FuncDef superMethod, 
+			ImClass subClass, 
+			ImMethod subMethod, 
+			AstElement e, 
+			Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
+		ImMethod superMethodIm = tr.getMethodFor(superMethod);
 		boolean needConversion = false;
 		List<FuncDef> argFromIndexFuncs = new ArrayList<>();
 		// for the this-pointer:
@@ -93,7 +95,7 @@ public class OverrideUtils {
 		}
 
 		if (!needConversion) {
-			superMethodIm.getSubMethods().add(m);
+			superMethodIm.getSubMethods().add(subMethod);
 			return;
 		}
 		
@@ -115,7 +117,7 @@ public class OverrideUtils {
 			arguments.add(arg);
 		}
 
-		ImExpr wrappedCall = JassIm.ImFunctionCall(e, m.getImplementation(), arguments, false, CallType.NORMAL);
+		ImExpr wrappedCall = JassIm.ImFunctionCall(e, subMethod.getImplementation(), arguments, false, CallType.NORMAL);
 		if (rType instanceof ImVoid) {
 			body.add(wrappedCall);
 		} else {
@@ -127,12 +129,12 @@ public class OverrideUtils {
 		}
 
 		List<FunctionFlag> flags = Collections.emptyList();
-		ImFunction implementation = JassIm.ImFunction(e, m.getName()+"_wrapper", parameters, rType, locals, body, flags);
+		ImFunction implementation = JassIm.ImFunction(e, subMethod.getName()+"_wrapper", parameters, rType, locals, body, flags);
 		tr.getImProg().getFunctions().add(implementation);
 
 		List<ImMethod> subMethods = Collections.emptyList();
-		ImMethod wrapperMethod = JassIm.ImMethod(e, m.getName()+"_wrapper", implementation, subMethods, false);
-		m.attrClass().getMethods().add(wrapperMethod);
+		ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getName()+"_wrapper", implementation, subMethods, false);
+		subClass.getMethods().add(wrapperMethod);
 		superMethodIm.getSubMethods().add(wrapperMethod);
 	}
 

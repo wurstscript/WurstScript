@@ -8,8 +8,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImSetArray;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVar;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.jdt.annotation.NonNull;
 
@@ -28,6 +30,7 @@ import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.OptExpr;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -45,6 +48,8 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Pair;
@@ -304,10 +309,46 @@ public class ClassTranslator {
 			m.setIsAbstract(s.attrIsAbstract());
 			// set sub methods
 			Map<ClassDef, FuncDef> subClasses2 = translator.getClassesWithImplementation(subClasses, s);
-			for (FuncDef subM : subClasses2.values()) {
-				m.getSubMethods().add(translator.getMethodFor(subM));
+			for (Entry<ClassDef, FuncDef> subE : subClasses2.entrySet()) {
+				FuncDef subM = subE.getValue();
+				ClassDef subC = subE.getKey();
+				
+				WurstTypeClass ct = getExtendedClassType(subC);
+				Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding;
+				if (ct == null) {
+					typeBinding = Collections.emptyMap();
+				} else {
+					typeBinding = ct.getTypeArgBinding();
+				}
+				
+				ImClass subClass = translator.getClassFor(subC);
+				ImMethod subMethod = translator.getMethodFor(subM);
+				
+				
+				OverrideUtils.addOverride(translator, s, subClass , subMethod , subM, typeBinding );
+//				m.getSubMethods().add(translator.getMethodFor(subM));
 			}
 		}
+	}
+
+	private WurstTypeClass getExtendedClassType(ClassDef subC) {
+		if (subC.getExtendedClass() == null) {
+			return null;
+		}
+		WurstType t = subC.getExtendedClass().attrTyp();
+		if (t instanceof WurstTypeClass) {
+			WurstTypeClass ct = (WurstTypeClass) t;
+			ClassDef superClass = ct.getClassDef();
+			if (superClass == classDef) {
+				return ct;
+			} else {
+				WurstTypeClass t2 = getExtendedClassType(superClass);
+				t2.setTypeArgs(ct.getTypeArgBinding());
+				return t2;
+			}
+			
+		}
+		return null;
 	}
 
 	private ImFunction createStaticCallFunc(FuncDef funcDef) {
