@@ -177,8 +177,15 @@ public class ModelManagerImpl implements ModelManager {
 	}
 
 	private String getProjectRelativePath(File f) {
-		Path pathRelative = projectPath.getAbsoluteFile().toPath().normalize().relativize(f.getAbsoluteFile().toPath().normalize());
-		return pathRelative.toString();
+		Path normalizedProjectPath = projectPath.getAbsoluteFile().toPath().normalize();
+		Path normalizedFilePath = f.getAbsoluteFile().toPath().normalize();
+		try {
+			normalizedFilePath = normalizedProjectPath.relativize(normalizedFilePath);
+		} catch (IllegalArgumentException e) {
+			// this can happen if project path and file path are on different drives
+			// we just ignore the error in this case and keep using the absolute path
+		}
+		return normalizedFilePath.toString();
 	}
 	
 
