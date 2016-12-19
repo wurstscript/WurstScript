@@ -318,7 +318,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 
 		for (String file : parseErrors.keySet()) {
-			List<CompileError> errors = new ArrayList<>(parseErrors.get(file));
+			List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
 			errors.addAll(typeErrors.get(file));
 			reportErrors(extra, file, errors);
 		}
@@ -331,7 +331,7 @@ public class ModelManagerImpl implements ModelManager {
 		}
 
 		for (String file : filenames) {
-			List<CompileError> errors = new ArrayList<>(parseErrors.get(file));
+			List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
 			errors.addAll(typeErrors.get(file));
 			reportErrors(extra, file, errors);
 		}
