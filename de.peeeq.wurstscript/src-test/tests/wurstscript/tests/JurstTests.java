@@ -18,6 +18,10 @@ public class JurstTests extends WurstScriptTest {
 		String jassCode = Utils.string(
 				"function foo takes integer this returns integer",
 				"	return this",
+				"endfunction",
+				"function bar takes integer x returns integer",
+				"	local integer this = x",
+				"	return this",
 				"endfunction");
 		
 		
