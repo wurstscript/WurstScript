@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -35,14 +38,25 @@ public class FuncRefRemover {
 			}
 		});
 		
+		Map<ImFunction, ImVar> refs = new HashMap<>();
+		
 		for (ImFuncRef fr : funcRefs) {
-			if (fr.getFunc().isBj()) {
+			ImFunction func = fr.getFunc();
+			if (func.isBj()) {
 				// do not handle bj functions
 				continue;
 			}
-			ImVar g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(), 
-					"ref_function_" + fr.getFunc().getName(), false);
-			tr.addGlobalWithInitalizer(g, fr.copy());
+			ImVar g;
+			if (refs.containsKey(func)) {
+				// already created global function reference
+				g = refs.get(func);
+			} else {
+				// create global variable containing a reference to the function:
+				g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(), 
+						"ref_function_" + func.getName(), false);
+				refs.put(func, g);
+				tr.addGlobalWithInitalizer(g, fr.copy());
+			}
 			fr.replaceWith(JassIm.ImVarAccess(g));
 		}
 		
