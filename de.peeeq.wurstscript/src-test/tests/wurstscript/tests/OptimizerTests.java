@@ -508,6 +508,23 @@ public class OptimizerTests extends WurstScriptTest {
 		assertTrue("I2S should not be removed",compiledAndOptimized.contains("I2S"));
 	}
 	
+	@Test
+	public void test_unreachableCodeRemover() throws IOException {
+		assertOk(false,
+				"package test",
+				"	import MagicFunctions",
+				"	native testSuccess()",
+				"	function foo()",
+				"		if not false",
+				"			return",
+				"		testSuccess()",
+				"	init",
+				"		foo()",
+				"endpackage");
+		String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_unreachableCodeRemover_opt.j"), Charsets.UTF_8);
+		assertFalse("testSuccess should be removed", compiledAndOptimized.contains("testSuccess"));
+	}
+	
 	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
 	DestroyEffect(blablub)
 		*/
