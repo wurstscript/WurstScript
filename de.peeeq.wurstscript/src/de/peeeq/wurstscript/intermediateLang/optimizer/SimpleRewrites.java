@@ -68,7 +68,7 @@ public class SimpleRewrites {
 					}
 				}
 			} else {
-//				it.remove();
+				it.remove();
 			}
 		}
 	}
