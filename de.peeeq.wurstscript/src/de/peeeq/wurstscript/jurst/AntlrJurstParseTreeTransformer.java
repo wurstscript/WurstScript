@@ -157,6 +157,7 @@ public class AntlrJurstParseTreeTransformer {
 	private String file;
 	private ErrorHandler cuErrorHandler;
 	private LineOffsets lineOffsets;
+	private boolean isJassCode = true;
 
 	public AntlrJurstParseTreeTransformer(String file,
 			ErrorHandler cuErrorHandler, LineOffsets lineOffsets) {
@@ -341,6 +342,10 @@ public class AntlrJurstParseTreeTransformer {
 	}
 
 	private WPackage transformPackage(WpackageContext p) {
+		// entering Jurst package
+		isJassCode = false;
+		
+		
 		WPos source = source(p);
 		Modifiers modifiers = Ast.Modifiers();
 
@@ -376,6 +381,8 @@ public class AntlrJurstParseTreeTransformer {
 			elements.add(Ast.InitBlock(src, Ast.WStatements(Ast.ExprFunctionCall(src, funcName, Ast.TypeExprList(), Ast.Arguments()))));
 		}
 
+		// leaving jass code
+		isJassCode = true;
 		return Ast.WPackage(source, modifiers, text(p.name), imports, elements);
 	}
 	
@@ -1237,7 +1244,11 @@ public class AntlrJurstParseTreeTransformer {
 		} else if (a.getType() == JurstParser.FALSE) {
 			return Ast.ExprBoolVal(source, false);
 		} else if (a.getType() == JurstParser.THIS) {
-			return Ast.ExprThis(source);
+			if (isJassCode) {
+				return Ast.ExprVarAccess(source, Ast.Identifier(source, "this"));
+			} else {
+				return Ast.ExprThis(source);
+			}
 		} else if (a.getType() == JurstParser.SUPER) {
 			return Ast.ExprSuper(source);
 		}

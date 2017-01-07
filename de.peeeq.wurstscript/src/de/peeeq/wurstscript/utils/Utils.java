@@ -972,5 +972,12 @@ public class Utils {
 	    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
 	    return s.hasNext() ? s.next() : "";
 	}
+
+	/**
+	 * join lines 
+	 */
+	public static String string(String...lines) {
+		return Arrays.asList(lines).stream().collect(Collectors.joining("\n")) + "\n";
+	}
 	
 }

@@ -39,6 +39,7 @@ public class StdLib {
 			
 
 			if (!stdLibFolder.exists()) {
+				tempFolder.mkdirs();
 				Utils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
 			}
 			
