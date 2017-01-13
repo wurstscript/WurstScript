@@ -176,16 +176,14 @@ public class ModelManagerImpl implements ModelManager {
 
 	}
 
-	private String getProjectRelativePath(File f) {
-		Path normalizedProjectPath = projectPath.getAbsoluteFile().toPath().normalize();
-		Path normalizedFilePath = f.getAbsoluteFile().toPath().normalize();
+	private String getCanonicalPath(File f) {
 		try {
-			normalizedFilePath = normalizedProjectPath.relativize(normalizedFilePath);
-		} catch (IllegalArgumentException e) {
-			// this can happen if project path and file path are on different drives
-			// we just ignore the error in this case and keep using the absolute path
+			return f.getCanonicalPath();
+		} catch (IOException e) {
+			WLogger.info(e);
+			// fall back to absolute path
+			return f.getAbsolutePath();
 		}
-		return normalizedFilePath.toString();
 	}
 	
 
@@ -193,7 +191,7 @@ public class ModelManagerImpl implements ModelManager {
 							   int endOffset) {
 		WLogger.info("Adding dependency: " + fileName);
 		File f = new File(fileName);
-		WPos pos = new WPos(getProjectRelativePath(depfile), lineOffsets, offset, endOffset);
+		WPos pos = new WPos(getCanonicalPath(depfile), lineOffsets, offset, endOffset);
 		if (!f.exists()) {
 			gui.sendError(new CompileError(pos, "Path '" + fileName + "' could not be found."));
 			return;
@@ -395,7 +393,7 @@ public class ModelManagerImpl implements ModelManager {
 
 		try (InputStreamReader reader = new FileReader(sourceFile)) {
 			CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
-			cu.setFile(getProjectRelativePath(sourceFile));
+			cu.setFile(getCanonicalPath(sourceFile));
 			return cu;
 		}
 	}
@@ -438,11 +436,11 @@ public class ModelManagerImpl implements ModelManager {
 
 	private void replaceCompilationUnit(File f) throws IOException {
 		if (!f.exists()) {
-			removeCompilationUnit(getProjectRelativePath(f));
+			removeCompilationUnit(getCanonicalPath(f));
 			return;
 		}
 		WLogger.info("replaceCompilationUnit 1 " + f);
-		String filename = getProjectRelativePath(f);
+		String filename = getCanonicalPath(f);
 		WLogger.info("replaceCompilationUnit 2 " + f);
 		String contents = Files.toString(f, Charsets.UTF_8);
 		replaceCompilationUnit(filename, contents, true);
@@ -478,7 +476,7 @@ public class ModelManagerImpl implements ModelManager {
 
 	private String normalizeFilename(String filename) {
 		File f = getFile(filename);
-		filename = getProjectRelativePath(f);
+		filename = getCanonicalPath(f);
 		return filename;
 	}
 
@@ -487,7 +485,7 @@ public class ModelManagerImpl implements ModelManager {
 		replaceCompilationUnit(f);
 		WLogger.info("replaced file " + f);
 		WurstGui gui = new WurstGuiLogger();
-		doTypeCheckPartial(gui, true, ImmutableList.of(getProjectRelativePath(f)));
+		doTypeCheckPartial(gui, true, ImmutableList.of(getCanonicalPath(f)));
 	}
 
 
