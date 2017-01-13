@@ -1247,8 +1247,9 @@ public class AntlrWurstParseTreeTransformer {
 		} else if (t.typeExpr() != null) {
 			return Ast
 					.TypeExprArray(source(t), (TypeExpr) scopeType, transformOptionalExpr(t.arraySize));
+		} else {
+			return Ast.TypeExprSimple(source(t), scopeType, "", Ast.TypeExprList());
 		}
-		throw error(t, "not implemented " + t.toStringTree());
 	}
 
 	private CompileError error(WPos source, String msg) {
