@@ -413,6 +413,7 @@ public class ImTranslator {
 
 
 		ImFunction native_CreateTrigger = getNativeFunc("CreateTrigger");
+		ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
 		ImFunction native_TriggerAddCondition = getNativeFunc("TriggerAddCondition");
 		ImFunction native_Condition = getNativeFunc("Condition");
 		ImFunction native_TriggerEvaluate = getNativeFunc("TriggerEvaluate");
@@ -421,6 +422,7 @@ public class ImTranslator {
 		
 		
 		if (native_CreateTrigger == null
+				|| native_DestroyTrigger == null
 				|| native_TriggerAddCondition == null
 				|| native_Condition == null
 				|| native_TriggerEvaluate == null
@@ -470,6 +472,8 @@ public class ImTranslator {
 						), 
 				// else:
 				JassIm.ImStmts()));
+		mainBody.add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger, 
+				JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
 		return true;
 	}
 
