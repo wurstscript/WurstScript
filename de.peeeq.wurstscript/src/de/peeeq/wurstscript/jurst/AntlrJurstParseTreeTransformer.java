@@ -1350,8 +1350,9 @@ public class AntlrJurstParseTreeTransformer {
 			
 			return Ast
 					.TypeExprArray(source(t), (TypeExpr) scopeType, transformOptionalExpr(arrSize));
+		} else {
+			return Ast.TypeExprSimple(source(t), scopeType, "", Ast.TypeExprList());
 		}
-		throw error(t, "not implemented " + t.toStringTree());
 	}
 	
 

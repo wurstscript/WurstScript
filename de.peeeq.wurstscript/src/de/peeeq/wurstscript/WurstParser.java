@@ -184,6 +184,7 @@ public class WurstParser {
 
 			};
 			lexer.addErrorListener(l);
+			parser.removeErrorListeners();
 			parser.addErrorListener(l);
 
 			de.peeeq.wurstscript.jurst.antlr.JurstParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
