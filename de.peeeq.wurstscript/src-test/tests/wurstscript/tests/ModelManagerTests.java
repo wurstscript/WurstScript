@@ -84,34 +84,40 @@ public class ModelManagerTests {
 		// first build the project
 		manager.buildProject();
 		
-		assertThat(results.get("wurst/A.wurst"), new StringContains("Reference to function b could not be resolved"));
-		assertThat(results.get("wurst/A.wurst"), new StringContains("Reference to function c could not be resolved"));
-		assertThat(results.get("wurst/B.wurst"), new StringContains("Reference to function c could not be resolved"));
-		assertEquals("", results.get("wurst/C.wurst"));
+		
+		
+		String fileA = new File(wurstFolder, "A.wurst").getCanonicalPath();
+		String fileB = new File(wurstFolder, "B.wurst").getCanonicalPath();
+		String fileC = new File(wurstFolder, "C.wurst").getCanonicalPath();
+		
+		assertThat(results.get(fileA), new StringContains("Reference to function b could not be resolved"));
+		assertThat(results.get(fileA), new StringContains("Reference to function c could not be resolved"));
+		assertThat(results.get(fileB), new StringContains("Reference to function c could not be resolved"));
+		assertEquals("", results.get(fileC));
 		
 		// no assume we fix package B
 		String packageB_v2 = packageB_v1.replace("b_old", "b");
 		results.clear();
 		manager.syncCompilationUnitContent("wurst/B.wurst", packageB_v2);
 		// the change of B should trigger rechecks of A and B, but not of C
-		assertEquals(ImmutableSet.of("wurst/A.wurst", "wurst/B.wurst"), results.keySet());
+		assertEquals(ImmutableSet.of(fileA, fileB), results.keySet());
 		
 		// reference to function b should be found now, other errors still the same
-		assertThat(results.get("wurst/A.wurst"), new IsNot<>(new StringContains("Reference to function b could not be resolved")));
-		assertThat(results.get("wurst/A.wurst"), new StringContains("Reference to function c could not be resolved"));
-		assertThat(results.get("wurst/B.wurst"), new StringContains("Reference to function c could not be resolved"));
+		assertThat(results.get(fileA), new IsNot<>(new StringContains("Reference to function b could not be resolved")));
+		assertThat(results.get(fileA), new StringContains("Reference to function c could not be resolved"));
+		assertThat(results.get(fileB), new StringContains("Reference to function c could not be resolved"));
 		
 		// no we fix package C:
 		String packageC_v2 = packageC_v1.replace("c_old", "c");
 		results.clear();
-		manager.syncCompilationUnitContent("wurst/C.wurst", packageC_v2);
+		manager.syncCompilationUnitContent(fileC, packageC_v2);
 		
 		// the change of B should trigger rechecks of A, B, and C
-		assertEquals(ImmutableSet.of("wurst/A.wurst", "wurst/B.wurst", "wurst/C.wurst"), results.keySet());
+		assertEquals(ImmutableSet.of(fileA, fileB, fileC), results.keySet());
 		// there should be no more errors
-		assertEquals("", results.get("wurst/A.wurst"));
-		assertEquals("", results.get("wurst/B.wurst"));
-		assertEquals("", results.get("wurst/C.wurst"));
+		assertEquals("", results.get(fileA));
+		assertEquals("", results.get(fileB));
+		assertEquals("", results.get(fileC));
 		
 		
 	}
