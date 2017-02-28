@@ -3,9 +3,16 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -66,33 +73,43 @@ public class ImInliner {
 			inlineFunctions(called);
 		}
 		boolean[] changed = new boolean[] {false};
-		inlineFunctions(f, f, 0, f.getBody(), changed);
+		inlineFunctions(f, f, 0, f.getBody(), changed, Collections.emptyMap());
 		if (changed[0]) {
 			funcSizes.put(f, estimateSize(f));
 		}
 	}
+	
 
-	private boolean inlineFunctions(ImFunction f, JassImElement parent, int parentI, JassImElement e, boolean[] changed) {
+	private ImFunction inlineFunctions(ImFunction f, JassImElement parent, int parentI, JassImElement e, boolean[] changed, Map<ImFunction, Integer> alreadyInlined) {
+		// TODO maybe it would be smarter to first optimize the parameters and then try to optimize the call itself ...
 		if (e instanceof ImFunctionCall) {
 			ImFunctionCall call = (ImFunctionCall) e;
 			ImFunction called = call.getFunc();
 			if (f != called && shouldInline(called)) {
-				inlineCall(f, parent, parentI, call);
-//				translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
-				changed[0] = true;
-				return true;
+				if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
+					inlineCall(f, parent, parentI, call);
+//					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
+					changed[0] = true;
+					return called;
+				}
 			}
 		}
 		for (int i=0; i<e.size(); i++) {
-			JassImElement child = e.get(i);
-			
-			boolean recur = inlineFunctions(f, e, i, child, changed);
-			if (recur) {
-				// check inlined again
-				i--;
+			Map<ImFunction, Integer> alreadyInlined2 = alreadyInlined;
+			while (true) {
+				JassImElement child = e.get(i);
+				ImFunction inlined = inlineFunctions(f, e, i, child, changed, alreadyInlined2);
+				if (inlined == null) {
+					break;
+				}
+				// otherwise check the same expression again, but remember what we already inlined and how often:
+				if (alreadyInlined2 == alreadyInlined) {
+					alreadyInlined2 = new HashMap<>(alreadyInlined);
+				}
+				alreadyInlined2.put(inlined, 1 + alreadyInlined.getOrDefault(inlined, 0));
 			}
 		}
-		return false;
+		return null;
 	}
 
 	private void inlineCall(ImFunction f, JassImElement parent, int parentI, ImFunctionCall call) {
