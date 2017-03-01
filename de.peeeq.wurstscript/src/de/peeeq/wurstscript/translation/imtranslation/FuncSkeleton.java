@@ -1,10 +1,14 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExtensionFuncDef;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionImplementation;
 import de.peeeq.wurstscript.ast.InitBlock;
+import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NativeFunc;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.TupleDef;
@@ -60,7 +64,12 @@ public class FuncSkeleton {
 	}
 
 	public static void create(ExprClosure e, ImTranslator tr, ImFunction f) {
-		f.setName("closure_impl");
+		String name = "closure_impl";
+		NamedScope scope1 = e.attrNearestNamedScope();
+		if (scope1 != null) {
+			name = scope1.getName() + "_" + name;
+		}
+		f.setName(name);
 		f.getParameters().add(tr.getThisVar(e));
 		for (WParameter p : e.getParameters()) {
 			f.getParameters().add(tr.getVarFor(p));

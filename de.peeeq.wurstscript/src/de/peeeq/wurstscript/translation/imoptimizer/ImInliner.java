@@ -3,22 +3,20 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.io.Files;
 
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -74,11 +72,7 @@ public class ImInliner {
 		}
 		boolean[] changed = new boolean[] {false};
 		inlineFunctions(f, f, 0, f.getBody(), changed, Collections.emptyMap());
-		if (changed[0]) {
-			funcSizes.put(f, estimateSize(f));
-		}
 	}
-	
 
 	private ImFunction inlineFunctions(ImFunction f, JassImElement parent, int parentI, JassImElement e, boolean[] changed, Map<ImFunction, Integer> alreadyInlined) {
 		// TODO maybe it would be smarter to first optimize the parameters and then try to optimize the call itself ...
@@ -90,6 +84,8 @@ public class ImInliner {
 					inlineCall(f, parent, parentI, call);
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
 					changed[0] = true;
+					int newSize = estimateSize(f);
+					funcSizes.put(f, newSize);
 					return called;
 				}
 			}
@@ -140,6 +136,16 @@ public class ImInliner {
 		for (int i=0; i<called.getBody().size(); i++) {
 			ImStmt s = (ImStmt) called.getBody().get(i).copy();
 			ImHelper.replaceVar(s, varSubtitutions);
+			
+			s.accept(new ImStmt.DefaultVisitor() {
+				@Override
+				public void visit(ImFunctionCall called) {
+					// we have another call to this function, so increment the count
+					incCallCount(called.getFunc());
+				}
+			});
+			
+			
 			stmts.add(s);
 		}
 		// handle return
