@@ -41,7 +41,16 @@ public class StatementPrinter {
 	public static void print(JassStmtIf s, StringBuilder sb, int indent, boolean withSpace) {
 		sb.append("if ");
 		s.getCond().print(sb, withSpace);
-		sb.append(" then\n");
+        if (withSpace) {
+            sb.append(" then\n");
+        } else {
+            String lastChar = sb.charAt(sb.length() - 1) + "";
+            if (lastChar.equals("]")) {
+                sb.append("then\n");
+            } else {
+                sb.append(" then\n");
+            }
+        }
 		printStatements(sb, indent+1, s.getThenBlock(), withSpace);
 		if (s.getElseBlock().size() > 0) {
 			printIndent(sb, indent, withSpace);
