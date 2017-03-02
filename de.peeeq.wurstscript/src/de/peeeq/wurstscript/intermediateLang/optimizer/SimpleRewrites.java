@@ -152,7 +152,7 @@ public class SimpleRewrites {
                         break;
                 }
             } else if (right instanceof ImBoolVal) {
-                boolean b2 = ((ImBoolVal) right).getValB();
+                boolean b2 = ((ImBoolVal) left).getValB();
                 switch (opc.getOp()) {
                     case OR:
                         if (b2) {
