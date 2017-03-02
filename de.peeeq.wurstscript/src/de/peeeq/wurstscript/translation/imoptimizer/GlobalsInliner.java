@@ -21,21 +21,14 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class GlobalsInliner {
-	
-	private ImProg prog;
 
-	
-	
-	
-	
-	
+    private ImProg prog;
 
-	public GlobalsInliner(ImTranslator translator) {
-		this.prog = translator.getImProg();
-	}
-	
+    public GlobalsInliner(ImTranslator translator) {
+        this.prog = translator.getImProg();
+    }
 
-	public void inlineGlobals() {
+    public void inlineGlobals() {
 		prog.clearAttributes(); // TODO only clear read/write attributes
 		
 		Set<ImVar> obsoleteVars = Sets.newLinkedHashSet();
@@ -48,7 +41,8 @@ public class GlobalsInliner {
 				for ( ImVarWrite v2 : v.attrWrites()) {
 					ImFunction func = v2.getNearestFunc();
 //					WLogger.info(">>>>>checking write..");
-					if (func.getName().startsWith("init_") || func.getName().equals("main") ) {
+					if (func.getName().startsWith("init_") || func.getName().equals("main") || func.getName().startsWith("InitTrig_")
+                            || func.getName().equals("initGlobals")) {
 //						WLogger.info(">>>>>in init or main");
 						right = v2.getRight();
 						obs = v2;
@@ -113,7 +107,5 @@ public class GlobalsInliner {
 		}
 		prog.getGlobals().removeAll(obsoleteVars);
 	}
-	
-	
-	
+
 }
