@@ -131,7 +131,47 @@ public class SimpleRewrites {
 					break;
 				}
 				opc.replaceWith(JassIm.ImBoolVal(result));
-			} else if (left instanceof ImIntVal && right instanceof ImIntVal) {
+			}  else if (left instanceof ImBoolVal) {
+                boolean b1 = ((ImBoolVal) left).getValB();
+                switch (opc.getOp()) {
+                    case OR:
+                        if (b1) {
+                            opc.replaceWith(JassIm.ImBoolVal(true));
+                        } else {
+                            opc.replaceWith(right);
+                        }
+                        break;
+                    case AND:
+                        if (b1) {
+                            opc.replaceWith(right);
+                        } else {
+                            opc.replaceWith(JassIm.ImBoolVal(false));
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            } else if (right instanceof ImBoolVal) {
+                boolean b2 = ((ImBoolVal) right).getValB();
+                switch (opc.getOp()) {
+                    case OR:
+                        if (b2) {
+                            opc.replaceWith(JassIm.ImBoolVal(true));
+                        } else {
+                            opc.replaceWith(left);
+                        }
+                        break;
+                    case AND:
+                        if (b2) {
+                            opc.replaceWith(left);
+                        } else {
+                            opc.replaceWith(JassIm.ImBoolVal(false));
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }else if (left instanceof ImIntVal && right instanceof ImIntVal) {
 				int i1 = ((ImIntVal) left).getValI();
 				int i2 = ((ImIntVal) right).getValI();
 				boolean isConditional = false;
