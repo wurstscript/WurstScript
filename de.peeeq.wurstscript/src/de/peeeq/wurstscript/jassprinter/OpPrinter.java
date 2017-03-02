@@ -20,7 +20,7 @@ public class OpPrinter {
 	public static void print(JassOp op, StringBuilder sb, boolean withSpace, boolean parLeft, boolean parRight) {
 		String opString = op.asString();
 		
-		if (withSpace || !parLeft && Character.isLetter(opString.charAt(0))) {
+		if (withSpace || !parLeft && Character.isLetter(opString.charAt(0)) && !opString.equals("not")) {
 			// if we have no parantheses on the left and an operator like and/or we need a space:
 			sb.append(" ");
 		}
