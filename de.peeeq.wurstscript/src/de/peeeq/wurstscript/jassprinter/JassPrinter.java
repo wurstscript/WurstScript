@@ -178,7 +178,7 @@ public class JassPrinter {
 				sb.append(v.getName());
 
 				JassInitializedVar ji = (JassInitializedVar) v;
-				sb.append(" = ");
+				sb.append(assign(withSpace));
 				ji.getVal().print(sb, withSpace);
 				sb.append("\n");
 			} else {
@@ -209,7 +209,7 @@ public class JassPrinter {
 			sb.append(localVar.getType());
 			sb.append(" ");
 			sb.append(localVar.getName());
-			sb.append(" = ");
+			sb.append(assign(withSpace));
 			set.getRight().print(sb, withSpace);
 			sb.append("\n");
 			
