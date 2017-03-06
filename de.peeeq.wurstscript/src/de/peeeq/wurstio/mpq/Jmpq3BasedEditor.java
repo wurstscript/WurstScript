@@ -6,10 +6,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import com.google.common.base.Preconditions;
+
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.JMpqException;
-
-import com.google.common.base.Preconditions;
 
 class Jmpq3BasedEditor implements MpqEditor {
 
@@ -33,6 +33,7 @@ class Jmpq3BasedEditor implements MpqEditor {
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
         File temp = File.createTempFile("peq", "wurst");
+        temp.deleteOnExit();
         FileOutputStream fos = new FileOutputStream(temp);
         fos.write(contents);
         fos.close();
@@ -42,6 +43,7 @@ class Jmpq3BasedEditor implements MpqEditor {
     @Override
     public byte[] extractFile(String fileToExtract) throws Exception {
         File temp = File.createTempFile("peq", "wurst");
+        temp.deleteOnExit();
         getEditor().extractFile(fileToExtract, temp);
         return Files.readAllBytes(temp.toPath());
     }

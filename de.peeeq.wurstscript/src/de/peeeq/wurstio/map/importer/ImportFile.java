@@ -55,7 +55,7 @@ public class ImportFile {
     }
 
     private static LinkedList<String> extractImportedFiles(MpqEditor mpq, File directory) {
-        LinkedList<String> failed = new LinkedList<String>();
+        LinkedList<String> failed = new LinkedList<>();
         byte[] temp;
         try {
             temp = mpq.extractFile("war3map.imp");
@@ -151,11 +151,12 @@ public class ImportFile {
     }
 
     private static void insertImportedFiles(MpqEditor mpq, File directory) throws Exception {
-        LinkedList<File> files = new LinkedList<File>();
+        LinkedList<File> files = new LinkedList<>();
         getFilesOfDirectory(directory, files);
         File temp = null;
         try {
             temp = File.createTempFile("import", "imp");
+            temp.deleteOnExit();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -191,6 +192,7 @@ public class ImportFile {
 
     private static File getCopyOfMap(File mapFile) throws IOException {
         File mapTemp = File.createTempFile("temp", "w3x");
+        mapTemp.deleteOnExit();
         Files.copy(mapFile, mapTemp);
         return mapTemp;
     }

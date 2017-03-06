@@ -572,6 +572,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 		try {
 			byte[] tempBytes = mapMpq.extractFile("war3map.j");
 			File tempFile = File.createTempFile("war3map", ".j"); // TODO work directly with bytes without temp file
+			tempFile.deleteOnExit();
 			Files.write(tempBytes, tempFile);
 			
 			if (isWurstGenerated(tempFile)) {

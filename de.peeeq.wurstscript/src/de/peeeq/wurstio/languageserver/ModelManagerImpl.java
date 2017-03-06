@@ -385,6 +385,7 @@ public class ModelManagerImpl implements ModelManager {
 			sourceFile = new File("./resources/" + filename);
 		} else {
 			sourceFile = File.createTempFile("wurst", filename);
+			sourceFile.deleteOnExit();
 			java.nio.file.Files.copy(source, sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 		}
 
