@@ -16,6 +16,7 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.TempDir;
 
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
@@ -155,7 +156,7 @@ public class ImportFile {
         getFilesOfDirectory(directory, files);
         File temp = null;
         try {
-            temp = File.createTempFile("import", "imp");
+            temp = File.createTempFile("import", "imp", TempDir.get());
             temp.deleteOnExit();
         } catch (IOException e) {
             e.printStackTrace();
@@ -191,7 +192,7 @@ public class ImportFile {
     }
 
     private static File getCopyOfMap(File mapFile) throws IOException {
-        File mapTemp = File.createTempFile("temp", "w3x");
+        File mapTemp = File.createTempFile("temp", "w3x", TempDir.get());
         mapTemp.deleteOnExit();
         Files.copy(mapFile, mapTemp);
         return mapTemp;

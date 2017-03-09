@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import com.google.common.base.Preconditions;
 
+import de.peeeq.wurstscript.utils.TempDir;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.JMpqException;
 
@@ -31,7 +32,7 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
-        File temp = File.createTempFile("peq", "wurst");
+        File temp = File.createTempFile("peq", "wurst", TempDir.get());
         temp.deleteOnExit();
         FileOutputStream fos = new FileOutputStream(temp);
         fos.write(contents);
