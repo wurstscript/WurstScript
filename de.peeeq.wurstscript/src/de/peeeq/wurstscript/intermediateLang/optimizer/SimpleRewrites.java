@@ -138,11 +138,13 @@ public class SimpleRewrites {
                         if (b1) {
                             opc.replaceWith(JassIm.ImBoolVal(true));
                         } else {
+                            right.setParent(null);
                             opc.replaceWith(right);
                         }
                         break;
                     case AND:
                         if (b1) {
+                            right.setParent(null);
                             opc.replaceWith(right);
                         } else {
                             opc.replaceWith(JassIm.ImBoolVal(false));
@@ -158,11 +160,13 @@ public class SimpleRewrites {
                         if (b2) {
                             opc.replaceWith(JassIm.ImBoolVal(true));
                         } else {
+                            left.setParent(null);
                             opc.replaceWith(left);
                         }
                         break;
                     case AND:
                         if (b2) {
+                            left.setParent(null);
                             opc.replaceWith(left);
                         } else {
                             opc.replaceWith(JassIm.ImBoolVal(false));

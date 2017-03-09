@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 
 import com.google.common.base.Preconditions;
 
@@ -42,10 +41,7 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public byte[] extractFile(String fileToExtract) throws Exception {
-        File temp = File.createTempFile("peq", "wurst");
-        temp.deleteOnExit();
-        getEditor().extractFile(fileToExtract, temp);
-        return Files.readAllBytes(temp.toPath());
+        return getEditor().extractFileAsBytes(fileToExtract);
     }
 
     @Override
