@@ -106,9 +106,11 @@ Packages can have an _init_ block that is executed when the map is loaded.
         print("Hello Wurst!")
 
 
-
 For more information about packages, refer to the packages section.
-You can still use normal Jass syntax/code outside of packages (when using WurstWE, those will be parsed by PJass), but inside packages only valid wurst/jurst code is expected.
+
+You can still use normal Jass syntax/code outside of packages - the Wurstpack World Editor will parse jass (and vjass, if jasshelper is enabled), in addition to compiling your Wurst code.
+
+For more information about using maps with mixed wurst/jass code, refer to the "Using Wurst with legacy maps" section.
 
 ## Naming Conventions
 
@@ -2152,6 +2154,61 @@ _*Wurst:*_
 
 
 Wurst-modules are also more powerful than vJass modules. They allow overriding and can declare abstract functions.
+
+
+
+## Using Wurst with legacy maps
+
+The Wurstpack World Editor will compile and link your wurst packages into your map even if that map already has GUI/jass/vJass - Wurst will run in parallel to that.
+
+For the more adventurous, Wurst also has a jass-like dialect called Jurst, and supports automatic extraction of vJass to Jurst.
+This feature should be treated as beta.
+
+### Jurst
+
+Jurst is a dialect of Wurst, which has the same features as Wurst, but with a Syntax similar to vJass.
+You can use Jurst to adapt vJass code, but there are still a few manual steps involved, because of the difference in supported features.
+
+In general, Jurst is less strict than Wurst.
+The following code fragments are each valid Jurst:
+
+    library LooksLikeVjass initializer ini
+        private function ini takes nothing returns nothing
+            local trigger t = CreateTrigger()
+            t = null
+        endfunction
+    endlibrary
+
+and
+
+    package NearlyTheSameAsWurst
+        function act()
+            print(GetTriggerUnit().getName() + " died.")
+        end
+
+        init
+            CreateTrigger()..registerAnyUnitEvent(EVENT_PLAYER_UNIT_DEATH)
+                           ..addAction(function act)
+        end
+
+    // Note: "end" intentionally not present here.
+
+As you can see, Jurst is able to access wurst code including packages from the wurst standard library, such as `print`.
+However, you should not try to access Jurst (or jass/vjass) code from Wurst packages.
+
+The especially keen can read the [Jurst Language Definition](https://github.com/peq/WurstScript/blob/master/de.peeeq.wurstscript/parserspec/Jurst.g4) for an exact reference of legal Jurst.
+
+### Automatic Extraction of vJass to Jurst
+
+One useful way of working with legacy maps is by extracting existing vJass to Jurst automatically.
+In Eclipse, you can right-click on a map and export all the custom text triggers into Jurst files.
+The files will be stored in the `wurst/exported/` folder.
+
+![Extract to Files](assets/images/extractToFiles.png)
+
+After doing this you'll want to manually delete the members in the trigger editor.
+Be warned that the extract-to-files feature is likely to produce at least some files with syntax errors, so be sure to back up your map before proceeding.
+
 
 # Eclipse Plugin
 
