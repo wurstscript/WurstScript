@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.swing.filechooser.FileSystemView;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -40,287 +42,259 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class RunMap extends UserRequest {
 
+    private final String wc3Path;
+    private final File map;
+    private final List<String> compileArgs;
+    private final String workspaceRoot;
+    /** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
+    private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
 
-	private final String wc3Path;
-	private final File map;
-	private final List<String> compileArgs;
-	private final String workspaceRoot;
-	/** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
-	private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
-	
-	static enum SafetyLevel {
-		QuickAndDirty, 
-		KindOfSafe
-	}
+    static enum SafetyLevel {
+        QuickAndDirty, KindOfSafe
+    }
 
-	public RunMap(int requestNr, String workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
-		super(requestNr);
-		this.workspaceRoot = workspaceRoot;
-		this.wc3Path = wc3Path;
-		this.map = map;
-		this.compileArgs = compileArgs;
-	}
+    public RunMap(int requestNr, String workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
+        super(requestNr);
+        this.workspaceRoot = workspaceRoot;
+        this.wc3Path = wc3Path;
+        this.map = map;
+        this.compileArgs = compileArgs;
+    }
 
-	@Override
-	public Object execute(ModelManager modelManager) {
+    @Override
+    public Object execute(ModelManager modelManager) {
 
-		// TODO use normal compiler for this, avoid code duplication
-		WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
-		WurstGui gui = new WurstGuiImpl(workspaceRoot);
-		try {
-			File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
-			
+        // TODO use normal compiler for this, avoid code duplication
+        WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
+        WurstGui gui = new WurstGuiImpl(workspaceRoot);
+        try {
+            File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
 
-			if (!map.exists()) {
-				throw new RuntimeException(map.getAbsolutePath() + " does not exist.");
-			}
-			
-			
-			gui.sendProgress("Copying map");
+            if (!map.exists()) {
+                throw new RuntimeException(map.getAbsolutePath() + " does not exist.");
+            }
 
-			// now copy the map so that we do not corrupt the original
-			// create the file in the wc3 maps directory, because otherwise it does not work sometimes
-			String testMapName = "wurstTestMap1.w3x";
-			File testMap = new File(new File(wc3Path, "Maps"), testMapName);
-			if (testMap.exists()) {
-				testMap.delete();
-			}
-			Files.copy(map, testMap);
+            gui.sendProgress("Copying map");
 
+            // first we copy in same location to ensure validity
+            String testMapName = map.getParent() + File.separator + "WurstRunMap.w3x";
+            File testMap = new File(testMapName);
+            if (testMap.exists()) {
+                testMap.delete();
+            }
+            Files.copy(map, testMap);
 
+            // first compile the script:
+            File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, map);
 
-			// first compile the script:
-			File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
-			
+            WurstModel model = modelManager.getModel();
+            if (model == null || !model.stream().anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+                println("No 'war3map.j' file could be found");
+                println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
+                println("We will try to start the map now, but it will probably fail. ");
+            }
 
-			WurstModel model = modelManager.getModel();
-			if (model == null
-					|| !model.stream()
-					.anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-				println("No 'war3map.j' file could be found");
-				println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
-				println("We will try to start the map now, but it will probably fail. ");
-			}
+            @SuppressWarnings("unused") // for side effects!
+            RunArgs runArgs = new RunArgs(compileArgs);
 
-			@SuppressWarnings("unused") // for side effects!
-			RunArgs runArgs = new RunArgs(compileArgs);
+            gui.sendProgress("preparing testmap ... ");
 
-			gui.sendProgress("preparing testmap ... ");
+            String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
 
+            // then inject the script into the map
+            File outputMapscript = compiledScript;
 
+            gui.sendProgress("Injecting mapscript");
+            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
+                mpqEditor.deleteFile("war3map.j");
+                mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
+            }
 
+            // Then we make a second copy named appropriately
+            String testMapName2 = "WurstTestMap.w3x";
+            File testMap2 = new File(new File(documentPath, "Maps" + File.separator + "Test"), testMapName2);
+            Files.copy(testMap, testMap2);
 
+            println("Starting wc3 ... ");
 
+            // now start the map
+            List<String> cmd = Lists.newArrayList(frozenThroneExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
 
-			// then inject the script into the map
-			File outputMapscript = compiledScript;
-			
-			gui.sendProgress("Injecting mapscript");
-			try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
-				mpqEditor.deleteFile("war3map.j");
-				mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
-			}
+            if (!System.getProperty("os.name").startsWith("Windows")) {
+                // run with wine
+                cmd.add(0, "wine");
+            }
 
+            gui.sendProgress("running " + cmd);
+            Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+        } catch (CompileError e) {
+            e.printStackTrace();
+            return "There was an error when compiling the map: " + e.getMessage();
+        } catch (final Throwable e) {
+            e.printStackTrace();
+            WLogger.severe(e);
+            return "There was a Wurst bug, while compiling the map: " + e.getMessage();
+        } finally {
+            gui.sendFinished();
+        }
+        return "ok"; // TODO
+    }
 
-			String testMapName2 = "wurstTestMap.w3x";
-			File testMap2 = new File(new File(wc3Path, "Maps"), testMapName2);
-			Files.copy(testMap, testMap2);
+    private void print(String s) {
+        WLogger.info(s);
+    }
 
-			println("Starting wc3 ... ");
+    private void println(String s) {
+        WLogger.info(s);
+    }
 
-			// now start the map
-			List<String> cmd = Lists.newArrayList(
-					frozenThroneExe.getAbsolutePath(),
-					"-window",
-					"-loadfile",
-					"Maps" + File.separator + testMapName2);
+    private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {
+        RunArgs runArgs = new RunArgs(compileArgs);
+        WLogger.info("Compile Script : ");
+        for (File dep : modelManager.getDependencyWurstFiles()) {
+            WLogger.info("dep: " + dep.getPath());
+        }
 
-			if (!System.getProperty("os.name").startsWith("Windows")) {
-				// run with wine
-				cmd.add(0, "wine");
-			}
+        File war3mapFile = new File(new File(new File(workspaceRoot), "wurst"), "war3map.j");
 
-			gui.sendProgress("running " + cmd);
-			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
-		} catch (CompileError e) {
-			e.printStackTrace();
-			return "There was an error when compiling the map: " + e.getMessage();
-		} catch (final Throwable e) {
-			e.printStackTrace();
-			WLogger.severe(e);
-			return "There was a Wurst bug, while compiling the map: " + e.getMessage();
-		} finally {
-			gui.sendFinished();
-		}
-		return "ok"; // TODO
-	}
+        //  try to get war3map.j from the map:
+        byte[] mapScript;
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, runArgs)) {
+            mapScript = mpqEditor.extractFile("war3map.j");
+        }
+        if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
+            // file generated by wurst, do not use
+            if (war3mapFile.exists()) {
+                WLogger.info(
+                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Using war3map.j from Wurst directory instead.");
+            } else {
+                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Please add war3map.j to the wurst directory.");
+                gui.showInfoMessage(err.getMessage());
+                throw err;
+            }
+        } else {
+            // write mapfile from map to workspace
+            Files.write(mapScript, war3mapFile);
+        }
 
-	private void print(String s) {
-		WLogger.info(s);
-	}
+        // push war3map.j to modelmanager
 
-	private void println(String s) {
-		WLogger.info(s);
-	}
+        modelManager.syncCompilationUnit(war3mapFile.getAbsolutePath());
 
-	private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapFile) throws Exception {
-		RunArgs runArgs = new RunArgs(compileArgs);
-		
-		
-		File war3mapFile = new File(new File(new File(workspaceRoot), "wurst"), "war3map.j");
-		
-		//  try to get war3map.j from the map:
-		byte[] mapScript;
-		try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapFile, runArgs)) {
-			mapScript = mpqEditor.extractFile("war3map.j");
-		}
-		if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
-			// file generated by wurst, do not use
-			if (war3mapFile.exists()) {
-				WLogger.info("Cannot use war3map.j from map file, because it already was compiled with wurst. "
-						+ "Using war3map.j from Wurst directory instead.");
-			} else {
-				CompileError err = new CompileError(new WPos(mapFile.toString(), new LineOffsets(), 0, 0),
-					"Cannot use war3map.j from map file, because it already was compiled with wurst. "
-					+ "Please add war3map.j to the wurst directory.");
-				gui.showInfoMessage(err.getMessage());
-				throw err;
-			}
-		} else {
-			// write mapfile from map to workspace
-			Files.write(mapScript, war3mapFile);
-		}
-		
-		// push war3map.j to modelmanager
-		modelManager.syncCompilationUnit(war3mapFile.getAbsolutePath());
+        if (safeCompilation != SafetyLevel.QuickAndDirty) {
+            // it is safer to rebuild the project, instead of taking the current editor state
+            gui.sendProgress("Cleaning project");
+            modelManager.clean();
+            gui.sendProgress("Building project");
+            modelManager.buildProject();
+        }
 
-		
-		if (safeCompilation != SafetyLevel.QuickAndDirty) {
-			// it is safer to rebuild the project, instead of taking the current editor state
-			gui.sendProgress("Cleaning project");
-			modelManager.clean();
-			gui.sendProgress("Building project");
-			modelManager.buildProject();
-		}
+        if (modelManager.hasErrors()) {
+            throw new RuntimeException("Model has errors");
+        }
 
-		if (modelManager.hasErrors()) {
-			throw new RuntimeException("Model has errors");
-		}
+        WurstModel model = modelManager.getModel();
+        if (safeCompilation != SafetyLevel.QuickAndDirty) {
+            // compilation will alter the model (e.g. remove unused imports), 
+            // so it is safer to create a copy
+            model = model.copy();
+        }
 
-		WurstModel model = modelManager.getModel();
-		if (safeCompilation != SafetyLevel.QuickAndDirty) {
-			// compilation will alter the model (e.g. remove unused imports), 
-			// so it is safer to create a copy
-			model = model.copy();
-		}
-		
+        MpqEditor mpqEditor = null;
+        if (mapCopy != null) {
+            mpqEditor = MpqEditorFactory.getEditor(mapCopy, runArgs);
+        }
 
-		MpqEditor mpqEditor = null;
-		if (mapFile != null) {
-			mpqEditor = MpqEditorFactory.getEditor(mapFile, runArgs);
-		}
+        //WurstGui gui = new WurstGuiLogger();
 
-		//WurstGui gui = new WurstGuiLogger();
-		
-		WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
-		compiler.setMapFile(mapFile);
-		purgeUnimportedFiles(model);
-		
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+        compiler.setMapFile(mapCopy);
+        //        purgeUnimportedFiles(model); @peq this removes also important files...
 
-		gui.sendProgress("Check program");
-		compiler.checkProg(model);
+        gui.sendProgress("Check program");
+        compiler.checkProg(model);
 
-		if (gui.getErrorCount() > 0) {
-			print("Could not compile project\n");
-			System.err.println("Could not compile project: " + gui.getErrorList().get(0));
-			throw new RuntimeException("Could not compile project: " + gui.getErrorList().get(0));
-		}
+        if (gui.getErrorCount() > 0) {
+            print("Could not compile project\n");
+            System.err.println("Could not compile project: " + gui.getErrorList().get(0));
+            throw new RuntimeException("Could not compile project: " + gui.getErrorList().get(0));
+        }
 
-		print("translating program ... ");
-		compiler.translateProgToIm(model);
+        print("translating program ... ");
+        compiler.translateProgToIm(model);
 
-		if (gui.getErrorCount() > 0) {
-			print("Could not compile project (error in translation)\n");
-			System.err.println("Could not compile project (error in translation): " + gui.getErrorList().get(0));
-			throw new RuntimeException("Could not compile project (error in translation): " + gui.getErrorList().get(0));
-		}
+        if (gui.getErrorCount() > 0) {
+            print("Could not compile project (error in translation)\n");
+            System.err.println("Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            throw new RuntimeException("Could not compile project (error in translation): " + gui.getErrorList().get(0));
+        }
 
+        if (runArgs.runCompiletimeFunctions()) {
+            print("running compiletime functions ... ");
+            // compile & inject object-editor data
+            // TODO run optimizations later?
+            gui.sendProgress("Running compiletime functions");
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
+                    FunctionFlagEnum.IS_COMPILETIME);
+            ctr.setInjectObjects(runArgs.isInjectObjects());
+            ctr.setOutputStream(new PrintStream(System.out));
+            ctr.run();
+        }
 
-		if (runArgs.runCompiletimeFunctions()) {
-			print("running compiletime functions ... ");
-			// compile & inject object-editor data
-			// TODO run optimizations later?
-			gui.sendProgress("Running compiletime functions");
-			CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui, FunctionFlagEnum.IS_COMPILETIME);
-			ctr.setInjectObjects(runArgs.isInjectObjects());
-			ctr.setOutputStream(new PrintStream(System.out));
-			ctr.run();
-		}
-		
-		if (runArgs.isInjectObjects()) {
-			Preconditions.checkNotNull(mpqEditor);
-			// add the imports
-			ImportFile.importFilesFromImportDirectory(compiler.getMapFile(), mpqEditor);
-		}
+        if (runArgs.isInjectObjects()) {
+            Preconditions.checkNotNull(mpqEditor);
+            // add the imports
+            ImportFile.importFilesFromImportDirectory(origMap, mpqEditor);
+        }
 
-		print("translating program to jass ... ");
-//		compiler.checkAndTranslate(model);
-		compiler.transformProgToJass();
+        print("translating program to jass ... ");
+        compiler.transformProgToJass();
 
-		JassProg jassProg = compiler.getProg();
-		if (jassProg == null) {
-			print("Could not compile project\n");
-			throw new RuntimeException("Could not compile project (error in JASS translation)");
-		}
+        JassProg jassProg = compiler.getProg();
+        if (jassProg == null) {
+            print("Could not compile project\n");
+            throw new RuntimeException("Could not compile project (error in JASS translation)");
+        }
 
+        gui.sendProgress("Printing program");
+        JassPrinter printer = new JassPrinter(true, jassProg);
+        String compiledMapScript = printer.printProg();
 
-		gui.sendProgress("Printing program");
-		JassPrinter printer = new JassPrinter(true, jassProg);
-		String compiledMapScript = printer.printProg();
+        File outFile = new File(new File(workspaceRoot), "compiled.j.txt");
+        Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+        return outFile;
+    }
 
+    /**
+     * removes everything compilation unit which is neither
+     * - inside a wurst folder
+     * - a jass file
+     * - imported by a file in a wurst folder
+     */
+    private void purgeUnimportedFiles(WurstModel model) {
+        Set<CompilationUnit> inWurstFolder =
+                model.stream().filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j")).collect(Collectors.toSet());
 
-		
-		File outFile = new File(new File(workspaceRoot), "compiled.j.txt");
-		Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
-		return outFile;
-	}
+        Set<CompilationUnit> imported = new HashSet<>(inWurstFolder);
+        addImports(imported, imported);
 
-	/**
-	 * removes everything compilation unit which is neither
-	 *  - inside a wurst folder
-	 *  - a jass file
-	 *  - imported by a file in a wurst folder
-	 */
-	private void purgeUnimportedFiles(WurstModel model) {
-		Set<CompilationUnit> inWurstFolder = model.stream()
-				.filter(cu -> isInWurstFolder(cu.getFile())
-						|| cu.getFile().endsWith(".j"))
-				.collect(Collectors.toSet());
+        model.removeIf(cu -> !imported.contains(cu));
+    }
 
+    private void addImports(Set<CompilationUnit> result, Set<CompilationUnit> toAdd) {
+        Set<CompilationUnit> imported =
+                toAdd.stream().flatMap((CompilationUnit cu) -> cu.getPackages().stream()).flatMap((WPackage p) -> p.getImports().stream())
+                        .map(WImport::attrImportedPackage).filter(p -> p != null).map(WPackage::attrCompilationUnit).collect(Collectors.toSet());
+        boolean changed = result.addAll(imported);
+        if (changed) {
+            // recursive call terminates, as there are only finitely many compilation units
+            addImports(result, imported);
+        }
+    }
 
-		Set<CompilationUnit> imported = new HashSet<>(inWurstFolder);
-		addImports(imported, imported);
-
-		model.removeIf(cu -> !imported.contains(cu));
-	}
-
-	private void addImports(Set<CompilationUnit> result, Set<CompilationUnit> toAdd) {
-		Set<CompilationUnit> imported = toAdd.stream()
-				.flatMap((CompilationUnit cu) -> cu.getPackages().stream())
-				.flatMap((WPackage p) -> p.getImports().stream())
-				.map(WImport::attrImportedPackage)
-				.filter(p -> p != null)
-				.map(WPackage::attrCompilationUnit)
-				.collect(Collectors.toSet());
-		boolean changed = result.addAll(imported);
-		if (changed) {
-			// recursive call terminates, as there are only finitely many compilation units
-			addImports(result, imported);
-		}
-	}
-
-	private boolean isInWurstFolder(String file) {
-		File f = new File(workspaceRoot + "/" + file);
-		return f.exists() && Utils.isWurstFile(file);
-	}
+    private boolean isInWurstFolder(String file) {
+        File f = new File(workspaceRoot + "/" + file);
+        return f.exists() && Utils.isWurstFile(file);
+    }
 }
