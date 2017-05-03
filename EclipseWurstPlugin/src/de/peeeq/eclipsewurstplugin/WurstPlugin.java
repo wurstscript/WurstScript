@@ -251,13 +251,10 @@ public class WurstPlugin extends AbstractUIPlugin {
 		setDefaultValue(WurstConstants.WURST_WC3_PATH, "C:\\Warcraft III\\");
 		try {
 			// try to use the registry to find wc3 path
-			WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+		    String installPath = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Blizzard Entertainment\\Warcraft III", "InstallPath");
 			if (installPath != null) {
 				setDefaultValue(WurstConstants.WURST_WC3_PATH, installPath);
 			}
-		} catch (NoSuchMethodException e) {
-			// ignore, registry not supported
-			WLogger.info("Registry not supported");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
