@@ -178,6 +178,7 @@ public class Main {
 
     private static void insertKeys(RunArgs runArgs) throws Exception {
         String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+        if(!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
         Path fontGID = Paths.get(Main.class.getClassLoader().getResource("font/font.gid").getPath().substring(1));
         Path fontCLH = Paths.get(Main.class.getClassLoader().getResource("font/font.clh").getPath().substring(1));
         Path fontROC = Paths.get(Main.class.getClassLoader().getResource("font/font_roc.ccd").getPath().substring(1));
@@ -194,11 +195,11 @@ public class Main {
             roceditor.insertFile("font\\font.gid", java.nio.file.Files.readAllBytes(fontGID));
             roceditor.insertFile("font\\font.clh", java.nio.file.Files.readAllBytes(fontCLH));
             roceditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontROC));
+            roceditor.close();
             WLogger.info("inserted roc keys");
         } else {
             WLogger.info("Already has roc keys");
         }
-        roceditor.close();
         MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq, runArgs);
         boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
         if (!tftHasKeys) {
@@ -206,11 +207,11 @@ public class Main {
                     + "This might take a few minutes. Please be patient.");
             tfteditor.insertFile("font\\font.exp", java.nio.file.Files.readAllBytes(fontEXP));
             tfteditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontTFT));
+            tfteditor.close();
             WLogger.info("inserted tft keys");
         } else {
             WLogger.info("Already has tft keys");
         }
-        tfteditor.close();
     }
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
