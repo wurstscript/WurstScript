@@ -2,6 +2,8 @@ package de.peeeq.wurstio;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.logging.FileHandler;
@@ -38,6 +40,7 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.utils.WinRegistry;
 
 public class Main {
 
@@ -73,6 +76,11 @@ public class Main {
             if (runArgs.showAbout()) {
                 About about = new About(null, false);
                 about.setVisible(true);
+                return;
+            }
+
+            if (runArgs.insertKeys()) {
+                insertKeys(runArgs);
                 return;
             }
 
@@ -166,6 +174,43 @@ public class Main {
                 }
             }
         }
+    }
+
+    private static void insertKeys(RunArgs runArgs) throws Exception {
+        String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+        Path fontGID = Paths.get(Main.class.getClassLoader().getResource("font/font.gid").getPath().substring(1));
+        Path fontCLH = Paths.get(Main.class.getClassLoader().getResource("font/font.clh").getPath().substring(1));
+        Path fontROC = Paths.get(Main.class.getClassLoader().getResource("font/font_roc.ccd").getPath().substring(1));
+        Path fontEXP = Paths.get(Main.class.getClassLoader().getResource("font/font.exp").getPath().substring(1));
+        Path fontTFT = Paths.get(Main.class.getClassLoader().getResource("font/font_tft.ccd").getPath().substring(1));
+
+        File rocMpq = new File(wc3Path + "War3.mpq");
+        File tftMpq = new File(wc3Path + "War3x.mpq");
+        MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq, runArgs);
+        boolean rocHasKeys = roceditor.hasFile("font\\font.ccd") && roceditor.hasFile("font\\font.gid") && roceditor.hasFile("font\\font.clh");
+        if (!rocHasKeys) {
+            JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of RoC and needs to fix your installation.\n"
+                    + "This might take a few minutes. Please be patient.");
+            roceditor.insertFile("font\\font.gid", java.nio.file.Files.readAllBytes(fontGID));
+            roceditor.insertFile("font\\font.clh", java.nio.file.Files.readAllBytes(fontCLH));
+            roceditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontROC));
+            WLogger.info("inserted roc keys");
+        } else {
+            WLogger.info("Already has roc keys");
+        }
+        roceditor.close();
+        MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq, runArgs);
+        boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
+        if (!tftHasKeys) {
+            JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of TFT and needs to fix your installation.\n"
+                    + "This might take a few minutes. Please be patient.");
+            tfteditor.insertFile("font\\font.exp", java.nio.file.Files.readAllBytes(fontEXP));
+            tfteditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontTFT));
+            WLogger.info("inserted tft keys");
+        } else {
+            WLogger.info("Already has tft keys");
+        }
+        tfteditor.close();
     }
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {

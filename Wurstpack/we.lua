@@ -10,6 +10,9 @@ if not grim.exists(exe) then
 	return
 end
 
+-- Inject CD Keys into mpq
+os.execute("wurstscript\\wurstscript.exe --insertKeys")
+
 -- put 1.21 world editor exe in place replacing possible newer versions
 exe = path.."\\worldedit121.exe"
 if not grim.exists(exe) then

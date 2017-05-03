@@ -56,6 +56,12 @@ class Jmpq2BasedEditor implements MpqEditor {
 			editor = null;
 		}
 	}
+	
+    @Override
+    public boolean hasFile(String fileName) throws Exception {
+        // TODO Auto-generated method stub
+        return false;
+    }
 
 }
 

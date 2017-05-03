@@ -62,4 +62,9 @@ class Jmpq3BasedEditor implements MpqEditor {
         }
     }
 
+    @Override
+    public boolean hasFile(String fileName) throws Exception {
+        return getEditor().hasFile(fileName);
+    }
+
 }
