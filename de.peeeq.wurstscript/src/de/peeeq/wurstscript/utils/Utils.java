@@ -29,13 +29,10 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import de.peeeq.wurstscript.ast.*;
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
@@ -45,10 +42,26 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
+import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithNameId;
+import de.peeeq.wurstscript.ast.AstElementWithParameters;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ExprFunctionCall;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.Identifier;
+import de.peeeq.wurstscript.ast.LocalVarDef;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.TypeExprSimple;
+import de.peeeq.wurstscript.ast.VarDef;
+import de.peeeq.wurstscript.ast.WImport;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.types.WurstType;
 
 public class Utils {
 
@@ -76,7 +89,7 @@ public class Utils {
 
 	@SafeVarargs
 	public static <T> List<T> list(T... args) {
-		List<T> result = new NotNullList<T>();
+		List<T> result = new NotNullList<>();
 		for (T t : args) {
 			result.add(t);
 		}
@@ -84,7 +97,7 @@ public class Utils {
 	}
 
 	public static <T> List<T> removedDuplicates(List<T> list) {
-		List<T> result = new NotNullList<T>();
+		List<T> result = new NotNullList<>();
 		for (T t : list) {
 			if (!result.contains(t)) {
 				result.add(t);
@@ -211,8 +224,8 @@ public class Utils {
 	public static <T> List<T> topSort(Collection<T> items,
 			Function<T, ? extends Collection<T>> biggerItems)
 			throws TopsortCycleException {
-		Set<T> visitedItems = new HashSet<T>();
-		List<T> result = new ArrayList<T>(items.size());
+		Set<T> visitedItems = new HashSet<>();
+		List<T> result = new ArrayList<>(items.size());
 		LinkedList<T> activeItems = Lists.newLinkedList();
 		for (T t : items) {
 			if (t == null)
@@ -395,11 +408,10 @@ public class Utils {
 	public static <T> Multimap<T, T> transientClosure(Multimap<T, T> start) {
 		Multimap<T, T> result = HashMultimap.create();
 		result.putAll(start);
-
+        Multimap<T, T> changes = HashMultimap.create();
 		boolean changed;
 		do {
-			Multimap<T, T> changes = HashMultimap.create();
-
+            changes.clear();
 			for (Entry<T, T> e1 : result.entries()) {
 				for (T t : result.get(e1.getValue())) {
 					changes.put(e1.getKey(), t);

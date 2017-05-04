@@ -25,7 +25,7 @@ public class LanguageServer {
     }
 
     private void setupLogger() throws IOException {
-        FileHandler handler = new FileHandler("%t/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
+        FileHandler handler = new FileHandler("%t/wurst/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
         handler.setFormatter(new SimpleFormatter());
         WLogger.setHandler(handler);
     }

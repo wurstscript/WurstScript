@@ -21,7 +21,7 @@
 		<jar destfile="./dist/wurstscript.jar">
 			<manifest>
 				<attribute name="Main-Class" value="de.peeeq.wurstio.Main" />
-				<attribute name="Class-Path" value=". wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-14.0-rc1.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq2.jar wurstscript_lib/jmpq3.jar wurstscript_lib/antlr-runtime-4.4.jar wurstscript_lib/jna-4.0.0.jar wurstscript_lib/org.eclipse.jdt.annotation-2.0.0.jar wurstscript_lib/gson-2.6.2.jar" />
+				<attribute name="Class-Path" value=". wurstscript_lib/log4j-1.2.16.jar wurstscript_lib/guava-20.0.jar wurstscript_lib/junit-4.10.jar wurstscript_lib/chardet.jar wurstscript_lib/jmpq2.jar wurstscript_lib/jmpq3.jar wurstscript_lib/antlr-runtime-4.4.jar wurstscript_lib/jna-4.0.0.jar wurstscript_lib/org.eclipse.jdt.annotation-2.0.0.jar wurstscript_lib/gson-2.6.2.jar" />
 			</manifest>
 			<fileset dir="./bin" />
 			<fileset dir="./resources" />
@@ -29,7 +29,7 @@
 		<delete dir="./dist/wurstscript_lib" />
 		<mkdir dir="./dist/wurstscript_lib" />
 		<copy file="./lib/log4j-1.2.16.jar" todir="./dist/wurstscript_lib" />
-		<copy file="./lib/guava-14.0-rc1.jar" todir="./dist/wurstscript_lib" />
+		<copy file="./lib/guava-20.0.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/junit-4.10.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/chardet.jar" todir="./dist/wurstscript_lib" />
 		<copy file="./lib/velocity-1.7-dep.jar" todir="./dist/wurstscript_lib" />
@@ -67,11 +67,11 @@
 		<!-- create checksums -->
 		<mkdir dir="../Checksums/bin"/>
 		<javac srcdir="../Checksums/src" destdir="../Checksums/bin"
-			classpath="../de.peeeq.wurstscript/lib/guava-14.0-rc1.jar"
+			classpath="../de.peeeq.wurstscript/lib/guava-20.0.jar"
 			includeantruntime="false" debug="true" debuglevel="vars,lines,source">
 		
 		</javac>
-		<java classpath="../Checksums/bin:../de.peeeq.wurstscript/lib/guava-14.0-rc1.jar" classname="de.peeeq.checksums.Main">
+		<java classpath="../Checksums/bin:../de.peeeq.wurstscript/lib/guava-20.0.jar" classname="de.peeeq.checksums.Main">
 			<arg value="../downloads/Wurstpack/" />
 			<arg value="../downloads/wurstpack.md5" />
 		</java>

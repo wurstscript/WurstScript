@@ -1,7 +1,5 @@
 package de.peeeq.wurstio.gui;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -17,7 +15,6 @@ import javax.swing.SwingUtilities;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.base.Preconditions;
-import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -27,7 +24,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 public class WurstGuiImpl extends WurstGui {
 
 
-	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<CompileError>();
+	private volatile Queue<CompileError> errorQueue = new ConcurrentLinkedQueue<>();
 	private volatile double progress = 0.0;
 	private volatile boolean finished = false;
 	private volatile @Nullable String currentlyWorkingOn = "";
@@ -76,10 +73,12 @@ public class WurstGuiImpl extends WurstGui {
 					public void run() {
 						statusWindow = new WurstStatusWindow();
 						errorWindow = new WurstErrorWindow(workspaceRoot);
+                        errorWindow.repaint();
+                        statusWindow.repaint();
 						errorWindow.toFront();
 						statusWindow.toFront();
-						errorWindow.repaint();
-						statusWindow.repaint();
+                        errorWindow.setAlwaysOnTop(true);
+                        statusWindow.setAlwaysOnTop(true);
 					}
 				});
 				

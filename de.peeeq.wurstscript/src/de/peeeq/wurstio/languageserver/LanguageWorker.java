@@ -126,7 +126,7 @@ public class LanguageWorker implements Runnable {
     public void handleRunmap(int requestNr, String mapPath, String wc3path) {
         synchronized (lock) {
             // TODO make args configurable
-            List<String> compileArgs = Lists.newArrayList("-stacktraces", "-runcompiletimefunctions", "-injectobjects", "-inline", "-localOptimizations");
+            List<String> compileArgs = Lists.newArrayList("-runcompiletimefunctions", "-injectobjects");
             userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs));
             lock.notifyAll();
         }
