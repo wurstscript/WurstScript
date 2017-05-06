@@ -20,7 +20,7 @@
 		<mkdir dir="./bin/" />
 		<javac srcdir="${src}:${src-gen}" destdir="bin" includeantruntime="false">
 			<classpath>
-				<path path="./lib/guava-r09.jar">
+				<path path="./lib/guava-20.0.jar">
 				</path>
 				<path path="./lib/antlr-runtime-4.1.jar">
 				</path>
@@ -35,7 +35,7 @@
 				<attribute name="Class-Path" value="." />
 			</manifest>
 			<fileset dir="./bin" />
-			<zipfileset excludes="META-INF/*.SF" src="./lib/guava-r09.jar" />
+			<zipfileset excludes="META-INF/*.SF" src="./lib/guava-20.0.jar" />
 			<zipfileset excludes="META-INF/*.SF" src="./lib/antlr-runtime-4.1.jar" />
 		</jar>
 	</target>
