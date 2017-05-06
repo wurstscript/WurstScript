@@ -16,10 +16,10 @@
   <parent>
     <groupId>de.peeeq.wurstscript</groupId>
     <artifactId>WurstScript</artifactId>
-    <version>1.5.0.0-3891bb1</version>
+    <version>1.6.0.0-3d349a04</version>
   </parent>
   <groupId>de.peeeq.wurstscript</groupId>
   <artifactId>de.peeeq.wurstscript</artifactId>
-  <version>1.5.0.0-3891bb1</version>
+  <version>1.6.0.0-3d349a04</version>
   <packaging>eclipse-plugin</packaging>
 </project>

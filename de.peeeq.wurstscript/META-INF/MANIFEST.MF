@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Wurstscript
 Bundle-SymbolicName: de.peeeq.wurstscript
-Bundle-Version: 1.5.0.0-3891bb1
+Bundle-Version: 1.6.0.0-3d349a04
 Bundle-ClassPath: wurstscript.jar,
  lib/junit-4.10.jar,
  lib/chardet.jar,

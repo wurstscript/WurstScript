@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.peeeq.wurstscript</groupId>
 	<artifactId>WurstScript</artifactId>
-	<version>1.5.0.0-3891bb1</version>
+	<version>1.6.0.0-3d349a04</version>
 	<properties>
 		<tycho-version>0.21.0</tycho-version>
 	</properties>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<feature id="EclipseWurstPluginFeatures" label="Wurst IDE support" version="1.5.0.0-3891bb1">
+<feature id="EclipseWurstPluginFeatures" label="Wurst IDE support" version="1.6.0.0-3d349a04">
 
    <description url="https://github.com/peq/WurstScript">
       WurstScript is a super awesome scripting language and after using it you will never want anything else.
@@ -48,8 +48,8 @@ Visit our GitHub Repository: https://github.com/peq/WurstScript/
 	  <discovery label="Need someone to talk to?" url="http://irc.lc/quakenet/inwc.de-maps/irctc@@@"/>
    </url>
 
-   <plugin download-size="0" id="de.peeeq.wurstscript" install-size="0" version="1.5.0.0-3891bb1"/>
+   <plugin download-size="0" id="de.peeeq.wurstscript" install-size="0" version="1.6.0.0-3d349a04"/>
 
-   <plugin download-size="0" id="EclipseWurstPlugin" install-size="0" unpack="false" version="1.5.0.0-3891bb1"/>
+   <plugin download-size="0" id="EclipseWurstPlugin" install-size="0" unpack="false" version="1.6.0.0-3d349a04"/>
 
 </feature>
