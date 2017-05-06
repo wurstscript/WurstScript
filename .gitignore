@@ -1,5 +1,6 @@
 # Compiled source #
 ###################
+*.jar
 *.class
 *.rs
 *.log
