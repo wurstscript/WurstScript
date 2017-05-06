@@ -101,6 +101,11 @@ public class RunMap extends UserRequest {
 
             String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
 
+            // 1.27 and lower compat
+            if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
+                print("Version 1.27 or lower detected, changing file location");
+                documentPath = wc3Path;
+            }
             // then inject the script into the map
             File outputMapscript = compiledScript;
 
@@ -115,7 +120,7 @@ public class RunMap extends UserRequest {
             File testMap2 = new File(new File(documentPath, "Maps" + File.separator + "Test"), testMapName2);
             Files.copy(testMap, testMap2);
 
-            println("Starting wc3 ... ");
+            WLogger.info("Starting wc3 ... ");
 
             // now start the map
             List<String> cmd = Lists.newArrayList(frozenThroneExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
@@ -150,7 +155,7 @@ public class RunMap extends UserRequest {
 
     private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
-        WLogger.info("Compile Script : ");
+        print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
             WLogger.info("dep: " + dep.getPath());
         }
