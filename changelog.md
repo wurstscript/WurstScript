@@ -2,7 +2,22 @@
 layout: simple
 title: Changelog
 ---
+Version 1.6.0.0
+==================
+### Major Update
 
+We havn't really been keeping up to date with the changelog, but steadily developing wurstscript in the background.
+Anyhow, a short list of the most important changes over the last 2+ years:
+
+- fixed tons of issues and added many new features to wurstscript and stdlib
+- new recommended ide plugin for vscode
+- tons of optimizations from build speed to generated jass code and generated mpq
+- now using jmpq3, a native java mpq library
+- added runmap and wurstpack support for patch 1.28
+- optionally execute jasshelper before wurst, allowing both languages in the same map
+- much, much more!
+
+1.6.0.0 is the first in a series of updates promoting the new wurstflow and allowing easier setup.
 
 Version 1.5.0.0
 ==================
