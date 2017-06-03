@@ -242,7 +242,7 @@ public class RunMap extends UserRequest {
 
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
         compiler.setMapFile(mapCopy);
-        purgeUnimportedFiles(model); //@peq this removes also important files...
+        purgeUnimportedFiles(model);
 
         gui.sendProgress("Check program");
         compiler.checkProg(model);
