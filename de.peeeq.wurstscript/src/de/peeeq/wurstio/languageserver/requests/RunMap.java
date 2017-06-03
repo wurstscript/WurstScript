@@ -100,7 +100,17 @@ public class RunMap extends UserRequest {
             gui.sendProgress("preparing testmap ... ");
 
             String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
-
+            if (!new File(documentPath).exists()) {
+            	WLogger.info("Warcraft folder " + documentPath + " does not exist.");
+            	// Try wine default:
+            	documentPath = System.getProperty("user.home") 
+            		+ "/.wine/drive_c/users/" + System.getProperty("user.name")+ "/My Documents/Warcraft III";
+            	if (!new File(documentPath).exists()) {
+            		WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+            	}
+            }
+            
+            
             // 1.27 and lower compat
             if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
                 print("Version 1.27 or lower detected, changing file location");
