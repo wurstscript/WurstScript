@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
 
 public class LanguageServer {
@@ -25,6 +26,9 @@ public class LanguageServer {
     }
 
     private void setupLogger() throws IOException {
+    	Main.setUpFileLogging("wurst_langserver");
+    	
+    	
         FileHandler handler = new FileHandler("%t/wurst/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
         handler.setFormatter(new SimpleFormatter());
         WLogger.setHandler(handler);

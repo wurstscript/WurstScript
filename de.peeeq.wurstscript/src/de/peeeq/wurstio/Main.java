@@ -308,16 +308,22 @@ public class Main {
     }
 
     public static void setUpFileLogging() {
+    	setUpFileLogging("wurst");
+    }
+    
+    public static void setUpFileLogging(String folderName) {
         try {
             // set up file logging:
-            Handler handler = new FileHandler("%t/wurst/wurst%g.log", Integer.MAX_VALUE, 20);
+            String tempDir = System.getProperty("java.io.tmpdir");
+            File folder = new File(tempDir, folderName);
+            folder.mkdirs();
+            Handler handler = new FileHandler(folder.getAbsolutePath() + "/wurst%g.log", Integer.MAX_VALUE, 20);
             handler.setFormatter(new SimpleFormatter());
             WLogger.setHandler(handler);
             WLogger.setLevel(Level.INFO);
         } catch (SecurityException e) {
             e.printStackTrace();
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
