@@ -827,8 +827,9 @@ public class AntlrWurstParseTreeTransformer {
 			return transformForRangeLoop(s.forRangeLoop());
 		} else if (s.forIteratorLoop() != null) {
 			return transformForIteratorLoop(s.forIteratorLoop());
+		} else {
+		    return Ast.StmtErr(source(s));
 		}
-		throw error(s, "not implemented: " + text(s));
 	}
 
 	private WStatement transformForRangeLoop(ForRangeLoopContext s) {

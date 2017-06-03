@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -79,8 +80,8 @@ public class RunMap extends UserRequest {
             gui.sendProgress("Copying map");
 
             // first we copy in same location to ensure validity
-            String testMapName = map.getParent() + File.separator + "WurstRunMap.w3x";
-            File testMap = new File(testMapName);
+            File buildDir = getBuildDir();
+            File testMap = new File(buildDir, "WurstRunMap.w3x");
             if (testMap.exists()) {
                 testMap.delete();
             }
@@ -100,24 +101,8 @@ public class RunMap extends UserRequest {
             RunArgs runArgs = new RunArgs(compileArgs);
 
             gui.sendProgress("preparing testmap ... ");
-
-            String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
-            if (!new File(documentPath).exists()) {
-            	WLogger.info("Warcraft folder " + documentPath + " does not exist.");
-            	// Try wine default:
-            	documentPath = System.getProperty("user.home") 
-            		+ "/.wine/drive_c/users/" + System.getProperty("user.name")+ "/My Documents/Warcraft III";
-            	if (!new File(documentPath).exists()) {
-            		WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
-            	}
-            }
             
             
-            // 1.27 and lower compat
-            if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
-                print("Version 1.27 or lower detected, changing file location");
-                documentPath = wc3Path;
-            }
             // then inject the script into the map
             File outputMapscript = compiledScript;
 
@@ -126,11 +111,9 @@ public class RunMap extends UserRequest {
                 mpqEditor.deleteFile("war3map.j");
                 mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
             }
+            
 
-            // Then we make a second copy named appropriately
-            String testMapName2 = "WurstTestMap.w3x";
-            File testMap2 = new File(new File(documentPath, "Maps" + File.separator + "Test"), testMapName2);
-            Files.copy(testMap, testMap2);
+            String testMapName2 = copyToWarcraftMapDir(testMap);
 
             WLogger.info("Starting wc3 ... ");
 
@@ -155,6 +138,38 @@ public class RunMap extends UserRequest {
             gui.sendFinished();
         }
         return "ok"; // TODO
+    }
+
+    /**
+     * Copies the map to the wc3 map directory
+     * 
+     *  This directory depends on warcraft version and whether we are on windows or wine is used.
+     */
+    private String copyToWarcraftMapDir(File testMap) throws IOException {
+        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
+        if (!new File(documentPath).exists()) {
+        	WLogger.info("Warcraft folder " + documentPath + " does not exist.");
+        	// Try wine default:
+        	documentPath = System.getProperty("user.home") 
+        		+ "/.wine/drive_c/users/" + System.getProperty("user.name")+ "/My Documents/Warcraft III";
+        	if (!new File(documentPath).exists()) {
+        		WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+        	}
+        }
+        
+        
+        // 1.27 and lower compat
+        if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
+            print("Version 1.27 or lower detected, changing file location");
+            documentPath = wc3Path;
+        }
+        
+
+        // Then we make a second copy named appropriately
+        String testMapName2 = "WurstTestMap.w3x";
+        File testMap2 = new File(new File(documentPath, "Maps" + File.separator + "Test"), testMapName2);
+        Files.copy(testMap, testMap2);
+        return testMapName2;
     }
 
     private void print(String s) {
@@ -278,9 +293,16 @@ public class RunMap extends UserRequest {
         JassPrinter printer = new JassPrinter(true, jassProg);
         String compiledMapScript = printer.printProg();
 
-        File outFile = new File(new File(workspaceRoot), "compiled.j.txt");
+        File buildDir = getBuildDir();
+        File outFile = new File(buildDir, "compiled.j.txt");
         Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
         return outFile;
+    }
+
+    private File getBuildDir() {
+        File buildDir = new File(workspaceRoot, "_build");
+        buildDir.mkdirs();
+        return buildDir;
     }
 
     /**

@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -44,6 +45,10 @@ public class LanguageWorker implements Runnable {
     public void handleFileChanged(String filePath) {
         if (!Utils.isWurstFile(filePath) && !filePath.endsWith("wurst.dependencies")) {
             // ignore all files which are not relevant for wurst
+            return;
+        }
+        if (Paths.get(filePath).startsWith(Paths.get(rootPath, "_build"))) {
+            // ignore build folder
             return;
         }
 

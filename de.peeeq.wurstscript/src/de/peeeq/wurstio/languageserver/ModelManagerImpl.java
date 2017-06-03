@@ -397,12 +397,20 @@ public class ModelManagerImpl implements ModelManager {
         InputStream source = this.getClass().getResourceAsStream("/" + filename);
         File sourceFile;
         if (source == null) {
+            WLogger.severe("could not find " + filename + " in jar");
             System.err.println("could not find " + filename + " in jar");
             sourceFile = new File("./resources/" + filename);
         } else {
-            sourceFile = File.createTempFile("wurst", filename, TempDir.get());
-            sourceFile.deleteOnExit();
-            java.nio.file.Files.copy(source, sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            try {
+                File buildDir = getBuildDir();
+                buildDir.mkdirs();
+                sourceFile = new File(buildDir, filename);
+                if (!sourceFile.exists()) {
+                    java.nio.file.Files.copy(source, sourceFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+            } finally {
+                source.close();
+            }
         }
 
         WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
@@ -412,6 +420,10 @@ public class ModelManagerImpl implements ModelManager {
             cu.setFile(getCanonicalPath(sourceFile));
             return cu;
         }
+    }
+
+    private File getBuildDir() {
+        return new File(projectPath, "_build");
     }
 
     private void resolveImports(WurstGui gui) {
@@ -614,8 +626,16 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, WurstModel model) {
+        
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(CompilationUnit::getFile));
         result.addAll(toCheck);
+        
+        if (toCheck.stream().anyMatch(cu -> cu.getFile().endsWith(".j"))) {
+            // when plain Jass files are changed, everything must be checked again:
+            result.addAll(model);
+            return result; 
+        }
+        
         Collection<String> providedPackages = result.stream().flatMap(cu -> cu.getPackages().stream()).map(p -> p.getName()).collect(Collectors.toSet());
 
         addImportingPackages(providedPackages, model, result);
