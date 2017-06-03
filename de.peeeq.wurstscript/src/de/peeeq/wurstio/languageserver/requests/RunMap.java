@@ -3,6 +3,8 @@ package de.peeeq.wurstio.languageserver.requests;
 import java.io.File;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -225,7 +227,7 @@ public class RunMap extends UserRequest {
 
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
         compiler.setMapFile(mapCopy);
-        //        purgeUnimportedFiles(model); @peq this removes also important files...
+        purgeUnimportedFiles(model); //@peq this removes also important files...
 
         gui.sendProgress("Check program");
         compiler.checkProg(model);
@@ -309,7 +311,10 @@ public class RunMap extends UserRequest {
     }
 
     private boolean isInWurstFolder(String file) {
-        File f = new File(workspaceRoot + "/" + file);
-        return f.exists() && Utils.isWurstFile(file);
+        Path p = Paths.get(file);
+        Path w = Paths.get(workspaceRoot);
+        return p.startsWith(w) 
+                && java.nio.file.Files.exists(p)
+                && Utils.isWurstFile(file);
     }
 }
