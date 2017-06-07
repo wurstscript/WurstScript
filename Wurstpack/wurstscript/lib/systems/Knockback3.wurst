@@ -1,0 +1,217 @@
+package Knockback3
+
+import Terrain
+import MapBounds
+import LinkedListModule
+import HashMap
+
+public class Knockback3
+    use LinkedListModule
+
+    /**
+    Fraction of velocity retained after colliding with ground/destructable.
+    */
+    static var restitutionCoefficientGround       = .2
+    static var restitutionCoefficientDestructable = .3
+
+    /** Ratio. */
+    static var frictionCoefficientGround = .15
+
+    /** In units per second squared. */
+    static var gravity = 90.
+
+    /**
+    If a unit is not falling faster than this, it will not bounce. Units
+    per second.
+    */
+    static var elasticityThreshold = -300.
+
+    /**
+    If a unit's vertical component is not greater than this, it will not
+    become airborne. Units per second.
+    */
+    static var airborneThreshold = 150.
+
+    /**
+    For the purposes of friction, distinguish a unit which is airborne
+    versus one which is sliding. Height in units.
+    */
+    static var isAirborneThreshold = 5.
+
+    /** Below this speed, sliding units will stop. */
+    static var minimumSlideSpeed = 30.
+
+    /** Above this speed, sliding units will spawn a dust effect. */
+    static var frictionFxThreshold = 180.
+    static var frictionFxPath = "Objects\\Spawnmodels\\Undead\\ImpaleTargetDust\\ImpaleTargetDust.mdl"
+
+    /** Above this speed, destructables hit will be destroyed. */
+    static var destroyDestructableSpeedThreshold = 300.
+
+    /** Below this height, destructables hit may be destroyed. */
+    static var destroyDestructableHeightThreshold = 150.
+
+    /** The square rect size used for finding destructables. */
+    @configurable static constant DESTRUCTABLE_ENUM_SIZE    = 130.
+
+    /**
+    If enabled, units have their move-speed changed while airborne.
+    Warning: this is not a lock-safe form of crowd control.
+    */
+    @configurable static constant USE_MOVE_SPEED_MODIFIERS  = true
+
+    /**
+    If enabled, units have their prop window changed while airborne.
+    Warning: this is not a lock-safe form of crowd control.
+    */
+    @configurable static constant USE_PROP_WINDOW_MODIFIERS = true
+
+
+    /**
+    Apply a knockback vector to unit u. `velocity` is initial speed in units
+    per second. `groundAngle` and `airAngle` are the direction and trajectory
+    parameters, respectively. Example:
+
+        import Knocback3
+        ...
+        unit u = ...
+        Knockback3.add(u, 1000., angle(0.), angle(bj_PI / 4.))
+    */
+    static function add(unit u, real velocity, angle groundAngle, angle airAngle)
+        let instVel = velocity*ANIMATION_PERIOD
+        let v       = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
+
+        Knockback3 knockback
+        if unitNodes.has(u)
+            knockback      = unitNodes.get(u)
+            knockback.del += v
+        else
+            knockback     = new Knockback3()
+            knockback.u   = u
+            knockback.del = v
+            if size == 1
+                clock.startPeriodic(ANIMATION_PERIOD, function tick)
+
+            if knockback.u.addAbility(HEIGHT_ENABLER)
+                knockback.u.removeAbility(HEIGHT_ENABLER)
+
+
+    static function setVel(unit u, real velocity, angle groundAngle, angle airAngle)
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
+            let instVel   = velocity*ANIMATION_PERIOD
+
+            knockback.del = vec3(0., 0., 0.).polarProject(instVel, groundAngle, airAngle)
+        else
+            add(u, velocity, groundAngle, airAngle)
+
+
+    static function getVel(unit u) returns vec3
+        var v = vec3(0., 0., 0.)
+        if unitNodes.has(u)
+            let knockback = unitNodes.get(u)
+            v             = knockback.del
+
+        return v
+
+
+    // Instance Variables
+    private unit u
+    private vec3 del
+
+
+    private static function tickNearGround(Knockback3 knockback, vec3 newPos3, vec3 pos3, bool newInMap, real velXySquared)
+        if isTerrainWalkable(newPos3.x, newPos3.y) and newInMap
+            knockback.u.setXY(newPos3)
+
+            if knockback.del.z <= isAirborneThreshold
+                knockback.del *= (1. - frictionCoefficientGround)
+
+                if velXySquared > frictionFxThreshold*ANIMATION_PERIOD
+                    addEffect(frictionFxPath, pos3).destr()
+
+            if USE_MOVE_SPEED_MODIFIERS
+                knockback.u.setMoveSpeed(GetUnitDefaultMoveSpeed(knockback.u))
+
+            if USE_PROP_WINDOW_MODIFIERS
+                knockback.u.setPropWindow(GetUnitDefaultPropWindow(knockback.u) * bj_DEGTORAD)
+
+        else
+            knockback.del = knockback.del.project(vec3(0., 0., 1.))
+
+        if knockback.del.z < elasticityThreshold*ANIMATION_PERIOD
+            knockback.del.z = knockback.del.z*-1.*restitutionCoefficientGround
+
+        if knockback.del.z > airborneThreshold*ANIMATION_PERIOD
+            knockback.u.setFlyHeight(pos3.z + knockback.del.z, 0.)
+            knockback.del.z = knockback.del.z - gravity*ANIMATION_PERIOD
+
+
+    private static function tickAboveGround(Knockback3 knockback, vec3 newPos3, vec3 pos3)
+        knockback.del.z -= gravity*ANIMATION_PERIOD
+        let heightDifference = getTerrainZ(newPos3.x, newPos3.y) - getTerrainZ(pos3.x, pos3.y)
+
+        knockback.u..setFlyHeight(newPos3.z - heightDifference, 0.)
+                   ..setXY(newPos3)
+
+        if USE_MOVE_SPEED_MODIFIERS
+            knockback.u.setMoveSpeed(0.)
+
+        if USE_PROP_WINDOW_MODIFIERS
+            knockback.u.setPropWindow(0.)
+
+
+    private static bool hitDestructable
+    private static rect destructableRect = Rect(-1*Knockback3.DESTRUCTABLE_ENUM_SIZE, -1*Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE, Knockback3.DESTRUCTABLE_ENUM_SIZE)
+    private static function tickTryDestructable(Knockback3 knockback, vec3 newPos3)
+        hitDestructable = false
+        MoveRectTo(destructableRect, newPos3.x, newPos3.y)
+        EnumDestructablesInRect(destructableRect, null, () -> begin
+            let des = GetEnumDestructable()
+            if GetDestructableLife(des) > 0.
+                des.kill()
+                hitDestructable = true
+        end)
+
+        if hitDestructable
+            knockback.del *= restitutionCoefficientDestructable
+
+
+    private static constant unitNodes = new HashMap<unit, Knockback3>()
+    private static function tickUnitDone(Knockback3 knockback)
+        knockback.u.setFlyHeight(0., 0.)
+        unitNodes.remove(knockback.u)
+
+        if USE_MOVE_SPEED_MODIFIERS
+            knockback.u.setMoveSpeed(GetUnitDefaultMoveSpeed(knockback.u))
+
+        if USE_PROP_WINDOW_MODIFIERS
+            knockback.u.setPropWindow(GetUnitDefaultPropWindow(knockback.u) * bj_DEGTORAD)
+
+
+    private static timer    clock      = CreateTimer()
+    private static function tick()
+        let iter = iterator()
+        while iter.hasNext()
+            let knockback = iter.next()
+
+            let pos3         = knockback.u.getPos3(0.)
+            let newPos3      = pos3 + knockback.del
+            let newInMap     = newPos3.inPlayable()
+            let velXySquared = knockback.del.toVec2().lengthSquared()
+
+            if pos3.z < isAirborneThreshold
+                tickNearGround(knockback, newPos3, pos3, newInMap, velXySquared)
+            else if newInMap
+                tickAboveGround(knockback, newPos3, pos3)
+
+            if velXySquared > destroyDestructableSpeedThreshold*ANIMATION_PERIOD and pos3.z < destroyDestructableHeightThreshold
+                tickTryDestructable(knockback, newPos3)
+
+            if velXySquared < minimumSlideSpeed*ANIMATION_PERIOD and knockback.del.z > elasticityThreshold*ANIMATION_PERIOD and knockback.del.z < -1*elasticityThreshold*ANIMATION_PERIOD and pos3.z < isAirborneThreshold
+                tickUnitDone(knockback)
+                knockback.remove()
+        iter.close()
+
+        if size == 0
+            clock.pause()
