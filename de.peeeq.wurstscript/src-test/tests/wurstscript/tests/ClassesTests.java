@@ -1090,6 +1090,17 @@ public class ClassesTests extends WurstScriptTest {
 			);
 	}
 	
+	@Test
+    public void staticThisAccess() { 
+        testAssertErrorsLines(false, "cannot access",
+                "package test",
+                "   class A",
+                "       static int array b",
+                "       construct()",
+                "           this.b[1] = 1",
+                "endpackage"
+            );
+    }
 	
 	
 }
