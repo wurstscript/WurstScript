@@ -1,0 +1,70 @@
+package StandardTextTags
+constant FONT_SIZE  =  0.024 / 0.0023
+constant OFFSET     = vec2(16., 0.)
+
+
+function _standardTextTag(vec2 pos, string text) returns texttag
+    let tag = CreateTextTag()..setText(text, FONT_SIZE)
+                             ..setPos(pos.x, pos.y, 0.)
+                             ..setFadepoint(2.)
+                             ..setLifespan(3.)
+                             ..setVelocity(0., .03)
+                             ..setPermanent(false)
+                             ..setVisibility(true)
+    return tag
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 Critical
+    Strike ability. */
+public function createCriticalStrikeTextTag(unit u, int damage)
+    let text = damage.toString() + "!"
+    _standardTextTag(u.getPos(), text)..setColor(255, 0, 0, 255)
+                                      ..setVelocity(0., .04)
+                                      ..setLifespan(5.)
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 gold
+    bounty. */
+public function createGoldBountyTextTag(unit u, int bounty, player killer)
+    let text = "+" + bounty.toString()
+    let pos  = u.getPos() - OFFSET
+    _standardTextTag(pos, text)..setColor(255, 220, 0, 255)
+                               ..setVisibility(GetLocalPlayer() == killer)
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 lumber
+    bounty. */
+public function createLumberBountyTextTag(unit u, int bounty, player killer)
+    let text = "+" + bounty.toString()
+    let pos  = u.getPos() - OFFSET
+    _standardTextTag(pos, text)..setColor(0, 200, 80, 255)
+                               ..setVisibility(GetLocalPlayer() == killer)
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 Mana Burn
+    ability. */
+public function createManaBurnTextTag(unit u, int damage)
+    let text = "-" + damage.toString()
+    let pos  = u.getPos() - OFFSET
+    _standardTextTag(pos, text)..setColor(82, 82, 255, 255)
+                               ..setVelocity(0., .04)
+                               ..setLifespan(5.)
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 attack
+    miss indication. */
+public function createMissTextTag(unit u)
+    _standardTextTag(u.getPos(), "miss")..setColor(255, 0, 0, 255)
+                                        ..setFadepoint(1.)
+
+
+/** Create a texttag that matches the style of the standard warcraft 3 Shadow
+    Strike ability. */
+public function createShadowStrikeTextTag(unit u, int damage, bool isInitialDamage)
+    var text = damage.toString()
+    if isInitialDamage
+        text += "!"
+
+    _standardTextTag(u.getPos(), text)..setColor(160, 255, 0, 255)
+                                      ..setVelocity(0., .04)
+                                      ..setLifespan(5.)
