@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
@@ -467,6 +466,9 @@ public class AttrExprType {
 		if (varDef == null) {
 			return WurstTypeUnknown.instance();
 		}
+        if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+            term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
+        }
 		WurstType typ = varDef.attrTyp().dynamic();
 		if (typ instanceof WurstTypeArray) {
 			WurstTypeArray ar = (WurstTypeArray) typ;
@@ -587,7 +589,7 @@ public class AttrExprType {
 
 
 	public static WurstType calculate(ExprStatementsBlock e) {
-		StmtReturn r = (StmtReturn) e.getReturnStmt();
+		StmtReturn r = e.getReturnStmt();
 		if (r != null) {
 			if (r.getReturnedObj() instanceof Expr) {
 				Expr re = (Expr) r.getReturnedObj();
