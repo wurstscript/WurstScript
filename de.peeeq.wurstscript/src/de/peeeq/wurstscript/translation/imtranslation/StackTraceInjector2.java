@@ -85,7 +85,7 @@ public class StackTraceInjector2 {
         AstElement trace = prog.attrTrace();
         stackSize = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "wurst_stack_depth", false);
         prog.getGlobals().add(stackSize);
-        stack = JassIm.ImVar(trace, JassIm.ImArrayType("integer"), "wurst_stack", false);
+        stack = JassIm.ImVar(trace, JassIm.ImArrayType("string"), "wurst_stack", false);
         prog.getGlobals().add(stack);
         prog.getGlobalInits().put(stackSize, JassIm.ImIntVal(0));
 
@@ -258,7 +258,7 @@ public class StackTraceInjector2 {
             AstElement trace = s.attrTrace();
             ImVar traceStr = JassIm.ImVar(trace, JassIm.ImSimpleType("string"), "stacktraceStr", false);
             f.getLocals().add(traceStr);
-            ImVar traceI = JassIm.ImVar(trace, JassIm.ImSimpleType("string"), "stacktraceIndex", false);
+            ImVar traceI = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "stacktraceIndex", false);
             f.getLocals().add(traceI);
             ImStmts stmts = JassIm.ImStmts();
             stmts.add(JassIm.ImSet(trace, traceStr, JassIm.ImStringVal("")));
