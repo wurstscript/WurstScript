@@ -239,9 +239,8 @@ public class ImTranslator {
 
 	private <T extends JassImElement> void sortList(List<T> list) {
 		List<T> classes = removeAll(list);
-		Collections.sort(classes, 
-				Comparator
-					.comparing(this::getQualifiedClassName));
+		Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
+		Collections.sort(classes, comparator);
 		list.addAll(classes);
 	}
 	
