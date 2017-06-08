@@ -402,7 +402,7 @@ public class ImTranslator {
 		boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
 		
 		if (!successful) {
-			getMainFunc().getBody().add(ImFunctionCall(emptyTrace, initFunc, ImExprs(), false, CallType.NORMAL));
+			getMainFunc().getBody().add(ImFunctionCall(initFunc.getTrace(), initFunc, ImExprs(), false, CallType.NORMAL));
 		}
 	}
 
@@ -440,29 +440,30 @@ public class ImTranslator {
 				imReturn.setReturnValue(JassIm.ImBoolVal(true));
 			}
 		});
-		initFunc.getBody().add(JassIm.ImReturn(emptyTrace, JassIm.ImBoolVal(true)));
+		AstElement trace = initFunc.getTrace();
+		initFunc.getBody().add(JassIm.ImReturn(trace, JassIm.ImBoolVal(true)));
 		
 
 		// initTrigVar = CreateTrigger()
-		mainBody.add(JassIm.ImSet(emptyTrace, initTrigVar, 
-				JassIm.ImFunctionCall(emptyTrace, native_CreateTrigger, JassIm.ImExprs(), false, CallType.NORMAL)));
+		mainBody.add(JassIm.ImSet(trace, initTrigVar, 
+				JassIm.ImFunctionCall(trace, native_CreateTrigger, JassIm.ImExprs(), false, CallType.NORMAL)));
 
 		// TriggerAddCondition(initTrigVar, Condition(function myInit))
-		mainBody.add(JassIm.ImFunctionCall(emptyTrace, native_TriggerAddCondition, JassIm.ImExprs(
+		mainBody.add(JassIm.ImFunctionCall(trace, native_TriggerAddCondition, JassIm.ImExprs(
 				JassIm.ImVarAccess(initTrigVar),
-				JassIm.ImFunctionCall(emptyTrace, native_Condition, JassIm.ImExprs(
+				JassIm.ImFunctionCall(trace, native_Condition, JassIm.ImExprs(
 						JassIm.ImFuncRef(initFunc)), false, CallType.NORMAL)
 				), true, CallType.NORMAL));
 		// if not TriggerEvaluate(initTrigVar) ...
-		mainBody.add(JassIm.ImIf(emptyTrace, 
+		mainBody.add(JassIm.ImIf(trace, 
 				JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(
-						JassIm.ImFunctionCall(emptyTrace, native_TriggerEvaluate, 
+						JassIm.ImFunctionCall(trace, native_TriggerEvaluate, 
 								JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL)
 						)),
 				// then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
 				JassIm.ImStmts(
-						JassIm.ImFunctionCall(emptyTrace, native_DisplayTimedTextToPlayer, JassIm.ImExprs(
-								JassIm.ImFunctionCall(emptyTrace, native_GetLocalPlayer, JassIm.ImExprs(), false, CallType.NORMAL),
+						JassIm.ImFunctionCall(trace, native_DisplayTimedTextToPlayer, JassIm.ImExprs(
+								JassIm.ImFunctionCall(trace, native_GetLocalPlayer, JassIm.ImExprs(), false, CallType.NORMAL),
 								JassIm.ImRealVal("0."),
 								JassIm.ImRealVal("0."),
 								JassIm.ImRealVal("45."),
@@ -471,7 +472,7 @@ public class ImTranslator {
 						), 
 				// else:
 				JassIm.ImStmts()));
-		mainBody.add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger, 
+		mainBody.add(JassIm.ImFunctionCall(trace, native_DestroyTrigger, 
 				JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
 		return true;
 	}
@@ -1329,7 +1330,7 @@ public class ImTranslator {
 			ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
 		}
 		ImExprs arguments = JassIm.ImExprs(message);
-		return JassIm.ImFunctionCall(emptyTrace, ef, arguments, false, CallType.NORMAL);
+		return JassIm.ImFunctionCall(message.attrTrace(), ef, arguments, false, CallType.NORMAL);
 	}
 
 	private ImFunction makeDefaultErrorFunc() {

@@ -50,6 +50,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.MultiArrayEliminator;
 import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector;
+import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector2;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
@@ -374,7 +375,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // debug: add stacktraces
             if (runArgs.isIncludeStacktraces()) {
                 beginPhase(4, "add stack traces");
-                new StackTraceInjector(imProg2).transform();
+                new StackTraceInjector2(imProg2).transform();
             }
         }
         imTranslator2.assertProperties();
