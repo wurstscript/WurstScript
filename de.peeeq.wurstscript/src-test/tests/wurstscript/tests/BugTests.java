@@ -802,6 +802,26 @@ public class BugTests extends WurstScriptTest {
 	}
 	
 	@Test
+	public void recursiveTuple() { 
+		testAssertErrorsLines(false, "Parameter bar is recursive", 
+				"package test",
+				"tuple foo(foo bar)",
+				"class C",
+				"    foo f1 = foo(f2)",
+				"    foo f2 = foo(f1)"
+				);
+	}
+	
+	@Test
+    public void recursiveTuple2() { 
+        testAssertErrorsLines(false, "is recursive", 
+                "package test",
+                "tuple foo(bar bar)",
+                "tuple bar(foo foo)"
+                );
+    }
+	
+	@Test
 	public void testLinePos() { // #462
 		String input = 
 				"package test\n" +
