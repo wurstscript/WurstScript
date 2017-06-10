@@ -13,6 +13,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
@@ -59,8 +60,17 @@ public class WurstTypeTuple extends WurstType {
 		List<String> names = Lists.newArrayList();
 		for (WParameter p : tupleDef.getParameters()) {
 			ImType pt = p.attrTyp().imTranslateType();
-			types.add(pt);
-			names.add(p.getName());
+			if (pt instanceof ImTupleType) {
+                ImTupleType ptt = (ImTupleType) pt;
+                // add flattened
+                for (int i=0; i<ptt.getTypes().size(); i++) {
+                    types.add(ptt.getTypes().get(i));
+                    names.add(p.getName() + "_" + ptt.getNames().get(i));
+                }
+			} else {
+    			types.add(pt);
+    			names.add(p.getName());
+			}
 		}
 		return JassIm.ImTupleType(types, names);
 	}

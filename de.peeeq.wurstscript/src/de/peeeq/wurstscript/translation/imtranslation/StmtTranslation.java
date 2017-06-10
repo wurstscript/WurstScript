@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.LocalVarDef;
@@ -52,6 +53,7 @@ import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -174,19 +176,24 @@ public class StmtTranslation {
 		List<ImStmt> statements = Lists.newArrayList();
 		updated = flatten(updated, statements);
 		
-		
 		ImExpr right = s.getRight().imTranslateExpr(t, f);
 		
-		if (updated instanceof ImTupleSelection) {
+		return translateAssignment(s, updated, right);
+	}
+
+    private static ImStmt translateAssignment(AstElementWithSource s, ImExpr updated, ImExpr right) throws CompileError {
+        if (updated instanceof ImTupleSelection) {
 			ImTupleSelection tupleSelection = (ImTupleSelection) updated;
-			if (tupleSelection.getTupleExpr() instanceof ImVarAccess) {
+			ImExpr tupleExpr = tupleSelection.getTupleExpr();
+			
+            if (tupleExpr instanceof ImVarAccess) {
 				// case: tuple var
-				ImVarAccess va = (ImVarAccess) tupleSelection.getTupleExpr();
+				ImVarAccess va = (ImVarAccess) tupleExpr;
 				return ImSetTuple(s, va.getVar(), tupleSelection.getTupleIndex(), right);
-			} else if (tupleSelection.getTupleExpr() instanceof ImVarArrayAccess) {
+			} else if (tupleExpr instanceof ImVarArrayAccess) {
 				// case: tuple array var
-				ImVarArrayAccess va = (ImVarArrayAccess) tupleSelection.getTupleExpr();
-				return ImSetArrayTuple(s, va.getVar(), (ImExpr) va.getIndex().copy(), tupleSelection.getTupleIndex(), right);				
+				ImVarArrayAccess va = (ImVarArrayAccess) tupleExpr;
+				return ImSetArrayTuple(s, va.getVar(), (ImExpr) va.getIndex().copy(), tupleSelection.getTupleIndex(), right);	
 			} else {
 				throw new CompileError(s.getSource(), "Cannot translate tuple access");
 			}
@@ -199,10 +206,26 @@ public class StmtTranslation {
 		} else if (updated instanceof ImVarArrayMultiAccess) {
 			ImVarArrayMultiAccess va = (ImVarArrayMultiAccess) updated;
 			return JassIm.ImSetArrayMulti(s, va.getVar(),JassIm.ImExprs((ImExpr)va.getIndex1().copy(),(ImExpr) va.getIndex2().copy()), right);
+		} else if (updated instanceof ImTupleExpr) {
+		    // TODO this could lead to expressions being evaluated twice
+            ImTupleExpr te = (ImTupleExpr) updated;
+            ImStmts stmts = JassIm.ImStmts();
+            for (int i=0; i<te.getExprs().size(); i++) {
+                ImExpr l = (ImExpr) te.getExprs().get(i).copy();
+                ImExpr r;
+                if (right instanceof ImTupleExpr) {
+                    ImTupleExpr rt = (ImTupleExpr) right;
+                    r = (ImExpr) rt.getExprs().get(i).copy();                 
+                } else {
+                    r = JassIm.ImTupleSelection((ImExpr) right.copy(), i);
+                }
+                stmts.add(translateAssignment(s, l, r));
+            }
+            return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
 		} else {
-			throw new CompileError(s.getSource(), "Cannot translate set statement.");
+			throw new CompileError(s.getSource(), "Cannot translate set statement, updated = " + updated.getClass().getSimpleName());
 		}
-	}
+    }
 
 
 

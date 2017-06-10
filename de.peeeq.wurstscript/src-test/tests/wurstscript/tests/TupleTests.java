@@ -1,9 +1,10 @@
 package tests.wurstscript.tests;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 
 public class TupleTests extends WurstScriptTest {
-	
 	
 	@Test
 	public void simple() {
@@ -331,4 +332,34 @@ public class TupleTests extends WurstScriptTest {
 				"endpackage"
 			);
 	}
+	
+	@Test
+    public void tupleInTuple4() {
+        testAssertOkLines(true, 
+                "package test",
+                "native testSuccess()",
+                "tuple vec2(int x, int y)",
+                "tuple rectangle(vec2 min, vec2 max)",
+                "init",
+                "    rectangle r = rectangle(vec2(1,2), vec2(3,4))",
+                "    r.min.x = 5",
+                "    if r.min.x == 5",
+                "        testSuccess()"
+            );
+    }
+	
+	@Test
+    public void tupleInTuple5() {
+        testAssertOkLines(true, 
+                "package test",
+                "native testSuccess()",
+                "tuple vec2(int x, int y)",
+                "tuple rectangle(vec2 min, vec2 max)",
+                "init",
+                "    rectangle r = rectangle(vec2(1,2), vec2(3,4))",
+                "    r.min = vec2(5,2)",
+                "    if r.min.x == 5",
+                "        testSuccess()"
+            );
+    }
 }
