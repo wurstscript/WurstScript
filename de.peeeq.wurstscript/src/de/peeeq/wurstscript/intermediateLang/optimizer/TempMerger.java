@@ -35,7 +35,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 
 public class TempMerger {
-
+    public int totalMerged = 0;
 	private final ImProg prog;
 	private final ImTranslator trans;
 	
@@ -73,6 +73,7 @@ public class TempMerger {
 						ImVarAccess right = (ImVarAccess) imSet.getRight();
 						if (imSet.getLeft() == right.getVar()) {
 							// statement has the form 'x = x' so remove it
+                            totalMerged++;
 							imSet.replaceWith(JassIm.ImNull());
 							continue;
 						}
@@ -82,6 +83,7 @@ public class TempMerger {
 				replacement = processStatement(s, kn);
 				if (replacement != null) {
 					// do the replacement
+                    totalMerged++;
 					replacement.apply();
 					break;
 				}

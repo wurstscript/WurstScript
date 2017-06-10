@@ -26,7 +26,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
  * when the result is not used
  */
 public class UselessFunctionCallsRemover {
-
+    public int totalCallsRemoved = 0;
 	private final ImProg prog;
 	private final ImTranslator trans;
 
@@ -55,8 +55,6 @@ public class UselessFunctionCallsRemover {
 				ImFunctionCall fc = (ImFunctionCall) s;
 				if (isNativeWithoutSideEffect(fc.getFunc())) {
 					if (!isWantedError(fc)) {
-						
-					
 						// put arguments into a list of statements
 						ImStmts newStmts = JassIm.ImStmts();
 						for (ImExpr arg : fc.getArguments()) {
@@ -67,6 +65,7 @@ public class UselessFunctionCallsRemover {
 						}
 						s = JassIm.ImStatementExpr(newStmts, JassIm.ImNull());
 						it.set(s);
+                        totalCallsRemoved++;
 					}
 				}
 			}

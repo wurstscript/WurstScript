@@ -1,21 +1,15 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.intermediateLang.optimizer.ControlFlowGraph.Node;
-import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -26,7 +20,7 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class ConstantAndCopyPropagation {
-
+    public int totalPropagated = 0;
 	private final ImProg prog;
 	private final ImTranslator trans;
 
@@ -119,6 +113,7 @@ public class ConstantAndCopyPropagation {
 					}
 					if (val.constantValue != null) {
 						va.replaceWith(val.constantValue.copy());
+                        totalPropagated++;
 					} else if (val.copyVar != null) {
 						va.setVar(val.copyVar);
 						// recursive call, because maybe it is possible to also replace the new var

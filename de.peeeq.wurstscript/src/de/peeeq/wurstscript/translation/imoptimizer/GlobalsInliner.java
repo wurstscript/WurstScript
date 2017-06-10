@@ -10,8 +10,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImRealVal;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSetArray;
 import de.peeeq.wurstscript.jassIm.ImStringVal;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarRead;
@@ -22,6 +20,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class GlobalsInliner {
 
+    public int obsoleteCount;
     private ImProg prog;
 
     public GlobalsInliner(ImTranslator translator) {
@@ -33,20 +32,15 @@ public class GlobalsInliner {
 		
 		Set<ImVar> obsoleteVars = Sets.newLinkedHashSet();
 		for ( final ImVar v : prog.getGlobals() ) {
-//			WLogger.info("### " + v.getName() + " has " + v.attrWrites().size() + " writes");
 			if (v.attrWrites().size() == 1) {
-//				WLogger.info(">>>>>only 1 write");
 				ImExpr right = null;
 				ImVarWrite obs = null;
 				for ( ImVarWrite v2 : v.attrWrites()) {
 					ImFunction func = v2.getNearestFunc();
-//					WLogger.info(">>>>>checking write..");
 					if (func.getName().startsWith("init_") || func.getName().equals("main") || func.getName().startsWith("InitTrig_")
                             || func.getName().equals("initGlobals")) {
-//						WLogger.info(">>>>>in init or main");
 						right = v2.getRight();
 						obs = v2;
-//						WLogger.info(">>>>>set");
 						break;
 					}
 				}
@@ -87,6 +81,7 @@ public class GlobalsInliner {
 				}
 			}
 		}
+        obsoleteCount += obsoleteVars.size();
 		for (ImVar i : obsoleteVars) { 
 			// remove the write
 			ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());

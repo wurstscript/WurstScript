@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediateLang.optimizer.ConstantAndCopyPropagation;
 import de.peeeq.wurstscript.intermediateLang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
@@ -19,7 +20,9 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 
 public class ImOptimizer {
-	
+    private int totalFunctionsRemoved = 0;
+    private int totalGlobalsRemoved = 0;
+
 	ImTranslator trans;
 	
 	public ImOptimizer(ImTranslator trans) {
@@ -34,7 +37,7 @@ public class ImOptimizer {
 	
 	public void doInlining() {
 		// remove garbage to reduce work for the inliner
-		removeGarbage();
+        removeGarbage();
 		GlobalsInliner globalsInliner = new GlobalsInliner(trans);
 		globalsInliner.inlineGlobals();
 		ImInliner inliner = new ImInliner(trans);
@@ -45,13 +48,54 @@ public class ImOptimizer {
 	}
 	
 	public void localOptimizations() {
-		removeGarbage();
-		new TempMerger(trans).optimize();
-		new ConstantAndCopyPropagation(trans).optimize();
-		new SimpleRewrites(trans).optimize();
-		new LocalMerger(trans).optimize();
-		new UselessFunctionCallsRemover(trans).optimize();
-		removeGarbage();
+	    TempMerger tempMerger = new TempMerger(trans);
+        ConstantAndCopyPropagation cpOpt = new ConstantAndCopyPropagation(trans);
+        SimpleRewrites simpleRewrites = new SimpleRewrites(trans);
+        LocalMerger localMerger = new LocalMerger(trans);
+        UselessFunctionCallsRemover functionCallsRemover = new UselessFunctionCallsRemover(trans);
+        GlobalsInliner globalsInliner = new GlobalsInliner(trans);
+        removeGarbage();
+        int deltaV = 1;
+        int finalItr = 0;
+        for (int i = 0; i < 5 && deltaV > 0; i++) {
+            deltaV = 0;
+            int startV = tempMerger.totalMerged;
+            tempMerger.optimize();
+            int endV = tempMerger.totalMerged;
+            deltaV += (endV - startV);
+            startV = cpOpt.totalPropagated;
+            cpOpt.optimize();
+            endV = cpOpt.totalPropagated;
+            deltaV += (endV - startV);
+            startV = simpleRewrites.totalRewrites;
+            simpleRewrites.optimize();
+            endV = simpleRewrites.totalRewrites;
+            deltaV += (endV - startV);
+            startV = localMerger.totalLocalsMerged;
+            localMerger.optimize();
+            endV = localMerger.totalLocalsMerged;
+            deltaV += (endV - startV);
+            startV = functionCallsRemover.totalCallsRemoved;
+            functionCallsRemover.optimize();
+            endV = functionCallsRemover.totalCallsRemoved;
+            deltaV += (endV - startV);
+            startV = globalsInliner.obsoleteCount;
+            globalsInliner.inlineGlobals();
+            endV = globalsInliner.obsoleteCount;
+            deltaV += (endV - startV);
+            trans.getImProg().flatten(trans);
+            removeGarbage();
+            finalItr = i+1;
+        }
+        WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
+        WLogger.info("== Temp vars merged:   " + tempMerger.totalMerged);
+        WLogger.info("== Vars propagated:    " + cpOpt.totalPropagated);
+        WLogger.info("== Rewrites:           " + simpleRewrites.totalRewrites);
+        WLogger.info("== Locals merged:      " + localMerger.totalLocalsMerged);
+        WLogger.info("== Calls removed:      " + functionCallsRemover.totalCallsRemoved);
+        WLogger.info("== Globals Inlined:    " + globalsInliner.obsoleteCount);
+        WLogger.info("== Globals removed:    " + totalGlobalsRemoved);
+        WLogger.info("== Functions removed:  " + totalFunctionsRemoved);
 	}
 
 	public void doNullsetting() {
@@ -61,22 +105,25 @@ public class ImOptimizer {
 	}
 	
 	public void removeGarbage() {
-		if (trans.isUnitTestMode()) {
-//			return;
-		}
 		boolean changes = true;
 		int iterations = 0;
-		while (changes && iterations++ < 100) {
-			changes = false;
-			
-			ImProg prog = trans.imProg();
-			trans.calculateCallRelationsAndUsedVariables();
-			
-			// keep only used variables
-			changes |= prog.getGlobals().retainAll(trans.getReadVariables());
-			// keep only functions reachable from main and config
-			changes |= prog.getFunctions().retainAll(trans.getUsedFunctions());
-			
+        while (changes && iterations++ < 10) {
+            changes = false;
+            ImProg prog = trans.imProg();
+            trans.calculateCallRelationsAndUsedVariables();
+
+            // keep only used variables
+            int globalsBefore = prog.getGlobals().size();
+            changes |= prog.getGlobals().retainAll(trans.getReadVariables());
+            int globalsAfter = prog.getGlobals().size();
+            int globalsRemoved = globalsBefore - globalsAfter;
+            totalGlobalsRemoved += globalsRemoved;
+            // keep only functions reachable from main and config
+            int functionsBefore = prog.getFunctions().size();
+            changes |= prog.getFunctions().retainAll(trans.getUsedFunctions());
+            int functionsAfter = prog.getFunctions().size();
+            int functionsRemoved = functionsBefore - functionsAfter;
+            totalFunctionsRemoved += functionsRemoved;
 			for (ImFunction f: prog.getFunctions()) {
 				// remove set statements to unread variables
 				final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();

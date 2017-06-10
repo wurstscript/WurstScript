@@ -33,7 +33,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
  * the input must be a flattened program
  */
 public class LocalMerger {
-
+    public int totalLocalsMerged = 0;
 	private final ImProg prog;
 	private final ImTranslator trans;
 
@@ -90,6 +90,7 @@ public class LocalMerger {
 			assigned.add(v);
 		}
 		
+        totalLocalsMerged += merges.size();
 		
 //		System.out.println("merges = " + merges);
 		func.accept(new ImFunction.DefaultVisitor() {
