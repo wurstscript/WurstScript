@@ -317,6 +317,7 @@ public class Main {
             String tempDir = System.getProperty("java.io.tmpdir");
             File folder = new File(tempDir, folderName);
             folder.mkdirs();
+            System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %5$s%6$s%n");
             Handler handler = new FileHandler(folder.getAbsolutePath() + "/wurst%g.log", Integer.MAX_VALUE, 20);
             handler.setFormatter(new SimpleFormatter());
             WLogger.setHandler(handler);
