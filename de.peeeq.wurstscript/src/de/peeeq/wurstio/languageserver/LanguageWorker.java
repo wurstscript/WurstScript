@@ -1,6 +1,9 @@
 package de.peeeq.wurstio.languageserver;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -10,7 +13,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstio.languageserver.requests.CleanProject;
@@ -31,6 +37,8 @@ public class LanguageWorker implements Runnable {
     private final AtomicLong currentTime = new AtomicLong();
     private final LanguageServer server;
     private final Queue<UserRequest> userRequests = new LinkedList<>();
+    private final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects",
+            "-stacktraces");
 
     private ModelManager modelManager;
     private String rootPath;
@@ -130,10 +138,25 @@ public class LanguageWorker implements Runnable {
 
     public void handleRunmap(int requestNr, String mapPath, String wc3path) {
         synchronized (lock) {
-            // TODO make args configurable
-            List<String> compileArgs = Lists.newArrayList("-runcompiletimefunctions", "-injectobjects", "-stacktraces");
+            List<String> compileArgs = getCompileArgs();
             userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs));
             lock.notifyAll();
+        }
+    }
+
+    private List<String> getCompileArgs() {
+        try {
+            Path configFile = Paths.get(rootPath, "wurst_run.args");
+            if (Files.exists(configFile)) {
+                return Files.lines(configFile).collect(Collectors.toList());
+            } else {
+
+                String cfg = String.join("\n", defaultArgs) + "\n";
+                Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
+                return defaultArgs;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not access wurst run config file", e);
         }
     }
 
@@ -204,7 +227,8 @@ public class LanguageWorker implements Runnable {
                     }
                 }
                 if (work != null) {
-                    // actual work is not synchronized, so that requests can come in while the work is done
+                    // actual work is not synchronized, so that requests can
+                    // come in while the work is done
                     try {
                         work.run();
                     } catch (Exception e) {
