@@ -27,6 +27,7 @@ public class LanguageServer {
 
     private void setupLogger() throws IOException {
     	Main.setUpFileLogging("wurst_langserver");
+        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n");
 
         FileHandler handler = new FileHandler("%t/wurst/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
         handler.setFormatter(new SimpleFormatter());
