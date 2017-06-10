@@ -2,9 +2,14 @@ package de.peeeq.wurstscript.attributes;
 
 import java.util.Collection;
 
+import org.eclipse.jdt.annotation.Nullable;
+
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.ConstructorDefs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprUnary;
@@ -43,6 +48,9 @@ public class AttrExprExpectedType {
 				if (parent2 instanceof StmtCall) {
 					StmtCall stmtCall = (StmtCall) parent2;
 					return expectedType(expr, args, stmtCall);
+				} else if (parent2 instanceof ConstructorDef) {
+                    ConstructorDef constructorDef = (ConstructorDef) parent2;
+				    return expectedTypeSuperCall(constructorDef, expr);
 				}
 			} else if (parent instanceof StmtSet) {
 				StmtSet stmtSet = (StmtSet) parent;
@@ -104,16 +112,36 @@ public class AttrExprExpectedType {
 		return WurstTypeUnknown.instance();
 	}
 
-	private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
+	private static WurstType expectedTypeSuperCall(ConstructorDef constr, Expr expr) {
+	    ClassDef c = constr.attrNearestClassDef();
+        if (c == null) {
+            return null;
+        }
+        ClassDef superClass = c.attrExtendedClass();
+        if (superClass == null) {
+            return null;
+        }
+        // call super constructor
+        ConstructorDefs constructors = superClass.getConstructors();
+	    
+        
+        WurstType res = WurstTypeUnknown.instance();
+        
+        int paramIndex = constr.getSuperArgs().indexOf(expr);
+        
+        for (ConstructorDef superConstr : constructors) {
+            if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
+                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp());
+            }
+        }
+        
+        return res;
+    }
+
+    private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
 		Collection<FunctionSignature> sigs = stmtCall.attrPossibleFunctionSignatures();
 		
-		int index = 0;
-		for (int i = 0; i<args.size(); i++) {
-			if (args.get(i) == expr) {
-				index = i;
-				break;
-			}
-		}
+		int index = args.indexOf(expr);
 		
 		WurstType res = WurstTypeUnknown.instance();
 		

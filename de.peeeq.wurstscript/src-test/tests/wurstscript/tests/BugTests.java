@@ -858,4 +858,22 @@ public class BugTests extends WurstScriptTest {
 				"endpackage");
 	}
 	
+	@Test
+    public void testInferInSuper() {
+        testAssertOkLines(false,
+                "package test",
+                "class A",
+                "    construct(code c)",
+                "class B extends A",
+                "    construct()",
+                "        super(null)");
+    }
+	
+	
+    
+
+
+    
+        
+	
 }
