@@ -102,13 +102,18 @@ public class ProgramStateIO extends ProgramState {
 
 		try {
 			// extract specific object file:
-			try {
-				byte[] w3_ = mpqEditor.extractFile("war3map."+filetype.getExt());
-				dataStore = new ObjectFile(w3_, filetype);
-				replaceTrigStrings(dataStore);
+			String fileName = "war3map."+filetype.getExt();
+            try {
+                if (mpqEditor.hasFile(fileName)) {
+                    byte[] w3_ = mpqEditor.extractFile(fileName);
+                    dataStore = new ObjectFile(w3_, filetype);
+                    replaceTrigStrings(dataStore);
+                } else {
+                    dataStore = new ObjectFile(filetype);
+                }
 			} catch (IOException | InterruptedException e) {
 				// TODO maybe tell the user, that something has gone wrong
-				WLogger.info("Could not extract file war3map."+filetype.getExt());
+				WLogger.info("Could not extract file: " + fileName);
 				WLogger.info(e);
 				dataStore = new ObjectFile(filetype);
 			}
