@@ -45,6 +45,7 @@ import de.peeeq.wurstscript.utils.Utils;
  */
 public class StackTraceInjector2 {
 
+    private static final int MAX_STACKTRACE_SIZE = 20;
     private static final String WURST_STACK_TRACE = "wurstStackTrace";
     private ImProg prog;
     private ImVar stackSize;
@@ -260,13 +261,21 @@ public class StackTraceInjector2 {
             f.getLocals().add(traceStr);
             ImVar traceI = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "stacktraceIndex", false);
             f.getLocals().add(traceI);
+            ImVar traceLimit = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "stacktraceLimit", false);
+            f.getLocals().add(traceLimit);
             ImStmts stmts = JassIm.ImStmts();
             stmts.add(JassIm.ImSet(trace, traceStr, JassIm.ImStringVal("")));
             stmts.add(JassIm.ImSet(trace, traceI, JassIm.ImVarAccess(stackSize)));
+            stmts.add(JassIm.ImSet(trace, traceLimit, JassIm.ImIntVal(0)));
             ImStmts loopBody = JassIm.ImStmts();
             stmts.add(JassIm.ImLoop(trace, loopBody));
             // i = i - 1
             loopBody.add(decrement(trace, traceI));
+            // limit = limit + 1
+            loopBody.add(increment(trace, traceLimit));
+            // exitwhen limit > 20
+            loopBody.add(JassIm.ImExitwhen(trace, JassIm.ImOperatorCall(WurstOperator.GREATER,
+                    JassIm.ImExprs(JassIm.ImVarAccess(traceLimit), JassIm.ImIntVal(MAX_STACKTRACE_SIZE)))));
             // exitwhen i < 0
             loopBody.add(JassIm.ImExitwhen(trace, JassIm.ImOperatorCall(WurstOperator.LESS,
                     JassIm.ImExprs(JassIm.ImVarAccess(traceI), JassIm.ImIntVal(0)))));
