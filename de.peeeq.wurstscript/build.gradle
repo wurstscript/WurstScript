@@ -1,0 +1,92 @@
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+
+
+apply plugin: 'antlr'
+
+// plugins for generating IDE projects
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+String genDir = "$projectDir/src-gen"
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+            srcDir genDir
+        }
+    }
+}
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use 'jcenter' for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    //jcenter()
+    mavenLocal()
+    mavenCentral()
+}
+
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+
+	// Antlr parsing library
+	antlr "org.antlr:antlr4:4.5.3"
+
+    // tool for generating AST-classes
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.2.0'
+
+    // JUnit for testing
+    testCompile 'junit:junit:4.12'
+
+    // Google guava
+    compile 'com.google.guava:guava:21.0'
+}
+
+
+task genAst {
+    description = 'Compile ast specifications'
+    fileTree(dir: 'parserspec', include:'**/*.parseq').each { file ->
+
+        Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
+        String fileContents = file.text
+
+        Matcher matcher = PACKAGE_PATTERN.matcher(fileContents);
+        String packageName = "";
+        if (matcher.find()) {
+            packageName = matcher.group(1);
+        }
+
+        String targetDir = "$genDir/" + packageName.replace(".", "/")
+
+        inputs.file(file)
+        outputs.dir(targetDir)
+
+        doLast {
+            javaexec {
+                classpath configurations.compileOnly
+                main = "asg.Main"
+                args = [file, targetDir]
+            }
+        }
+    }
+}
+
+
+
+task gen {
+    description "Generates code from various input files"
+}
+gen.dependsOn genAst
+
+compileJava.dependsOn gen
+
+// delete the generated sources on clean
+clean.doFirst {
+    delete genDir
+}
