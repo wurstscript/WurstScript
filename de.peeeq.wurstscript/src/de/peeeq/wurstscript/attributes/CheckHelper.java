@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -65,7 +65,7 @@ public class CheckHelper {
 		}
 	}
 
-	private static WurstType getRealType(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
+	private static WurstType getRealType(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
 		return t.setTypeArgs(typeParamMapping);
 	}
 

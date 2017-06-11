@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
@@ -23,7 +23,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType obj, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType obj, Element location) {
 		if (super.isSubtypeOfIntern(obj, location)) {
 			return true;
 		}

@@ -38,7 +38,7 @@ public class GetCompletions extends UserRequest {
 	private String alreadyEntered;
 	private String alreadyEnteredLower;
 	private SearchMode searchMode;
-	private AstElement elem;
+	private Element elem;
 	private WurstType expectedType;
 	private ModelManager modelManager;
 
@@ -190,7 +190,7 @@ public class GetCompletions extends UserRequest {
 		} else {
 			if (elem instanceof ExprEmpty) {
 				if (elem.getParent() instanceof Arguments) {
-					AstElement grandParent = getGrandParent();
+					Element grandParent = getGrandParent();
 					if (grandParent instanceof ExprFunctionCall) {
 						ExprFunctionCall c = (ExprFunctionCall) grandParent;
 						getCompletionsForExistingCall(completions, c);
@@ -233,8 +233,8 @@ public class GetCompletions extends UserRequest {
 		}
 	}
 
-	private @Nullable AstElement getGrandParent() {
-		AstElement parent = elem.getParent();
+	private @Nullable Element getGrandParent() {
+		Element parent = elem.getParent();
 		if (parent == null)
 			return null;
 		return parent.getParent();
@@ -255,7 +255,7 @@ public class GetCompletions extends UserRequest {
 		}
 	}
 
-	private void addDefaultCompletions(List<WurstCompletion> completions, AstElement elem, boolean isMemberAccess) {
+	private void addDefaultCompletions(List<WurstCompletion> completions, Element elem, boolean isMemberAccess) {
 		WurstType leftType;
 		leftType = AttrExprType.caclulateThistype(elem, true, null);
 		if (leftType instanceof WurstTypeUnknown) {
@@ -379,7 +379,7 @@ public class GetCompletions extends UserRequest {
 	}
 
 	private void completionsAddVisibleNames(String alreadyEntered, List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames,
-											@Nullable WurstType leftType, boolean isMemberAccess, AstElement pos) {
+											@Nullable WurstType leftType, boolean isMemberAccess, Element pos) {
 		Collection<Entry<String, NameLink>> entries = visibleNames.entries();
 		for (Entry<String, NameLink> e : entries) {
 			if (!isSuitableCompletion(e.getKey())) {

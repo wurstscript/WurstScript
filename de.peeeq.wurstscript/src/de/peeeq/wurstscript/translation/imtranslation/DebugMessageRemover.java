@@ -9,7 +9,7 @@ public class DebugMessageRemover {
 //		prog.accept(new ImProg.DefaultVisitor() {
 //			@Override
 //			public void visit(ImError e) {
-//				e.replaceWith(JassIm.ImNull());
+//				e.replaceBy(JassIm.ImNull());
 //			}
 //		});
 		

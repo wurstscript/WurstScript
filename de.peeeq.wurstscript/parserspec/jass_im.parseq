@@ -12,7 +12,7 @@ ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
 
-ImVar(de.peeeq.wurstscript.ast.AstElement trace, &ImType type, String name, boolean isBJ)
+ImVar(de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
 
 ImType = 
 	  ImSimpleType(String typename)
@@ -22,15 +22,15 @@ ImType =
 	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	
-ImFunction(de.peeeq.wurstscript.ast.AstElement trace, 
+ImFunction(de.peeeq.wurstscript.ast.Element trace, 
 	String name, 
 	ImVars parameters, 
-	&ImType returnType, 
+	ref ImType returnType, 
 	ImVars locals, 
 	ImStmts body, 
 	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
-ImClass(de.peeeq.wurstscript.ast.AstElement trace, 
+ImClass(de.peeeq.wurstscript.ast.Element trace, 
 	String name, 
 	ImVars fields, 
 	ImMethods methods, 
@@ -38,9 +38,9 @@ ImClass(de.peeeq.wurstscript.ast.AstElement trace,
 
 ImMethods * ImMethod
 
-ImMethod(de.peeeq.wurstscript.ast.AstElement trace, 
+ImMethod(de.peeeq.wurstscript.ast.Element trace, 
 	String name, 
-	&ImFunction implementation,
+	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,
 	boolean isAbstract)
 	
@@ -48,15 +48,15 @@ ImMethod(de.peeeq.wurstscript.ast.AstElement trace,
 ImStmts * ImStmt
 
 ImStmt = 
-	  ImIf(de.peeeq.wurstscript.ast.AstElement trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
-	| ImLoop(de.peeeq.wurstscript.ast.AstElement trace, ImStmts body)
-	| ImExitwhen(de.peeeq.wurstscript.ast.AstElement trace, ImExpr condition)
-	| ImReturn(de.peeeq.wurstscript.ast.AstElement trace, ImExprOpt returnValue)
-	| ImSet(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr right)
-	| ImSetTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, int tupleIndex, ImExpr right)
-	| ImSetArray(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, ImExpr right)
-	| ImSetArrayMulti(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExprs indices, ImExpr right)
-	| ImSetArrayTuple(de.peeeq.wurstscript.ast.AstElement trace, &ImVar left, ImExpr index, int tupleIndex, ImExpr right)
+	  ImIf(de.peeeq.wurstscript.ast.Element trace, ImExpr condition, ImStmts thenBlock, ImStmts elseBlock)
+	| ImLoop(de.peeeq.wurstscript.ast.Element trace, ImStmts body)
+	| ImExitwhen(de.peeeq.wurstscript.ast.Element trace, ImExpr condition)
+	| ImReturn(de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
+	| ImSet(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr right)
+	| ImSetTuple(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, int tupleIndex, ImExpr right)
+	| ImSetArray(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, ImExpr right)
+	| ImSetArrayMulti(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExprs indices, ImExpr right)
+	| ImSetArrayTuple(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, int tupleIndex, ImExpr right)
 	| ImExpr
 	
 	
@@ -76,9 +76,9 @@ ImExpr =
 
 ImFlatExpr = 
 	  ImCall
-	| ImVarAccess(&ImVar var)
-	| ImVarArrayAccess(&ImVar var, ImExpr index)
-	| ImVarArrayMultiAccess(&ImVar var, ImExpr index1, ImExpr index2)
+	| ImVarAccess(ref ImVar var)
+	| ImVarArrayAccess(ref ImVar var, ImExpr index)
+	| ImVarArrayMultiAccess(ref ImVar var, ImExpr index1, ImExpr index2)
 	| ImTupleExpr(ImExprs exprs)
 	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImClassRelatedExpr
@@ -86,17 +86,17 @@ ImFlatExpr =
 	| ImGetStackTrace()
 	
 ImClassRelatedExpr = 
-	  ImMethodCall(de.peeeq.wurstscript.ast.AstElement trace, &ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
-	| ImAlloc(&ImClass clazz)
-	| ImDealloc(&ImClass clazz, ImExpr obj)
-	| ImMemberAccess(ImExpr receiver, &ImVar var)
-	| ImInstanceof(ImExpr obj, &ImClass clazz)
-	| ImTypeIdOfObj(ImExpr obj, &ImClass clazz)
-	| ImTypeIdOfClass(&ImClass clazz)
+	  ImMethodCall(de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
+	| ImAlloc(ref ImClass clazz)
+	| ImDealloc(ref ImClass clazz, ImExpr obj)
+	| ImMemberAccess(ImExpr receiver, ref ImVar var)
+	| ImInstanceof(ImExpr obj, ref ImClass clazz)
+	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
+	| ImTypeIdOfClass(ref ImClass clazz)
 	
 
 ImCall = 
-	  ImFunctionCall(de.peeeq.wurstscript.ast.AstElement trace, &ImFunction func, ImExprs arguments
+	  ImFunctionCall(de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImExprs arguments
 	  				, boolean tuplesEliminated, de.peeeq.wurstscript.translation.imtranslation.CallType callType)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
@@ -105,14 +105,27 @@ ImConst =
 	| ImRealVal(String valR)
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
-	| ImFuncRef(&ImFunction func)
+	| ImFuncRef(ref ImFunction func)
 	| ImNull()
 
 // helper types:
 
-	
+
+JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
+
+ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
+ | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
+ | ImMethodCall | ImFunctionCall
+
+ElementWithTypes = ImTupleType | ImTupleArrayType
+
+ElementWithLeft = ImSet| ImSetTuple| ImSetArray| ImSetArrayMulti| ImSetArrayTuple
+
+ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
+
+
 ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
-	
+
 ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
 ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
 	
@@ -210,7 +223,7 @@ ImExpr.attrTyp
 	returns ImType
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrType.getType
 
-JassImElement.getNearestFunc()
+Element.getNearestFunc()
 	returns ImFunction
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getNearestFunc
 	
@@ -272,15 +285,15 @@ ImFunction.hasFlag(de.peeeq.wurstscript.translation.imtranslation.FunctionFlag f
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.hasFlag
 
-JassImElement.attrTrace()
-	returns de.peeeq.wurstscript.ast.AstElement
+Element.attrTrace()
+	returns de.peeeq.wurstscript.ast.Element
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getTrace
 	
-JassImElement.replaceWith(JassImElement other) "replaces this element with some new element"
+Element.replaceWith(Element other) "replaces this element with some new element"
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.replaceElem
 
-JassImElement.attrProg()
+Element.attrProg()
 	returns ImProg
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getProg
 	

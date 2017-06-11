@@ -42,7 +42,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -167,7 +167,7 @@ public class Utils {
 	/**
 	 * is a piece of code jass code?
 	 */
-	public static boolean isJassCode(@Nullable AstElement pos) {
+	public static boolean isJassCode(@Nullable Element pos) {
 		while (pos != null) {
 			if (pos instanceof WPackage) {
 				return false; // code is inside package -> wurstscript code
@@ -304,7 +304,7 @@ public class Utils {
 
 	
 
-	public static String printElement(@Nullable AstElement e) {
+	public static String printElement(@Nullable Element e) {
 		if (e == null) {
 			return "null";
 		}
@@ -352,7 +352,7 @@ public class Utils {
 		return type + " " + name;
 	}
 
-	private static String makeReadableTypeName(AstElement e) {
+	private static String makeReadableTypeName(Element e) {
 		String type = e.getClass().getName()
 				.replaceAll("de.peeeq.wurstscript.ast.", "")
 				.replaceAll("Impl$", "").replaceAll("Def$", "").toLowerCase();
@@ -424,11 +424,11 @@ public class Utils {
 		return result;
 	}
 
-	public static AstElement getAstElementAtPos(AstElement elem,
+	public static Element getAstElementAtPos(Element elem,
 			int caretPosition, boolean usesMouse) {
-		List<AstElement> betterResults = Lists.newArrayList();
+		List<Element> betterResults = Lists.newArrayList();
 		for (int i = 0; i < elem.size(); i++) {
-			AstElement e = elem.get(i);
+			Element e = elem.get(i);
 			if (elementContainsPos(e, caretPosition, usesMouse)) {
 				betterResults.add(getAstElementAtPos(e, caretPosition, usesMouse));
 			}
@@ -443,17 +443,17 @@ public class Utils {
 		}
 	}
 
-	public static AstElement getAstElementAtPos(AstElement elem, int line, int column, boolean usesMouse) {
+	public static Element getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
 //		System.out.println("get element " + Utils.printElement(elem)  
 //			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
-		List<AstElement> betterResults = Lists.newArrayList();
+		List<Element> betterResults = Lists.newArrayList();
 		for (int i = 0; i < elem.size(); i++) {
-			AstElement e = elem.get(i);
+			Element e = elem.get(i);
 			if (elementContainsPos(e, line, column, usesMouse) || e.attrSource().isArtificial()) {
 				betterResults.add(getAstElementAtPos(e, line, column, usesMouse));
 			}
 		}
-		AstElement bestResult = bestResult(betterResults);
+		Element bestResult = bestResult(betterResults);
 		if (bestResult == null) {
 			if (elem instanceof Identifier) {
 				return elem.getParent();
@@ -466,9 +466,9 @@ public class Utils {
 
 
 
-	public static AstElement getAstElementAtPosIgnoringLists(AstElement elem,
+	public static Element getAstElementAtPosIgnoringLists(Element elem,
 			int caretPosition, boolean usesMouse) {
-		AstElement r = getAstElementAtPos(elem, caretPosition, usesMouse);
+		Element r = getAstElementAtPos(elem, caretPosition, usesMouse);
 		while (r instanceof List<?>) {
 			r = r.getParent();
 		}
@@ -478,10 +478,10 @@ public class Utils {
 	/**
 	 * return the element with the smallest size
 	 */
-	private static AstElement bestResult(List<AstElement> betterResults) {
+	private static Element bestResult(List<Element> betterResults) {
 		int minSize = Integer.MAX_VALUE;
-		AstElement min = null;
-		for (AstElement e : betterResults) {
+		Element min = null;
+		for (Element e : betterResults) {
 			WPos source = e.attrSource();
 			int size = source.isArtificial() ? 
 					Integer.MAX_VALUE 
@@ -494,12 +494,12 @@ public class Utils {
 		return min;
 	}
 
-	public static boolean elementContainsPos(AstElement e, int pos, boolean usesMouse) {
+	public static boolean elementContainsPos(Element e, int pos, boolean usesMouse) {
 		return e.attrSource().getLeftPos() <= pos
 				&& e.attrSource().getRightPos() >= pos + (usesMouse ? 1 : 0);
 	}
 
-	private static boolean elementContainsPos(AstElement e, int line, int column, boolean usesMouse) {
+	private static boolean elementContainsPos(Element e, int line, int column, boolean usesMouse) {
 		WPos pos = e.attrSource();
 		if (pos.getLine() > line) {
 			return false;
@@ -528,7 +528,7 @@ public class Utils {
 				|| (cu.getJassDecls().size() + cu.getPackages().size() == 0);
 	}
 
-	public static String printElementWithSource(AstElement e) {
+	public static String printElementWithSource(Element e) {
 		WPos src = e.attrSource();
 		return printElement(e) + " (" + src.getFile() + ", line "
 				+ src.getLine() + ")";
@@ -547,7 +547,7 @@ public class Utils {
 		return s.substring(0, 1).toUpperCase() + s.substring(1);
 	}
 
-	public static @Nullable VarDef getParentVarDef(@Nullable AstElement node) {
+	public static @Nullable VarDef getParentVarDef(@Nullable Element node) {
 		while (node != null) {
 			if (node instanceof VarDef) {
 				return (VarDef) node;
@@ -770,7 +770,7 @@ public class Utils {
 	
 
 	@SuppressWarnings("unchecked")
-	public static <T extends AstElement> Optional<T> getNearestByType(@Nullable AstElement e, Class<T> clazz) {
+	public static <T extends Element> Optional<T> getNearestByType(@Nullable Element e, Class<T> clazz) {
 		while (e != null) {
 			if (clazz.isInstance(e)) {
 				return Optional.of((T) e);
@@ -943,7 +943,7 @@ public class Utils {
 		return result.toString();
 	}
 
-	public static boolean elementContained(AstElement e, AstElement in) {
+	public static boolean elementContained(Element e, Element in) {
 		while (e != null) {
 			if (e == in) {
 				return true;

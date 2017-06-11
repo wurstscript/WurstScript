@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprDestroy;
@@ -59,7 +59,7 @@ public class UsedGlobalVariables {
 		}
 		// check children:
 		for (int i=0; i<e.size(); i++) {
-			AstElement child = e.get(i);
+			Element child = e.get(i);
 			if (child instanceof ExprOrStatements) {
 				ExprOrStatements child2 = (ExprOrStatements) child;
 				result.addAll(child2.attrUsedGlobalVariables());
@@ -91,7 +91,7 @@ public class UsedGlobalVariables {
 	}
 
 
-	private static void collectReadGlobals(AstElement e, Builder<VarDef> result) {
+	private static void collectReadGlobals(Element e, Builder<VarDef> result) {
 		if (e instanceof FunctionCall) {
 			FunctionCall funcRef = (FunctionCall) e;
 			FunctionDefinition f = funcRef.attrFuncDef();
@@ -130,7 +130,7 @@ public class UsedGlobalVariables {
 		}
 		// check children:
 		for (int i=0; i<e.size(); i++) {
-			AstElement child = e.get(i);
+			Element child = e.get(i);
 			if (child instanceof ExprOrStatements) {
 				ExprOrStatements child2 = (ExprOrStatements) child;
 				result.addAll(child2.attrReadGlobalVariables());

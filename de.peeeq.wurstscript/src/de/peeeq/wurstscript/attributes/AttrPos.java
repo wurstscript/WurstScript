@@ -13,7 +13,7 @@ public class AttrPos {
 	 * @param e
 	 * @return
 	 */
-	public static WPos getPos(AstElement e) {
+	public static WPos getPos(Element e) {
 		if (e instanceof AstElementWithSource) {
 			AstElementWithSource ws = (AstElementWithSource) e;
 			return ws.getSource();
@@ -22,7 +22,7 @@ public class AttrPos {
 			int min = Integer.MAX_VALUE;
 			int max = Integer.MIN_VALUE;
 			for (int i = 0; i < e.size(); i++) {
-				AstElement child = e.get(i);
+				Element child = e.get(i);
 				WPos childSource = child.attrSource();
 				if (childSource.getRightPos() < childSource.getLeftPos()) {
 					// artificial position, ignore
@@ -56,8 +56,8 @@ public class AttrPos {
 	}
 	
 
-	private static WPos getParentSource(AstElement e) {
-		AstElement parent = e.getParent();
+	private static WPos getParentSource(Element e) {
+		Element parent = e.getParent();
 		while (parent != null) {
 			if (parent instanceof AstElementWithSource) {
 				WPos parentSource = ((AstElementWithSource) parent).getSource();
@@ -89,7 +89,7 @@ public class AttrPos {
 	
 
 
-	public static WPos getErrorPos(AstElement e) {
+	public static WPos getErrorPos(Element e) {
 		return e.attrSource();
 	}
 	
@@ -163,7 +163,7 @@ public class AttrPos {
 	 * if an identifer only has an artificial position, try to 
 	 * find a better position from the parent 
 	 */
-	private static WPos identifierPos(AstElement e, Identifier ident) {
+	private static WPos identifierPos(Element e, Identifier ident) {
 		WPos source = ident.getSource();
 		if (!source.isArtificial()) {
 			return source;
@@ -176,7 +176,7 @@ public class AttrPos {
 		
 		
 		for (int i=0; i<e.size(); i++) {
-			AstElement child = e.get(i);
+			Element child = e.get(i);
 			if (child == ident) {
 				break;
 			}
@@ -187,7 +187,7 @@ public class AttrPos {
 		}
 		
 		for (int i=e.size()-1; i>=0; i--) {
-			AstElement child = e.get(i);
+			Element child = e.get(i);
 			if (child == ident) {
 				break;
 			}

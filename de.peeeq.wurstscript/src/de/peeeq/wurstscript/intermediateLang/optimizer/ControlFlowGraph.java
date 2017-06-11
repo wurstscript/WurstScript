@@ -16,7 +16,7 @@ import de.peeeq.wurstscript.jassIm.ImLoop;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 
 public class ControlFlowGraph {
 
@@ -132,7 +132,7 @@ public class ControlFlowGraph {
 			List<Node> result = new ArrayList<>();
 
 			if (s instanceof ImExitwhen) {
-				JassImElement e = s;
+				Element e = s;
 				for (;;) {
 					if (e instanceof ImLoop) {
 						result.add(getEndloopNode((ImLoop) e));

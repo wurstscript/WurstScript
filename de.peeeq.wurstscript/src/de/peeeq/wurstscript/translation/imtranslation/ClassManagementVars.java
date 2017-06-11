@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
@@ -21,7 +21,7 @@ public class ClassManagementVars {
 	public final ImVar typeId;
 
 	public ClassManagementVars(ImClass repClass, ImTranslator translator) {
-		AstElement tr = repClass.getTrace();
+		Element tr = repClass.getTrace();
 		ImProg prog = translator.getImProg();
 		free = JassIm.ImVar(tr, JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
 		prog.getGlobals().add(free);

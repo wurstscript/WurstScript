@@ -14,7 +14,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImAlloc;
 import de.peeeq.wurstscript.jassIm.ImConst;
 import de.peeeq.wurstscript.jassIm.ImDealloc;
@@ -35,7 +34,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
@@ -50,7 +49,7 @@ public class StackTraceInjector2 {
     private ImProg prog;
     private ImVar stackSize;
     private ImVar stack;
-    private Map<JassImElement, JassImElement> replacements = new LinkedHashMap<>();
+    private Map<Element, Element> replacements = new LinkedHashMap<>();
 
     public StackTraceInjector2(ImProg prog) {
         this.prog = prog;
@@ -83,7 +82,7 @@ public class StackTraceInjector2 {
             }
         });
 
-        AstElement trace = prog.attrTrace();
+        de.peeeq.wurstscript.ast.Element trace = prog.attrTrace();
         stackSize = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "wurst_stack_depth", false);
         prog.getGlobals().add(stackSize);
         stack = JassIm.ImVar(trace, JassIm.ImArrayType("string"), "wurst_stack", false);
@@ -105,8 +104,8 @@ public class StackTraceInjector2 {
         rewriteFuncRefs(funcRefs, affectedFuncs);
         rewriteErrorStatements(stackTraceGets);
         
-        for (Entry<JassImElement, JassImElement> e : replacements.entrySet()) {
-            e.getKey().replaceWith(e.getValue());
+        for (Entry<Element, Element> e : replacements.entrySet()) {
+            e.getKey().replaceBy(e.getValue());
         }
     }
 
@@ -177,7 +176,7 @@ public class StackTraceInjector2 {
         for (ImFunction f : affectedFuncs) {
             for (ImFunctionCall call : calls.get(f)) {
                 ImFunction caller = call.getNearestFunc();
-                AstElement trace = call.getTrace();
+                de.peeeq.wurstscript.ast.Element trace = call.getTrace();
                 ImStmts stmts = JassIm.ImStmts();
                 if (isMainOrConfig(caller)) {
                     // reset stack and add name of main/config:
@@ -204,12 +203,12 @@ public class StackTraceInjector2 {
        
     }
 
-    private ImStmt increment(AstElement trace, ImVar v) {
+    private ImStmt increment(de.peeeq.wurstscript.ast.Element trace, ImVar v) {
         return JassIm.ImSet(trace, v,
                 JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImIntVal(1))));
     }
 
-    private ImStmt decrement(AstElement trace, ImVar v) {
+    private ImStmt decrement(de.peeeq.wurstscript.ast.Element trace, ImVar v) {
         return JassIm.ImSet(trace, v,
                 JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(v), JassIm.ImIntVal(1))));
     }
@@ -230,7 +229,7 @@ public class StackTraceInjector2 {
             ImExpr str = str(fr.attrTrace().attrSource().printShort());
             ImExprs args = JassIm.ImExprs();
             ImStmts body = bridgeFunc.getBody();
-            AstElement trace = fr.attrTrace();
+            de.peeeq.wurstscript.ast.Element trace = fr.attrTrace();
             if (trace.getParent() == null) {
                 throw new RuntimeException("no trace");
             }
@@ -256,7 +255,7 @@ public class StackTraceInjector2 {
             ImFunction f = e.getKey();
             ImGetStackTrace s = e.getValue();
 
-            AstElement trace = s.attrTrace();
+            de.peeeq.wurstscript.ast.Element trace = s.attrTrace();
             ImVar traceStr = JassIm.ImVar(trace, JassIm.ImSimpleType("string"), "stacktraceStr", false);
             f.getLocals().add(traceStr);
             ImVar traceI = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "stacktraceIndex", false);

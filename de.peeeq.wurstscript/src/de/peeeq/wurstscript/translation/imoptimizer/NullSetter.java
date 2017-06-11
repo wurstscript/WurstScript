@@ -6,7 +6,6 @@ import java.util.Set;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
@@ -20,7 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 /**
@@ -64,7 +63,7 @@ public class NullSetter {
 			return;
 		}
 		final List<ImStmt> nullSetStmts = Lists.newArrayList();
-		final AstElement trace = f.getTrace();
+		final de.peeeq.wurstscript.ast.Element trace = f.getTrace();
 		for (ImVar local : handleVars) {
 			nullSetStmts.add(JassIm.ImSet(trace, local, JassIm.ImNull()));
 		}
@@ -90,9 +89,9 @@ public class NullSetter {
 	 */
 	private boolean optimizeChildren(final ImFunction f,
 			final List<ImVar> handleVars, final List<ImStmt> nullSetStmts,
-			final AstElement trace, JassImElement parent) {
+			final de.peeeq.wurstscript.ast.Element trace, Element parent) {
 		for (int i=0; i<parent.size(); i++) {
-			JassImElement elem = parent.get(i);
+			Element elem = parent.get(i);
 			if (elem instanceof ImReturn) {
 				handleReturnStmt(f, handleVars, nullSetStmts, trace, (ImReturn) elem);
 				return true;
@@ -119,7 +118,7 @@ public class NullSetter {
 
 	private void handleReturnStmt(final ImFunction f,
 			final List<ImVar> handleVars, final List<ImStmt> nullSetStmts,
-			final AstElement trace, ImReturn imReturn) {
+			final de.peeeq.wurstscript.ast.Element trace, ImReturn imReturn) {
 		ImStmts parent2 = (ImStmts) imReturn.getParent();
 		int parentIndex = parent2.indexOf(imReturn);
 		if (imReturn.getReturnValue() instanceof ImExpr) { // returns some value

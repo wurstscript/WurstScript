@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.ast.VarDef;
@@ -12,7 +12,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 
 public class UsedPackages {
 
-	public static ImmutableCollection<WPackage> usedPackages(AstElement e) {
+	public static ImmutableCollection<WPackage> usedPackages(Element e) {
 		if (e.size() == 0) {
 			return ImmutableList.of();
 		}
@@ -22,7 +22,7 @@ public class UsedPackages {
 		return result.build();
 	}
 
-	private static void processChildren(AstElement e,
+	private static void processChildren(Element e,
 			ImmutableSet.Builder<WPackage> result) {
 		for (int i=0; i<e.size(); i++) {
 			ImmutableCollection<WPackage> used = e.get(i).attrUsedPackages();

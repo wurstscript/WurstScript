@@ -11,7 +11,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -88,7 +88,7 @@ public class ProgramState extends State {
 		return prog;
 	}
 
-	public int allocate(ImClass clazz, AstElement trace) {
+	public int allocate(ImClass clazz, Element trace) {
 		objectIdCounter++;
 		objectToClassKey.put(objectIdCounter, classKey(clazz));
 		return objectIdCounter;
@@ -98,13 +98,13 @@ public class ProgramState extends State {
 		return clazz;
 	}
 
-	public void deallocate(int obj, ImClass clazz, AstElement trace) {
+	public void deallocate(int obj, ImClass clazz, Element trace) {
 		assertAllocated(obj, trace);
 		objectToClassKey.remove(obj);
 		// TODO recycle ids
 	}
 
-	public void assertAllocated(int obj, AstElement trace) {
+	public void assertAllocated(int obj, Element trace) {
 		if (obj == 0) {
 			throw new InterpreterException(trace, "Null pointer derefenced");
 		}
@@ -113,12 +113,12 @@ public class ProgramState extends State {
 		}
 	}
 
-	public boolean isInstanceOf(int obj, ImClass clazz, AstElement trace) {
+	public boolean isInstanceOf(int obj, ImClass clazz, Element trace) {
 		assertAllocated(obj, trace);
 		return getObjectClass(obj).isSubclassOf(clazz); // TODO more efficient check
 	}
 
-	public int getTypeId(int obj,  AstElement trace) {
+	public int getTypeId(int obj,  Element trace) {
 		assertAllocated(obj, trace);
 		return getObjectClass(obj).attrTypeId();
 	}

@@ -15,7 +15,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 /**
@@ -97,13 +97,13 @@ public class UselessFunctionCallsRemover {
 		return false;
 	}
 
-	private void optimizeChildren(JassImElement e) {
+	private void optimizeChildren(Element e) {
 		for (int i = 0; i < e.size(); i++) {
 			optimizeElement(e.get(i));
 		}
 	}
 
-	private void optimizeElement(JassImElement e) {
+	private void optimizeElement(Element e) {
 		if (e instanceof ImStmts) {
 			ImStmts stmts = (ImStmts) e;
 			optimizeStmts(stmts);

@@ -13,7 +13,6 @@ import java.util.List;
 import org.eclipse.jdt.annotation.NonNull;
 
 import de.peeeq.wurstscript.jassAst.JassAst;
-import de.peeeq.wurstscript.jassAst.JassAstElement;
 import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassAst.JassExprFunctionCall;
 import de.peeeq.wurstscript.jassAst.JassFunction;
@@ -33,7 +32,7 @@ import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 
 public class StatementTranslation {
 
@@ -82,7 +81,7 @@ public class StatementTranslation {
 
 	
 
-	private static void addAllCalls(List<JassStatement> stmts, JassAstElement expr) {
+	private static void addAllCalls(List<JassStatement> stmts, de.peeeq.wurstscript.jassAst.Element expr) {
 		if (expr instanceof JassExprFunctionCall) {
 			JassExprFunctionCall fc = (JassExprFunctionCall) expr;
 			stmts.add(JassAst.JassStmtCall(fc.getFuncName(), fc.getArguments().copy()));

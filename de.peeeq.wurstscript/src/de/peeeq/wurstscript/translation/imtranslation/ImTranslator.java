@@ -53,9 +53,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithModifiers;
-import de.peeeq.wurstscript.ast.AstElementWithName;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
@@ -102,7 +100,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImMethodCall;
-import de.peeeq.wurstscript.jassIm.ImPrintable.Visitor;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
@@ -118,9 +115,9 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassIm.JassImElementWithLeft;
-import de.peeeq.wurstscript.jassIm.JassImElementWithVar;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ElementWithLeft;
+import de.peeeq.wurstscript.jassIm.ElementWithVar;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
@@ -138,7 +135,7 @@ public class ImTranslator {
 
 	public static final String $DEBUG_PRINT = "$debugPrint";
 
-	private static final AstElement emptyTrace = Ast.NoExpr();
+	private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
 	private @Nullable Multimap<ImFunction, ImFunction> callRelations = null;
 	private @Nullable Set<ImVar> usedVariables = null;
@@ -178,7 +175,7 @@ public class ImTranslator {
 	private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
 
 
-	AstElement lasttranslatedThing;  
+	de.peeeq.wurstscript.ast.Element lasttranslatedThing;  
 	
 	public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
 		this.wurstProg = wurstProg;
@@ -237,7 +234,7 @@ public class ImTranslator {
 	}
 
 
-	private <T extends JassImElement> void sortList(List<T> list) {
+	private <T extends Element> void sortList(List<T> list) {
 		List<T> classes = removeAll(list);
 		Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
 		Collections.sort(classes, comparator);
@@ -252,7 +249,7 @@ public class ImTranslator {
 		return result;
 	}
 	
-	private String getQualifiedClassName(JassImElement c) {
+	private String getQualifiedClassName(Element c) {
 		return getQualifiedClassName(c.attrTrace());
 	}
 	
@@ -260,13 +257,13 @@ public class ImTranslator {
 	
 
 
-	private String getQualifiedClassName(AstElement e) {
+	private String getQualifiedClassName(de.peeeq.wurstscript.ast.Element e) {
 		String result = "";
 		if (e instanceof NamedScope) {
 			NamedScope ns = (NamedScope) e;
 			result = ns.getName();
 		}
-		AstElement parent = e.getParent();
+		de.peeeq.wurstscript.ast.Element parent = e.getParent();
 		if (parent == null) {
 			return result;
 		}
@@ -440,7 +437,7 @@ public class ImTranslator {
 				imReturn.setReturnValue(JassIm.ImBoolVal(true));
 			}
 		});
-		AstElement trace = initFunc.getTrace();
+		de.peeeq.wurstscript.ast.Element trace = initFunc.getTrace();
 		initFunc.getBody().add(JassIm.ImReturn(trace, JassIm.ImBoolVal(true)));
 		
 
@@ -497,7 +494,7 @@ public class ImTranslator {
 			} else {
 				f = globalInitFunc;
 			}
-			AstElement trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
+			de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
 			ImExpr translated = expr.imTranslateExpr(this, f);
 			if (!v.getIsBJ()) {
 				// add init statement for non-bj vars
@@ -618,8 +615,8 @@ public class ImTranslator {
 			}
 		}
 		
-		if (funcDef instanceof AstElementWithModifiers) {
-			AstElementWithModifiers awm = (AstElementWithModifiers) funcDef;
+		if (funcDef instanceof HasModifier) {
+			HasModifier awm = (HasModifier) funcDef;
 			for (Modifier m : awm.getModifiers()) {
 				if (m instanceof Annotation) {
 					Annotation annotation = (Annotation) m;
@@ -637,8 +634,8 @@ public class ImTranslator {
 
 
 	private boolean isExtern(TranslatedToImFunction funcDef) {
-		if (funcDef instanceof AstElementWithModifiers) {
-			AstElementWithModifiers f = (AstElementWithModifiers) funcDef;
+		if (funcDef instanceof HasModifier) {
+			HasModifier f = (HasModifier) funcDef;
 			for (Modifier m: f.getModifiers()) {
 				if (m instanceof Annotation) {
 					Annotation a = (Annotation) m;
@@ -671,7 +668,7 @@ public class ImTranslator {
 	 * returns a suitable name for the given element
 	 * the returned name is a valid jass identifier 
 	 */
-	public String getNameFor(AstElement e) {
+	public String getNameFor(de.peeeq.wurstscript.ast.Element e) {
 		if (e instanceof FuncDef) {
 			FuncDef f = (FuncDef) e;
 			if (f.attrNearestStructureDef() != null) {
@@ -735,8 +732,8 @@ public class ImTranslator {
 		return getThisVarForNode(f, e);
 	}
 
-	private ImVar getThisVarForNode(ImFunction f, AstElement node1) {
-		AstElement node = node1;
+	private ImVar getThisVarForNode(ImFunction f, de.peeeq.wurstscript.ast.Element node1) {
+	    de.peeeq.wurstscript.ast.Element node = node1;
 		while (node != null ) {
 			if (node instanceof TranslatedToImFunction && !(node instanceof ExprClosure)) {
 				return getThisVar((TranslatedToImFunction) node);
@@ -958,7 +955,7 @@ public class ImTranslator {
 
 	private String constructorName(ConstructorDef constr) {
 		ArrayDeque<String> names = new ArrayDeque<>();
-		AstElement e = constr;
+		de.peeeq.wurstscript.ast.Element e = constr;
 		while (e != null) {
 			if (e instanceof ClassOrModuleInstanciation) {
 				ClassOrModuleInstanciation mi = (ClassOrModuleInstanciation) e;
@@ -1097,7 +1094,7 @@ public class ImTranslator {
 		return result;
 	}
 
-	private ImmutableTree<ImVar> createVarsForType(String name, ImType type, boolean array, AstElement tr) {
+	private ImmutableTree<ImVar> createVarsForType(String name, ImType type, boolean array, de.peeeq.wurstscript.ast.Element tr) {
 		if (type instanceof ImTupleType) {
 			ImTupleType tt = (ImTupleType) type;
 			int i=0;
@@ -1126,7 +1123,7 @@ public class ImTranslator {
 	}
 
 
-	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, AstElement tr) {
+	private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, de.peeeq.wurstscript.ast.Element tr) {
 		Preconditions.checkNotNull(type);
 		Preconditions.checkNotNull(result);
 		// TODO handle names
@@ -1190,12 +1187,12 @@ public class ImTranslator {
 		assertProperties(properties, imProg);
 	}
 
-	private void assertProperties(Set<AssertProperty> properties, JassImElement e) {
-		if (e instanceof JassImElementWithLeft) {
-			checkVar(((JassImElementWithLeft) e).getLeft(), properties);
+	private void assertProperties(Set<AssertProperty> properties, Element e) {
+		if (e instanceof ElementWithLeft) {
+			checkVar(((ElementWithLeft) e).getLeft(), properties);
 		}
-		if (e instanceof JassImElementWithVar) {
-			checkVar(((JassImElementWithVar) e).getVar(), properties);
+		if (e instanceof ElementWithVar) {
+			checkVar(((ElementWithVar) e).getVar(), properties);
 		}
 		if (properties.contains(AssertProperty.NOTUPLES)) {
 			if (e instanceof ImTupleExpr

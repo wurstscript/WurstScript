@@ -8,7 +8,7 @@ import de.peeeq.wurstio.objectreader.ObjectHelper;
 import de.peeeq.wurstio.objectreader.ObjectModification;
 import de.peeeq.wurstio.objectreader.ObjectModificationInt;
 import de.peeeq.wurstio.objectreader.ObjectTable;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediateLang.ILconstInt;
 import de.peeeq.wurstscript.intermediateLang.ILconstReal;
@@ -138,7 +138,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 	}
 	
 	public void compileError(ILconstString msg) {
-		AstElement trace = globalState.getLastStatement().attrTrace();
+		Element trace = globalState.getLastStatement().attrTrace();
 		globalState.getGui().sendError(new CompileError(trace.attrSource(), msg.getVal()));
 	}
 

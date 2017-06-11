@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.types;
 import java.util.Collections;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
@@ -20,7 +20,7 @@ public class WurstTypeTypeParam extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		if (other instanceof WurstTypeTypeParam) {
 			WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
 			return other2.def == this.def;

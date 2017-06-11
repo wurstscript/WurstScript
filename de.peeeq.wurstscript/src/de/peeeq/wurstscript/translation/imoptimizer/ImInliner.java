@@ -27,7 +27,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -74,7 +74,7 @@ public class ImInliner {
 		inlineFunctions(f, f, 0, f.getBody(), changed, Collections.emptyMap());
 	}
 
-	private ImFunction inlineFunctions(ImFunction f, JassImElement parent, int parentI, JassImElement e, boolean[] changed, Map<ImFunction, Integer> alreadyInlined) {
+	private ImFunction inlineFunctions(ImFunction f, Element parent, int parentI, Element e, boolean[] changed, Map<ImFunction, Integer> alreadyInlined) {
 		// TODO maybe it would be smarter to first optimize the parameters and then try to optimize the call itself ...
 		if (e instanceof ImFunctionCall) {
 			ImFunctionCall call = (ImFunctionCall) e;
@@ -93,7 +93,7 @@ public class ImInliner {
 		for (int i=0; i<e.size(); i++) {
 			Map<ImFunction, Integer> alreadyInlined2 = alreadyInlined;
 			while (true) {
-				JassImElement child = e.get(i);
+				Element child = e.get(i);
 				ImFunction inlined = inlineFunctions(f, e, i, child, changed, alreadyInlined2);
 				if (inlined == null) {
 					break;
@@ -108,7 +108,7 @@ public class ImInliner {
 		return null;
 	}
 
-	private void inlineCall(ImFunction f, JassImElement parent, int parentI, ImFunctionCall call) {
+	private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
 		ImFunction called = call.getFunc();
 		if (called == f) {
 			throw new Error("cannot inline self.");
@@ -221,7 +221,7 @@ public class ImInliner {
 		return containsCallTo(f, f.getBody());
 	}
 
-	private boolean containsCallTo(ImFunction f, JassImElement e) {
+	private boolean containsCallTo(ImFunction f, Element e) {
 		if (e instanceof ImFunctionCall) {
 			ImFunctionCall call = (ImFunctionCall) e;
 			if (call.getFunc() == f) {
@@ -243,7 +243,7 @@ public class ImInliner {
 		return r[0];
 	}
 
-	private void estimateSize(JassImElement e, int[] r) {
+	private void estimateSize(Element e, int[] r) {
 		for (int i=0; i<e.size(); i++) {
 			r[0]++;
 			estimateSize(e.get(i), r);

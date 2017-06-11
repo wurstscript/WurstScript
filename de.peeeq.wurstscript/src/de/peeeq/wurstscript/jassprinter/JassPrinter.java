@@ -10,7 +10,7 @@ import com.google.common.collect.Sets;
 
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
-import de.peeeq.wurstscript.jassAst.JassAstElement;
+import de.peeeq.wurstscript.jassAst.Element;
 import de.peeeq.wurstscript.jassAst.JassConstantVar;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassFunctions;
@@ -239,7 +239,7 @@ public class JassPrinter {
 			.collect(Collectors.joining(comma(withSpace)));
 	}
 
-	private void printComment(StringBuilder sb, JassAstElement f, int indent) {
+	private void printComment(StringBuilder sb, Element f, int indent) {
 		if (withSpace) {
 			if (prog.attrComments().containsKey(f)) {
 				printIndent(sb, indent, withSpace);

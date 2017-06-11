@@ -139,7 +139,7 @@ public class LocalMerger {
 					// --> only keep side effects
 					ImExpr right = imSet.getRight();
 					right.setParent(null);
-					s.replaceWith(right);
+					s.replaceBy(right);
 				}
 			}
 		}

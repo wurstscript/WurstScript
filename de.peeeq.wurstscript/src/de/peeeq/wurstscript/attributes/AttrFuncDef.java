@@ -9,7 +9,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -128,7 +128,7 @@ public class AttrFuncDef {
 	 * @param op 
 	 * @param term 
 	 */
-	private static boolean nativeOperator(WurstOperator op, WurstType leftType, WurstType rightType, AstElement term) {
+	private static boolean nativeOperator(WurstOperator op, WurstType leftType, WurstType rightType, Element term) {
 		return
 			// numeric
 			((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term)) 
@@ -230,7 +230,7 @@ public class AttrFuncDef {
 	}
 
 
-	private static List<NameLink> filterByParameters(AstElement node,
+	private static List<NameLink> filterByParameters(Element node,
 			List<WurstType> argumentTypes, List<NameLink> funcs)
 			throws EarlyReturn {
 		// filter out methods with wrong number of params
@@ -243,7 +243,7 @@ public class AttrFuncDef {
 
 
 	private static List<NameLink> filterByParameterTypes(
-			AstElement node, List<WurstType> argumentTypes, List<NameLink> funcs3) throws EarlyReturn {
+			Element node, List<WurstType> argumentTypes, List<NameLink> funcs3) throws EarlyReturn {
 		List<NameLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
 		nextFunc: for (NameLink f : funcs3) {
 			for (int i=0; i<argumentTypes.size(); i++) {
@@ -278,7 +278,7 @@ public class AttrFuncDef {
 	}
 
 
-	private static List<NameLink> filterInvisible(String funcName, AstElement node, Collection<NameLink> funcs1) throws EarlyReturn {
+	private static List<NameLink> filterInvisible(String funcName, Element node, Collection<NameLink> funcs1) throws EarlyReturn {
 		if (node.attrSource().getFile().equals("<REPL>")) {
 			// no filtering of invisible names in repl:
 			return Lists.newArrayList(funcs1);
@@ -307,7 +307,7 @@ public class AttrFuncDef {
 	
 
 
-	private static List<NameLink> filterByReceiverType(AstElement node,
+	private static List<NameLink> filterByReceiverType(Element node,
 			String funcName, List<NameLink> funcs2) throws EarlyReturn {
 		List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
 		for (NameLink f : funcs2) {

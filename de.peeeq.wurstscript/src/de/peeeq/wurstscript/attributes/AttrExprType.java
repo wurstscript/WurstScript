@@ -8,7 +8,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
@@ -150,7 +150,7 @@ public class AttrExprType {
 	}
 
 
-	private static WurstType getHandleType(AstElement node, String typeName) {
+	private static WurstType getHandleType(Element node, String typeName) {
 		TypeDef def = node.lookupType(typeName);
 		if (def != null) {
 			return def.attrTyp().dynamic();
@@ -187,7 +187,7 @@ public class AttrExprType {
 	 *  @param dynamic true when searching for 'this'
 	 *  @param searchedTerm what to display in error messages, null for no error messages
 	 */
-	public static  WurstType caclulateThistype(AstElement term, boolean dynamic, @Nullable String searchedTerm)  {
+	public static  WurstType caclulateThistype(Element term, boolean dynamic, @Nullable String searchedTerm)  {
 		boolean showErrors = searchedTerm != null;
 		if (term.getParent() == null) {
 			// not attached to the tree -> generated
@@ -520,7 +520,7 @@ public class AttrExprType {
 	}
 
 
-	private static void checkCastOrInstanceOf(AstElement e, WurstType exprType, WurstType targetType, String msgPre) {
+	private static void checkCastOrInstanceOf(Element e, WurstType exprType, WurstType targetType, String msgPre) {
 		if (!exprType.canBeUsedInInstanceOf()) {
 			e.addError(msgPre + " not defined for expression type " + exprType);
 		}

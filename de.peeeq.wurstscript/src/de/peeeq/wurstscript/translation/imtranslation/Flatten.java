@@ -18,7 +18,6 @@ import org.eclipse.jdt.annotation.NonNull;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImCall;
 import de.peeeq.wurstscript.jassIm.ImClassRelatedExpr;
 import de.peeeq.wurstscript.jassIm.ImConst;
@@ -47,7 +46,7 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
@@ -121,7 +120,7 @@ public class Flatten {
 		
 	}
 
-	private static void exprToStatements(List<ImStmt> result, JassImElement e, ImTranslator t, ImFunction f) {
+	private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
 		if (e instanceof ImFunctionCall) {
 			result.add((ImStmt) ((ImStmt) e).copy());			
 		} else if (e instanceof ImStatementExpr) {
@@ -245,7 +244,7 @@ public class Flatten {
 
 	public static Result flatten(ImOperatorCall e, ImTranslator t,	ImFunction f) {
 		// TODO special case and, or
-		AstElement trace = e.attrTrace();
+	    de.peeeq.wurstscript.ast.Element trace = e.attrTrace();
 		if (e.getOp() == WurstOperator.AND) {
 			Result left = e.getArguments().get(0).flatten(t, f);
 			Result right = e.getArguments().get(1).flatten(t, f);

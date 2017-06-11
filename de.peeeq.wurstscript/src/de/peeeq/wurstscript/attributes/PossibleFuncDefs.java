@@ -10,7 +10,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprBinary;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -90,7 +90,7 @@ public class PossibleFuncDefs {
 	 * TODO also check which operator is used?
 	 * @param term 
 	 */
-	private static boolean nativeOperator(WurstType leftType, WurstType rightType, AstElement term) {
+	private static boolean nativeOperator(WurstType leftType, WurstType rightType, Element term) {
 		return
 			// numeric
 			((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term)) 
@@ -153,7 +153,7 @@ public class PossibleFuncDefs {
 	}
 
 
-	private static ImmutableCollection<NameLink> filterInvisible(String funcName, AstElement node, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
+	private static ImmutableCollection<NameLink> filterInvisible(String funcName, Element node, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
 		if (node.attrSource().getFile().equals("<REPL>")) {
 			// no filtering of invisible names in repl:
 			return funcs;
@@ -182,7 +182,7 @@ public class PossibleFuncDefs {
 	
 
 
-	private static ImmutableList<NameLink> filterByReceiverType(AstElement node,
+	private static ImmutableList<NameLink> filterByReceiverType(Element node,
 			String funcName, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
 		ImmutableList.Builder<NameLink> funcs3 = ImmutableList.builder();
 		for (NameLink f : funcs) {

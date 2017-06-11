@@ -57,7 +57,7 @@ public class FuncRefRemover {
 				refs.put(func, g);
 				tr.addGlobalWithInitalizer(g, fr.copy());
 			}
-			fr.replaceWith(JassIm.ImVarAccess(g));
+			fr.replaceBy(JassIm.ImVarAccess(g));
 		}
 		
 	}

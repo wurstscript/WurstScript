@@ -219,19 +219,19 @@ public class ClosureTranslator {
 		
 		for (ImVarAccess va : vas) {
 			ImVar v = getClosureVarFor(va.getVar());			
-			va.replaceWith(JassIm.ImVarArrayAccess(v, closureThis()));
+			va.replaceBy(JassIm.ImVarArrayAccess(v, closureThis()));
 		}
 		for (ImSet s : sets) {
 			ImVar v = getClosureVarFor(s.getLeft());
 			ImExpr right = s.getRight();
 			right.setParent(null);
-			s.replaceWith(JassIm.ImSetArray(e, v, closureThis(), right));
+			s.replaceBy(JassIm.ImSetArray(e, v, closureThis(), right));
 		}
 		for (ImSetTuple s : tupleSets) {
 			ImVar v = getClosureVarFor(s.getLeft());
 			ImExpr right = s.getRight();
 			right.setParent(null);
-			s.replaceWith(JassIm.ImSetArrayTuple(e, v, closureThis(), s.getTupleIndex(), right));
+			s.replaceBy(JassIm.ImSetArrayTuple(e, v, closureThis(), s.getTupleIndex(), right));
 		}
 	}
 

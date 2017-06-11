@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprNewObject;
@@ -52,7 +52,7 @@ public class AttrPossibleFunctionSignatures {
 		}
 	}
 
-	private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, AstElement location) {
+	private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
 		if (argTypes.size() > paramTypes.size()) {
 			return false;
 		}

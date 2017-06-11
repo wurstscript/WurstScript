@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.OptExpr;
 
@@ -29,7 +29,7 @@ public class CallSignature {
 		return receiver;
 	}
 	
-	public void checkSignatureCompatibility(FunctionSignature sig, String funcName, AstElement pos) {
+	public void checkSignatureCompatibility(FunctionSignature sig, String funcName, Element pos) {
 		if (sig.isEmpty()) {
 			return;
 		}

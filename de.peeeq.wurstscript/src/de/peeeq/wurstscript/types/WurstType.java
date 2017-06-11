@@ -8,7 +8,7 @@ import java.util.stream.StreamSupport;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -22,7 +22,7 @@ public abstract class WurstType {
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public final boolean isSubtypeOf(WurstType other, @Nullable AstElement location) {
+	public final boolean isSubtypeOf(WurstType other, @Nullable Element location) {
 		if (other instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
 			return isSubtypeOf(btp.getBaseType(), location);
@@ -47,14 +47,14 @@ public abstract class WurstType {
 	 * @param location 
 	 * @return is this type a subtype (or equal) to other type?
 	 */
-	public abstract boolean isSubtypeOfIntern(WurstType other, @Nullable AstElement location);
+	public abstract boolean isSubtypeOfIntern(WurstType other, @Nullable Element location);
 	
 	
 	/**
 	 * @param other
 	 * @return is this type a supertype (or equal) to other type?
 	 */
-	public final boolean isSupertypeOf(WurstType other, AstElement location) {
+	public final boolean isSupertypeOf(WurstType other, Element location) {
 		return other.isSubtypeOf(this, location);
 	}
 	
@@ -69,7 +69,7 @@ public abstract class WurstType {
 	public abstract String getFullName();
 	
 	
-	public boolean equalsType(WurstType otherType, @Nullable AstElement location) {
+	public boolean equalsType(WurstType otherType, @Nullable Element location) {
 		return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
 	}
 	
@@ -77,7 +77,7 @@ public abstract class WurstType {
 		return getName();
 	}
 	/**
-	 * @deprecated  use {@link #equalsType(WurstType, AstElement)}
+	 * @deprecated  use {@link #equalsType(WurstType, Element)}
 	 */
 	@Deprecated
 	@Override public boolean equals(@Nullable Object other) {
@@ -124,11 +124,11 @@ public abstract class WurstType {
 		return false;
 	}
 
-	public void addMemberMethods(AstElement node, String name,
+	public void addMemberMethods(Element node, String name,
 			List<NameLink> result) {
 	}
 	
-	public Stream<NameLink> getMemberMethods(AstElement node) {
+	public Stream<NameLink> getMemberMethods(Element node) {
 		return Collections.<NameLink>emptyList().stream();
 	}
 

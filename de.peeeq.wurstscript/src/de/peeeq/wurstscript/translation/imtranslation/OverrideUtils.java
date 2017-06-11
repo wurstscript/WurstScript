@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -33,7 +33,7 @@ public class OverrideUtils {
 
 		WurstType expected = exprClosure.attrExpectedTyp();
 
-		AstElement e = exprClosure;
+		Element e = exprClosure;
 
 
 		if (expected instanceof WurstTypeClassOrInterface) {
@@ -53,7 +53,7 @@ public class OverrideUtils {
 			FuncDef superMethod, 
 			ImClass subClass, 
 			ImMethod subMethod, 
-			AstElement e, 
+			Element e, 
 			Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
 		ImMethod superMethodIm = tr.getMethodFor(superMethod);
 		boolean needConversion = false;

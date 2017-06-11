@@ -13,7 +13,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -70,7 +70,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType obj, @Nullable AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType obj, @Nullable Element location) {
 		if (obj instanceof WurstTypeTypeParam) {
 			return false;
 		}
@@ -224,7 +224,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 	
 	
-	protected boolean checkTypeParametersEqual(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable AstElement location) {
+	protected boolean checkTypeParametersEqual(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location) {
 		if (list.size() != list2.size()) {
 			return false;
 		}
@@ -249,7 +249,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 	
 	@Override
-	public void addMemberMethods(AstElement node, String name,
+	public void addMemberMethods(Element node, String name,
 			List<NameLink> result) {
 		NamedScope scope = getDef();
 		if (scope instanceof ModuleDef) {
@@ -267,7 +267,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 	}
 	
 	@Override
-	public Stream<NameLink> getMemberMethods(AstElement node) {
+	public Stream<NameLink> getMemberMethods(Element node) {
 		NamedScope scope = getDef();
 		if (scope instanceof ModuleDef) {
 			// cannot access functions from outside of module 
@@ -291,7 +291,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 		if (other instanceof WurstTypeNamedScope) {
 			WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;
 			NamedScope scope = wtns.getDef();
-			AstElement node = this.getDef();
+			Element node = this.getDef();
 			while (node != null) {
 				if (node == scope) {
 					return true;

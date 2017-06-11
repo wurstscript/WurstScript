@@ -4,7 +4,7 @@ import java.util.ListIterator;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
@@ -12,15 +12,15 @@ import de.peeeq.wurstscript.parser.WPos;
 
 public class ErrorHandling {
 	
-	public static void addError(AstElement e, String msg) {
+	public static void addError(Element e, String msg) {
 		addErrorOrWarning(e, msg, ErrorType.ERROR);
 	}
 	
-	public static void addWarning(AstElement e, String msg) {
+	public static void addWarning(Element e, String msg) {
 		addErrorOrWarning(e, msg, ErrorType.WARNING);
 	}
 
-	private static void addErrorOrWarning(AstElement e, String msg,
+	private static void addErrorOrWarning(Element e, String msg,
 			ErrorType errorType) throws CompileError {
 		ErrorHandler handler = e.getErrorHandler();
 		CompileError c = makeCompileError(e, msg, handler, errorType);
@@ -29,7 +29,7 @@ public class ErrorHandling {
 		}
 	}
 
-	private static @Nullable CompileError makeCompileError(AstElement e, String msg,
+	private static @Nullable CompileError makeCompileError(Element e, String msg,
 			ErrorHandler handler, CompileError.ErrorType errorType) throws CompileError {
 		WPos pos = e.attrErrorPos();
 		if (errorType == ErrorType.ERROR && handler.isUnitTestMode()) {
@@ -62,7 +62,7 @@ public class ErrorHandling {
 			|| a.getLeftPos() < b.getLeftPos() && a.getRightPos() >= b.getRightPos();
 	}
 
-	public static ErrorHandler getErrorHandler(AstElement e) {
+	public static ErrorHandler getErrorHandler(Element e) {
 		if (e.getParent() == null) {
 			throw new Error("Trying to get error handler of element not attached to root:\n" + e);
 		}

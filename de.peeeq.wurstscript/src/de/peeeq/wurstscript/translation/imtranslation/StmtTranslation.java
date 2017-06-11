@@ -20,7 +20,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithSource;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
@@ -114,7 +114,7 @@ public class StmtTranslation {
 	}
 
 	private static ImStmt case_StmtForRange(ImTranslator t, ImFunction f, LocalVarDef loopVar,
-			Expr to, Expr step, WStatements body, WurstOperator opStep, WurstOperator opCompare, AstElement trace) {
+			Expr to, Expr step, WStatements body, WurstOperator opStep, WurstOperator opCompare, Element trace) {
 		ImVar imLoopVar = t.getVarFor(loopVar);
 		f.getLocals().add(imLoopVar);
 

@@ -6,7 +6,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Arguments;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ConstructorDefs;
@@ -41,10 +41,10 @@ public class AttrExprExpectedType {
 
 	public static WurstType calculate(Expr expr) {
 		try {
-			AstElement parent = expr.getParent();
+			Element parent = expr.getParent();
 			if (parent instanceof Arguments) {
 				Arguments args = (Arguments) parent;
-				AstElement parent2 = args.getParent();
+				Element parent2 = args.getParent();
 				if (parent2 instanceof StmtCall) {
 					StmtCall stmtCall = (StmtCall) parent2;
 					return expectedType(expr, args, stmtCall);

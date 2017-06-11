@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElementWithLeft;
+import de.peeeq.wurstscript.ast.HasReceiver;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
 import de.peeeq.wurstscript.ast.ExprMemberArrayVar;
@@ -62,7 +62,7 @@ public class AttrImplicitParameter {
 		}
 	}
 	
-	private static @Nullable Expr getImplicitParameterUsingLeft(AstElementWithLeft e) {
+	private static @Nullable Expr getImplicitParameterUsingLeft(HasReceiver e) {
 		if (e.getLeft().attrTyp().isStaticRef()) {
 			// we have a static ref like Math.sqrt()
 			// this will be handled like if we just have sqrt()

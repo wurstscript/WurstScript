@@ -11,7 +11,6 @@ import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.jassIm.ImExpr;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -26,7 +25,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
 /**
@@ -67,7 +66,7 @@ public class CyclicFunctionRemover {
 
 		calculateNewParameters(funcs, newParameters, oldToNewVar);
 
-		AstElement trace = funcs.get(0).getTrace();
+		de.peeeq.wurstscript.ast.Element trace = funcs.get(0).getTrace();
 
 		ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(), "funcChoice", false);
 
@@ -117,7 +116,7 @@ public class CyclicFunctionRemover {
 //		System.out.println("----------------------------------");
 	}
 
-	private void replaceVars(JassImElement e, Map<ImVar, ImVar> oldToNewVar) {
+	private void replaceVars(Element e, Map<ImVar, ImVar> oldToNewVar) {
 		// process children
 		for (int i=0; i<e.size(); i++) {
 			replaceVars(e.get(i), oldToNewVar);
@@ -133,7 +132,7 @@ public class CyclicFunctionRemover {
 	}
 
 	
-	private void replaceCalls(List<ImFunction> funcs, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, JassImElement e) {
+	private void replaceCalls(List<ImFunction> funcs, ImFunction newFunc, Map<ImVar, ImVar> oldToNewVar, Element e) {
 		// process children
 		for (int i=0; i<e.size(); i++) {
 			replaceCalls(funcs, newFunc, oldToNewVar, e.get(i));
@@ -201,14 +200,14 @@ public class CyclicFunctionRemover {
 
 				ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, arguments, true, CallType.NORMAL);
 
-				JassImElement ret;
+				Element ret;
 				if (oldFunc.getReturnType() instanceof ImVoid) {
 					ret = newCall;
 				} else {
 					// if there is a return value, use the temporary return value
 					ret = JassIm.ImStatementExpr(JassIm.ImStmts(newCall), JassIm.ImVarAccess(getTempReturnVar(oldFunc.getReturnType())));
 				}
-				fc.replaceWith(ret);
+				fc.replaceBy(ret);
 
 			}
 		}
@@ -216,7 +215,7 @@ public class CyclicFunctionRemover {
 
 	}
 
-	private void replaceReturn(JassImElement e, ImType returnType) {
+	private void replaceReturn(Element e, ImType returnType) {
 		// process children
 		for (int i=0; i<e.size(); i++) {
 			replaceReturn(e.get(i), returnType);
@@ -232,7 +231,7 @@ public class CyclicFunctionRemover {
 					JassIm.ImSet(r.getTrace(), getTempReturnVar(returnType), (ImExpr) returnValue),
 					JassIm.ImReturn(r.getTrace(), JassIm.ImNoExpr())
 					);
-			r.replaceWith(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
+			r.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
 		}
 
 	}

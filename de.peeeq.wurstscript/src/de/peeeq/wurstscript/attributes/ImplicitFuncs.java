@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import java.util.Collection;
 import java.util.Collections;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WEntities;
@@ -14,7 +14,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class ImplicitFuncs {
 
-	public static FuncDef findToIndexFunc(WurstType typ, AstElement e) {
+	public static FuncDef findToIndexFunc(WurstType typ, Element e) {
 		typ = typ.normalize();
 		for (NameLink nl : findToIndexFuncs(typ, e)) {
 			if (nl.getNameDef() instanceof FuncDef) {
@@ -25,7 +25,7 @@ public class ImplicitFuncs {
 		return null;
 	}
 	
-	public static FuncDef findFromIndexFunc(WurstType typ, AstElement e) {
+	public static FuncDef findFromIndexFunc(WurstType typ, Element e) {
 		typ = typ.normalize();
 		for (NameLink nl : findFromIndexFuncs(typ, e)) {
 			if (nl.getNameDef() instanceof FuncDef) {
@@ -45,24 +45,24 @@ public class ImplicitFuncs {
 		return typ + "FromIndex";
 	}
 
-	public static Collection<NameLink> findToIndexFuncs(WurstType typ, AstElement e) {
+	public static Collection<NameLink> findToIndexFuncs(WurstType typ, Element e) {
 		String funcName = toIndexFuncName(typ);
 		return findFunc(e, funcName);
 	}
 
 
-	public static Collection<NameLink> findFromIndexFuncs(WurstType typ, AstElement e) {
+	public static Collection<NameLink> findFromIndexFuncs(WurstType typ, Element e) {
 		String funcName = fromIndexFuncName(typ);
 		Collection<NameLink> res = findFunc(e, funcName);
 		return res;
 	}
 	
 	
-	private static Collection<NameLink> findFunc(AstElement e, String funcName) {
+	private static Collection<NameLink> findFunc(Element e, String funcName) {
 		return e.lookupFuncs(funcName, false);
 	}
 	
-//	private static Collection<NameLink> findFunc(AstElement e, String funcName) {
+//	private static Collection<NameLink> findFunc(Element e, String funcName) {
 //		// we only look at functions defined on the global level
 //		while (e != null && !(e instanceof WPackage)) {
 //			e = e.getParent();

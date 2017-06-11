@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -24,7 +24,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 		prog.getFunctions().add(f);
 		ImVars locals = f.getLocals();
 		ImStmts body = f.getBody();
-		AstElement tr = c.getTrace();
+		Element tr = c.getTrace();
 		
 		ImVar thisVar = JassIm.ImVar(tr, TypesHelper.imInt(), "this", false);
 		locals.add(thisVar);
@@ -71,7 +71,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
 	
 	@Override 
 	public void createDeallocFunc(ImTranslator translator, ImProg prog, ImClass c) {
-		AstElement tr = c.getTrace();
+		Element tr = c.getTrace();
 		ImFunction f = translator.deallocFunc.getFor(c);
 		prog.getFunctions().add(f);
 		ImStmts body = f.getBody();

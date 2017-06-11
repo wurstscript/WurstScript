@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.translation.imtojass;
 import org.eclipse.jdt.annotation.NonNull;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -16,15 +16,14 @@ import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
-import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
+import de.peeeq.wurstscript.jassIm.ElementWithTrace;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 
 public class ImAttributes {
 
 
-	public static ImFunction getNearestFunc(JassImElement e ) {
+	public static ImFunction getNearestFunc(Element e ) {
 		while (e != null && !(e instanceof ImFunction)) {
 			e = e.getParent();
 		}
@@ -86,11 +85,11 @@ public class ImAttributes {
 	}
 
 	
-	public static AstElement getTrace(JassImElementWithTrace t) {
+	public static de.peeeq.wurstscript.ast.Element getTrace(ElementWithTrace t) {
 		return t.getTrace();
 	}
 	
-	public static AstElement getTrace(JassImElement t) {
+	public static de.peeeq.wurstscript.ast.Element getTrace(Element t) {
 		if (t.getParent() != null) {
 			return t.getParent().attrTrace();
 		}
@@ -103,8 +102,8 @@ public class ImAttributes {
 	}
 
 
-	public static ImProg getProg(JassImElement el) {
-		JassImElement e = el;
+	public static ImProg getProg(Element el) {
+		Element e = el;
 		while (e  != null) {
 			if (e instanceof ImProg) {
 				return (ImProg) e;

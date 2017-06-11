@@ -7,7 +7,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
@@ -30,8 +30,8 @@ public class AttrImportedPackage {
 		}
 	}
 
-	public static WurstModel getModel(AstElement elem) {
-		AstElement e = elem.attrCompilationUnit();
+	public static WurstModel getModel(Element elem) {
+		Element e = elem.attrCompilationUnit();
 		while (e != null) {
 			if (e instanceof WurstModel) {
 				return (WurstModel) e;

@@ -7,7 +7,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -464,7 +464,7 @@ public class DescriptionHtml {
 	}
 
 	public static String description(Identifier identifier) {
-		AstElement parent = identifier.getParent();
+		Element parent = identifier.getParent();
 		if (parent != null) {
 			return parent.descriptionHtml();
 		}

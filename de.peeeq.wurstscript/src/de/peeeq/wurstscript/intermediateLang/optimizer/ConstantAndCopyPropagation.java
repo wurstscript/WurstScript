@@ -112,7 +112,7 @@ public class ConstantAndCopyPropagation {
 						return;
 					}
 					if (val.constantValue != null) {
-						va.replaceWith(val.constantValue.copy());
+						va.replaceBy(val.constantValue.copy());
                         totalPropagated++;
 					} else if (val.copyVar != null) {
 						va.setVar(val.copyVar);

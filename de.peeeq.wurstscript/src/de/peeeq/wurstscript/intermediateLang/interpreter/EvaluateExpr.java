@@ -52,7 +52,7 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.parser.WPos;
 
 public class EvaluateExpr {
@@ -72,7 +72,7 @@ public class EvaluateExpr {
 	}
 
 	public static @Nullable ILconst evaluateFunc(ProgramState globalState,
-			LocalState localState, ImFunction f, List<ImExpr> args2, JassImElement trace) {
+			LocalState localState, ImFunction f, List<ImExpr> args2, Element trace) {
 		ILconst[] args = new ILconst[args2.size()];
 		for (int i=0; i < args2.size(); i++) {
 			args[i] = args2.get(i).evaluate(globalState, localState);

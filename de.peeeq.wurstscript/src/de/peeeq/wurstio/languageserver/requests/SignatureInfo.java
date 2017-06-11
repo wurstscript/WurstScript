@@ -30,7 +30,7 @@ public class SignatureInfo extends UserRequest {
 	@Override
 	public SignatureHelp execute(ModelManager modelManager) {
 		CompilationUnit cu = modelManager.getCompilationUnit(filename);
-		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
+		Element e = Utils.getAstElementAtPos(cu, line, column, false);
 		if (e instanceof StmtCall) {
 			StmtCall call = (StmtCall) e;
 			// TODO only when we are in parentheses
@@ -39,7 +39,7 @@ public class SignatureInfo extends UserRequest {
 
 
 		while (e != null) {
-			AstElement parent = e.getParent();
+			Element parent = e.getParent();
 			if (parent instanceof Arguments) {
 				Arguments args = (Arguments) parent;
 				if (parent.getParent() instanceof StmtCall) {

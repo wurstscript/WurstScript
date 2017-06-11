@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.utils.Utils;
@@ -16,7 +16,7 @@ public class WurstTypeInt extends WurstTypePrimitive {
 	}
 	
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		return other instanceof WurstTypeInt
 				// in jass code we can use an int where a real is expected
 				|| other instanceof WurstTypeReal && Utils.isJassCode(location);

@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class SimpleRewrites {
@@ -77,7 +77,7 @@ public class SimpleRewrites {
     }
 
     /** Recursively optimizes the element */
-    private void optimizeElement(JassImElement elem) {
+    private void optimizeElement(Element elem) {
         // optimize children:
         for (int i = 0; i < elem.size(); i++) {
             optimizeElement(elem.get(i));
@@ -100,7 +100,7 @@ public class SimpleRewrites {
         if (expr instanceof ImBoolVal) {
             boolean b = ((ImBoolVal) expr).getValB();
             if (!b) {
-                imExitwhen.replaceWith(JassIm.ImNull());
+                imExitwhen.replaceBy(JassIm.ImNull());
                 totalRewrites++;
             }
         }
@@ -134,24 +134,24 @@ public class SimpleRewrites {
                         result = false;
                         break;
                 }
-                opc.replaceWith(JassIm.ImBoolVal(result));
+                opc.replaceBy(JassIm.ImBoolVal(result));
             } else if (left instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) left).getValB();
                 switch (opc.getOp()) {
                     case OR:
                         if (b1) {
-                            opc.replaceWith(JassIm.ImBoolVal(true));
+                            opc.replaceBy(JassIm.ImBoolVal(true));
                         } else {
                             right.setParent(null);
-                            opc.replaceWith(right);
+                            opc.replaceBy(right);
                         }
                         break;
                     case AND:
                         if (b1) {
                             right.setParent(null);
-                            opc.replaceWith(right);
+                            opc.replaceBy(right);
                         } else {
-                            opc.replaceWith(JassIm.ImBoolVal(false));
+                            opc.replaceBy(JassIm.ImBoolVal(false));
                         }
                         break;
                     default:
@@ -162,18 +162,18 @@ public class SimpleRewrites {
                 switch (opc.getOp()) {
                     case OR:
                         if (b2) {
-                            opc.replaceWith(JassIm.ImBoolVal(true));
+                            opc.replaceBy(JassIm.ImBoolVal(true));
                         } else {
                             left.setParent(null);
-                            opc.replaceWith(left);
+                            opc.replaceBy(left);
                         }
                         break;
                     case AND:
                         if (b2) {
                             left.setParent(null);
-                            opc.replaceWith(left);
+                            opc.replaceBy(left);
                         } else {
-                            opc.replaceWith(JassIm.ImBoolVal(false));
+                            opc.replaceBy(JassIm.ImBoolVal(false));
                         }
                         break;
                     default:
@@ -234,7 +234,7 @@ public class SimpleRewrites {
                         float f2 = i2;
                         if (f2 != 0) {
                             float resultF = f1 % f2;
-                            opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultF)));
+                            opc.replaceBy(JassIm.ImRealVal(String.valueOf(resultF)));
                         }
                         break;
                     case DIV_INT:
@@ -248,7 +248,7 @@ public class SimpleRewrites {
                         float f4 = i2;
                         if (f4 != 0) {
                             float resultF = f3 / f4;
-                            opc.replaceWith(JassIm.ImRealVal(String.valueOf(resultF)));
+                            opc.replaceBy(JassIm.ImRealVal(String.valueOf(resultF)));
                         }
                         break;
                     default:
@@ -258,9 +258,9 @@ public class SimpleRewrites {
                         break;
                 }
                 if (isConditional) {
-                    opc.replaceWith(JassIm.ImBoolVal(result));
+                    opc.replaceBy(JassIm.ImBoolVal(result));
                 } else if (isArithmetic) {
-                    opc.replaceWith(JassIm.ImIntVal(resultVal));
+                    opc.replaceBy(JassIm.ImIntVal(resultVal));
                 }
             } else if (left instanceof ImRealVal && right instanceof ImRealVal) {
                 float f1 = Float.parseFloat(((ImRealVal) left).getValR());
@@ -331,18 +331,18 @@ public class SimpleRewrites {
                         break;
                 }
                 if (isConditional) {
-                    opc.replaceWith(JassIm.ImBoolVal(result));
+                    opc.replaceBy(JassIm.ImBoolVal(result));
                 } else if (isArithmetic) {
                     // convert result to string, using 4 decimal digits
                     String s = floatToStringWithDecimalDigits(resultVal, 4);
                     // String s = new BigDecimal(resultVal).toPlainString();
                     // check if the string representation is exact
                     if (Float.parseFloat(s) == resultVal) {
-                        opc.replaceWith(JassIm.ImRealVal(s));
+                        opc.replaceBy(JassIm.ImRealVal(s));
                     } else {
                         s = floatToStringWithDecimalDigits(resultVal, 9);
                         if (Float.parseFloat(s) == resultVal) {
-                            opc.replaceWith(JassIm.ImRealVal(s));
+                            opc.replaceBy(JassIm.ImRealVal(s));
                         } else {
                             wasViable = false;
                         }
@@ -369,13 +369,13 @@ public class SimpleRewrites {
                         result = false;
                         break;
                 }
-                opc.replaceWith(JassIm.ImBoolVal(result));
+                opc.replaceBy(JassIm.ImBoolVal(result));
             } else if (opc.getOp() == WurstOperator.NOT && expr instanceof ImOperatorCall) {
                 // optimize negation of some operators
                 ImOperatorCall inner = (ImOperatorCall) expr;
                 switch (inner.getOp()) {
                     case NOT:
-                        opc.replaceWith(inner.getArguments().remove(0));
+                        opc.replaceBy(inner.getArguments().remove(0));
                         break;
                     case EQ:
                     case NOTEQ:
@@ -383,7 +383,7 @@ public class SimpleRewrites {
                     case LESS_EQ:
                     case GREATER:
                     case GREATER_EQ:
-                        opc.replaceWith(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
+                        opc.replaceBy(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
                         break;
                     default:
                         wasViable = false;
@@ -440,7 +440,7 @@ public class SimpleRewrites {
     private void optimizeIf(ImIf imIf) {
         if (imIf.getThenBlock().isEmpty() && imIf.getElseBlock().isEmpty()) {
             totalRewrites++;
-            imIf.replaceWith(imIf.getCondition().copy());
+            imIf.replaceBy(imIf.getCondition().copy());
         } else if (imIf.getCondition() instanceof ImBoolVal) {
             ImBoolVal boolVal = (ImBoolVal) imIf.getCondition();
             if (boolVal.getValB()) {
@@ -448,17 +448,17 @@ public class SimpleRewrites {
                 // replace the if statement with the then-block
                 // we have to use ImStatementExpr to get multiple statements
                 // into one statement as needed
-                // for the replaceWith function
+                // for the replaceBy function
                 // we need to copy the thenBlock because otherwise it would have
                 // two parents (we have not removed it from the old if-block)
-                imIf.replaceWith(JassIm.ImStatementExpr(imIf.getThenBlock().copy(), JassIm.ImNull()));
+                imIf.replaceBy(JassIm.ImStatementExpr(imIf.getThenBlock().copy(), JassIm.ImNull()));
                 totalRewrites++;
             } else {
                 if (!imIf.getElseBlock().isEmpty()) {
-                    imIf.replaceWith(JassIm.ImStatementExpr(imIf.getElseBlock().copy(), JassIm.ImNull()));
+                    imIf.replaceBy(JassIm.ImStatementExpr(imIf.getElseBlock().copy(), JassIm.ImNull()));
                     totalRewrites++;
                 } else {
-                    imIf.replaceWith(JassIm.ImNull());
+                    imIf.replaceBy(JassIm.ImNull());
                     totalRewrites++;
                 }
             }

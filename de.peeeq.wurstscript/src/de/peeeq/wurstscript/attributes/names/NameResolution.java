@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.StructureDef;
@@ -21,7 +21,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class NameResolution {
 
-	public static ImmutableCollection<NameLink> lookupFuncsNoConfig(AstElement node, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
 		StructureDef nearestStructureDef = node.attrNearestStructureDef();
 		if (nearestStructureDef != null) {
 			// inside a class one can write foo instead of this.foo()
@@ -50,7 +50,7 @@ public class NameResolution {
 		return removeDuplicates(result);
 	}
 	
-	public static ImmutableCollection<NameLink> lookupFuncs(AstElement e, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupFuncs(Element e, String name, boolean showErrors) {
 		ArrayList<NameLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
 		for (int i=0; i<result.size(); i++) {
 			result.set(i, result.get(i).withConfigDef());
@@ -72,7 +72,7 @@ public class NameResolution {
 	}
 
 	private static @Nullable WScope nextScope(WScope scope) {
-		AstElement parent = scope.getParent();
+		Element parent = scope.getParent();
 		if (parent == null) {
 			return null;
 		}
@@ -86,7 +86,7 @@ public class NameResolution {
 		return parent.attrNearestScope();
 	}
 
-	public static ImmutableCollection<NameLink> lookupMemberFuncs(AstElement node, WurstType receiverType, String name, boolean showErrors) {
+	public static ImmutableCollection<NameLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
 		List<NameLink> result = Lists.newArrayList();
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
@@ -104,12 +104,12 @@ public class NameResolution {
 		return removeDuplicates(result);
 	}
 
-	public static void addMemberMethods(AstElement node,
+	public static void addMemberMethods(Element node,
 			WurstType receiverType, String name, List<NameLink> result) {
 		receiverType.addMemberMethods(node, name, result);
 	}
 	
-	public static @Nullable NameDef lookupVarNoConfig(AstElement node, String name, boolean showErrors) {
+	public static @Nullable NameDef lookupVarNoConfig(Element node, String name, boolean showErrors) {
 		WurstType receiverType;
 		@Nullable
 		StructureDef nearestStructureDef = node.attrNearestStructureDef();
@@ -180,7 +180,7 @@ public class NameResolution {
 		return null;
 	}
 	
-	public static @Nullable NameDef lookupMemberVar(AstElement node, WurstType receiverType, String name, boolean showErrors) {
+	public static @Nullable NameDef lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
 //		WLogger.info("lookupMemberVar " + receiverType+"."+name);
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
@@ -207,7 +207,7 @@ public class NameResolution {
 		return null;
 	}
 	
-	public static @Nullable TypeDef lookupType(AstElement node, String name, boolean showErrors) {
+	public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
 		
 		NameLink privateCandidate = null;
 		List<NameLink> candidates = Lists.newArrayList();
@@ -245,7 +245,7 @@ public class NameResolution {
 		return null;
 	}
 
-	public static @Nullable WPackage lookupPackage(AstElement node, String name, boolean showErrors) {
+	public static @Nullable WPackage lookupPackage(Element node, String name, boolean showErrors) {
 		WScope scope = node.attrNearestScope();
 		while (scope != null) {
 			for (NameLink n : scope.attrTypeNameLinks().get(name)) {
@@ -258,31 +258,31 @@ public class NameResolution {
 		return null;
 	}
 
-	public static ImmutableCollection<NameLink> lookupFuncsShort(AstElement elem, String name) {
+	public static ImmutableCollection<NameLink> lookupFuncsShort(Element elem, String name) {
 		return lookupFuncs(elem, name, true);
 	}
 
-	public static ImmutableCollection<NameLink> lookupMemberFuncsShort(AstElement elem, WurstType receiverType, String name) {
+	public static ImmutableCollection<NameLink> lookupMemberFuncsShort(Element elem, WurstType receiverType, String name) {
 		return lookupMemberFuncs(elem, receiverType, name, true);
 	}
 	
-	public static @Nullable NameDef lookupVarShort(AstElement node, String name) {
+	public static @Nullable NameDef lookupVarShort(Element node, String name) {
 		return lookupVar(node, name, true);
 	}
 	
-	public static @Nullable NameDef lookupMemberVarShort(AstElement node, WurstType receiverType, String name) {
+	public static @Nullable NameDef lookupMemberVarShort(Element node, WurstType receiverType, String name) {
 		return lookupMemberVar(node, receiverType, name, true);
 	}
 	
-	public static @Nullable TypeDef lookupTypeShort(AstElement node, String name) {
+	public static @Nullable TypeDef lookupTypeShort(Element node, String name) {
 		return lookupType(node, name, true);
 	}
 
-	public static @Nullable WPackage lookupPackageShort(AstElement node, String name) {
+	public static @Nullable WPackage lookupPackageShort(Element node, String name) {
 		return lookupPackage(node, name, true);
 	}
 
-	public static @Nullable NameDef lookupVar(AstElement e, String name, boolean showErrors) {
+	public static @Nullable NameDef lookupVar(Element e, String name, boolean showErrors) {
 		NameDef v = e.lookupVarNoConfig(name, showErrors);
 		if (v != null) {
 			return (NameDef) v.attrConfigActualNameDef();

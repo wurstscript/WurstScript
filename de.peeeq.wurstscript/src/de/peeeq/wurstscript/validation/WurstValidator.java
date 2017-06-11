@@ -64,7 +64,7 @@ public class WurstValidator {
     private int functionCount;
     private int visitedFunctions;
     private Multimap<WScope, WScope> calledFunctions = HashMultimap.create();
-    private @Nullable AstElement lastElement = null;
+    private @Nullable Element lastElement = null;
 
     public WurstValidator(WurstModel root) {
         this.prog = root;
@@ -84,7 +84,7 @@ public class WurstValidator {
             postChecks(toCheck);
         } catch (RuntimeException e) {
             WLogger.severe(e);
-            AstElement le = lastElement;
+            Element le = lastElement;
             if (le != null) {
                 le.addError("Encountered compiler bug near element " + Utils.printElement(le) + ":\n"
                         + Utils.printException(e));
@@ -179,7 +179,7 @@ public class WurstValidator {
         return result;
     }
 
-    private void collectUsedPackages(Set<PackageOrGlobal> used, AstElement e) {
+    private void collectUsedPackages(Set<PackageOrGlobal> used, Element e) {
         for (int i = 0; i < e.size(); i++) {
             collectUsedPackages(used, e.get(i));
         }
@@ -227,7 +227,7 @@ public class WurstValidator {
         }
     }
 
-    private void walkTree(AstElement e) {
+    private void walkTree(Element e) {
         lastElement = e;
         check(e);
         lastElement = null;
@@ -236,7 +236,7 @@ public class WurstValidator {
         }
     }
 
-    private void check(AstElement e) {
+    private void check(Element e) {
         try {
             if (e instanceof AstElementWithTypeParameters)
                 checkTypeParameters((AstElementWithTypeParameters) e);
@@ -360,7 +360,7 @@ public class WurstValidator {
                 checkForInvalidStmts((WStatements) e);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
-            AstElement element = cde.getElement();
+            Element element = cde.getElement();
             String attr = cde.getAttributeName().replaceFirst("^attr", "");
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
@@ -558,7 +558,7 @@ public class WurstValidator {
         if (e.attrExpectedTyp() instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
-                for (Entry<AstElement, VarDef> elem : e.attrCapturedVariables().entries()) {
+                for (Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
                     elem.getKey().addError("Cannot capture local variable '" + elem.getValue().getName()
                             + "' in anonymous function. This is only possible with closures.");
                 }
@@ -791,7 +791,7 @@ public class WurstValidator {
         }
     }
 
-    private boolean isInConstructor(AstElement e) {
+    private boolean isInConstructor(Element e) {
         while (e != null) {
             if (e instanceof ConstructorDef) {
                 return true;
@@ -801,7 +801,7 @@ public class WurstValidator {
         return false;
     }
 
-    private void checkAssignment(boolean isJassCode, AstElement pos, WurstType leftType, WurstType rightType) {
+    private void checkAssignment(boolean isJassCode, Element pos, WurstType leftType, WurstType rightType) {
         if (!rightType.isSubtypeOf(leftType, pos)) {
             if (isJassCode) {
                 if (leftType.isSubtypeOf(WurstTypeReal.instance(), pos)
@@ -1088,7 +1088,7 @@ public class WurstValidator {
 
     }
 
-    // private void checkParams(AstElement where, List<Expr> args,
+    // private void checkParams(Element where, List<Expr> args,
     // FunctionDefinition calledFunc) {
     // if (calledFunc == null) {
     // return;
@@ -1098,12 +1098,12 @@ public class WurstValidator {
     // }
 
     @Deprecated
-    private void checkParams(AstElement where, String preMsg, List<Expr> args, FunctionSignature sig) {
+    private void checkParams(Element where, String preMsg, List<Expr> args, FunctionSignature sig) {
         checkParams(where, preMsg, args, sig.getParamTypes());
     }
 
     @Deprecated
-    private void checkParams(AstElement where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
+    private void checkParams(Element where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
         if (args.size() > parameterTypes.size()) {
             where.addError(preMsg + "Too many parameters.");
 
@@ -1211,7 +1211,7 @@ public class WurstValidator {
         }
     }
 
-    private void checkTypeName(AstElement source, String name) {
+    private void checkTypeName(Element source, String name) {
         if (!Character.isUpperCase(name.charAt(0))) {
             source.addWarning("Type names should start with upper case characters.");
         }
@@ -1839,7 +1839,7 @@ public class WurstValidator {
 
     }
 
-    public static void computeFlowAttributes(AstElement node) {
+    public static void computeFlowAttributes(Element node) {
         if (node instanceof WStatement) {
             WStatement s = (WStatement) node;
             s.attrNextStatements();

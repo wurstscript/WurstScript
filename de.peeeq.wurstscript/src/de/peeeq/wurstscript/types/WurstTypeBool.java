@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
@@ -15,7 +15,7 @@ public class WurstTypeBool extends WurstTypePrimitive {
 	}
 	
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		return other instanceof WurstTypeBool;
 	}
 

@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -48,7 +48,7 @@ public class WurstTypeArray extends WurstType {
 
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		if (other instanceof WurstTypeArray) {
 			WurstTypeArray otherArray = (WurstTypeArray) other;
 			return baseType.equalsType(otherArray.baseType, location) && getDimensions() == otherArray.getDimensions();

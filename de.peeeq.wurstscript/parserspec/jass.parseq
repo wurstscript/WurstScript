@@ -133,17 +133,17 @@ JassProg.validate()
 	returns void
 	implemented by de.peeeq.wurstscript.frotty.jassValidator.JassValidator.validate
 	
-JassAstElement.getLine
+Element.getLine
 	returns int
 	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.getLine
 
-JassAstElement.getProg
+Element.getProg
 	returns JassProg
 	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.getProg	
 
 	
 JassProg.attrLineMap
-	returns java.util.Map<JassAstElement, Integer >
+	returns java.util.Map<Element, Integer >
 	implemented by de.peeeq.wurstscript.frotty.jassValidator.LineMapAttr.get
 
 JassExprVarRef.attrVariableDefinition "gets the var for a variable reference"
@@ -175,7 +175,7 @@ JassProg.attrIgnoredVariables
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrIgnoredVariables
 
 JassProg.attrComments
-	returns java.util.Map<JassAstElement, String>
+	returns java.util.Map<Element, String>
 	implemented by de.peeeq.wurstscript.attributes.JassAttributes.attrComments
 	
 JassProg.attrIgnoredFunctions

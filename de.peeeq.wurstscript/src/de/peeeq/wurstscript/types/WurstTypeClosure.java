@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -19,7 +19,7 @@ public class WurstTypeClosure extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		if (other instanceof WurstTypeClosure) {
 			WurstTypeClosure o = (WurstTypeClosure) other;
 			if (paramTypes.size() != o.paramTypes.size()) {
@@ -49,7 +49,7 @@ public class WurstTypeClosure extends WurstType {
 
 
 	private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-			AstElement location) {
+			Element location) {
 		if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
 			return false;
 		}

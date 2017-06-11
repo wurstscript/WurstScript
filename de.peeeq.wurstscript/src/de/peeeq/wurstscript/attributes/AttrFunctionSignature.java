@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
@@ -79,11 +79,11 @@ public class AttrFunctionSignature {
 		return Utils.printElement(s);
 	}
 
-	private static boolean paramTypesMatch(FunctionSignature sig, List<WurstType> argTypes, AstElement location) {
+	private static boolean paramTypesMatch(FunctionSignature sig, List<WurstType> argTypes, Element location) {
 		return paramTypesMatch(sig.getParamTypes(), argTypes, location);
 	}
 
-	private static boolean paramTypesMatch(List<WurstType> paramTypes, List<WurstType> argTypes, AstElement location) {
+	private static boolean paramTypesMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
 		if (paramTypes.size() != argTypes.size()) {
 			return false;
 		}

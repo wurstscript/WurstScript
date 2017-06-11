@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import java.util.List;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -27,7 +27,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType obj, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType obj, Element location) {
 		if (super.isSubtypeOfIntern(obj, location)) {
 			return true;
 		}

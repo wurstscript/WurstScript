@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.Expr;
@@ -45,7 +45,7 @@ public class AttrNameDef {
 
 	public static @Nullable NameDef specialEnumLookupRules(ExprVarAccess term) {
 		NameDef result = null;
-		AstElement parent = term.getParent();
+		Element parent = term.getParent();
 		if (parent instanceof SwitchCase) {
 			SwitchStmt s = (SwitchStmt) parent.getParent().getParent();
 			result = lookupEnumConst(term.getVarName(), s.getExpr().attrTyp());
@@ -137,7 +137,7 @@ public class AttrNameDef {
 		return e.attrTypeDef();
 	}
 	
-	public static @Nullable NameDef tryGetNameDef(AstElement elem) {
+	public static @Nullable NameDef tryGetNameDef(Element elem) {
 		return null;
 	}
 

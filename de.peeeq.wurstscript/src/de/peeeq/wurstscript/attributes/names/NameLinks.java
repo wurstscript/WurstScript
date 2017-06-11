@@ -10,7 +10,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.ClassDef;
@@ -246,7 +246,7 @@ public class NameLinks {
 	private static void addHidingPrivate(Builder<String, NameLink> result,
 			Multimap<String, NameLink> adding,
 			Map<TypeParamDef, WurstTypeBoundTypeParam> binding,
-			AstElement context) {
+			Element context) {
 		for (Entry<String, NameLink> e : adding.entries()) {
 			if (e.getValue().getVisibility() == Visibility.LOCAL) {
 				continue;

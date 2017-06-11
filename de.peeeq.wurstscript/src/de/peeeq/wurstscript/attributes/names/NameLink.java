@@ -9,7 +9,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.EnumDef;
 import de.peeeq.wurstscript.ast.EnumMember;
@@ -113,9 +113,9 @@ public class NameLink {
 			if (nameDef instanceof GlobalVarDef) {
 				return getReceiverType(definedIn);
 			} else {
-				AstElement parent = nameDef.getParent();
+				Element parent = nameDef.getParent();
 				Preconditions.checkNotNull(parent);
-				AstElement grandParent = parent.getParent();
+				Element grandParent = parent.getParent();
 				if (nameDef instanceof WParameter) {
 					if (grandParent instanceof TupleDef) {
 						TupleDef tupleDef = (TupleDef) grandParent;
@@ -269,7 +269,7 @@ public class NameLink {
 		return r = r + Utils.printElementWithSource(nameDef);
 	}
 
-	public NameLink withTypeArgBinding(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+	public NameLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
 		if (binding.isEmpty()) {
 			return this;
 		}
@@ -295,7 +295,7 @@ public class NameLink {
 		}
 	}
 
-	private WurstType adjustType(AstElement context, WurstType t, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+	private WurstType adjustType(Element context, WurstType t, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
 		return t.setTypeArgs(binding);
 	}
 

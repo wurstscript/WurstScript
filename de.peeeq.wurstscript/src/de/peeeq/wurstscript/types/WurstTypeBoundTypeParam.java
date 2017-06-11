@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -24,16 +24,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	private FuncDef fromIndex;
 	private FuncDef toIndex;
 	private boolean indexInitialized = false;
-	private AstElement context;
+	private Element context;
 
-	public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, AstElement context) {
+	public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
 		this.typeParamDef = def;
 		this.baseType = baseType;
 		this.context = context;
 	}
 	
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, Element location) {
 		return baseType.isSubtypeOfIntern(other, location);
 	}
 
@@ -80,13 +80,13 @@ public class WurstTypeBoundTypeParam extends WurstType {
 	}
 	
 	@Override
-	public void addMemberMethods(AstElement node, String name,
+	public void addMemberMethods(Element node, String name,
 			List<NameLink> result) {
 		baseType.addMemberMethods(node, name, result);
 	}
 	
 	@Override
-	public Stream<NameLink> getMemberMethods(AstElement node) {
+	public Stream<NameLink> getMemberMethods(Element node) {
 		return baseType.getMemberMethods(node);
 	}
 	

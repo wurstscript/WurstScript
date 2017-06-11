@@ -8,7 +8,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.jassAst.JassAstElement;
+import de.peeeq.wurstscript.jassAst.Element;
 import de.peeeq.wurstscript.jassAst.JassFuncRef;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -36,7 +36,7 @@ public class JassAttributes {
 		return null;
 	}
 
-	private static JassProg getRoot(@Nullable JassAstElement e) {
+	private static JassProg getRoot(@Nullable Element e) {
 		while (e != null) {
 			if (e instanceof JassProg) {
 				return (JassProg) e;
@@ -46,7 +46,7 @@ public class JassAttributes {
 		throw new Error("Not attached to root.");
 	}
 
-	public static Map<JassAstElement, String> attrComments(JassProg jassProgImpl) {
+	public static Map<Element, String> attrComments(JassProg jassProgImpl) {
 		return Maps.newLinkedHashMap();
 	}
 

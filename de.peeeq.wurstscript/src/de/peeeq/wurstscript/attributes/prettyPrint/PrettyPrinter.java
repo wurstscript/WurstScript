@@ -15,7 +15,7 @@ public class PrettyPrinter {
         commaSeparatedList(e, spacer, sb, indent);
     }
 
-    private static void commaSeparatedList(AstElement e, Spacer spacer, StringBuilder sb, int indent) {
+    private static void commaSeparatedList(Element e, Spacer spacer, StringBuilder sb, int indent) {
         for (int i = 0; i < e.size(); i++) {
             if (i > 0) {
                 sb.append(",");

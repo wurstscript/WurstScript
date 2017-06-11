@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 
 public class PurityLevels {
 
@@ -16,9 +16,9 @@ public class PurityLevels {
 		return mergeWithChildren(s, Pure.instance);
 	}
 
-	private static PurityLevel mergeWithChildren(JassImElement e, PurityLevel level) {
+	private static PurityLevel mergeWithChildren(Element e, PurityLevel level) {
 		for (int i=0; i<e.size(); i++) {
-			JassImElement child = e.get(i);
+			Element child = e.get(i);
 			if (child instanceof ImStmt) {
 				ImStmt imStmt = (ImStmt) child;
 				level = level.merge(imStmt.attrPurity());

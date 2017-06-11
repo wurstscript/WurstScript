@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.ast.Modifiers;
@@ -11,15 +11,15 @@ import de.peeeq.wurstscript.utils.Utils;
 public class AttrWurstDoc {
 
 	public static String getComment(NameDef nameDef) {
-		if (nameDef instanceof AstElementWithModifiers) {
-			AstElementWithModifiers astElementWithModifiers = (AstElementWithModifiers) nameDef;
-			return getCommmentHelper(astElementWithModifiers);
+		if (nameDef instanceof HasModifier) {
+			HasModifier HasModifier = (HasModifier) nameDef;
+			return getCommmentHelper(HasModifier);
 		}
 		return "";
 	}
 	private static String getCommmentHelper(
-			AstElementWithModifiers astElementWithModifiers) {
-		Modifiers modifiers = astElementWithModifiers.getModifiers();
+			HasModifier HasModifier) {
+		Modifiers modifiers = HasModifier.getModifiers();
 		for (Modifier m : modifiers) {
 			if (m instanceof WurstDoc) {
 				WurstDoc wurstDoc = (WurstDoc) m;

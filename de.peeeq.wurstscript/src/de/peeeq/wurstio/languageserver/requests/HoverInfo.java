@@ -2,7 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -31,7 +31,7 @@ public class HoverInfo extends UserRequest {
 	@Override
 	public Object execute(ModelManager modelManager) {
 		CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
-		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
+		Element e = Utils.getAstElementAtPos(cu, line, column, false);
 		WLogger.info("hovering over " + Utils.printElement(e));
 		Map<String, Object> result = new HashMap<>();
 		result.put("documentation", e.descriptionHtml());

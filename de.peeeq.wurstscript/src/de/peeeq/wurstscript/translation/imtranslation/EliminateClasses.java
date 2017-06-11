@@ -330,11 +330,11 @@ public class EliminateClasses {
 		ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
 		ImExpr obj = e.getObj();
 		obj.setParent(null);
-		e.replaceWith(JassIm.ImVarArrayAccess(typeIdVar, obj));		
+		e.replaceBy(JassIm.ImVarArrayAccess(typeIdVar, obj));		
 	}
 
 	private void replaceTypeIdOfClass(ImTypeIdOfClass e) {
-		e.replaceWith(JassIm.ImIntVal(e.getClazz().attrTypeId()));
+		e.replaceBy(JassIm.ImIntVal(e.getClazz().attrTypeId()));
 	}
 
 	private void replaceInstanceof(ImInstanceof e) {
@@ -368,7 +368,7 @@ public class EliminateClasses {
 					JassIm.ImSet(f.getTrace(), tempVar, objTypeId)
 					), newExpr);
 		}
-		e.replaceWith(newExpr);
+		e.replaceBy(newExpr);
 	}
 
 	private ImExpr or(ImExpr a, ImExpr b) {
@@ -405,13 +405,13 @@ public class EliminateClasses {
 		ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
 		ImExpr obj = e.getObj();
 		obj.setParent(null);
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
+		e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
 		
 	}
 
 	private void replaceAlloc(ImAlloc e) {
 		ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
-		e.replaceWith(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
+		e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
 	}
 
 	private void replaceMethodCall(ImMethodCall mc) {
@@ -421,7 +421,7 @@ public class EliminateClasses {
 		ImExprs arguments = JassIm.ImExprs(receiver);
 		arguments.addAll(mc.getArguments().removeAll());
 
-		mc.replaceWith(JassIm.ImFunctionCall(mc.getTrace(),
+		mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(),
 				dispatchFuncs.get(mc.getMethod()), arguments, false, CallType.NORMAL));
 
 	}
@@ -430,7 +430,7 @@ public class EliminateClasses {
 		ImExpr receiver = ma.getReceiver();
 		receiver.setParent(null);
 
-		ma.replaceWith(JassIm.ImVarArrayAccess(fieldToArray.get(ma.getVar()),
+		ma.replaceBy(JassIm.ImVarArrayAccess(fieldToArray.get(ma.getVar()),
 				receiver));
 
 	}

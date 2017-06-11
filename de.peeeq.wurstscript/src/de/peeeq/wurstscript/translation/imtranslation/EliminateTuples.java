@@ -49,8 +49,8 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassIm.JassImElementWithTypes;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ElementWithTypes;
 
 /**
  * a rewrite would return a combination of
@@ -92,7 +92,7 @@ public class EliminateTuples {
 				// use temp return valus instead of tuples
 				List<ImVar> tempVars = translator.getTupleTempReturnVarsFor(e.getFunc());
 				if (tempVars.size() > 1) {
-					JassImElement parent = e.getParent();
+					Element parent = e.getParent();
 					int parentIndex = -1;
 					for (int i=0; i<parent.size(); i++) {
 						if (parent.get(i) == e) {
@@ -171,10 +171,10 @@ public class EliminateTuples {
 	 * eliminates tuples in all subexpressions.
 	 * Use this for all ast-elements which are not directly related to tuple-elimination 
 	 */
-	public static JassImElement eliminateTuples2(JassImElement e, ImTranslator translator, ImFunction f) {
+	public static Element eliminateTuples2(Element e, ImTranslator translator, ImFunction f) {
 		for (int i=0; i<e.size(); i++) {
-			JassImElement c = e.get(i);
-			JassImElement newC = eliminateTuplesDispatch(c, translator, f);
+			Element c = e.get(i);
+			Element newC = eliminateTuplesDispatch(c, translator, f);
 			if (newC != c) {
 				e.set(i, newC);
 			}
@@ -182,7 +182,7 @@ public class EliminateTuples {
 		return e;
 	}
 	
-	private static JassImElement eliminateTuplesDispatch(JassImElement e,
+	private static Element eliminateTuplesDispatch(Element e,
 			ImTranslator translator, ImFunction f) {
 		if (e instanceof ImExprOpt) {
 			ImExprOpt imExprOpt = (ImExprOpt) e;
@@ -548,7 +548,7 @@ public class EliminateTuples {
 		return JassIm.ImStatementExpr(statements, result);
 	}
 	
-	private static IntRange getTupleIndexRange(JassImElementWithTypes tt, int index) {
+	private static IntRange getTupleIndexRange(ElementWithTypes tt, int index) {
 //		System.out.println("get tuple index range " + tt + " # " + index);
 		int start = 0;
 		for (int i=0; i<index; i++) {

@@ -14,7 +14,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithBody;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -120,7 +120,7 @@ public class SyntacticSugar {
 	}
 
 	public void doSingleReplacement(Expr oldE, Expr newE) throws Error {
-		AstElement parent = oldE.getParent();
+		Element parent = oldE.getParent();
 		for (int i=0; i<parent.size(); i++) {
 			if (parent.get(i) == oldE) {
 				parent.set(i, newE);

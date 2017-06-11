@@ -8,7 +8,7 @@ import java.util.List;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.Range;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.utils.Utils;
@@ -34,7 +34,7 @@ public class GetUsages extends UserRequest {
     @Override
     public Object execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
-        AstElement astElem = Utils.getAstElementAtPos(cu, line, column, false);
+        Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
         NameDef nameDef = astElem.tryGetNameDef();
         List<UsagesData> usages = new ArrayList<>();
         if (nameDef != null) {
@@ -43,14 +43,14 @@ public class GetUsages extends UserRequest {
                 // add declaration
                 usages.add(new UsagesData(nameDef.getSource().getFile(), nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
             }
-            Deque<AstElement> todo = new ArrayDeque<>();
+            Deque<Element> todo = new ArrayDeque<>();
             if (global) {
                 todo.push(modelManager.getModel());
             } else {
                 todo.push(cu);
             }
             while (!todo.isEmpty()) {
-                AstElement e = todo.pop();
+                Element e = todo.pop();
                 // visit children:
                 for (int i = 0; i < e.size(); i++) {
                     todo.push(e.get(i));

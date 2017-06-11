@@ -14,7 +14,7 @@ import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
@@ -78,7 +78,7 @@ public class CompiletimeFunctionRunner {
 		} catch (Throwable e) {
 			WLogger.severe(e);
 			ImStmt s = interpreter.getLastStatement();
-			AstElement origin = s == null ? null : s.attrTrace();
+			Element origin = s == null ? null : s.attrTrace();
 			if (origin != null) { 
 				gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
 				

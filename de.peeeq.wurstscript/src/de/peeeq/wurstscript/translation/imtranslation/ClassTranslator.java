@@ -13,15 +13,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.eclipse.jdt.annotation.NonNull;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModuleInstanciation;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
@@ -32,6 +30,7 @@ import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -42,7 +41,6 @@ import de.peeeq.wurstscript.jassIm.ImSetArray;
 import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
 import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmt.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
@@ -137,7 +135,7 @@ public class ClassTranslator {
 			}
 		}
 		
-		AstElement trace = classDef.getOnDestroy();
+		Element trace = classDef.getOnDestroy();
 		
 		ImVar thisVar = f.getParameters().get(0);
 		
@@ -200,7 +198,7 @@ public class ClassTranslator {
 		if (oldThis == newThis) {
 			return;
 		}
-		DefaultVisitor replacer = new ImStmt.DefaultVisitor() {
+		DefaultVisitor replacer = new DefaultVisitor() {
 			@Override
 			public void visit(ImVarAccess v) {
 				if (v.getVar() == oldThis) {

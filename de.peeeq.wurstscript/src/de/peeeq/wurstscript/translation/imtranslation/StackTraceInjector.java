@@ -159,7 +159,7 @@ public class StackTraceInjector {
 			ImFunction f = e.getKey();
 			ImGetStackTrace s = e.getValue();
 			
-			s.replaceWith(JassIm.ImVarAccess(getStackTraceVar(f)));
+			s.replaceBy(JassIm.ImVarAccess(getStackTraceVar(f)));
 		}
 	}
 

@@ -8,7 +8,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.ast.Arguments;
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithTypeArgs;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.ClassOrModule;
@@ -79,7 +79,7 @@ public class Generics {
 		}
 	}
 
-	private static void inferTypeParameters(Map<TypeParamDef, WurstTypeBoundTypeParam> result, AstElement pos, WurstType argType, WurstType paramTyp,
+	private static void inferTypeParameters(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Element pos, WurstType argType, WurstType paramTyp,
 			TypeParamDefs typeParams) {
 		if (paramTyp instanceof WurstTypeBoundTypeParam) {
 			WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) paramTyp;
@@ -171,7 +171,7 @@ public class Generics {
 		return false;
 	}
 
-	private static TypeParamDefs getTypeParameters(AstElement def) {
+	private static TypeParamDefs getTypeParameters(Element def) {
 		if (def instanceof AstElementWithTypeParameters) {
 			AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) def;
 			return wtp.getTypeParameters();

@@ -8,7 +8,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.collect.Lists;
 
 import de.peeeq.wurstscript.ast.ActionStatement;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompoundStatement;
 import de.peeeq.wurstscript.ast.EndFunctionStatement;
 import de.peeeq.wurstscript.ast.Expr;
@@ -118,7 +118,7 @@ public class Flow {
 		return Collections.singletonList(endStmt);
 	}
 
-	private static @Nullable EndFunctionStatement findEndStatement(@Nullable AstElement n) {
+	private static @Nullable EndFunctionStatement findEndStatement(@Nullable Element n) {
 		if (n == null) {
 			return null;
 		}
@@ -184,7 +184,7 @@ public class Flow {
 		}
 	}
 
-	private static @Nullable CompoundStatement getParentStatement(AstElement node) {
+	private static @Nullable CompoundStatement getParentStatement(Element node) {
 		if (node instanceof CompoundStatement) {
 			return (CompoundStatement) node;
 		} else if (node instanceof WEntity) {
@@ -255,7 +255,7 @@ public class Flow {
 		return getFollowingStatements(s);
 	}
 
-	private static @Nullable LoopStatement getParentLoopStatement(@Nullable AstElement node) {
+	private static @Nullable LoopStatement getParentLoopStatement(@Nullable Element node) {
 		while (node != null) {
 			if (node instanceof LoopStatement) {
 				return (LoopStatement) node;

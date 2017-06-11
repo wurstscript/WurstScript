@@ -7,7 +7,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.ImExpr;
@@ -29,7 +29,7 @@ public class WurstTypeTuple extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, @Nullable AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, @Nullable Element location) {
 		if (other instanceof WurstTypeTuple) {
 			WurstTypeTuple otherTuple = (WurstTypeTuple) other;
 			return tupleDef == otherTuple.tupleDef;

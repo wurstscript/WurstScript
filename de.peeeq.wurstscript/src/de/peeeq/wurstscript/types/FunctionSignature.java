@@ -10,7 +10,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithParameters;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TupleDef;
@@ -47,7 +47,7 @@ public class FunctionSignature {
 		return receiverType;
 	}
 
-	public FunctionSignature setTypeArgs(AstElement context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
+	public FunctionSignature setTypeArgs(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
 		WurstType r2 = returnType.setTypeArgs(typeArgBinding);
 		List<WurstType> pt2 = Lists.newArrayList();
 		for (WurstType p : paramTypes) {

@@ -1,12 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.AstElement;
-import de.peeeq.wurstscript.ast.AstElementWithExtendedClass;
-import de.peeeq.wurstscript.ast.AstElementWithExtendsList;
-import de.peeeq.wurstscript.ast.AstElementWithImplementsList;
+import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ConstructorDef;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.GlobalVarDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.ModuleUse;
 import de.peeeq.wurstscript.ast.OnDestroyDef;
 
@@ -15,8 +14,8 @@ import de.peeeq.wurstscript.ast.OnDestroyDef;
  */
 public class IsDynamicContext {
 
-	public static boolean calculate(AstElement origElem) {
-		AstElement elem = origElem;
+	public static boolean calculate(Element origElem) {
+		Element elem = origElem;
 		while (elem != null) {
 			if (elem instanceof FuncDef) {
 				FuncDef funcDef = (FuncDef) elem;
@@ -29,20 +28,20 @@ public class IsDynamicContext {
 				GlobalVarDef g = (GlobalVarDef) elem;
 				return g.attrIsDynamicClassMember();
 			}
-			if (elem instanceof AstElementWithExtendedClass) {
-				AstElementWithExtendedClass a = (AstElementWithExtendedClass) elem;
+			if (elem instanceof ClassDef) {
+			    ClassDef a = (ClassDef) elem;
 				if (origElem.isSubtreeOf(a.getExtendedClass())) {
 					return true;
 				}
 			}
-			if (elem instanceof AstElementWithExtendsList) {
-				AstElementWithExtendsList a = (AstElementWithExtendsList) elem;
+			if (elem instanceof InterfaceDef) {
+			    InterfaceDef a = (InterfaceDef) elem;
 				if (origElem.isSubtreeOf(a.getExtendsList())) {
 					return true;
 				}
 			}
-			if (elem instanceof AstElementWithImplementsList) {
-				AstElementWithImplementsList a = (AstElementWithImplementsList) elem;
+			if (elem instanceof ClassDef) {
+			    ClassDef a = (ClassDef) elem;
 				if (origElem.isSubtreeOf(a.getImplementsList())) {
 					return true;
 				}

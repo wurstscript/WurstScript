@@ -7,7 +7,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -21,7 +21,7 @@ import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVoid;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -41,7 +41,7 @@ public class ILInterpreter {
 		this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
 	}
 
-	public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable JassImElement caller,
+	public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
 			ILconst... args) {
 		try {
 			String[] parameterTypes = new String[args.length];
@@ -156,8 +156,8 @@ public class ILInterpreter {
 	}
 
 	private static boolean isCompiletimeNative(ImFunction f) {
-		if (f.getTrace() instanceof AstElementWithModifiers) {
-			AstElementWithModifiers f2 = (AstElementWithModifiers) f.getTrace();
+		if (f.getTrace() instanceof HasModifier) {
+			HasModifier f2 = (HasModifier) f.getTrace();
 			for (Modifier m : f2.getModifiers()) {
 				if (m instanceof Annotation) {
 					Annotation annotation = (Annotation) m;
@@ -170,7 +170,7 @@ public class ILInterpreter {
 		return false;
 	}
 
-	public LocalState executeFunction(String funcName, @Nullable JassImElement trace) {
+	public LocalState executeFunction(String funcName, @Nullable Element trace) {
 		globalState.resetStackframes();
 		for (ImFunction f : prog.getFunctions()) {
 			if (f.getName().equals(funcName)) {
@@ -181,7 +181,7 @@ public class ILInterpreter {
 		throw new Error("no function with name " + funcName + "was found.");
 	}
 
-	public void runVoidFunc(ImFunction f, @Nullable JassImElement trace) {
+	public void runVoidFunc(ImFunction f, @Nullable Element trace) {
 		globalState.resetStackframes();
 		runFunc(globalState, f, trace);
 	}

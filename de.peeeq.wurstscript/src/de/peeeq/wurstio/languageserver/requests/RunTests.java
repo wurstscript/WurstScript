@@ -16,7 +16,7 @@ import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.languageserver.LanguageServer;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -81,7 +81,7 @@ public class RunTests extends UserRequest {
 		Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
 		for (ImFunction f : imProg.getFunctions()) {
 			if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
-				AstElement trace = f.attrTrace();
+				Element trace = f.attrTrace();
 				
 				if (cu != null && !Utils.elementContained(trace, cu)) {
 					continue;
@@ -160,7 +160,7 @@ public class RunTests extends UserRequest {
 		if (filename == null || cu == null || line < 0) {
 			return null;
 		}
-		AstElement e = Utils.getAstElementAtPos(cu, line, column, false);
+		Element e = Utils.getAstElementAtPos(cu, line, column, false);
 		while (e != null) {
 			if (e instanceof FuncDef) {
 				FuncDef f = (FuncDef) e;

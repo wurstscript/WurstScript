@@ -1,7 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ConstructorDef;
@@ -61,7 +61,7 @@ public class ReadVariables {
 		return generic(e);
 	}
 
-	private static ImmutableList<NameDef> generic(AstElement e) {
+	private static ImmutableList<NameDef> generic(Element e) {
 		ImmutableList<NameDef> r = ImmutableList.emptyList();
 		for (int i = 0; i < e.size(); i++) {
 			if (e.get(i) instanceof HasReadVariables) {

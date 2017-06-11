@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.ast.WScope;
 public class AttrNearest {
 
 	
-	public static @Nullable  PackageOrGlobal nearestPackage(@Nullable AstElement node) {
+	public static @Nullable  PackageOrGlobal nearestPackage(@Nullable Element node) {
 		if (node == null) {
 			return null;
 		}
@@ -40,7 +40,7 @@ public class AttrNearest {
 		return node.getParent().attrNearestPackage();
 	}
 	
-	public static @Nullable  ClassDef nearestClassDef(@Nullable AstElement node) {
+	public static @Nullable  ClassDef nearestClassDef(@Nullable Element node) {
 		if (node == null) {
 			return null;
 		}
@@ -54,7 +54,7 @@ public class AttrNearest {
 	}
 
 	
-	public static @Nullable  FunctionImplementation nearestFuncDef(@Nullable AstElement node) {
+	public static @Nullable  FunctionImplementation nearestFuncDef(@Nullable Element node) {
 		if (node == null) {
 			return null;
 		}
@@ -67,7 +67,7 @@ public class AttrNearest {
 		return node.getParent().attrNearestFuncDef();
 	}
 	
-	public static @Nullable ClassOrModule nearestClassOrModule(@Nullable AstElement node) {
+	public static @Nullable ClassOrModule nearestClassOrModule(@Nullable Element node) {
 		if (node == null) {
 			return null;
 		}
@@ -80,7 +80,7 @@ public class AttrNearest {
 		return node.getParent().attrNearestClassOrModule();
 	}
 
-	public static @Nullable NamedScope nearestNamedScope(@Nullable AstElement node) {
+	public static @Nullable NamedScope nearestNamedScope(@Nullable Element node) {
 		if (node == null) {
 			return null;
 		}
@@ -93,7 +93,7 @@ public class AttrNearest {
 		return node.getParent().attrNearestNamedScope();
 	}
 
-	public static @Nullable WScope nearestScope(AstElement e) {
+	public static @Nullable WScope nearestScope(Element e) {
 		if (e instanceof WScope) {
 			return (WScope) e;
 		}
@@ -120,7 +120,7 @@ public class AttrNearest {
 		}
 	}
 
-	public static @Nullable StructureDef nearestStructureDef(AstElement e) {
+	public static @Nullable StructureDef nearestStructureDef(Element e) {
 		if (e instanceof StructureDef) {
 			return (StructureDef) e;
 		} else if (e.getParent() != null) {
@@ -130,7 +130,7 @@ public class AttrNearest {
 		}
 	}
 
-	public static @Nullable CompilationUnit nearestCompilationUnit(AstElement e) {
+	public static @Nullable CompilationUnit nearestCompilationUnit(Element e) {
 		if (e instanceof CompilationUnit) {
 			return (CompilationUnit) e;
 		} else if (e.getParent() != null) {
@@ -140,7 +140,7 @@ public class AttrNearest {
 		}
 	}
 
-	public static @Nullable ExprClosure nearestExprClosure(@Nullable AstElement e) {
+	public static @Nullable ExprClosure nearestExprClosure(@Nullable Element e) {
 		while (e != null) {
 			if (e instanceof ExprClosure) {
 				return (ExprClosure) e;
@@ -150,7 +150,7 @@ public class AttrNearest {
 		return null;
 	}
 
-	public static @Nullable ExprStatementsBlock nearestExprStatementsBlock(@Nullable AstElement e) {
+	public static @Nullable ExprStatementsBlock nearestExprStatementsBlock(@Nullable Element e) {
 		while (e != null) {
 			if (e instanceof ExprStatementsBlock) {
 				return (ExprStatementsBlock) e;

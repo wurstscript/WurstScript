@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import org.eclipse.jdt.annotation.NonNull;
 
 import de.peeeq.wurstscript.ast.Annotation;
-import de.peeeq.wurstscript.ast.AstElementWithModifiers;
+import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.InterfaceDef;
@@ -20,31 +20,31 @@ import de.peeeq.wurstscript.ast.VisibilityPublicread;
 
 public class ModifiersHelper {
 
-	public static boolean isPublic(AstElementWithModifiers e) {
+	public static boolean isPublic(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPublic.class);
 	}
 
-	public static boolean isProtected(AstElementWithModifiers e) {
+	public static boolean isProtected(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityProtected.class);
 	}
 
-	public static boolean isPublicRead(AstElementWithModifiers e) {
+	public static boolean isPublicRead(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPublicread.class);
 	}
 
-	public static boolean isPrivate(AstElementWithModifiers e) {
+	public static boolean isPrivate(HasModifier e) {
 		return containsType(e.getModifiers(), VisibilityPrivate.class);
 	}
 
-	public static boolean isStatic(AstElementWithModifiers e) {
+	public static boolean isStatic(HasModifier e) {
 		return containsType(e.getModifiers(), ModStatic.class);
 	}
 
-	public static boolean isOverride(AstElementWithModifiers e) {
+	public static boolean isOverride(HasModifier e) {
 		return containsType(e.getModifiers(), ModOverride.class);
 	}
 
-	public static boolean isAbstract(AstElementWithModifiers e) {
+	public static boolean isAbstract(HasModifier e) {
 		if (e instanceof FuncDef
 				&& e.attrNearestStructureDef() instanceof InterfaceDef) {
 			FuncDef f = (FuncDef) e;
@@ -54,7 +54,7 @@ public class ModifiersHelper {
 		return containsType(e.getModifiers(), ModAbstract.class);
 	}
 
-	public static boolean isConstant(AstElementWithModifiers e) {
+	public static boolean isConstant(HasModifier e) {
 		return containsType(e.getModifiers(), ModConstant.class);
 	}
 
@@ -71,13 +71,13 @@ public class ModifiersHelper {
 	
 
 	public static boolean isCompiletime(HasModifier e) {
-		if (e instanceof AstElementWithModifiers) {
-			return hasAnnotation((AstElementWithModifiers) e, "compiletime");
+		if (e instanceof HasModifier) {
+			return hasAnnotation((HasModifier) e, "compiletime");
 		}
 		return false;
 	}
 
-	public static boolean hasAnnotation(AstElementWithModifiers e, String name) {
+	public static boolean hasAnnotation(HasModifier e, String name) {
 		return hasAnnotation(e.getModifiers(), name);
 	}
 

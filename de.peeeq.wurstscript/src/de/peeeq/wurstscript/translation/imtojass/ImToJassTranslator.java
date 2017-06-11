@@ -26,7 +26,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import de.peeeq.wurstscript.ast.AstElement;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassExpr;
@@ -44,8 +43,8 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassImElement;
-import de.peeeq.wurstscript.jassIm.JassImElementWithTrace;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ElementWithTrace;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Utils;
@@ -141,11 +140,11 @@ public class ImToJassTranslator {
 		return r;
 	}
 
-	private static AstElement getTrace(@Nullable JassImElement elem) {
+	private static de.peeeq.wurstscript.ast.Element getTrace(@Nullable Element elem) {
 		while (elem != null) {
-			if (elem instanceof JassImElementWithTrace) {
-				JassImElementWithTrace jassImElementWithTrace = (JassImElementWithTrace) elem;
-				AstElement t = jassImElementWithTrace.getTrace();
+			if (elem instanceof ElementWithTrace) {
+				ElementWithTrace ElementWithTrace = (ElementWithTrace) elem;
+				de.peeeq.wurstscript.ast.Element t = ElementWithTrace.getTrace();
 				if (t != null) {
 					return t;
 				}

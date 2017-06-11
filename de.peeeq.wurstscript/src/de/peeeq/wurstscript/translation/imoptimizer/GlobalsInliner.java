@@ -52,28 +52,28 @@ public class GlobalsInliner {
 					ImIntVal val = (ImIntVal)right;
 					replacement = (JassIm.ImIntVal(val.getValI()));
 					if (obs.getParent() != null)
-						obs.replaceWith(JassIm.ImNull());
+						obs.replaceBy(JassIm.ImNull());
 				}else if (right instanceof ImRealVal) {
 					ImRealVal val = (ImRealVal)right;
 					replacement = (JassIm.ImRealVal(val.getValR()));
 					if (obs.getParent() != null)
-						obs.replaceWith(JassIm.ImNull());
+						obs.replaceBy(JassIm.ImNull());
 				}else if (right instanceof ImStringVal) {
 					ImStringVal val = (ImStringVal)right;
 					replacement = (JassIm.ImStringVal(val.getValS()));
 					if (obs.getParent() != null)
-						obs.replaceWith(JassIm.ImNull());
+						obs.replaceBy(JassIm.ImNull());
 				}else if (right instanceof ImBoolVal) {
 					ImBoolVal val = (ImBoolVal)right;
 					replacement = (JassIm.ImBoolVal(val.getValB()));
 					if (obs.getParent() != null)
-						obs.replaceWith(JassIm.ImNull());
+						obs.replaceBy(JassIm.ImNull());
 				} else {
 					replacement = null;
 				}
 				if (replacement != null) {
 					for ( ImVarRead v3 : v.attrReads()) {
-						v3.replaceWith(replacement.copy());
+						v3.replaceBy(replacement.copy());
 					}
 				}
 				if (replacement != null || v.attrReads().size() == 0) {
@@ -88,7 +88,7 @@ public class GlobalsInliner {
 //			WLogger.info("obsolete var: " + i + " written in " + write);
 //			WLogger.info("parent" + write.getParent());
 			if (write.getParent() != null) {
-				write.replaceWith(write.getRight().copy());
+				write.replaceBy(write.getRight().copy());
 			}
 //			if (write.getParent() instanceof ImStmts) {
 //				ImStmts stmts = (ImStmts) write.getParent();

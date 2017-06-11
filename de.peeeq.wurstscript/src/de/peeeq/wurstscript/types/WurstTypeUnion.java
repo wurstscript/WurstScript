@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 
@@ -26,7 +26,7 @@ public class WurstTypeUnion extends WurstType {
 	}
 
 	@Override
-	public boolean isSubtypeOfIntern(WurstType other, @Nullable AstElement location) {
+	public boolean isSubtypeOfIntern(WurstType other, @Nullable Element location) {
 		return typeA.isSubtypeOf(other, location)
 				&& typeB.isSubtypeOf(other, location);
 	}

@@ -29,7 +29,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarRead;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
@@ -74,7 +74,7 @@ public class TempMerger {
 						if (imSet.getLeft() == right.getVar()) {
 							// statement has the form 'x = x' so remove it
                             totalMerged++;
-							imSet.replaceWith(JassIm.ImNull());
+							imSet.replaceBy(JassIm.ImNull());
 							continue;
 						}
 					}
@@ -128,7 +128,7 @@ public class TempMerger {
 		return null;
 	}
 
-	private @Nullable Replacement getPossibleReplacement(JassImElement elem, Knowledge kn) {
+	private @Nullable Replacement getPossibleReplacement(Element elem, Knowledge kn) {
 		if (kn.isEmpty()) {
 			return null;
 		}
@@ -167,7 +167,7 @@ public class TempMerger {
 		return null;
 	}
 
-	private boolean containsFuncCall(JassImElement elem) {
+	private boolean containsFuncCall(Element elem) {
 		if (elem instanceof ImFunctionCall) {
 			return true;
 		}
@@ -181,7 +181,7 @@ public class TempMerger {
 		return false;
 	}
 	
-	public boolean readsVar(JassImElement elem, ImVar left) {
+	public boolean readsVar(Element elem, ImVar left) {
 		if (elem instanceof ImVarRead) {
 			ImVarRead va = (ImVarRead) elem;
 			if (va.getVar() == left) {
@@ -198,7 +198,7 @@ public class TempMerger {
 		return false;
 	}
 
-	public boolean readsGlobal(JassImElement elem) {
+	public boolean readsGlobal(Element elem) {
 		if (elem instanceof ImVarRead) {
 			ImVarRead va = (ImVarRead) elem;
 			if (va.getVar().isGlobal()) {
@@ -234,7 +234,7 @@ public class TempMerger {
 			if (set.getLeft().attrReads().size() <= 1) {
 				// make sure that an impure expression is only evaluated once
 				// by removing the assignment
-				set.replaceWith(JassIm.ImNull());
+				set.replaceBy(JassIm.ImNull());
 				
 				// remove variables which are no longer read
 				for (ImVarRead r : readVariables(set)) {
@@ -243,7 +243,7 @@ public class TempMerger {
 			}
 			
 			ImExpr newE = (ImExpr) e.copy();
-			read.replaceWith(newE);
+			read.replaceBy(newE);
 			// update attrReads:
 			set.getLeft().attrReads().remove(read);
 			
@@ -256,14 +256,14 @@ public class TempMerger {
 
 	}
 	
-	private Collection<ImVarRead> readVariables(JassImElement e) {
+	private Collection<ImVarRead> readVariables(Element e) {
 		Collection<ImVarRead> result = Lists.newArrayList();
 		collectReadVariables(result, e);
 		return result;
 	}
 	
 
-	private void collectReadVariables(Collection<ImVarRead> result, JassImElement e) {
+	private void collectReadVariables(Collection<ImVarRead> result, Element e) {
 		if (e instanceof ImVarRead) {
 			result.add((ImVarRead) e);
 		}

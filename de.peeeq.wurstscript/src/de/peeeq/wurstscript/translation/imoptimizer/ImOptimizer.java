@@ -156,7 +156,7 @@ public class ImOptimizer {
 				for (Pair<ImStmt, ImStmt> pair : replacements) {
 					changes = true;
 					pair.getB().setParent(null);
-					pair.getA().replaceWith(pair.getB());
+					pair.getA().replaceBy(pair.getB());
 				}
 				
 				// keep only read local variables

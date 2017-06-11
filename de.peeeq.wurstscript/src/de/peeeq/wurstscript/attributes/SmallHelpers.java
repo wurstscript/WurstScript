@@ -5,7 +5,7 @@ import java.util.Optional;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.AstElementWithTypeParameters;
 import de.peeeq.wurstscript.ast.EnumMember;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
@@ -55,7 +55,7 @@ public class SmallHelpers {
 		return false;
 	}
 
-	public static boolean isSubtreeOf(@Nullable AstElement subtree, AstElement of) {
+	public static boolean isSubtreeOf(@Nullable Element subtree, Element of) {
 		while (subtree!= null) {
 			if (subtree == of) return true;
 			subtree = subtree.getParent();

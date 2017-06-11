@@ -7,7 +7,7 @@ import com.google.common.collect.Lists;
 
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ClassOrModule;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.ModuleDef;
@@ -87,12 +87,12 @@ public class ModuleExpander {
 		return mi.getP_moduleInstanciations();
 	}
 
-	private static <T extends AstElement> T smartCopy(T e,	List<Pair<WurstType, WurstType>> typeReplacements) {
+	private static <T extends Element> T smartCopy(T e,	List<Pair<WurstType, WurstType>> typeReplacements) {
 		List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
 		calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
 		
 		
-		AstElement copy = e.copy();
+		Element copy = e.copy();
 		
 		// Do the type replacements
 		for (Pair<ImmutableList<Integer>, TypeExpr> rep : replacementsByPath) {
@@ -104,7 +104,7 @@ public class ModuleExpander {
 		return t;
 	}
 	
-	private static void doReplacement(AstElement e, ImmutableList<Integer> a, TypeExpr newTypeExpr) {
+	private static void doReplacement(Element e, ImmutableList<Integer> a, TypeExpr newTypeExpr) {
 		if (a.size() == 1) {
 			e.set(a.head(), newTypeExpr);
 		} else if (a.size() > 1) {
@@ -112,7 +112,7 @@ public class ModuleExpander {
 		}
 	}
 
-	private static void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, AstElement e, ImmutableList<Integer> pos) {
+	private static void calcReplacementsByPath(List<Pair<WurstType, WurstType>> typeReplacements, List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath, Element e, ImmutableList<Integer> pos) {
 		if (e instanceof TypeExpr) {
 			TypeExpr typeExpr = (TypeExpr) e;
 			for (Pair<WurstType, WurstType> rep : typeReplacements) {

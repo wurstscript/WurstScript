@@ -9,7 +9,7 @@ import com.google.common.collect.Maps;
 
 import de.peeeq.wurstscript.frotty.jassValidator.JassErrors;
 import de.peeeq.wurstscript.jassAst.JassArrayVar;
-import de.peeeq.wurstscript.jassAst.JassAstElement;
+import de.peeeq.wurstscript.jassAst.Element;
 import de.peeeq.wurstscript.jassAst.JassExprVarRef;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -22,7 +22,7 @@ public class VariableDefinition {
 
 	public static @Nullable JassVar get(JassExprVarRef e) {
 		String varName = e.getVarName();
-		JassAstElement node = e.getParent();
+		Element node = e.getParent();
 		while (node != null) {
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;
@@ -65,7 +65,7 @@ public class VariableDefinition {
 
 	public static @Nullable JassStmtSet get(JassStmtSet e) {
 		String varName = e.getLeft();
-		JassAstElement node = e.getParent();
+		Element node = e.getParent();
 		while (node != null) {
 			JassVar v = null;
 			if (node instanceof JassFunction) {
@@ -94,7 +94,7 @@ public class VariableDefinition {
 
 	public static @Nullable JassStmtSetArray get(JassStmtSetArray e) {
 		String varName = e.getLeft();
-		JassAstElement node = e.getParent();
+		Element node = e.getParent();
 		while (node != null) {
 			if (node instanceof JassFunction) {
 				JassFunction jassFunction = (JassFunction) node;

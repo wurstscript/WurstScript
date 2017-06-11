@@ -19,7 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.JassImElement;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public class MultiArrayEliminator {
@@ -72,7 +72,7 @@ public class MultiArrayEliminator {
 
 	}
 	
-	private void replaceVars(JassImElement e, Map<ImVar, GetSetPair> oldToNewVar) {
+	private void replaceVars(Element e, Map<ImVar, GetSetPair> oldToNewVar) {
 		// process children
 		for (int i=0; i<e.size(); i++) {
 			replaceVars(e.get(i), oldToNewVar);
@@ -86,7 +86,7 @@ public class MultiArrayEliminator {
 			}
 			args.add((ImExpr) ((ImSetArrayMulti) e).getRight().copy());
 			if(getSetMap.containsKey(sm.getLeft())) {
-				sm.replaceWith(JassIm.ImFunctionCall(sm.getTrace(), getSetMap.get(sm.getLeft()).setter, args, false, CallType.NORMAL));
+				sm.replaceBy(JassIm.ImFunctionCall(sm.getTrace(), getSetMap.get(sm.getLeft()).setter, args, false, CallType.NORMAL));
 			}
 			
 		}else if (e instanceof ImVarArrayMultiAccess) {
@@ -95,7 +95,7 @@ public class MultiArrayEliminator {
 			args.add((ImExpr) am.getIndex1().copy());
 			args.add((ImExpr) am.getIndex2().copy());
 			if(getSetMap.containsKey(am.getVar())) {
-				am.replaceWith(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, args, false, CallType.NORMAL));
+				am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, args, false, CallType.NORMAL));
 			}
 
 		}

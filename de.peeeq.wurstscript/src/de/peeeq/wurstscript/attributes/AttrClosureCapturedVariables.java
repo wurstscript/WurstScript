@@ -6,7 +6,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 
 import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.ast.ExprThis;
 import de.peeeq.wurstscript.ast.FunctionCall;
@@ -20,8 +20,8 @@ import de.peeeq.wurstscript.types.WurstTypeArray;
 
 public class AttrClosureCapturedVariables {
 
-	public static ImmutableMultimap<AstElement, VarDef> calculate(ExprClosure e) {
-		ImmutableMultimap.Builder<AstElement, VarDef> result = ImmutableMultimap.builder();
+	public static ImmutableMultimap<Element, VarDef> calculate(ExprClosure e) {
+		ImmutableMultimap.Builder<Element, VarDef> result = ImmutableMultimap.builder();
 		// just use a visitor and select every local variable which is not defined in the
 		// closure itself
 		collect(result, e, e.getImplementation());
@@ -30,10 +30,10 @@ public class AttrClosureCapturedVariables {
 		return result.build();
 	}
 
-	private static void collect(Builder<AstElement, VarDef> result, ExprClosure closure, AstElement e) {
+	private static void collect(Builder<Element, VarDef> result, ExprClosure closure, Element e) {
 		if (e instanceof ExprClosure) {
 			ExprClosure innerClosure = (ExprClosure) e;
-			for (Entry<AstElement, VarDef> entry : innerClosure.attrCapturedVariables().entries()) {
+			for (Entry<Element, VarDef> entry : innerClosure.attrCapturedVariables().entries()) {
 				VarDef v = entry.getValue();
 				if (v.attrNearestExprClosure() != closure) {
 					result.put(entry.getKey(), v);

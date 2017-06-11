@@ -11,7 +11,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.Ordering;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ConstructorDef;
 import de.peeeq.wurstscript.ast.ExprFuncRef;
 import de.peeeq.wurstscript.ast.ExprFunctionCall;
@@ -26,7 +26,7 @@ import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.Utils;
 
-public abstract class OverloadingResolver<F extends AstElement,C> {
+public abstract class OverloadingResolver<F extends Element,C> {
 
 	abstract int getParameterCount(F f);
 	abstract WurstType getParameterType(F f, int i);

@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.AstElement;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.NoExpr;
@@ -52,7 +52,7 @@ public class AttrTypeExprType {
 	
 	public static WurstType calculate(TypeExprThis node) {
 		WurstType scopeType = node.getScopeType().attrTyp();
-		AstElement scope;
+		Element scope;
 		if (scopeType instanceof WurstTypeNamedScope) {
 			WurstTypeNamedScope wtns = (WurstTypeNamedScope) scopeType;
 			scope = wtns.getDef();
