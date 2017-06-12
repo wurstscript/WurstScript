@@ -1,3 +1,4 @@
+import java.text.SimpleDateFormat
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -10,6 +11,9 @@ apply plugin: 'antlr'
 // plugins for generating IDE projects
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+
+version = "1.7.0.0"
+
 
 String genDir = "$projectDir/src-gen"
 
@@ -95,11 +99,60 @@ task genAst {
 }
 
 
+task versionInfoFile {
+    description "Generates a file CompileTimeInfo.java with version number etc."
+
+    doLast {
+        def dir = new File('./src-gen/de/peeeq/wurstscript/')
+        dir.mkdirs()
+        def f = new File(dir, 'CompileTimeInfo.java')
+
+        String gitRevision = "unknown-version"
+        String gitRevisionlong = "unknown-version"
+
+        new ByteArrayOutputStream().withStream { os ->
+            def result = exec {
+                executable = 'git'
+                args = ['describe', '--tags', '--always']
+                standardOutput = os
+            }
+            gitRevision = os.toString().trim()
+        }
+
+        new ByteArrayOutputStream().withStream { os ->
+            def result = exec {
+                executable = 'git'
+                args = ['describe', '--tags', '--always', '--abbrev=0']
+                standardOutput = os
+            }
+            gitRevisionlong = os.toString().trim()
+        }
+
+        String wurstVersion = "${version}-${gitRevision}"
+
+
+        String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
+
+        f.text = """
+        package de.peeeq.wurstscript;
+
+        public class CompileTimeInfo {
+            public static final String time="${currentTime}";
+            public static final String revision="${gitRevision}";
+            public static final String revisionLong="${gitRevisionlong}";
+            public static final String version="${wurstVersion}";
+        }
+        """
+
+    }
+}
+
 
 task gen {
     description "Generates code from various input files"
 }
 gen.dependsOn genAst
+gen.dependsOn versionInfoFile
 
 compileJava.dependsOn gen
 

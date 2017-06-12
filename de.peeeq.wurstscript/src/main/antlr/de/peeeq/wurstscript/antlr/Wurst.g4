@@ -1,4 +1,8 @@
-grammar Jurst;
+grammar Wurst;
+
+@header {
+    package de.peeeq.wurstscript.antlr;
+}
 
 compilationUnit : NL* decls+=topLevelDeclaration*;
 
@@ -21,7 +25,7 @@ jassGlobalsBlock:
 				;
 
 jassGlobalDecl:
-				  constant='constant'? typeExpr name=id ('=' initial=expr)? NL
+				  constant='constant'? typeExpr name=ID ('=' initial=expr)? NL
 			  ;
 
 jassFuncDef:
@@ -31,7 +35,7 @@ jassFuncDef:
 			   'endfunction' NL
 		   ;
 
-jassLocal: 'local' typeExpr name=id ('=' initial=expr)? NL;
+jassLocal: 'local' typeExpr name=ID ('=' initial=expr)? NL;
 
 jassStatements: stmts+=jassStatement*;
 
@@ -76,24 +80,22 @@ jassNativeDecl:
 			  ;
 
 jassFuncSignature:
-					 name=id 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
+					 name=ID 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
 					 'returns' ('nothing'|returnType=typeExpr)
 				 ;
 
-jassTypeDecl: 'type' name=id 'extends' extended=typeExpr NL;
+jassTypeDecl: 'type' name=ID 'extends' extended=typeExpr NL;
 
 
-wpackage: ('package'|'library'|'scope') name=id 
-		  ('initializer' initializer=id)?
-		  (('uses'|'requires'|'needs') 'optional'? requires+=id (',' 'optional'? requires+=id)*)?	  
-		  NL 
+wpackage: 'package' name=ID NL 
+	(
 	imports+=wImport* entities+=entity*
-	('endpackage'|'endlibrary'|'endscope'|'end') NL
+	| STARTBLOCK imports+=wImport* entities+=entity* ENDBLOCK
+	) 'endpackage' NL
 	;
 
-
 wImport: 
-    'import' isPublic='public'? isInitLater='initlater'? importedPackage=id NL 
+    'import' isPublic='public'? isInitLater='initlater'? importedPackage=ID NL 
     ;
 
 
@@ -101,8 +103,7 @@ wImport:
 entity: 
         nativeType
       | funcDef
-      | functionInterfaceDef
-	  | globalsBlock
+      | varDef
       | initBlock
       | nativeDef
       | classDef
@@ -111,40 +112,35 @@ entity:
       | interfaceDef
       | tupleDef
       | extensionFuncDef
-      | varDef
 ;
 
-
-globalsBlock: 'globals' NL vars+=varDef* ('endglobals' | 'end') NL;
-
 interfaceDef:
-                modifiersWithDoc 'interface' name=id typeParams 
+                modifiersWithDoc 'interface' name=ID typeParams 
                 ('extends' extended+=typeExpr (',' extended+=typeExpr)*)? 
-                NL
+                NL (STARTBLOCK
                     classSlots
-                ('end'|'endinterface') NL
+                ENDBLOCK)?
             ;
              
  
 classDef:
-            modifiersWithDoc ('class'|'struct') name=id typeParams 
-            ('extends' (extended=typeExpr | 'array'))? 
+            modifiersWithDoc 'class' name=ID typeParams 
+            ('extends' extended=typeExpr)? 
             ('implements' implemented+=typeExpr (',' implemented+=typeExpr)*)?
-            NL
+            NL (STARTBLOCK
                 classSlots
-			('end'|'endclass'|'endstruct') NL
+            ENDBLOCK)?
         ;
 
-enumDef: modifiersWithDoc 'enum' name=id NL 
-      (enumMembers+=id NL)*
-	('end'|'endenum') NL
-	   ;
+enumDef: modifiersWithDoc 'enum' name=ID NL (STARTBLOCK 
+      (enumMembers+=ID NL)*
+ENDBLOCK)?;
 
 moduleDef:
-            modifiersWithDoc 'module' name=id typeParams
-            NL
+            modifiersWithDoc 'module' name=ID typeParams
+            NL STARTBLOCK
                 classSlots
-            ('end'|'endmodule') NL
+            ENDBLOCK
          ;
 
 classSlots: slots+=classSlot*;
@@ -155,36 +151,31 @@ classSlot:
          | ondestroyDef
          | varDef
          | funcDef
+         | classDef
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL 
+                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
 					('super' '(' superArgs=exprList ')' NL)?
 					stmts+=statement*
-                  ('end'|'endconstruct') NL
+                  ENDBLOCK)?
               ;
        
 moduleUse: 
-         modifiersWithDoc ('use'|'implement') optional='optional'? moduleName=id typeArgs NL
+         modifiersWithDoc 'use' moduleName=ID typeArgs NL
          ;
 
 ondestroyDef:
-            'ondestroy' NL statementsBlock ('end'|'endondestroy') NL
+            'ondestroy' NL statementsBlock
             ;
 
 
 funcDef:
-       modifiersWithDoc ('function'|'method') funcSignature 
-       (
-	         NL statementsBlock ('end'|'endfunction'|'endmethod')
-	       | 'defaults' (defaultExpr=expr|defaultsNothing='nothing')
-       )? 
-       NL 
+       modifiersWithDoc 'function' funcSignature NL statementsBlock
        ;
 
-functionInterfaceDef:
-	modifiersWithDoc 'function' 'interface' funcSignature NL
-    ;
+
+
 
 
 
@@ -199,13 +190,10 @@ modifier:
 		| 'private'
 		| 'protected'
 		| 'publicread'
-		| 'readonly'
 		| 'static'
 		| 'override'
 		| 'abstract' 
 		| 'constant'
-		| 'delegate'
-		| 'stub'
 			)
 		| annotation
 		;
@@ -215,83 +203,75 @@ annotation: ANNOTATION;
 hotdocComment: HOTDOC_COMMENT;
 
 funcSignature:
-				 name=id typeParams formalParameters ('returns' ('nothing' | returnType=typeExpr))?
+				 name=ID typeParams formalParameters ('returns' returnType=typeExpr)?
 			 ;
 
-formalParameters: 
-				  '(' (params+=formalParameter (',' params+=formalParameter)*)? ')'
-				| 'takes' 'nothing'
-				| 'takes' params+=formalParameter (',' params+=formalParameter)*
-				;
+formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				   typeExpr name=id
+				   typeExpr name=ID
 			   ;
 
 typeExpr:
 		  thistype='thistype'
 		| typeName=ID typeArgs
-		| typeExpr 'array' ('[' arraySizes+=expr ']')*
+		| typeExpr 'array' ('[' arraySize=expr ']')?
+		| typeExpr '.' typeName=ID typeArgs
+		| typeExpr '.' thistype='thistype'
 		;
 
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=id ('[' arraySizes+=expr ']')* ('=' initial=expr)? NL 
+		  name=ID ('=' initial=expr)? NL 
 	  ;		  
 
-statements: statement*;
+statements:
+			statement*
+		  ;
 
-statementsBlock: statement*;
+statementsBlock:
+			   (STARTBLOCK statement* ENDBLOCK)?;
 
 
-statement:
-			 stmtIf
-		 | stmtLoop
-		 | stmtExitwhen
-		 | stmtWhile
-		 | localVarDef
+statement: (
+		   localVarDef
 		 | stmtSet
-		 | stmtCall
-		 | stmtReturn		 
-		 | stmtForLoop
+		 | stmtReturn
 		 | stmtBreak
 		 | stmtSkip
+		 | expr
+		 ) NL
+		 | stmtIf
+		 | stmtWhile
+		 | stmtForLoop
 		 | stmtSwitch
 		 ;
 
-stmtLoop: 'loop' NL statementsBlock ('end'|'endloop') NL;
-
-stmtExitwhen: 'exitwhen' expr NL;
-
 exprDestroy:
 			   'destroy' expr
-		     | expr '.' 'destroy' ('(' ')')?
 		   ;
 
 stmtReturn:
-			  'return' expr NL
+			  'return' expr
 		  ;
 
 stmtIf:
-		  isStatic='static'? 'if' cond=expr 'then'? NL
+		  'if' cond=expr NL
 		  thenStatements=statementsBlock
-		  elseStatements
+		  ('else' elseStatements)?
 	  ;
 
 elseStatements:
-				'elseif' cond=expr 'then'? NL
-				thenStatements=statementsBlock
-				elseStatements
-			  | 'else' NL statementsBlock ('endif'|'end') NL
-			  | ('endif'|'end') NL
+				  stmtIf
+			  | NL statementsBlock
 			  ;
 
 stmtSwitch:
-			  'switch' expr NL
+			  'switch' expr NL (STARTBLOCK
 				switchCase*
 				switchDefaultCase?
-			  ('end'|'endswitch')
+			  ENDBLOCK)?
 		  ;
 			
 switchCase:
@@ -305,25 +285,23 @@ switchDefaultCase:
 
 stmtWhile: 
 			 'while' cond=expr NL statementsBlock
-			 ('end'|'endwhile')
 		 ;
 
 localVarDef:
-		  (var='var'|let='let'|'local'? type=typeExpr)
-		  name=id ('=' initial=expr)? NL 
+		  (var='var'|let='let'|type=typeExpr)
+		  name=ID ('=' initial=expr)? 
 	  ;	
 
 localVarDefInline:
-					 typeExpr? name=id
+					 typeExpr? name=ID
 				 ;
 
 stmtSet:
-		   'set'? left=exprAssignable 
+		   left=exprAssignable 
 		   (assignOp=('='|'+='|'-='|'*='|'/=') right=expr
 			| incOp='++'
 			| decOp='--'
 			) 
-		   NL
 	   ;
 
 
@@ -333,12 +311,12 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=id indexes*
+				 expr dots=('.'|'..') varname=ID? indexes?
 			 ;
 
 
 exprVarAccess:
-				 varname=id indexes*
+				 varname=ID indexes?
 			 ;
 
 
@@ -346,27 +324,22 @@ indexes:
 		   '[' expr ']'
 	   ;
 
-stmtCall: 'call'?
-		(
+stmtCall:
 			exprMemberMethod
-		  | exprFunctionCall
-		  | exprNewObject
-		  | exprDestroy
-		)  NL
+		| exprFunctionCall
+		| exprNewObject
 		;
 
 exprMemberMethod:
-					receiver=expr dots=('.'|'..') funcName=id? typeArgs ('(' exprList ')')?
+					receiver=expr dots=('.'|'..') funcName=ID? typeArgs ('(' exprList ')')?
 				;
 
 expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dotsCall=('.'|'..') funcName=id? typeArgs '(' exprList ')'
-	  | receiver=expr dotsVar=('.'|'..') varName=id? indexes*
-	  |	'destroy' destroyedObject=expr
-	  | destroyedObject=expr '.' 'destroy' '(' ')'
+	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
+	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser
@@ -385,6 +358,8 @@ exprPrimary:
       | exprNewObject
 	  | exprClosure
 	  | exprStatementsBlock
+	  | exprDestroy
+      | varname=ID indexes?
       | atom=(INT
       | REAL
 	  | STRING
@@ -394,11 +369,10 @@ exprPrimary:
 	  | 'this'
 	  | 'super')
 	  | exprFuncRef
-      | varname=id indexes*
       | '(' expr ')' 
 	;
 
-exprFuncRef: 'function' (scopeName=id '.')? funcName=id;
+exprFuncRef: 'function' (scopeName=ID '.')? funcName=ID;
 
 exprStatementsBlock:
 					   'begin' NL statementsBlock 'end'
@@ -406,16 +380,16 @@ exprStatementsBlock:
 
 
 exprFunctionCall:
-					funcName=id typeArgs '(' exprList ')'
+					funcName=ID typeArgs '(' exprList ')'
 				;
 	  
-exprNewObject:'new' className=id typeArgs ('(' exprList ')')?;
+exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
 
 exprClosure: formalParameters '->' expr;
 		  
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
-typeParam: name=id;
+typeParam: name=ID;
 
 stmtForLoop:
 			   forRangeLoop
@@ -423,20 +397,16 @@ stmtForLoop:
 		   ;
 
 forRangeLoop:
-	'for' loopVar=localVarDefInline '=' start=expr direction=('to'|'downto') end=expr ('step' step=expr)? NL 
-		statementsBlock 
-	('end'|'endfor')
+	'for' loopVar=localVarDefInline '=' start=expr direction=('to'|'downto') end=expr ('step' step=expr)? NL statementsBlock
 ;
 
 forIteratorLoop:
-   'for' loopVar=localVarDefInline iterStyle=('in'|'from') iteratorExpr=expr NL 
-	statementsBlock
-   ('end'|'endfor')
+   'for' loopVar=localVarDefInline iterStyle=('in'|'from') iteratorExpr=expr NL statementsBlock
 ;
 
 
-stmtBreak:'break' NL;
-stmtSkip:'skip' NL;
+stmtBreak:'break';
+stmtSkip:'skip';
 
 
 
@@ -446,23 +416,11 @@ exprList : exprs+=expr (',' exprs+=expr)*;
 
 
 
-nativeType: 'type' name=id ('extends' extended=id)? NL;
-
-initBlock: 'init' NL 
-				statementsBlock
-			('end'|'endinit') NL; 
-
+nativeType: 'nativetype' name=ID ('extends' extended=ID)? NL;
+initBlock: 'init' NL statementsBlock; 
 nativeDef: modifiersWithDoc 'native' funcSignature NL; 
-
-tupleDef: modifiersWithDoc 'tuple' name=id formalParameters NL; 
-
-extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL 
-		statementsBlock 
-	('end'|'endfunction');
-
-
-// some keywords are also valid identifiers for backwards compatibility reasons
-id: ID|'end'|'init'|'this'|'new'|'destroy'|'it'|'to'|'from'|'class'|'thistype';
+tupleDef: modifiersWithDoc 'tuple' name=ID formalParameters NL; 
+extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL statementsBlock;
 
 // Lexer:
 
@@ -482,9 +440,6 @@ FUNCTION: 'function';
 RETURNS: 'returns';
 PUBLIC: 'public';
 PULBICREAD: 'publicread';
-READONLY: 'readonly';
-DELEGATE: 'delegate';
-STUB: 'stub';
 PRIVATE: 'private';
 PROTECTED: 'protected';
 IMPORT: 'import';
@@ -524,7 +479,7 @@ FROM: 'from';
 TO: 'to';
 DOWNTO: 'downto';
 STEP: 'step';
-SKIP: 'skip';
+SKIP_: 'skip';
 TRUE: 'true';
 FALSE: 'false';
 VAR: 'var';
@@ -556,18 +511,6 @@ ENDMETHOD: 'endmethod';
 SET: 'set';
 CALL: 'call';
 EXITWHEN: 'exitwhen';
-INITIALIZER: 'initializer';
-ENDINTERFACE: 'endinterface';
-ENDCLASS: 'endclass';
-ENDENUM: 'endenum';
-ENDMODULE: 'endmodule';
-ENDCONSTRUCT: 'endconstruct';
-IMPLEMENT: 'implement';
-ENDONDESTROY: 'endondestroy';
-ENDSWITCH: 'endswitch';
-ENDWHILE: 'endwhile';
-ENDFOR: 'endfor';
-ENDINIT: 'endinit';
 
 COMMA: ',';
 PLUS: '+';
@@ -597,6 +540,8 @@ MULT_EQ: '*=';
 DIV_EQ: '/=';
 ARROW: '->';
 
+STARTBLOCK:[];
+ENDBLOCK:[];
 INVALID:[];
 
 
@@ -617,8 +562,10 @@ INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
 
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
-DEBUG: 'debug' -> skip;
-WS : [ \t]+ -> skip ;
+
+TAB: [\t];
+SPACETAB:'    ';
+WS : (' '|'  '|'   ') -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;
