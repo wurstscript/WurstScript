@@ -12,6 +12,9 @@ apply plugin: 'antlr'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 
+
+apply plugin: 'application'
+mainClassName = "de.peeeq.wurstio.Main"
 version = "1.7.0.0"
 
 
@@ -156,7 +159,18 @@ gen.dependsOn versionInfoFile
 
 compileJava.dependsOn gen
 
+
+test {
+    include "tests/wurstscript/tests/AllTests.class"
+}
+
 // delete the generated sources on clean
 clean.doFirst {
     delete genDir
+}
+
+// Publish
+task copyRuntimeLibs(type: Copy) {
+    into "build/release"
+    from configurations.runtime
 }

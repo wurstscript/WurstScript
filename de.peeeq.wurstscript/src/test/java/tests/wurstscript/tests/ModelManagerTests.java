@@ -7,12 +7,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.core.IsNot;
 import org.junit.Assert;
 import static org.junit.Assert.*;
 import org.junit.Test;
-import org.junit.internal.matchers.StringContains;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
@@ -90,9 +90,9 @@ public class ModelManagerTests {
 		String fileB = new File(wurstFolder, "B.wurst").getCanonicalPath();
 		String fileC = new File(wurstFolder, "C.wurst").getCanonicalPath();
 		
-		assertThat(results.get(fileA), new StringContains("Reference to function b could not be resolved"));
-		assertThat(results.get(fileA), new StringContains("Reference to function c could not be resolved"));
-		assertThat(results.get(fileB), new StringContains("Reference to function c could not be resolved"));
+		assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function b could not be resolved"));
+		assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function c could not be resolved"));
+		assertThat(results.get(fileB), CoreMatchers.containsString("Reference to function c could not be resolved"));
 		assertEquals("", results.get(fileC));
 		
 		// no assume we fix package B
@@ -103,9 +103,9 @@ public class ModelManagerTests {
 		assertEquals(ImmutableSet.of(fileA, fileB), results.keySet());
 		
 		// reference to function b should be found now, other errors still the same
-		assertThat(results.get(fileA), new IsNot<>(new StringContains("Reference to function b could not be resolved")));
-		assertThat(results.get(fileA), new StringContains("Reference to function c could not be resolved"));
-		assertThat(results.get(fileB), new StringContains("Reference to function c could not be resolved"));
+		assertThat(results.get(fileA), new IsNot<>(CoreMatchers.containsString("Reference to function b could not be resolved")));
+		assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function c could not be resolved"));
+		assertThat(results.get(fileB), CoreMatchers.containsString("Reference to function c could not be resolved"));
 		
 		// no we fix package C:
 		String packageC_v2 = packageC_v1.replace("c_old", "c");
