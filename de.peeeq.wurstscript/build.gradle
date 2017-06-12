@@ -16,7 +16,7 @@ String genDir = "$projectDir/src-gen"
 sourceSets {
     main {
         java {
-            srcDir 'src'
+            srcDir 'src/main/java'
             srcDir genDir
         }
     }
@@ -46,6 +46,23 @@ dependencies {
 
     // Google guava
     compile 'com.google.guava:guava:21.0'
+
+    // @Nullable annotations
+    compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
+
+    // Gson for json parsing
+    compile group: 'com.google.code.gson', name: 'gson', version: '2.6.2'
+
+    // Velocity template engine for generating Html documents from Hotdoc documentation
+    compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
+
+    // Chardet for guessing the file-encoding of a source-file
+    compile files('lib/chardet.jar')
+
+
+    // JMPQ by Crigges for handling mpq archives
+    compile files('lib/jmpq2.jar')
+    compile files('lib/jmpq3.jar')
 }
 
 
