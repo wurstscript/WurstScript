@@ -169,8 +169,5 @@ clean.doFirst {
     delete genDir
 }
 
-// Publish
-task copyRuntimeLibs(type: Copy) {
-    into "build/release"
-    from configurations.runtime
-}
+// To publish first run ./gradlew installDist
+// then copy to wurstpack folder
