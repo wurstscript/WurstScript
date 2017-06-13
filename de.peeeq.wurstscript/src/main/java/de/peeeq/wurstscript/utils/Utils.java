@@ -939,8 +939,11 @@ public class Utils {
             String[] parts = name.split("\\.");
             f = File.createTempFile(parts[0], parts[1]);
             f.deleteOnExit();
-            try (InputStream pjassStream = Pjass.class.getClassLoader().getResourceAsStream(name)) {
-                byte[] bytes = Utils.convertStreamToBytes(pjassStream);
+            try (InputStream is = Pjass.class.getClassLoader().getResourceAsStream(name)) {
+                if (is == null) {
+                    throw new RuntimeException("Could not find resource file " + name);
+                }
+                byte[] bytes = Utils.convertStreamToBytes(is);
                 Files.write(bytes, f);
                 resourceMap.put(name, f);
                 return f.getAbsolutePath();
