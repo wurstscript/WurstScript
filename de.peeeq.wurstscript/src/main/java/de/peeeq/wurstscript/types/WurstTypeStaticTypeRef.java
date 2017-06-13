@@ -14,6 +14,9 @@ public class WurstTypeStaticTypeRef extends WurstType {
 	
 	@Override
 	public boolean isSubtypeOfIntern(WurstType other, Element location) {
+		if (other instanceof WurstTypeStaticTypeRef) {
+			return base.isSubtypeOf(((WurstTypeStaticTypeRef) other).base, location);
+		}
 		return false;
 	}
 
