@@ -1,22 +1,22 @@
 package de.peeeq.wurstio;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Collections;
-import java.util.List;
+import java.io.*;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.io.CharSink;
 import com.google.common.io.Files;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import org.jcp.xml.dsig.internal.dom.Utils;
 
 /** 
  * a helper class to run pjass 
@@ -86,20 +86,48 @@ public class Pjass {
 		
 		
 	}
+
+	/**
+	 * Extracts pjass and returns the file
+	 */
+	private static Map<String, File> resourceMap = new HashMap<>();
+	public static synchronized String getResourceFile(String name) {
+		try {
+			File f = resourceMap.get(name);
+			if (f != null && f.exists()) {
+				return f.getAbsolutePath();
+			}
+			String[] parts = name.split("\\.");
+			f = File.createTempFile(parts[0], parts[1]);
+			f.deleteOnExit();
+			try (InputStream pjassStream = Pjass.class.getClassLoader().getResourceAsStream(name)) {
+				byte[] bytes = Utils.readBytesFromStream(pjassStream);
+				Files.write(bytes, f);
+				resourceMap.put(name, f);
+				return f.getAbsolutePath();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 	
 	
 	public static Result runPjass(File outputFile) {
 		try {
 			Process p;
 			WLogger.info("Starting pjass");
-			if (System.getProperty("os.name").toLowerCase().contains("windows")) {
-				p = Runtime.getRuntime().exec("resources/pjass.exe resources/common.j resources/blizzard.j " + outputFile.getPath());
-			} else {
+			List<String> args = new ArrayList<>();
+			args.add(getResourceFile("pjass.exe"));
+			args.add(getResourceFile("common.j"));
+			args.add(getResourceFile("blizzard.j"));
+			args.add(outputFile.getPath());
+			if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
 				WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
 				WLogger.info("Trying to run with wine ...");
 				// try to run with wine
-				p = Runtime.getRuntime().exec("wine resources/pjass.exe resources/common.j resources/blizzard.j " + outputFile.getPath());
+				args.add(0, "wine");
 			}
+			p = Runtime.getRuntime().exec(args.toArray(new String[0]));
 			BufferedReader input =
 					new BufferedReader
 					(new InputStreamReader(p.getInputStream()));
