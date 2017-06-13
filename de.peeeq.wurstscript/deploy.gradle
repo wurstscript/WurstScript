@@ -1,0 +1,67 @@
+// To publish first run ./gradlew installDist
+// then copy to wurstpack folder
+
+jar {
+    version = null
+    manifest {
+        attributes(
+                'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+                'Main-Class': mainClassName
+        )
+    }
+}
+
+task make_for_wurstpack(type: Copy) {
+    from 'build/install/wurstscript/lib'
+    into '../Wurstpack/wurstscript/'
+}
+make_for_wurstpack.dependsOn(installDist)
+
+
+task create_zip_wurstpack_complete(type: Zip) {
+    from '../Wurstpack'
+    archiveName 'wurstpack_complete.zip'
+}
+
+task create_zip_wurstpack_compiler(type: Zip) {
+    from '../Wurstpack/wurstscript/'
+    archiveName 'wurstpack_compiler.zip'
+}
+
+
+
+task create_zips << {
+    mkdir("../downloads/")
+    copy {
+        from 'build/distributions/'
+        into '../downloads/'
+    }
+    copy {
+        from 'build/install/wurstscript/lib/wurstscript.jar'
+        into '../downloads/'
+    }
+    copy {
+        from '../Wurstpack'
+        into '../downloads/Wurstpack/'
+    }
+    copy {
+        from '../Wurst Updater v2/WurstUpdater.jar'
+        into '../downloads/'
+    }
+    // create checksums
+    mkdir("../Checksums/bin")
+
+    javaexec {
+        classpath = sourceSets.main.runtimeClasspath
+        main = "de.peeeq.wurstio.Checksums"
+        args = ["../downloads/Wurstpack/",
+                "../downloads/wurstpack.md5"]
+    }
+
+
+}
+create_zips.dependsOn(installDist)
+create_zips.dependsOn(create_zip_wurstpack_complete)
+create_zips.dependsOn(create_zip_wurstpack_compiler)
+
+

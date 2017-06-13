@@ -168,5 +168,4 @@ clean.doFirst {
     delete genDir
 }
 
-// To publish first run ./gradlew installDist
-// then copy to wurstpack folder
+apply from: 'deploy.gradle'

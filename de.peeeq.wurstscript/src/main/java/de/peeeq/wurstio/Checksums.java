@@ -1,4 +1,4 @@
-package de.peeeq.checksums;
+package de.peeeq.wurstio;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,7 +15,7 @@ import com.google.common.io.Files;
 
 
 
-public class Main {
+public class Checksums {
 
 	public static void main(String[] args) {
 		if (args.length != 2) {
