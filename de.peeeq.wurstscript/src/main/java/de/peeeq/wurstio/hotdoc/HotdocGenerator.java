@@ -49,12 +49,14 @@ public class HotdocGenerator {
 		this.outputfolder = new File(this.files.remove(files.size()-1));
 		ve = new VelocityEngine();
 		Properties p = new Properties();
-		p.setProperty("eventhandler.include.class", "org.apache.velocity.app.event.implement.IncludeRelativePath");
+//		p.setProperty("eventhandler.include.class", "org.apache.velocity.app.event.implement.IncludeRelativePath");
 		p.setProperty("runtime.references.strict", "true");
+		p.setProperty("resource.loader", "class");
+		p.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
 		ve.init(p);
-		variableTemplate = ve.getTemplate("resources/hotdoc/var.html");
-		navbarTemplate = ve.getTemplate("resources/hotdoc/navbar.html");
-		structureTemplate = ve.getTemplate("resources/hotdoc/structure.html");
+		variableTemplate = ve.getTemplate("hotdoc/var.html");
+		navbarTemplate = ve.getTemplate("hotdoc/navbar.html");
+		structureTemplate = ve.getTemplate("hotdoc/structure.html");
 	}
 
 	public void generateDoc() {
@@ -79,8 +81,8 @@ public class HotdocGenerator {
 			RunArgs runArgs = new RunArgs(new String[] {});
 			WurstGui gui = new WurstGuiCliImpl();
 			WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
-			compiler.loadFiles("resources/common.j");
-			compiler.loadFiles("resources/blizzard.j");
+			compiler.loadFiles(Utils.getResourceFile("common.j"));
+			compiler.loadFiles(Utils.getResourceFile("blizzard.j"));
 			for (String file: files) {
 				File f = new File(file);
 				if (!f.exists()) {
@@ -118,7 +120,7 @@ public class HotdocGenerator {
 	}
 
 	private void createIndex(List<WPackage> packages) {
-		Template t = ve.getTemplate("resources/hotdoc/document.html");
+		Template t = ve.getTemplate("hotdoc/document.html");
 		
 		VelocityContext context = new VelocityContext();
 		context.put("title", "HotDoc Wurst Documentation");
@@ -138,7 +140,7 @@ public class HotdocGenerator {
 
 	private void createPackageDoc(WPackage pack, List<WPackage> packages) {
 		
-        Template t = ve.getTemplate("resources/hotdoc/document.html");
+        Template t = ve.getTemplate("hotdoc/document.html");
 	
 		VelocityContext context = new VelocityContext();
 		context.put("title", pack.getName() + " HotDoc Wurst Documentation");
@@ -157,7 +159,7 @@ public class HotdocGenerator {
 	}
 
 	private String getPackageContent(WPackage pack) {
-		Template t = ve.getTemplate("resources/hotdoc/package.html");
+		Template t = ve.getTemplate("hotdoc/package.html");
 		VelocityContext context = new VelocityContext();
 		context.put("currentPackage", pack);
 		StringWriter writer = new StringWriter();

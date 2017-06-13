@@ -89,8 +89,8 @@ public class GenerateBotData {
 		runArgs.addLibs(Sets.newHashSet(StdLib.getLib()));
 		WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
 		
-		comp.loadFiles("resources/common.j");
-		comp.loadFiles("resources/blizzard.j");
+		comp.loadFiles("common.j");
+		comp.loadFiles("blizzard.j");
 		comp.loadWurstFilesInDir(new File(StdLib.getLib()));
 		WurstModel model = comp.parseFiles();
 

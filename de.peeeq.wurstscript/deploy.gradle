@@ -67,3 +67,13 @@ create_zips.dependsOn(create_zip_wurstpack_complete)
 create_zips.dependsOn(create_zip_wurstpack_compiler)
 
 
+task generate_hotdoc << {
+    javaexec {
+        classpath = sourceSets.main.runtimeClasspath
+        main = "de.peeeq.wurstio.Main"
+        args = ["--hotdoc",
+                "./../Wurstpack/wurstscript/lib",
+                "../downloads/hotdoc"]
+    }
+}
+generate_hotdoc.dependsOn(compileJava)

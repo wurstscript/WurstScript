@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import org.jcp.xml.dsig.internal.dom.Utils;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.io.*;
 import java.util.*;
@@ -83,29 +83,7 @@ public class Pjass {
 		
 	}
 
-	/**
-	 * Extracts pjass and returns the file
-	 */
-	private static Map<String, File> resourceMap = new HashMap<>();
-	public static synchronized String getResourceFile(String name) {
-		try {
-			File f = resourceMap.get(name);
-			if (f != null && f.exists()) {
-				return f.getAbsolutePath();
-			}
-			String[] parts = name.split("\\.");
-			f = File.createTempFile(parts[0], parts[1]);
-			f.deleteOnExit();
-			try (InputStream pjassStream = Pjass.class.getClassLoader().getResourceAsStream(name)) {
-				byte[] bytes = Utils.readBytesFromStream(pjassStream);
-				Files.write(bytes, f);
-				resourceMap.put(name, f);
-				return f.getAbsolutePath();
-			}
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+
 	
 	
 	public static Result runPjass(File outputFile) {
@@ -113,9 +91,9 @@ public class Pjass {
 			Process p;
 			WLogger.info("Starting pjass");
 			List<String> args = new ArrayList<>();
-			args.add(getResourceFile("pjass.exe"));
-			args.add(getResourceFile("common.j"));
-			args.add(getResourceFile("blizzard.j"));
+			args.add(Utils.getResourceFile("pjass.exe"));
+			args.add(Utils.getResourceFile("common.j"));
+			args.add(Utils.getResourceFile("blizzard.j"));
 			args.add(outputFile.getPath());
 			if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
 				WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
