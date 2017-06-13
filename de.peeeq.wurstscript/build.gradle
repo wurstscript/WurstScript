@@ -36,6 +36,7 @@ repositories {
     //jcenter()
     mavenLocal()
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 
@@ -64,12 +65,10 @@ dependencies {
     compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
 
     // Chardet for guessing the file-encoding of a source-file
-    compile files('lib/chardet.jar')
-
+    compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile files('lib/jmpq2.jar')
-    compile files('lib/jmpq3.jar')
+    compile 'com.github.inwc3:JMPQ3:1.5.0'
 }
 
 

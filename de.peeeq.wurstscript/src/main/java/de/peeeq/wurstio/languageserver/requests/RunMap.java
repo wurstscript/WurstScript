@@ -107,7 +107,7 @@ public class RunMap extends UserRequest {
             File outputMapscript = compiledScript;
 
             gui.sendProgress("Injecting mapscript");
-            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap, runArgs)) {
+            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
                 mpqEditor.deleteFile("war3map.j");
                 mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
             }
@@ -191,7 +191,7 @@ public class RunMap extends UserRequest {
 
         //  try to get war3map.j from the map:
         byte[] mapScript;
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy, runArgs)) {
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             mapScript = mpqEditor.extractFile("war3map.j");
         }
         if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
@@ -235,7 +235,7 @@ public class RunMap extends UserRequest {
 
         MpqEditor mpqEditor = null;
         if (mapCopy != null) {
-            mpqEditor = MpqEditorFactory.getEditor(mapCopy, runArgs);
+            mpqEditor = MpqEditorFactory.getEditor(mapCopy);
         }
 
         //WurstGui gui = new WurstGuiLogger();

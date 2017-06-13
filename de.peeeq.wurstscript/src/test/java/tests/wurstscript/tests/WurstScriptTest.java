@@ -340,6 +340,10 @@ public class WurstScriptTest {
 		}
 	}
 
+	private static File getFile(String name) {
+		return new File(WurstScriptTest.class.getClassLoader().getResource(name).getFile());
+	}
+
 	protected WurstModel parseFiles(Iterable<File> inputFiles,
 			Map<String, String> inputs, boolean withStdLib,
 			WurstCompilerJassImpl compiler) {
@@ -351,7 +355,7 @@ public class WurstScriptTest {
 		}
 		
 		if (withStdLib) {
-			compiler.loadFiles(new File("./resources/common.j"), new File("./resources/blizzard.j"));
+			compiler.loadFiles(getFile("common.j"), getFile("blizzard.j"));
 		}
 		for (File input : inputFiles) {
 			compiler.loadFiles(input);

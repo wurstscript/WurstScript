@@ -85,7 +85,7 @@ public class WCTFile {
 	public static void main(String[] args) throws Exception {
 		
 		File mpq = new File("/home/peter/work/dvs/dvs.w3x");
-		try (MpqEditor ed = MpqEditorFactory.getEditor(mpq, RunArgs.defaults())) {
+		try (MpqEditor ed = MpqEditorFactory.getEditor(mpq)) {
 			byte[] wtc = ed.extractFile("war3map.wct");
 			try (BinaryDataInputStream bdin = new BinaryDataInputStream(new ByteArrayInputStream(wtc), true)) {
 				WCTFile tr = fromStream(bdin);

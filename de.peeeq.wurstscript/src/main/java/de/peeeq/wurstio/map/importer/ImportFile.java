@@ -42,7 +42,7 @@ public class ImportFile {
     }
 
     private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws IOException, Exception {
-        try (MpqEditor editor = MpqEditorFactory.getEditor(tempMap, runArgs)) {
+        try (MpqEditor editor = MpqEditorFactory.getEditor(tempMap)) {
             LinkedList<String> failed = extractImportedFiles(editor, importDirectory);
 
             if (failed.isEmpty()) {

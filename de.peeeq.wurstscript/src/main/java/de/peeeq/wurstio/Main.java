@@ -131,7 +131,7 @@ public class Main {
                 }
 
                 if (mapFilePath != null) {
-                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath), runArgs)) {
+                    try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
                         CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
                         if (mapScript != null) {
                             gui.sendProgress("Writing to map");
@@ -187,7 +187,7 @@ public class Main {
 
         File rocMpq = new File(wc3Path + "War3.mpq");
         File tftMpq = new File(wc3Path + "War3x.mpq");
-        MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq, runArgs);
+        MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq);
         boolean rocHasKeys = roceditor.hasFile("font\\font.ccd") && roceditor.hasFile("font\\font.gid") && roceditor.hasFile("font\\font.clh");
         if (!rocHasKeys) {
             JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of RoC and needs to fix your installation.\n"
@@ -200,7 +200,7 @@ public class Main {
         } else {
             WLogger.info("Already has roc keys");
         }
-        MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq, runArgs);
+        MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq);
         boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
         if (!tftHasKeys) {
             JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of TFT and needs to fix your installation.\n"

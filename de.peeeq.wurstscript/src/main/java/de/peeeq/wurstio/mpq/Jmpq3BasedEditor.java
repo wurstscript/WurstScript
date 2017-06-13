@@ -1,15 +1,15 @@
 package de.peeeq.wurstio.mpq;
 
+import com.google.common.base.Preconditions;
+import de.peeeq.wurstscript.utils.TempDir;
+import systems.crigges.jmpq3.JMpqEditor;
+import systems.crigges.jmpq3.JMpqException;
+import systems.crigges.jmpq3.MPQOpenOption;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-
-import com.google.common.base.Preconditions;
-
-import de.peeeq.wurstscript.utils.TempDir;
-import systems.crigges.jmpq3.JMpqEditor;
-import systems.crigges.jmpq3.JMpqException;
 
 class Jmpq3BasedEditor implements MpqEditor {
 
@@ -27,7 +27,7 @@ class Jmpq3BasedEditor implements MpqEditor {
         if (!mpqArchive.exists()) {
             throw new FileNotFoundException("not found: " + mpqArchive);
         }
-        this.editor = new JMpqEditor(mpqArchive);
+        this.editor = new JMpqEditor(mpqArchive, MPQOpenOption.FORCE_V0);
     }
 
     @Override
