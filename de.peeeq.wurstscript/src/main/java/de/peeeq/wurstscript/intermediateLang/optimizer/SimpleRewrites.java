@@ -347,6 +347,17 @@ public class SimpleRewrites {
 
         // Unary
         else {
+            if (opc.getOp() == WurstOperator.UNARY_MINUS) {
+                if (opc.getArguments().get(0) instanceof ImIntVal) {
+                    ImIntVal imIntVal = (ImIntVal) opc.getArguments().get(0);
+                    if(imIntVal.getValI() < 0) {
+                        int inverseVal = imIntVal.getValI() * -1;
+                        ImIntVal newVal = JassIm.ImIntVal(inverseVal);
+                        opc.replaceBy(newVal);
+                    }
+
+                }
+            }
             ImExpr expr = opc.getArguments().get(0);
             if (expr instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) expr).getValB();
