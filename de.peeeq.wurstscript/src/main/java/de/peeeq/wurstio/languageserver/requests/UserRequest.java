@@ -3,15 +3,15 @@ package de.peeeq.wurstio.languageserver.requests;
 import de.peeeq.wurstio.languageserver.ModelManager;
 
 public abstract class UserRequest {
-	private int requestNr;
+    private int requestNr;
 
-	public UserRequest(int requestNr) {
-		this.requestNr = requestNr;
-	}
+    public UserRequest(int requestNr) {
+        this.requestNr = requestNr;
+    }
 
-	public abstract Object execute(ModelManager modelManager);
+    public abstract Object execute(ModelManager modelManager);
 
-	public int getRequestNr() {
-		return requestNr;
-	}
+    public int getRequestNr() {
+        return requestNr;
+    }
 }

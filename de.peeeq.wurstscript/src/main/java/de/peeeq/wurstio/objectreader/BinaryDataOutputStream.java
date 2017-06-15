@@ -1,81 +1,73 @@
 package de.peeeq.wurstio.objectreader;
 
-import java.io.BufferedOutputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 public class BinaryDataOutputStream implements Closeable {
 
-	private BufferedOutputStream out;
-	private boolean littleEndian;
+    private BufferedOutputStream out;
+    private boolean littleEndian;
 
-	@SuppressWarnings("resource")
-	public BinaryDataOutputStream(File file, boolean littleEndian) throws FileNotFoundException {
-		this(new FileOutputStream(file), littleEndian);
-	}
-	
-	
-	public BinaryDataOutputStream(OutputStream out, boolean littleEndian) {
-		this.out = new BufferedOutputStream(out);
-		this.littleEndian = littleEndian;
-	}
+    @SuppressWarnings("resource")
+    public BinaryDataOutputStream(File file, boolean littleEndian) throws FileNotFoundException {
+        this(new FileOutputStream(file), littleEndian);
+    }
 
-	
-	public void flush() throws IOException {
-		out.flush();
-	}
 
-	public void writeInt(int i, boolean littleEndian) throws IOException {
+    public BinaryDataOutputStream(OutputStream out, boolean littleEndian) {
+        this.out = new BufferedOutputStream(out);
+        this.littleEndian = littleEndian;
+    }
+
+
+    public void flush() throws IOException {
+        out.flush();
+    }
+
+    public void writeInt(int i, boolean littleEndian) throws IOException {
 //		byte[] data = new byte[4];
 //		data[3] = (byte) (i >> 24);
 //		data[2] = (byte) (i >> 16);
 //		data[1] = (byte) (i >> 8);
 //		data[0] = (byte) (i >> 0);
-		
-		byte[] data = ByteBuffer.allocate(4).putInt(i).array();
-		for (int j=0; j<4; j++) {
-			byte b =  data[littleEndian ? (3-j) : j];
-			out.write(b);
-		}
-	}
-	
-	public void writeInt(int i) throws IOException {
-		writeInt(i, littleEndian);
-	}
-	
-	public void writeIntReverse(int i) throws IOException {
-		writeInt(i, !littleEndian);
-	}
 
-	public void writeString(String s, int len) throws IOException {
-		byte [] bytes = new byte[len];
-		System.arraycopy(s.getBytes(), 0, bytes, 0, len);
-		out.write(bytes);
-	}
-	
-	public void writeStringNullTerminated(String s, Charset charset) throws IOException {
-		out.write(s.getBytes(charset));
-		out.write(0);
-	}
+        byte[] data = ByteBuffer.allocate(4).putInt(i).array();
+        for (int j = 0; j < 4; j++) {
+            byte b = data[littleEndian ? (3 - j) : j];
+            out.write(b);
+        }
+    }
 
-	public void writeFloat(float f) throws IOException {
-		int asInt = Float.floatToIntBits(f);
-		writeInt(asInt);
-	}
+    public void writeInt(int i) throws IOException {
+        writeInt(i, littleEndian);
+    }
 
+    public void writeIntReverse(int i) throws IOException {
+        writeInt(i, !littleEndian);
+    }
 
-	@Override
-	public void close() throws IOException {
-		out.close();
-	}
+    public void writeString(String s, int len) throws IOException {
+        byte[] bytes = new byte[len];
+        System.arraycopy(s.getBytes(), 0, bytes, 0, len);
+        out.write(bytes);
+    }
+
+    public void writeStringNullTerminated(String s, Charset charset) throws IOException {
+        out.write(s.getBytes(charset));
+        out.write(0);
+    }
+
+    public void writeFloat(float f) throws IOException {
+        int asInt = Float.floatToIntBits(f);
+        writeInt(asInt);
+    }
 
 
-	
+    @Override
+    public void close() throws IOException {
+        out.close();
+    }
+
 
 }

@@ -6,27 +6,27 @@ import de.peeeq.wurstscript.types.WurstTypeInfer;
 public class ILconstNull extends ILconstAbstract {
 
 
-	private static ILconstNull instance = new ILconstNull();
+    private static ILconstNull instance = new ILconstNull();
 
-	private ILconstNull() {
-	}
-	
-	@Override
-	public String print() {
-		return "null";
-	}
-	
-	public WurstType getType() {
-		return WurstTypeInfer.instance();
-	}
+    private ILconstNull() {
+    }
 
-	@Override
-	public boolean isEqualTo(ILconst other) {
-		return other instanceof ILconstNull;
-	}
+    @Override
+    public String print() {
+        return "null";
+    }
 
-	public static ILconstNull instance() {
-		return instance;
-	}
+    public WurstType getType() {
+        return WurstTypeInfer.instance();
+    }
+
+    @Override
+    public boolean isEqualTo(ILconst other) {
+        return other instanceof ILconstNull;
+    }
+
+    public static ILconstNull instance() {
+        return instance;
+    }
 
 }

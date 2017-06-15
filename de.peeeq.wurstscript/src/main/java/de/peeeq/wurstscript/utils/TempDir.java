@@ -1,11 +1,11 @@
 package de.peeeq.wurstscript.utils;
 
+import de.peeeq.wurstscript.WLogger;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import de.peeeq.wurstscript.WLogger;
 
 public enum TempDir {
     ;

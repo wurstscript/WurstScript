@@ -1,23 +1,9 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import javax.swing.filechooser.FileSystemView;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
-
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
@@ -40,6 +26,18 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 
+import javax.swing.filechooser.FileSystemView;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 /**
  * Created by peter on 16.05.16.
  */
@@ -49,7 +47,9 @@ public class RunMap extends UserRequest {
     private final File map;
     private final List<String> compileArgs;
     private final String workspaceRoot;
-    /** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
+    /**
+     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
+     */
     private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
 
     static enum SafetyLevel {
@@ -98,11 +98,11 @@ public class RunMap extends UserRequest {
             }
 
             @SuppressWarnings("unused") // for side effects!
-            RunArgs runArgs = new RunArgs(compileArgs);
+                    RunArgs runArgs = new RunArgs(compileArgs);
 
             gui.sendProgress("preparing testmap ... ");
-            
-            
+
+
             // then inject the script into the map
             File outputMapscript = compiledScript;
 
@@ -111,7 +111,7 @@ public class RunMap extends UserRequest {
                 mpqEditor.deleteFile("war3map.j");
                 mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
             }
-            
+
 
             String testMapName2 = copyToWarcraftMapDir(testMap);
 
@@ -142,28 +142,28 @@ public class RunMap extends UserRequest {
 
     /**
      * Copies the map to the wc3 map directory
-     * 
-     *  This directory depends on warcraft version and whether we are on windows or wine is used.
+     * <p>
+     * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
     private String copyToWarcraftMapDir(File testMap) throws IOException {
         String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
         if (!new File(documentPath).exists()) {
-        	WLogger.info("Warcraft folder " + documentPath + " does not exist.");
-        	// Try wine default:
-        	documentPath = System.getProperty("user.home") 
-        		+ "/.wine/drive_c/users/" + System.getProperty("user.name")+ "/My Documents/Warcraft III";
-        	if (!new File(documentPath).exists()) {
-        		WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
-        	}
+            WLogger.info("Warcraft folder " + documentPath + " does not exist.");
+            // Try wine default:
+            documentPath = System.getProperty("user.home")
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
+            if (!new File(documentPath).exists()) {
+                WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+            }
         }
-        
-        
+
+
         // 1.27 and lower compat
         if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
             print("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
         }
-        
+
 
         // Then we make a second copy named appropriately
         String testMapName2 = "WurstTestMap.w3x";
@@ -335,7 +335,7 @@ public class RunMap extends UserRequest {
     private boolean isInWurstFolder(String file) {
         Path p = Paths.get(file);
         Path w = Paths.get(workspaceRoot);
-        return p.startsWith(w) 
+        return p.startsWith(w)
                 && java.nio.file.Files.exists(p)
                 && Utils.isWurstFile(file);
     }

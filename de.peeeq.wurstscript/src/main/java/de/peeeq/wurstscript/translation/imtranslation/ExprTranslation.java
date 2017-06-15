@@ -1,94 +1,27 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.ImExprs;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImFuncRef;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImFunctionCall;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImIntVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImNull;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImOperatorCall;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImRealVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImStringVal;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleExpr;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImTupleSelection;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
-import static de.peeeq.wurstscript.jassIm.JassIm.ImVarArrayAccess;
-
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.AstElementWithIndexes;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.EnumMember;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprBinary;
-import de.peeeq.wurstscript.ast.ExprBoolVal;
-import de.peeeq.wurstscript.ast.ExprCast;
-import de.peeeq.wurstscript.ast.ExprClosure;
-import de.peeeq.wurstscript.ast.ExprDestroy;
-import de.peeeq.wurstscript.ast.ExprEmpty;
-import de.peeeq.wurstscript.ast.ExprFuncRef;
-import de.peeeq.wurstscript.ast.ExprIncomplete;
-import de.peeeq.wurstscript.ast.ExprInstanceOf;
-import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprMemberMethod;
-import de.peeeq.wurstscript.ast.ExprMemberMethodDotDot;
-import de.peeeq.wurstscript.ast.ExprMemberVar;
-import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.ExprNull;
-import de.peeeq.wurstscript.ast.ExprRealVal;
-import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.ExprStringVal;
-import de.peeeq.wurstscript.ast.ExprSuper;
-import de.peeeq.wurstscript.ast.ExprThis;
-import de.peeeq.wurstscript.ast.ExprTypeId;
-import de.peeeq.wurstscript.ast.ExprUnary;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.FunctionCall;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.NameRef;
-import de.peeeq.wurstscript.ast.NoExpr;
-import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.StructureDef;
-import de.peeeq.wurstscript.ast.TranslatedToImFunction;
-import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.VarDef;
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WStatement;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
-import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
-import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.translation.imtranslation.purity.ReadsGlobals;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
-import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
-import de.peeeq.wurstscript.types.WurstTypeReal;
-import de.peeeq.wurstscript.types.WurstTypeTuple;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ExprTranslation {
 

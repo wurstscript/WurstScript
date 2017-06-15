@@ -10,33 +10,40 @@ import java.util.function.Consumer;
 
 public interface ModelManager {
 
-	boolean removeCompilationUnit(String filename);
+    boolean removeCompilationUnit(String filename);
 
-	/** synchronizes with file system 
-	 * @throws IOException */
-	void replaceCompilationUnit(String filename);
+    /**
+     * synchronizes with file system
+     *
+     * @throws IOException
+     */
+    void replaceCompilationUnit(String filename);
 
-	/** cleans the model */
-	void clean();
+    /**
+     * cleans the model
+     */
+    void clean();
 
-	void updateCompilationUnit(String filename, String contents, boolean reportErrors);
+    void updateCompilationUnit(String filename, String contents, boolean reportErrors);
 
-	void onCompilationResult(Consumer<CompilationResult> f);
+    void onCompilationResult(Consumer<CompilationResult> f);
 
-	void buildProject();
+    void buildProject();
 
-	void syncCompilationUnit(String changedFilePath);
+    void syncCompilationUnit(String changedFilePath);
 
-	void syncCompilationUnitContent(String filename, String contents);
+    void syncCompilationUnitContent(String filename, String contents);
 
-	CompilationUnit replaceCompilationUnitContent(String filename, String buffer, boolean reportErrors);
+    CompilationUnit replaceCompilationUnitContent(String filename, String buffer, boolean reportErrors);
 
-	/** get all wurst files in dependency folders */
-	Set<File> getDependencyWurstFiles();
+    /**
+     * get all wurst files in dependency folders
+     */
+    Set<File> getDependencyWurstFiles();
 
-	CompilationUnit getCompilationUnit(String filename);
+    CompilationUnit getCompilationUnit(String filename);
 
-	WurstModel getModel();
+    WurstModel getModel();
 
-	boolean hasErrors();
+    boolean hasErrors();
 }

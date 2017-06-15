@@ -1,5 +1,14 @@
 package de.peeeq.wurstio.map.importer;
 
+import com.google.common.io.Files;
+import com.google.common.io.LittleEndianDataInputStream;
+import de.peeeq.wurstio.mpq.MpqEditor;
+import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.TempDir;
+
+import javax.swing.*;
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -7,22 +16,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedList;
 
-import javax.swing.JOptionPane;
-
-import com.google.common.io.Files;
-import com.google.common.io.LittleEndianDataInputStream;
-
-import de.peeeq.wurstio.mpq.MpqEditor;
-import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.TempDir;
-
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
     private static final int FILE_VERSION = 1;
 
-    /** Use this to start the extraction process */
+    /**
+     * Use this to start the extraction process
+     */
     public static void extractImportsFromMap(File mapFile, RunArgs runArgs) {
         WLogger.info("Extracting all imported Files...");
         if (!mapFile.exists() || !mapFile.isFile() || mapFile.getName().endsWith("w3m")) {
@@ -118,12 +118,16 @@ public class ImportFile {
         }
     }
 
-    /** Blizzard magic numbers for standard path */
+    /**
+     * Blizzard magic numbers for standard path
+     */
     private static boolean isStandardPath(byte b) {
         return b == 5 || b == 8;
     }
 
-    /** Reads chars from the inputstream until it hits a 0-char */
+    /**
+     * Reads chars from the inputstream until it hits a 0-char
+     */
     private static String readString(LittleEndianDataInputStream reader) throws IOException {
         StringBuilder sb = new StringBuilder();
         try {

@@ -1,21 +1,20 @@
 package de.peeeq.wurstscript.frotty.jassValidator;
 
-import java.util.List;
-
 import com.google.common.collect.Lists;
 
+import java.util.List;
+
 public class JassErrors {
-	
-	static final private List<String> errors = Lists.newArrayList();
-	
-	public static void addError(String error, int line) {
-		errors.add("Line : " + line + " - " + error );
-	}
 
-	
+    static final private List<String> errors = Lists.newArrayList();
 
-	public static List<String> getErrors() {
-		return Lists.newArrayList(errors);
-	}
+    public static void addError(String error, int line) {
+        errors.add("Line : " + line + " - " + error);
+    }
+
+
+    public static List<String> getErrors() {
+        return Lists.newArrayList(errors);
+    }
 
 }

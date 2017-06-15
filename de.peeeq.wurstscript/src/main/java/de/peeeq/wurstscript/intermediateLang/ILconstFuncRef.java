@@ -6,34 +6,35 @@ import de.peeeq.wurstscript.types.WurstTypeCode;
 
 public class ILconstFuncRef extends ILconstAbstract {
 
-	private String funcName;
-	public ILconstFuncRef(String funcName) {
-		this.funcName = funcName;
-	}
+    private String funcName;
 
-	
-	public ILconstFuncRef(ImFunction func) {
-		this.funcName = func.getName();
-	}
+    public ILconstFuncRef(String funcName) {
+        this.funcName = funcName;
+    }
 
 
-	@Override
-	public String print() {
-		return "function " + funcName;
-	}
-	
+    public ILconstFuncRef(ImFunction func) {
+        this.funcName = func.getName();
+    }
 
-	public WurstType getType() {
-		return WurstTypeCode.instance();
-	}
 
-	@Override
-	public boolean isEqualTo(ILconst other) {
-		if (other instanceof ILconstFuncRef) {
-			ILconstFuncRef f = (ILconstFuncRef) other;
-			return f.funcName.equals(funcName);
-		}
-		return false;
-	}
-	
+    @Override
+    public String print() {
+        return "function " + funcName;
+    }
+
+
+    public WurstType getType() {
+        return WurstTypeCode.instance();
+    }
+
+    @Override
+    public boolean isEqualTo(ILconst other) {
+        if (other instanceof ILconstFuncRef) {
+            ILconstFuncRef f = (ILconstFuncRef) other;
+            return f.funcName.equals(funcName);
+        }
+        return false;
+    }
+
 }

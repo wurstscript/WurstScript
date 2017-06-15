@@ -7,27 +7,26 @@ import de.peeeq.wurstscript.attributes.CompileError;
  */
 public class WurstGuiCliImpl extends WurstGui {
 
-	
-	@Override
-	public void sendError(CompileError err) {
-		super.sendError(err);
-	}
 
-	@Override
-	public void sendProgress(String msg) {
-	}
+    @Override
+    public void sendError(CompileError err) {
+        super.sendError(err);
+    }
 
-	@Override
-	public void sendFinished() {
-		System.out.println("compilation finished (errors: " + getErrorCount() + ", warnings: " + getWarningList().size() + ")");
-	}
+    @Override
+    public void sendProgress(String msg) {
+    }
 
-	@Override
-	public void showInfoMessage(String message) {
-		System.out.println(message);
-		
-	}
+    @Override
+    public void sendFinished() {
+        System.out.println("compilation finished (errors: " + getErrorCount() + ", warnings: " + getWarningList().size() + ")");
+    }
 
-	
+    @Override
+    public void showInfoMessage(String message) {
+        System.out.println(message);
+
+    }
+
 
 }

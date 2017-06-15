@@ -1,13 +1,13 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import java.io.PrintStream;
-
 import de.peeeq.wurstscript.intermediateLang.ILconst;
+
+import java.io.PrintStream;
 
 public interface NativesProvider {
 
-	ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException;
+    ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException;
 
-	void setOutStream(PrintStream outStream);
+    void setOutStream(PrintStream outStream);
 
 }

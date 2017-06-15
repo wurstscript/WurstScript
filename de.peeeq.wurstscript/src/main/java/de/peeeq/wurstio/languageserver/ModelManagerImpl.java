@@ -1,53 +1,29 @@
 package de.peeeq.wurstio.languageserver;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringReader;
-import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.io.*;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * keeps a version of the model which is always the most recent one
@@ -116,6 +92,7 @@ public class ModelManagerImpl implements ModelManager {
 
     /**
      * does a full build, reading whole directory
+     *
      * @throws IOException
      */
     @Override
@@ -236,6 +213,7 @@ public class ModelManagerImpl implements ModelManager {
     /**
      * clear the attributes for all compilation units that import something from
      * 'toCheck' and for 'toCheck'
+     *
      * @return a list of all the CUs which have been cleared
      */
     private List<CompilationUnit> clearAttributes(List<CompilationUnit> toCheck) {
@@ -266,7 +244,7 @@ public class ModelManagerImpl implements ModelManager {
      */
     private boolean imports(CompilationUnit cu, Set<String> packageNames, boolean importPublic) {
         for (WPackage p : cu.getPackages()) {
-            if (imports(p, packageNames, false, Sets.<WPackage> newHashSet())) {
+            if (imports(p, packageNames, false, Sets.<WPackage>newHashSet())) {
                 return true;
             }
         }
@@ -626,16 +604,16 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, WurstModel model) {
-        
+
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(CompilationUnit::getFile));
         result.addAll(toCheck);
-        
+
         if (toCheck.stream().anyMatch(cu -> cu.getFile().endsWith(".j"))) {
             // when plain Jass files are changed, everything must be checked again:
             result.addAll(model);
-            return result; 
+            return result;
         }
-        
+
         Collection<String> providedPackages = result.stream().flatMap(cu -> cu.getPackages().stream()).map(p -> p.getName()).collect(Collectors.toSet());
 
         addImportingPackages(providedPackages, model, result);
@@ -644,7 +622,8 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {
-        nextCu: for (CompilationUnit compilationUnit : model2) {
+        nextCu:
+        for (CompilationUnit compilationUnit : model2) {
             if (result.contains(compilationUnit)) {
                 continue;
             }

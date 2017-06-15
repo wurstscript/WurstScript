@@ -8,29 +8,29 @@ import de.peeeq.wurstscript.utils.Utils;
 
 public class WurstTypeInt extends WurstTypePrimitive {
 
-	private static final WurstTypeInt instance = new WurstTypeInt();
+    private static final WurstTypeInt instance = new WurstTypeInt();
 
-	// make constructor private as we only need one instance
-	protected WurstTypeInt() {
-		super("integer");
-	}
-	
-	@Override
-	public boolean isSubtypeOfIntern(WurstType other, Element location) {
-		return other instanceof WurstTypeInt
-				// in jass code we can use an int where a real is expected
-				|| other instanceof WurstTypeReal && Utils.isJassCode(location);
-	}
+    // make constructor private as we only need one instance
+    protected WurstTypeInt() {
+        super("integer");
+    }
+
+    @Override
+    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+        return other instanceof WurstTypeInt
+                // in jass code we can use an int where a real is expected
+                || other instanceof WurstTypeReal && Utils.isJassCode(location);
+    }
 
 
-	public static WurstTypeInt instance() {
-		return instance;
-	}
+    public static WurstTypeInt instance() {
+        return instance;
+    }
 
-	@Override
-	public ImExprOpt getDefaultValue() {
-		return JassIm.ImIntVal(0);
-	}
-	
+    @Override
+    public ImExprOpt getDefaultValue() {
+        return JassIm.ImIntVal(0);
+    }
+
 
 }

@@ -1,12 +1,11 @@
 package de.peeeq.wurstscript.parser;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import de.peeeq.wurstio.languageserver.Range;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class WPos {
     private final String file;
@@ -108,14 +107,18 @@ public class WPos {
         return s;
     }
 
-    /** makes this position artificial by setting the rightPost = leftPos-1 */
+    /**
+     * makes this position artificial by setting the rightPost = leftPos-1
+     */
     public WPos artificial() {
         return new WPos(file, lineOffsets, leftPos, leftPos - 1);
     }
 
-    /** an artificial position is one created by the compiler (the element is not directly part of the input file) */
-	public boolean isArtificial() {
-		return getRightPos() < getLeftPos();
-	}
+    /**
+     * an artificial position is one created by the compiler (the element is not directly part of the input file)
+     */
+    public boolean isArtificial() {
+        return getRightPos() < getLeftPos();
+    }
 
 }

@@ -1,34 +1,29 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.ClassOrModule;
-import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 public class TypesHelper {
 
-	private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
-
-	
+    private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
 
 
-	public static ImSimpleType imInt() {
-		return intType;
-	}
-	
-	public static ImSimpleType imString() {
-		return WurstTypeString.instance().imTranslateType();
-	}
+    public static ImSimpleType imInt() {
+        return intType;
+    }
 
-	public static ImType imVoid() {
-		return WurstTypeVoid.instance().imTranslateType();
-	}
+    public static ImSimpleType imString() {
+        return WurstTypeString.instance().imTranslateType();
+    }
+
+    public static ImType imVoid() {
+        return WurstTypeVoid.instance().imTranslateType();
+    }
 
 
-	public static ImType imBool() {
-		return WurstTypeBool.instance().imTranslateType();
-	}
+    public static ImType imBool() {
+        return WurstTypeBool.instance().imTranslateType();
+    }
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {
 //		if (classParams.size() == 0 && interfaceParams.size() == 0) {

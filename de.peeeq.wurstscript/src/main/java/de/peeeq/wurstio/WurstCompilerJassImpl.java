@@ -1,38 +1,15 @@
 package de.peeeq.wurstio;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
-
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
-import de.peeeq.wurstscript.ErrorReporting;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstChecker;
-import de.peeeq.wurstscript.WurstCompiler;
-import de.peeeq.wurstscript.WurstParser;
-import de.peeeq.wurstscript.ast.Ast;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.*;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -42,19 +19,18 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
-import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
-import de.peeeq.wurstscript.translation.imtranslation.CyclicFunctionRemover;
-import de.peeeq.wurstscript.translation.imtranslation.DebugMessageRemover;
-import de.peeeq.wurstscript.translation.imtranslation.EliminateClasses;
-import de.peeeq.wurstscript.translation.imtranslation.FuncRefRemover;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.translation.imtranslation.MultiArrayEliminator;
-import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector;
-import de.peeeq.wurstscript.translation.imtranslation.StackTraceInjector2;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.io.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 

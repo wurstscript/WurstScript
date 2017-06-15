@@ -1,9 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
-
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.jdt.annotation.NonNull;
 
 public class PrettyPrinter {
 
@@ -309,7 +307,7 @@ public class PrettyPrinter {
         e.getParameters().prettyPrint(spacer, sb, indent);
         sb.append(")");
         sb.append("\n");
-        e.getBody().prettyPrint(spacer, sb, indent+1);
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -366,7 +364,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(Indexes e, Spacer spacer, StringBuilder sb, int indent) {
-        for(Expr expr : e) {
+        for (Expr expr : e) {
             expr.prettyPrint(spacer, sb, indent);
         }
     }
@@ -374,7 +372,7 @@ public class PrettyPrinter {
     public static void prettyPrint(InitBlock e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("init\n");
-        e.getBody().prettyPrint(spacer, sb, indent+1);
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -687,13 +685,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ClassDefs classDefs, Spacer spacer, StringBuilder sb, int indent) {
-        for(ClassDef classDef : classDefs) {
+        for (ClassDef classDef : classDefs) {
             classDef.prettyPrint(spacer, sb, indent);
         }
     }
 
-	public static void prettyPrint(Identifier identifier, Spacer spacer, StringBuilder sb, int indent) {
-		sb.append(identifier.getName());
-	}
+    public static void prettyPrint(Identifier identifier, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append(identifier.getName());
+    }
 
 }

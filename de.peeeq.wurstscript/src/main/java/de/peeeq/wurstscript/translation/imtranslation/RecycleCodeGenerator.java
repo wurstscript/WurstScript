@@ -5,8 +5,8 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 
 public interface RecycleCodeGenerator {
 
-	void createAllocFunc(ImTranslator translator, ImProg prog, ImClass c);
+    void createAllocFunc(ImTranslator translator, ImProg prog, ImClass c);
 
-	void createDeallocFunc(ImTranslator translator, ImProg prog, ImClass c);
-	
+    void createDeallocFunc(ImTranslator translator, ImProg prog, ImClass c);
+
 }

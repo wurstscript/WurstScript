@@ -1,17 +1,16 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.Range;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.utils.Utils;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.Range;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class GetUsages extends UserRequest {
 

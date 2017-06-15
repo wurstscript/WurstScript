@@ -1,24 +1,8 @@
 package de.peeeq.wurstio;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.SimpleFormatter;
-
-import javax.swing.JOptionPane;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
@@ -41,6 +25,19 @@ import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.utils.WinRegistry;
+import org.eclipse.jdt.annotation.Nullable;
+
+import javax.swing.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
 
 public class Main {
 
@@ -178,7 +175,7 @@ public class Main {
 
     private static void insertKeys(RunArgs runArgs) throws Exception {
         String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
-        if(!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
+        if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
         Path fontGID = Paths.get(Main.class.getClassLoader().getResource("font/font.gid").getPath().substring(1));
         Path fontCLH = Paths.get(Main.class.getClassLoader().getResource("font/font.clh").getPath().substring(1));
         Path fontROC = Paths.get(Main.class.getClassLoader().getResource("font/font_roc.ccd").getPath().substring(1));
@@ -308,9 +305,9 @@ public class Main {
     }
 
     public static void setUpFileLogging() {
-    	setUpFileLogging("wurst");
+        setUpFileLogging("wurst");
     }
-    
+
     public static void setUpFileLogging(String folderName) {
         try {
             // set up file logging:

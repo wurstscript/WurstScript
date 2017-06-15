@@ -1,68 +1,67 @@
 package de.peeeq.datastructures;
 
-import java.util.Map;
-
 import com.google.common.collect.Maps;
+
+import java.util.Map;
 
 public class Partitions<T> {
 
-	private class Partition {
-		private Partition rep;
-		private T item;
+    private class Partition {
+        private Partition rep;
+        private T item;
 
-		public Partition(T item) {
-			rep = this;
-			this.item = item;
-		}
+        public Partition(T item) {
+            rep = this;
+            this.item = item;
+        }
 
-		public void unionWith(Partition other) {
-			getRep().rep = other.getRep();
-		}
+        public void unionWith(Partition other) {
+            getRep().rep = other.getRep();
+        }
 
-		private Partition getRep() {
-			if (rep == this) {
-				return this;
-			} else {
-				rep = rep.getRep(); // path compression
-				return rep;
-			}
-		}
-	}
-	
-	private Map<T, Partition> partitions = Maps.newLinkedHashMap();
-	
-	public Partitions() {
-	}
-	
-	
+        private Partition getRep() {
+            if (rep == this) {
+                return this;
+            } else {
+                rep = rep.getRep(); // path compression
+                return rep;
+            }
+        }
+    }
 
-	/**
-	 * unions the partition of a and the partition of b.
-	 */
-	public void union(T a, T b) {
-		getPartition(a).unionWith(getPartition(b));
-	}
+    private Map<T, Partition> partitions = Maps.newLinkedHashMap();
+
+    public Partitions() {
+    }
 
 
-	/**
-	 * add a new partition
-	 */
-	public void add(T t) {
-		getPartition(t);
-	}
+    /**
+     * unions the partition of a and the partition of b.
+     */
+    public void union(T a, T b) {
+        getPartition(a).unionWith(getPartition(b));
+    }
 
-	/**
-	 * get the representing item for the partition containing t 
-	 */
-	public T getRep(T t) {
-		return getPartition(t).getRep().item;
-	}
 
-	private Partition getPartition(T b) {
-		return partitions.computeIfAbsent(b, k -> new Partition(b));
-	}
+    /**
+     * add a new partition
+     */
+    public void add(T t) {
+        getPartition(t);
+    }
 
-	public boolean contains(T t) { // NO_UCD (unused code)
-		return partitions.containsKey(t);
-	}
+    /**
+     * get the representing item for the partition containing t
+     */
+    public T getRep(T t) {
+        return getPartition(t).getRep().item;
+    }
+
+    private Partition getPartition(T b) {
+        return partitions.computeIfAbsent(b, k -> new Partition(b));
+    }
+
+    public boolean contains(T t) { // NO_UCD (unused code)
+        return partitions.containsKey(t);
+    }
 }

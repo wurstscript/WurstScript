@@ -1,18 +1,17 @@
 package de.peeeq.wurstscript;
 
-import java.io.File;
-
+import de.peeeq.wurstscript.ast.WurstModel;
 import org.eclipse.jdt.annotation.Nullable;
 
-import de.peeeq.wurstscript.ast.WurstModel;
+import java.io.File;
 
 public interface WurstCompiler {
-	
-	
-	void loadFiles(String ... filenames);
-	
-	@Nullable WurstModel parseFiles();
 
-	void loadFiles(File ... files);
-	
+
+    void loadFiles(String... filenames);
+
+    @Nullable WurstModel parseFiles();
+
+    void loadFiles(File... files);
+
 }

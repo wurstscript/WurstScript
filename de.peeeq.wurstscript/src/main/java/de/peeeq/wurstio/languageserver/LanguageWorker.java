@@ -1,35 +1,20 @@
 package de.peeeq.wurstio.languageserver;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
+import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.utils.Utils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-
-import de.peeeq.wurstio.languageserver.requests.CleanProject;
-import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstio.languageserver.requests.GetDefinition;
-import de.peeeq.wurstio.languageserver.requests.GetUsages;
-import de.peeeq.wurstio.languageserver.requests.HoverInfo;
-import de.peeeq.wurstio.languageserver.requests.RunMap;
-import de.peeeq.wurstio.languageserver.requests.RunTests;
-import de.peeeq.wurstio.languageserver.requests.SignatureInfo;
-import de.peeeq.wurstio.languageserver.requests.UserRequest;
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.Utils;
 
 public class LanguageWorker implements Runnable {
 

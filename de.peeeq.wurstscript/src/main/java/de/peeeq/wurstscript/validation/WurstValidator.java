@@ -1,16 +1,9 @@
 package de.peeeq.wurstscript.validation;
 
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
-
-import org.eclipse.jdt.annotation.Nullable;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CheckHelper;
@@ -21,42 +14,27 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
-import de.peeeq.wurstscript.types.CallSignature;
-import de.peeeq.wurstscript.types.FunctionSignature;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeArray;
-import de.peeeq.wurstscript.types.WurstTypeBool;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeClosure;
-import de.peeeq.wurstscript.types.WurstTypeCode;
-import de.peeeq.wurstscript.types.WurstTypeEnum;
-import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeModule;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
-import de.peeeq.wurstscript.types.WurstTypeReal;
-import de.peeeq.wurstscript.types.WurstTypeString;
-import de.peeeq.wurstscript.types.WurstTypeTuple;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * this class validates a wurstscript program
- * 
+ * <p>
  * it has visit methods for different elements in the AST and checks whether
  * these are correct
- * 
+ * <p>
  * the validation phase might not find all errors, code transformation and
  * optimization phases might detect other errors because they do a more
  * sophisticated analysis of the program
- * 
+ * <p>
  * also note that many cases are already caught by the calculation of the
  * attributes
- * 
  */
 public class WurstValidator {
 
@@ -97,7 +75,7 @@ public class WurstValidator {
 
     /**
      * checks done after walking the tree
-     * 
+     *
      * @param toCheck
      */
     private void postChecks(List<CompilationUnit> toCheck) {
@@ -413,14 +391,14 @@ public class WurstValidator {
                     "The name '" + name + "' is already used as a native type in " + Utils.printPos(def.getSource()));
         } else {
             switch (name) {
-            case "int":
-            case "integer":
-            case "real":
-            case "code":
-            case "boolean":
-            case "string":
-            case "handle":
-                e.addError("The name '" + name + "' is a built-in type and cannot be used here.");
+                case "int":
+                case "integer":
+                case "real":
+                case "code":
+                case "boolean":
+                case "string":
+                case "handle":
+                    e.addError("The name '" + name + "' is a built-in type and cannot be used here.");
             }
         }
     }
@@ -541,7 +519,7 @@ public class WurstValidator {
         if (typeDef instanceof TypeParamDef) { // references a type parameter
             TypeParamDef tp = (TypeParamDef) typeDef;
             if (tp.isStructureDefTypeParam()) { // typeParamDef is for
-                                                // structureDef
+                // structureDef
                 if (tp.attrNearestStructureDef() instanceof ModuleDef) {
                     // in modules we can also type-params in static contexts
                     return;
@@ -826,14 +804,14 @@ public class WurstValidator {
             if (pos.attrNearestPackage() instanceof WPackage) {
                 WPackage pack = (WPackage) pos.attrNearestPackage();
                 if (pack != null && !pack.getName().equals("WurstREPL")) { // allow
-                                                                           // assigning
-                                                                           // nothing
-                                                                           // to
-                                                                           // a
-                                                                           // variable
-                                                                           // in
-                                                                           // the
-                                                                           // Repl
+                    // assigning
+                    // nothing
+                    // to
+                    // a
+                    // variable
+                    // in
+                    // the
+                    // Repl
                     pos.addError("Function or expression returns nothing. Cannot assign nothing to a variable.");
                 }
             }
@@ -877,7 +855,7 @@ public class WurstValidator {
         if (!isValidVarnameStart(varName) // first letter not lower case
                 && !Utils.isJassCode(s) // not in jass code
                 && !varName.matches("[A-Z0-9_]+") // not a constant
-        ) {
+                ) {
             s.addWarning("Variable names should start with a lower case character. (" + varName + ")");
         }
         if (varName.equals("handle")) {
@@ -1272,7 +1250,7 @@ public class WurstValidator {
     /**
      * check if the nameRef e is accessed correctly i.e. not using a dynamic
      * variable from a static context
-     * 
+     *
      * @param e
      * @param dynamicContext
      */
@@ -1614,7 +1592,8 @@ public class WurstValidator {
             Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
             // TODO check type mapping
 
-            nextFunction: for (FuncDef i_funcDef : interfaceDef.getMethods()) {
+            nextFunction:
+            for (FuncDef i_funcDef : interfaceDef.getMethods()) {
                 Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
                 for (NameLink nameLink : c_funcDefs) {
                     NameDef c_nameDef = nameLink.getNameDef();
@@ -1738,8 +1717,8 @@ public class WurstValidator {
     }
 
     private void checkBannedFunctions(ExprFunctionCall e) {
-        String[] banned = new String[] {
-                "TriggerRegisterVariableEvent" /* , "ExecuteFunc" */ };
+        String[] banned = new String[]{
+                "TriggerRegisterVariableEvent" /* , "ExecuteFunc" */};
         for (String name : banned) {
             if (e.getFuncName().equals(name)) {
                 e.addError("The function " + name + " is not allowed in Wurst.");
@@ -1817,7 +1796,7 @@ public class WurstValidator {
         if (s.getExpr().attrTyp() instanceof WurstTypeEnum) {
             WurstTypeEnum wurstTypeEnum = (WurstTypeEnum) s.getExpr().attrTyp();
             if (s.getSwitchDefault() instanceof NoDefaultCase)
-                nextMember: for (EnumMember e : wurstTypeEnum.getDef().getMembers()) {
+                nextMember:for (EnumMember e : wurstTypeEnum.getDef().getMembers()) {
                     String name = e.getName();
                     for (SwitchCase c : s.getCases()) {
                         if (c.getExpr() instanceof NameRef) {
@@ -1998,7 +1977,7 @@ public class WurstValidator {
 
     /**
      * sorts the funcs by their level (lowest level first)
-     * 
+     *
      * @param funcs
      */
     private void sortByLevel(List<NameLink> funcs) {

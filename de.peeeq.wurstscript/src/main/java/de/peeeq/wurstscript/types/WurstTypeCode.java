@@ -7,26 +7,26 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class WurstTypeCode extends WurstTypePrimitive {
 
-	private static final WurstTypeCode instance = new WurstTypeCode();
+    private static final WurstTypeCode instance = new WurstTypeCode();
 
-	// make constructor private as we only need one instance
-	private WurstTypeCode() {
-		super("code");
-	}
-	
-	@Override
-	public boolean isSubtypeOfIntern(WurstType other, Element location) {
-		return other instanceof WurstTypeCode;
-	}
+    // make constructor private as we only need one instance
+    private WurstTypeCode() {
+        super("code");
+    }
 
-	public static WurstTypeCode instance() {
-		return instance;
-	}
+    @Override
+    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+        return other instanceof WurstTypeCode;
+    }
 
-	@Override
-	public ImExprOpt getDefaultValue() {
-		return JassIm.ImNull();
-	}
+    public static WurstTypeCode instance() {
+        return instance;
+    }
+
+    @Override
+    public ImExprOpt getDefaultValue() {
+        return JassIm.ImNull();
+    }
 
 
 }

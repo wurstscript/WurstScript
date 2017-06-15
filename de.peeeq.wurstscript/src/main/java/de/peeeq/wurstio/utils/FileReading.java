@@ -1,115 +1,107 @@
 package de.peeeq.wurstio.utils;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.Charset;
-
+import com.google.common.base.Charsets;
+import de.peeeq.wurstscript.WLogger;
 import org.mozilla.intl.chardet.nsDetector;
 import org.mozilla.intl.chardet.nsICharsetDetectionObserver;
 import org.mozilla.intl.chardet.nsPSMDetector;
 
-import com.google.common.base.Charsets;
-
-import de.peeeq.wurstscript.WLogger;
+import java.io.*;
+import java.nio.charset.Charset;
 
 public class FileReading {
 
-	/**
-	 * get a reader for a file
-	 */
-	public static Reader getFileReader(File file, Charset cs)
-			throws FileNotFoundException {
-		FileInputStream fis = new FileInputStream(file);
-		InputStreamReader ir = new InputStreamReader(fis, cs);
-		return ir;
-	}
+    /**
+     * get a reader for a file
+     */
+    public static Reader getFileReader(File file, Charset cs)
+            throws FileNotFoundException {
+        FileInputStream fis = new FileInputStream(file);
+        InputStreamReader ir = new InputStreamReader(fis, cs);
+        return ir;
+    }
 
-	/**
-	 * get a reader for a file and guess the charset using jchardet
-	 * http://jchardet.sourceforge.net/
-	 */
-	public static Reader getFileReader(File file) throws IOException {
-		try (FileInputStream fis = new FileInputStream(file);
-				BufferedInputStream imp = new BufferedInputStream(fis)) {
+    /**
+     * get a reader for a file and guess the charset using jchardet
+     * http://jchardet.sourceforge.net/
+     */
+    public static Reader getFileReader(File file) throws IOException {
+        try (FileInputStream fis = new FileInputStream(file);
+             BufferedInputStream imp = new BufferedInputStream(fis)) {
 
-			nsDetector det = new nsDetector(nsPSMDetector.ALL);
+            nsDetector det = new nsDetector(nsPSMDetector.ALL);
 
-			final boolean[] found = new boolean[1];
-			final String[] charset = new String[1];
+            final boolean[] found = new boolean[1];
+            final String[] charset = new String[1];
 
-			det.Init(new nsICharsetDetectionObserver() {
-				@Override
-				public void Notify(String cs) {
-					found[0] = true;
-					charset[0] = cs;
-				}
-			});
+            det.Init(new nsICharsetDetectionObserver() {
+                @Override
+                public void Notify(String cs) {
+                    found[0] = true;
+                    charset[0] = cs;
+                }
+            });
 
-			byte[] buf = new byte[1024];
-			int len;
-			boolean done = false;
-			boolean isAscii = true;
+            byte[] buf = new byte[1024];
+            int len;
+            boolean done = false;
+            boolean isAscii = true;
 
-			while ((len = imp.read(buf, 0, buf.length)) != -1) {
+            while ((len = imp.read(buf, 0, buf.length)) != -1) {
 
-				// Check if the stream is only ascii.
-				if (isAscii)
-					isAscii = det.isAscii(buf, len);
+                // Check if the stream is only ascii.
+                if (isAscii)
+                    isAscii = det.isAscii(buf, len);
 
-				// DoIt if non-ascii and not done yet.
-				if (!isAscii && !done)
-					done = det.DoIt(buf, len, false);
-			}
+                // DoIt if non-ascii and not done yet.
+                if (!isAscii && !done)
+                    done = det.DoIt(buf, len, false);
+            }
 
-			det.DataEnd();
+            det.DataEnd();
 
-			if (isAscii) {
-				found[0] = true;
-				charset[0] = "ASCII";
-			}
+            if (isAscii) {
+                found[0] = true;
+                charset[0] = "ASCII";
+            }
 
-			String encoding = charset[0];
+            String encoding = charset[0];
 
-			if (encoding == null) {
-				// throw new IOException("Could not get encoding for " +
-				// file.getAbsolutePath());
-				WLogger.severe("Could not get encoding for "
-						+ file.getAbsolutePath());
-				return getFileReader(file, Charsets.UTF_8);
-			} else {
-				return getFileReader(file, Charset.forName(encoding));
-			}
-		}
-	}
+            if (encoding == null) {
+                // throw new IOException("Could not get encoding for " +
+                // file.getAbsolutePath());
+                WLogger.severe("Could not get encoding for "
+                        + file.getAbsolutePath());
+                return getFileReader(file, Charsets.UTF_8);
+            } else {
+                return getFileReader(file, Charset.forName(encoding));
+            }
+        }
+    }
 
-	// /**
-	// * get a reader for a file and guess the charset
-	// * using juniversalchardet http://code.google.com/p/juniversalchardet/
-	// * (seems not to work so well...)
-	// */
-	// public static Reader getFileReader(File file) throws IOException {
-	// FileInputStream fis = new FileInputStream(file);
-	// byte[] buf = new byte[4096];
-	//
-	// UniversalDetector detector = new UniversalDetector(null);
-	// int nread;
-	// while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
-	// detector.handleData(buf, 0, nread);
-	// }
-	// detector.dataEnd();
-	// String encoding = detector.getDetectedCharset();
-	// if (encoding == null) {
-	// throw new IOException("Could not get encoding for " +
-	// file.getAbsolutePath());
-	// } else {
-	// WLogger.info("encoding = " + encoding);
-	// return getFileReader(file, Charset.forName(encoding));
-	// }
-	// }
+    // /**
+    // * get a reader for a file and guess the charset
+    // * using juniversalchardet http://code.google.com/p/juniversalchardet/
+    // * (seems not to work so well...)
+    // */
+    // public static Reader getFileReader(File file) throws IOException {
+    // FileInputStream fis = new FileInputStream(file);
+    // byte[] buf = new byte[4096];
+    //
+    // UniversalDetector detector = new UniversalDetector(null);
+    // int nread;
+    // while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
+    // detector.handleData(buf, 0, nread);
+    // }
+    // detector.dataEnd();
+    // String encoding = detector.getDetectedCharset();
+    // if (encoding == null) {
+    // throw new IOException("Could not get encoding for " +
+    // file.getAbsolutePath());
+    // } else {
+    // WLogger.info("encoding = " + encoding);
+    // return getFileReader(file, Charset.forName(encoding));
+    // }
+    // }
 
 }

@@ -6,42 +6,43 @@ import de.peeeq.wurstscript.jassIm.ImType;
 
 /**
  * the exact type is not known but it will be whatever you want it to be ;)
- * (used for the buildin/native functions, where we cannot check the types) 
+ * (used for the buildin/native functions, where we cannot check the types)
  */
 public class WurstTypeInfer extends WurstType {
 
-	private static WurstType instance = new WurstTypeInfer();
+    private static WurstType instance = new WurstTypeInfer();
 
-	private WurstTypeInfer() {}
-	
-	@Override
-	public boolean isSubtypeOfIntern(WurstType other, Element location) {
-		return true;
-	}
+    private WurstTypeInfer() {
+    }
 
-	@Override
-	public String getName() {
-		return "<Infer type>";
-	}
+    @Override
+    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+        return true;
+    }
 
-	@Override
-	public String getFullName() {
-		return getName();
-	}
+    @Override
+    public String getName() {
+        return "<Infer type>";
+    }
 
-	public static WurstType instance() {
-		return instance ;
-	}
+    @Override
+    public String getFullName() {
+        return getName();
+    }
 
-	@Override
-	public ImType imTranslateType() {
-		throw new Error("not implemented");
-	}
+    public static WurstType instance() {
+        return instance;
+    }
 
-	@Override
-	public ImExprOpt getDefaultValue() {
-		throw new Error("not implemented");
-	}
+    @Override
+    public ImType imTranslateType() {
+        throw new Error("not implemented");
+    }
+
+    @Override
+    public ImExprOpt getDefaultValue() {
+        throw new Error("not implemented");
+    }
 
 
 }

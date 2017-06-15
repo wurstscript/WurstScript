@@ -1,26 +1,14 @@
 package de.peeeq.wurstscript.intermediateLang.optimizer;
 
+import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
 import java.util.Locale;
-
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.jassIm.ImBoolVal;
-import de.peeeq.wurstscript.jassIm.ImExitwhen;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImIf;
-import de.peeeq.wurstscript.jassIm.ImIntVal;
-import de.peeeq.wurstscript.jassIm.ImOperatorCall;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImRealVal;
-import de.peeeq.wurstscript.jassIm.ImReturn;
-import de.peeeq.wurstscript.jassIm.ImStmt;
-import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 public class SimpleRewrites {
     public int totalRewrites = 0;
@@ -76,7 +64,9 @@ public class SimpleRewrites {
         }
     }
 
-    /** Recursively optimizes the element */
+    /**
+     * Recursively optimizes the element
+     */
     private void optimizeElement(Element elem) {
         // optimize children:
         for (int i = 0; i < elem.size(); i++) {
@@ -403,7 +393,9 @@ public class SimpleRewrites {
 
     }
 
-    /** returns the opposite of an operator */
+    /**
+     * returns the opposite of an operator
+     */
     private WurstOperator oppositeOperator(WurstOperator op) {
         switch (op) {
             case EQ:
