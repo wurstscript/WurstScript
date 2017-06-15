@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import de.peeeq.wurstscript.ast.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import com.google.common.collect.ImmutableMap;
@@ -15,20 +16,6 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 
 import de.peeeq.immutablecollections.ImmutableList;
-import de.peeeq.wurstscript.ast.AstElementWithBody;
-import de.peeeq.wurstscript.ast.CompoundStatement;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.ExprClosure;
-import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.HasReadVariables;
-import de.peeeq.wurstscript.ast.LocalVarDef;
-import de.peeeq.wurstscript.ast.LoopStatement;
-import de.peeeq.wurstscript.ast.LoopStatementWithVarDef;
-import de.peeeq.wurstscript.ast.NameDef;
-import de.peeeq.wurstscript.ast.StartFunctionStatement;
-import de.peeeq.wurstscript.ast.StmtSet;
-import de.peeeq.wurstscript.ast.WStatement;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Function2;
 import de.peeeq.wurstscript.utils.Utils;
@@ -260,12 +247,14 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 			for (int i=0; i<s.size(); i++) {
 				if (s.get(i) instanceof Expr) {
 					Expr expr = (Expr) s.get(i);
-					checkIfVarsInitialized(expr, incoming);
-					for (NameDef v : expr.attrReadVariables()) {
-						if (v instanceof LocalVarDef) {
-							incoming = incoming.addRead((LocalVarDef) v, expr);
-						}
-					}
+					incoming = handleExprInCompound(incoming, expr);
+				}
+			}
+			if (s instanceof SwitchStmt) {
+				SwitchStmt swi = (SwitchStmt) s;
+				// switch statement must be handled separately, because expressions are not direct children:
+				for (SwitchCase switchCase : swi.getCases()) {
+					incoming = handleExprInCompound(incoming, switchCase.getExpr());
 				}
 			}
 		} else {
@@ -294,6 +283,16 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 				return incoming.addWrite(lv, s);
 			}
 		}
+		return incoming;
+	}
+
+	private VarStates handleExprInCompound(VarStates incoming, Expr expr) {
+		checkIfVarsInitialized(expr, incoming);
+		for (NameDef v : expr.attrReadVariables()) {
+            if (v instanceof LocalVarDef) {
+                incoming = incoming.addRead((LocalVarDef) v, expr);
+            }
+        }
 		return incoming;
 	}
 
