@@ -50,7 +50,7 @@ public class ImOptimizer {
         removeGarbage();
         int deltaV = 1;
         int finalItr = 0;
-        for (int i = 0; i < 5 && deltaV > 0; i++) {
+        for (int i = 0; i <= 10 && deltaV > 0; i++) {
             deltaV = 0;
             int startV = tempMerger.totalMerged;
             tempMerger.optimize();
@@ -61,9 +61,10 @@ public class ImOptimizer {
             endV = cpOpt.totalPropagated;
             deltaV += (endV - startV);
             startV = simpleRewrites.totalRewrites;
-            simpleRewrites.optimize();
+            simpleRewrites.optimize(false);
             endV = simpleRewrites.totalRewrites;
             deltaV += (endV - startV);
+            WLogger.info("optimized: " + (endV - startV));
             startV = localMerger.totalLocalsMerged;
             localMerger.optimize();
             endV = localMerger.totalLocalsMerged;
@@ -78,7 +79,7 @@ public class ImOptimizer {
             deltaV += (endV - startV);
             trans.getImProg().flatten(trans);
             removeGarbage();
-            finalItr = i + 1;
+            finalItr = i;
         }
         WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
         WLogger.info("== Temp vars merged:   " + tempMerger.totalMerged);
