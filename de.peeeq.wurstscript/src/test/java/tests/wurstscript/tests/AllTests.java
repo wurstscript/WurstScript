@@ -5,10 +5,10 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ 
-	QuickTests.class,
-	RealWorldExamples.class,
-	ModelManagerTests.class
+@SuiteClasses({
+        QuickTests.class,
+        RealWorldExamples.class,
+        ModelManagerTests.class
 })
 public class AllTests {
 
