@@ -55,6 +55,9 @@ dependencies {
     // Google guava
     compile 'com.google.guava:guava:21.0'
 
+    // Support for the vscode language server protocol
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.2.0'
+
     // @Nullable annotations
     compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
 

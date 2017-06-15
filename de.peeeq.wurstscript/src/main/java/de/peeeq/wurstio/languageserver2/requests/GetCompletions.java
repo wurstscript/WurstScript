@@ -1,11 +1,11 @@
-package de.peeeq.wurstio.languageserver.requests;
+package de.peeeq.wurstio.languageserver2.requests;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.Range;
 import de.peeeq.wurstio.languageserver.TextPos;
+import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
@@ -16,8 +16,10 @@ import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.*;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * Created by peter on 24.04.16.
  */
-public class GetCompletions extends UserRequest {
+public class GetCompletions extends UserRequest<CompletionList> {
 
 
     private static final int MAX_COMPLETIONS = 100;
@@ -41,18 +43,17 @@ public class GetCompletions extends UserRequest {
     private WurstType expectedType;
     private ModelManager modelManager;
 
-    public GetCompletions(int requestNr, String filename, String buffer, int line, int column) {
-        super(requestNr);
-        this.filename = filename;
-        this.buffer = buffer;
-        this.line = line;
-        this.column = column - 1;
+
+    public GetCompletions(TextDocumentPositionParams position, BufferManager bufferManager) {
+        this.filename = position.getTextDocument().getUri();
+        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.line = position.getPosition().getLine();
+        this.column = position.getPosition().getCharacter() - 1;
         this.lines = buffer.split("\\n|\\r\\n");
         WLogger.info("Get completions in line " + line + ": \n" +
                 "" + currentLine().replace('\t', ' ') + "\n" +
                 "" + Utils.repeat(' ', column - 1) + "^\n" +
                 " at column " + column);
-
     }
 
     private String currentLine() {
@@ -60,17 +61,21 @@ public class GetCompletions extends UserRequest {
     }
 
     @Override
-    public List<WurstCompletion> execute(ModelManager modelManager) {
+    public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
-        List<WurstCompletion> result = computeCompletionProposals(cu);
+        List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {
-            Collections.sort(result, Comparator
-                    .comparingDouble(WurstCompletion::getRating).reversed()
-                    .thenComparing(WurstCompletion::getDisplayString));
+            Collections.sort(result, completionItemComparator());
         }
-        return result;
+        return new CompletionList(result);
+    }
+
+    private Comparator<CompletionItem> completionItemComparator() {
+        return Comparator
+                .comparing(CompletionItem::getSortText).reversed()
+                .thenComparing(CompletionItem::getLabel);
     }
 
     private enum SearchMode {
@@ -80,7 +85,7 @@ public class GetCompletions extends UserRequest {
     /**
      * computes completions at the current position
      */
-    public List<WurstCompletion> computeCompletionProposals(CompilationUnit cu) {
+    public List<CompletionItem> computeCompletionProposals(CompilationUnit cu) {
 
         if (isEnteringRealNumber()) {
             return null;
@@ -92,7 +97,7 @@ public class GetCompletions extends UserRequest {
 
         for (SearchMode mode : SearchMode.values()) {
             searchMode = mode;
-            List<WurstCompletion> completions = Lists.newArrayList();
+            List<CompletionItem> completions = Lists.newArrayList();
 
             elem = Utils.getAstElementAtPos(cu, line, column + 1, false);
             WLogger.info("get completions at " + Utils.printElement(elem));
@@ -117,7 +122,7 @@ public class GetCompletions extends UserRequest {
         return null;
     }
 
-    private void calculateCompletions(List<WurstCompletion> completions) {
+    private void calculateCompletions(List<CompletionItem> completions) {
         boolean isMemberAccess = false;
         if (elem instanceof ExprMember) {
             ExprMember e = (ExprMember) elem;
@@ -135,7 +140,7 @@ public class GetCompletions extends UserRequest {
 
             leftType.getMemberMethods(elem).forEach(nameLink -> {
                 if (isSuitableCompletion(nameLink.getName())) {
-                    WurstCompletion completion = makeNameDefCompletion(nameLink.getNameDef());
+                    CompletionItem completion = makeNameDefCompletion(nameLink.getNameDef());
                     completions.add(completion);
                 }
             });
@@ -209,7 +214,7 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void completeImport(List<WurstCompletion> completions) {
+    private void completeImport(List<CompletionItem> completions) {
         ModelManager mm = modelManager;
         WurstModel model = elem.getModel();
         Set<String> usedPackages = Sets.newHashSet();
@@ -253,7 +258,7 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void addDefaultCompletions(List<WurstCompletion> completions, Element elem, boolean isMemberAccess) {
+    private void addDefaultCompletions(List<CompletionItem> completions, Element elem, boolean isMemberAccess) {
         WurstType leftType;
         leftType = AttrExprType.caclulateThistype(elem, true, null);
         if (leftType instanceof WurstTypeUnknown) {
@@ -267,32 +272,38 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void getCompletionsForExistingConstructorCall(List<WurstCompletion> completions, ExprNewObject c) {
+    private void getCompletionsForExistingConstructorCall(List<CompletionItem> completions, ExprNewObject c) {
         ConstructorDef constructorDef = c.attrConstructorDef();
         if (constructorDef != null) {
             ClassDef classDef = constructorDef.attrNearestClassDef();
             assert classDef != null; // every constructor has a nearest class
-            completions.add(makeConstructorCompletion(classDef, constructorDef).withDisableAction());
+            CompletionItem ci = makeConstructorCompletion(classDef, constructorDef);
+            ci.setTextEdit(null);
+            completions.add(ci);
         }
     }
 
-    private void getCompletionsForExistingMemberCall(List<WurstCompletion> completions, ExprMemberMethod c) {
+    private void getCompletionsForExistingMemberCall(List<CompletionItem> completions, ExprMemberMethod c) {
         FunctionDefinition funcDef = c.attrFuncDef();
         if (funcDef != null) {
-            completions.add(makeFunctionCompletion(funcDef).withDisableAction());
+            CompletionItem ci = makeFunctionCompletion(funcDef);
+            ci.setTextEdit(null);
+            completions.add(ci);
         }
     }
 
-    private void getCompletionsForExistingCall(List<WurstCompletion> completions, ExprFunctionCall c) {
+    private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
         FunctionDefinition funcDef = c.attrFuncDef();
         if (funcDef != null) {
             alreadyEntered = c.getFuncName();
-            completions.add(makeFunctionCompletion(funcDef).withDisableAction());
+            CompletionItem ci = makeFunctionCompletion(funcDef);
+            ci.setTextEdit(null);
+            completions.add(ci);
         }
     }
 
 	/*
-    private ICompletionProposal[] toCompletionsArray(List<WurstCompletion> completions) {
+    private ICompletionProposal[] toCompletionsArray(List<CompletionItem> completions) {
 		Collections.sort(completions);
 		ICompletionProposal[] result = new ICompletionProposal[completions.size()];
 		for (int i = 0; i < result.length; i++) {
@@ -338,10 +349,10 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void removeDuplicates(List<WurstCompletion> completions) {
+    private void removeDuplicates(List<CompletionItem> completions) {
         for (int i = 0; i < completions.size() - 1; i++) {
             for (int j = completions.size() - 1; j > i; j--) {
-                if (completions.get(i).equalsCompletion(completions.get(j))) {
+                if (completions.get(i).equals(completions.get(j))) {
                     completions.remove(j);
                 }
             }
@@ -378,7 +389,7 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void completionsAddVisibleNames(String alreadyEntered, List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames,
+    private void completionsAddVisibleNames(String alreadyEntered, List<CompletionItem> completions, Multimap<String, NameLink> visibleNames,
                                             @Nullable WurstType leftType, boolean isMemberAccess, Element pos) {
         Collection<Entry<String, NameLink>> entries = visibleNames.entries();
         for (Entry<String, NameLink> e : entries) {
@@ -414,7 +425,7 @@ public class GetCompletions extends UserRequest {
             if (e.getValue().getNameDef() instanceof FunctionDefinition) {
                 FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
 
-                WurstCompletion completion = makeFunctionCompletion(f);
+                CompletionItem completion = makeFunctionCompletion(f);
                 completions.add(completion);
             } else {
                 completions.add(makeNameDefCompletion(e.getValue().getNameDef()));
@@ -426,10 +437,10 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private void dropBadCompletions(List<WurstCompletion> completions) {
-        Collections.sort(completions);
+    private void dropBadCompletions(List<CompletionItem> completions) {
+        Collections.sort(completions, completionItemComparator());
         for (int i = completions.size() - 1; i >= MAX_COMPLETIONS; i--) {
-            if (completions.get(i).getRating() > 0.4) {
+            if (Double.valueOf(completions.get(i).getSortText()) > 0.4) {
                 // good enough
                 return;
             }
@@ -437,28 +448,42 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private WurstCompletion makeNameDefCompletion(NameDef n) {
+    private CompletionItem makeNameDefCompletion(NameDef n) {
         if (n instanceof FunctionDefinition) {
             return makeFunctionCompletion((FunctionDefinition) n);
         }
 
-        WurstCompletion completion = new WurstCompletion(n.getName());
+        CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.detail = n.descriptionHtml();
-        completion.documentation = n.attrComment();
-        completion.rating = calculateRating(n.getName(), n.attrTyp());
-        completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), n.getName());
+        completion.setDetail(n.descriptionHtml());
+        completion.setDocumentation(n.attrComment());
+        double rating = calculateRating(n.getName(), n.attrTyp());
+        completion.setSortText(ratingToString(rating));
+        Range range = range(line, column - alreadyEntered.length(), column);
+        String newText = n.getName();
+        completion.setInsertText(newText);
 
 
         return completion;
     }
 
-    private WurstCompletion makeSimpleNameCompletion(String name) {
-        WurstCompletion completion = new WurstCompletion(name);
+    private String ratingToString(double rating) {
+        rating = Math.min(10, rating);
+        DecimalFormat format = new DecimalFormat("####.000");
+        return format.format(10. - rating); // TODO add label?
+    }
 
-        completion.detail = "";
-        completion.rating = calculateRating(name, WurstTypeUnknown.instance());
-        completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), name);
+    private Range range(int line, int startCol, int endCol) {
+        return new Range(new Position(line, startCol), new Position(line, endCol));
+    }
+
+    private CompletionItem makeSimpleNameCompletion(String name) {
+        CompletionItem completion = new CompletionItem(name);
+
+        completion.setDetail("");
+        double rating = calculateRating(name, WurstTypeUnknown.instance());
+        completion.setSortText(ratingToString(rating));
+        completion.setInsertText(name);
 
         return completion;
     }
@@ -506,25 +531,39 @@ public class GetCompletions extends UserRequest {
         }
     }
 
-    private WurstCompletion makeFunctionCompletion(FunctionDefinition f) {
+    private CompletionItem makeFunctionCompletion(FunctionDefinition f) {
         String replacementString = f.getName();
+        WParameters params = f.getParameters();
         if (!isBeforeParenthesis()) {
-            if (f.getParameters().isEmpty()) {
+            if (params.isEmpty()) {
                 replacementString += "()";
             }
         }
 
-        WurstCompletion completion = new WurstCompletion(f.getName());
-        completion.kind = CompletionItemKind.Function;
-        completion.detail = getFunctionDescriptionShort(f);
-        completion.documentation = getFunctionDescriptionHtml(f);
-        completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), replacementString);
-        completion.rating = calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic()); // TODO use call signature instead for generics
-        completion.parameters = f.getParameters().stream()
-                .map(p -> new ParamInfo(p.getTyp().attrTyp().toString(), p.getName()))
-                .collect(Collectors.toList());
+        CompletionItem completion = new CompletionItem(f.getName());
+        completion.setKind(CompletionItemKind.Function);
+        completion.setDetail(getFunctionDescriptionShort(f));
+        completion.setDocumentation(getFunctionDescriptionHtml(f));
+        completion.setInsertText(replacementString);
+        completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic()))); // TODO use call signature instead for generics
+//        completion.set
+
+        addParamSnippet(replacementString, params, completion);
 
         return completion;
+    }
+
+    private void addParamSnippet(String replacementString, WParameters params, CompletionItem completion) {
+        if (!params.isEmpty()) {
+            List<String> paramSnippets = new ArrayList<>();
+            for (int i = 0; i < params.size(); i++) {
+                WParameter param = params.get(i);
+                paramSnippets.add("${" + (i+1) + ":" + param.getName() + "}");
+            }
+            replacementString += "(" + String.join(", ", paramSnippets) + ")";
+            completion.setInsertText(replacementString);
+            completion.setInsertTextFormat(InsertTextFormat.Snippet);
+        }
     }
 
     private String getFunctionDescriptionShort(FunctionDefinition f) {
@@ -541,23 +580,28 @@ public class GetCompletions extends UserRequest {
         return f.descriptionHtml();
     }
 
-    private WurstCompletion makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
+    private CompletionItem makeConstructorCompletion(ClassDef c, ConstructorDef constr) {
         String replacementString = c.getName();
 //		if (!isBeforeParenthesis()) {
 //			replacementString += "()";
 //		}
 
-        WurstCompletion completion = new WurstCompletion(c.getName());
-        completion.kind = CompletionItemKind.Constructor;
+        CompletionItem completion = new CompletionItem(c.getName());
+        completion.setKind(CompletionItemKind.Constructor);
         String params = Utils.getParameterListText(constr);
-        completion.detail = "(" + params + ")";
-        completion.documentation = constr.descriptionHtml();
-        completion.textEdit = TextEdit.replace(new Range(line, column - alreadyEntered.length(), column), replacementString);
-        completion.rating = calculateRating(c.getName(), c.attrTyp().dynamic());
+        completion.setDetail("(" + params + ")");
+        completion.setDocumentation(constr.descriptionHtml());
+        completion.setInsertTextFormat(InsertTextFormat.Snippet);
+        completion.setInsertText(replacementString);
+        completion.setSortText(ratingToString(calculateRating(c.getName(), c.attrTyp().dynamic())));
+
+
+        addParamSnippet(replacementString, constr.getParameters(), completion);
+
         return completion;
     }
 
-    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<WurstCompletion> completions, Multimap<String, NameLink> visibleNames,
+    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, NameLink> visibleNames,
                                                          WurstType leftType) {
         for (Entry<String, NameLink> e : visibleNames.entries()) {
             if (!isSuitableCompletion(e.getKey())) {
@@ -573,109 +617,109 @@ public class GetCompletions extends UserRequest {
 
     }
 
-    public static class WurstCompletion implements Comparable<WurstCompletion> {
-        String label;
-        CompletionItemKind kind;
-        String detail;
-        String documentation;
-        TextEdit textEdit;
-        double rating;
-        List<ParamInfo> parameters;
-
-
-        WurstCompletion(String label) {
-            this.label = label;
-        }
-
-        public boolean equalsCompletion(WurstCompletion other) {
-            return Objects.equals(other.label, label)
-                    && Objects.equals(other.parameters, parameters);
-        }
-
-        @Override
-        public int compareTo(WurstCompletion o) {
-            return Double.compare(rating, o.rating);
-        }
-
-        public WurstCompletion withDisableAction() {
-            // TODO remove
-            textEdit = null;
-            return this;
-        }
-
-        public String getDisplayString() {
-            return label;
-        }
-
-        public double getRating() {
-            return rating;
-        }
-    }
-
-    public static class ParamInfo {
-        String type;
-        String name;
-
-        public ParamInfo(String type, String name) {
-            this.type = type;
-            this.name = name;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(type, name);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj instanceof ParamInfo) {
-                ParamInfo other = (ParamInfo) obj;
-                return name.equals(other.name) && type.equals(other.type);
-            }
-            return false;
-        }
-    }
-
-    private static class TextEdit {
-        Range range;
-        String newText;
-
-        public TextEdit(Range range, String newText) {
-            this.range = range;
-            this.newText = newText;
-        }
-
-        static TextEdit replace(Range range, String newText) {
-            return new TextEdit(range, newText);
-        }
-
-        static TextEdit insert(TextPos position, String newText) {
-            return new TextEdit(new Range(position, position), newText);
-        }
-
-        static TextEdit delete(Range range) {
-            return new TextEdit(range, "");
-        }
-    }
-
-    private enum CompletionItemKind {
-        Text,
-        Method,
-        Function,
-        Constructor,
-        Field,
-        Variable,
-        Class,
-        Interface,
-        Module,
-        Property,
-        Unit,
-        Value,
-        Enum,
-        Keyword,
-        Snippet,
-        Color,
-        File,
-        Reference;
-    }
+//    public static class CompletionItem implements Comparable<CompletionItem> {
+//        String label;
+//        CompletionItemKind kind;
+//        String detail;
+//        String documentation;
+//        TextEdit textEdit;
+//        double rating;
+//        List<ParamInfo> parameters;
+//
+//
+//        CompletionItem(String label) {
+//            this.label = label;
+//        }
+//
+//        public boolean equalsCompletion(CompletionItem other) {
+//            return Objects.equals(other.label, label)
+//                    && Objects.equals(other.parameters, parameters);
+//        }
+//
+//        @Override
+//        public int compareTo(CompletionItem o) {
+//            return Double.compare(rating, o.rating);
+//        }
+//
+//        public CompletionItem withDisableAction() {
+//            // TODO remove
+//            textEdit = null;
+//            return this;
+//        }
+//
+//        public String getDisplayString() {
+//            return label;
+//        }
+//
+//        public double getRating() {
+//            return rating;
+//        }
+//    }
+//
+//    public static class ParamInfo {
+//        String type;
+//        String name;
+//
+//        public ParamInfo(String type, String name) {
+//            this.type = type;
+//            this.name = name;
+//        }
+//
+//        @Override
+//        public int hashCode() {
+//            return Objects.hash(type, name);
+//        }
+//
+//        @Override
+//        public boolean equals(Object obj) {
+//            if (obj instanceof ParamInfo) {
+//                ParamInfo other = (ParamInfo) obj;
+//                return name.equals(other.name) && type.equals(other.type);
+//            }
+//            return false;
+//        }
+//    }
+//
+//    private static class TextEdit {
+//        Range range;
+//        String newText;
+//
+//        public TextEdit(Range range, String newText) {
+//            this.range = range;
+//            this.newText = newText;
+//        }
+//
+//        static TextEdit replace(Range range, String newText) {
+//            return new TextEdit(range, newText);
+//        }
+//
+//        static TextEdit insert(TextPos position, String newText) {
+//            return new TextEdit(new Range(position, position), newText);
+//        }
+//
+//        static TextEdit delete(Range range) {
+//            return new TextEdit(range, "");
+//        }
+//    }
+//
+//    private enum CompletionItemKind {
+//        Text,
+//        Method,
+//        Function,
+//        Constructor,
+//        Field,
+//        Variable,
+//        Class,
+//        Interface,
+//        Module,
+//        Property,
+//        Unit,
+//        Value,
+//        Enum,
+//        Keyword,
+//        Snippet,
+//        Color,
+//        File,
+//        Reference;
+//    }
 }

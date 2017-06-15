@@ -144,7 +144,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void processWurstFile(File f) throws IOException {
-        System.out.println("processing file " + f);
+        WLogger.info("processing file " + f);
         replaceCompilationUnit(f);
     }
 
@@ -346,7 +346,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void updateModel(CompilationUnit cu, WurstGui gui) {
-        System.out.println("update model with " + cu.getFile());
+        WLogger.info("update model with " + cu.getFile());
         parseErrors.put(cu.getFile(), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -513,7 +513,7 @@ public class ModelManagerImpl implements ModelManager {
         updateModel(cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
-            System.out.println("found " + gui.getErrorCount() + " errors in file " + filename);
+            WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
             reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
         }
         return cu;

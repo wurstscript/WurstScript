@@ -39,14 +39,11 @@ public class WCTFile {
     public static WCTFile fromStream(BinaryDataInputStream in) throws IOException {
         WCTFile result = new WCTFile();
         result.version = in.readInt();
-        System.out.println("version = " + result.version);
         result.customScriptComment = in.readNullTerminatedString(Charsets.UTF_8);
         result.triggers.add(readCustomTextTrigger(in));
-        System.out.println("Comment: " + result.customScriptComment);
         result.numberOfTriggers = in.readInt();
 
 
-        System.out.println("numberOfTriggers: " + result.numberOfTriggers);
 
         for (int i = 0; i < result.numberOfTriggers; i++) {
             result.triggers.add(readCustomTextTrigger(in));

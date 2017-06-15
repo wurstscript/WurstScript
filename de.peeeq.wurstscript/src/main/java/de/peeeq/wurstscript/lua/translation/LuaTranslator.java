@@ -129,7 +129,7 @@ public class LuaTranslator {
 
     private void translateClass(ImClass c) {
         // TODO
-        System.out.println("TODO translate class " + c.getName());
+        throw new RuntimeException("TODO translate class " + c.getName());
     }
 
     private void translateGlobal(ImVar v) {
