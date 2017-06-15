@@ -289,10 +289,6 @@ Element.attrTrace()
 	returns de.peeeq.wurstscript.ast.Element
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getTrace
 	
-Element.replaceWith(Element other) "replaces this element with some new element"
-	returns void
-	implemented by de.peeeq.wurstscript.translation.imtranslation.ImHelper.replaceElem
-
 Element.attrProg()
 	returns ImProg
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.getProg
