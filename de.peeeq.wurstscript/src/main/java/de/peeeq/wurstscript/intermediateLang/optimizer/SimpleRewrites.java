@@ -21,10 +21,11 @@ public class SimpleRewrites {
         this.trans = trans;
     }
 
-    public void optimize() {
+    public void optimize(boolean showRewrites) {
         optimizeElement(prog);
         // we need to flatten the program, because we introduced new
         // StatementExprs
+        this.showRewrites = showRewrites;
         prog.flatten(trans);
         removeUnreachableCode(prog);
     }
@@ -127,48 +128,10 @@ public class SimpleRewrites {
                 opc.replaceBy(JassIm.ImBoolVal(result));
             } else if (left instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) left).getValB();
-                switch (opc.getOp()) {
-                    case OR:
-                        if (b1) {
-                            opc.replaceBy(JassIm.ImBoolVal(true));
-                        } else {
-                            right.setParent(null);
-                            opc.replaceBy(right);
-                        }
-                        break;
-                    case AND:
-                        if (b1) {
-                            right.setParent(null);
-                            opc.replaceBy(right);
-                        } else {
-                            opc.replaceBy(JassIm.ImBoolVal(false));
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                wasViable = replaceBoolTerm(opc, right, b1);
             } else if (right instanceof ImBoolVal) {
                 boolean b2 = ((ImBoolVal) right).getValB();
-                switch (opc.getOp()) {
-                    case OR:
-                        if (b2) {
-                            opc.replaceBy(JassIm.ImBoolVal(true));
-                        } else {
-                            left.setParent(null);
-                            opc.replaceBy(left);
-                        }
-                        break;
-                    case AND:
-                        if (b2) {
-                            left.setParent(null);
-                            opc.replaceBy(left);
-                        } else {
-                            opc.replaceBy(JassIm.ImBoolVal(false));
-                        }
-                        break;
-                    default:
-                        break;
-                }
+                wasViable = replaceBoolTerm(opc, left, b2);
             } else if (left instanceof ImIntVal && right instanceof ImIntVal) {
                 int i1 = ((ImIntVal) left).getValI();
                 int i2 = ((ImIntVal) right).getValI();
@@ -251,6 +214,8 @@ public class SimpleRewrites {
                     opc.replaceBy(JassIm.ImBoolVal(result));
                 } else if (isArithmetic) {
                     opc.replaceBy(JassIm.ImIntVal(resultVal));
+                } else {
+                    wasViable = false;
                 }
             } else if (left instanceof ImRealVal && right instanceof ImRealVal) {
                 float f1 = Float.parseFloat(((ImRealVal) left).getValR());
@@ -348,7 +313,15 @@ public class SimpleRewrites {
         // Unary
         else {
             ImExpr expr = opc.getArguments().get(0);
-            if (expr instanceof ImBoolVal) {
+            if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal) {
+                ImIntVal imIntVal = (ImIntVal) expr;
+                if(imIntVal.getValI() <= 0) {
+                    int inverseVal = imIntVal.getValI() * -1;
+                    ImIntVal newVal = JassIm.ImIntVal(inverseVal);
+                    opc.replaceBy(newVal);
+                }
+                wasViable = false;
+            } else if (expr instanceof ImBoolVal) {
                 boolean b1 = ((ImBoolVal) expr).getValB();
                 boolean result;
                 switch (opc.getOp()) {
@@ -382,7 +355,6 @@ public class SimpleRewrites {
             } else {
                 wasViable = false;
             }
-
         }
         if (wasViable) {
             totalRewrites++;
@@ -391,6 +363,30 @@ public class SimpleRewrites {
             }
         }
 
+    }
+
+    private boolean replaceBoolTerm(ImOperatorCall opc, ImExpr expr, boolean b2) {
+        switch (opc.getOp()) {
+            case OR:
+                if (b2) {
+                    opc.replaceBy(JassIm.ImBoolVal(true));
+                } else {
+                    expr.setParent(null);
+                    opc.replaceBy(expr);
+                }
+                break;
+            case AND:
+                if (b2) {
+                    expr.setParent(null);
+                    opc.replaceBy(expr);
+                } else {
+                    opc.replaceBy(JassIm.ImBoolVal(false));
+                }
+                break;
+            default:
+                return false;
+        }
+        return true;
     }
 
     /**

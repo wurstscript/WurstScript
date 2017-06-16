@@ -10,7 +10,7 @@ public class PrettyPrintTest extends WurstScriptTest {
 
     @Test
     public void testPrettyPrint() {
-        String input ="package Test\n" +
+        String input = "package Test\n" +
                 "constant     int   i =  0\n" +
                 "int   i2=0\n" +
                 "int i3\n" +

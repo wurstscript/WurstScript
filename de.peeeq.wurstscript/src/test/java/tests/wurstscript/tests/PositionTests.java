@@ -1,19 +1,10 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WurstCompiler;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.WurstModel;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
 import org.junit.Test;
-
-import java.util.function.Function;
 
 public class PositionTests extends WurstScriptTest {
 
