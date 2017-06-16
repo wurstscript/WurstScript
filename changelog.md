@@ -2,6 +2,21 @@
 layout: simple
 title: Changelog
 ---
+Version 1.7.0.0
+==================
+### Gradle Migration
+
+WurstScript is finally using gradle!
+
+Additionally all deprecated projects such as the eclipse plugin and their coresponding issues have been removed to clean up the repository.
+
+Other fixes include:
+- stacktraces are now build in an array to avoid hitting the string limit
+- added missing errors for nested tuples and static access of dynamic variables in certain cases
+- cleaned up wurstpack, log output, readme
+- local optimizations have been improved and are now run multiple times to produce even more optimized output
+- more..
+
 Version 1.6.0.0
 ==================
 ### Major Update
