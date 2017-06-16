@@ -18,21 +18,13 @@ It is an imperative, object-oriented, statically-typed, beginner-friendly progra
 
 You can find more detailed installation notes here: [Installation Notes](./installation.html).
 
-### Eclipse Plugin
-
-Update site: `http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/eclipseUpdateSite/`
-
-In Eclipse go to "Help - Install New Software" and add the update site mentioned above. You should then be able to install the Wurst plugin from that page.
-
 ### Visual Studio Code Plugin
 
 [Visual Studio Code](https://code.visualstudio.com) is an open source, cross-patform code editor.
-The Wurst plugin is still work in progress, but can already be used:
 
-You can find more information [in the vscode marketplace](https://marketplace.visualstudio.com/items?itemName=peterzeller.wurst).
+Wurst support is provided via plugin and can be installed [from the vscode marketplace](https://marketplace.visualstudio.com/items?itemName=peterzeller.wurst).
 
 The source code is available in a separate GitHub repository: [wurst4vscode on GitHub](https://github.com/peq/wurst4vscode)
-
 
 
 ### Wurst Pack
@@ -50,15 +42,13 @@ If you prefer manual downloads over the automatic updater, you can use the links
 * [Compiler](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstpack_compiler.zip):
 			This download only contains the wurstscript folder of the Pack. Usually it is sufficient to update this folder, since
 			other parts of the Pack are rarely changed.
-* [Standard Library](https://github.com/peq/wurstStdlib):
+* [Standard Library](https://github.com/Frotty/wurstStdlib2):
 			This is standard library repository.
 * [Wurstscript.jar](http://peeeq.de/hudson/job/Wurst/lastSuccessfulBuild/artifact/downloads/wurstscript.jar):
 			This is only the main jar file for the compiler. For small bugfixes it is often sufficient to replace this file, but
 			to be sure you should usually choose the bigger downloads.
 
 All downloads above use the latest successful build from our build-server.
-
-There is also [Bundle](http://peeeq.de/wurst/Wurstscript_2015_09.zip) (134MB) availble, which includes everything you need: the Wurst Pack, a Java Runtime, and Eclipse. This might be the easiest option to get started. Run the updater included in the Bundle to get the latest version.
 
 
 ## Source Code
