@@ -6,7 +6,7 @@ This tells you how to use the WurstEditor and Eclipse plugin correctly in order 
 Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too.
 
 
-##Requirements:
+## Requirements:
 
 - [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 	Many systems already have Java installed. In that case you should make sure that you have the latest version installed.
@@ -16,9 +16,9 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
         VSCode serves as IDE platform for wurst.
 
 
-#Installing the Wurst-Plugin and setting up Wurst
+# Installing the Wurst-Plugin and setting up Wurst
 
-##Installing the Wurst-Plugin
+## Installing the Wurst-Plugin
 
 1. Start VSCode
 2. Press F1 and enter 'install extension' in the prompt.
@@ -27,7 +27,7 @@ Since the JNGP only works on Windows, Wurstpack usage is limited to windows, too
 5. Install the "Wurst language support" plugin
 6. Restart VSCode and open a .wurst file to activate the plugin 
 
-##Setting up a Wurst project
+## Setting up a Wurst project
 
 Your project should have the following hierachy:
 
@@ -45,17 +45,17 @@ Your project should have the following hierachy:
 5. Paste the path into the wurst.dependencies file in eclipse. A correct path should look similar to this: C:\User\YourUserName\Wurstpack\wurstscript\lib
 6. Save the file.
 
-###Create your first Wurst package
+### Create your first Wurst package
 
 1. To create a new Package go: File -> New File
 2. Enter a filename that ends in **.wurst**
 3. The file will now be treated as wurst package
 
-###Importing existing projects
+### Importing existing projects
 
 If you want to import existing projects into VSCode, just use *File -> Open Folder* and open the root.
 
-#Issues:
+# Issues:
 I always get into the main menu although I have saved the card properly:
 
 - Make sure your map is w3x and not w3m
