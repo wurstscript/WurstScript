@@ -1,7 +1,5 @@
-import java.text.SimpleDateFormat
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
-
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 
@@ -68,7 +66,7 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:JMPQ3:1.5.0'
+    compile 'com.github.inwc3:JMPQ3:1.5.1'
 }
 
 
