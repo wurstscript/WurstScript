@@ -7,6 +7,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions.WurstCompletion;
+import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -175,7 +176,7 @@ public class AutoCompleteTests extends WurstScriptTest {
     private void testCompletions(CompletionTestData testData, List<String> expectedCompletions) {
         GetCompletions getCompletions = new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
-        ModelManager modelManager = new ModelManagerImpl(new File("."));
+        ModelManager modelManager = new ModelManagerImpl(new File("."), new BufferManager());
 
         Handler h = new ConsoleHandler();
         WLogger.setHandler(h);

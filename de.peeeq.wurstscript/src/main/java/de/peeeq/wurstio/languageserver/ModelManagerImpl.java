@@ -8,6 +8,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.languageserver2.BufferManager;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
  */
 public class ModelManagerImpl implements ModelManager {
 
+    private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private File projectPath;
     private boolean needsFullBuild = true;
@@ -43,12 +46,13 @@ public class ModelManagerImpl implements ModelManager {
     // hashcode for each compilation unit content as string
     private Map<String, Integer> fileHashcodes = new HashMap<>();
 
-    public ModelManagerImpl(String projectPath) {
-        this(new File(projectPath));
+    public ModelManagerImpl(String projectPath, BufferManager bufferManager) {
+        this(new File(projectPath), bufferManager);
     }
 
-    public ModelManagerImpl(File projectPath) {
+    public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
+        this.bufferManager = bufferManager;
     }
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
@@ -449,6 +453,7 @@ public class ModelManagerImpl implements ModelManager {
         String filename = getCanonicalPath(f);
         WLogger.info("replaceCompilationUnit 2 " + f);
         String contents = Files.toString(f, Charsets.UTF_8);
+        bufferManager.updateFile(WFile.create(f), contents);
         replaceCompilationUnit(filename, contents, true);
         WLogger.info("replaceCompilationUnit 3 " + f);
     }
@@ -552,27 +557,27 @@ public class ModelManagerImpl implements ModelManager {
         onCompilationResultListeners.add(f);
     }
 
-    public static void main(String[] args) throws IOException {
-        // WurstGui gui = new WurstGuiCliImpl();
-        // WurstCompilerJassImpl c = new WurstCompilerJassImpl(gui, null, new
-        // RunArgs(Arrays.asList()));
-        // CompilationUnit cu = c.parse("RegionData.wurst", new
-        // FileReader("/home/peter/work/EBR/wurst/region/RegionData.wurst"));
-        //
-        // for (CompileError err : gui.getErrorsAndWarnings()) {
-        // System.out.println(err);
-        // System.out.println(ExternCompileError.convert(err));
-        // }
-
-        ModelManagerImpl m = new ModelManagerImpl("/home/peter/work/EBR");
-        m.onCompilationResult(cr -> {
-            for (ExternCompileError err : cr.getErrors()) {
-                System.err.println(cr.getFilename());
-                System.err.println("	" + err);
-            }
-        });
-        m.buildProject();
-    }
+//    public static void main(String[] args) throws IOException {
+//        // WurstGui gui = new WurstGuiCliImpl();
+//        // WurstCompilerJassImpl c = new WurstCompilerJassImpl(gui, null, new
+//        // RunArgs(Arrays.asList()));
+//        // CompilationUnit cu = c.parse("RegionData.wurst", new
+//        // FileReader("/home/peter/work/EBR/wurst/region/RegionData.wurst"));
+//        //
+//        // for (CompileError err : gui.getErrorsAndWarnings()) {
+//        // System.out.println(err);
+//        // System.out.println(ExternCompileError.convert(err));
+//        // }
+//
+//        ModelManagerImpl m = new ModelManagerImpl("/home/peter/work/EBR");
+//        m.onCompilationResult(cr -> {
+//            for (ExternCompileError err : cr.getErrors()) {
+//                System.err.println(cr.getFilename());
+//                System.err.println("	" + err);
+//            }
+//        });
+//        m.buildProject();
+//    }
 
     private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
         WLogger.info("do typecheck partial of " + toCheckFilenames);

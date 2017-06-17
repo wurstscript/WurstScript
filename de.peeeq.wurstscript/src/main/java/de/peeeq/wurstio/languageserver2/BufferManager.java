@@ -17,6 +17,10 @@ public class BufferManager {
     private Map<WFile, StringBuilder> currentBuffer = new HashMap<>();
 
 
+    public BufferManager() {
+
+    }
+
     public String getBuffer(TextDocumentIdentifier textDocument) {
         WFile uri = WFile.create(textDocument.getUri());
         return getBuffer(uri);
@@ -85,5 +89,10 @@ public class BufferManager {
         }
         pos += position.getCharacter();
         return Math.min(pos, sb.length() - 1);
+    }
+
+    public void updateFile(WFile wFile, String contents) {
+        StringBuilder sb = buffer(wFile);
+        sb.replace(0, sb.length(), contents);
     }
 }

@@ -6,6 +6,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.languageserver.CompilationResult;
 import de.peeeq.wurstio.languageserver.ExternCompileError;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
+import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstscript.utils.Utils;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsNot;
@@ -58,7 +59,7 @@ public class ModelManagerTests {
         writeFile(wurstFolder, "Wurst.wurst", "package Wurst\n");
 
 
-        ModelManagerImpl manager = new ModelManagerImpl(projectFolder);
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
 
         // keep error messages in a map:
         Map<String, String> results = new HashMap<>();

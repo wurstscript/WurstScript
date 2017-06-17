@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -275,7 +276,7 @@ public class LanguageWorker implements Runnable {
     private void doInit(String rootPath) {
         try {
             log("Handle init " + rootPath);
-            modelManager = new ModelManagerImpl(rootPath);
+            modelManager = new ModelManagerImpl(rootPath, new BufferManager());
             modelManager.onCompilationResult(server::onCompilationResult);
 
             log("Start building " + rootPath);

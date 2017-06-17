@@ -303,7 +303,7 @@ public class LanguageWorker implements Runnable {
     private void doInit(WFile rootPath) {
         try {
             log("Handle init " + rootPath);
-            modelManager = new ModelManagerImpl(rootPath.getFile());
+            modelManager = new ModelManagerImpl(rootPath.getFile(), bufferManager);
             modelManager.onCompilationResult(this::onCompilationResult);
 
             log("Start building " + rootPath);
@@ -337,6 +337,8 @@ public class LanguageWorker implements Runnable {
 
     public void handleChange(DidChangeTextDocumentParams params) {
         bufferManager.handleChange(params);
+        String file = WFile.create(params.getTextDocument().getUri()).toString();
+//        modelManager.replaceCompilationUnitContent(file, bufferManager.getBuffer(params.getTextDocument()), true);
         // TODO reconcile etc?
     }
 
