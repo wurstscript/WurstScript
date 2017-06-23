@@ -1,0 +1,13 @@
+<h1>Available Packages:</h1>
+<ul>
+    <A href="index.html">Back to index</A>
+    #foreach ($package in $packages)
+    <li>
+        #if ($package == $currentPackage)
+        <strong>$package.getSource().shortFile()</strong>
+        #else
+        <a href="${package.getName()}.html">$package.getSource().shortFile()</a>
+        #end
+    </li>
+    #end
+</ul>

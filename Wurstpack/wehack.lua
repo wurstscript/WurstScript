@@ -138,8 +138,7 @@ if havewurst then
 	wehack.addmenuseparator(wurstmenu)
 	
 	-- other tools
-	wurst_useJmpq2 = TogMenuEntry:New(wurstmenu, "Use JMpq-v2 (deprecated)",nil,false)
-	
+
 	
 	function wurst_runfileexporter()
 		curmap = wehack.findmappath()
@@ -576,9 +575,6 @@ grim.log("running tool on save: "..cmdargs)
 		end
 		if wurst_injectObjects.checked then
 			cmdline = cmdline .. " -injectobjects"
-		end
-		if wurst_useJmpq2.checked then
-			cmdline = cmdline .. " --jmpq2"
 		end
 		
 		-- cmdline = cmdline .. " -lib ./wurstscript/lib/"

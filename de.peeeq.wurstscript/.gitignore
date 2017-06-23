@@ -3,3 +3,6 @@
 build/
 .idea
 .gradle/
+_build/
+classes/
+out/

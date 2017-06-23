@@ -1,0 +1,169 @@
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+// Apply the java plugin to add support for Java
+apply plugin: 'java'
+
+
+apply plugin: 'antlr'
+
+// plugins for generating IDE projects
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+
+
+apply plugin: 'application'
+mainClassName = "de.peeeq.wurstio.Main"
+version = "1.7.0.0"
+
+
+String genDir = "$projectDir/src-gen"
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+            srcDir genDir
+        }
+    }
+}
+
+// In this section you declare where to find the dependencies of your project
+repositories {
+    // Use 'jcenter' for resolving your dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    //jcenter()
+    mavenLocal()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+
+// In this section you declare the dependencies for your production and test code
+dependencies {
+
+	// Antlr parsing library
+	antlr "org.antlr:antlr4:4.5.3"
+
+    // tool for generating AST-classes
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.1.4'
+
+    // JUnit for testing
+    testCompile 'junit:junit:4.12'
+
+    // Google guava
+    compile 'com.google.guava:guava:21.0'
+
+    // @Nullable annotations
+    compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
+
+    // Gson for json parsing
+    compile group: 'com.google.code.gson', name: 'gson', version: '2.6.2'
+
+    // Velocity template engine for generating Html documents from Hotdoc documentation
+    compile group: 'org.apache.velocity', name: 'velocity', version: '1.7'
+
+    // Chardet for guessing the file-encoding of a source-file
+    compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
+
+    // JMPQ by Crigges for handling mpq archives
+    compile 'com.github.inwc3:JMPQ3:1.5.1'
+}
+
+
+task genAst {
+    description = 'Compile ast specifications'
+    fileTree(dir: 'parserspec', include:'**/*.parseq').each { file ->
+
+        Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
+        String fileContents = file.text
+
+        Matcher matcher = PACKAGE_PATTERN.matcher(fileContents);
+        String packageName = "";
+        if (matcher.find()) {
+            packageName = matcher.group(1);
+        }
+
+        String targetDir = "$genDir/" + packageName.replace(".", "/")
+
+        inputs.file(file)
+        outputs.dir(targetDir)
+
+        doLast {
+            javaexec {
+                classpath configurations.compileOnly
+                main = "asg.Main"
+                args = [file, targetDir]
+            }
+        }
+    }
+}
+
+
+task versionInfoFile {
+    description "Generates a file CompileTimeInfo.java with version number etc."
+
+    doLast {
+        def dir = new File('./src-gen/de/peeeq/wurstscript/')
+        dir.mkdirs()
+        def f = new File(dir, 'CompileTimeInfo.java')
+
+        String gitRevision = "unknown-version"
+        String gitRevisionlong = "unknown-version"
+
+        new ByteArrayOutputStream().withStream { os ->
+            def result = exec {
+                executable = 'git'
+                args = ['describe', '--tags', '--always']
+                standardOutput = os
+            }
+            gitRevision = os.toString().trim()
+        }
+
+        new ByteArrayOutputStream().withStream { os ->
+            def result = exec {
+                executable = 'git'
+                args = ['describe', '--tags', '--always', '--abbrev=0']
+                standardOutput = os
+            }
+            gitRevisionlong = os.toString().trim()
+        }
+
+        String wurstVersion = "${version}-${gitRevision}"
+
+
+        String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
+
+        f.text = """
+        package de.peeeq.wurstscript;
+
+        public class CompileTimeInfo {
+            public static final String time="${currentTime}";
+            public static final String revision="${gitRevision}";
+            public static final String revisionLong="${gitRevisionlong}";
+            public static final String version="${wurstVersion}";
+        }
+        """
+
+    }
+}
+
+
+task gen {
+    description "Generates code from various input files"
+}
+gen.dependsOn genAst
+gen.dependsOn versionInfoFile
+
+compileJava.dependsOn gen
+
+
+test {
+    include "tests/wurstscript/tests/AllTests.class"
+}
+
+// delete the generated sources on clean
+clean.doFirst {
+    delete genDir
+}
+
+apply from: 'deploy.gradle'

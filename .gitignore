@@ -51,10 +51,6 @@ Wurstpack/winmpq/temp/*
 Wurstpack/wurstscript/logs/*
 Wurstpack/tesh/TESH.ini
 Checksums/testmd5.txt
-<<<<<<< Updated upstream
 /.idea
 *.iml
-=======
-
-/.idea
->>>>>>> Stashed changes
+downloads/
