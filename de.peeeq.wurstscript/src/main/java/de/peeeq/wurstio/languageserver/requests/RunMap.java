@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by peter on 16.05.16.
@@ -117,6 +118,9 @@ public class RunMap extends UserRequest {
 
             WLogger.info("Starting wc3 ... ");
 
+
+            File frozenThroneExe = getFrozenThroneExe();
+
             // now start the map
             List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
 
@@ -144,6 +148,18 @@ public class RunMap extends UserRequest {
         File before128 = new File(wc3Path, "Frozen Throne.exe");
         File after128 = new File(wc3Path, "Warcraft III.exe");
         return before128.exists() ? before128 : after128;
+    }
+
+    /**
+     * Returns the executable for Warcraft III for starting maps
+     */
+    private File getFrozenThroneExe() {
+        return Stream.of("Frozen Throne.exe", "Warcraft III.exe")
+                .map(exe -> new File(wc3Path, exe))
+                .filter(File::exists)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No warcraft executatble found in path '" + wc3Path + "'. \n" +
+                        "Please check your configuration."));
     }
 
     /**
