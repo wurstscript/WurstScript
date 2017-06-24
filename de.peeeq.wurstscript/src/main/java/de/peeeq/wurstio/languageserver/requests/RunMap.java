@@ -118,9 +118,6 @@ public class RunMap extends UserRequest {
 
             WLogger.info("Starting wc3 ... ");
 
-
-            File frozenThroneExe = getFrozenThroneExe();
-
             // now start the map
             List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
 
@@ -144,17 +141,12 @@ public class RunMap extends UserRequest {
         return "ok"; // TODO
     }
 
-    private File findGameExecutable() {
-        File before128 = new File(wc3Path, "Frozen Throne.exe");
-        File after128 = new File(wc3Path, "Warcraft III.exe");
-        return before128.exists() ? before128 : after128;
-    }
-
     /**
      * Returns the executable for Warcraft III for starting maps
+     * since it changed with 1.28.3
      */
-    private File getFrozenThroneExe() {
-        return Stream.of("Frozen Throne.exe", "Warcraft III.exe")
+    private File findGameExecutable() {
+        Stream.of("Frozen Throne.exe", "Warcraft III.exe")
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
                 .findFirst()
