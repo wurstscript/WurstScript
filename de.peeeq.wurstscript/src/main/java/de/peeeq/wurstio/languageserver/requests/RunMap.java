@@ -290,8 +290,18 @@ public class RunMap extends UserRequest {
 
     private void processMapScript(RunArgs runArgs, WurstGui gui, ModelManager modelManager, File mapCopy) throws Exception {
         File existingScript = new File(new File(new File(workspaceRoot), "wurst"), "war3map.j");
-
-        //  try to get war3map.j from the map:
+        // If runargs are no extract, either use existing or throw error
+        if (runArgs.isNoExtractMapScript()) {
+            if(existingScript.exists()) {
+                modelManager.syncCompilationUnit(existingScript.getAbsolutePath());
+                return;
+            } else {
+                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                        "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
+                throw err;
+            }
+        }
+        // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
         byte[] extractedScript;
         try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             extractedScript = mpqEditor.extractFile("war3map.j");
