@@ -92,8 +92,8 @@ public class RunMap extends UserRequest {
             File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, map);
 
             WurstModel model = modelManager.getModel();
-            if (model == null || !model.stream().anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-                println("No 'war3map.j' file could be found");
+            if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+                println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
                 println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
                 println("We will try to start the map now, but it will probably fail. ");
             }
@@ -146,7 +146,7 @@ public class RunMap extends UserRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        Stream.of("Frozen Throne.exe", "Warcraft III.exe")
+        return Stream.of("Frozen Throne.exe", "Warcraft III.exe")
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
                 .findFirst()
