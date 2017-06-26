@@ -476,5 +476,35 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void skipInClosure() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface SimpleFunc",
+                "    function call()",
+                "init",
+                "    int x",
+                "    SimpleFunc f = () -> skip",
+                "    f.call()",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void skipInClosure_fail() {
+        testAssertErrorsLines(false, "Cannot assign () -> Void to SimpleFunc",
+                "package test",
+                "native testSuccess()",
+                "interface SimpleFunc",
+                "    function call() returns int",
+                "init",
+                "    int x",
+                "    SimpleFunc f = () -> skip",
+                "    f.call()",
+                "    testSuccess()"
+        );
+    }
+
 
 }
