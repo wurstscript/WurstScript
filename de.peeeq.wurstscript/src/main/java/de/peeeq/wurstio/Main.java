@@ -61,7 +61,7 @@ public class Main {
 
         WLogger.info("### Started wurst version: (" + About.version + ")");
         WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
-        if(arguments != null) {
+        if(arguments != null && arguments.size() > 0) {
             WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
         }
         try {
