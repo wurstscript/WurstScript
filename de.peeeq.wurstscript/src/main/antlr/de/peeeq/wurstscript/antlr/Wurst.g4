@@ -385,7 +385,7 @@ exprFunctionCall:
 	  
 exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
 
-exprClosure: formalParameters '->' expr;
+exprClosure: formalParameters '->' (skip='skip'|expr);
 		  
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 

@@ -999,7 +999,16 @@ public class AntlrWurstParseTreeTransformer {
     private ExprClosure transformClosure(ExprClosureContext e) {
         WParameters parameters = transformFormalParameters(
                 e.formalParameters(), true);
-        Expr implementation = transformExpr(e.expr());
+        Expr implementation;
+        if (e.expr() != null) {
+            implementation = transformExpr(e.expr());
+        } else if (e.skip != null) {
+            implementation = Ast.ExprStatementsBlock(source(e.skip), Ast.WStatements(
+                    Ast.StmtSkip(source(e.skip))
+            ));
+        } else {
+            throw new RuntimeException("not implemented: " + text(e));
+        }
         return Ast.ExprClosure(source(e), parameters, implementation);
     }
 

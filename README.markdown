@@ -39,6 +39,8 @@ This project contains the following sub-projects:
 - WurstUpdater
 	- Automatic updater for the wurstpack
 
+IDE support is provided via a VSCode plugin: https://github.com/peq/wurst4vscode
+
 The documentation is on a separate branch named gh-pages.
 	
 
