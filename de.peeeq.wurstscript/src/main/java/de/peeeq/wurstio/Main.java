@@ -30,11 +30,12 @@ import org.eclipse.jdt.annotation.Nullable;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -54,15 +55,20 @@ public class Main {
         setUpFileLogging();
         WLogger.keepLogs(true);
 
-        //		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
-        Date myDate = new Date();
-        WLogger.info(">>> " + sdf.format(myDate) + " - Started compiler (" + About.version + ") with args " + Utils.printSep(", ", args));
+        // VM Arguments
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+
+        WLogger.info("### Started wurst version: (" + About.version + ")");
+        WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+        WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
         try {
-            WLogger.info("compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
-            WLogger.info("compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
+            WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
+            WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
         } catch (Throwable t) {
         }
+        WLogger.info("### ============================================");
+
 
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
