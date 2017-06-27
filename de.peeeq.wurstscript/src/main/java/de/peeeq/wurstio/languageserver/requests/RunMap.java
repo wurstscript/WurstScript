@@ -84,7 +84,10 @@ public class RunMap extends UserRequest {
             File buildDir = getBuildDir();
             File testMap = new File(buildDir, "WurstRunMap.w3x");
             if (testMap.exists()) {
-                testMap.delete();
+                boolean deleteOk = testMap.delete();
+                if (!deleteOk) {
+                    throw new RuntimeException("Could not delete old mapfile: " + testMap);
+                }
             }
             Files.copy(map, testMap);
 
@@ -285,6 +288,9 @@ public class RunMap extends UserRequest {
         File buildDir = getBuildDir();
         File outFile = new File(buildDir, "compiled.j.txt");
         Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+        if (mpqEditor != null) {
+            mpqEditor.close();
+        }
         return outFile;
     }
 
