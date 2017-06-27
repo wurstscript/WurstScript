@@ -60,9 +60,9 @@ public class Main {
         List<String> arguments = runtimeMxBean.getInputArguments();
 
         WLogger.info("### Started wurst version: (" + About.version + ")");
-        WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
-        WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
         try {
+            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+            WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
             WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
             WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
         } catch (Throwable t) {
