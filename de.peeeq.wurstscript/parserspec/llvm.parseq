@@ -1,0 +1,144 @@
+package de.peeeq.wurstscript.llvm.ast
+
+
+abstract syntax:
+
+
+
+Prog(TypeDefList typeDefs,
+    GlobalList globals,
+    ProcList procedures)
+
+Global(ref Type type, String name, boolean isConstant, Const initialValue)
+
+Variable =
+      Parameter(ref Type type, String name)
+    | TemporaryVar(String name)
+
+Proc(String name,
+    ref Type returnType,
+    ParameterList parameters,
+    BasicBlockList basicBlocks)
+
+// a BasicBlock is a list of instructions
+BasicBlock * Instruction
+
+
+// instructions:
+Instruction =
+      Assign
+    | TerminatingInstruction
+    | Print(Operand e)
+    | Store(Operand address, Operand value)
+    | CommentInstr(String text)
+
+Assign =
+      Alloc(TemporaryVar var, Operand sizeInBytes)
+    | Alloca(TemporaryVar var, ref Type type)
+    | BinaryOperation(TemporaryVar var, Operand left,
+            Operator operator, Operand right)
+    | Bitcast(TemporaryVar var, ref Type type, Operand expr)
+    | Call(TemporaryVar var, Operand function, OperandList arguments)
+    | GetElementPtr(TemporaryVar var, Operand baseAddress,
+            OperandList indices)
+    | Load(TemporaryVar var, Operand address)
+    | PhiNode(TemporaryVar var, ref Type type, PhiNodeChoiceList choices)
+
+Operator = Add() | Sub() | Mul() | Sdiv() | Srem() | And() | Or() | Xor() | Eq() | Slt()
+
+PhiNodeChoice(ref BasicBlock label, Operand value)
+
+// terminating instructions:
+TerminatingInstruction =
+      Branch(Operand condition, ref BasicBlock ifTrueLabel,
+            ref BasicBlock ifFalseLabel)
+    | Jump(ref BasicBlock label)
+    | ReturnExpr(Operand returnValue)
+    | ReturnVoid()
+    | HaltWithError(String msg)
+
+// operands:
+Operand =
+      Const
+    | VarRef(ref Variable variable)
+
+Const =
+      ConstBool(boolean boolVal)
+    | ConstInt(int intVal)
+    | GlobalRef(ref Global global)
+    | ProcedureRef(ref Proc procedure)
+    | Nullpointer()
+    | Sizeof(ref TypeStruct structType)
+    | ConstStruct(ref TypeStruct structType, ConstList values)
+    | ConstString(String stringVal)
+
+// types:
+Type =
+      TypeArray(ref Type of, int size)
+    | TypeBool()
+    | TypeByte()
+    | TypeInt()
+    | TypePointer(ref Type to)
+    | TypeNullpointer()
+    | TypeProc(TypeRefList argTypes, ref Type resultType)
+    | TypeVoid()
+    | TypeDef
+
+TypeDef =
+      TypeStruct(String name, StructFieldList fields)
+    | TypeOpaque(String name)
+
+
+
+StructField(ref Type type, String name)
+
+
+// lists:
+TypeDefList * TypeDef
+GlobalList * Global
+ProcList * Proc
+ParameterList * Parameter
+ConstList * Const
+StructFieldList * StructField
+TypeRefList * ref Type
+BasicBlockList * BasicBlock
+PhiNodeList * PhiNode
+PhiNodeChoiceList * PhiNodeChoice
+InstructionList * Instruction
+OperandList * Operand
+
+// elements with name:
+ElementWithName = Global | Variable | Proc | TypeDef
+
+attributes:
+
+Element.toString()
+	returns String
+	implemented by de.peeeq.wurstscript.llvm.printer.PrettyPrinter.elementToString
+
+Operand.calculateType()
+    returns Type
+    implemented by de.peeeq.wurstscript.llvm.analysis.Typechecker.calculateType
+
+Variable.calculateType()
+    returns Type
+    implemented by de.peeeq.wurstscript.llvm.analysis.Typechecker.calculateType
+
+"a name for this basic block"
+String BasicBlock.name
+
+BasicBlock.getPhiNodes()
+    "returns the phi node instructions at the beginning of the basic block"
+    returns java.util.List<PhiNode>
+    implemented by de.peeeq.wurstscript.llvm.analysis.BasicBlocks.getPhiNodes
+
+BasicBlock.getTerminatingInstruction()
+    "returns the final terminating instruction of the basic block if any"
+    returns java.util.Optional<TerminatingInstruction>
+    implemented by de.peeeq.wurstscript.llvm.analysis.BasicBlocks.getTerminatingInstruction
+
+
+Type.equalsType(Type other)
+    "checks, whether this type is equal to another type"
+    returns boolean
+    implemented by de.peeeq.wurstscript.llvm.analysis.Typechecker.equalsType

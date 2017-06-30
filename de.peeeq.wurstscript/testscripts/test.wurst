@@ -1,0 +1,7 @@
+package Test
+
+native print(string s)
+
+init
+    print("hello world")
+
