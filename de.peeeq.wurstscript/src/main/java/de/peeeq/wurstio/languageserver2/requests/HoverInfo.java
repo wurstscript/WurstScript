@@ -1,10 +1,12 @@
 package de.peeeq.wurstio.languageserver2.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 import de.peeeq.wurstio.languageserver2.BufferManager;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkedString;
@@ -21,16 +23,16 @@ import java.util.List;
 public class HoverInfo extends UserRequest<Hover> {
 
 
-    private final String filename;
+    private final WFile filename;
     private final String buffer;
     private final int line;
     private final int column;
 
     public HoverInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = position.getTextDocument().getUri();
+        this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
         this.line = position.getPosition().getLine() + 1;
-        this.column = position.getPosition().getCharacter();
+        this.column = position.getPosition().getCharacter() + 1;
     }
 
     @Override
@@ -38,7 +40,26 @@ public class HoverInfo extends UserRequest<Hover> {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("hovering over " + Utils.printElement(e));
-        return new Hover(e.match(new Description()));
+        Hover res = new Hover(e.match(new Description()));
+        return res;
+    }
+
+    private static List<Either<String, MarkedString>> description(NameDef n) {
+        return n.match(new Description());
+    }
+
+    static String descriptionString(NameDef n) {
+        List<Either<String, MarkedString>> descr = description(n);
+        StringBuilder res = new StringBuilder();
+        for (Either<String, MarkedString> d : descr) {
+            if (d.isLeft()) {
+                res.append(d.getLeft());
+            } else {
+                res.append(d.getRight().getValue());
+            }
+            res.append("\n");
+        }
+        return res.toString();
     }
 
     static class Description implements Element.Matcher<List<Either<String, MarkedString>>> {
@@ -84,7 +105,7 @@ public class HoverInfo extends UserRequest<Hover> {
             return params;
         }
 
-        private static String nearestScopeName(NameDef n) {
+        private static String nearestScopeName(Element n) {
             if (n.attrNearestNamedScope() != null) {
                 return Utils.printElement(n.attrNearestNamedScope());
             } else {
@@ -105,12 +126,40 @@ public class HoverInfo extends UserRequest<Hover> {
             return result;
         }
 
+
+        public List<Either<String, MarkedString>> description(ConstructorDef f) {
+            List<Either<String, MarkedString>> result = new ArrayList<>();
+            String comment = f.attrComment();
+
+            // TODO parse comment
+            if (comment != null && !comment.isEmpty()) {
+                result.add(Either.forLeft(comment));
+            }
+
+            String params = getParameterString(f);
+            String functionDescription = "";
+
+            String className = f.attrNearestClassOrModule().getName();
+            functionDescription += className + "(" + params + ") ";
+            result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
+            result.add(Either.forLeft("defined in " + nearestScopeName(f)));
+            return result;
+        }
+
         public  List<Either<String, MarkedString>> description(NameRef nr) {
             NameDef nameDef = nr.attrNameDef();
             if (nameDef == null) {
                 return string(nr.getVarName() + " is not defined yet.");
             }
             return nameDef.match(this);
+        }
+
+        public  List<Either<String, MarkedString>> description(FuncRef fr) {
+            FunctionDefinition def = fr.attrFuncDef();
+            if (def == null) {
+                return string(fr.getFuncName() + " is not defined yet.");
+            }
+            return def.match(this);
         }
 
         @Override
@@ -287,412 +336,434 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_IdentifierWithTypeArgs(IdentifierWithTypeArgs identifierWithTypeArgs) {
-            return null;
+            return identifierWithTypeArgs.getParent().match(this);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberVarDotDot(ExprMemberVarDotDot exprMemberVarDotDot) {
-            return null;
+            return description(exprMemberVarDotDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprVarArrayAccess(ExprVarArrayAccess exprVarArrayAccess) {
-            return null;
+            return description(exprVarArrayAccess);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberMethodDot(ExprMemberMethodDot exprMemberMethodDot) {
-            return null;
+            return description(exprMemberMethodDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprClosure(ExprClosure exprClosure) {
-            return null;
+            return string("Closure with type " + exprClosure.attrTyp());
         }
 
         @Override
         public List<Either<String, MarkedString>> case_SwitchCases(SwitchCases switchCases) {
-            return null;
+            return string("A switch statement");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprBinary(ExprBinary exprBinary) {
-            return null;
+            FunctionDefinition funcDef = exprBinary.attrFuncDef();
+            if (funcDef != null) {
+                return description(funcDef);
+            }
+            return string("A binary operation");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_NoTypeExpr(NoTypeExpr noTypeExpr) {
-            return null;
+            return string("not type");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleUse(ModuleUse moduleUse) {
-            return null;
+            return description(moduleUse.attrModuleDef());
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
-            return null;
+            return description(exprFunctionCall);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprBoolVal(ExprBoolVal exprBoolVal) {
-            return null;
+            return string("A boolean value");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModConstant(ModConstant modConstant) {
-            return null;
+            return string("This modifiers ensures that the variable cannot change after initialization.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprTypeId(ExprTypeId exprTypeId) {
-            return null;
+            return string("Get the typeId");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeExprList(TypeExprList typeExprList) {
-            return null;
+            return string("A list of type-expressions");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_FuncDefs(FuncDefs funcDefs) {
-            return null;
+            return string("A list of function definitions");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprNewObject(ExprNewObject exprNewObject) {
-            return null;
+            ConstructorDef constr = exprNewObject.attrConstructorDef();
+            if (constr == null) {
+                return string("Constructor for " + exprNewObject.getTypeName() + " not defined yet.");
+            }
+            return description(constr);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_VisibilityPrivate(VisibilityPrivate visibilityPrivate) {
-            return null;
+            return string("Modifier private: This element can only be used in the current scope.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_VisibilityDefault(VisibilityDefault visibilityDefault) {
-            return null;
+            return string("Default visibility.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_Arguments(Arguments arguments) {
-            return null;
+            return string("List of arguments");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleInstanciations(ModuleInstanciations moduleInstanciations) {
-            return null;
+            return string("List of module instantiations.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_SwitchDefaultCaseStatements(SwitchDefaultCaseStatements switchDefaultCaseStatements) {
-            return null;
+            return string("Default statements of switch-statement");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprStatementsBlock(ExprStatementsBlock exprStatementsBlock) {
-            return null;
+            return string("A block of statements.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleUses(ModuleUses moduleUses) {
-            return null;
+            return string("A list of module uses");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_GlobalVarDef(GlobalVarDef globalVarDef) {
-            return null;
+            return description(globalVarDef);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_JassToplevelDeclarations(JassToplevelDeclarations jassToplevelDeclarations) {
-            return null;
+            return string("A list of declarations.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprIncomplete(ExprIncomplete exprIncomplete) {
-            return null;
+            return string("This expression is incomplete.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberArrayVarDotDot(ExprMemberArrayVarDotDot exprMemberArrayVarDotDot) {
-            return null;
+            return description(exprMemberArrayVarDotDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ConstructorDefs(ConstructorDefs constructorDefs) {
-            return null;
+            return string("A list of constructors");
+        }
+
+        private List<Either<String, MarkedString>> typeExpr(TypeExpr t) {
+            WurstType wt = t.attrTyp();
+            if (wt == null) {
+                return string("Type " + t);
+            }
+            if (wt instanceof WurstTypeNamedScope) {
+                WurstTypeNamedScope wtn = (WurstTypeNamedScope) wt;
+                return description(wtn.getDef());
+            }
+            return string(type(wt));
         }
 
         @Override
-        public List<Either<String, MarkedString>> case_TypeExprArray(TypeExprArray typeExprArray) {
-            return null;
+        public List<Either<String, MarkedString>> case_TypeExprArray(TypeExprArray t) {
+            return typeExpr(t);
         }
 
+
+
         @Override
-        public List<Either<String, MarkedString>> case_TypeExprSimple(TypeExprSimple typeExprSimple) {
-            return null;
+        public List<Either<String, MarkedString>> case_TypeExprSimple(TypeExprSimple t) {
+            return typeExpr(t);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_Modifiers(Modifiers modifiers) {
-            return null;
+            return string("A list of modifiers");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModAbstract(ModAbstract modAbstract) {
-            return null;
+            return string("Abstract members are declarations without implementations. They must be implemented in concrete subtypes.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WBlock(WBlock wBlock) {
-            return null;
+            return string("A block.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtSkip(StmtSkip stmtSkip) {
-            return null;
+            return string("The skip statement does nothing and can be used to fill an empty block.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_FuncDef(FuncDef funcDef) {
-            return null;
+            return description(funcDef);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_NativeType(NativeType nativeType) {
-            return null;
+            return description(nativeType);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtForRangeUp(StmtForRangeUp stmtForRangeUp) {
-            return null;
+            return string("Execute the body several times, counting up");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtLoop(StmtLoop stmtLoop) {
-            return null;
+            return string("Primitive loop statement");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprStringVal(ExprStringVal exprStringVal) {
-            return null;
+            return string("A string constant.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprNull(ExprNull exprNull) {
-            return null;
+            return string("The null-reference");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ClassDefs(ClassDefs classDefs) {
-            return null;
+            return string("A list of class definitions.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-            return null;
+            return string("A module instantiation.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberArrayVarDot(ExprMemberArrayVarDot exprMemberArrayVarDot) {
-            return null;
+            return description(exprMemberArrayVarDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprFuncRef(ExprFuncRef exprFuncRef) {
-            return null;
+            return description(exprFuncRef);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeParamDefs(TypeParamDefs typeParamDefs) {
-            return null;
+            return string("A list of type parameters.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtForFrom(StmtForFrom stmtForFrom) {
-            return null;
+            return string("The for-from loop takes an iterate and takes elements from the iterator until it is empty.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_Indexes(Indexes indexes) {
-            return null;
+            return string("A list of indexes");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_VisibilityPublicread(VisibilityPublicread visibilityPublicread) {
-            return null;
+            return string("This variable can be read from everywhere but only written to in this scope.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_EnumMember(EnumMember enumMember) {
-            return null;
+            return description(enumMember);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprInstanceOf(ExprInstanceOf exprInstanceOf) {
-            return null;
+            return string("The instanceof expression checks if an object is an instance of a given type.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WurstModel(WurstModel wurstModel) {
-            return null;
+            return string("The wurst model.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_Identifier(Identifier identifier) {
-            return null;
+            return identifier.getParent().match(this);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtWhile(StmtWhile stmtWhile) {
-            return null;
+            return string("A while loop");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberMethodDotDot(ExprMemberMethodDotDot exprMemberMethodDotDot) {
-            return null;
+            return description(exprMemberMethodDotDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeParamDef(TypeParamDef typeParamDef) {
-            return null;
+            return description(typeParamDef);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_IdentifierWithTypeParamDefs(IdentifierWithTypeParamDefs identifierWithTypeParamDefs) {
-            return null;
+            return identifierWithTypeParamDefs.getParent().match(this);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_GlobalVarDefs(GlobalVarDefs globalVarDefs) {
-            return null;
+            return string("A list of global variables.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprThis(ExprThis exprThis) {
-            return null;
+            return string("'this' refers to the current object (of type " + exprThis.attrTyp() + ")");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtReturn(StmtReturn stmtReturn) {
-            return null;
+            return string("Returns from the current function.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WPackages(WPackages wPackages) {
-            return null;
+            return string("A list of packages.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WurstDoc(WurstDoc wurstDoc) {
-            return null;
+            return wurstDoc.getParent().match(this);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtIf(StmtIf stmtIf) {
-            return null;
+            return string("An if-statement.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WPackage(WPackage wPackage) {
-            return null;
+            return description(wPackage);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_OnDestroyDef(OnDestroyDef onDestroyDef) {
-            return null;
+            return string("This is called when an object of this type is destroyed.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeExprResolved(TypeExprResolved typeExprResolved) {
-            return null;
+            return typeExpr(typeExprResolved);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_VisibilityPublic(VisibilityPublic visibilityPublic) {
-            return null;
+            return string("This element can be used everywhere");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TopLevelDeclarations(TopLevelDeclarations topLevelDeclarations) {
-            return null;
+            return string("A list of declarations.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtSet(StmtSet stmtSet) {
-            return null;
+            return string("An assignment.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprDestroy(ExprDestroy exprDestroy) {
-            return null;
+            return string("Destroys the given object.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WEntities(WEntities wEntities) {
-            return null;
+            return string("A list of entities");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ArraySizes(ArraySizes arraySizes) {
-            return null;
+            return string("A list of array-sizes");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_EnumDef(EnumDef enumDef) {
-            return null;
+            return description(enumDef);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_SwitchCase(SwitchCase switchCase) {
-            return null;
+            return string("A case in a switch-statement");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_EnumMembers(EnumMembers enumMembers) {
-            return null;
+            return string("A list of enum-members.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_TypeExprThis(TypeExprThis typeExprThis) {
-            return null;
+            return typeExpr(typeExprThis);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprUnary(ExprUnary exprUnary) {
-            return null;
+            return string("A unary expression");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_JassGlobalBlock(JassGlobalBlock jassGlobalBlock) {
-            return null;
+            return string("A block of global variables.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_StmtForIn(StmtForIn stmtForIn) {
-            return null;
+            return string("The for-in loop executes the loop body for every element in the given collection using its iterator method.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_InitBlock(InitBlock initBlock) {
-            return null;
+            return string("The init block is called at the start of the program.");
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WParameter(WParameter wParameter) {
-            return null;
+            return description(wParameter);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberVarDot(ExprMemberVarDot exprMemberVarDot) {
-            return null;
+            return description(exprMemberVarDot);
         }
 
         @Override
         public List<Either<String, MarkedString>> case_WParameters(WParameters wParameters) {
-            return null;
+            return string("A list of parameters");
         }
     }
 

@@ -1,7 +1,8 @@
 package de.peeeq.wurstio.languageserver2.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 import de.peeeq.wurstio.languageserver2.BufferManager;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -12,19 +13,20 @@ import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 
-	private final String filename;
+	private final WFile filename;
 	private final int line;
 	private final int column;
 
 
 	public SignatureInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
-		this.filename = position.getTextDocument().getUri();
-		this.line = position.getPosition().getLine();
-		this.column = position.getPosition().getCharacter();
+		this.filename = WFile.create(position.getTextDocument().getUri());
+		this.line = position.getPosition().getLine() + 1;
+		this.column = position.getPosition().getCharacter() + 1;
 	}
 
 
@@ -56,7 +58,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 			}
 			e = parent;
 		}
-		return null;
+		return new SignatureHelp(Collections.emptyList(), 0, 0);
 	}
 
 	private SignatureHelp forCall(StmtCall call) {
@@ -73,8 +75,10 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 			info.setLabel(n.getTypeName());
 		}
 		int i = 0;
+		info.setParameters(new ArrayList<>());
 		for (WurstType t : sig.getParamTypes()) {
-			info.getParameters().add(new ParameterInformation(t.toString(), sig.getParamName(i)));
+			String paramName = sig.getParamName(i);
+			info.getParameters().add(new ParameterInformation(paramName, t + " " + paramName));
 			i++;
 		}
 

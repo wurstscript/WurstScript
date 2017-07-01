@@ -1,6 +1,6 @@
 package de.peeeq.wurstio.languageserver2.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 
 import java.util.concurrent.CompletableFuture;
 

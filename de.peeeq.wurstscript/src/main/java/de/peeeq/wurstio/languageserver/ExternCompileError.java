@@ -1,8 +1,10 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver2.Convert;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.CompileError.ErrorType;
 import de.peeeq.wurstscript.parser.WPos;
+import org.eclipse.lsp4j.Diagnostic;
 
 public class ExternCompileError {
     private final String fileName;

@@ -3,9 +3,9 @@ package de.peeeq.wurstio.languageserver2.requests;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.TextPos;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 import de.peeeq.wurstio.languageserver2.BufferManager;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
@@ -31,7 +31,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
     private static final int MAX_COMPLETIONS = 100;
-    private final String filename;
+    private final WFile filename;
     private final String buffer;
     private final String[] lines;
     private final int line;
@@ -45,10 +45,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
     public GetCompletions(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = position.getTextDocument().getUri();
+        this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
-        this.line = position.getPosition().getLine();
-        this.column = position.getPosition().getCharacter() - 1;
+        this.line = position.getPosition().getLine() + 1;
+        this.column = position.getPosition().getCharacter();
         this.lines = buffer.split("\\n|\\r\\n");
         WLogger.info("Get completions in line " + line + ": \n" +
                 "" + currentLine().replace('\t', ' ') + "\n" +
@@ -455,14 +455,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(n.descriptionHtml());
+        completion.setDetail(HoverInfo.descriptionString(n));
         completion.setDocumentation(n.attrComment());
         double rating = calculateRating(n.getName(), n.attrTyp());
         completion.setSortText(ratingToString(rating));
-        Range range = range(line, column - alreadyEntered.length(), column);
         String newText = n.getName();
         completion.setInsertText(newText);
-
 
         return completion;
     }
@@ -543,7 +541,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
         completion.setDetail(getFunctionDescriptionShort(f));
-        completion.setDocumentation(getFunctionDescriptionHtml(f));
+        completion.setDocumentation(HoverInfo.descriptionString(f));
         completion.setInsertText(replacementString);
         completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic()))); // TODO use call signature instead for generics
 //        completion.set
@@ -574,10 +572,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
         displayString += " [" + nearestScopeName(f) + "]";
         return displayString;
-    }
-
-    public static String getFunctionDescriptionHtml(FunctionDefinition f) {
-        return f.descriptionHtml();
     }
 
     private CompletionItem makeConstructorCompletion(ClassDef c, ConstructorDef constr) {

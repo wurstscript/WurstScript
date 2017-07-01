@@ -7,7 +7,8 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -209,7 +210,7 @@ public class RunMap extends UserRequest {
 
         // push war3map.j to modelmanager
 
-        modelManager.syncCompilationUnit(war3mapFile.getAbsolutePath());
+        modelManager.syncCompilationUnit(WFile.create(war3mapFile.getAbsolutePath()));
 
         if (safeCompilation != SafetyLevel.QuickAndDirty) {
             // it is safer to rebuild the project, instead of taking the current editor state

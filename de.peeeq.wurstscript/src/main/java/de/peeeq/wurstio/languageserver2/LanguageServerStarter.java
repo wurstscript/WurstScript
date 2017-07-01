@@ -17,6 +17,7 @@ public class LanguageServerStarter {
                         System.in,
                         System.out);
         System.err.println("Starting to listen ...");
+        server.connect(launcher.getRemoteProxy());
         launcher.startListening();
         System.err.println("Stopping ...");
     }

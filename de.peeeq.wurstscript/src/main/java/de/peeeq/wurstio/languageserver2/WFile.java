@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 /**
@@ -34,7 +35,11 @@ public class WFile {
     }
 
     public static WFile create(String uri) {
-        return create(URI.create(uri));
+        if (uri.startsWith("file://")) {
+            return create(URI.create(uri));
+        } else {
+            return create(Paths.get(uri));
+        }
     }
 
     public File getFile() {
@@ -57,5 +62,9 @@ public class WFile {
     @Override
     public String toString() {
         return file.toString();
+    }
+
+    public String getUriString() {
+        return "file://" + file.toString();
     }
 }

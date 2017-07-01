@@ -2,21 +2,15 @@ package de.peeeq.wurstio.languageserver2;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstio.languageserver.CompilationResult;
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.ModelManagerImpl;
-import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstio.languageserver2.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver2.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.lsp4j.DidChangeTextDocumentParams;
-import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
-import org.eclipse.lsp4j.FileEvent;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,11 +24,12 @@ import java.util.stream.Collectors;
  */
 public class LanguageWorker implements Runnable {
 
-    private final Map<String, PendingChange> changes = new LinkedHashMap<>();
+    private final Map<WFile, PendingChange> changes = new LinkedHashMap<>();
     private final AtomicLong currentTime = new AtomicLong();
-    private final Queue<UserRequest> userRequests = new LinkedList<>();
+    private final Queue<UserRequest<?>> userRequests = new LinkedList<>();
     private final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects",
             "-stacktraces");
+    private final Thread thread;
 
     private ModelManager modelManager;
 
@@ -51,102 +46,11 @@ public class LanguageWorker implements Runnable {
 
     public LanguageWorker() {
         // start working
-        new Thread(this).start();
+        thread = new Thread(this);
+        thread.setName("Wurst LanguageWorker");
+        thread.start();
     }
 
-    public void handleFileChanged(String filePath) {
-        if (!Utils.isWurstFile(filePath) && !filePath.endsWith("wurst.dependencies")) {
-            // ignore all files which are not relevant for wurst
-            return;
-        }
-        if (Paths.get(filePath).startsWith(Paths.get(rootPath.toString(), "_build"))) {
-            // ignore build folder
-            return;
-        }
-
-        WLogger.info("handle handleFileChanged " + filePath);
-        synchronized (lock) {
-            changes.put(filePath, new FileUpdated(filePath));
-            lock.notifyAll();
-        }
-        WLogger.info("handle handleFileChanged END " + filePath);
-    }
-
-    public void handleInit(int sequenceNr, String rootPath) {
-        WLogger.info("handle init " + rootPath);
-        synchronized (lock) {
-            this.rootPath = WFile.create(rootPath);
-            this.modelManager = null;
-            this.initRequestSequenceNr = sequenceNr;
-            lock.notifyAll();
-        }
-        WLogger.info("handle init END " + rootPath);
-    }
-
-//    public void handleReconcile(int sequenceNr, String file, String content) {
-//        synchronized (lock) {
-//            changes.put(file, new FileReconcile(file, content));
-//            // reply directly
-//            server.reply(sequenceNr, "request queued");
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleGetDefinition(int sequenceNr, String filename, String buffer, int line, int column) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof GetDefinition);
-//            userRequests.add(new GetDefinition(sequenceNr, filename, buffer, line, column));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleGetHoverInfo(int sequenceNr, String filename, String buffer, int line, int column) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof HoverInfo);
-//            userRequests.add(new HoverInfo(sequenceNr, filename, buffer, line, column));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleGetCompletions(int sequenceNr, String filename, String buffer, int line, int column) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof de.peeeq.wurstio.languageserver.requests.GetCompletions);
-//            userRequests.add(new de.peeeq.wurstio.languageserver.requests.GetCompletions(sequenceNr, filename, buffer, line, column));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleSignatureHelp(int sequenceNr, String filename, int line, int column) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof SignatureInfo);
-//            userRequests.add(new SignatureInfo(sequenceNr, filename, line, column));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleClean(int sequenceNr) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof CleanProject);
-//            userRequests.add(new CleanProject(sequenceNr));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleGetUsages(int sequenceNr, String filename, String buffer, int line, int column, boolean global) {
-//        synchronized (lock) {
-//            userRequests.removeIf(req -> req instanceof GetUsages);
-//            userRequests.add(new GetUsages(sequenceNr, filename, buffer, line, column, global));
-//            lock.notifyAll();
-//        }
-//    }
-//
-//    public void handleRunmap(int requestNr, String mapPath, String wc3path) {
-//        synchronized (lock) {
-//            List<String> compileArgs = getCompileArgs();
-//            userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs));
-//            lock.notifyAll();
-//        }
-//    }
 
     private List<String> getCompileArgs() {
         try {
@@ -172,6 +76,10 @@ public class LanguageWorker implements Runnable {
         this.languageClient = languageClient;
     }
 
+    public void stop() {
+        thread.interrupt();
+    }
+
 
 //    public void handleRuntests(int sequenceNr, String filename, int line, int column) {
 //        synchronized (lock) {
@@ -181,11 +89,11 @@ public class LanguageWorker implements Runnable {
 //
 //    }
 
-    private abstract class PendingChange {
+    abstract class PendingChange {
         private long time;
-        private String filename;
+        private WFile filename;
 
-        public PendingChange(String filename) {
+        public PendingChange(WFile filename) {
             time = currentTime.incrementAndGet();
             this.filename = filename;
         }
@@ -194,30 +102,30 @@ public class LanguageWorker implements Runnable {
             return time;
         }
 
-        public String getFilename() {
+        public WFile getFilename() {
             return filename;
         }
     }
 
-    private class FileUpdated extends PendingChange {
+    class FileUpdated extends PendingChange {
 
-        public FileUpdated(String filename) {
+        public FileUpdated(WFile filename) {
             super(filename);
         }
     }
 
-    private class FileDeleted extends PendingChange {
+    class FileDeleted extends PendingChange {
 
-        public FileDeleted(String filename) {
+        public FileDeleted(WFile filename) {
             super(filename);
         }
     }
 
-    private class FileReconcile extends PendingChange {
+    class FileReconcile extends PendingChange {
 
         private String contents;
 
-        public FileReconcile(String filename, String contents) {
+        public FileReconcile(WFile filename, String contents) {
             super(filename);
             this.contents = contents;
         }
@@ -267,14 +175,14 @@ public class LanguageWorker implements Runnable {
             }
         } else if (!userRequests.isEmpty()) {
             return () -> {
-                UserRequest req = userRequests.remove();
+                UserRequest<?> req = userRequests.remove();
                 req.run(modelManager);
             };
         } else if (!changes.isEmpty()) {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
             return () -> {
-                if (change.getFilename().endsWith("wurst.dependencies")) {
+                if (change.getFilename().getFile().getName().endsWith("wurst.dependencies")) {
                     if (!(change instanceof FileReconcile)) {
                         modelManager.clean();
                     }
@@ -293,9 +201,9 @@ public class LanguageWorker implements Runnable {
         return null;
     }
 
-    private PendingChange removeFirst(Map<String, PendingChange> changes) {
-        Iterator<Map.Entry<String, PendingChange>> it = changes.entrySet().iterator();
-        Map.Entry<String, PendingChange> e = it.next();
+    private PendingChange removeFirst(Map<WFile, PendingChange> changes) {
+        Iterator<Map.Entry<WFile, PendingChange>> it = changes.entrySet().iterator();
+        Map.Entry<WFile, PendingChange> e = it.next();
         it.remove();
         return e.getValue();
     }
@@ -318,36 +226,46 @@ public class LanguageWorker implements Runnable {
     }
 
 
-    private void onCompilationResult(CompilationResult compilationResult) {
-        // TODO
+    private void onCompilationResult(PublishDiagnosticsParams compilationResult) {
+        languageClient.publishDiagnostics(compilationResult);
     }
 
     private void log(String s) {
         WLogger.info(s);
     }
-    
-    
-    
+
+
     public void handleFileChanged(DidChangeWatchedFilesParams params) {
-        for (FileEvent fileEvent : params.getChanges()) {
-            bufferManager.handleFileChange(fileEvent);
-            // TODO reconcile etc?
+        synchronized (lock) {
+            for (FileEvent fileEvent : params.getChanges()) {
+                bufferManager.handleFileChange(fileEvent);
+
+                WFile file = WFile.create(fileEvent.getUri());
+                if (fileEvent.getType() == FileChangeType.Deleted) {
+                    changes.put(file, new FileDeleted(file));
+                } else {
+                    changes.put(file, new FileUpdated(file));
+                }
+            }
+            lock.notifyAll();
         }
     }
 
     public void handleChange(DidChangeTextDocumentParams params) {
         bufferManager.handleChange(params);
-        String file = WFile.create(params.getTextDocument().getUri()).toString();
-//        modelManager.replaceCompilationUnitContent(file, bufferManager.getBuffer(params.getTextDocument()), true);
-        // TODO reconcile etc?
+        WFile file = WFile.create(params.getTextDocument().getUri());
+        synchronized (lock) {
+            changes.put(file, new FileUpdated(file));
+            lock.notifyAll();
+        }
     }
 
     public <Res> CompletableFuture<Res> handle(UserRequest<Res> request) {
         synchronized (lock) {
             if (!request.keepDuplicateRequests()) {
-                Iterator<UserRequest> it = userRequests.iterator();
+                Iterator<UserRequest<?>> it = userRequests.iterator();
                 while (it.hasNext()) {
-                    UserRequest o = it.next();
+                    UserRequest<?> o = it.next();
                     if (it.getClass().equals(request.getClass())) {
                         o.cancel();
                         it.remove();

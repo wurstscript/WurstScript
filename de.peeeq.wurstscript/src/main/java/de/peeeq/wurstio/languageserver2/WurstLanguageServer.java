@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.languageserver2;
 
 import de.peeeq.wurstio.Main;
-import de.peeeq.wurstio.languageserver.LanguageWorker;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -14,8 +13,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
 
@@ -68,12 +65,14 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     @Override
     public CompletableFuture<Object> shutdown() {
         WLogger.info("shutdown");
+        languageWorker.stop();
         return CompletableFuture.completedFuture("ok");
     }
 
+
     @Override
     public void exit() {
-        WLogger.info("exit");
+        System.exit(0);
     }
 
     @Override

@@ -1,8 +1,9 @@
 package de.peeeq.wurstio.languageserver2.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstio.languageserver2.Convert;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -15,17 +16,17 @@ import java.util.List;
 
 public class GetDefinition extends UserRequest<List<? extends Location>> {
 
-    private final String filename;
+    private final WFile filename;
     private final String buffer;
     private final int line;
     private final int column;
 
 
     public GetDefinition(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = position.getTextDocument().getUri();
+        this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
-        this.line = position.getPosition().getLine();
-        this.column = position.getPosition().getCharacter();
+        this.line = position.getPosition().getLine() + 1;
+        this.column = position.getPosition().getCharacter() + 1;
     }
 
 
@@ -75,7 +76,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
         if (decl == null) {
             return null;
         }
-        WPos pos = decl.getSource();
+        WPos pos = decl.attrErrorPos();
         return Collections.singletonList(Convert.posToLocation(pos));
     }
 

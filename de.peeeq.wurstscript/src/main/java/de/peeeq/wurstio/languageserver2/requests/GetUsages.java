@@ -1,8 +1,9 @@
 package de.peeeq.wurstio.languageserver2.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManager;
 import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstio.languageserver2.Convert;
+import de.peeeq.wurstio.languageserver2.WFile;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NameDef;
@@ -16,7 +17,7 @@ import java.util.List;
 
 public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
-    private final String filename;
+    private final WFile filename;
     private final String buffer;
     private final int line;
     private final int column;
@@ -25,10 +26,10 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
 
     public GetUsages(TextDocumentPositionParams position, BufferManager bufferManager, boolean global) {
-        this.filename = position.getTextDocument().getUri();
+        this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
-        this.line = position.getPosition().getLine();
-        this.column = position.getPosition().getCharacter() - 1;
+        this.line = position.getPosition().getLine() + 1;
+        this.column = position.getPosition().getCharacter() + 1;
         this.global = global;
     }
 
@@ -43,7 +44,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
             if (global || nameDef.getSource().getFile().equals(filename)) {
                 // add declaration
-                usages.add(new UsagesData(Convert.posToLocation(nameDef.getSource()), DocumentHighlightKind.Write));
+                usages.add(new UsagesData(Convert.posToLocation(nameDef.attrErrorPos()), DocumentHighlightKind.Write));
             }
             Deque<Element> todo = new ArrayDeque<>();
             if (global) {
