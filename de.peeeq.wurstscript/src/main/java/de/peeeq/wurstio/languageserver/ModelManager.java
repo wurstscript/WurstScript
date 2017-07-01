@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;

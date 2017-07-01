@@ -8,7 +8,7 @@ import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.About;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
-import de.peeeq.wurstio.languageserver2.LanguageServerStarter;
+import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;

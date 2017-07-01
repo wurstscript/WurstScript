@@ -1,9 +1,9 @@
-package de.peeeq.wurstio.languageserver2.requests;
+package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstio.languageserver2.ModelManager;
-import de.peeeq.wurstio.languageserver2.BufferManager;
-import de.peeeq.wurstio.languageserver2.Convert;
-import de.peeeq.wurstio.languageserver2.WFile;
+import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.Convert;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NameDef;

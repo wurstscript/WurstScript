@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
@@ -12,7 +12,6 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
@@ -22,7 +21,7 @@ import java.util.logging.SimpleFormatter;
  */
 public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageServer, LanguageClientAware {
     private String rootUri;
-    private de.peeeq.wurstio.languageserver2.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver2.LanguageWorker();
+    private de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {

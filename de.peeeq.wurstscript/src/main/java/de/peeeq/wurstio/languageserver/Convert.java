@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;

@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import org.eclipse.lsp4j.jsonrpc.Launcher;
 import org.eclipse.lsp4j.launch.LSPLauncher;

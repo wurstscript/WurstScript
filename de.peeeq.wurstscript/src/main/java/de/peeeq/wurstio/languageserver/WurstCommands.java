@@ -1,7 +1,7 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
-import de.peeeq.wurstio.languageserver2.requests.CleanProject;
-import de.peeeq.wurstio.languageserver2.requests.RunMap;
+import de.peeeq.wurstio.languageserver.requests.CleanProject;
+import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 

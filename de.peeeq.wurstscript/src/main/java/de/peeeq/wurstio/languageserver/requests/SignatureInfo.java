@@ -1,8 +1,8 @@
-package de.peeeq.wurstio.languageserver2.requests;
+package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstio.languageserver2.ModelManager;
-import de.peeeq.wurstio.languageserver2.BufferManager;
-import de.peeeq.wurstio.languageserver2.WFile;
+import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
@@ -14,7 +14,6 @@ import org.eclipse.lsp4j.TextDocumentPositionParams;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 

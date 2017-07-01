@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import com.google.common.io.Files;
 import de.peeeq.wurstscript.WLogger;

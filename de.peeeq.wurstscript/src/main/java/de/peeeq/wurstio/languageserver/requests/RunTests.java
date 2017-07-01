@@ -1,11 +1,11 @@
-package de.peeeq.wurstio.languageserver2.requests;
+package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
-import de.peeeq.wurstio.languageserver2.ModelManager;
-import de.peeeq.wurstio.languageserver2.WFile;
-import de.peeeq.wurstio.languageserver2.WurstLanguageServer;
+import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;

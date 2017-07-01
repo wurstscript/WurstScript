@@ -1,8 +1,8 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstio.languageserver2.requests.UserRequest;
+import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;

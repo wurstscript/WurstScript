@@ -1,6 +1,6 @@
-package de.peeeq.wurstio.languageserver2;
+package de.peeeq.wurstio.languageserver;
 
-import de.peeeq.wurstio.languageserver2.requests.*;
+import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
