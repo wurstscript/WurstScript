@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import org.eclipse.jdt.annotation.Nullable;
 
-import javax.swing.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -212,8 +211,6 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType, boolean inject) throws Error {
-
-
         try {
             File folder = getObjectEditingOutputFolder();
 
@@ -225,30 +222,8 @@ public class ProgramStateIO extends ProgramState {
             if (inject) {
                 String filenameInMpq = "war3map." + fileType.getExt();
 
-                try {
-                    mpqEditor.deleteFile(filenameInMpq);
-                } catch (Throwable e) {
-                    WLogger.info(e);
-                }
                 mpqEditor.insertFile(filenameInMpq, w3u);
-
-
-                byte[] extr;
-                try {
-                    extr = mpqEditor.extractFile(filenameInMpq);
-                } catch (Throwable e) {
-                    WLogger.info(e);
-                    extr = null;
-                }
-                if (extr == null) {
-                    JOptionPane.showMessageDialog(null, "Could not inject " + filenameInMpq + ".");
-                }
-
-
             }
-        } catch (IOException e) {
-            WLogger.severe(e);
-            throw new Error(e);
         } catch (Exception e) {
             WLogger.severe(e);
             throw new Error(e);
