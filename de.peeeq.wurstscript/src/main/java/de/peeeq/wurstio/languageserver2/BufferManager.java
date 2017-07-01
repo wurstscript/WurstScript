@@ -15,12 +15,7 @@ import java.util.Map;
 public class BufferManager {
     private Map<WFile, StringBuilder> currentBuffer = new HashMap<>();
 
-
-    public BufferManager() {
-
-    }
-
-    public String getBuffer(TextDocumentIdentifier textDocument) {
+    public synchronized String getBuffer(TextDocumentIdentifier textDocument) {
         WFile uri = WFile.create(textDocument.getUri());
         return getBuffer(uri);
     }
@@ -42,7 +37,7 @@ public class BufferManager {
         return res;
     }
 
-    void handleFileChange(FileEvent fileEvent) {
+    synchronized void handleFileChange(FileEvent fileEvent) {
         WFile uri = WFile.create(fileEvent.getUri());
 
         switch (fileEvent.getType()) {
@@ -59,10 +54,9 @@ public class BufferManager {
             case Deleted:
                 currentBuffer.remove(uri);
         }
-        throw new RuntimeException("unhanled case: " + fileEvent.getType());
     }
 
-    void handleChange(DidChangeTextDocumentParams params) {
+    synchronized void handleChange(DidChangeTextDocumentParams params) {
         WFile uri = WFile.create(params.getTextDocument().getUri());
         StringBuilder sb = buffer(uri);
         for (TextDocumentContentChangeEvent contentChange : params.getContentChanges()) {
@@ -90,7 +84,7 @@ public class BufferManager {
         return Math.min(pos, sb.length() - 1);
     }
 
-    public void updateFile(WFile wFile, String contents) {
+    synchronized public void updateFile(WFile wFile, String contents) {
         StringBuilder sb = buffer(wFile);
         sb.replace(0, sb.length(), contents);
     }

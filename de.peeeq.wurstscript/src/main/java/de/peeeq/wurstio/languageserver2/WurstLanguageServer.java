@@ -12,6 +12,7 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.FileHandler;
 import java.util.logging.SimpleFormatter;
@@ -38,6 +39,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setSignatureHelpProvider(new SignatureHelpOptions(Arrays.asList("(", ".")));
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setReferencesProvider(true);
+        capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(WurstCommands.providedCommands()));
 
         capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));
 
@@ -46,6 +48,8 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         WLogger.info("initialization done: " + params.getRootUri());
         return CompletableFuture.completedFuture(res);
     }
+
+
 
     private void setupLogger()  {
         Main.setUpFileLogging("wurst_langserver");
@@ -84,7 +88,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     @Override
     public WorkspaceService getWorkspaceService() {
         WLogger.info("getWorkspaceService");
-        return new WurstWorkspaceService(languageWorker);
+        return new WurstWorkspaceService(this);
     }
 
 
@@ -92,5 +96,13 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     public void connect(LanguageClient client) {
         WLogger.info("connect to LanguageClient");
         languageWorker.setLanguageClient(client);
+    }
+
+    public LanguageWorker worker() {
+        return languageWorker;
+    }
+
+    public String getRootUri() {
+        return rootUri;
     }
 }

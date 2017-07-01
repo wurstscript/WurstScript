@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 /**
  * Created by peter on 16.05.16.
  */
-public class RunMap extends UserRequest {
+public class RunMap extends UserRequest<Object> {
 
     private final String wc3Path;
     private final File map;

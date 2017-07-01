@@ -1,10 +1,7 @@
 package de.peeeq.wurstio.languageserver2;
 
 import de.peeeq.wurstscript.WLogger;
-import org.eclipse.lsp4j.DidChangeConfigurationParams;
-import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
-import org.eclipse.lsp4j.SymbolInformation;
-import org.eclipse.lsp4j.WorkspaceSymbolParams;
+import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
 import java.util.List;
@@ -14,10 +11,11 @@ import java.util.concurrent.CompletableFuture;
  *
  */
 public class WurstWorkspaceService implements WorkspaceService {
-    private final LanguageWorker worker;
 
-    public WurstWorkspaceService(LanguageWorker worker) {
-        this.worker = worker;
+    private WurstLanguageServer server;
+
+    public WurstWorkspaceService(WurstLanguageServer server) {
+        this.server = server;
     }
 
     @Override
@@ -35,6 +33,11 @@ public class WurstWorkspaceService implements WorkspaceService {
     @Override
     public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
         WLogger.info("didChangeWatchedFiles");
-        worker.handleFileChanged(params);
+        server.worker().handleFileChanged(params);
+    }
+
+    @Override
+    public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
+        return WurstCommands.execute(server, params);
     }
 }

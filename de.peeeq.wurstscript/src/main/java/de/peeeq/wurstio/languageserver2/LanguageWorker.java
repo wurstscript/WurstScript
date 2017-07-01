@@ -2,11 +2,8 @@ package de.peeeq.wurstio.languageserver2;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstio.languageserver2.ModelManager;
-import de.peeeq.wurstio.languageserver2.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver2.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
@@ -252,10 +249,11 @@ public class LanguageWorker implements Runnable {
     }
 
     public void handleChange(DidChangeTextDocumentParams params) {
-        bufferManager.handleChange(params);
-        WFile file = WFile.create(params.getTextDocument().getUri());
         synchronized (lock) {
-            changes.put(file, new FileUpdated(file));
+            bufferManager.handleChange(params);
+            WFile file = WFile.create(params.getTextDocument().getUri());
+
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
             lock.notifyAll();
         }
     }
