@@ -3,24 +3,25 @@ package tests.wurstscript.tests;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
-import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.ModelManagerImpl;
-import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstio.languageserver.requests.GetCompletions.WurstCompletion;
+import de.peeeq.wurstio.languageserver2.ModelManager;
+import de.peeeq.wurstio.languageserver2.ModelManagerImpl;
+import de.peeeq.wurstio.languageserver2.WFile;
+import de.peeeq.wurstio.languageserver2.requests.GetCompletions;
 import de.peeeq.wurstio.languageserver2.BufferManager;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
-import junit.framework.Assert;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.stream.Collectors;
@@ -174,21 +175,32 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
     private void testCompletions(CompletionTestData testData, List<String> expectedCompletions) {
-        GetCompletions getCompletions = new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
-        ModelManager modelManager = new ModelManagerImpl(new File("."), new BufferManager());
+        BufferManager bufferManager = new BufferManager();
+        ModelManager modelManager = new ModelManagerImpl(new File("."), bufferManager);
+        String uri = "file:///tmp/test.wurst";
+        bufferManager.updateFile(WFile.create(uri), testData.buffer);
+        TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
+        Position pos = new Position(testData.line, testData.column);
+        TextDocumentPositionParams position = new TextDocumentPositionParams(textDocument, pos);
+        GetCompletions getCompletions = new GetCompletions(position, bufferManager);
+
+                //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
         Handler h = new ConsoleHandler();
         WLogger.setHandler(h);
 
-        List<WurstCompletion> result = getCompletions.execute(modelManager);
+        CompletionList result = getCompletions.execute(modelManager);
 
         // debug output:
         System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
 
-        List<String> completionLabels = result.stream()
-                .map(completion -> completion.getDisplayString())
+        List<String> completionLabels = result.getItems().stream()
+                .sorted(Comparator.comparing(i -> i.getSortText()))
+                .map(completion -> completion.getLabel())
                 .collect(Collectors.toList());
+
+
 
         Assert.assertEquals(expectedCompletions, completionLabels);
     }
@@ -211,7 +223,7 @@ public class AutoCompleteTests extends WurstScriptTest {
             buffer.append("\n");
         }
 
-        return new CompletionTestData(buffer.toString(), completionLine, completionColumn);
+        return new CompletionTestData(buffer.toString(), completionLine-1, completionColumn-1);
     }
 
     private WurstModel compile(String... lines) {
