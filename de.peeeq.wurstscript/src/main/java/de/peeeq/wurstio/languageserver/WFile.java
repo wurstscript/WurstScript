@@ -34,7 +34,7 @@ public class WFile {
     }
 
     public static WFile create(String uri) {
-        if (uri.startsWith("file://")) {
+        if (uri.startsWith("file:")) {
             return create(URI.create(uri));
         } else {
             return create(Paths.get(uri));
