@@ -30,10 +30,12 @@ import org.eclipse.jdt.annotation.Nullable;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.RuntimeMXBean;
+import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.List;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -53,15 +55,22 @@ public class Main {
         setUpFileLogging();
         WLogger.keepLogs(true);
 
-        //		JOptionPane.showMessageDialog(null , "time to connect profiler ^^");
-        SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy hh:mm:ss");
-        Date myDate = new Date();
-        WLogger.info(">>> " + sdf.format(myDate) + " - Started compiler (" + About.version + ") with args " + Utils.printSep(", ", args));
+        // VM Arguments
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
+
+        WLogger.info("### Started wurst version: (" + About.version + ")");
+        WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
+        if(arguments != null && arguments.size() > 0) {
+            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+        }
         try {
-            WLogger.info("compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
-            WLogger.info("compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
+            WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
+            WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
         } catch (Throwable t) {
         }
+        WLogger.info("### ============================================");
+
 
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
@@ -176,12 +185,9 @@ public class Main {
 
     private static void insertKeys(RunArgs runArgs) throws Exception {
         String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
+        WLogger.info("Wc3 Path: " + wc3Path);
         if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
-        Path fontGID = Paths.get(Main.class.getClassLoader().getResource("font/font.gid").getPath().substring(1));
-        Path fontCLH = Paths.get(Main.class.getClassLoader().getResource("font/font.clh").getPath().substring(1));
-        Path fontROC = Paths.get(Main.class.getClassLoader().getResource("font/font_roc.ccd").getPath().substring(1));
-        Path fontEXP = Paths.get(Main.class.getClassLoader().getResource("font/font.exp").getPath().substring(1));
-        Path fontTFT = Paths.get(Main.class.getClassLoader().getResource("font/font_tft.ccd").getPath().substring(1));
+        checkLoadKeys();
 
         File rocMpq = new File(wc3Path + "War3.mpq");
         File tftMpq = new File(wc3Path + "War3x.mpq");
@@ -210,6 +216,32 @@ public class Main {
         } else {
             WLogger.info("Already has tft keys");
         }
+        WLogger.info("Font insertion done.");
+    }
+
+    private static Path fontGID;
+    private static Path fontCLH;
+    private static Path fontROC;
+    private static Path fontEXP;
+    private static Path fontTFT;
+
+    private static void checkLoadKeys() {
+        String folder = "wurstscript/font/";
+        URL fontGidPath = Main.class.getClassLoader().getResource(folder + "font.gid");
+        URL fontClhPath = Main.class.getClassLoader().getResource(folder + "font.clh");
+        URL fontRocPath = Main.class.getClassLoader().getResource(folder + "font_roc.ccd");
+        URL fontExpPath = Main.class.getClassLoader().getResource(folder + "font.exp");
+        URL fontTftPath = Main.class.getClassLoader().getResource(folder + "font_tft.ccd");
+        if(fontGidPath != null && fontClhPath != null && fontRocPath != null && fontExpPath != null && fontTftPath != null) {
+            fontGID = Paths.get(fontGidPath.getPath().substring(1));
+            fontCLH = Paths.get(fontClhPath.getPath().substring(1));
+            fontROC = Paths.get(fontRocPath.getPath().substring(1));
+            fontEXP = Paths.get(fontExpPath.getPath().substring(1));
+            fontTFT = Paths.get(fontTftPath.getPath().substring(1));
+        } else {
+            WLogger.severe(new RuntimeException("Font files cannot be loaded!!\nPlease verify the integrity of your Wurstpack and run it as adminitrator."));
+        }
+
     }
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {

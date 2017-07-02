@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.mpq;
 
 import com.google.common.base.Preconditions;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.TempDir;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.JMpqException;
@@ -67,4 +68,11 @@ class Jmpq3BasedEditor implements MpqEditor {
         return getEditor().hasFile(fileName);
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        if (editor != null) {
+            WLogger.severe("JMPQ editor not closed normally");
+            editor.close();
+        }
+    }
 }

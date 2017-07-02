@@ -425,11 +425,11 @@ FunctionLike.attrReturnType
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
-VarDef.attrIsDynamicClassMember
+VarDef.attrIsDynamicClassMember()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
-FunctionDefinition.attrIsDynamicClassMember
+FunctionDefinition.attrIsDynamicClassMember()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
@@ -445,19 +445,19 @@ FunctionDefinition.attrReceiverType
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.receiverType
 
-Element.attrIsDynamicContext
+Element.attrIsDynamicContext()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.IsDynamicContext.calculate
 
-Element.attrNearestPackage
+Element.attrNearestPackage()
 	returns @Nullable PackageOrGlobal
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestPackage
 
-Element.attrNearestNamedScope
+Element.attrNearestNamedScope()
 	returns @Nullable NamedScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestNamedScope
 
-Element.attrNearestScope
+Element.attrNearestScope()
 	returns @Nullable WScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestScope
 
@@ -466,36 +466,36 @@ WScope.attrNextScope "returns the scope surrounding this scope"
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nextScope
 
 
-Element.attrPathDescription
+Element.attrPathDescription()
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.PathDescription.get
 
-Element.attrCompilationUnit
+Element.attrCompilationUnit()
 	returns CompilationUnit
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestCompilationUnit
 
-Element.attrNearestClassDef
+Element.attrNearestClassDef()
 	returns @Nullable ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassDef
 
-Element.attrNearestClassOrModule
+Element.attrNearestClassOrModule()
 	returns @Nullable ClassOrModule
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrModule
 
-Element.attrNearestStructureDef
+Element.attrNearestStructureDef()
 	returns @Nullable StructureDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestStructureDef
 
-Element.attrNearestFuncDef
+Element.attrNearestFuncDef()
 	returns @Nullable FunctionImplementation
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestFuncDef
 
 
-Element.attrNearestExprClosure
+Element.attrNearestExprClosure()
 	returns @Nullable ExprClosure
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprClosure
 
-Element.attrNearestExprStatementsBlock
+Element.attrNearestExprStatementsBlock()
 	returns @Nullable ExprStatementsBlock
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestExprStatementsBlock
 
@@ -512,7 +512,7 @@ ExprStatementsBlock.getReturnStmt()
 
 
 
-HasModifier.attrIsCompiletime
+HasModifier.attrIsCompiletime()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isCompiletime
 
@@ -520,35 +520,35 @@ HasModifier.attrHasAnnotation(String name)
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.hasAnnotation
 
-HasModifier.attrIsPublic
+HasModifier.attrIsPublic()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic
 
-HasModifier.attrIsPublicRead
+HasModifier.attrIsPublicRead()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublicRead
 
-HasModifier.attrIsPrivate
+HasModifier.attrIsPrivate()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPrivate
 
-HasModifier.attrIsProtected
+HasModifier.attrIsProtected()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isProtected
 
-HasModifier.attrIsStatic
+HasModifier.attrIsStatic()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isStatic
 
-HasModifier.attrIsOverride
+HasModifier.attrIsOverride()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isOverride
 
-HasModifier.attrIsAbstract
+HasModifier.attrIsAbstract()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isAbstract
 
-HasModifier.attrIsConstant
+HasModifier.attrIsConstant()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
 
@@ -870,7 +870,7 @@ TypeParamDefs.attrTypes()
 	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
 	implemented by de.peeeq.wurstscript.attributes.TypeParamTypes.calculte
 
-Documentable.attrComment
+Documentable.attrComment()
 	returns String
 	implemented by de.peeeq.wurstscript.attributes.AttrWurstDoc.getComment
 	
@@ -898,7 +898,7 @@ InitBlock.attrReadGlobalVariables
 	returns com.google.common.collect.ImmutableList<VarDef>
 	implemented by de.peeeq.wurstscript.attributes.UsedGlobalVariables.getReadGlobals
 
-Element.attrUsedPackages
+Element.attrUsedPackages()
 	returns com.google.common.collect.ImmutableCollection<WPackage>
 	implemented by de.peeeq.wurstscript.attributes.UsedPackages.usedPackages
 	
@@ -915,7 +915,7 @@ WPackage.attrInitDependenciesTransitive
 	implemented by de.peeeq.wurstscript.attributes.InitOrder.initDependenciesTransitive
 	
 
-ExprIntVal.getValI
+ExprIntVal.getValI()
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.IntVal.getValI
 
