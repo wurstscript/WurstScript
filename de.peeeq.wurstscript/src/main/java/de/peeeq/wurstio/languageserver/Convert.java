@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class Convert {
     public static Location posToLocation(WPos pos) {
-        String file = "file://"+pos.getFile();
+        String file = WFile.create(pos.getFile()).getUriString();
         return new Location(file, new Range(
                 new Position(pos.getLine()-1, pos.getStartColumn()-1),
                 new Position(pos.getEndLine()-1, pos.getEndColumn()-1)
