@@ -2,12 +2,12 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.CleanProject;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
+import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -25,13 +25,9 @@ public class WurstCommands {
 
     static List<String> providedCommands() {
         return Arrays.asList(
-                WURST_RESTART,
                 WURST_CLEAN,
                 WURST_STARTMAP,
-                WURST_STARTLAST,
-                WURST_TESTS,
-                WURST_TESTS_FILE,
-                WURST_TESTS_FUNC
+                WURST_TESTS
         );
     }
 
@@ -40,15 +36,41 @@ public class WurstCommands {
             case WURST_CLEAN:
                 return server.worker().handle(new CleanProject()).thenApply(x -> x);
             case WURST_STARTMAP:
-                String workspaceRoot = server.getRootUri();
-                String wc3Path = (String) params.getArguments().get(0);
-                File map = new File((String) params.getArguments().get(1));
-                List<String> compileArgs = (List<String>) params.getArguments().get(2);
-                return server.worker().handle(new RunMap(workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
-
+                return startmap(server, params);
+            case WURST_TESTS: {
+                return testMap(server, params);
+            }
 
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
+    }
+
+    private static CompletableFuture<Object> testMap(WurstLanguageServer server, ExecuteCommandParams params) {
+        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
+        String filename = (String) options.get("filename");
+        int line = Optional.ofNullable(options.get("line")).map(l -> (Double) l).orElse(-1.).intValue();
+        int column = Optional.ofNullable(options.get("column")).map(l -> (Double) l).orElse(-1.).intValue();
+        return server.worker().handle(new RunTests(server, filename, line, column));
+    }
+
+    private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params) {
+        WFile workspaceRoot = server.getRootUri();
+        if (params.getArguments().isEmpty()) {
+            throw new RuntimeException("Missing arguments");
+        }
+        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
+        String mapPath = (String) options.get("mappath");
+        String wc3Path = (String) options.get("wc3path");
+        if (mapPath == null) {
+            throw new RuntimeException("No mappath given");
+        }
+        if (wc3Path == null) {
+            throw new RuntimeException("No wc3path given");
+        }
+
+        File map = new File(mapPath);
+        List<String> compileArgs = new ArrayList<>();
+        return server.worker().handle(new RunMap(workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 }

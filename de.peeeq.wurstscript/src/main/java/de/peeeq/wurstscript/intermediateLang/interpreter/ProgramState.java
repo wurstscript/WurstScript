@@ -23,7 +23,7 @@ public class ProgramState extends State {
     public static final int GENERATED_BY_WURST = 42;
     private @Nullable ImStmt lastStatement;
     protected WurstGui gui;
-    private PrintStream outStream = System.out;
+    private PrintStream outStream = System.err;
     private List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;

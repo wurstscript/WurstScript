@@ -20,7 +20,7 @@ import java.util.logging.SimpleFormatter;
  *
  */
 public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageServer, LanguageClientAware {
-    private String rootUri;
+    private WFile rootUri;
     private de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
 
     @Override
@@ -28,7 +28,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         System.err.println("initializing ");
         setupLogger();
         WLogger.info("initialize " + params.getRootUri());
-        rootUri = params.getRootUri();
+        rootUri = WFile.create(params.getRootUri());
         languageWorker.setRootPath(rootUri);
 
         ServerCapabilities capabilities = new ServerCapabilities();
@@ -101,7 +101,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         return languageWorker;
     }
 
-    public String getRootUri() {
+    public WFile getRootUri() {
         return rootUri;
     }
 }

@@ -10,16 +10,15 @@ import org.eclipse.lsp4j.services.LanguageClient;
 public class LanguageServerStarter {
 
     public static void start() {
-        System.err.println("Starting ...");
         WurstLanguageServer server = new WurstLanguageServer();
         Launcher<LanguageClient> launcher =
                 LSPLauncher.createServerLauncher(server,
                         System.in,
                         System.out);
-        System.err.println("Starting to listen ...");
+        // redirect all other output to StdErr, just to be sure:
+        System.setOut(System.err);
         server.connect(launcher.getRemoteProxy());
         launcher.startListening();
-        System.err.println("Stopping ...");
     }
 
 

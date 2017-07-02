@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by peter on 16.05.16.
@@ -47,7 +48,7 @@ public class RunMap extends UserRequest<Object> {
     private final String wc3Path;
     private final File map;
     private final List<String> compileArgs;
-    private final String workspaceRoot;
+    private final WFile workspaceRoot;
     /** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
     private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
 
@@ -55,7 +56,7 @@ public class RunMap extends UserRequest<Object> {
         QuickAndDirty, KindOfSafe
     }
 
-    public RunMap(String workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
+    public RunMap(WFile workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
         this.workspaceRoot = workspaceRoot;
         this.wc3Path = wc3Path;
         this.map = map;
@@ -67,9 +68,9 @@ public class RunMap extends UserRequest<Object> {
 
         // TODO use normal compiler for this, avoid code duplication
         WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
-        WurstGui gui = new WurstGuiImpl(workspaceRoot);
+        WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
-            File frozenThroneExe = new File(wc3Path, "Frozen Throne.exe");
+            File gameExe = findGameExecutable();
 
             if (!map.exists()) {
                 throw new RuntimeException(map.getAbsolutePath() + " does not exist.");
@@ -81,7 +82,10 @@ public class RunMap extends UserRequest<Object> {
             File buildDir = getBuildDir();
             File testMap = new File(buildDir, "WurstRunMap.w3x");
             if (testMap.exists()) {
-                testMap.delete();
+                boolean deleteOk = testMap.delete();
+                if (!deleteOk) {
+                    throw new RuntimeException("Could not delete old mapfile: " + testMap);
+                }
             }
             Files.copy(map, testMap);
 
@@ -89,8 +93,8 @@ public class RunMap extends UserRequest<Object> {
             File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, map);
 
             WurstModel model = modelManager.getModel();
-            if (model == null || !model.stream().anyMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-                println("No 'war3map.j' file could be found");
+            if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+                println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
                 println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
                 println("We will try to start the map now, but it will probably fail. ");
             }
@@ -116,7 +120,7 @@ public class RunMap extends UserRequest<Object> {
             WLogger.info("Starting wc3 ... ");
 
             // now start the map
-            List<String> cmd = Lists.newArrayList(frozenThroneExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
+            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
 
             if (!System.getProperty("os.name").startsWith("Windows")) {
                 // run with wine
@@ -139,8 +143,21 @@ public class RunMap extends UserRequest<Object> {
     }
 
     /**
+     * Returns the executable for Warcraft III for starting maps
+     * since it changed with 1.28.3
+     */
+    private File findGameExecutable() {
+        return Stream.of("Frozen Throne.exe", "Warcraft III.exe")
+                .map(exe -> new File(wc3Path, exe))
+                .filter(File::exists)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("No warcraft executatble found in path '" + wc3Path + "'. \n" +
+                        "Please check your configuration."));
+    }
+
+    /**
      * Copies the map to the wc3 map directory
-     * 
+     * <p>
      *  This directory depends on warcraft version and whether we are on windows or wine is used.
      */
     private String copyToWarcraftMapDir(File testMap) throws IOException {
@@ -185,32 +202,7 @@ public class RunMap extends UserRequest<Object> {
             WLogger.info("dep: " + dep.getPath());
         }
 
-        File war3mapFile = new File(new File(new File(workspaceRoot), "wurst"), "war3map.j");
-
-        //  try to get war3map.j from the map:
-        byte[] mapScript;
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
-            mapScript = mpqEditor.extractFile("war3map.j");
-        }
-        if (new String(mapScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
-            // file generated by wurst, do not use
-            if (war3mapFile.exists()) {
-                WLogger.info(
-                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Using war3map.j from Wurst directory instead.");
-            } else {
-                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
-                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Please add war3map.j to the wurst directory.");
-                gui.showInfoMessage(err.getMessage());
-                throw err;
-            }
-        } else {
-            // write mapfile from map to workspace
-            Files.write(mapScript, war3mapFile);
-        }
-
-        // push war3map.j to modelmanager
-
-        modelManager.syncCompilationUnit(WFile.create(war3mapFile.getAbsolutePath()));
+        processMapScript(runArgs, gui, modelManager, mapCopy);
 
         if (safeCompilation != SafetyLevel.QuickAndDirty) {
             // it is safer to rebuild the project, instead of taking the current editor state
@@ -268,7 +260,7 @@ public class RunMap extends UserRequest<Object> {
             CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
                     FunctionFlagEnum.IS_COMPILETIME);
             ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.setOutputStream(new PrintStream(System.out));
+            ctr.setOutputStream(new PrintStream(System.err));
             ctr.run();
         }
 
@@ -294,11 +286,53 @@ public class RunMap extends UserRequest<Object> {
         File buildDir = getBuildDir();
         File outFile = new File(buildDir, "compiled.j.txt");
         Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+        if (mpqEditor != null) {
+            mpqEditor.close();
+        }
         return outFile;
     }
 
+    private void processMapScript(RunArgs runArgs, WurstGui gui, ModelManager modelManager, File mapCopy) throws Exception {
+        File existingScript = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
+        // If runargs are no extract, either use existing or throw error
+        if (runArgs.isNoExtractMapScript()) {
+            if(existingScript.exists()) {
+                modelManager.syncCompilationUnit(WFile.create(existingScript));
+                return;
+            } else {
+                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                        "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
+                throw err;
+            }
+        }
+        // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
+        byte[] extractedScript;
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
+            extractedScript = mpqEditor.extractFile("war3map.j");
+        }
+        if (new String(extractedScript, StandardCharsets.UTF_8).startsWith(JassPrinter.WURST_COMMENT_RAW)) {
+            // file generated by wurst, do not use
+            if (existingScript.exists()) {
+                WLogger.info(
+                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Using war3map.j from Wurst directory instead.");
+            } else {
+                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                        "Cannot use war3map.j from map file, because it already was compiled with wurst. " + "Please add war3map.j to the wurst directory.");
+                gui.showInfoMessage(err.getMessage());
+                throw err;
+            }
+        } else {
+            // write mapfile from map to workspace
+            Files.write(extractedScript, existingScript);
+        }
+
+        // push war3map.j to modelmanager
+
+        modelManager.syncCompilationUnit(WFile.create(existingScript));
+    }
+
     private File getBuildDir() {
-        File buildDir = new File(workspaceRoot, "_build");
+        File buildDir = new File(workspaceRoot.getFile(), "_build");
         buildDir.mkdirs();
         return buildDir;
     }
@@ -311,7 +345,9 @@ public class RunMap extends UserRequest<Object> {
      */
     private void purgeUnimportedFiles(WurstModel model) {
         Set<CompilationUnit> inWurstFolder =
-                model.stream().filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j")).collect(Collectors.toSet());
+                model.stream()
+                        .filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j"))
+                        .collect(Collectors.toSet());
 
         Set<CompilationUnit> imported = new HashSet<>(inWurstFolder);
         addImports(imported, imported);
@@ -321,8 +357,13 @@ public class RunMap extends UserRequest<Object> {
 
     private void addImports(Set<CompilationUnit> result, Set<CompilationUnit> toAdd) {
         Set<CompilationUnit> imported =
-                toAdd.stream().flatMap((CompilationUnit cu) -> cu.getPackages().stream()).flatMap((WPackage p) -> p.getImports().stream())
-                        .map(WImport::attrImportedPackage).filter(p -> p != null).map(WPackage::attrCompilationUnit).collect(Collectors.toSet());
+                toAdd.stream()
+                        .flatMap((CompilationUnit cu) -> cu.getPackages().stream())
+                        .flatMap((WPackage p) -> p.getImports().stream())
+                        .map(WImport::attrImportedPackage)
+                        .filter(p -> p != null)
+                        .map(WPackage::attrCompilationUnit)
+                        .collect(Collectors.toSet());
         boolean changed = result.addAll(imported);
         if (changed) {
             // recursive call terminates, as there are only finitely many compilation units
@@ -332,7 +373,7 @@ public class RunMap extends UserRequest<Object> {
 
     private boolean isInWurstFolder(String file) {
         Path p = Paths.get(file);
-        Path w = Paths.get(workspaceRoot);
+        Path w = workspaceRoot.getPath();
         return p.startsWith(w) 
                 && java.nio.file.Files.exists(p)
                 && Utils.isWurstFile(file);

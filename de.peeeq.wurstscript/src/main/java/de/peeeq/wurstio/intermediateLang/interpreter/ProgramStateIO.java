@@ -29,7 +29,7 @@ public class ProgramStateIO extends ProgramState {
     private final Map<ObjectFileType, ObjectFile> dataStoreMap = Maps.newLinkedHashMap();
     private int id = 0;
     private final Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
-    private PrintStream outStream = System.out;
+    private PrintStream outStream = System.err;
     private @Nullable Map<Integer, String> trigStrings = null;
     private final File mapFile;
 

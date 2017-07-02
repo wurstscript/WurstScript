@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public abstract class ReflectionBasedNativeProvider implements NativesProvider {
 
-    protected PrintStream outStream = System.out;
+    protected PrintStream outStream = System.err;
 
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {

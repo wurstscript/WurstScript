@@ -5,12 +5,12 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 /**
  * Created by peter on 05.05.16.
  */
-public class CleanProject extends UserRequest<Void> {
+public class CleanProject extends UserRequest<String> {
 
 	@Override
-	public Void execute(ModelManager modelManager) {
+	public String execute(ModelManager modelManager) {
 		modelManager.clean();
 		modelManager.buildProject();
-		return null;
+		return "done";
 	}
 }

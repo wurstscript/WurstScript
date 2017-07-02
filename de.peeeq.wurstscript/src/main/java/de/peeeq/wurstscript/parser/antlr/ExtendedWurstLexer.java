@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.parser.antlr;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -100,7 +101,7 @@ public class ExtendedWurstLexer implements TokenSource {
         Token t = nextTokenIntern();
         lastToken = t;
 
-        if (debug) System.out.println("		new token: " + t);
+        if (debug) WLogger.info("		new token: " + t);
         return t;
     }
 
@@ -119,7 +120,7 @@ public class ExtendedWurstLexer implements TokenSource {
         for (; ; ) {
             Token token = orig.nextToken();
 
-            if (debug) System.out.println("orig token = " + token);
+            if (debug) WLogger.info("orig token = " + token);
 
             if (token == null) {
                 continue;
@@ -285,7 +286,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
     private void state(State s) {
-        if (debug) System.out.println("state " + state + " -> " + s);
+        if (debug) WLogger.info("state " + state + " -> " + s);
         state = s;
     }
 
@@ -299,7 +300,7 @@ public class ExtendedWurstLexer implements TokenSource {
             start = t.getStopIndex();
             stop = t.getStopIndex();
         }
-        if (debug) System.out.println("handleIndent " + n + "	 " + indentationLevels);
+        if (debug) WLogger.info("handleIndent " + n + "	 " + indentationLevels);
         if (n > indentationLevels.peek()) {
             indentationLevels.push(n);
             nextTokens.add(makeToken(WurstParser.STARTBLOCK, "$begin", start, stop));

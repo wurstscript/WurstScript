@@ -34,7 +34,7 @@ public abstract class WLogger {
 
 
     public static void info(String msg) {
-        System.err.println("info: " + msg);
+//        System.err.println("info: " + msg);
         keep("info", msg);
         instance.info(msg);
 

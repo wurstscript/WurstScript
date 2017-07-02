@@ -33,7 +33,7 @@ import java.util.Map.Entry;
 /**
  * Created by peter on 05.05.16.
  */
-public class RunTests extends UserRequest {
+public class RunTests extends UserRequest<Object> {
 
     private final WFile filename;
     private final int line;
@@ -43,7 +43,7 @@ public class RunTests extends UserRequest {
 
     public RunTests(WurstLanguageServer server, String filename, int line, int column) {
         this.server = server;
-        this.filename = WFile.create(filename);
+        this.filename = filename == null ? null : WFile.create(filename);
         this.line = line;
         this.column = column;
     }

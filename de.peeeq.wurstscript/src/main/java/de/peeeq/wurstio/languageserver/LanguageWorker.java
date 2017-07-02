@@ -30,8 +30,8 @@ public class LanguageWorker implements Runnable {
 
     private ModelManager modelManager;
 
-    public void setRootPath(String rootPath) {
-        this.rootPath = WFile.create(rootPath);
+    public void setRootPath(WFile rootPath) {
+        this.rootPath = rootPath;
     }
 
     private WFile rootPath;

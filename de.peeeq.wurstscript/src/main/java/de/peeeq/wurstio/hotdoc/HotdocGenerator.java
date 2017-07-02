@@ -88,9 +88,9 @@ public class HotdocGenerator {
             }
             WurstModel model = compiler.parseFiles();
             if (model == null) {
-                System.out.println("Hotdoc model is null.");
+                WLogger.info("Hotdoc model is null.");
                 for (CompileError e : gui.getErrorList()) {
-                    System.out.println(e);
+                    WLogger.info(e);
                 }
                 throw new RuntimeException("Could not analyze program correctly.");
             }
