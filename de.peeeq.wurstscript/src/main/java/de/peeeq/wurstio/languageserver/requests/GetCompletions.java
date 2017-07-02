@@ -41,6 +41,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private Element elem;
     private WurstType expectedType;
     private ModelManager modelManager;
+    private boolean isIncomplete = false;
 
 
     public GetCompletions(TextDocumentPositionParams position, BufferManager bufferManager) {
@@ -66,9 +67,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
         List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {
-            Collections.sort(result, completionItemComparator());
+            result.sort(completionItemComparator());
         }
-        return new CompletionList(result);
+        return new CompletionList(isIncomplete, result);
     }
 
     private Comparator<CompletionItem> completionItemComparator() {
@@ -431,6 +432,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
             if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
                 // got enough completions
+                isIncomplete = true;
                 return;
             }
         }
