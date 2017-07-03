@@ -48,8 +48,7 @@ public class ClassTranslator {
         new ClassTranslator(classDef, translator).translate();
 
         // translate inner classes:
-        ClassOrModuleOrModuleInstanciation mi = classDef;
-        translateInnerClasses(mi, translator);
+        translateInnerClasses(classDef, translator);
     }
 
     private static void translateInnerClasses(ClassOrModuleOrModuleInstanciation mi, ImTranslator translator) {
