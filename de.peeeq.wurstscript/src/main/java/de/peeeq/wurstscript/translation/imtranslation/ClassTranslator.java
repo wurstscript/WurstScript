@@ -48,12 +48,15 @@ public class ClassTranslator {
         new ClassTranslator(classDef, translator).translate();
 
         // translate inner classes:
-        for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
-            for (ClassDef innerClass : mi.getInnerClasses()) {
-                translate(innerClass, translator);
-            }
+        ClassOrModuleOrModuleInstanciation mi = classDef;
+        translateInnerClasses(mi, translator);
+    }
+
+    private static void translateInnerClasses(ClassOrModuleOrModuleInstanciation mi, ImTranslator translator) {
+        for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
+            translateInnerClasses(mi2, translator);
         }
-        for (ClassDef innerClass : classDef.getInnerClasses()) {
+        for (ClassDef innerClass : mi.getInnerClasses()) {
             translate(innerClass, translator);
         }
     }

@@ -3,10 +3,14 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +35,31 @@ public class EliminateClasses {
     }
 
     public void eliminateClasses() {
+
+        try {
+            Files.write(Paths.get("test-output","before-classes.im"), prog.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
         }
 
+        try {
+            Files.write(Paths.get("test-output","before-classes1.im"), prog.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
         for (ImFunction f : prog.getFunctions()) {
             eliminateClassRelatedExprs(f);
+        }
+
+        try {
+            Files.write(Paths.get("test-output","before-classes2.im"), prog.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
 
         prog.getClasses().clear();
@@ -394,8 +417,12 @@ public class EliminateClasses {
         ImExprs arguments = JassIm.ImExprs(receiver);
         arguments.addAll(mc.getArguments().removeAll());
 
+        ImFunction dispatch = dispatchFuncs.get(mc.getMethod());
+        if (dispatch == null) {
+            throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + mc.getMethod().getName());
+        }
         mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(),
-                dispatchFuncs.get(mc.getMethod()), arguments, false, CallType.NORMAL));
+                dispatch, arguments, false, CallType.NORMAL));
 
     }
 
