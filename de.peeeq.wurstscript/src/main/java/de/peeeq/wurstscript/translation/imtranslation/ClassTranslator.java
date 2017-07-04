@@ -410,11 +410,7 @@ public class ClassTranslator {
     }
 
     private void addModuleInits(ImFunction f, ModuleInstanciation mi, ImVar thisVar) {
-        // add initializers from modules
-		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
-			addModuleInits(f, mi2, thisVar);
-		}
-
+        // call constructors of used modules:
         for (ConstructorDef c : mi.getConstructors()) {
             ImFunction moduleConstr = translator.getConstructFunc(c);
             f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));

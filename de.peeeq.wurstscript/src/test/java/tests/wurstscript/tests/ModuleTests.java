@@ -433,7 +433,7 @@ public class ModuleTests extends WurstScriptTest {
     }
 
     @Test
-    public void neste_module_init() { // bug #542
+    public void nested_module_init() { // bug #542
         testAssertOkLines(true,
                 "package Test",
                 "native testSuccess()",
@@ -450,6 +450,32 @@ public class ModuleTests extends WurstScriptTest {
                 "    let c = new C()",
                 "    if c.x == 2",
                 "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiple_constructors() {
+        testAssertErrorsLines(false, "Duplicate constructor",
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct()",
+                "        x = x - 1",
+                "    construct()",
+                "        x = x + 1"
+        );
+    }
+
+    @Test
+    public void arg_constructor() {
+        testAssertErrorsLines(false, "Module constructors must not have parameters",
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct(int i)",
+                "        x = x - 1"
         );
     }
 }

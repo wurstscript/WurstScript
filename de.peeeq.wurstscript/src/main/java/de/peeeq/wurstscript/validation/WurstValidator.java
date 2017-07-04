@@ -224,8 +224,8 @@ public class WurstValidator {
                 checkInstanceDef((ClassDef) e);
             if (e instanceof ClassDef)
                 checkOverrides((ClassDef) e);
-            if (e instanceof ClassDef)
-                checkConstructorsUnique((ClassDef) e);
+            if (e instanceof ClassOrModule)
+                checkConstructorsUnique((ClassOrModule) e);
             if (e instanceof ClassDef)
                 visit((ClassDef) e);
             if (e instanceof CompilationUnit)
@@ -568,7 +568,7 @@ public class WurstValidator {
 
     }
 
-    private void checkConstructorsUnique(ClassDef c) {
+    private void checkConstructorsUnique(ClassOrModule c) {
         List<ConstructorDef> constrs = c.getConstructors();
 
         for (int i = 0; i < constrs.size() - 1; i++) {

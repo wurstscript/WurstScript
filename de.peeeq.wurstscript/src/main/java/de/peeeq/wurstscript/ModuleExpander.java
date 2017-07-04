@@ -59,16 +59,33 @@ public class ModuleExpander {
                 typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i).attrTyp()));
             }
 
-            m.getP_moduleInstanciations().add(
-                    Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(),
-                            Ast.Identifier(moduleUse.getModuleNameId().getSource(), usedModule.getName()),
-                            smartCopy(usedModule.getInnerClasses(), typeReplacements),
-                            smartCopy(usedModule.getMethods(), typeReplacements),
-                            smartCopy(usedModule.getVars(), typeReplacements),
-                            smartCopy(usedModule.getConstructors(), typeReplacements),
-                            smartCopy(usedModule.getModuleInstanciations(), typeReplacements),
-                            smartCopy(usedModule.getModuleUses(), typeReplacements),
-                            smartCopy(usedModule.getOnDestroy(), typeReplacements)));
+            ModuleInstanciation mi = Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(),
+                    Ast.Identifier(moduleUse.getModuleNameId().getSource(), usedModule.getName()),
+                    smartCopy(usedModule.getInnerClasses(), typeReplacements),
+                    smartCopy(usedModule.getMethods(), typeReplacements),
+                    smartCopy(usedModule.getVars(), typeReplacements),
+                    smartCopy(usedModule.getConstructors(), typeReplacements),
+                    smartCopy(usedModule.getModuleInstanciations(), typeReplacements),
+                    smartCopy(usedModule.getModuleUses(), typeReplacements),
+                    smartCopy(usedModule.getOnDestroy(), typeReplacements));
+
+            if (mi.getConstructors().isEmpty()) {
+                // add default constructor:
+                WPos source = moduleUse.getSource().artificial();
+                mi.getConstructors().add(Ast.ConstructorDef(
+                        source,
+                        Ast.Modifiers(),
+                        Ast.WParameters(),
+                        false,
+                        Ast.Arguments(),
+                        Ast.WStatements(
+                                Ast.StartFunctionStatement(source),
+                                Ast.EndFunctionStatement(source)
+                        )));
+            }
+
+            m.getP_moduleInstanciations().add(mi);
+
         }
         return m.getP_moduleInstanciations();
     }
