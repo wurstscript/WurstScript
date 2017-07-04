@@ -8,9 +8,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -36,30 +33,13 @@ public class EliminateClasses {
 
     public void eliminateClasses() {
 
-        try {
-            Files.write(Paths.get("test-output","before-classes.im"), prog.toString().getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
 
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
         }
 
-        try {
-            Files.write(Paths.get("test-output","before-classes1.im"), prog.toString().getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
         for (ImFunction f : prog.getFunctions()) {
             eliminateClassRelatedExprs(f);
-        }
-
-        try {
-            Files.write(Paths.get("test-output","before-classes2.im"), prog.toString().getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
 
         prog.getClasses().clear();
