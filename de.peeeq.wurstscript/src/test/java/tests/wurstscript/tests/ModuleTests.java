@@ -431,4 +431,25 @@ public class ModuleTests extends WurstScriptTest {
                 "    testSuccess()"
         );
     }
+
+    @Test
+    public void neste_module_init() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct()",
+                "        x = x - 1",
+                "public module B",
+                "    use A",
+                "public class C",
+                "    use B",
+                "",
+                "init",
+                "    let c = new C()",
+                "    if c.x == 2",
+                "        testSuccess()"
+        );
+    }
 }

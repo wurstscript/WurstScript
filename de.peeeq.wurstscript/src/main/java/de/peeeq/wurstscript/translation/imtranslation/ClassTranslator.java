@@ -250,7 +250,7 @@ public class ClassTranslator {
         }
     }
 
-    public void translateVar(GlobalVarDef s) {
+    private void translateVar(GlobalVarDef s) {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
             // for dynamic class members create an array
@@ -272,7 +272,7 @@ public class ClassTranslator {
         }
     }
 
-    public void translateMethod(FuncDef s, List<ClassDef> subClasses) {
+    private void translateMethod(FuncDef s, List<ClassDef> subClasses) {
         ImFunction f = createStaticCallFunc(s);
         if (s.attrIsStatic()) {
             // static method
@@ -318,6 +318,7 @@ public class ClassTranslator {
                 return ct;
             } else {
                 WurstTypeClass t2 = getExtendedClassType(superClass);
+                assert t2 != null;
                 t2.setTypeArgs(ct.getTypeArgBinding());
                 return t2;
             }
@@ -337,7 +338,7 @@ public class ClassTranslator {
     }
 
 
-    public void translateConstructor(ConstructorDef constr) {
+    private void translateConstructor(ConstructorDef constr) {
         createNewFunc(constr);
         createConstructFunc(constr);
     }
@@ -410,18 +411,13 @@ public class ClassTranslator {
 
     private void addModuleInits(ImFunction f, ModuleInstanciation mi, ImVar thisVar) {
         // add initializers from modules
-//		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
-//			addModuleInits(f, mi2, thisVar);
-//		}
+		for (ModuleInstanciation mi2 : mi.getModuleInstanciations()) {
+			addModuleInits(f, mi2, thisVar);
+		}
 
         for (ConstructorDef c : mi.getConstructors()) {
             ImFunction moduleConstr = translator.getConstructFunc(c);
             f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
-
-//			TODO
-//			List<ImStmt> stmts = translator.translateStatements(f, c.getBody());
-//			ImHelper.replaceVar(stmts, translator.getThisVar(c), thisVar);
-//			f.getBody().addAll(stmts);
         }
     }
 
