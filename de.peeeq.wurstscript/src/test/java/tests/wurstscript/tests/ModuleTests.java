@@ -318,7 +318,6 @@ public class ModuleTests extends WurstScriptTest {
                 "    construct()",
                 "        int x = 2",
                 "        res += x", // 2) res == 3 // 4) res == 6
-                "    construct()",
                 "        int y = 1",
                 "        res -= y", // 3) res == 2  // 5) res == 5
                 "class A",
