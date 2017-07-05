@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en-US">
+<head>
+<meta charset="UTF-8" />
+<title>Wurst: {{ page.title }}</title>
+<link rel="stylesheet" type="text/css" media="all" href="./assets/style.css" />
+</head>
+<body>
+<a href="https://github.com/peq/WurstScript"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub" /></a>
+<div id="nav"></div>
+<div id="content">
+<h1 class="giant"><a href="./">Wurst</a>: {{ page.title }}</h1>
+{{ content }}
+</div>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+<script type="text/javascript" src="./assets/nav.js"></script>
+<script src="./assets/highlight.js"></script>
+<script src="./assets/languages/wurst.js"></script>
+<script src="./assets/languages/vjass.js"></script>
+<script>
+hljs.tabReplace = '    '; // 4 spaces
+hljs.initHighlightingOnLoad();</script>
+</body>
