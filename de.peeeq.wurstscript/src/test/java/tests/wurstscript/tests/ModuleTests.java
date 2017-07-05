@@ -453,6 +453,27 @@ public class ModuleTests extends WurstScriptTest {
     }
 
     @Test
+    public void nested_class_module() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "abstract class C",
+                "    abstract function foo()",
+                "public module A",
+                "    static class D extends C",
+                "        override function foo()",
+                "            testSuccess()",
+                "    function test()",
+                "        new D().foo()",
+                "class E",
+                "    use A",
+                "init",
+                "    let e = new E()",
+                "    e.test()"
+        );
+    }
+
+    @Test
     public void multiple_constructors() {
         testAssertErrorsLines(false, "Duplicate constructor",
                 "package Test",

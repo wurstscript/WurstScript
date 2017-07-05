@@ -8,7 +8,9 @@ import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ByTypes;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.GetByType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
@@ -46,6 +48,7 @@ import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
+import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
 
 public class ImTranslator {
 
@@ -941,12 +944,40 @@ public class ImTranslator {
             return;
         }
         directSubclasses = HashMultimap.create();
+        for (ClassDef c : classes()) {
+            if (c.attrExtendedClass() != null) {
+                directSubclasses.put(c.attrExtendedClass(), c);
+            }
+        }
+    }
+
+    /** calculates list of all classes
+     * ignoring the ones in modules, only module instantiations*/
+    private List<ClassDef> classes() {
+        List<ClassDef> result = new ArrayList<>();
         for (CompilationUnit cu : wurstProg) {
-            for (ClassDef c : cu.attrGetByType().classes) {
-                if (c.attrExtendedClass() != null) {
-                    directSubclasses.put(c.attrExtendedClass(), c);
+            for (WPackage p : cu.getPackages()) {
+                for (WEntity e : p.getElements()) {
+                    if (e instanceof ClassDef) {
+                        ClassDef c = (ClassDef) e;
+                        classesAdd(result, c);
+                    }
                 }
             }
+        }
+        return result;
+
+    }
+
+    private void classesAdd(List<ClassDef> result, ClassOrModuleInstanciation c) {
+        if (c instanceof ClassDef) {
+            result.add(((ClassDef) c));
+        }
+        for (ClassDef ic : c.getInnerClasses()) {
+            classesAdd(result, ic);
+        }
+        for (ModuleInstanciation mi : c.getModuleInstanciations()) {
+            classesAdd(result, mi);
         }
     }
 
@@ -1173,7 +1204,7 @@ public class ImTranslator {
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            m = JassIm.ImMethod(f, f.getName(), imFunc, Lists.<ImMethod>newArrayList(), false);
+            m = JassIm.ImMethod(f, elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;

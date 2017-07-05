@@ -954,4 +954,16 @@ public class Utils {
     }
 
     private static Map<String, File> resourceMap = new HashMap<>();
+
+    public static String elementNameWithPath(AstElementWithNameId n) {
+        String result = n.getNameId().getName();
+        Element e = n.getParent();
+        while (e != null) {
+            if (e instanceof AstElementWithNameId) {
+                result = ((AstElementWithNameId) e).getNameId().getName() + "_" + result;
+            }
+            e = e.getParent();
+        }
+        return result;
+    }
 }

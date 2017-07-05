@@ -1,14 +1,12 @@
 package de.peeeq.wurstscript.attributes;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.ast.*;
 
 public class GetByType {
 
     public static ByTypes calculate(CompilationUnit cu) {
         final ByTypes result = new ByTypes();
-        cu.accept(new CompilationUnit.DefaultVisitor() {
+        cu.accept(new Element.DefaultVisitor() {
 
             @Override
             public void visit(@SuppressWarnings("null") ClassDef classDef) {
