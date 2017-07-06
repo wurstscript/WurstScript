@@ -8,7 +8,7 @@
 <embeddedJar>false</embeddedJar>
 <executableName>wurstscript.exe</executableName>
 <initialMemoryHeap>-1</initialMemoryHeap>
-<mainClassName>de.peeeq.wurstio.Main</mainClassName>
+<mainClassName>Main</mainClassName>
 <maximumMemoryHeap>-1</maximumMemoryHeap>
 <maximumVersion></maximumVersion>
 <minimumVersion></minimumVersion>

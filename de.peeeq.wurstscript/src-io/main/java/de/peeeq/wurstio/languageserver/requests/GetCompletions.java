@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import de.peeeq.wurstio.IOUtils;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -225,7 +226,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
         }
         for (File dep : mm.getDependencyWurstFiles()) {
-            String libName = Utils.getLibName(dep);
+            String libName = IOUtils.getLibName(dep);
             if (!usedPackages.contains(libName) && isSuitableCompletion(libName)) {
                 usedPackages.add(libName);
                 completions.add(makeSimpleNameCompletion(libName));

@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediateLang.interpreter;
 
-import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
@@ -15,21 +14,20 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.io.File;
 import java.util.Stack;
 
 public class ILInterpreter {
     private ImProg prog;
     private final ProgramState globalState;
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
+    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable String mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
         globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, boolean isCompiletime) {
+    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable String mapFile, boolean isCompiletime) {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 
@@ -93,7 +91,7 @@ public class ILInterpreter {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
-            err.append("at : " + new File(src.getFile()).getName() + ", line " + src.getLine() + "\n");
+            err.append("at : " + src.getFile() + ", line " + src.getLine() + "\n");
         } catch (Exception _e) {
             // ignore
         }

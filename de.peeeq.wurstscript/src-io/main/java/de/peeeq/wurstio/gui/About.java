@@ -10,8 +10,8 @@
  */
 package de.peeeq.wurstio.gui;
 
+import de.peeeq.wurstio.IOUtils;
 import de.peeeq.wurstscript.CompileTimeInfo;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.awt.*;
@@ -80,7 +80,7 @@ public class About extends javax.swing.JDialog {
         homepageButton.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         homepageButton.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
         homepageButton.setName("homepageButton"); // NOI18N
-        homepageButton.addMouseListener(Utils.onClickDo(this::homepageButtonMouseClicked));
+        homepageButton.addMouseListener(IOUtils.onClickDo(this::homepageButtonMouseClicked));
 
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);

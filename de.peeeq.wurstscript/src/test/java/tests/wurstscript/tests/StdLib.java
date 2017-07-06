@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstio.IOUtils;
 import org.junit.Test;
 
 import java.io.File;
@@ -43,21 +43,21 @@ public class StdLib {
 
             if (!stdLibFolder.exists()) {
                 tempFolder.mkdirs();
-                Utils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
+                IOUtils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
             }
 
-            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD");
+            String revision = IOUtils.exec(stdLibFolder, "git", "rev-parse", "HEAD");
             System.out.println("revision = " + revision);
             if (!revision.equals(version)) {
-                Utils.exec(stdLibFolder, "git", "checkout", "master");
-                Utils.exec(stdLibFolder, "git", "pull");
-                Utils.exec(stdLibFolder, "git", "checkout", version);
+                IOUtils.exec(stdLibFolder, "git", "checkout", "master");
+                IOUtils.exec(stdLibFolder, "git", "pull");
+                IOUtils.exec(stdLibFolder, "git", "checkout", version);
             }
 
             // reset all possible changes
-            Utils.exec(stdLibFolder, "git", "clean", "-fdx");
-            Utils.exec(stdLibFolder, "git", "checkout", ".");
-            Utils.exec(stdLibFolder, "git", "checkout", version);
+            IOUtils.exec(stdLibFolder, "git", "clean", "-fdx");
+            IOUtils.exec(stdLibFolder, "git", "checkout", ".");
+            IOUtils.exec(stdLibFolder, "git", "checkout", version);
 
             isInitialized = true;
         } catch (Exception e) {

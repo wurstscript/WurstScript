@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE module PUBLIC "-//Google Inc.//DTD Google Web Toolkit 2.5.0//EN"
-        "http://google-web-toolkit.googlecode.com/svn/tags/2.5.0/distro-source/core/src/gwt-module.dtd">
+<!DOCTYPE module PUBLIC "-//Google Inc.//DTD Google Web Toolkit 2.5.1//EN" "http://google-web-toolkit.googlecode.com/svn/tags/2.5.1/distro-source/core/src/gwt-module.dtd">
 <module>
     <inherits name="com.google.gwt.user.User"/>
 
@@ -11,14 +10,18 @@
     <inherits name="com.google.gwt.logging.Logging"/>
     <set-property name="gwt.logging.consoleHandler" value="ENABLED"/>
     <set-property name="gwt.logging.systemHandler" value="ENABLED"/>
-    <set-property name="gwt.logging.popupHandler" value="DISABLED"/>
-    <set-property name="gwt.logging.firebugHandler" value="ENABLED"/>
+    <!--<set-property name="gwt.logging.popupHandler" value="DISABLED"/>-->
+    <!--<set-property name="gwt.logging.firebugHandler" value="ENABLED"/>-->
 
-    <super-source path="emulation"/>
+    <super-source path="de.peeeq.emulation"/>
 
     <source path="datastructures"/>
     <source path="immutablecollections"/>
     <source path="wurstscript"/>
+    <source path="gwt"/>
+
+    <entry-point
+        class="de.peeeq.gwt.WurstEntryPoint" />
 
 
 </module>

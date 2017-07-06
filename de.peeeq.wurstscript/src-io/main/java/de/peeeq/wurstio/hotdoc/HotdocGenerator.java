@@ -3,6 +3,7 @@ package de.peeeq.wurstio.hotdoc;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.IOUtils;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
@@ -72,8 +73,8 @@ public class HotdocGenerator {
             RunArgs runArgs = new RunArgs(new String[]{});
             WurstGui gui = new WurstGuiCliImpl();
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
-            compiler.loadFiles(Utils.getResourceFile("common.j"));
-            compiler.loadFiles(Utils.getResourceFile("blizzard.j"));
+            compiler.loadFiles(IOUtils.getResourceFile("common.j"));
+            compiler.loadFiles(IOUtils.getResourceFile("blizzard.j"));
             for (String file : files) {
                 File f = new File(file);
                 if (!f.exists()) {

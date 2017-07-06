@@ -22,6 +22,7 @@ sourceSets {
     main {
         java {
             srcDir 'src/main/java'
+//            srcDir 'src-io/main/java'
             srcDir genDir
         }
     }
@@ -36,6 +37,37 @@ repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
 }
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'de.richsource.gradle.plugins:gwt-gradle-plugin:0.6'
+    }
+}
+
+apply plugin: 'gwt'
+
+gwt {
+    gwtVersion='2.8.1'
+    modules 'de.peeeq.WurstCompiler'
+
+    maxHeapSize = "8G"
+
+    sourceCompatibility = 1.8
+
+    sourceSets {
+        main {
+            java {
+                srcDir 'src/main/java'
+                srcDir genDir
+                srcDir 'src-gwt'
+            }
+        }
+    }
+}
+
 
 
 // In this section you declare the dependencies for your production and test code
@@ -70,6 +102,9 @@ dependencies {
 
     // JMPQ by Crigges for handling mpq archives
     compile 'com.github.inwc3:JMPQ3:1.5.3'
+
+    // GWT dependencies:
+    gwt group: 'com.google.guava', name: 'guava-gwt', version: '22.0'
 }
 
 

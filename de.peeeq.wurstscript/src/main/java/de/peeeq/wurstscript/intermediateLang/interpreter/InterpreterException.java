@@ -1,4 +1,4 @@
-package de.peeeq.wurstio.jassinterpreter;
+package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;

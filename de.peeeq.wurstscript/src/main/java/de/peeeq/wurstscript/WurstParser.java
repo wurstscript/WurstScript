@@ -32,12 +32,13 @@ public class WurstParser {
     }
 
     public CompilationUnit parse(Reader reader, String source, boolean hasCommonJ) {
-        try (java.util.Scanner s = new java.util.Scanner(reader)) {
-            s.useDelimiter("\\A");
-            String input = s.hasNext() ? s.next() : "";
-            CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
-            return cu1;
-        }
+        return parseWithAntlr(reader, source, hasCommonJ);
+//        try (java.util.Scanner s = new java.util.Scanner(reader)) {
+//            s.useDelimiter("\\A");
+//            String input = s.hasNext() ? s.next() : "";
+//            CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
+//            return cu1;
+//        }
     }
 
 

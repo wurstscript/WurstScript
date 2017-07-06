@@ -303,7 +303,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 addLibDir(f);
             }
             if (Utils.isWurstFile(f)) {
-                String libName = Utils.getLibName(f);
+                String libName = IOUtils.getLibName(f);
                 getLibs().put(libName, f);
             }
         }

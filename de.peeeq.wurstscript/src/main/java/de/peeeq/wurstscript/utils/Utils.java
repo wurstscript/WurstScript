@@ -4,23 +4,16 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
-import com.google.common.io.Files;
-import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -316,6 +309,11 @@ public class Utils {
             sb.append("\n");
         }
         return sb.toString();
+    }
+
+
+    public static String printException(Throwable e) {
+        return e + "\n" + Utils.printExceptionWithStackTrace(e);
     }
 
     public static String printExceptionWithStackTrace(Throwable t) {
@@ -636,10 +634,6 @@ public class Utils {
         return path;
     }
 
-    public static String printException(Throwable e) {
-        return e + "\n" + Utils.printExceptionWithStackTrace(e);
-    }
-
 
     public static String stripHtml(String s) {
         return s.replaceAll("\\<.*?\\>", "");
@@ -676,25 +670,22 @@ public class Utils {
     }
 
 
-    public static String readWholeStream(BufferedReader r) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = r.readLine()) != null) {
-            sb.append(line);
-        }
-        return sb.toString();
-    }
-
-    public static String readWholeStream(InputStream inputStream) throws IOException {
-        return readWholeStream(new BufferedReader(new InputStreamReader(inputStream)));
-    }
 
 
-    @SuppressWarnings("unchecked")
-    public static <T extends Element> Optional<T> getNearestByType(@Nullable Element e, Class<T> clazz) {
+    public static Optional<ModuleUse> getNearestModuleUse(@Nullable Element e) {
         while (e != null) {
-            if (clazz.isInstance(e)) {
-                return Optional.of((T) e);
+            if (e instanceof ModuleUse) {
+                return Optional.of((ModuleUse) e);
+            }
+            e = e.getParent();
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<StructureDef> getNearestStructureDef(@Nullable Element e) {
+        while (e != null) {
+            if (e instanceof StructureDef) {
+                return Optional.of((StructureDef) e);
             }
             e = e.getParent();
         }
@@ -832,26 +823,8 @@ public class Utils {
         };
     }
 
-    public static MouseListener onClickDo(Consumer<MouseEvent> onclick) {
-        return new MouseAdapter() {
-            @Override
-            public void mouseClicked(@Nullable MouseEvent e) {
-                Preconditions.checkNotNull(e);
-                onclick.accept(e);
-            }
-        };
-    }
-
-    public static boolean isWurstFile(File f) {
-        return isWurstFile(f.getName());
-    }
-
     public static boolean isWurstFile(String fileName) {
         return fileName.endsWith(".wurst") || fileName.endsWith(".jurst");
-    }
-
-    public static String getLibName(File f) {
-        return f.getName().replaceAll("\\.[jw]urst$", "");
     }
 
 
@@ -874,86 +847,11 @@ public class Utils {
     }
 
     /**
-     * Executes a shell command in a given folder and returns the output of the executed command
-     */
-    public static String exec(File folder, String... cmds) {
-        try {
-            Process p = new ProcessBuilder(cmds)
-                    .directory(folder)
-                    .start();
-            int res = p.waitFor();
-            if (res != 0) {
-                throw new RuntimeException("Could not execute " + Utils.join(Arrays.asList(cmds), " ")
-                        + "\nErrors:\n"
-                        + convertStreamToString(p.getErrorStream())
-                        + "\nOutput:\n"
-                        + convertStreamToString(p.getInputStream()));
-            }
-            return convertStreamToString(p.getInputStream());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Converts an input stream to a string
-     * <p>
-     * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
-     */
-    public static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
-    }
-
-    public static byte[] convertStreamToBytes(InputStream is) throws IOException {
-        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-        int nRead;
-        byte[] data = new byte[16384];
-
-        while ((nRead = is.read(data, 0, data.length)) != -1) {
-            buffer.write(data, 0, nRead);
-        }
-
-        buffer.flush();
-
-        return buffer.toByteArray();
-    }
-
-    /**
      * join lines
      */
     public static String string(String... lines) {
         return Arrays.asList(lines).stream().collect(Collectors.joining("\n")) + "\n";
     }
-
-    /**
-     * Extracts a resource from the jar, stores it in a temp file and returns the abolute path to the tempfile
-     */
-    public static synchronized String getResourceFile(String name) {
-        try {
-            File f = resourceMap.get(name);
-            if (f != null && f.exists()) {
-                return f.getAbsolutePath();
-            }
-            String[] parts = name.split("\\.");
-            f = File.createTempFile(parts[0], parts[1]);
-            f.deleteOnExit();
-            try (InputStream is = Pjass.class.getClassLoader().getResourceAsStream(name)) {
-                if (is == null) {
-                    throw new RuntimeException("Could not find resource file " + name);
-                }
-                byte[] bytes = Utils.convertStreamToBytes(is);
-                Files.write(bytes, f);
-                resourceMap.put(name, f);
-                return f.getAbsolutePath();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static Map<String, File> resourceMap = new HashMap<>();
 
     public static String elementNameWithPath(AstElementWithNameId n) {
         String result = n.getNameId().getName();

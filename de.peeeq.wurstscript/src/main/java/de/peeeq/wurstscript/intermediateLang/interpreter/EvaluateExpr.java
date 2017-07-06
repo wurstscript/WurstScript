@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import de.peeeq.datastructures.IntTuple;
-import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.VarDef;

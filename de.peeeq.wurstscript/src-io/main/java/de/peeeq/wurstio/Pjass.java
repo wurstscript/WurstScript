@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -92,9 +91,9 @@ public class Pjass {
             Process p;
             WLogger.info("Starting pjass");
             List<String> args = new ArrayList<>();
-            args.add(Utils.getResourceFile("pjass.exe"));
-            args.add(Utils.getResourceFile("common.j"));
-            args.add(Utils.getResourceFile("blizzard.j"));
+            args.add(IOUtils.getResourceFile("pjass.exe"));
+            args.add(IOUtils.getResourceFile("common.j"));
+            args.add(IOUtils.getResourceFile("blizzard.j"));
             args.add(outputFile.getPath());
             if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
                 WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");

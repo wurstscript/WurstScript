@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.intermediateLang.interpreter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediateLang.ILconst;
