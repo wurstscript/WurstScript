@@ -3,6 +3,11 @@
 <module>
     <inherits name="com.google.gwt.user.User"/>
 
+    <!-- fix user-agent to use it with webworker -->
+    <set-property name="user.agent" value="safari"/>
+    <set-configuration-property name="user.agent.runtimeWarning" value="false" />
+
+
     <!-- google guava!! -->
     <inherits name="com.google.common.collect.Collect"/>
 
@@ -24,4 +29,6 @@
         class="de.peeeq.gwt.WurstEntryPoint" />
 
 
+    <define-linker name="webworker" class="de.peeeq.gwt.linker.DedicatedWorkerLinker" />
+    <add-linker name="webworker" />
 </module>

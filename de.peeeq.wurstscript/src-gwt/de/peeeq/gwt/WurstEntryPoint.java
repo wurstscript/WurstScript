@@ -1,25 +1,36 @@
 package de.peeeq.gwt;
 
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.GWT;
-import com.google.gwt.event.dom.client.ClickEvent;
-import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyCodes;
-import com.google.gwt.event.dom.client.KeyUpEvent;
-import com.google.gwt.event.dom.client.KeyUpHandler;
-import com.google.gwt.user.client.rpc.AsyncCallback;
-import com.google.gwt.user.client.ui.*;
 
 /**
  *
  */
 public class WurstEntryPoint implements EntryPoint {
+
+
     @Override
     public void onModuleLoad() {
-        System.out.println("HELLO GRADLE GWT!!!");
-        Label label = new Label("Hello from GWT");
-        RootPanel.get("content").add(label);
-
-
+        initialize();
     }
+
+    public native void initialize() /*-{
+        console.log("Initializing webworker...");
+        var that = this;
+        self.addEventListener('message', function (e) {
+            console.log("Received message in web worker");
+            that.@de.peeeq.gwt.WurstEntryPoint::onMessage(Ljava/lang/String;)(e.data);
+        }, false);
+        console.log("Initialized webworker...");
+    }-*/;
+
+    private native void postMessage(String code, String payload) /*-{
+        console.log("postMessage", code, payload);
+        self.postMessage({code: code, payload: payload});
+    }-*/;
+
+
+    void onMessage(String message) {
+        postMessage("ok", "Hello '" + message + "'!");
+    }
+
 }
