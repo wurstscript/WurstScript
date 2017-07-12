@@ -1,20 +1,13 @@
 package de.peeeq.wurstio.languageserver;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -24,8 +17,6 @@ public class LanguageWorker implements Runnable {
     private final Map<WFile, PendingChange> changes = new LinkedHashMap<>();
     private final AtomicLong currentTime = new AtomicLong();
     private final Queue<UserRequest<?>> userRequests = new LinkedList<>();
-    private final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects",
-            "-stacktraces");
     private final Thread thread;
 
     private ModelManager modelManager;
@@ -46,23 +37,6 @@ public class LanguageWorker implements Runnable {
         thread = new Thread(this);
         thread.setName("Wurst LanguageWorker");
         thread.start();
-    }
-
-
-    private List<String> getCompileArgs() {
-        try {
-            Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
-            if (Files.exists(configFile)) {
-                return Files.lines(configFile).collect(Collectors.toList());
-            } else {
-
-                String cfg = String.join("\n", defaultArgs) + "\n";
-                Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
-                return defaultArgs;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Could not access wurst run config file", e);
-        }
     }
 
     public BufferManager getBufferManager() {

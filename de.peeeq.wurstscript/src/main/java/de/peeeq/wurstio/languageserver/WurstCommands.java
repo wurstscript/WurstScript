@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstio.languageserver.requests.CleanProject;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
@@ -7,8 +9,16 @@ import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 
 import java.io.File;
-import java.util.*;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -70,7 +80,24 @@ public class WurstCommands {
         }
 
         File map = new File(mapPath);
-        List<String> compileArgs = new ArrayList<>();
+        List<String> compileArgs = getCompileArgs(workspaceRoot);
         return server.worker().handle(new RunMap(workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+    }
+
+    private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects","-stacktraces");
+    private static List<String> getCompileArgs(WFile rootPath) {
+        try {
+            Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
+            if (Files.exists(configFile)) {
+                return Files.lines(configFile).collect(Collectors.toList());
+            } else {
+
+                String cfg = String.join("\n", defaultArgs) + "\n";
+                Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
+                return defaultArgs;
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Could not access wurst run config file", e);
+        }
     }
 }
