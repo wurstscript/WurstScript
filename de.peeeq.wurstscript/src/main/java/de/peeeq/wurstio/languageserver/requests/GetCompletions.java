@@ -52,10 +52,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter();
         this.lines = buffer.split("\\n|\\r\\n");
-        WLogger.info("Get completions in line " + line + ": \n" +
-                "" + currentLine().replace('\t', ' ') + "\n" +
-                "" + Utils.repeat(' ', column - 1) + "^\n" +
-                " at column " + column);
+        if(line <= lines.length) {
+            WLogger.info("Get completions in line " + line + ": \n" +
+                    "" + currentLine().replace('\t', ' ') + "\n" +
+                    "" + Utils.repeat(' ', column > 0 ? column - 1 : 0) + "^\n" +
+                    " at column " + column);
+        }
     }
 
     private String currentLine() {
