@@ -3,8 +3,8 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -20,6 +20,8 @@ import org.eclipse.lsp4j.*;
 
 import java.io.File;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -439,14 +441,17 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void dropBadCompletions(List<CompletionItem> completions) {
-        Collections.sort(completions, completionItemComparator());
+        completions.sort(completionItemComparator());
+        NumberFormat numberFormat = NumberFormat.getNumberInstance(Locale.getDefault());
         for (int i = completions.size() - 1; i >= MAX_COMPLETIONS; i--) {
             try {
-                if (Double.valueOf(completions.get(i).getSortText()) > 0.4) {
+                if (numberFormat.parse(completions.get(i).getSortText()).doubleValue() > 0.4) {
                     // good enough
                     return;
                 }
-            } catch (NumberFormatException ignored) {}
+            } catch (NumberFormatException | ParseException e) {
+                WLogger.severe(e);
+            }
             completions.remove(i);
         }
     }
@@ -455,7 +460,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (n instanceof FunctionDefinition) {
             return makeFunctionCompletion((FunctionDefinition) n);
         }
-
         CompletionItem completion = new CompletionItem(n.getName());
 
         completion.setDetail(HoverInfo.descriptionString(n));
