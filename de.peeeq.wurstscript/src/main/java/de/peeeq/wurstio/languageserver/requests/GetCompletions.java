@@ -441,10 +441,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private void dropBadCompletions(List<CompletionItem> completions) {
         Collections.sort(completions, completionItemComparator());
         for (int i = completions.size() - 1; i >= MAX_COMPLETIONS; i--) {
-            if (Double.valueOf(completions.get(i).getSortText()) > 0.4) {
-                // good enough
-                return;
-            }
+            try {
+                if (Double.valueOf(completions.get(i).getSortText()) > 0.4) {
+                    // good enough
+                    return;
+                }
+            } catch (NumberFormatException ignored) {}
             completions.remove(i);
         }
     }
