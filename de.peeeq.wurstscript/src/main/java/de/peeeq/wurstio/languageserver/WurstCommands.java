@@ -89,7 +89,7 @@ public class WurstCommands {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {
-                return Files.lines(configFile).collect(Collectors.toList());
+                return Files.lines(configFile).filter(s -> s.startsWith("-")).collect(Collectors.toList());
             } else {
 
                 String cfg = String.join("\n", defaultArgs) + "\n";
