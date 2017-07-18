@@ -182,8 +182,14 @@ public class RunMap extends UserRequest<Object> {
 
         // Then we make a second copy named appropriately
         String testMapName2 = "WurstTestMap.w3x";
-        File testMap2 = new File(new File(documentPath, "Maps" + File.separator + "Test"), testMapName2);
-        Files.copy(testMap, testMap2);
+        File testFolder = new File(documentPath, "Maps" + File.separator + "Test");
+        testFolder.mkdirs();
+        if(testFolder.exists()) {
+            File testMap2 = new File(testFolder, testMapName2);
+            Files.copy(testMap, testMap2);
+        } else {
+            WLogger.severe("Could not create Test folder");
+        }
         return testMapName2;
     }
 
