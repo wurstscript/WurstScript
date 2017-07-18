@@ -34,9 +34,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -51,6 +51,8 @@ public class RunMap extends UserRequest<Object> {
     private final WFile workspaceRoot;
     /** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
     private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
+    /** The patch version as double, e.g. 1.27, 1.28 */
+    private double patchVersion;
 
     static enum SafetyLevel {
         QuickAndDirty, KindOfSafe
@@ -100,11 +102,11 @@ public class RunMap extends UserRequest<Object> {
             }
 
             @SuppressWarnings("unused") // for side effects!
-            RunArgs runArgs = new RunArgs(compileArgs);
+                    RunArgs runArgs = new RunArgs(compileArgs);
 
             gui.sendProgress("preparing testmap ... ");
-            
-            
+
+
             // then inject the script into the map
             File outputMapscript = compiledScript;
 
@@ -113,7 +115,7 @@ public class RunMap extends UserRequest<Object> {
                 mpqEditor.deleteFile("war3map.j");
                 mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
             }
-            
+
 
             String testMapName2 = copyToWarcraftMapDir(testMap);
 
@@ -158,39 +160,81 @@ public class RunMap extends UserRequest<Object> {
     /**
      * Copies the map to the wc3 map directory
      * <p>
-     *  This directory depends on warcraft version and whether we are on windows or wine is used.
+     * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
     private String copyToWarcraftMapDir(File testMap) throws IOException {
         String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
         if (!new File(documentPath).exists()) {
-        	WLogger.info("Warcraft folder " + documentPath + " does not exist.");
-        	// Try wine default:
-        	documentPath = System.getProperty("user.home") 
-        		+ "/.wine/drive_c/users/" + System.getProperty("user.name")+ "/My Documents/Warcraft III";
-        	if (!new File(documentPath).exists()) {
-        		WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
-        	}
+            WLogger.info("Warcraft folder " + documentPath + " does not exist.");
+            // Try wine default:
+            documentPath = System.getProperty("user.home")
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
+            if (!new File(documentPath).exists()) {
+                WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+            }
         }
-        
-        
-        // 1.27 and lower compat
-        if (!(new File(wc3Path, "BlizzardPrepatch.exe")).exists()) {
+
+        parsePatchVersion();
+
+        String testMapName = "WurstTestMap.w3x";
+        if (patchVersion <= 1.27) {
+            // 1.27 and lower compat
             print("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
+        } else {
+            // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
+            File oldFile = new File(wc3Path, "Test" + File.separator + testMapName);
+            if (oldFile.exists()) {
+                if (!oldFile.delete()) {
+                    WLogger.severe("Cannot delete old Wurst Test Map");
+                }
+            }
         }
-        
 
-        // Then we make a second copy named appropriately
-        String testMapName2 = "WurstTestMap.w3x";
+        // copy the map to the appropriate directory
         File testFolder = new File(documentPath, "Maps" + File.separator + "Test");
         testFolder.mkdirs();
-        if(testFolder.exists()) {
-            File testMap2 = new File(testFolder, testMapName2);
+        if (testFolder.exists()) {
+            File testMap2 = new File(testFolder, testMapName);
             Files.copy(testMap, testMap2);
         } else {
             WLogger.severe("Could not create Test folder");
         }
-        return testMapName2;
+        return testMapName;
+    }
+
+    private static final Pattern patchPattern = Pattern.compile("(?i)Patch (\\d.\\d\\d)");
+
+    private void parsePatchVersion() {
+        File patchTxt = new File(wc3Path, "Patch.txt");
+        File releaseNotes = new File(wc3Path, "Release Notes.txt");
+
+        try {
+            final List<String> matches = new ArrayList<>();
+            if (patchTxt.exists()) {
+                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(patchTxt.toPath())));
+                while (matcher.find()) {
+                    matches.add(matcher.group(1));
+                }
+            }
+            if (releaseNotes.exists()) {
+                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(releaseNotes.toPath())));
+                while (matcher.find()) {
+                    matches.add(matcher.group(1));
+                }
+            }
+
+            if (matches.size() > 0) {
+                matches.sort(Comparator.comparing(Double::parseDouble, Collections.reverseOrder()));
+                patchVersion = Double.parseDouble(matches.get(0));
+                WLogger.info("Patch Version: " + patchVersion);
+
+            } else {
+                WLogger.severe("Could not determine wc3 version");
+            }
+        } catch (IOException e) {
+            WLogger.severe(e);
+        }
     }
 
     private void print(String s) {
@@ -302,7 +346,7 @@ public class RunMap extends UserRequest<Object> {
         File existingScript = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         if (runArgs.isNoExtractMapScript()) {
-            if(existingScript.exists()) {
+            if (existingScript.exists()) {
                 modelManager.syncCompilationUnit(WFile.create(existingScript));
                 return;
             } else {
@@ -380,7 +424,7 @@ public class RunMap extends UserRequest<Object> {
     private boolean isInWurstFolder(String file) {
         Path p = Paths.get(file);
         Path w = workspaceRoot.getPath();
-        return p.startsWith(w) 
+        return p.startsWith(w)
                 && java.nio.file.Files.exists(p)
                 && Utils.isWurstFile(file);
     }
