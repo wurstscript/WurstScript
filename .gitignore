@@ -54,3 +54,4 @@ Checksums/testmd5.txt
 /.idea
 *.iml
 downloads/
+WurstSetup/proguard.map

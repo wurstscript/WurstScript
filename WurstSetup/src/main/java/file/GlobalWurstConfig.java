@@ -99,10 +99,12 @@ public class GlobalWurstConfig {
                     Init.log("done\n");
 
                     wurstCompilerJar = new File(GlobalWurstConfig.getWurstConfigFolder(), "wurstscript.jar");
+                    updateAvailable = false;
+                    
                     if(!wurstCompilerJar.exists()) {
                         Init.log("ERROR");
                     } else {
-                        Init.log("Installation complete\n");
+                        Init.log(isFreshInstall ? "Installation complete\n" : "Update complete\n");
                     }
 
                 } else {

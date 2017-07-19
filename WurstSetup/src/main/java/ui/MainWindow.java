@@ -374,7 +374,8 @@ public class MainWindow extends JFrame {
                 btnUpdate.setText("Install WurstScript");
                 btnUpdate.setEnabled(true);
             } else if (GlobalWurstConfig.updateAvailable) {
-                lblNote.setText("The is an update available!");
+                lblNote.setText("There is an update available!");
+                lblNote.setForeground(new Color(25,125,125));
                 btnUpdate.setText("Update WurstScript");
                 btnUpdate.setEnabled(true);
             } else {
