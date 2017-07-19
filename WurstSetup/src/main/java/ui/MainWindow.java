@@ -155,6 +155,8 @@ public class MainWindow extends JFrame {
             contentTable.addCell(scrollPane).height(120).growX().pad(2);
             Border line = BorderFactory.createLineBorder(Color.DARK_GRAY);
             scrollPane.setBorder(line);
+            scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+            scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
             contentTable.row();
 
             progressBar = new JProgressBar();

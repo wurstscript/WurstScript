@@ -24,7 +24,7 @@ public class DependencyManager {
         // Iterate through git dependencies
         Init.log("Updating dependencies...\n");
         for (String dependency : projectConfig.dependencies) {
-            String dependencyName = dependency.substring(dependency.lastIndexOf("/")+1);
+            String dependencyName = dependency.substring(dependency.lastIndexOf("/") + 1);
             Init.log("Updating dependency - " + dependencyName + " ..");
             File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
             depFolders.add(depFolder.getAbsolutePath());
@@ -44,10 +44,16 @@ public class DependencyManager {
             } else {
                 // clone
                 depFolder.mkdirs();
-                try (Git result = Git.cloneRepository()
-                        .setURI(dependency)
-                        .setDirectory(depFolder)
-                        .call()) {
+                try {
+                    Git result = Git.cloneRepository()
+                            .setURI(dependency)
+                            .setDirectory(depFolder)
+                            .call();
+
+                    try {
+                        result.close();
+                    } catch (Exception ignored) {
+                    }
                     Init.log("done\n");
                 } catch (GitAPIException e) {
                     Init.log("error!\n");

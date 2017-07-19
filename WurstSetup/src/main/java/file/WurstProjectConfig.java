@@ -81,12 +81,12 @@ public class WurstProjectConfig {
 
                             DependencyManager.updateDependencies(projectConfig);
 
-                            Init.log("---\n\nYour project has been successfully created.\n" +
-                                    "You can now open your project folder in VSCode. Open wurst/Hello.wurst to continue\n");
+                            Init.log("---\n\nYour project has been successfully created!\n" +
+                                    "You can now open your project folder in VSCode.\nOpen the wurst/Hello.wurst package to continue.\n");
                         } else {
                             Init.log("error\n");
                             JOptionPane.showMessageDialog(null,
-                                    "Error: Cannot extract patch files.\nWurst might still be in use.\nClose VSCode and Eclipse before updating.",
+                                    "Error: Cannot extract patch files.\nWurst might still be in use.\nClose any Wurst, VSCode or Eclipse instances before updating.",
                                     "Error Massage", JOptionPane.ERROR_MESSAGE);
                         }
                     }
