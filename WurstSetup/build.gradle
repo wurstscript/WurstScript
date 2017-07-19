@@ -18,7 +18,7 @@ dependencies {
 
 buildscript {
     repositories {
-        flatDir dirs: 'C:/proguard/lib'
+        flatDir dirs: '../../lib'
     }
     dependencies {
         classpath ':proguard:'
