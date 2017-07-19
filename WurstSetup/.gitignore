@@ -1,0 +1,10 @@
+/bin
+build/
+.idea
+.gradle/
+_build/
+classes/
+out-win/
+out-mac/
+out-linux/
+out/

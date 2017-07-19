@@ -47,7 +47,7 @@ task create_zips << {
         into '../downloads/Wurstpack/'
     }
     copy {
-        from '../Wurst Updater v2/WurstUpdater.jar'
+        from '../WurstSetup/build/libs/WurstSetup.jar'
         into '../downloads/'
     }
     // create checksums

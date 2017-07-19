@@ -1,0 +1,57 @@
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'idea'
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/org.eclipse.jgit/org.eclipse.jgit
+    compile group: 'us.monoid.web', name: 'resty', version: '0.3.2'
+    compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '4.8.0.201706111038-r'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
+    compile group: 'args4j', name: 'args4j', version: '2.33'
+}
+
+buildscript {
+    repositories {
+        flatDir dirs: 'C:/proguard/lib'
+    }
+    dependencies {
+        classpath ':proguard:'
+    }
+}
+
+version '1.0.1'
+
+task dist(type: Jar) {
+    from files(sourceSets.main.output.classesDir)
+    from files(sourceSets.main.output.resourcesDir)
+    from { configurations.compile.collect { zipTree(it) } }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    manifest {
+        attributes 'Implementation-Title': 'Wurst Setup',
+                'Implementation-Version': version,
+                'Main-Class': 'file.SetupMain'
+    }
+}
+dist.dependsOn classes
+
+dist.archiveName = "${jar.baseName}.raw.${jar.extension}"
+
+task proguard(type: proguard.gradle.ProGuardTask) {
+    configuration 'proguard-project.txt'
+    injars 'build/libs/WurstSetup.raw.jar'
+    outjars 'build/libs/WurstSetup.jar'
+
+}
+proguard.dependsOn dist
+
+mainClassName = "file.SetupMain"
+
+
+
+
