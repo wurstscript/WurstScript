@@ -40,18 +40,21 @@ task dist(type: Jar) {
 }
 dist.dependsOn classes
 
-dist.archiveName = "${jar.baseName}.raw.${jar.extension}"
+dist.archiveName = "${jar.baseName}.${jar.extension}"
 
 task proguard(type: proguard.gradle.ProGuardTask) {
     configuration 'proguard-project.txt'
-    injars 'build/libs/WurstSetup.raw.jar'
-    outjars 'build/libs/WurstSetup.jar'
+    injars 'build/libs/WurstSetup.jar'
+    outjars 'build/libs/WurstSetup.opt.jar'
 
 }
 proguard.dependsOn dist
 
 mainClassName = "file.SetupMain"
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.12'
+}
 
 
 
