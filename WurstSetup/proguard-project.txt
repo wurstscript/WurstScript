@@ -26,7 +26,8 @@
 -keepattributes *Annotation*,EnclosingMethod,Signature
 
 # Include java runtime classes
--libraryjars  <java.home>/lib/rt.jar; <java.home>/lib/jce.jar
+-libraryjars  <java.home>/lib/rt.jar
+-libraryjar <java.home>/lib/jce.jar
 
 # Output a source map file
 -printmapping proguard.map
