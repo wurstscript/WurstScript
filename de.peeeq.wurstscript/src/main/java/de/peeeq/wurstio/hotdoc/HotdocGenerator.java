@@ -19,10 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public class HotdocGenerator {
 
@@ -40,14 +37,13 @@ public class HotdocGenerator {
         this.outputfolder = new File(this.files.remove(files.size() - 1));
         ve = new VelocityEngine();
         Properties p = new Properties();
-//		p.setProperty("eventhandler.include.class", "org.apache.velocity.app.event.implement.IncludeRelativePath");
         p.setProperty("runtime.references.strict", "true");
         p.setProperty("resource.loader", "class");
         p.setProperty("class.resource.loader.class", "org.apache.velocity.runtime.resource.loader.ClasspathResourceLoader");
         ve.init(p);
-        variableTemplate = ve.getTemplate("hotdoc/var.html");
-        navbarTemplate = ve.getTemplate("hotdoc/navbar.html");
-        structureTemplate = ve.getTemplate("hotdoc/structure.html");
+        variableTemplate = ve.getTemplate("/hotdoc/var.html");
+        navbarTemplate = ve.getTemplate("/hotdoc/navbar.html");
+        structureTemplate = ve.getTemplate("/hotdoc/structure.html");
     }
 
     public void generateDoc() {
@@ -78,11 +74,11 @@ public class HotdocGenerator {
                 File f = new File(file);
                 if (!f.exists()) {
                     WLogger.info("Folder " + f + " does not exist");
-                    continue;
+                    throw new RuntimeException(f.getAbsolutePath());
                 }
                 if (f.isDirectory()) {
                     compiler.loadWurstFilesInDir(f);
-                } else {
+                } else if (Utils.isWurstFile(f)) {
                     compiler.loadFiles(f);
                 }
             }
@@ -96,7 +92,11 @@ public class HotdocGenerator {
             }
 
             ArrayList<WPackage> packages = Lists.newArrayList(model.attrPackages().values());
-            Collections.sort(packages, (o1, o2) -> o1.getSource().shortFile().compareTo(o2.getSource().shortFile()));
+            if (packages.size() == 0) {
+                throw new RuntimeException("Cannot generate for empty model: " + files.get(0));
+            }
+            WLogger.info("Found " + packages.size() + "´packages.");
+            Collections.sort(packages, Comparator.comparing(o -> o.getSource().shortFile()));
 
             createIndex(packages);
             for (WPackage p : packages) {
@@ -111,7 +111,7 @@ public class HotdocGenerator {
     }
 
     private void createIndex(List<WPackage> packages) {
-        Template t = ve.getTemplate("hotdoc/document.html");
+        Template t = ve.getTemplate("/hotdoc/document.html");
 
         VelocityContext context = new VelocityContext();
         context.put("title", "HotDoc Wurst Documentation");
@@ -131,7 +131,7 @@ public class HotdocGenerator {
 
     private void createPackageDoc(WPackage pack, List<WPackage> packages) {
 
-        Template t = ve.getTemplate("hotdoc/document.html");
+        Template t = ve.getTemplate("/hotdoc/document.html");
 
         VelocityContext context = new VelocityContext();
         context.put("title", pack.getName() + " HotDoc Wurst Documentation");
@@ -150,7 +150,7 @@ public class HotdocGenerator {
     }
 
     private String getPackageContent(WPackage pack) {
-        Template t = ve.getTemplate("hotdoc/package.html");
+        Template t = ve.getTemplate("/hotdoc/package.html");
         VelocityContext context = new VelocityContext();
         context.put("currentPackage", pack);
         StringWriter writer = new StringWriter();
