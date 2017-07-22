@@ -82,8 +82,7 @@ public class Table extends JComponent {
      */
     public Cell stack(Component... components) {
         Stack stack = new Stack();
-        for (int i = 0, n = components.length; i < n; i++)
-            stack.add(components[i]);
+        for (Component component : components) stack.add(component);
         return addCell(stack);
     }
 

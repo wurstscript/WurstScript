@@ -25,8 +25,7 @@ class TableLayout extends BaseTableLayout<Component, Table, TableLayout, SwingTo
                 table.getHeight() - insets.top - insets.bottom);
 
         List<Cell> cells = getCells();
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.getIgnore()) continue;
             Component component = (Component) c.getWidget();
             if (component != null) {

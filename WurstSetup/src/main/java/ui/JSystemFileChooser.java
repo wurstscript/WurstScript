@@ -18,8 +18,10 @@ public class JSystemFileChooser extends JFileChooser {
 
         if (old != null) {
             FilePane filePane = findFilePane(this);
-            filePane.setViewType(FilePane.VIEWTYPE_DETAILS);
-            filePane.setViewType(FilePane.VIEWTYPE_LIST);
+            if (filePane != null) {
+                filePane.setViewType(FilePane.VIEWTYPE_DETAILS);
+                filePane.setViewType(FilePane.VIEWTYPE_LIST);
+            }
 
             Color background = UIManager.getColor("Label.background");
             setBackground(background);

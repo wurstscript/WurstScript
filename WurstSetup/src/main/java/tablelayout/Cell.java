@@ -640,7 +640,7 @@ public class Cell<C> {
     }
 
     public boolean getIgnore() {
-        return ignore != null && ignore == true;
+        return ignore != null && ignore;
     }
 
     public Cell colspan(Integer colspan) {

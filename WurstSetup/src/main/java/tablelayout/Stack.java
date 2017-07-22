@@ -42,8 +42,4 @@ public class Stack extends JPanel {
             }
         });
     }
-
-    protected void paintChildren(Graphics g) {
-        super.paintChildren(g);
-    }
 }

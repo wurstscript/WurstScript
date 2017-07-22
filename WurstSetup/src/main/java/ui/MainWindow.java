@@ -41,7 +41,6 @@ public class MainWindow extends JFrame {
      * Create the frame.
      */
     public MainWindow() {
-
         setLayout(new BorderLayout());
         setSize(570, 340);
         setBackground(new Color(36, 36, 36));
@@ -84,10 +83,11 @@ public class MainWindow extends JFrame {
         private JButton minimize;
         private JTextField gamePathTF;
         private JTextField dependencyTF;
-        private List<String> dependencies = new ArrayList<>();
+        private List<String> dependencies;
 
         public UI() {
             // Add default stdlib
+            dependencies = new ArrayList<>();
             dependencies.add("https://github.com/Frotty/wurstStdlib2");
             initComponents();
         }
@@ -320,10 +320,12 @@ public class MainWindow extends JFrame {
             if (System.getProperty("os.name").startsWith("Windows")) {
                 try {
                     String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
-                    if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
-                    File gameFolder = new File(wc3Path);
-                    if (gameFolder.exists()) {
-                        gamePathTF.setText(wc3Path);
+                    if(wc3Path != null) {
+                        if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
+                        File gameFolder = new File(wc3Path);
+                        if (gameFolder.exists()) {
+                            gamePathTF.setText(wc3Path);
+                        }
                     }
                 } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();

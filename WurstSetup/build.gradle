@@ -1,3 +1,5 @@
+import proguard.gradle.ProGuardTask
+
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'idea'
@@ -42,7 +44,7 @@ dist.dependsOn classes
 
 dist.archiveName = "${jar.baseName}.raw.${jar.extension}"
 
-task proguardDist(type: proguard.gradle.ProGuardTask) {
+task proguardDist(type: ProGuardTask) {
     configuration 'proguard-project.txt'
     injars 'build/libs/WurstSetup.raw.jar'
     outjars 'build/libs/WurstSetup.jar'

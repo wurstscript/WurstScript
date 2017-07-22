@@ -226,8 +226,7 @@ public class WinRegistry {
     }
 
     private static int deleteKey(Preferences root, int hkey, String key) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        int rc = (Integer) regDeleteKey.invoke(root, new Object[]{hkey, toCstr(key)});
-        return rc; // can REG_NOTFOUND, REG_ACCESSDENIED, REG_SUCCESS
+        return (int) (Integer) regDeleteKey.invoke(root, new Object[]{hkey, toCstr(key)}); // can REG_NOTFOUND, REG_ACCESSDENIED, REG_SUCCESS
     }
 
     private static String readString(Preferences root, int hkey, String key, String value)

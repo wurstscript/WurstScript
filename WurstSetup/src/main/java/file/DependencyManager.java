@@ -30,35 +30,37 @@ public class DependencyManager {
             depFolders.add(depFolder.getAbsolutePath());
             if (depFolder.exists()) {
                 // update
-                try (Repository repository = new FileRepository(depFolder)) {
+                try {
+                    Repository repository = new FileRepository(depFolder);
                     System.out.println("Starting fetch");
-                    try (Git git = new Git(repository)) {
+                    try {
+                        Git git = new Git(repository);
                         FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
                         System.out.println("Messages: " + result.getMessages());
-                    } catch (GitAPIException e) {
+                        git.close();
+                    } catch (Exception e) {
                         e.printStackTrace();
                     }
-                } catch (IOException e) {
+                    repository.close();
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
-            } else {
+            } else if (depFolder.mkdirs()) {
                 // clone
-                depFolder.mkdirs();
                 try {
                     Git result = Git.cloneRepository()
                             .setURI(dependency)
                             .setDirectory(depFolder)
                             .call();
 
-                    try {
-                        result.close();
-                    } catch (Exception ignored) {
-                    }
                     Init.log("done\n");
+                    result.close();
                 } catch (GitAPIException e) {
                     Init.log("error!\n");
                     e.printStackTrace();
                 }
+            } else {
+                throw new RuntimeException("Could not create dependency folder");
             }
 
         }

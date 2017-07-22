@@ -36,11 +36,11 @@ import java.util.List;
  * @author Nathan Sweet
  */
 abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout, K extends Toolkit<C, T, L>> {
-    static public final int CENTER = 1 << 0;
-    static public final int TOP = 1 << 1;
-    static public final int BOTTOM = 1 << 2;
-    static public final int LEFT = 1 << 3;
-    static public final int RIGHT = 1 << 4;
+    static public final int CENTER = 1;
+    static public final int TOP = 2;
+    static public final int BOTTOM = 4;
+    static public final int LEFT = 8;
+    static public final int RIGHT = 16;
 
     public enum Debug {
         none, all, table, cell, widget
@@ -189,8 +189,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         if (debug != Debug.none) toolkit.clearDebugRectangles((L) this);
         debug = Debug.none;
         cellDefaults.defaults();
-        for (int i = 0, n = columnDefaults.size(); i < n; i++) {
-            Cell columnCell = columnDefaults.get(i);
+        for (Cell columnCell : columnDefaults) {
             if (columnCell != null) toolkit.freeCell(columnCell);
         }
         columnDefaults.clear();
@@ -214,8 +213,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
 
     /** Returns the cell for the specified widget in this table, or null. */
     public Cell getCell(C widget) {
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.widget == widget) return c;
         }
         return null;
@@ -552,8 +550,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         expandHeight = ensureSize(expandHeight, rows);
 
         float spaceRightLast = 0;
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
 
             // Collect columns/rows that expand.
@@ -597,8 +594,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
 
         // Colspan with expand will expand all spanned columns if none of the spanned columns have expand.
         outer:
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore || c.expandX == 0) continue;
             for (int column = c.column, nn = column + c.colspan; column < nn; column++)
                 if (expandWidth[column] != 0) continue outer;
@@ -607,8 +603,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         }
 
         // Distribute any additional min and pref width added by colspanned cells to the columns spanned.
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore || c.colspan == 1) continue;
 
             float minWidth = w(c.minWidth, c);
@@ -640,8 +635,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         // Collect uniform size.
         float uniformMinWidth = 0, uniformMinHeight = 0;
         float uniformPrefWidth = 0, uniformPrefHeight = 0;
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
 
             // Collect uniform sizes.
@@ -659,8 +653,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
 
         // Size uniform cells to the same width/height.
         if (uniformPrefWidth > 0 || uniformPrefHeight > 0) {
-            for (int i = 0, n = cells.size(); i < n; i++) {
-                Cell c = cells.get(i);
+            for (Cell c : cells) {
                 if (c.ignore) continue;
                 if (uniformPrefWidth > 0 && c.uniformX == Boolean.TRUE && c.colspan == 1) {
                     float hpadding = c.computedPadLeft + c.computedPadRight;
@@ -745,8 +738,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         }
 
         // Determine widget and cell sizes (before expand or fill).
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
 
             float spannedWeightedWidth = 0;
@@ -805,8 +797,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
         }
 
         // Distribute any additional width added by colspanned cells to the columns spanned.
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
             if (c.colspan == 1) continue;
 
@@ -844,8 +835,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
 
         // Position widgets within cells.
         float currentX = x, currentY = y;
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
 
             float spannedCellWidth = 0;
@@ -896,8 +886,7 @@ abstract public class BaseTableLayout<C, T extends C, L extends BaseTableLayout,
             toolkit.addDebugRectangle(this, Debug.table, layoutX, layoutY, layoutWidth, layoutHeight);
             toolkit.addDebugRectangle(this, Debug.table, x, y, tableWidth - hpadding, tableHeight - vpadding);
         }
-        for (int i = 0, n = cells.size(); i < n; i++) {
-            Cell c = cells.get(i);
+        for (Cell c : cells) {
             if (c.ignore) continue;
 
             // Widget bounds.
