@@ -320,7 +320,7 @@ public class MainWindow extends JFrame {
             if (System.getProperty("os.name").startsWith("Windows")) {
                 try {
                     String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
-                    if(wc3Path != null) {
+                    if (wc3Path != null) {
                         if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
                         File gameFolder = new File(wc3Path);
                         if (gameFolder.exists()) {
@@ -354,7 +354,7 @@ public class MainWindow extends JFrame {
                         if (!result.isEmpty()) {
                             Init.log("Entered valid git repo\n");
                             dependencies.add(url);
-                            dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/")+1)).collect(Collectors.joining(", ")));
+                            dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
                         } else {
                             Init.log("Error: Entered invalid git repo\n");
                         }
@@ -375,17 +375,20 @@ public class MainWindow extends JFrame {
             progressBar.setIndeterminate(false);
             if (GlobalWurstConfig.isFreshInstall()) {
                 lblNote.setText("No WurstScript detected. Please first install WurstScript.");
+                btnCreate.setEnabled(false);
                 btnUpdate.setText("Install WurstScript");
                 btnUpdate.setEnabled(true);
             } else if (GlobalWurstConfig.updateAvailable) {
                 lblNote.setText("There is an update available!");
-                lblNote.setForeground(new Color(25,125,125));
+                lblNote.setForeground(new Color(25, 125, 125));
                 btnUpdate.setText("Update WurstScript");
                 btnUpdate.setEnabled(true);
+                btnCreate.setEnabled(true);
             } else {
                 lblNote.setText("WurstScript is up to date!");
-                btnUpdate.setText("Update WurstScript");
+                btnUpdate.setText("Up to date");
                 btnUpdate.setEnabled(false);
+                btnCreate.setEnabled(true);
             }
         }
 
@@ -410,7 +413,9 @@ public class MainWindow extends JFrame {
             btnCreate.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    handleCreateProject();
+                    if(btnCreate.isEnabled()) {
+                        handleCreateProject();
+                    }
                 }
             });
             buttonTable.addCell(btnCreate);
@@ -438,8 +443,7 @@ public class MainWindow extends JFrame {
         int center_x = screenBounds.x + screenBounds.width / 2;
         int center_y = screenBounds.y + screenBounds.height / 2;
 
-        setLocation(center_x - getWidth() / 2,
-                center_y - getHeight() / 2);
+        setLocation(center_x - getWidth() / 2, center_y - getHeight() / 2);
     }
 
     private void initChooser() {

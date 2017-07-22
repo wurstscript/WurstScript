@@ -1,7 +1,6 @@
 package file;
 
 import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.FetchResult;
@@ -31,33 +30,32 @@ public class DependencyManager {
             if (depFolder.exists()) {
                 // update
                 try {
-                    Repository repository = new FileRepository(depFolder);
-                    System.out.println("Starting fetch");
-                    try {
-                        Git git = new Git(repository);
-                        FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
-                        System.out.println("Messages: " + result.getMessages());
-                        git.close();
+                    try (Repository repository = new FileRepository(depFolder)) {
+                        try (Git git = new Git(repository)) {
+                            FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
+                            System.out.println("Messages: " + result.getMessages());
+                        } catch (Exception e) {
+                            Init.log("error when trying to fetch remote\n");
+                            e.printStackTrace();
+                        }
                     } catch (Exception e) {
+                        Init.log("error when trying open repository");
                         e.printStackTrace();
                     }
-                    repository.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
+                } catch (Exception ignored) {
                 }
             } else if (depFolder.mkdirs()) {
                 // clone
                 try {
-                    Git result = Git.cloneRepository()
-                            .setURI(dependency)
+                    try (Git result = Git.cloneRepository().setURI(dependency)
                             .setDirectory(depFolder)
-                            .call();
-
-                    Init.log("done\n");
-                    result.close();
-                } catch (GitAPIException e) {
-                    Init.log("error!\n");
-                    e.printStackTrace();
+                            .call()) {
+                        Init.log("done\n");
+                    } catch (Exception e) {
+                        Init.log("error!\n");
+                        e.printStackTrace();
+                    }
+                } catch (Exception ignored) {
                 }
             } else {
                 throw new RuntimeException("Could not create dependency folder");

@@ -100,6 +100,7 @@ public class GlobalWurstConfig {
 
                     wurstCompilerJar = new File(GlobalWurstConfig.getWurstConfigFolder(), "wurstscript.jar");
                     updateAvailable = false;
+                    isFreshInstall = false;
                     
                     if(!wurstCompilerJar.exists()) {
                         Init.log("ERROR");

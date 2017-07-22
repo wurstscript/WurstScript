@@ -3,6 +3,8 @@ package ui;
 
 import file.GlobalWurstConfig;
 
+import javax.swing.*;
+
 public class Init {
 
     static MainWindow mainFrame;
@@ -37,6 +39,8 @@ public class Init {
 
 
     public static void refreshUi() {
-        mainFrame.ui.refreshComponents();
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> mainFrame.ui.refreshComponents());
+        }
     }
 }
