@@ -10,8 +10,10 @@ public class IntVal {
         try {
             if (raw.matches("\\-?[0-9]+")) {
                 return Utils.parseInt(raw);
-            } else if (raw.startsWith("0x")) {
-                return Utils.parseHexInt(raw);
+            } else if (raw.toLowerCase().startsWith("0x")) {
+                return Utils.parseHexInt(raw, 2);
+            } else if (raw.startsWith("$")) {
+                return Utils.parseHexInt(raw, 1);
             } else if (raw.startsWith("'")) {
                 if (raw.length() == 1 + 2) {
                     return Utils.parseAsciiInt1(raw);

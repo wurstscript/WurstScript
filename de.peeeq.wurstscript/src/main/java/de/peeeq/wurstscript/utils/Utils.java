@@ -112,8 +112,8 @@ public class Utils {
         return result;
     }
 
-    public static int parseHexInt(String yytext) {
-        return (int) Long.parseLong(yytext.substring(2), 16);
+    public static int parseHexInt(String yytext, int offset) {
+        return (int) Long.parseLong(yytext.substring(offset), 16);
     }
 
     public static String printSep(String sep, String[] args) {

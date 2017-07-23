@@ -558,7 +558,7 @@ ANNOTATION: '@' [a-zA-Z0-9_]+;
 
 STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') )* '"';
 REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
-INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
+INT: [0-9]+ | '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
 
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
