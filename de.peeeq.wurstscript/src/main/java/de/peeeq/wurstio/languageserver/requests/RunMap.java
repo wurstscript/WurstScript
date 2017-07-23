@@ -330,7 +330,7 @@ public class RunMap extends UserRequest<Object> {
         }
 
         gui.sendProgress("Printing program");
-        JassPrinter printer = new JassPrinter(true, jassProg);
+        JassPrinter printer = new JassPrinter(! runArgs.isOptimize(), jassProg);
         String compiledMapScript = printer.printProg();
 
         File buildDir = getBuildDir();
