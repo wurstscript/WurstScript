@@ -127,7 +127,7 @@ public class MainWindow extends JFrame {
             lblVersions.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    Init.log("checking for updates..");
+                    Init.log("\nchecking for updates..");
                     Init.init(true);
                     Init.log("done\n");
                 }

@@ -20,10 +20,10 @@
 #}
 -optimizationpasses 5
 -verbose
--optimizations !code/simplification/arithmetic
+-optimizations !code/simplification/arithmetic, !code/allocation/variable
 
 -renamesourcefileattribute SourceFile
--keepattributes *Annotation*,EnclosingMethod,Signature
+-keepattributes EnclosingMethod,Signature
 
 # Include java runtime classes
 -libraryjars  <java.home>/lib/rt.jar
