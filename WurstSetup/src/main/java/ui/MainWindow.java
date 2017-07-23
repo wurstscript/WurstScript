@@ -347,20 +347,27 @@ public class MainWindow extends JFrame {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
                     String url = JOptionPane.showInputDialog("Enter git repo url");
-                    try {
-                        Collection<Ref> result = Git.lsRemoteRepository()
-                                .setRemote(url)
-                                .call();
-                        if (!result.isEmpty()) {
-                            Init.log("Entered valid git repo\n");
-                            dependencies.add(url);
-                            dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
-                        } else {
-                            Init.log("Error: Entered invalid git repo\n");
+                    if(url != null && url.length() > 0) {
+                        if(dependencies.contains(url)) {
+                            Init.log("This git repo is already added");
+                            return;
                         }
-                    } catch (Exception e) {
-                        Init.log("Error: Entered invalid git repo\n");
-                        e.printStackTrace();
+                        Init.log("Checking git repo..");
+                        try {
+                            Collection<Ref> result = Git.lsRemoteRepository()
+                                    .setRemote(url)
+                                    .call();
+                            if (!result.isEmpty()) {
+                                Init.log("valid!\n");
+                                dependencies.add(url);
+                                dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
+                            } else {
+                                Init.log("Error: Entered invalid git repo\n");
+                            }
+                        } catch (Exception e) {
+                            Init.log("Error: Entered invalid git repo\n");
+                            e.printStackTrace();
+                        }
                     }
                 }
             });

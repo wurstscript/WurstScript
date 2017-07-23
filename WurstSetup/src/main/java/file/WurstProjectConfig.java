@@ -27,7 +27,9 @@ public class WurstProjectConfig {
     }
 
     public void addDependency(String url) {
-        dependencies.add(url);
+        if(! dependencies.contains(url)) {
+            dependencies.add(url);
+        }
     }
 
     public File getProjectRoot() {

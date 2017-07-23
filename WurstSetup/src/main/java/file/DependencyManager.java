@@ -26,8 +26,8 @@ public class DependencyManager {
             String dependencyName = dependency.substring(dependency.lastIndexOf("/") + 1);
             Init.log("Updating dependency - " + dependencyName + " ..");
             File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
-            depFolders.add(depFolder.getAbsolutePath());
             if (depFolder.exists()) {
+                depFolders.add(depFolder.getAbsolutePath());
                 // update
                 try {
                     try (Repository repository = new FileRepository(depFolder)) {
@@ -45,6 +45,7 @@ public class DependencyManager {
                 } catch (Exception ignored) {
                 }
             } else if (depFolder.mkdirs()) {
+                depFolders.add(depFolder.getAbsolutePath());
                 // clone
                 try {
                     try (Git result = Git.cloneRepository().setURI(dependency)
