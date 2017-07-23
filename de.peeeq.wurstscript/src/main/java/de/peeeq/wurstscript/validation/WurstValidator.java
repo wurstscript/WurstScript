@@ -1057,8 +1057,8 @@ public class WurstValidator {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
                 FunctionDefinition f = exprFuncRef.attrFuncDef();
                 if (f != null) {
-                    if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool)) {
-                        firstArg.addError("Functions passed to Filter or Condition must return boolean.");
+                    if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool) && !(f.getReturnTyp().attrTyp() instanceof WurstTypeVoid)) {
+                        firstArg.addError("Functions passed to Filter or Condition must return boolean or nothing.");
                     }
                 }
             }
