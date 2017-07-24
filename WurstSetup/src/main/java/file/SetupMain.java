@@ -16,7 +16,6 @@ public class SetupMain {
     @Option(name = "-silent", usage = "check for updates without opening UI")
     private boolean silent = false;
 
-
     public static void main(String[] args) throws IOException, CmdLineException {
         new SetupMain().doMain(args);
     }
@@ -44,7 +43,7 @@ public class SetupMain {
             JTextArea jTextField = new JTextArea();
             jTextField.setText("Please report this crash with the following info:\n" + sw.toString());
             jTextField.setEditable(false);
-            JOptionPane.showMessageDialog(null, jTextField, "Uncaught Exception", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(null, jTextField, "Sorry, Exception occured :(", JOptionPane.ERROR_MESSAGE);
         });
     }
 }

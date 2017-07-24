@@ -27,7 +27,7 @@ public class WurstProjectConfig {
     }
 
     public void addDependency(String url) {
-        if(! dependencies.contains(url)) {
+        if (!dependencies.contains(url)) {
             dependencies.add(url);
         }
     }
@@ -40,67 +40,73 @@ public class WurstProjectConfig {
         new Thread(() -> {
             try {
                 Init.log("Creating project root..");
-                File projectRoot = projectConfig.projectRoot;
-                if (projectRoot.exists()) {
-                    Init.log("\nError: Project root already exists!");
-                } else {
-                    if (projectRoot.mkdirs()) {
-                        Init.log("done\n");
-
-                        Init.log("Download template..");
-                        File file = Download.downloadBareboneProject();
-                        Init.log("done\n");
-
-                        Init.log("Extracting template..");
-                        ZipArchiveExtractor zipArchiveExtractor = new ZipArchiveExtractor();
-                        boolean extractSuccess = zipArchiveExtractor.extractArchive(file, projectRoot);
-
-                        if (extractSuccess) {
-                            Init.log("done\n");
-                            Init.log("Clean up..");
-                            String[] children = projectRoot.list();
-                            if (children != null && children.length == 1) {
-                                File uselessFolder = new File(projectRoot, children[0]);
-                                String[] list = uselessFolder.list();
-                                if (list != null) {
-                                    for (String pathr : list) {
-                                        Path path1 = new File(projectRoot, children[0] + File.separator + pathr).toPath();
-                                        Files.move(path1, new File(projectRoot, pathr).toPath(), StandardCopyOption.REPLACE_EXISTING);
-                                    }
-                                }
-                                uselessFolder.delete();
-                            }
-                            new File(projectRoot, "imports" + File.pathSeparator + ".gitkeep").delete();
-
-                            Init.log("done\n");
-
-                            Init.log("Create config..");
-                            setupVSCode(projectRoot, projectConfig.gameRoot.exists() ? projectConfig.gameRoot : null);
-
-                            String projectYaml = GlobalWurstConfig.yaml.dump(projectConfig);
-                            Files.write(new File(projectRoot, "wurst.build").toPath(), projectYaml.getBytes());
-                            Init.log("done\n");
-
-                            DependencyManager.updateDependencies(projectConfig);
-
-                            Init.log("---\n\nYour project has been successfully created!\n" +
-                                    "You can now open your project folder in VSCode.\nOpen the wurst/Hello.wurst package to continue.\n");
-                        } else {
-                            Init.log("error\n");
-                            JOptionPane.showMessageDialog(null,
-                                    "Error: Cannot extract patch files.\nWurst might still be in use.\nClose any Wurst, VSCode or Eclipse instances before updating.",
-                                    "Error Massage", JOptionPane.ERROR_MESSAGE);
-                        }
-                    }
-                }
-
-
+                createProject(projectConfig);
                 Init.refreshUi();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
+    }
 
+    private static void createProject(WurstProjectConfig projectConfig) throws Exception {
+        File projectRoot = projectConfig.projectRoot;
+        File gameRoot = projectConfig.gameRoot;
+        if (projectRoot.exists()) {
+            Init.log("\nError: Project root already exists!");
+        } else {
+            if (projectRoot.mkdirs()) {
+                Init.log("done\n");
+
+                Init.log("Download template..");
+                File file = Download.downloadBareboneProject();
+                Init.log("done\n");
+
+                Init.log("Extracting template..");
+                ZipArchiveExtractor zipArchiveExtractor = new ZipArchiveExtractor();
+                boolean extractSuccess = zipArchiveExtractor.extractArchive(file, projectRoot);
+
+                if (extractSuccess) {
+                    Init.log("done\n");
+                    Init.log("Clean up..");
+                    String[] children = projectRoot.list();
+                    if (children != null && children.length == 1) {
+                        File uselessFolder = new File(projectRoot, children[0]);
+                        String[] list = uselessFolder.list();
+                        if (list != null) {
+                            for (String pathr : list) {
+                                Path path1 = new File(projectRoot, children[0] + File.separator + pathr).toPath();
+                                Files.move(path1, new File(projectRoot, pathr).toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            }
+                        }
+                        uselessFolder.delete();
+                    }
+                    new File(projectRoot, "imports" + File.pathSeparator + ".gitkeep").delete();
+
+                    Init.log("done\n");
+
+                    Init.log("Create config..");
+                    setupVSCode(projectRoot, gameRoot != null && gameRoot.exists() ? gameRoot : null);
+
+                    String projectYaml = GlobalWurstConfig.yaml.dump(projectConfig);
+                    Files.write(new File(projectRoot, "wurst.build").toPath(), projectYaml.getBytes());
+                    Init.log("done\n");
+
+                    DependencyManager.updateDependencies(projectConfig);
+
+                    Init.log("---\n\n");
+                    if (gameRoot == null || gameRoot.exists()) {
+                        Init.log("Warning: Your game path has not been set.\nThis means you will be able to develop, but not run maps.");
+                    }
+                    Init.log("Your project has been successfully created!\n" +
+                            "You can now open your project folder in VSCode.\nOpen the wurst/Hello.wurst package to continue.\n");
+                } else {
+                    Init.log("error\n");
+                    JOptionPane.showMessageDialog(null,
+                            "Error: Cannot extract patch files.\nWurst might still be in use.\nClose any Wurst, VSCode or Eclipse instances before updating.",
+                            "Error Massage", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
     }
 
     private static void setupVSCode(File projectRoot, File gamePath) throws IOException {

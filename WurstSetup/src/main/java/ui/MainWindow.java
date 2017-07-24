@@ -430,7 +430,10 @@ public class MainWindow extends JFrame {
         }
 
         private void handleCreateProject() {
-            WurstProjectConfig config = new WurstProjectConfig(new File(projectRootTF.getText()), new File(gamePathTF.getText()));
+            String gamePath = gamePathTF.getText();
+            File projectRoot = new File(projectRootTF.getText());
+            File gameRoot = (gamePath != null && gamePath.length() > 0) ? new File(gamePath) : null;
+            WurstProjectConfig config = new WurstProjectConfig(projectRoot, gameRoot);
             for (String dep : dependencies) {
                 config.addDependency(dep);
             }
