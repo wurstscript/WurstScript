@@ -63,13 +63,6 @@ public class MainWindow extends JFrame {
                 setLocation(p.x + e.getX() - point.x, p.y + e.getY() - point.y);
             }
         });
-        Image im = null;
-        try {
-            im = ImageIO.read(getClass().getResource("/image location"));
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-        setIconImage(im);
         setVisible(true);
     }
 
