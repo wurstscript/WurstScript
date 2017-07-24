@@ -85,7 +85,7 @@ public class WurstProjectConfig {
                     Init.log("done\n");
 
                     Init.log("Create config..");
-                    setupVSCode(projectRoot, gameRoot != null && gameRoot.exists() ? gameRoot : null);
+                    setupVSCode(projectRoot, gameRoot);
 
                     String projectYaml = GlobalWurstConfig.yaml.dump(projectConfig);
                     Files.write(new File(projectRoot, "wurst.build").toPath(), projectYaml.getBytes());

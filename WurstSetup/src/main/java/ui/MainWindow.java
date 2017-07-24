@@ -63,6 +63,13 @@ public class MainWindow extends JFrame {
                 setLocation(p.x + e.getX() - point.x, p.y + e.getY() - point.y);
             }
         });
+        Image im = null;
+        try {
+            im = ImageIO.read(getClass().getResource("/image location"));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        setIconImage(im);
         setVisible(true);
     }
 
@@ -346,7 +353,7 @@ public class MainWindow extends JFrame {
             manageDependencies.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    String url = JOptionPane.showInputDialog("Enter git repo url");
+                    String url = JOptionPane.showInputDialog("Enter git remote addres (https://github.com/user/project)");
                     if(url != null && url.length() > 0) {
                         if(dependencies.contains(url)) {
                             Init.log("This git repo is already added");
