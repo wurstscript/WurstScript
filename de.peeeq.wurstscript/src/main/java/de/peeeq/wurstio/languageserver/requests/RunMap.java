@@ -54,7 +54,7 @@ public class RunMap extends UserRequest<Object> {
     /** The patch version as double, e.g. 1.27, 1.28 */
     private double patchVersion;
 
-    static enum SafetyLevel {
+    enum SafetyLevel {
         QuickAndDirty, KindOfSafe
     }
 
@@ -101,19 +101,13 @@ public class RunMap extends UserRequest<Object> {
                 println("We will try to start the map now, but it will probably fail. ");
             }
 
-            @SuppressWarnings("unused") // for side effects!
-                    RunArgs runArgs = new RunArgs(compileArgs);
-
             gui.sendProgress("preparing testmap ... ");
 
-
             // then inject the script into the map
-            File outputMapscript = compiledScript;
-
             gui.sendProgress("Injecting mapscript");
             try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
                 mpqEditor.deleteFile("war3map.j");
-                mpqEditor.insertFile("war3map.j", Files.toByteArray(outputMapscript));
+                mpqEditor.insertFile("war3map.j", Files.toByteArray(compiledScript));
             }
 
 
@@ -193,8 +187,7 @@ public class RunMap extends UserRequest<Object> {
 
         // copy the map to the appropriate directory
         File testFolder = new File(documentPath, "Maps" + File.separator + "Test");
-        testFolder.mkdirs();
-        if (testFolder.exists()) {
+        if (testFolder.mkdirs() || testFolder.exists()) {
             File testMap2 = new File(testFolder, testMapName);
             Files.copy(testMap, testMap2);
         } else {
@@ -352,9 +345,8 @@ public class RunMap extends UserRequest<Object> {
                 modelManager.syncCompilationUnit(WFile.create(existingScript));
                 return;
             } else {
-                CompileError err = new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                throw new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
                         "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
-                throw err;
             }
         }
         WLogger.info("extracting mapscript");
@@ -415,7 +407,7 @@ public class RunMap extends UserRequest<Object> {
                         .flatMap((CompilationUnit cu) -> cu.getPackages().stream())
                         .flatMap((WPackage p) -> p.getImports().stream())
                         .map(WImport::attrImportedPackage)
-                        .filter(p -> p != null)
+                        .filter(Objects::nonNull)
                         .map(WPackage::attrCompilationUnit)
                         .collect(Collectors.toSet());
         boolean changed = result.addAll(imported);

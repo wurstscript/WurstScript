@@ -98,7 +98,7 @@ public class HoverInfo extends UserRequest<Hover> {
                 if (!first) {
                     descrhtml.append(", ");
                 }
-                descrhtml.append(type(p.attrTyp()) + " " + p.getName());
+                descrhtml.append(type(p.attrTyp())).append(" ").append(p.getName());
                 first = false;
             }
             String params = descrhtml.toString();

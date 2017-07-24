@@ -160,8 +160,7 @@ public class RunTests extends UserRequest<Object> {
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         while (e != null) {
             if (e instanceof FuncDef) {
-                FuncDef f = (FuncDef) e;
-                return f;
+                return (FuncDef) e;
             }
             e = e.getParent();
         }
