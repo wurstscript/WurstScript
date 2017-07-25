@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -74,7 +75,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
 
     private List<? extends Location> linkTo(AstElementWithSource decl) {
         if (decl == null) {
-            return null;
+            return Collections.emptyList();
         }
         WPos pos = decl.attrErrorPos();
         return Collections.singletonList(Convert.posToLocation(pos));
