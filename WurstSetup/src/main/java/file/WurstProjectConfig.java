@@ -94,7 +94,7 @@ public class WurstProjectConfig {
                     DependencyManager.updateDependencies(projectConfig);
 
                     Init.log("---\n\n");
-                    if (gameRoot == null || gameRoot.exists()) {
+                    if (gameRoot == null || !gameRoot.exists()) {
                         Init.log("Warning: Your game path has not been set.\nThis means you will be able to develop, but not run maps.");
                     }
                     Init.log("Your project has been successfully created!\n" +
