@@ -10,8 +10,8 @@ public abstract class UserRequest<Res> {
 
     public abstract Res execute(ModelManager modelManager);
 
-	public boolean keepDuplicateRequests() {
-	    return false;
+    public boolean keepDuplicateRequests() {
+        return false;
     }
 
     public void cancel() {
@@ -23,7 +23,12 @@ public abstract class UserRequest<Res> {
     }
 
     public void run(ModelManager modelManager) {
-        fut.complete(execute(modelManager));
+        try {
+            Res res = execute(modelManager);
+            fut.complete(res);
+        } catch (Exception e) {
+            fut.completeExceptionally(e);
+        }
     }
 
 }

@@ -246,7 +246,17 @@ public class LanguageWorker implements Runnable {
             }
             userRequests.add(request);
             lock.notifyAll();
-            return request.getFuture();
+            CompletableFuture<Res> fut = request.getFuture();
+            fut.whenComplete((res, err) -> {
+                if (res == null) {
+                    System.err.println("Request returned null: " + request);
+                    languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
+                }
+                if (err != null) {
+                    languageClient.showMessage(new MessageParams(MessageType.Error, err.getMessage()));
+                }
+            });
+            return fut;
         }
     }
 }
