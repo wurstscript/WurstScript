@@ -33,7 +33,7 @@ task dist(type: Jar) {
     from files(sourceSets.main.output.classesDir)
     from files(sourceSets.main.output.resourcesDir)
     from { configurations.compile.collect { zipTree(it) } }
-    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA','proguard.jar'
     manifest {
         attributes 'Implementation-Title': 'Wurst Setup',
                 'Implementation-Version': version,
