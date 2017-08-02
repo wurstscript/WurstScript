@@ -71,9 +71,7 @@ public class ControlFlowGraph {
                 }
                 Node endloopNode = getEndloopNode(imLoop);
                 nodeList.add(endloopNode);
-                getSuccessors(imLoop, i).forEach(succ -> {
-                    addSuccessor(endloopNode, succ);
-                });
+                getSuccessors(imLoop, i).forEach(succ -> addSuccessor(endloopNode, succ));
             } else if (s instanceof ImIf) {
                 ImIf imIf = (ImIf) s;
                 ImStmts thenBlock = imIf.getThenBlock();
@@ -94,13 +92,9 @@ public class ControlFlowGraph {
                 }
                 Node endifNode = getEndIfNode(imIf);
                 nodeList.add(endifNode);
-                getSuccessors(imIf, i).forEach(succ -> {
-                    addSuccessor(endifNode, succ);
-                });
+                getSuccessors(imIf, i).forEach(succ -> addSuccessor(endifNode, succ));
             } else {
-                getSuccessors(s, i).forEach(succ -> {
-                    addSuccessor(current, succ);
-                });
+                getSuccessors(s, i).forEach(succ -> addSuccessor(current, succ));
             }
         }
     }

@@ -268,7 +268,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
                     })
                     .map(n -> n.hidingPrivateAndProtected());
         }
-        return Collections.<NameLink>emptyList().stream();
+        return Stream.empty();
     }
 
     @Override

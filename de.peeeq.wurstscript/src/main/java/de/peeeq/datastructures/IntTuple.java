@@ -13,9 +13,7 @@ public class IntTuple {
 
     public static IntTuple of(int... is) {
         IntTuple r = new IntTuple(is.length);
-        for (int i = 0; i < is.length; i++) {
-            r.ar[i] = is[i];
-        }
+        System.arraycopy(is, 0, r.ar, 0, is.length);
         return r;
     }
 
@@ -26,9 +24,7 @@ public class IntTuple {
 
     public IntTuple tail() {
         IntTuple r = new IntTuple(ar.length - 1);
-        for (int i = 1; i < ar.length; i++) {
-            r.ar[i - 1] = ar[i];
-        }
+        System.arraycopy(ar, 1, r.ar, 0, ar.length - 1);
         return r;
     }
 

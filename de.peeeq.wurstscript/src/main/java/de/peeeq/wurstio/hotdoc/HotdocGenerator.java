@@ -65,7 +65,7 @@ public class HotdocGenerator {
                 }
             }
 
-            RunArgs runArgs = new RunArgs(new String[]{});
+            RunArgs runArgs = new RunArgs();
             WurstGui gui = new WurstGuiCliImpl();
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
             compiler.loadFiles(Utils.getResourceFile("common.j"));

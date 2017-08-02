@@ -50,9 +50,7 @@ public class Utils {
     @SafeVarargs
     public static <T> List<T> list(T... args) {
         List<T> result = new NotNullList<>();
-        for (T t : args) {
-            result.add(t);
-        }
+        Collections.addAll(result, args);
         return result;
     }
 
@@ -642,36 +640,29 @@ public class Utils {
 
 
     public static String stripHtml(String s) {
-        return s.replaceAll("\\<.*?\\>", "");
+        return s.replaceAll("<.*?>", "");
     }
 
 
     public static <T> Iterable<T> iterateReverse(final List<T> elements) {
-        return new Iterable<T>() {
+        return () -> new Iterator<T>() {
+
+            ListIterator<T> it = elements.listIterator(elements.size());
 
             @Override
-            public Iterator<T> iterator() {
-                return new Iterator<T>() {
-
-                    ListIterator<T> it = elements.listIterator(elements.size());
-
-                    @Override
-                    public boolean hasNext() {
-                        return it.hasPrevious();
-                    }
-
-                    @Override
-                    public T next() {
-                        return it.previous();
-                    }
-
-                    @Override
-                    public void remove() {
-                        it.remove();
-                    }
-                };
+            public boolean hasNext() {
+                return it.hasPrevious();
             }
 
+            @Override
+            public T next() {
+                return it.previous();
+            }
+
+            @Override
+            public void remove() {
+                it.remove();
+            }
         };
     }
 
@@ -924,7 +915,7 @@ public class Utils {
      * join lines
      */
     public static String string(String... lines) {
-        return Arrays.asList(lines).stream().collect(Collectors.joining("\n")) + "\n";
+        return Arrays.stream(lines).collect(Collectors.joining("\n")) + "\n";
     }
 
     /**

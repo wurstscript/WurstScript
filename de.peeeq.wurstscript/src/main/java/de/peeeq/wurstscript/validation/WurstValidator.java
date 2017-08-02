@@ -1213,7 +1213,6 @@ public class WurstValidator {
             checkDestroyInterface(stmtDestroy, i);
         } else {
             stmtDestroy.addError("Cannot destroy objects of type " + typ);
-            return;
         }
     }
 
@@ -1670,7 +1669,6 @@ public class WurstValidator {
         PackageOrGlobal p = n.attrNearestPackage();
         if (p == null) {
             n.addError("Not in package or global: " + n.getName());
-            return;
         }
         // checkIfTypeDefExists(n, p);
         // if (p instanceof WPackage) {
@@ -1750,7 +1748,6 @@ public class WurstValidator {
                 NameLink func = Utils.getFirst(funcs);
                 if (func.getParameterTypes().size() != 0) {
                     e.addError("Function " + exFunc + " must not have any parameters.");
-                    return;
                 }
             } else {
                 e.addError("Wurst does only support ExecuteFunc with a single string as argument.");

@@ -67,7 +67,7 @@ public class Main {
         try {
             WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
             WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
-        } catch (Throwable t) {
+        } catch (Throwable ignored) {
         }
         WLogger.info("### ============================================");
 
@@ -304,11 +304,7 @@ public class Main {
         }
 
         boolean withSpace;
-        if (runArgs.isOptimize()) {
-            withSpace = false;
-        } else {
-            withSpace = true;
-        }
+        withSpace = !runArgs.isOptimize();
 
         gui.sendProgress("Printing Jass");
         JassPrinter printer = new JassPrinter(withSpace, jassProg);
@@ -352,9 +348,7 @@ public class Main {
             handler.setFormatter(new SimpleFormatter());
             WLogger.setHandler(handler);
             WLogger.setLevel(Level.INFO);
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
+        } catch (SecurityException | IOException e) {
             e.printStackTrace();
         }
     }

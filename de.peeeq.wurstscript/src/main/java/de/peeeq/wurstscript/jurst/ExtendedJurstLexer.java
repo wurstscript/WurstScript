@@ -172,7 +172,6 @@ public class ExtendedJurstLexer implements TokenSource {
                 case BEGIN_LINE:
                     if (token.getType() == JurstParser.NL) {
                         state(State.NEWLINES);
-                        continue;
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
                         state(State.WRAP_CHAR);

@@ -75,8 +75,8 @@ public class WurstTypeArray extends WurstType {
                     return JassIm.ImArrayType(typename);
                 }
                 List<Integer> nsizes = Lists.<Integer>newArrayList();
-                for (int index = 0; index < sizes.length; index++) {
-                    nsizes.add(sizes[index]);
+                for (int size : sizes) {
+                    nsizes.add(size);
                 }
 
                 return JassIm.ImArrayTypeMulti(typename, nsizes);

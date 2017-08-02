@@ -33,10 +33,7 @@ public abstract class WurstType {
             // everything is a subtype of unknown (stops error cascades)
             return true;
         }
-        if (this.isSubtypeOfIntern(other, location)) {
-            return true;
-        }
-        return false;
+        return this.isSubtypeOfIntern(other, location);
     }
 
     /**
@@ -128,7 +125,7 @@ public abstract class WurstType {
     }
 
     public Stream<NameLink> getMemberMethods(Element node) {
-        return Collections.<NameLink>emptyList().stream();
+        return Stream.empty();
     }
 
     public boolean isStaticRef() {

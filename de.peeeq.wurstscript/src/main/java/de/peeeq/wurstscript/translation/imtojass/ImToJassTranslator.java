@@ -18,8 +18,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.*;
-
 public class ImToJassTranslator {
 
     private ImProg imProg;

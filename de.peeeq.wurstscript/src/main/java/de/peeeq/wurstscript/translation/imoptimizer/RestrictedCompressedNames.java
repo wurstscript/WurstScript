@@ -6,8 +6,8 @@ public class RestrictedCompressedNames {
             "And", "Or", "Not", "or", "and", "not", "if", "set"};
 
     public static boolean contains(String s) {
-        for (int i = 0; i < names.length; i++) {
-            if (names[i].equals(s)) {
+        for (String name : names) {
+            if (name.equals(s)) {
                 return true;
             }
         }

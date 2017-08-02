@@ -173,9 +173,7 @@ public class EliminateTuples {
         if (e2 instanceof ImTupleExpr) {
             ImTupleExpr te = (ImTupleExpr) e2;
             ImStmts stmts = JassIm.ImStmts();
-            for (ImExpr child : te.getExprs().removeAll()) {
-                stmts.add(child);
-            }
+            stmts.addAll(te.getExprs().removeAll());
             return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
         }
         return e2;

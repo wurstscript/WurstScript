@@ -32,7 +32,7 @@ public enum WurstOperator {
     private String rep;
     private int numArgs;
 
-    private WurstOperator(String rep, int numArgs) {
+    WurstOperator(String rep, int numArgs) {
         this.rep = rep;
         this.numArgs = numArgs;
     }

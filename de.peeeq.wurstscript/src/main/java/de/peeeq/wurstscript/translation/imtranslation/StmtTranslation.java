@@ -20,8 +20,6 @@ import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.List;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
-
 public class StmtTranslation {
 
     public static ImStmt translate(Expr s, ImTranslator t, ImFunction f) {

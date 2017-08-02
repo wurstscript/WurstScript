@@ -83,7 +83,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private enum SearchMode {
-        PREFIX, INFIX, SUBSEQENCE;
+        PREFIX, INFIX, SUBSEQENCE
     }
 
     /**
@@ -158,7 +158,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
                 scope = scope.attrNextScope();
             }
-            return;
         } else if (elem instanceof ExprRealVal) {
             // show no hints for reals
         } else if (elem instanceof WPackage) {

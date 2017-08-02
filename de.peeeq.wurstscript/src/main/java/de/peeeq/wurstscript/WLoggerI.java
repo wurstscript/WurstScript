@@ -5,18 +5,18 @@ import java.util.logging.Level;
 
 public interface WLoggerI {
 
-    public abstract void info(String msg);
+    void info(String msg);
 
-    public abstract void warning(String msg);
+    void warning(String msg);
 
-    public abstract void severe(String msg);
+    void severe(String msg);
 
-    public abstract void severe(Throwable t);
+    void severe(Throwable t);
 
-    public abstract void info(Throwable e);
+    void info(Throwable e);
 
-    public abstract void setHandler(Handler handler);
+    void setHandler(Handler handler);
 
-    public abstract void setLevel(Level level);
+    void setLevel(Level level);
 
 }

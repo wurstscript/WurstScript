@@ -66,7 +66,7 @@ public class WurstServer {
         try (Socket s = sock.accept();
              PrintWriter out = new PrintWriter(s.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(
-                     s.getInputStream()));) {
+                     s.getInputStream()))) {
             println("Server accepted compilation request");
             String inputLine = null;
             final List<String> args = new ArrayList<>();

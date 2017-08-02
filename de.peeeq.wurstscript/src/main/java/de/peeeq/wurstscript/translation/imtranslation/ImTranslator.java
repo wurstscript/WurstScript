@@ -8,9 +8,7 @@ import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.ByTypes;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.GetByType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
@@ -46,7 +44,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
 

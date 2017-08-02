@@ -220,10 +220,8 @@ public class ExtendedWurstLexer implements TokenSource {
                     if (isTab(token)) {
                         readTabChar(token);
                         numberOfTabs++;
-                        continue;
                     } else if (token.getType() == WurstParser.NL) {
                         state(State.NEWLINES);
-                        continue;
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
                         lastCharWasWrap = true;

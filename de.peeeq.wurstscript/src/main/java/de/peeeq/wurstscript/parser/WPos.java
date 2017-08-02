@@ -79,7 +79,7 @@ public class WPos {
     }
 
     public String printShort() {
-        Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^\\.]*$");
+        Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^.]*$");
         String shortFile = file;
         Matcher m = p.matcher(file);
         if (m.find()) {

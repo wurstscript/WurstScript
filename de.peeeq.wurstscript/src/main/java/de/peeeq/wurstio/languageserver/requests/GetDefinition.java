@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 

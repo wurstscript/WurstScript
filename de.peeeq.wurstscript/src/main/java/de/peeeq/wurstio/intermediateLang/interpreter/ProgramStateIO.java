@@ -201,11 +201,7 @@ public class ProgramStateIO extends ProgramState {
                     objFileStream.writeInt(0); // does not exist
                 }
             }
-        } catch (FileNotFoundException e) {
-            WLogger.severe(e);
-        } catch (IOException e) {
-            WLogger.severe(e);
-        } catch (Error e) {
+        } catch (Error | IOException e) {
             WLogger.severe(e);
         }
     }

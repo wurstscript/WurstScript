@@ -21,8 +21,6 @@ import de.peeeq.wurstscript.utils.Utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
-
 public class ExprTranslation {
 
     public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {

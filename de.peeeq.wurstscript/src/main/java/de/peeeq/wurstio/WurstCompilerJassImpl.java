@@ -568,10 +568,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         gui.sendProgress("Parsing File " + file.getName());
         String source = file.getAbsolutePath();
-        Reader reader = null;
-        try {
-            reader = FileReading.getFileReader(file);
-
+        try (Reader reader = FileReading.getFileReader(file)){
             // scanning
             return parse(source, reader);
 
@@ -584,12 +581,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         } catch (IOException e) {
             gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "Could not read file."));
             return emptyCompilationUnit();
-        } finally {
-            try {
-                if (reader != null)
-                    reader.close();
-            } catch (IOException e) {
-            }
         }
     }
 

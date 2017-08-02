@@ -66,7 +66,7 @@ public class Checksums {
             byte[] buf = new byte[1024];
             MessageDigest md = MessageDigest.getInstance("MD5");
             try (InputStream is = new FileInputStream(f);
-                 DigestInputStream dis = new DigestInputStream(is, md);) {
+                 DigestInputStream dis = new DigestInputStream(is, md)) {
                 while (dis.read(buf) >= 0) ;
             }
             byte[] digest = md.digest();

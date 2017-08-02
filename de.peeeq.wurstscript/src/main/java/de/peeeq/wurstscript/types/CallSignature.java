@@ -51,7 +51,6 @@ public class CallSignature {
                 pos.addError("Too many arguments. Function " + funcName + " only takes " + sig.getParamTypes().size()
                         + " parameters.");
             }
-            return;
         } else if (getArguments().size() < sig.getParamTypes().size()) {
             pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
         } else {

@@ -30,8 +30,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static de.peeeq.wurstscript.ast.Ast.*;
-
 
 /**
  * general rules for syntactic sugar:
@@ -266,7 +264,7 @@ public class SyntacticSugar {
                                         ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
                 );
                 body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
-                parent.add(position + 0, Ast.StmtWhile(
+                parent.add(position, Ast.StmtWhile(
                         loop.getSource(),
                         Ast.ExprMemberMethodDot(loopInPos,
                                 ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "hasNext"), Ast.TypeExprList(), Arguments()),

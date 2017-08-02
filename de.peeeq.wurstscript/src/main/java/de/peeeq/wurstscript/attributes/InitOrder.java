@@ -19,9 +19,7 @@ public class InitOrder {
         Set<WPackage> packages = Sets.newLinkedHashSet();
 
         // add all imported packages, which do not import this package again
-        for (WPackage imported : p.attrImportedPackagesTransitive()) {
-            packages.add(imported);
-        }
+        packages.addAll(p.attrImportedPackagesTransitive());
 
         // add config package if it exists:
         WPackage configPackage = p.getModel().attrConfigOverridePackages().get(p);
