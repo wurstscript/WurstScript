@@ -2,7 +2,7 @@ package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.*;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;

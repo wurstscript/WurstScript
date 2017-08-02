@@ -1,9 +1,9 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NoSuchNativeException;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;

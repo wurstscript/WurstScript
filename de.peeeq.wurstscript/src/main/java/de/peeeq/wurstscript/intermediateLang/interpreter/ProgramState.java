@@ -1,11 +1,11 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;

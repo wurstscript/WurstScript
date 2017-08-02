@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang;
+package de.peeeq.wurstscript.intermediatelang;
 
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.types.WurstType;

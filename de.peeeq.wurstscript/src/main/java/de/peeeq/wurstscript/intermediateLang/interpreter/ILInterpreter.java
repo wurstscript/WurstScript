@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Annotation;
@@ -6,9 +6,9 @@ import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.ILconstInt;
-import de.peeeq.wurstscript.intermediateLang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstInt;
+import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;

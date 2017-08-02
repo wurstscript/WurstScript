@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang;
+package de.peeeq.wurstscript.intermediatelang;
 
 import org.eclipse.jdt.annotation.Nullable;
 

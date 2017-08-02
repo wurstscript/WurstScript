@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 public class NoSuchNativeException extends Exception {
 

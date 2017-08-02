@@ -1,8 +1,8 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.ILconstAbstract;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstAbstract;
 import de.peeeq.wurstscript.types.WurstType;
 
 import java.util.Map;

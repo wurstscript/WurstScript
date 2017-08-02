@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang.optimizer;
+package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;

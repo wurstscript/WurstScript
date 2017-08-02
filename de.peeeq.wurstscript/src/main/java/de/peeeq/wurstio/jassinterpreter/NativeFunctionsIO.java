@@ -1,8 +1,8 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
-import de.peeeq.wurstscript.intermediateLang.*;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 

@@ -7,7 +7,7 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.objectreader.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import org.eclipse.jdt.annotation.Nullable;

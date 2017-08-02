@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 
 import java.lang.reflect.InvocationTargetException;

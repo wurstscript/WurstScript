@@ -1,6 +1,6 @@
-package de.peeeq.wurstscript.intermediateLang.optimizer;
+package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import de.peeeq.wurstscript.intermediateLang.optimizer.ControlFlowGraph.Node;
+import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;

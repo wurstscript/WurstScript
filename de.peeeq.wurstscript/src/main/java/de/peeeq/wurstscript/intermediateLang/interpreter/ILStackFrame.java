@@ -1,7 +1,7 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.parser.WPos;
 

@@ -1,7 +1,7 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.collect.Maps;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import org.eclipse.jdt.annotation.Nullable;
 

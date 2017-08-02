@@ -5,13 +5,13 @@ import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.intermediateLang.ILconstInt;
-import de.peeeq.wurstscript.intermediateLang.ILconstReal;
-import de.peeeq.wurstscript.intermediateLang.ILconstString;
-import de.peeeq.wurstscript.intermediateLang.ILconstTuple;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
-import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
+import de.peeeq.wurstscript.intermediatelang.ILconstInt;
+import de.peeeq.wurstscript.intermediatelang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.ILconstTuple;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
+import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
 
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {

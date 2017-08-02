@@ -1,6 +1,6 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import org.eclipse.jdt.annotation.Nullable;
 
 

@@ -2,10 +2,10 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.optimizer.ConstantAndCopyPropagation;
-import de.peeeq.wurstscript.intermediateLang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediateLang.optimizer.SimpleRewrites;
-import de.peeeq.wurstscript.intermediateLang.optimizer.TempMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
+import de.peeeq.wurstscript.intermediatelang.optimizer.TempMerger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;

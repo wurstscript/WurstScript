@@ -379,7 +379,7 @@ Expr.attrTyp
 
 
 Expr.attrConstantValue
-	returns de.peeeq.wurstscript.intermediateLang.ILconst
+	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.attributes.AttrConstantValue.calculate
 
 

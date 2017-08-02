@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang;
+package de.peeeq.wurstscript.intermediatelang;
 
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.IntTuple;

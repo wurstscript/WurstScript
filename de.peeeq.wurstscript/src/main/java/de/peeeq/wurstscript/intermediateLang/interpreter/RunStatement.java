@@ -1,7 +1,7 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.datastructures.IntTuple;
-import de.peeeq.wurstscript.intermediateLang.*;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;

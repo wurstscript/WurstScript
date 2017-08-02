@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang.optimizer;
+package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

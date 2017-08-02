@@ -1,6 +1,6 @@
 package de.peeeq.wurstio.jassinterpreter;
 
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILStackFrame;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;

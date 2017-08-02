@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.intermediateLang.interpreter;
+package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.intermediateLang.*;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import org.eclipse.jdt.annotation.Nullable;
 
