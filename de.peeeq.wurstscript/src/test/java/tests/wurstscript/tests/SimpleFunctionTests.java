@@ -8,7 +8,7 @@ public class SimpleFunctionTests extends WurstScriptTest {
 
 
     @Test
-    public void test_funcref() {
+    public void testFuncref() {
         assertOk(false,
                 "function foo(code c)",
                 "	int i = 0",
@@ -20,7 +20,7 @@ public class SimpleFunctionTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_has_return_ifs() {
+    public void testHasReturnIfs() {
         assertOk(false,
                 "function foo(int x) returns int",
                 "	if x == 3",
@@ -34,7 +34,7 @@ public class SimpleFunctionTests extends WurstScriptTest {
 
 
     @Test
-    public void test_unreachable_code() {
+    public void testUnreachableCode() {
         assertError(false, "Unreachable code",
                 "function foo(int x) returns int",
                 "	int i = 2",

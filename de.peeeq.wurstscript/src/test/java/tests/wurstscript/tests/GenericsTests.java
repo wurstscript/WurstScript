@@ -305,7 +305,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_dispatch() {
+    public void genericsDispatch() {
         testAssertOkLines(true,
                 "package Test",
                 "native testSuccess()",
@@ -326,7 +326,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute1() {
+    public void genericsSubstitute1() {
         testAssertOkLines(false,
                 "package Test",
                 "native testSuccess()",
@@ -341,7 +341,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute2() {
+    public void genericsSubstitute2() {
         testAssertOkLines(false,
                 "package Test",
                 "native testSuccess()",
@@ -359,7 +359,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute3() {
+    public void genericsSubstitute3() {
         testAssertOkLines(false,
                 "package Test",
                 "native testSuccess()",
@@ -380,7 +380,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute() {
+    public void genericsSubstitute() {
         testAssertOkLines(false,
                 "package Test",
                 "class A<T>",
@@ -394,7 +394,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute_override() {
+    public void genericsSubstitute_override() {
         testAssertOkLines(false,
                 "package Test",
                 "class A<T>",
@@ -409,7 +409,7 @@ public class GenericsTests extends WurstScriptTest {
 
 
     @Test
-    public void generics_substitute_override_interface() {
+    public void genericsSubstitute_override_interface() {
         testAssertOkLines(false,
                 "package Test",
                 "interface I<S,T>",
@@ -426,7 +426,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generics_substitute_override_interface_fail() {
+    public void genericsSubstitute_override_interface_fail() {
         testAssertErrorsLines(false, "implement",
                 "package Test",
                 "interface I<T,S>",
@@ -444,7 +444,7 @@ public class GenericsTests extends WurstScriptTest {
 
 
     @Test
-    public void generic_method1() {
+    public void genericMethod1() {
         testAssertOkLines(false,
                 "package Test",
                 "class Blub<T>",
@@ -455,7 +455,7 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
-    public void generic_extension_method1() {
+    public void genericExtensionMethod1() {
         testAssertOkLines(false,
                 "package Test",
                 "class Blub<T>",

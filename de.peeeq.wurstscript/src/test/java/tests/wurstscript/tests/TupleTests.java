@@ -53,7 +53,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void return_value() {
+    public void returnValue() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -131,7 +131,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void vecs_trim() {
+    public void vecsTrim() {
         testAssertOkLines(false,
                 "package test",
                 "	native testSuccess()",
@@ -155,7 +155,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void vecs_trim2() {
+    public void vecsTrim2() {
         testAssertOkLines(false,
                 "package test",
                 "	native testSuccess()",
@@ -237,7 +237,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_equals() {
+    public void testEquals() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -253,7 +253,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_unequals() {
+    public void testUnequals() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -269,7 +269,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_singletuple() {
+    public void testSingletuple() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -287,7 +287,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_singletuple2() {
+    public void testSingletuple2() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
