@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ExprTranslation {
 

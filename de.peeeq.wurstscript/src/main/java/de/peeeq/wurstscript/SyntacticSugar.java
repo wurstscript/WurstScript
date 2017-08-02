@@ -30,7 +30,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-
+import static de.peeeq.wurstscript.ast.Ast.*;
 /**
  * general rules for syntactic sugar:
  * <p>
