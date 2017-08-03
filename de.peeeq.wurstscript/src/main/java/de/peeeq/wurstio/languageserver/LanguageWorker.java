@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.HoverInfo;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
@@ -250,7 +251,9 @@ public class LanguageWorker implements Runnable {
             fut.whenComplete((res, err) -> {
                 if (res == null) {
                     System.err.println("Request returned null: " + request);
-                    languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
+                    if(!(request instanceof HoverInfo)) {
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
+                    }
                 }
                 if (err != null) {
                     languageClient.showMessage(new MessageParams(MessageType.Error, err.getMessage()));
