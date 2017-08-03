@@ -23,7 +23,7 @@ This guide will **not** explain the core principles of programming, i.e. how fun
 
 If you setup your project correctly using the setup app, there will be many folders and files generated in the project folder you chose. Otheriwse setup your project now. Opened in VSCode it should look something like this:
 
-![](/WurstDocs/assets/images/beginner/ProjectExplorer.png){: .img-rounded .img-responsive}
+![](/WurstScript/assets/images/beginner/ProjectExplorer.png){: .img-rounded .img-responsive}
 
 Let's go through all the files:
 - **/_build** Contains dynamically generated content and shouldn't be touched by the user.
@@ -42,11 +42,11 @@ Let's go through all the files:
 Open the **Hello.wurst** file inside the **wurst** folder to start the wurst plugin.
 Run the project using the `>runmap` command.
 
-![](/WurstDocs/assets/images/beginner/RunMap.png){: .img-responsive .img-rounded}
+![](/WurstScript/assets/images/beginner/RunMap.png){: .img-responsive .img-rounded}
 
 The text **Hello World** will be displayed.
 
-![](/WurstDocs/assets/images/beginner/HelloWorld.png){: .img-responsive .img-rounded}
+![](/WurstScript/assets/images/beginner/HelloWorld.png){: .img-responsive .img-rounded}
 
 Let's take a look at the code:
 

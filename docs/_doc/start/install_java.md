@@ -9,7 +9,7 @@ WurstScript and it's related tools require Java 8 to run. Please install or veri
 
 ### Download JRE
 
-[*&nbsp;*{: .fa .fa-download} Download Java](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html){: .btn .btn-orange} ![](/WurstDocs/assets/images/setup/java_powered.png) 
+[*&nbsp;*{: .fa .fa-download} Download Java](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html){: .btn .btn-orange} ![](/WurstScript/assets/images/setup/java_powered.png) 
 
 Download the Java Runtime appropriate for your system and follow the installation procedure.
 
@@ -22,7 +22,7 @@ To verify your installation, open a command prompt and enter `java -version`
 
 A valid installation will return something like this:
 
-![](/WurstDocs/assets/images/setup/JavaVerify.png){: .img-responsive}
+![](/WurstScript/assets/images/setup/JavaVerify.png){: .img-responsive}
 
 Your minor version might differ, but that's fine as long as it's 1.8 or higher.
 

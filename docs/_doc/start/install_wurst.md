@@ -11,7 +11,7 @@ Now we will setup a Wurst compiler environment and create a project using the th
 
 Once the download has finished, run the .jar to begin.
 
-![](/WurstDocs/assets/images/setup/WurstSetup.png){: .img-responsive}
+![](/WurstScript/assets/images/setup/WurstSetup.png){: .img-responsive}
 
 ### Install Compiler
 

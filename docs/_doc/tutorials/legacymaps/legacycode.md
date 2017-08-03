@@ -28,13 +28,13 @@ In rare cases it might be desirable to use legacy code from within wurst code wi
 and jumping to declarations.
 To do this you must extract the war3map.j file from your legacy map and place it into the **wurst/** folder inside your project.
 
-![](/WurstDocs/assets/images/legacy/war3map.j.png){: .img-responsive .img-rounded}
+![](/WurstScript/assets/images/legacy/war3map.j.png){: .img-responsive .img-rounded}
 
 This file will however not be constantly parsed, so you need to clean your workspace for a recheck.
 If you want to make changes to the war3map.j and have them applied to the map, you have to add the RunArg **-noExtractMapScript**
 to your wurst_run.args file, which will prevent the script extraction from the map and use the provided war3map.j inside the wurst folder instead.
 
-![](/WurstDocs/assets/images/legacy/uselegacycode.png){: .img-responsive .img-rounded}
+![](/WurstScript/assets/images/legacy/uselegacycode.png){: .img-responsive .img-rounded}
 
 ## Jurst dialect
 

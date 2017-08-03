@@ -1,8 +1,8 @@
 #
 # Site settings
 #
-url: https://frotty.github.io/WurstDocs
-baseurl: /WurstDocs
+url: https://peq.github.io/WurstScript/
+baseurl: /WurstScript
 highlighter: rouge
 title: &site_title WurstScript
 description: &site_description Programming language that compiles to Jass
