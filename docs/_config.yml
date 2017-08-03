@@ -1,3 +1,51 @@
-safe: true
+#
+# Site settings
+#
+url: https://frotty.github.io/WurstDocs
+baseurl: /WurstDocs
 highlighter: rouge
+title: &site_title WurstScript
+description: &site_description Programming language that compiles to Jass
+branding:
+  icon:
+    name: icon_documents_alt
+  highlight: Wurst
+  bold: Script
+markdown: kramdown
+kramdown:
+  auto_ids: true
+  entity_output: as_char
+  toc_levels: 1..6
+  smart_quotes: lsquo,rsquo,ldquo,rdquo
+  input: GFM
+  hard_wrap: false
+  footnote_nr: 1
+  parse_block_html: true
+  syntax_highlighter_opts:
+    disable : true
 
+
+#
+# Owner
+#
+
+
+#
+# Collections
+#
+collections:
+  doc:
+    output: true
+    permalink: /:path.html
+
+
+#
+# Default values
+#
+defaults:
+  -
+    scope:
+      path: ""
+      type: doc
+    values:
+      layout: doc
