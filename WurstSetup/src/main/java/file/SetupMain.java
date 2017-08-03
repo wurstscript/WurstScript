@@ -6,6 +6,7 @@ import org.kohsuke.args4j.Option;
 import ui.Init;
 
 import javax.swing.*;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -16,17 +17,32 @@ public class SetupMain {
     @Option(name = "-silent", usage = "check for updates without opening UI")
     private boolean silent = false;
 
+    private File projectDir = null;
+
+    @Option(name = "-projectdir", usage = "sets the project dir to check dependencies for")
+    public void setDir(File dir) {
+        if(dir.exists()) {
+            projectDir = dir;
+        }
+    }
+
     public static void main(String[] args) throws IOException, CmdLineException {
         new SetupMain().doMain(args);
     }
 
     private void doMain(String[] args) throws CmdLineException {
         setupExceptionHandler();
-
         CmdLineParser parser = new CmdLineParser(this);
-        parser.parseArgument(Arrays.asList(args));
+        try {
+            parser.parseArgument(Arrays.asList(args));
+        } catch (CmdLineException e) {
+            // handling of wrong arguments
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
+        }
 
-        Init.init(silent);
+
+        Init.init(silent, projectDir);
     }
 
     private static void setupExceptionHandler() {

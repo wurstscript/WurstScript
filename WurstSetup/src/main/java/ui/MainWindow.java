@@ -128,7 +128,7 @@ public class MainWindow extends JFrame {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     Init.log("\nchecking for updates..");
-                    Init.init(true);
+                    Init.init(true, null);
                     Init.log("done\n");
                 }
             });

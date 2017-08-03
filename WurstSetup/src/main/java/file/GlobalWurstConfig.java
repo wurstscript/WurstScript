@@ -1,5 +1,6 @@
 package file;
 
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 import ui.Init;
 import us.monoid.json.JSONObject;
@@ -9,6 +10,7 @@ import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Collections;
 
 import static us.monoid.web.Resty.path;
 
@@ -26,7 +28,12 @@ public class GlobalWurstConfig {
 
     private static int latestBuildAvailable = -1;
 
-    public static final Yaml yaml = new Yaml();
+    private static final DumperOptions options = new DumperOptions();
+    public static final Yaml yaml;
+    static {
+        options.setTags(Collections.emptyMap());
+        yaml = new Yaml(options);
+    }
 
     public static final Resty resty = new Resty();
     public static WurstConfigData configData;

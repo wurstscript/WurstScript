@@ -32,6 +32,9 @@ public class WurstProjectConfig {
         }
     }
 
+    public WurstProjectConfig() {
+    }
+
     public File getProjectRoot() {
         return projectRoot;
     }
@@ -46,6 +49,17 @@ public class WurstProjectConfig {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    public static WurstProjectConfig loadProject(File projectRoot) throws IOException {
+        Init.log("Loading project..");
+        if (projectRoot.exists()) {
+            File buildFile = new File(projectRoot, "wurst.build");
+            if (buildFile.exists()) {
+                return GlobalWurstConfig.yaml.loadAs(new String(Files.readAllBytes(buildFile.toPath())), WurstProjectConfig.class);
+            }
+        }
+        return null;
     }
 
     private static void createProject(WurstProjectConfig projectConfig) throws Exception {

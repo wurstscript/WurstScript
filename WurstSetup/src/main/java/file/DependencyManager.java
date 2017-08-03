@@ -1,7 +1,9 @@
 package file;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.transport.FetchResult;
 import ui.Init;
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -72,4 +75,39 @@ public class DependencyManager {
         }
     }
 
+    public static boolean isUpdateAvailable(WurstProjectConfig projectConfig) {
+        Init.log("Checking dependencies...\n");
+        for (String dependency : projectConfig.dependencies) {
+            String dependencyName = dependency.substring(dependency.lastIndexOf("/") + 1);
+            Init.log("Checking dependency - " + dependencyName + " ..");
+            File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
+            if (depFolder.exists()) {
+                // update
+                try {
+                    try (Repository repository = new FileRepository(depFolder)) {
+                        try (Git git = new Git(repository)) {
+                            Collection<Ref> refs = git.lsRemote().setHeads(true).call();
+                            Status status = git.status().call();
+                            if(status.hasUncommittedChanges()) {
+                                Init.log("You have modified files in your dependencies folder.");
+                            } else if(status.isClean()) {
+
+                            }
+                        } catch (Exception e) {
+                            Init.log("error when trying to fetch remote\n");
+                            e.printStackTrace();
+                        }
+                    } catch (Exception e) {
+                        Init.log("error when trying open repository");
+                        e.printStackTrace();
+                    }
+                } catch (Exception ignored) {
+                }
+            } else  {
+                return true;
+            }
+
+        }
+        return false;
+    }
 }
