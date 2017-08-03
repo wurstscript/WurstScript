@@ -51,7 +51,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
             WImport wImport = (WImport) e;
             WPackage p = wImport.attrImportedPackage();
             if (p == null) {
-                return null;
+                return Collections.emptyList();
             }
             return linkTo(p);
         } else if (e instanceof ExprNewObject) {
