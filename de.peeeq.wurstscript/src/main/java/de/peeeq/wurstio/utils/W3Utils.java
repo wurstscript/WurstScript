@@ -18,6 +18,7 @@ public class W3Utils {
     private static final Pattern patchPattern = Pattern.compile("(?i)Patch (\\d.\\d\\d)");
 
     public static double parsePatchVersion(File wc3Path) {
+        WLogger.info("Parsing Patch Version");
         File patchTxt = new File(wc3Path, "Patch.txt");
         File releaseNotes = new File(wc3Path, "Release Notes.txt");
 
@@ -48,6 +49,7 @@ public class W3Utils {
         } catch (IOException e) {
             WLogger.severe(e);
         }
+        WLogger.severe("Could not determine wc3 version");
         return -1;
     }
 

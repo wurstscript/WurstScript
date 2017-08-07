@@ -33,7 +33,6 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -316,24 +315,13 @@ public class Main {
 
 
     private static void checkLoadFiles() {
-        String folder = "wurstscript/font/";
-        URL fontGidPath = Main.class.getClassLoader().getResource(folder + "font.gid");
-        URL fontClhPath = Main.class.getClassLoader().getResource(folder + "font.clh");
-        URL fontRocPath = Main.class.getClassLoader().getResource(folder + "font_roc.ccd");
-        URL fontExpPath = Main.class.getClassLoader().getResource(folder + "font.exp");
-        URL fontTftPath = Main.class.getClassLoader().getResource(folder + "font_tft.ccd");
-        URL stormPath = Main.class.getClassLoader().getResource(folder + "storm.dll");
-        if (fontGidPath != null && fontClhPath != null && fontRocPath != null && fontExpPath != null && fontTftPath != null && stormPath != null) {
-            fontGID = Paths.get(fontGidPath.getPath().substring(1));
-            fontCLH = Paths.get(fontClhPath.getPath().substring(1));
-            fontROC = Paths.get(fontRocPath.getPath().substring(1));
-            fontEXP = Paths.get(fontExpPath.getPath().substring(1));
-            fontTFT = Paths.get(fontTftPath.getPath().substring(1));
-            stormDll = Paths.get(stormPath.getPath().substring(1));
-        } else {
-            WLogger.severe(new RuntimeException("Font files cannot be loaded!!\nPlease verify the integrity of your Wurstpack and run it as adminitrator."));
-        }
-
+        String folder = "font/";
+        fontGID = Paths.get(Utils.getResourceFile(folder + "font.gid"));
+        fontCLH = Paths.get(Utils.getResourceFile(folder + "font.clh"));
+        fontROC = Paths.get(Utils.getResourceFile(folder + "font_roc.ccd"));
+        fontEXP = Paths.get(Utils.getResourceFile(folder + "font.exp"));
+        fontTFT = Paths.get(Utils.getResourceFile(folder + "font_tft.ccd"));
+        stormDll = Paths.get(Utils.getResourceFile(folder + "Storm.dll"));
     }
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
