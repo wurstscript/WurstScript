@@ -2,7 +2,7 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.gui.About;
+import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.GuiUtils;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.WLogger;
@@ -28,7 +28,7 @@ public class ErrorReportingIO extends ErrorReporting {
 
         String title = "Sorry!";
         String message = "You have encountered a bug in the Wurst Compiler.\n" +
-                "Your version is: " + About.version + "\n" +
+                "Your version is: " + AboutDialog.version + "\n" +
                 "The Error message is: " + t.getMessage() + "\n" + Utils.printExceptionWithStackTrace(t) + "\n\n" +
                 "What do you want to do in order to help us fix this bug?";
 
@@ -133,7 +133,7 @@ public class ErrorReportingIO extends ErrorReporting {
             // Construct data
             String data = URLEncoder.encode("errormessage", "UTF-8") + "=" + URLEncoder.encode(t.getMessage(), "UTF-8");
             data += "&" + URLEncoder.encode("stacktrace", "UTF-8") + "=" + URLEncoder.encode(Utils.printExceptionWithStackTrace(t), "UTF-8");
-            data += "&" + URLEncoder.encode("version", "UTF-8") + "=" + URLEncoder.encode(About.version, "UTF-8");
+            data += "&" + URLEncoder.encode("version", "UTF-8") + "=" + URLEncoder.encode(AboutDialog.version, "UTF-8");
             data += "&" + URLEncoder.encode("source", "UTF-8") + "=" + URLEncoder.encode(sourcecode, "UTF-8");
 
             String request = "http://peeeq.de/wursterrors.php";

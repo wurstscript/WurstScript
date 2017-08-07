@@ -5,13 +5,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.compilationserver.WurstServer;
-import de.peeeq.wurstio.gui.About;
+import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.BackupController;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.RunArgs;
@@ -24,10 +25,10 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.utils.WinRegistry;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -41,6 +42,8 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
 
+import static javax.swing.SwingConstants.CENTER;
+
 public class Main {
 
     /**
@@ -48,29 +51,14 @@ public class Main {
      */
     public static void main(String[] args) {
         if (args.length == 0) {
-            @SuppressWarnings("unused")
-            RunArgs r = new RunArgs("-help");
+            // If no args are passed, display help
+            new RunArgs("-help");
             return;
         }
+
         setUpFileLogging();
         WLogger.keepLogs(true);
-
-        // VM Arguments
-        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
-        List<String> arguments = runtimeMxBean.getInputArguments();
-
-        WLogger.info("### Started wurst version: (" + About.version + ")");
-        WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
-        if(arguments != null && arguments.size() > 0) {
-            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
-        }
-        try {
-            WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
-            WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
-        } catch (Throwable ignored) {
-        }
-        WLogger.info("### ============================================");
-
+        logStartup(args);
 
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
@@ -80,13 +68,17 @@ public class Main {
             }
 
             if (runArgs.showAbout()) {
-                About about = new About(null, false);
-                about.setVisible(true);
+                new AboutDialog(null, false).setVisible(true);
                 return;
             }
 
-            if (runArgs.insertKeys()) {
-                insertKeys(runArgs);
+            if (runArgs.isFixInstall()) {
+                fixInstallation();
+                return;
+            }
+
+            if (runArgs.isCopyMap()) {
+                copyMap();
                 return;
             }
 
@@ -183,18 +175,115 @@ public class Main {
         }
     }
 
-    private static void insertKeys(RunArgs runArgs) throws Exception {
-        String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
-        WLogger.info("Wc3 Path: " + wc3Path);
-        if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
-        checkLoadKeys();
+    private static void logStartup(String[] args) {
+        // VM Arguments
+        RuntimeMXBean runtimeMxBean = ManagementFactory.getRuntimeMXBean();
+        List<String> arguments = runtimeMxBean.getInputArguments();
 
-        File rocMpq = new File(wc3Path + "War3.mpq");
-        File tftMpq = new File(wc3Path + "War3x.mpq");
+        WLogger.info("### Started wurst version: (" + AboutDialog.version + ")");
+        WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
+        if (arguments != null && arguments.size() > 0) {
+            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+        }
+        try {
+            WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
+            WLogger.info("### compiler path2: " + ClassLoader.getSystemClassLoader().getResource(".").getPath());
+        } catch (Throwable ignored) {
+        }
+        WLogger.info("### ============================================");
+    }
+
+    private static final String COMPAT_FOLDER = "compat\\";
+
+    /** Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP. */
+    private static void fixInstallation() throws Exception {
+        String wc3Path = W3Utils.getGamePath();
+        String compatPath = wc3Path + COMPAT_FOLDER;
+        WLogger.info("Wc3 Path: " + wc3Path);
+
+        double patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
+        if (patchVersion > 1.27 && !new File(compatPath).exists()) {
+            JLabel notice = new JLabel("Patch 1.28 or higher has been detected on your system.\n" +
+                    "Selecting yes will create a compatibility copy of your installation.\n" +
+                    "Selecting no will leave everything as is and the editor won't start.", CENTER);
+
+            int result = JOptionPane.showConfirmDialog(null, notice, "Wurst Note", JOptionPane.YES_NO_OPTION);
+            if (result == JOptionPane.YES_OPTION) {
+                JOptionPane.showMessageDialog(null, "Wurst is now working. This may take a few minutes.\n " +
+                        "You will be notified about further progress.");
+                checkLoadFiles();
+                copyBinaries(wc3Path, compatPath);
+                insertKeys(compatPath);
+                WLogger.info("Compatibility installation created.");
+                JOptionPane.showMessageDialog(null, "Done. The editor should start momentarily");
+            }
+        }
+    }
+
+    private static void copyMap() throws Exception {
+        String wc3Path = W3Utils.getGamePath();
+        WLogger.info("Wc3 Path: " + wc3Path);
+
+        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
+        if (new File(documentPath).exists()) {
+            File compatMap = new File(wc3Path + COMPAT_FOLDER + "Maps\\Test\\WorldEditTestMap.w3x");
+            if (compatMap.exists()) {
+                Files.copy(compatMap, new File(documentPath + "\\Maps\\Test\\WorldEditTestMap.w3x"));
+                WLogger.info("Map copied");
+            }
+        }
+
+    }
+
+    private static void copyBinaries(String wc3Path, String compatPath) throws IOException {
+        File compatDir = new File(compatPath);
+        compatDir.mkdirs();
+        File compatExe = new File(compatPath + "war3.exe");
+        if (!compatExe.exists()) {
+            // Create copy war3.exe
+            File newExe = new File(wc3Path + "Warcraft III.exe");
+            if (newExe.exists()) {
+                Files.copy(newExe, compatExe);
+                WLogger.info("Copied war3.exe");
+            } else {
+                WLogger.severe("Could not find valid wc3 executable");
+            }
+        }
+
+        File compatEditor = new File(compatPath + "worldedit.exe");
+        if (!compatEditor.exists()) {
+            // Create copy war3.exe
+            File newEditor = new File(wc3Path + "World Editor.exe");
+            if (newEditor.exists()) {
+                Files.copy(newEditor, compatEditor);
+                WLogger.info("Created worldedit.exe");
+            } else {
+                WLogger.severe("Could not find valid editor executable");
+            }
+        }
+
+        File[] files = new File(wc3Path).listFiles((File pathname) -> pathname.getName().endsWith(".mpq") || pathname.getName().endsWith(".dll"));
+        for (File file : files) {
+            Files.copy(file, new File(compatPath, file.getName()));
+        }
+
+        File storm = new File(compatPath + "Storm.dll");
+        if (!storm.exists() || storm.delete()) {
+            Files.write(java.nio.file.Files.readAllBytes(stormDll), storm);
+            if (storm.exists()) {
+                WLogger.info("Storm.dll written");
+            }
+        }
+
+    }
+
+    private static void insertKeys(String compatPath) throws Exception {
+        File rocMpq = new File(compatPath + "War3.mpq");
+        File tftMpq = new File(compatPath + "War3x.mpq");
         MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq);
         boolean rocHasKeys = roceditor.hasFile("font\\font.ccd") && roceditor.hasFile("font\\font.gid") && roceditor.hasFile("font\\font.clh");
         if (!rocHasKeys) {
-            JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of RoC and needs to fix your installation.\n"
+            JOptionPane.showMessageDialog(null, "Now inserting ROC mpq.\n"
                     + "This might take a few minutes. Please be patient.");
             roceditor.insertFile("font\\font.gid", java.nio.file.Files.readAllBytes(fontGID));
             roceditor.insertFile("font\\font.clh", java.nio.file.Files.readAllBytes(fontCLH));
@@ -207,7 +296,7 @@ public class Main {
         MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq);
         boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
         if (!tftHasKeys) {
-            JOptionPane.showMessageDialog(null, "Wurstpack has detected a 1.28+ install of TFT and needs to fix your installation.\n"
+            JOptionPane.showMessageDialog(null, "Now inserting TFT mpq.\n"
                     + "This might take a few minutes. Please be patient.");
             tfteditor.insertFile("font\\font.exp", java.nio.file.Files.readAllBytes(fontEXP));
             tfteditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontTFT));
@@ -216,7 +305,6 @@ public class Main {
         } else {
             WLogger.info("Already has tft keys");
         }
-        WLogger.info("Font insertion done.");
     }
 
     private static Path fontGID;
@@ -224,20 +312,24 @@ public class Main {
     private static Path fontROC;
     private static Path fontEXP;
     private static Path fontTFT;
+    private static Path stormDll;
 
-    private static void checkLoadKeys() {
+
+    private static void checkLoadFiles() {
         String folder = "wurstscript/font/";
         URL fontGidPath = Main.class.getClassLoader().getResource(folder + "font.gid");
         URL fontClhPath = Main.class.getClassLoader().getResource(folder + "font.clh");
         URL fontRocPath = Main.class.getClassLoader().getResource(folder + "font_roc.ccd");
         URL fontExpPath = Main.class.getClassLoader().getResource(folder + "font.exp");
         URL fontTftPath = Main.class.getClassLoader().getResource(folder + "font_tft.ccd");
-        if(fontGidPath != null && fontClhPath != null && fontRocPath != null && fontExpPath != null && fontTftPath != null) {
+        URL stormPath = Main.class.getClassLoader().getResource(folder + "storm.dll");
+        if (fontGidPath != null && fontClhPath != null && fontRocPath != null && fontExpPath != null && fontTftPath != null && stormPath != null) {
             fontGID = Paths.get(fontGidPath.getPath().substring(1));
             fontCLH = Paths.get(fontClhPath.getPath().substring(1));
             fontROC = Paths.get(fontRocPath.getPath().substring(1));
             fontEXP = Paths.get(fontExpPath.getPath().substring(1));
             fontTFT = Paths.get(fontTftPath.getPath().substring(1));
+            stormDll = Paths.get(stormPath.getPath().substring(1));
         } else {
             WLogger.severe(new RuntimeException("Font files cannot be loaded!!\nPlease verify the integrity of your Wurstpack and run it as adminitrator."));
         }
@@ -339,15 +431,16 @@ public class Main {
 
     public static void setUpFileLogging(String folderName) {
         try {
-            // set up file logging:
+            // Set up logfiles inside os temp dir
             String tempDir = System.getProperty("java.io.tmpdir");
             File folder = new File(tempDir, folderName);
-            folder.mkdirs();
-            System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %5$s%6$s%n");
-            Handler handler = new FileHandler(folder.getAbsolutePath() + "/wurst%g.log", Integer.MAX_VALUE, 20);
-            handler.setFormatter(new SimpleFormatter());
-            WLogger.setHandler(handler);
-            WLogger.setLevel(Level.INFO);
+            if (folder.exists() || folder.mkdirs()) {
+                System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %5$s%6$s%n");
+                Handler handler = new FileHandler(folder.getAbsolutePath() + "/wurst%g.log", Integer.MAX_VALUE, 5);
+                handler.setFormatter(new SimpleFormatter());
+                WLogger.setHandler(handler);
+                WLogger.setLevel(Level.INFO);
+            }
         } catch (SecurityException | IOException e) {
             e.printStackTrace();
         }

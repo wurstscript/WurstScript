@@ -12,6 +12,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -34,9 +35,10 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -168,7 +170,7 @@ public class RunMap extends UserRequest<Object> {
             }
         }
 
-        parsePatchVersion();
+        patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
 
         String testMapName = "WurstTestMap.w3x";
         if (patchVersion <= 1.27) {
@@ -196,39 +198,7 @@ public class RunMap extends UserRequest<Object> {
         return testMapName;
     }
 
-    private static final Pattern patchPattern = Pattern.compile("(?i)Patch (\\d.\\d\\d)");
 
-    private void parsePatchVersion() {
-        File patchTxt = new File(wc3Path, "Patch.txt");
-        File releaseNotes = new File(wc3Path, "Release Notes.txt");
-
-        try {
-            final List<String> matches = new ArrayList<>();
-            if (patchTxt.exists()) {
-                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(patchTxt.toPath())));
-                while (matcher.find()) {
-                    matches.add(matcher.group(1));
-                }
-            }
-            if (releaseNotes.exists()) {
-                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(releaseNotes.toPath())));
-                while (matcher.find()) {
-                    matches.add(matcher.group(1));
-                }
-            }
-
-            if (matches.size() > 0) {
-                matches.sort(Comparator.comparing(Double::parseDouble, Collections.reverseOrder()));
-                patchVersion = Double.parseDouble(matches.get(0));
-                WLogger.info("Patch Version: " + patchVersion);
-
-            } else {
-                WLogger.severe("Could not determine wc3 version");
-            }
-        } catch (IOException e) {
-            WLogger.severe(e);
-        }
-    }
 
     private void print(String s) {
         WLogger.info(s);

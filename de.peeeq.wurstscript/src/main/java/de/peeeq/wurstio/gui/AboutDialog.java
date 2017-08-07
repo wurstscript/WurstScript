@@ -4,7 +4,7 @@
  */
 
 /*
- * About.java
+ * AboutDialog.java
  *
  * Created on 04.12.2011, 20:32:40
  */
@@ -25,17 +25,17 @@ import java.util.logging.Logger;
 /**
  * @author Frotty
  */
-public class About extends javax.swing.JDialog {
+public class AboutDialog extends javax.swing.JDialog {
     final URI uri;
     final static String homepage = "http://peq.github.com/WurstScript/";
     public final static String version = CompileTimeInfo.version;
     final static String authors = "peq & Frotty";
 
     /**
-     * Creates new form About
+     * Creates new form AboutDialog
      */
     @SuppressWarnings("null")
-    public About(@Nullable Frame parent, boolean modal) throws URISyntaxException {
+    public AboutDialog(@Nullable Frame parent, boolean modal) throws URISyntaxException {
         super(parent, modal);
         initComponents();
         uri = new URI(homepage);
@@ -43,6 +43,7 @@ public class About extends javax.swing.JDialog {
 
         GuiUtils.setWindowToCenterOfScreen(this);
         requestFocus();
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
     }
 
     /**
@@ -66,7 +67,7 @@ public class About extends javax.swing.JDialog {
         authorCurrent = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("About WurstScript");
+        setTitle("AboutDialog WurstScript");
         setModal(true);
         setName("aboutBox"); // NOI18N
         setResizable(false);
@@ -185,7 +186,7 @@ public class About extends javax.swing.JDialog {
         /* Create and display the dialog */
         java.awt.EventQueue.invokeLater(() -> {
             try {
-                About dialog = new About(new javax.swing.JFrame(), true);
+                AboutDialog dialog = new AboutDialog(new javax.swing.JFrame(), true);
                 dialog.addWindowListener(new java.awt.event.WindowAdapter() {
 
                     @Override
@@ -195,7 +196,7 @@ public class About extends javax.swing.JDialog {
                 });
                 dialog.setVisible(true);
             } catch (URISyntaxException ex) {
-                Logger.getLogger(About.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(AboutDialog.class.getName()).log(Level.SEVERE, null, ex);
             }
         });
     }

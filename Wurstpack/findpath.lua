@@ -1,8 +1,8 @@
 print "Grimoire 1.5 5/4/2008"
 
 grimregpath = "Software\\Grimoire"
-key = "HKEY_CURRENT_USER\\Software\\Blizzard Entertainment\\Warcraft III"
-val = "InstallPath"
+key = grimregpath
+val = "War3InstallPath"
 path = grim.getregpair(key,val)
 
 -- uncomment to force path
@@ -22,7 +22,7 @@ if not grim.exists(path.."\\worldedit.exe") then
 	val = "InstallPathX"
 	path = grim.getregpair(key,val)
 end
-if not grim.exists(path.."\\worldedit.exe") then
+if not grim.exists(path.."\\compat\\worldedit.exe") then
 	key = grimregpath
 	val = "War3InstallPath"
 	path = grim.getregpair(key,val)
