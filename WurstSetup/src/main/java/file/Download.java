@@ -29,6 +29,6 @@ public class Download {
     }
 
     public static File downloadBareboneProject() throws IOException {
-        return downloadFile("https://github.com/Frotty/WurstBareboneTemplate/archive/master.zip", File.createTempFile("tempProject", ".zip"));
+        return downloadFile("https://github.com/wurstscript/WurstBareboneTemplate/archive/master.zip", File.createTempFile("tempProject", ".zip"));
     }
 }

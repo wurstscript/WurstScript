@@ -88,7 +88,7 @@ public class MainWindow extends JFrame {
         public UI() {
             // Add default stdlib
             dependencies = new ArrayList<>();
-            dependencies.add("https://github.com/Frotty/wurstStdlib2");
+            dependencies.add("https://github.com/wurstscript/wurstStdlib2");
             initComponents();
         }
 
