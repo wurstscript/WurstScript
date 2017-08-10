@@ -30,6 +30,7 @@ public class GlobalWurstConfig {
 
     private static final DumperOptions options = new DumperOptions();
     public static final Yaml yaml;
+
     static {
         options.setTags(Collections.emptyMap());
         yaml = new Yaml(options);
@@ -45,10 +46,15 @@ public class GlobalWurstConfig {
         if (userHome.length() <= 0) {
             throw new RuntimeException("No user.home available.");
         }
+
         wurstConfigFolder = new File(userHome, FOLDER_PATH);
         globalConfigFile = new File(wurstConfigFolder, FILE_NAME);
         isFreshInstall = !wurstConfigFolder.exists();
         try {
+            File ownJar = new File(SetupMain.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+            if(ownJar.getParentFile().compareTo(wurstConfigFolder) != 0) {
+                Files.copy(ownJar.toPath(), new File(wurstConfigFolder, "wurstscript.jar").toPath());
+            }
             getLatestBuildNumber();
             if (!isFreshInstall) {
                 if (globalConfigFile.exists()) {
@@ -108,8 +114,8 @@ public class GlobalWurstConfig {
                     wurstCompilerJar = new File(GlobalWurstConfig.getWurstConfigFolder(), "wurstscript.jar");
                     updateAvailable = false;
                     isFreshInstall = false;
-                    
-                    if(!wurstCompilerJar.exists()) {
+
+                    if (!wurstCompilerJar.exists()) {
                         Init.log("ERROR");
                     } else {
                         Init.log(isFreshInstall ? "Installation complete\n" : "Update complete\n");
