@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 
 import static us.monoid.web.Resty.path;
@@ -53,7 +54,7 @@ public class GlobalWurstConfig {
         try {
             File ownJar = new File(SetupMain.class.getProtectionDomain().getCodeSource().getLocation().getPath());
             if(ownJar.getParentFile().compareTo(wurstConfigFolder) != 0) {
-                Files.copy(ownJar.toPath(), new File(wurstConfigFolder, "wurstscript.jar").toPath());
+                Files.copy(ownJar.toPath(), new File(wurstConfigFolder, "wurstsetup.jar").toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
             getLatestBuildNumber();
             if (!isFreshInstall) {

@@ -29,7 +29,6 @@ public class Init {
                 }
             }
             if (wurstUpdt || projectUpdt) {
-                System.out.println("available");
                 int dialogResult = JOptionPane.showConfirmDialog(null, "An update has been found. Would you like to download it now?",
                         "Update available", JOptionPane.YES_NO_OPTION);
                 if (dialogResult == JOptionPane.YES_OPTION) {
