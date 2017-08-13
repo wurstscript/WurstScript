@@ -37,6 +37,9 @@
 -dontwarn com.jcraft.jsch.jcraft.**
 -dontwarn org.javacc.**
 
+-keep class org.eclipse.jgit.lib.Repository
+-keep class org.eclipse.jgit.transport.RemoteConfig { *** removeURI(...); }
+
 -keep public class * {
     public protected *;
 }
