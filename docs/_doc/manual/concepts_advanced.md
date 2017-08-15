@@ -207,8 +207,7 @@ other objects like putting them in a list or into a table.
 Sometimes one expression is not enough for a closure. In this case, the begin-end
 expression can be used. It allows to have statements inside an expression. The
 begin keyword has to be followed by a newline and an increase in indentation.
-The rule that newlines are ignored inside parenthesis is ignored for the begin-end
-expression, so that it is possible to have multiple lines of statements within:
+It is possible to have multiple lines of statements within:
 ```wurst
 doLater(10.0, () -> begin
 	KillUnit(u)

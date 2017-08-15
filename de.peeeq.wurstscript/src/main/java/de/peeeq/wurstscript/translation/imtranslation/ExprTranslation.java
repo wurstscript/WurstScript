@@ -20,7 +20,9 @@ import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 public class ExprTranslation {
 
     public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {
@@ -603,4 +605,20 @@ public class ExprTranslation {
         throw new CompileError(s.getSource(), "cannot translate empty expression");
     }
 
+    public static ImExpr translate(ExprIfElse e, ImTranslator t, ImFunction f) {
+        ImVar res = JassIm.ImVar(e, e.attrTyp().imTranslateType(), "cond_result", false);
+        f.getLocals().add(res);
+        return JassIm.ImStatementExpr(
+                ImStmts(
+                        ImIf(e, e.getCond().imTranslateExpr(t, f),
+                                ImStmts(
+                                        ImSet(e.getIfTrue(), res, e.getIfTrue().imTranslateExpr(t, f))
+                                ),
+                                ImStmts(
+                                        ImSet(e.getIfFalse(), res, e.getIfFalse().imTranslateExpr(t, f))
+                                ))
+                ),
+                JassIm.ImVarAccess(res)
+        );
+    }
 }

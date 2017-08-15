@@ -163,8 +163,8 @@ public abstract class WurstType {
     }
 
 
-    public WurstType typeUnion(WurstType t) {
-        return WurstTypeUnion.create(this, t);
+    public WurstType typeUnion(WurstType t, Element loc) {
+        return WurstTypeUnion.create(this, t, loc);
     }
 
     /**

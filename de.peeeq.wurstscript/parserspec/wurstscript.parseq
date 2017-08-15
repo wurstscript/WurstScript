@@ -171,6 +171,7 @@ Expr =
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
+	| ExprIfElse(de.peeeq.wurstscript.parser.WPos source, Expr cond, Expr ifTrue, Expr ifFalse)
 
 ExprMember =
 	  ExprMemberVar

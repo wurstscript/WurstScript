@@ -694,4 +694,13 @@ public class PrettyPrinter {
         sb.append(identifier.getName());
     }
 
+    public static void prettyPrint(ExprIfElse e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("(");
+        e.getCond().prettyPrint(spacer, sb, indent+1);
+        sb.append("?");
+        e.getIfTrue().prettyPrint(spacer, sb, indent+1);
+        sb.append(":");
+        e.getIfFalse().prettyPrint(spacer, sb, indent+1);
+        sb.append(")");
+    }
 }

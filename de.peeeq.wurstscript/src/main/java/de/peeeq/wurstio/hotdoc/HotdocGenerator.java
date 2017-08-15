@@ -96,7 +96,7 @@ public class HotdocGenerator {
                 throw new RuntimeException("Cannot generate for empty model: " + files.get(0));
             }
             WLogger.info("Found " + packages.size() + "´packages.");
-            Collections.sort(packages, Comparator.comparing(o -> o.getSource().shortFile()));
+            packages.sort(Comparator.comparing(o -> o.getSource().shortFile()));
 
             createIndex(packages);
             for (WPackage p : packages) {

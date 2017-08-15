@@ -396,4 +396,7 @@ public class DescriptionHtml {
         return "";
     }
 
+    public static String description(ExprIfElse exprIfElse) {
+        return "A conditional expression.";
+    }
 }

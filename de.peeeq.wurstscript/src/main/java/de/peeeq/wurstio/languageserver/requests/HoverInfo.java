@@ -657,6 +657,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ExprIfElse(ExprIfElse exprIfElse) {
+            return string("A conditional expression (condition ? ifTrue : ifFalse).");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_WurstDoc(WurstDoc wurstDoc) {
             return wurstDoc.getParent().match(this);
         }

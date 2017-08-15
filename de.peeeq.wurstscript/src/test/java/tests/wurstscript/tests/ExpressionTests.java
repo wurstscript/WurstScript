@@ -111,6 +111,93 @@ public class ExpressionTests extends WurstScriptTest {
         assertOk("\"Hallo \\\"Welt\\\"\" != null");
     }
 
+
+    @Test
+    public void conditionalExpr_true() {
+        assertOk("(1 < 2 ? 3 : 4) == 3");
+    }
+
+    @Test
+    public void conditionalExpr_false() {
+        assertOk("(1 > 2 ? 3 : 4) == 4");
+    }
+
+    @Test
+    public void conditionalExpr_linebreaks1() {
+        assertOk("(1 < 2 \n ? 3 \n : 4) == 3");
+    }
+
+    @Test
+    public void conditionalExpr_linebreaks2() {
+        assertOk("(1 < 2 ? \n  3 : \n 4) == 3");
+    }
+
+    @Test
+    public void conditionalExpr_linebreaks3() {
+        assertOk("(1 < 2 \n ? \n  3 \n : \n 4) == 3");
+    }
+
+
+    @Test
+    public void conditionalExpr_subtypes_ok1() {
+        testAssertOkLines(false,
+                "package test",
+                "class A",
+                "class B extends A",
+                "class C extends A",
+                "init",
+                "	A a = 1<3 ? new B : new C"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_subtypes_err1() {
+        testAssertErrorsLines(false, "Cannot assign (B or C) to A",
+                "package test",
+                "class A",
+                "class B extends A",
+                "class C",
+                "init",
+                "	A a = 1<3 ? new B : new C"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_subtypes_err2() {
+        testAssertErrorsLines(false, "Cannot assign (B or C) to A",
+                "package test",
+                "class A",
+                "class B",
+                "class C extends A",
+                "init",
+                "	A a = 1<3 ? new B : new C"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_subtypes_err3() {
+        testAssertErrorsLines(false, "Cannot assign A to int",
+                "package test",
+                "class A",
+                "class B extends A",
+                "init",
+                "	int i = 1<3 ? new A : new B"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_subtypes_err4() {
+        testAssertErrorsLines(false, "Cannot assign A to int",
+                "package test",
+                "class A",
+                "class B extends A",
+                "init",
+                "	int i = 1<3 ? new B : new A"
+        );
+    }
+
+
+
     private String makeProg(String booleanExpr) {
         String prog = "package test \n" +
                 "	native testFail(string msg)\n" +
