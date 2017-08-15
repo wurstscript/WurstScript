@@ -151,6 +151,25 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void conditionalExpr_blocks() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    int x = 0",
+                "    int y = 1 < 3 ? begin",
+                "        x = 40",
+                "        return 2",
+                "    end : begin",
+                "        x = 60",
+                "        return 3",
+                "    end",
+                "    if x + y == 42",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
     public void conditionalExpr_subtypes_err1() {
         testAssertErrorsLines(false, "Cannot assign (B or C) to A",
                 "package test",
