@@ -110,7 +110,7 @@ public class AttrExprExpectedType {
 
         for (ConstructorDef superConstr : constructors) {
             if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
-                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp());
+                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
             }
         }
 
@@ -126,7 +126,7 @@ public class AttrExprExpectedType {
 
         for (FunctionSignature sig : sigs) {
             if (index < sig.getParamTypes().size()) {
-                res = res.typeUnion(sig.getParamTypes().get(index));
+                res = res.typeUnion(sig.getParamTypes().get(index), expr);
             }
         }
         return res;

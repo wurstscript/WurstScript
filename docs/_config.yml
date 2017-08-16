@@ -1,7 +1,7 @@
 #
 # Site settings
 #
-url: https://peq.github.io/WurstScript/
+url: https://wurstscript.github.io/WurstScript/
 baseurl: /WurstScript
 highlighter: rouge
 title: &site_title WurstScript

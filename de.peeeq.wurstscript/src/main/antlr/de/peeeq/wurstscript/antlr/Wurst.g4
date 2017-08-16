@@ -349,6 +349,7 @@ expr:
 	  | op='not' right=expr
 	  | left=expr op='and' right=expr
 	  | left=expr op='or' right=expr
+	  | cond=expr '?' ifTrueExpr=expr ':' ifFalseExpr=expr
 	  |
 	;
 
@@ -522,6 +523,8 @@ DIV_REAL: '/';
 MOD_REAL: '%';
 DOT: '.';
 DOTDOT: '..';
+QUESTION: '?';
+COLON: ':';
 PAREN_LEFT: '(';
 PAREN_RIGHT: ')';
 BRACKET_LEFT: '[';

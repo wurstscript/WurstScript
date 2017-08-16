@@ -847,6 +847,8 @@ public class AntlrWurstParseTreeTransformer {
         } else if (e.instaneofType != null) {
             return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType),
                     transformExpr(e.left));
+        } else if (e.cond != null) {
+            return Ast.ExprIfElse(source, transformExpr(e.cond), transformExpr(e.ifTrueExpr), transformExpr(e.ifFalseExpr));
         }
 
         ParseTree left = getLeftParseTree(e);

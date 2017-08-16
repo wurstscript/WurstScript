@@ -198,4 +198,7 @@ public class ReadVariables {
         return ImmutableList.emptyList();
     }
 
+    public static ImmutableList<NameDef> calculate(ExprIfElse e) {
+        return generic(e);
+    }
 }

@@ -20,6 +20,7 @@ Expr ::=
     | Expr mod Expr     // integer modulo
     | Expr and Expr     // boolean and
     | Expr or Expr      // boolean or
+    | Expr ? Expr : Expr // Conditional expression / ternary operator
     | Expr < Expr       // smaller than
     | Expr <= Expr      // smaller or equal than
     | Expr > Expr       // greater than
@@ -70,6 +71,24 @@ temp.registerAnyUnitEvent(EVENT_PLAYER_UNIT_ISSUED_ORDER)
 temp.addCondition(Condition(function cond))
 temp.addAction(function action)
 ```
+
+### Conditional operator
+
+The conditional operator (also called ternary operator) has the form `condition ? ifTrue : ifFalse`.
+First the condition is evaluated.
+If the condition is `true`, then the `ifTrue` expression is evaluated and the result of the overall expression.
+Otherwise the `ifFalse` expression is evaluated.
+
+The type of the expression is the union-type of both result-expressions, meaning that both expressions must have a type that is allowed where the conditional expression is used.
+
+The conditional operator should only be used in some rare cases.
+A typical use is as a shorthand for choosing between two alternatives like in the following example:
+
+```wurst
+// handle the special case of one enemy left:
+string enemyCount = n.toString() + " " + (n == 1 ? "enemy" : "enemies")
+```
+
 
 ## Statements
 

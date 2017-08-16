@@ -27,7 +27,7 @@ import java.util.logging.Logger;
  */
 public class AboutDialog extends javax.swing.JDialog {
     final URI uri;
-    final static String homepage = "http://peq.github.com/WurstScript/";
+    final static String homepage = "http://wurstscript.github.com/WurstScript/";
     public final static String version = CompileTimeInfo.version;
     final static String authors = "peq & Frotty";
 

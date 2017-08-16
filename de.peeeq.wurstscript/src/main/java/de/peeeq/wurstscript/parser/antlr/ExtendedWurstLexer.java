@@ -167,9 +167,14 @@ public class ExtendedWurstLexer implements TokenSource {
             switch (state) {
                 case INIT:
                     if (token.getType() == WurstParser.NL) {
-                        firstNewline = token;
-                        state(State.NEWLINES);
-                        continue;
+                        if (lastCharWasWrap) {
+                            // ignore the newline following a wrap-character
+                            continue;
+                        } else {
+                            firstNewline = token;
+                            state(State.NEWLINES);
+                            continue;
+                        }
                     } else if (isTab(token)) {
                         continue;
                     }
@@ -332,6 +337,8 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.AND:
             case WurstParser.OR:
             case WurstParser.ARROW:
+            case WurstParser.QUESTION:
+            case WurstParser.COLON:
                 return true;
         }
         return false;
