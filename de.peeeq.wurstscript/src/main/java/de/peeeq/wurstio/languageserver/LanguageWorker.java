@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
@@ -248,18 +249,22 @@ public class LanguageWorker implements Runnable {
             userRequests.add(request);
             lock.notifyAll();
             CompletableFuture<Res> fut = request.getFuture();
+            CompletableFuture<Res> resFut = new CompletableFuture<>();
             fut.whenComplete((res, err) -> {
-                if (res == null) {
+                if (err != null) {
+                    request.handleException(languageClient, err, resFut);
+                } else if (res == null) {
                     System.err.println("Request returned null: " + request);
                     if(!(request instanceof HoverInfo)) {
                         languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
                     }
+                    resFut.completeExceptionally(new RuntimeException("Request returned null: " + request));
+                } else {
+                    resFut.complete(res);
                 }
-                if (err != null) {
-                    languageClient.showMessage(new MessageParams(MessageType.Error, err.getMessage()));
-                }
+
             });
-            return fut;
+            return resFut;
         }
     }
 }

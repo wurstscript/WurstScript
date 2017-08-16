@@ -27,6 +27,9 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.MessageParams;
+import org.eclipse.lsp4j.MessageType;
+import org.eclipse.lsp4j.services.LanguageClient;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
@@ -39,6 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +71,18 @@ public class RunMap extends UserRequest<Object> {
         this.compileArgs = compileArgs;
     }
 
+
+    @Override
+    public void handleException(LanguageClient languageClient, Throwable err, CompletableFuture<Object> resFut) {
+        if (err instanceof RequestFailedException) {
+            RequestFailedException rfe = (RequestFailedException) err;
+            languageClient.showMessage(new MessageParams(rfe.getMessageType(), rfe.getMessage()));
+            resFut.complete(new Object());
+        } else {
+            super.handleException(languageClient, err, resFut);
+        }
+    }
+
     @Override
     public Object execute(ModelManager modelManager) {
 
@@ -77,7 +93,7 @@ public class RunMap extends UserRequest<Object> {
             File gameExe = findGameExecutable();
 
             if (!map.exists()) {
-                throw new RuntimeException(map.getAbsolutePath() + " does not exist.");
+                throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
             }
 
             gui.sendProgress("Copying map");
@@ -88,7 +104,7 @@ public class RunMap extends UserRequest<Object> {
             if (testMap.exists()) {
                 boolean deleteOk = testMap.delete();
                 if (!deleteOk) {
-                    throw new RuntimeException("Could not delete old mapfile: " + testMap);
+                    throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + testMap);
                 }
             }
             Files.copy(map, testMap);
@@ -128,12 +144,11 @@ public class RunMap extends UserRequest<Object> {
             gui.sendProgress("running " + cmd);
             Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
         } catch (CompileError e) {
-            e.printStackTrace();
-            return "There was an error when compiling the map: " + e.getMessage();
-        } catch (final Throwable e) {
-            e.printStackTrace();
-            WLogger.severe(e);
-            return "There was a Wurst bug, while compiling the map: " + e.getMessage();
+            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
         } finally {
             gui.sendFinished();
         }
