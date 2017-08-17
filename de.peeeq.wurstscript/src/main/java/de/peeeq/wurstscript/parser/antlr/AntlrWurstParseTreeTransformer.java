@@ -511,10 +511,38 @@ public class AntlrWurstParseTreeTransformer {
         if (v.constant != null) {
             modifiers.add(Ast.ModConstant(source(v.constant)));
         }
-        OptExpr initialExpr = transformOptionalExpr(v.initial);
+        VarInitialization initialExpr = transformVarInit(v.variableInit());
         Identifier name = text(v.name);
         OptTypeExpr optTyp = transformOptionalType(v.varType);
         return Ast.GlobalVarDef(source, modifiers, optTyp, name, initialExpr);
+    }
+
+    private VarInitialization transformVarInit(VariableInitContext e) {
+        if (e == null) {
+            return Ast.NoExpr();
+        }
+        if (e.arrayInit() != null) {
+            return transformArrayInit(e.arrayInit());
+        } else {
+            return transformExpr(e.initial);
+        }
+    }
+
+    private VarInitialization transformArrayInit(ArrayInitContext e) {
+        return Ast.ArrayInitializer(source(e), transformExprlist(e.exprList()));
+    }
+
+    private ExprList transformExprlist(ExprListContext es) {
+        ExprList result = Ast.ExprList();
+        if (es != null) {
+            for (ExprContext e : es.exprs) {
+                result.add(transformExpr(e));
+            }
+        }
+        if (result.size() == 1 && result.get(0) instanceof ExprEmpty) {
+            result.clear();
+        }
+        return result;
     }
 
     private InitBlock transformInit(InitBlockContext i) {
@@ -750,7 +778,7 @@ public class AntlrWurstParseTreeTransformer {
         }
         OptTypeExpr optTyp = transformOptionalType(l.type);
         Identifier name = text(l.name);
-        OptExpr initialExpr = transformOptionalExpr(l.initial);
+        VarInitialization initialExpr = transformVarInit(l.variableInit());
         return Ast.LocalVarDef(source(l), modifiers, optTyp, name, initialExpr);
     }
 

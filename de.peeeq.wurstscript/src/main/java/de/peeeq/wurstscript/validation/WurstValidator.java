@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.validation;
 
+import asg.grammars.ast.AstElement;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -826,8 +827,30 @@ public class WurstValidator {
             WurstType rightType = initial.attrTyp();
 
             checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+        } else if (s.getInitialExpr() instanceof ArrayInitializer) {
+            ArrayInitializer arInit = (ArrayInitializer) s.getInitialExpr();
+            checkArrayInit(s, arInit);
         }
         checkIfRead(s);
+    }
+
+    private void checkArrayInit(VarDef def, ArrayInitializer arInit) {
+        WurstType leftType = def.attrTyp();
+        if (leftType instanceof WurstTypeArray) {
+            WurstTypeArray arT = (WurstTypeArray) leftType;
+            if (arT.getDimensions() > 1) {
+                def.addError("Array initializer can only be used with one-dimensional arrays.");
+            }
+            WurstType baseType = arT.getBaseType();
+            for (Expr expr : arInit.getValues()) {
+                if (!expr.attrTyp().isSubtypeOf(baseType, expr)) {
+                    expr.addError("Expected expression of type " + baseType + " in array initialization, but found " + expr.attrTyp());
+                }
+            }
+        } else {
+            def.addError("Array initializer can only be used with array-variables, but " + Utils.printElement(def) + " has type " + leftType);
+        }
+
     }
 
     private void checkIfRead(VarDef s) {
@@ -914,6 +937,8 @@ public class WurstValidator {
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
             checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+        } else if (s.getInitialExpr() instanceof ArrayInitializer) {
+            checkArrayInit(s, (ArrayInitializer) s.getInitialExpr());
         }
 
         if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {

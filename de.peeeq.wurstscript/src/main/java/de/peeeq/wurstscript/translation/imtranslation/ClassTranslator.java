@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class ClassTranslator {
     private ClassDef classDef;
     private ImTranslator translator;
     //	/** list of statements to initialize a new object **/
-    final private List<Pair<ImVar, OptExpr>> dynamicInits;
+    final private List<Pair<ImVar, VarInitialization>> dynamicInits;
     private ImClass imClass;
     private ImProg prog;
 
@@ -391,12 +392,14 @@ public class ClassTranslator {
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
         }
         // initialize vars
-        for (Pair<ImVar, OptExpr> i : translator.getDynamicInits(classDef)) {
+        for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
             ImVar v = i.getA();
             if (i.getB() instanceof Expr) {
                 Expr e = (Expr) i.getB();
                 ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
                 f.getBody().add(s);
+            } else if (i.getB() instanceof ArrayInitializer) {
+                throw new RuntimeException("TODO");
             }
         }
         // add initializers from modules

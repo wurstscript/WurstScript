@@ -19,7 +19,9 @@ import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.List;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 public class StmtTranslation {
 
     public static ImStmt translate(Expr s, ImTranslator t, ImFunction f) {
@@ -32,6 +34,15 @@ public class StmtTranslation {
         if (s.getInitialExpr() instanceof Expr) {
             Expr inital = (Expr) s.getInitialExpr();
             return ImSet(s, v, inital.imTranslateExpr(t, f));
+        } else if (s.getInitialExpr() instanceof ArrayInitializer) {
+            ArrayInitializer ai = (ArrayInitializer) s.getInitialExpr();
+            ImStmts stmts = ImStmts();
+            for (int i = 0; i < ai.getValues().size(); i++) {
+                Expr expr = ai.getValues().get(i);
+                ImExpr translatedExpr = expr.imTranslateExpr(t, f);
+                stmts.add(JassIm.ImSetArray(s, v, JassIm.ImIntVal(i), translatedExpr));
+            }
+            return JassIm.ImStatementExpr(stmts, ImNull());
         } else {
             return ImNull();
         }

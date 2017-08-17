@@ -44,9 +44,10 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 public class ImTranslator {
 
 
@@ -391,18 +392,23 @@ public class ImTranslator {
     }
 
 
-    public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, OptExpr initialExpr) {
+    public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, VarInitialization initialExpr) {
+        if (initialExpr instanceof NoExpr) {
+            // nothing to initialize
+            return;
+        }
+
+
+        ImFunction f;
+        if (packageOrGlobal instanceof WPackage) {
+            WPackage p = (WPackage) packageOrGlobal;
+            f = getInitFuncFor(p);
+        } else {
+            f = globalInitFunc;
+        }
+        de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
         if (initialExpr instanceof Expr) {
             Expr expr = (Expr) initialExpr;
-
-            ImFunction f;
-            if (packageOrGlobal instanceof WPackage) {
-                WPackage p = (WPackage) packageOrGlobal;
-                f = getInitFuncFor(p);
-            } else {
-                f = globalInitFunc;
-            }
-            de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
             ImExpr translated = expr.imTranslateExpr(this, f);
             if (!v.getIsBJ()) {
                 // add init statement for non-bj vars
@@ -410,6 +416,13 @@ public class ImTranslator {
                 f.getBody().add(ImSet(trace, v, translated));
             }
             imProg.getGlobalInits().put(v, translated);
+        } else if (initialExpr instanceof ArrayInitializer) {
+            ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+            for (int i = 0; i < arInit.getValues().size(); i++) {
+                Expr expr = arInit.getValues().get(i);
+                ImExpr translated = expr.imTranslateExpr(this, f);
+                f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
+            }
         }
     }
 
@@ -826,11 +839,11 @@ public class ImTranslator {
     }
 
 
-    private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newLinkedHashMap();
+    private Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
     private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
-    public List<Pair<ImVar, OptExpr>> getDynamicInits(ClassDef c) {
-        List<Pair<ImVar, OptExpr>> r = classDynamicInitMap.get(c);
+    public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
+        List<Pair<ImVar, VarInitialization>> r = classDynamicInitMap.get(c);
         if (r == null) {
             r = Lists.newArrayList();
             classDynamicInitMap.put(c, r);
@@ -948,8 +961,10 @@ public class ImTranslator {
         }
     }
 
-    /** calculates list of all classes
-     * ignoring the ones in modules, only module instantiations*/
+    /**
+     * calculates list of all classes
+     * ignoring the ones in modules, only module instantiations
+     */
     private List<ClassDef> classes() {
         List<ClassDef> result = new ArrayList<>();
         for (CompilationUnit cu : wurstProg) {

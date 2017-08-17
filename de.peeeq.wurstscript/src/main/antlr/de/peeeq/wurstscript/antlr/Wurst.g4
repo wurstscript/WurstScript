@@ -223,8 +223,14 @@ typeExpr:
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=ID ('=' variableInit)? NL
 	  ;		  
+
+variableInit: (arrayInit | initial=expr);
+
+
+arrayInit: '[' exprList ']';
+
 
 statements:
 			statement*
@@ -289,8 +295,9 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' initial=expr)? 
-	  ;	
+		  name=ID ('=' variableInit)?
+	  ;
+
 
 localVarDefInline:
 					 typeExpr? name=ID

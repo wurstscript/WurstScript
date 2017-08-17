@@ -13,6 +13,10 @@ public class PrettyPrinter {
         commaSeparatedList(e, spacer, sb, indent);
     }
 
+    public static void prettyPrint(ExprList e, Spacer spacer, StringBuilder sb, int indent) {
+        commaSeparatedList(e, spacer, sb, indent);
+    }
+
     private static void commaSeparatedList(Element e, Spacer spacer, StringBuilder sb, int indent) {
         for (int i = 0; i < e.size(); i++) {
             if (i > 0) {
@@ -697,10 +701,16 @@ public class PrettyPrinter {
     public static void prettyPrint(ExprIfElse e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append("(");
         e.getCond().prettyPrint(spacer, sb, indent+1);
-        sb.append("?");
+        sb.append(" ? ");
         e.getIfTrue().prettyPrint(spacer, sb, indent+1);
-        sb.append(":");
+        sb.append(" : ");
         e.getIfFalse().prettyPrint(spacer, sb, indent+1);
         sb.append(")");
+    }
+
+    public static void prettyPrint(ArrayInitializer arrayInitializer, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("[");
+        arrayInitializer.getValues().prettyPrint(spacer, sb, indent);
+        sb.append("]");
     }
 }

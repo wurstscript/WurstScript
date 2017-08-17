@@ -302,6 +302,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ArrayInitializer(ArrayInitializer arrayInitializer) {
+            return string("Initial values for the array.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ModOverride(ModOverride modOverride) {
             return string("override: This function overrides an other function from a module or superclass");
         }
@@ -529,6 +534,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_FuncDef(FuncDef funcDef) {
             return description(funcDef);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_ExprList(ExprList exprList) {
+            return string("A list of expressions.");
         }
 
         @Override
