@@ -29,6 +29,15 @@ plugins:
 
 
 #
+# Social
+#
+
+share:
+  github:
+    repo: wurstscript/WurstScript
+    position: center
+
+#
 # Collections
 #
 collections:
