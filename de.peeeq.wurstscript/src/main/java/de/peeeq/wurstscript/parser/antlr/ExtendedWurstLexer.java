@@ -131,7 +131,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
                     assert token != null;
                 } else if (token.getType() == WurstParser.ENDPACKAGE) {
-                    handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                    handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                     isWurst = false;
                 }
             } else {
@@ -152,7 +152,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
             if (token.getType() == WurstParser.EOF) {
                 // at EOF close all blocks and return an extra newline
-                handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                 eof = token;
                 if (isWurst) {
                     // if inside wurst, add a closing 'endpackage' and a newline
@@ -195,7 +195,7 @@ public class ExtendedWurstLexer implements TokenSource {
                         continue;
                     } else {
                         // no tabs after newline
-                        handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                        handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                         nextTokens.add(token);
                         state(State.INIT);
                         return firstNewline;
@@ -238,7 +238,7 @@ public class ExtendedWurstLexer implements TokenSource {
                             state(State.INIT);
                             return token;
                         } else {
-                            handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
+                            handleIndent(numberOfTabs, token, token.getStartIndex(), token.getStopIndex());
                             state(State.INIT);
                             nextTokens.add(token);
                             return firstNewline;
@@ -294,15 +294,15 @@ public class ExtendedWurstLexer implements TokenSource {
     }
 
 
-    private void handleIndent(int n, int start, int stop) {
+    private void handleIndent(int n, Token token, int start, int stop) {
         if (!isWurst) {
             return;
         }
-        Token t = lastToken;
-        if (t != null) {
-            start = t.getStopIndex();
-            stop = t.getStopIndex();
-        }
+//        Token t = lastToken;
+//        if (t != null) {
+//            start = t.getStopIndex();
+//            stop = t.getStopIndex();
+//        }
         if (debug) WLogger.info("handleIndent " + n + "	 " + indentationLevels);
         if (n > indentationLevels.peek()) {
             indentationLevels.push(n);
@@ -312,10 +312,15 @@ public class ExtendedWurstLexer implements TokenSource {
                 indentationLevels.pop();
                 nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", start, stop));
             }
-            if (n != indentationLevels.peek()) {
-                for (ANTLRErrorListener el : orig.getErrorListeners()) {
-                    int line = lineOffsets.getLine(start);
-                    el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level.", null);
+            Integer expectedIndentation = indentationLevels.peek();
+            if (n != expectedIndentation) {
+                // all lines must be indented on the same level,
+                // with the exception of the 'end' keyword, which can be on a different line
+                if (token.getType() != WurstParser.END) {
+                    for (ANTLRErrorListener el : orig.getErrorListeners()) {
+                        int line = lineOffsets.getLine(start);
+                        el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".", null);
+                    }
                 }
             }
         }
