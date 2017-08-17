@@ -2,10 +2,12 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -24,6 +26,8 @@ public interface ModelManager {
      * cleans the model
      */
     void clean();
+
+    List<CompileError> getParseErrors();
 
     void updateCompilationUnit(WFile filename, String contents, boolean reportErrors);
 

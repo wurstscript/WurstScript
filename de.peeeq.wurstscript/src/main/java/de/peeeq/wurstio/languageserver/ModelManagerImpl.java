@@ -516,6 +516,11 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
+    public List<CompileError> getParseErrors() {
+        return parseErrors.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+    @Override
     public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {
         replaceCompilationUnit(filename, contents, reportErrors);
     }

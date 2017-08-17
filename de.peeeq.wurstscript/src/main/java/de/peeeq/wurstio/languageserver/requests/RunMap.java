@@ -150,7 +150,9 @@ public class RunMap extends UserRequest<Object> {
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
-            gui.sendFinished();
+            if (gui.getErrorCount() == 0) {
+                gui.sendFinished();
+            }
         }
         return "ok"; // TODO
     }
@@ -241,7 +243,10 @@ public class RunMap extends UserRequest<Object> {
         }
 
         if (modelManager.hasErrors()) {
-            throw new RuntimeException("Model has errors");
+            for (CompileError compileError : modelManager.getParseErrors()) {
+                gui.sendError(compileError);
+            }
+            throw new RequestFailedException(MessageType.Warning, "Cannot run code with syntax errors.");
         }
 
         WurstModel model = modelManager.getModel();
@@ -266,18 +271,14 @@ public class RunMap extends UserRequest<Object> {
         compiler.checkProg(model);
 
         if (gui.getErrorCount() > 0) {
-            print("Could not compile project\n");
-            System.err.println("Could not compile project: " + gui.getErrorList().get(0));
-            throw new RuntimeException("Could not compile project: " + gui.getErrorList().get(0));
+            throw new RequestFailedException(MessageType.Warning, "Could not compile project: " + gui.getErrorList().get(0));
         }
 
         print("translating program ... ");
         compiler.translateProgToIm(model);
 
         if (gui.getErrorCount() > 0) {
-            print("Could not compile project (error in translation)\n");
-            System.err.println("Could not compile project (error in translation): " + gui.getErrorList().get(0));
-            throw new RuntimeException("Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
         }
 
         if (runArgs.runCompiletimeFunctions()) {
