@@ -17,38 +17,36 @@ sections:
 ### *&nbsp;*{: .fa .fa-exclamation-circle} This tutorial is in the format of an informal discussion, but many of the key points are backed by well understood, high-level programming paradigms.
 ------
 
-When I ~evangelize~ discuss wurst, I tend to hear weird arguments against using it.
+When I (evangelize?) discuss wurst, I tend to hear weird arguments against using it.
 Some of them are interesting, like "well I can't justify learning it", or "my map is already using vJass", but other arguments tend to be outlandish and worth some education.
 More concretely, lots of arguments about wurst are spoilt by misunderstanding or misinformation.
 
 For what it's worth, wurst is an easy language to learn, and you can write wurst in a map that use vJass, but I digress.
 
 As background: I switched to using wurst in the last couple years after fairly extensive experience writing vJass.
-The switch was easy - I decided to "try" wurst on a toy map, and immediately realized that I had blinders on, and indeed was *misled* by the public opinion of others.
+The switch was easy - I decided to "try" wurst on a toy map, and immediately realized that I aws previously wearing blinders, and indeed was *misled* by the public opinion of others.
 
 So this tutorial is about learning, but it's also about justice.
-
-May the most correct man win - not the loudest.
 
 ## Why not vJass?
 
 This is an argument that wurst users have historically done poor at.
 The most interesting problems with vJass are not silly quirks like "extends array" or the macro system - those are small language smells that point to a larger problem - the language is a bit of an abomination for hacking things together.
 
-The more interesting discussion revolves around understanding what vJass is not.
+The more interesting discussion revolves around understanding what vJass is not, as discussed below.
 
 ### Preprocessor
 
 Fundamentally, vJass is a pre-processed language that gets simply transformed into Jass, and this has lots of side-effects:
 
 {: .answer}
-### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Type-Safety is the concept of checking that the values and functions a programmer uses are *consitent* - e.g. that the user never tries to give a timer to a function that takes an integer.
+### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Type-Safety is the concept of checking that the values and functions a programmer uses are *consistent* - e.g. that the user never tries to give a timer to a function that takes an integer.
 
-* It Generates code for you, but otherwise is very limited to abstraction - you just can't express higher level concepts safely in vJass because instances of structs are always integers - the compiler can't check anything for you - so type-safety is lost entirely.
-  vJass does at least have some validation, but that's not being done by JassHelper - PJass is just checking the emitted jass, but can't do anything smart at the vJass level.
-* No "abstract syntax tree" (building blocks of code that a compiler understands) - so very expensive to add features to JassHelper.
+* vJass Generates code for you, but otherwise is very limited to abstraction - you just can't express higher level concepts safely in vJass because instances of structs are always integers - the compiler can't check anything for you - so type-safety is lost entirely.
+  vJass does at least have some validation, but that's not being done by JassHelper - PJass is checking the emitted jass, but can't do anything smart at the vJass level.
+* No "abstract syntax tree" (building blocks of code that a compiler understands) - so adding new features to JassHelper is very expensive and requires detailed knowledge of the system, which makes it hard for anyone else to take up ownership.
 * Compiler-aided optimisation is impossible.  Wurst can inline functions, cull unused code, automatically null variables, etc.
-  JassHelper can inline 1-line functions, but this is puhing the boundaries of JassHelper's capabilities.
+  JassHelper can inline 1-line functions, but this is pushing the boundaries of JassHelper's capabilities.
 
 ### Limited tooling
 
@@ -81,9 +79,9 @@ Wurst at least gives you the capability to prevent entire classes of error like 
 
 Maintaining JassHelper is *hard*, and the language specification designer isn't active anymore.
 
-Contrast that with the 33 commits so far this month on WurstScript - https://github.com/wurstscript/WurstScript/commits/master
+Contrast that with the [33 commits](https://github.com/wurstscript/WurstScript/commits/master) so far this month on WurstScript.
 
-Of coure, there are costs to using language that's actively developed too - strange bugs are more numerous, and occasionally the compiler has a regression - but this is a small price to pay.
+Of course, there are costs to using a language that's actively developed too - strange bugs are more numerous, and occasionally the compiler has a regression - but this is a small price to pay.
 
 ## Why wurst?
 
@@ -114,11 +112,10 @@ Why is that?
 
 It's not because wurst isn't worth sharing, or there's noone sharing it - wurst just fundamentally approaches the problem at a tooling level (much like cargo, pip, npm, etc).
 
-* Most of the basic requirements like data structures and familiar systems like damage detection are implemented in the standard library.
+Most of the basic requirements like data structures and familiar systems like damage detection are implemented in the standard library.
 `import DamageType` and done.
 Don't like the implementation?
 Implement your own and publish it for use with the wurst dependency manager, offer your own improvements upstream to the standard library, or even write your own standard library - why not?
-Text snippets are so 2001.
 
 ### Object editing
 
@@ -131,27 +128,29 @@ Compiletime functions have a slightly different set of features than runtime fun
 Let's have the code speak for itself -
 
 ```wurst
-    class DragonDefinition extends UnitDefinition
-        construct(int id)
-            super(id, 'nadr')
+public let DRAGON_ID = 'h000'
 
-            setAttacksEnabled(0)
-            setName("Dragon")
-            setUpgradesUsed("")
-            setStructuresBuilt("")
-            setManaRegeneration(1.)
-            setManaInitialAmount(0)
-            setManaMaximum(400)
-            setFoodCost(1)
-            setSpeedBase(300)
-            setTooltipBasic("Dragon")
-            setTooltipExtended("An evolving beast with special powers.")
-            setNormalAbilities("")
-            setRace(Race.Human)
-            setScalingValue(1.)
+class DragonDefinition extends UnitDefinition
+    construct(int id)
+        super(id, 'nadr')
 
-	@compiletime function dragon()
-		new DragionDefinition()
+        setAttacksEnabled(0)
+        setName("Dragon")
+        setUpgradesUsed("")
+        setStructuresBuilt("")
+        setManaRegeneration(1.)
+        setManaInitialAmount(0)
+        setManaMaximum(400)
+        setFoodCost(1)
+        setSpeedBase(300)
+        setTooltipBasic("Dragon")
+        setTooltipExtended("An evolving beast with special powers.")
+        setNormalAbilities("")
+        setRace(Race.Human)
+        setScalingValue(1.)
+
+@compiletime function dragon()
+    new DragionDefinition(DRAGON_ID)
 ```
 
 ## On performance
@@ -163,10 +162,10 @@ Let's get some basics down:
 * Coders interested in performance tend to appreciate that in vJass, the shape of the emitted jass tends to be predictable and close to to the low level function designed.
   This lets them reason about performance.
 * Higher level languages like C++ use an *optimizer* to improve performance by doing things like automatically unraveling loops, inlining functions, and throwing away unused data or code paths.
-* In the past, higher level languages that still provide system-level interaction tended to dominate this area (c++), although advances in compiler technologies has led to languages like rust and go, that manage to show how level of abstraction is distinct from performance.
+* In the past, higher level languages that still provide system-level interaction tended to dominate this area (c++), although advances in compiler technologies has led to languages like rust and go, that manage to show how a programming language can very well provide a high level of abstraction while also being blazing fast.
 
 {: .answer}
-### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Performance and Level of Abstraction are orthogonal concepts - and writing higher level codes does not make it slower.
+### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Performance and Level of Abstraction are orthogonal concepts - and writing higher level code does not necessarily make it slower.
 
 Standards:
 
@@ -184,7 +183,7 @@ This encompasses things like:
 The reason this is better is because *any level of readability improvement, documentation, or comfort* is better than none/flat (as in the case of vJass).
 
 {: .answer}
-### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Thinking about performance in wurst, and indeed many high level programming languages, is a pitfall, and you have to actively change your behavior to improve your abilities as a programmer.
+### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Thinking about performance in wurst, and indeed many high level programming languages, is a pitfall, and for newcomers this may feel unfamiliar - you have to actively change your behavior to get the most out of wurst.
 
 {: .answer}
 ### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Let the compiler/optimiser do the work for you. Instead, write the code that feels right.
@@ -208,7 +207,7 @@ But on average, the value of using wurst just vastly outweighs those negatives -
 
 ### But what about cJass, Zinc, vrJass?
 
-No jass compiler that I've seen comes close to the capabilitie of wurst, and many of these are just toy projects.
+No jass compiler that I've seen comes close to the capabilities of wurst, and many of these are just toy projects.
 Looking at the state of those projects actually just detracts from understanding the value of wurst.
 
 ## Summary
@@ -235,13 +234,13 @@ The syntax of a programming language does have implications - what's possible, w
 Instead, the question is about how style affects reading and writing, at a behavioral level.
 Programmers who use one language exclusively tend to develop strong expectations for how fast or slow they can read code, and what sort of flow their understanding takes as they traverse a file.
 
-Indeed, this is different for wurst when familiar excluively with c or JASS.
+Indeed, this is different for wurst for those highly familiar excluively with c or JASS.
 I would compel the reader to bite the bullet and dive into wurst anyway, as these *behavioral* reading and thinking patterns are a small factor in writing and maintaining code, and your ability to understand code will broaden as you experience other styles.
 
 #### Functional and Imperative style
 
 I'm not going to talk about the value of Functional programming here, but rather, about style.
-In my experience, people tend to have visited functional programming style briefly, and then *unintentionally* dismissing code or programming style that seems similar, even if that's not the case.
+In my experience, people tend to have visited functional programming style briefly, and then *unintentionally* dismissing code or programming style that reminds them of that experience, even if the code/style under scrutiny is vastly different.
 More concisely, they judge a book by its cover.
 
 *How much* some programming language is imperative, declarative, functional, strongly typed, or object oriented, are *highly orthogonal concepts*, which people tend to struggle with.
@@ -253,13 +252,14 @@ With that in mind, it would be a shame to dismiss every language based on reason
 * too much or not enough strongly typed
 * too much or not enough object oriented
 
-Because you'll indeed leave yourself misunderstanding a very wide range of concepts.
+Because you'll leave yourself misunderstanding a very wide range of concepts.
+Casual users of wurst would have a hard time deciding "how strongly typed" or "how functional" the language is - so they also shouldn't feel qualified to dismiss it in the context of one of those topics.
 
 {: .answer}
 ### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Wurst provides the *capability* to write high-level code, but isn't otherwise anything like python or Javascript - wurst is a strongly typed language.
 
 One last thought: just because wurst supports some abstract concepts like generics, closures, and iterators, doesn't mean you're forced to use them.
-On the contrary I would claim that even very basic, imperative looking wurst will have fewer bugs and run faster than similarly styled vJass.
+On the contrary, I would claim that even very basic, imperative looking wurst will have fewer bugs and run faster than similarly styled vJass.
 
 #### Picking your battles
 
