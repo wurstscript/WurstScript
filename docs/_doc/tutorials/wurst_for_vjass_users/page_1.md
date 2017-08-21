@@ -24,7 +24,7 @@ More concretely, lots of arguments about wurst are spoilt by misunderstanding or
 For what it's worth, wurst is an easy language to learn, and you can write wurst in a map that use vJass, but I digress.
 
 As background: I switched to using wurst in the last couple years after fairly extensive experience writing vJass.
-The switch was easy - I decided to "try" wurst on a toy map, and immediately realized that I aws previously wearing blinders, and indeed was *misled* by the public opinion of others.
+The switch was easy - I decided to "try" wurst on a toy map, and immediately realized that I was previously wearing blinders, and indeed was *misled* by the public opinion of others.
 
 So this tutorial is about learning, but it's also about justice.
 
