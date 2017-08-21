@@ -14,17 +14,17 @@ sections:
 ### *&nbsp;*{: .fa .fa-exclamation-circle} This guide expects the reader to be familiar with vJass.
 
 {: .answer}
-### *&nbsp;*{: .fa .fa-exclamation-circle} This tutorial is in the format of an informal discussion, but many of the key points are backed by well understood, high-level programing paradigms.
+### *&nbsp;*{: .fa .fa-exclamation-circle} This tutorial is in the format of an informal discussion, but many of the key points are backed by well understood, high-level programming paradigms.
 ------
 
 When I ~evangelize~ discuss wurst, I tend to hear weird arguments against using it.
-Some of them are intereting, like "well I can't justify learning it", or "my map is already using vJass", but other arguments tend to be outlandish and worth some education.
+Some of them are interesting, like "well I can't justify learning it", or "my map is already using vJass", but other arguments tend to be outlandish and worth some education.
 More concretely, lots of arguments about wurst are spoilt by misunderstanding or misinformation.
 
 For what it's worth, wurst is an easy language to learn, and you can write wurst in a map that use vJass, but I digress.
 
 As background: I switched to using wurst in the last couple years after fairly extensive experience writing vJass.
-The switch was easy - I decide to "try" wurst on a toy map, and immediately realized that I had blinders on, and indeed was *misled* by the public opinion of others.
+The switch was easy - I decided to "try" wurst on a toy map, and immediately realized that I had blinders on, and indeed was *misled* by the public opinion of others.
 
 So this tutorial is about learning, but it's also about justice.
 
@@ -33,18 +33,22 @@ May the most correct man win - not the loudest.
 ## Why not vJass?
 
 This is an argument that wurst users have historically done poor at.
-The most interesting problems with vJass are not silly quirks like "extends array" or the macro system - no one actually cares about those things, unless you're a language purist.
+The most interesting problems with vJass are not silly quirks like "extends array" or the macro system - those are small language smells that point to a larger problem - the language is a bit of an abomination for hacking things together.
 
 The more interesting discussion revolves around understanding what vJass is not.
 
 ### Preprocessor
 
-Fundamentally, vJass is a pre-processed language that gets simply transformed into Jass, and this has lots of affects:
+Fundamentally, vJass is a pre-processed language that gets simply transformed into Jass, and this has lots of side-effects:
 
-* It Generates code for you, but otherwise is very limited to abstraction - you just can't express higher level concepts safely in vJass because instances of structs are always integers - the compiler can't check anything for you.
+{: .answer}
+### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Type-Safety is the concept of checking that the values and functions a programmer uses are *consitent* - e.g. that the user never tries to give a timer to a function that takes an integer.
+
+* It Generates code for you, but otherwise is very limited to abstraction - you just can't express higher level concepts safely in vJass because instances of structs are always integers - the compiler can't check anything for you - so type-safety is lost entirely.
+  vJass does at least have some validation, but that's not being done by JassHelper - PJass is just checking the emitted jass, but can't do anything smart at the vJass level.
 * No "abstract syntax tree" (building blocks of code that a compiler understands) - so very expensive to add features to JassHelper.
 * Compiler-aided optimisation is impossible.  Wurst can inline functions, cull unused code, automatically null variables, etc.
-  For lack of a better explanation, JassHelper is just too "dumb" to understand context.
+  JassHelper can inline 1-line functions, but this is puhing the boundaries of JassHelper's capabilities.
 
 ### Limited tooling
 
@@ -53,8 +57,9 @@ JNGP/WEX are excellent tools because they attempt to *centralise tooling* into a
 Wurst also centralises tooling - to your code editor, intead of to your world editor.
 This adds boundless value because code editors are designed from scratch to be extensible, whereas our world editors have to hack the blizzard interface using Grimoire.
 
-There are other values too.
-The wurst language server gives you inline code feedback, like a real IDE.
+* You can work on your map without wc3 or any particular OS - and you can even get compiler feedback.
+* Code highlighting, autocomplete, Jump-to-declaration - these are features that TESH *can't* do.
+* Code gets parsed live - the feedback loop for warnings and errors is in real time.
 
 It can feel unapproachable to be launching a map magicaly using a code editor, but it becomes second nature very fast.
 
@@ -112,16 +117,42 @@ It's not because wurst isn't worth sharing, or there's noone sharing it - wurst 
 * Most of the basic requirements like data structures and familiar systems like damage detection are implemented in the standard library.
 `import DamageType` and done.
 Don't like the implementation?
-Implement your own and publish it for use with gradle, offer your own improvements upstream to the standard library, write your own standard library - why not?
+Implement your own and publish it for use with the wurst dependency manager, offer your own improvements upstream to the standard library, or even write your own standard library - why not?
 Text snippets are so 2001.
 
 ### Object editing
 
 That cool LUA thing where object data gets accessed but kind of doesn't work these days?
 
-Yeah, wurst has that.
-It's just part of wurst.
-Honestly I'm so spoiled I don't even think about these things anymore.
+Yeah, wurst has that on steroids.
+Wurst has a feature called compiletime functions, where functions can be declared compiletime, and thence will be excuted when wurst runs.
+
+Compiletime functions have a slightly different set of features than runtime functions, but this includes a convenience library for object editing.
+Let's have the code speak for itself -
+
+```wurst
+    class DragonDefinition extends UnitDefinition
+        construct(int id)
+            super(id, 'nadr')
+
+            setAttacksEnabled(0)
+            setName("Dragon")
+            setUpgradesUsed("")
+            setStructuresBuilt("")
+            setManaRegeneration(1.)
+            setManaInitialAmount(0)
+            setManaMaximum(400)
+            setFoodCost(1)
+            setSpeedBase(300)
+            setTooltipBasic("Dragon")
+            setTooltipExtended("An evolving beast with special powers.")
+            setNormalAbilities("")
+            setRace(Race.Human)
+            setScalingValue(1.)
+
+	@compiletime function dragon()
+		new DragionDefinition()
+```
 
 ## On performance
 
@@ -167,13 +198,18 @@ More to the point: there was a time when vJass was absolutely the best option fo
 ## Is wurst good?
 
 Yes.
-Wurst is more inline with modern, correct programming language design goals.
+Wurst is more in line with modern, widely accepted programming language design goals.
 Wurst provides higher levels of abstraction that let you write more expressive code in less time, without sacrificing performance.
 Wurst's status as an actively developed, compiled language means that there is scope to improve it in any of those orthogonal contexts.
 
 Wurst code can break, and things change with it from month to month.
 Wurst can have bugs.
-But on average, the value of using wurst just vastly outweighs those negatives - and indeed, mot arguments I hear about wurst have nothing to do with these issues.
+But on average, the value of using wurst just vastly outweighs those negatives - and indeed, most arguments I hear about wurst have nothing to do with these issues.
+
+### But what about cJass, Zinc, vrJass?
+
+No jass compiler that I've seen comes close to the capabilitie of wurst, and many of these are just toy projects.
+Looking at the state of those projects actually just detracts from understanding the value of wurst.
 
 ## Summary
 
@@ -182,13 +218,15 @@ Wurst lets you write better code, faster.
 Wurst cuts out some of the warts of vJass in favor of more standard, type-safe ways of approaching the same problem.
 For example, there is no macro system - instead, generics let you write types that are modular.
 
+Furthermore, it's a goal of the wurst community to be explicitly about productivity - all this evangelism about language design can only go so far, but the killer argument is how much efficiency can be derived from using wurst, and that starts with the standard library.
+
 ## FAQs
 
 {: .question}
-### *&nbsp;*{: .fa .fa-question-circle} Wurst seems cool and worth checking out, but I can't get past the syntaax. Why does it look like python? I prefer the style of [c, Java, ECMA]
+### *&nbsp;*{: .fa .fa-question-circle} Wurst seems cool and worth checking out, but I can't get past the syntax. Why does it look like python? I prefer the style of [c, Java, ECMA]
 
 I get this question a lot, but it comes at a weird angle and surprises me.
-Let's talk about three different things related to this:
+Let's talk about four different things related to this:
 
 #### The value of syntax
 
@@ -207,7 +245,7 @@ In my experience, people tend to have visited functional programming style brief
 More concisely, they judge a book by its cover.
 
 *How much* some programming language is imperative, declarative, functional, strongly typed, or object oriented, are *highly orthogonal concepts*, which people tend to struggle with.
-With that in mind, it would be a shame to dismiss every language on that grounds that it's
+With that in mind, it would be a shame to dismiss every language based on reasons like...
 
 * too much or not enough imperative
 * too much or not enough declarative
@@ -216,6 +254,9 @@ With that in mind, it would be a shame to dismiss every language on that grounds
 * too much or not enough object oriented
 
 Because you'll indeed leave yourself misunderstanding a very wide range of concepts.
+
+{: .answer}
+### *&nbsp;*{: .fa .fa-exclamation-circle} Key point: Wurst provides the *capability* to write high-level code, but isn't otherwise anything like python or Javascript - wurst is a strongly typed language.
 
 One last thought: just because wurst supports some abstract concepts like generics, closures, and iterators, doesn't mean you're forced to use them.
 On the contrary I would claim that even very basic, imperative looking wurst will have fewer bugs and run faster than similarly styled vJass.
