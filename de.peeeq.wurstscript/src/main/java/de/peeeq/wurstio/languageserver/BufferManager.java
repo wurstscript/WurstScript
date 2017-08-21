@@ -14,6 +14,7 @@ import java.util.Map;
  */
 public class BufferManager {
     private Map<WFile, StringBuilder> currentBuffer = new HashMap<>();
+    private Map<WFile, Integer> latestVersion = new HashMap<>();
 
     public synchronized String getBuffer(TextDocumentIdentifier textDocument) {
         WFile uri = WFile.create(textDocument.getUri());
@@ -58,6 +59,13 @@ public class BufferManager {
 
     synchronized void handleChange(DidChangeTextDocumentParams params) {
         WFile uri = WFile.create(params.getTextDocument().getUri());
+        int version = params.getTextDocument().getVersion();
+        if (version < getTextDocumentVersion(uri)) {
+            // ignore old versions
+            return;
+        }
+        latestVersion.put(uri, version);
+
         StringBuilder sb = buffer(uri);
         for (TextDocumentContentChangeEvent contentChange : params.getContentChanges()) {
             if (contentChange.getRange() == null) {
@@ -69,6 +77,10 @@ public class BufferManager {
                 sb.replace(start, end - start, contentChange.getText());
             }
         }
+    }
+
+    public synchronized int getTextDocumentVersion(WFile uri) {
+        return latestVersion.getOrDefault(uri, -1);
     }
 
     private int getOffset(StringBuilder sb, Position position) {

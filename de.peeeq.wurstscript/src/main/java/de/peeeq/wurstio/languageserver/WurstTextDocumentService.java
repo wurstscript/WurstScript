@@ -79,7 +79,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<? extends Command>> codeAction(CodeActionParams params) {
         WLogger.info("codeAction");
-        return null;
+        return worker.handle(new CodeActionRequest(params, worker.getBufferManager()));
     }
 
     @Override

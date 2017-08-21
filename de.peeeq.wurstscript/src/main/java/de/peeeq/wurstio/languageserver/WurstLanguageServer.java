@@ -22,6 +22,7 @@ import java.util.logging.SimpleFormatter;
 public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageServer, LanguageClientAware {
     private WFile rootUri;
     private de.peeeq.wurstio.languageserver.LanguageWorker languageWorker = new de.peeeq.wurstio.languageserver.LanguageWorker();
+    private LanguageClient languageClient;
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
@@ -40,7 +41,9 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setReferencesProvider(true);
         capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(WurstCommands.providedCommands()));
 
+
         capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));
+        capabilities.setCodeActionProvider(true);
 
 
         InitializeResult res = new InitializeResult(capabilities);
@@ -94,6 +97,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     @Override
     public void connect(LanguageClient client) {
         WLogger.info("connect to LanguageClient");
+        this.languageClient = client;
         languageWorker.setLanguageClient(client);
     }
 
@@ -103,5 +107,9 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     public WFile getRootUri() {
         return rootUri;
+    }
+
+    public LanguageClient getLanguageClient() {
+        return languageClient;
     }
 }

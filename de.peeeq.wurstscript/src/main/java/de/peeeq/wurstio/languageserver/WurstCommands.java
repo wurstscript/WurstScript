@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstio.languageserver.requests.CleanProject;
+import de.peeeq.wurstio.languageserver.requests.PerformCodeActionRequest;
 import de.peeeq.wurstio.languageserver.requests.RunMap;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstscript.WLogger;
@@ -32,12 +33,14 @@ public class WurstCommands {
     public static final String WURST_TESTS = "wurst.tests";
     public static final String WURST_TESTS_FILE = "wurst.tests_file";
     public static final String WURST_TESTS_FUNC = "wurst.tests_func";
+    public static final String WURST_PERFORM_CODE_ACTION = "wurst.perform_code_action";
 
     static List<String> providedCommands() {
         return Arrays.asList(
                 WURST_CLEAN,
                 WURST_STARTMAP,
-                WURST_TESTS
+                WURST_TESTS,
+                WURST_PERFORM_CODE_ACTION
         );
     }
 
@@ -47,14 +50,16 @@ public class WurstCommands {
                 return server.worker().handle(new CleanProject()).thenApply(x -> x);
             case WURST_STARTMAP:
                 return startmap(server, params);
-            case WURST_TESTS: {
+            case WURST_TESTS:
                 return testMap(server, params);
-            }
-
+            case WURST_PERFORM_CODE_ACTION:
+                return server.worker().handle(new PerformCodeActionRequest(server, params));
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
     }
+
+
 
     private static CompletableFuture<Object> testMap(WurstLanguageServer server, ExecuteCommandParams params) {
         Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
@@ -100,4 +105,5 @@ public class WurstCommands {
             throw new RuntimeException("Could not access wurst run config file", e);
         }
     }
+
 }
