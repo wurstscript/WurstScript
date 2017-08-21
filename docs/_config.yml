@@ -1,6 +1,9 @@
 #
 # Site settings
 #
+plugins:
+  - jekyll-seo-tag
+
 url: https://wurstscript.github.io/WurstScript/
 baseurl: /WurstScript
 highlighter: rouge
@@ -23,10 +26,8 @@ kramdown:
   parse_block_html: true
   syntax_highlighter_opts:
     disable : true
-    
-plugins:
-  - jekyll-seo-tag
 
+google_site_verification: googlee4f4af3121cc4c25.html
 
 #
 # Social
