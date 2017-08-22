@@ -6,6 +6,7 @@ icon:
   type: fa
   name: fa-code
 color: green
+author: Cokemonkey11
 sections:
   - /tutorials/wurst_for_vjass_users/page_1
 ---
