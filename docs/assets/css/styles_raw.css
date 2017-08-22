@@ -446,6 +446,9 @@ select {
 .doc-header .meta {
   color: #a2a6af;
 }
+.doc-header .author {
+  color: #4C4E52;
+}
 .doc-content {
   margin-left: 230px;
 }

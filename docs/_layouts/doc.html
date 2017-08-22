@@ -31,7 +31,7 @@ layout: compress
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
-
+    
     {% include google_analytics.html %}
     {% seo %}
 </head>
@@ -68,6 +68,10 @@ layout: compress
 
                     {% if page.date %}
                     <div class="meta"><i class="fa fa-clock-o"></i> Last updated: {{ page.date | date: '%B %d, %Y' }}</div>
+                    {% endif %}
+
+                    {% if page.author %}
+                    <div class="author"><i class="fa fa-user"></i> Author: {{ page.author }}</div>
                     {% endif %}
 
                 </div>
