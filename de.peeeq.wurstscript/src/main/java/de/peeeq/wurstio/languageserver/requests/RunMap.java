@@ -55,9 +55,13 @@ public class RunMap extends UserRequest<Object> {
     private final File map;
     private final List<String> compileArgs;
     private final WFile workspaceRoot;
-    /** makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model */
+    /**
+     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
+     */
     private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
-    /** The patch version as double, e.g. 1.27, 1.28 */
+    /**
+     * The patch version as double, e.g. 1.27, 1.28
+     */
     private double patchVersion;
 
     enum SafetyLevel {
@@ -216,7 +220,6 @@ public class RunMap extends UserRequest<Object> {
     }
 
 
-
     private void print(String s) {
         WLogger.info(s);
     }
@@ -257,68 +260,71 @@ public class RunMap extends UserRequest<Object> {
         }
 
         MpqEditor mpqEditor = null;
-        if (mapCopy != null) {
-            mpqEditor = MpqEditorFactory.getEditor(mapCopy);
+        try {
+            if (mapCopy != null) {
+                mpqEditor = MpqEditorFactory.getEditor(mapCopy);
+            }
+
+            //WurstGui gui = new WurstGuiLogger();
+
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+            compiler.setMapFile(mapCopy);
+            purgeUnimportedFiles(model);
+
+            gui.sendProgress("Check program");
+            compiler.checkProg(model);
+
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Warning, "Could not compile project: " + gui.getErrorList().get(0));
+            }
+
+            print("translating program ... ");
+            compiler.translateProgToIm(model);
+
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
+            }
+
+            if (runArgs.runCompiletimeFunctions()) {
+                print("running compiletime functions ... ");
+                // compile & inject object-editor data
+                // TODO run optimizations later?
+                gui.sendProgress("Running compiletime functions");
+                CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
+                        FunctionFlagEnum.IS_COMPILETIME);
+                ctr.setInjectObjects(runArgs.isInjectObjects());
+                ctr.setOutputStream(new PrintStream(System.err));
+                ctr.run();
+            }
+
+            if (runArgs.isInjectObjects()) {
+                Preconditions.checkNotNull(mpqEditor);
+                // add the imports
+                ImportFile.importFilesFromImportDirectory(origMap, mpqEditor);
+            }
+
+            print("translating program to jass ... ");
+            compiler.transformProgToJass();
+
+            JassProg jassProg = compiler.getProg();
+            if (jassProg == null) {
+                print("Could not compile project\n");
+                throw new RuntimeException("Could not compile project (error in JASS translation)");
+            }
+
+            gui.sendProgress("Printing program");
+            JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg);
+            String compiledMapScript = printer.printProg();
+
+            File buildDir = getBuildDir();
+            File outFile = new File(buildDir, "compiled.j.txt");
+            Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+            return outFile;
+        } finally {
+            if (mpqEditor != null) {
+                mpqEditor.close();
+            }
         }
-
-        //WurstGui gui = new WurstGuiLogger();
-
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
-        compiler.setMapFile(mapCopy);
-        purgeUnimportedFiles(model);
-
-        gui.sendProgress("Check program");
-        compiler.checkProg(model);
-
-        if (gui.getErrorCount() > 0) {
-            throw new RequestFailedException(MessageType.Warning, "Could not compile project: " + gui.getErrorList().get(0));
-        }
-
-        print("translating program ... ");
-        compiler.translateProgToIm(model);
-
-        if (gui.getErrorCount() > 0) {
-            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
-        }
-
-        if (runArgs.runCompiletimeFunctions()) {
-            print("running compiletime functions ... ");
-            // compile & inject object-editor data
-            // TODO run optimizations later?
-            gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
-                    FunctionFlagEnum.IS_COMPILETIME);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.setOutputStream(new PrintStream(System.err));
-            ctr.run();
-        }
-
-        if (runArgs.isInjectObjects()) {
-            Preconditions.checkNotNull(mpqEditor);
-            // add the imports
-            ImportFile.importFilesFromImportDirectory(origMap, mpqEditor);
-        }
-
-        print("translating program to jass ... ");
-        compiler.transformProgToJass();
-
-        JassProg jassProg = compiler.getProg();
-        if (jassProg == null) {
-            print("Could not compile project\n");
-            throw new RuntimeException("Could not compile project (error in JASS translation)");
-        }
-
-        gui.sendProgress("Printing program");
-        JassPrinter printer = new JassPrinter(! runArgs.isOptimize(), jassProg);
-        String compiledMapScript = printer.printProg();
-
-        File buildDir = getBuildDir();
-        File outFile = new File(buildDir, "compiled.j.txt");
-        Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
-        if (mpqEditor != null) {
-            mpqEditor.close();
-        }
-        return outFile;
     }
 
     private void processMapScript(RunArgs runArgs, WurstGui gui, ModelManager modelManager, File mapCopy) throws Exception {
