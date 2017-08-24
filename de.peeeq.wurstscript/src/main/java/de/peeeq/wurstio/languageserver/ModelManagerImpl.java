@@ -25,6 +25,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * keeps a version of the model which is always the most recent one
@@ -511,13 +512,18 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public boolean hasErrors() {
-        // TODO add type errors as well
-        return parseErrors.values().stream().anyMatch(l -> !l.isEmpty());
+        return parseErrorStream().findAny().isPresent();
     }
 
     @Override
     public List<CompileError> getParseErrors() {
-        return parseErrors.values().stream().flatMap(Collection::stream).collect(Collectors.toList());
+        return parseErrorStream().collect(Collectors.toList());
+    }
+
+    private Stream<CompileError> parseErrorStream() {
+        return parseErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.ERROR);
     }
 
     @Override
