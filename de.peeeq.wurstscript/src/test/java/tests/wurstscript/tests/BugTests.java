@@ -891,15 +891,6 @@ public class BugTests extends WurstScriptTest {
 
     }
 
-    @Test
-    public void multilineString() {
-        testAssertOkLines(false,
-                "package test",
-                "let s = \"12345678",
-                "90\"",
-                "");
-
-    }
 
 
 }
