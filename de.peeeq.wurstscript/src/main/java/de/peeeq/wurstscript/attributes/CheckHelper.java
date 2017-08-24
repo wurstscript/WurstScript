@@ -8,30 +8,29 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class CheckHelper {
 
     /**
      * check if the signature of "f" is a refinement of the signature of "of"
      *
-     * @param f
-     * @param of
-     * @param b
+     * Returns an error if it is not a refinement
      */
-    public static void checkIfIsRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage, boolean reverseErrorMessage) {
+    public static Optional<String> checkIfIsRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage) {
         String funcName = f.getName();
         // check static-ness
         if (f.attrIsStatic() && !of.attrIsStatic()) {
-            f.addError("Function " + funcName + " must not be static.");
+            return Optional.of("Function " + funcName + " must not be static.");
         }
         if (!f.attrIsStatic() && of.attrIsStatic()) {
-            f.addError("Function " + funcName + " must be static.");
+            return Optional.of("Function " + funcName + " must be static.");
         }
         // check returntype
         WurstType f_type = getRealType(f, typeParamMapping, f.getReturnTyp().attrTyp());
         WurstType of_type = getRealType(f, typeParamMapping, of.getReturnTyp().attrTyp());
         if (!f_type.isSubtypeOf(of_type, f)) {
-            f.addError(errorMessage + funcName + ": The return type is " + f_type +
+            return Optional.of(errorMessage + funcName + ": The return type is " + f_type +
                     " but it should be " + of_type + ".");
         }
 
@@ -40,9 +39,8 @@ public class CheckHelper {
         int of_count = of.getParameters().size();
         // check parameters
         if (f_count != of_count) {
-            f.addError(errorMessage + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count +
+            return Optional.of(errorMessage + funcName + ": The number of parameters of function " + funcName + " must be equal to " + of_count +
                     ", as defined by the overriden function.");
-            return;
         }
         int i = 0;
         for (WParameter f_p : f.getParameters()) {
@@ -50,17 +48,12 @@ public class CheckHelper {
             WurstType f_p_type = getRealType(f, typeParamMapping, f_p.attrTyp());
             WurstType of_p_type = getRealType(f, typeParamMapping, of_p.attrTyp());
             if (!f_p_type.isSupertypeOf(of_p_type, f)) {
-                if (reverseErrorMessage) {
-                    WurstType temp = f_p_type;
-                    f_p_type = of_p_type;
-                    of_p_type = temp;
-                }
-
-                f.addError(errorMessage + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type +
+                return Optional.of(errorMessage + funcName + ": The type of parameter " + f_p.getName() + " is " + f_p_type +
                         " but it should be " + of_p_type);
             }
             i++;
         }
+        return Optional.empty();
     }
 
     private static WurstType getRealType(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
