@@ -1,27 +1,28 @@
 Wurstscript is a scripting language which can compile to Jass code which is used in WarCraft III.
 
-[![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/) 
-[![Issue Stats](http://issuestats.com/github/peq/WurstScript/badge/issue?style=flat)](http://issuestats.com/github/peq/WurstScript)
-[![Issue Stats](http://issuestats.com/github/peq/WurstScript/badge/pr?style=flat)](http://issuestats.com/github/peq/WurstScript)
+[![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/)
+[![Travis](https://img.shields.io/travis/wurstscript/WurstScript.svg)]()
+[![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 
 
 User Documentation
 ==================
 
-If you want to know how to use the Wurst language, check out the [Manual](http://peeeq.de/wurst/manual/).
+If you want to know how to use the Wurst language, check out the [Manual](https://wurstscript.github.io/WurstScript/manual.html).
 
 
 Reporting Bugs
 ==============
 
-Bugs should be reported using our [Issue tracker on github](https://github.com/peq/WurstScript/issues).
+Bugs should be reported using our [Issue tracker on github](https://github.com/wurstscript/WurstScript/issues).
 
 Please include all steps needed to reproduce the bug.
 
 Contributing
 ============
 
-If you want to contribute, the best way is to contact us prior to starting your contribtion.
+If you want to contribute, the best way is to contact us prior to starting your contribution.
 
 Alternatively create a new issue or choose an existing one and indicate that you are working on it. 
 When you are done you can create us a pull request, which we will gladly accept once it meets our expectations.
