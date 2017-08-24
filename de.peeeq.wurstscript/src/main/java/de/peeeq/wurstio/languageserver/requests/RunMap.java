@@ -259,12 +259,7 @@ public class RunMap extends UserRequest<Object> {
             model = model.copy();
         }
 
-        MpqEditor mpqEditor = null;
-        try {
-            if (mapCopy != null) {
-                mpqEditor = MpqEditorFactory.getEditor(mapCopy);
-            }
-
+        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)){
             //WurstGui gui = new WurstGuiLogger();
 
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
@@ -320,10 +315,6 @@ public class RunMap extends UserRequest<Object> {
             File outFile = new File(buildDir, "compiled.j.txt");
             Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
             return outFile;
-        } finally {
-            if (mpqEditor != null) {
-                mpqEditor.close();
-            }
         }
     }
 
