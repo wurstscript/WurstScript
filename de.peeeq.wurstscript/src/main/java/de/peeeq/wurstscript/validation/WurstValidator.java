@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.validation;
 
-import asg.grammars.ast.AstElement;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -221,14 +220,13 @@ public class WurstValidator {
                 checkTypeParameters((AstElementWithTypeParameters) e);
             if (e instanceof AstElementWithNameId)
                 checkName((AstElementWithNameId) e);
-            if (e instanceof ClassDef)
+            if (e instanceof ClassDef) {
                 checkInstanceDef((ClassDef) e);
-            if (e instanceof ClassDef)
                 checkOverrides((ClassDef) e);
+                visit((ClassDef) e);
+            }
             if (e instanceof ClassOrModule)
                 checkConstructorsUnique((ClassOrModule) e);
-            if (e instanceof ClassDef)
-                visit((ClassDef) e);
             if (e instanceof CompilationUnit)
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef)
@@ -1611,6 +1609,10 @@ public class WurstValidator {
     }
 
     private void checkInstanceDef(ClassDef classDef) {
+        if (classDef.attrIsAbstract()) {
+            // only concrete classes have to be checked
+            return;
+        }
         for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
             InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
             Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
@@ -1619,19 +1621,39 @@ public class WurstValidator {
             nextFunction:
             for (FuncDef i_funcDef : interfaceDef.getMethods()) {
                 Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
+
+                Map<FuncDef, String> errors = new LinkedHashMap<>();
                 for (NameLink nameLink : c_funcDefs) {
                     NameDef c_nameDef = nameLink.getNameDef();
                     if (c_nameDef instanceof FuncDef) {
                         FuncDef c_funcDef = (FuncDef) c_nameDef;
+                        if (c_funcDef.attrIsAbstract()) {
+                            continue ;
+                        }
 
-                        CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
-                                "Cannot implement interface " + interfaceDef.getName() + " because of function ", true);
-                        continue nextFunction;
+                        Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
+                                "Cannot implement interface " + interfaceDef.getName() + " because of function ");
+                        if (err.isPresent()) {
+                            if (c_funcDef.attrIsOverride()) {
+                                c_funcDef.addError(err.get());
+                                continue nextFunction;
+                            }
+                            errors.put(c_funcDef, err.get());
+                        } else {
+                            continue nextFunction;
+                        }
                     }
                 }
+
                 if (i_funcDef.attrHasEmptyBody()) {
-                    classDef.addError("The class " + classDef.getName() + " must implement the function "
-                            + i_funcDef.getName() + ".");
+                    if (errors.isEmpty()) {
+                        classDef.addError("The class " + classDef.getName() + " must implement the function "
+                                + i_funcDef.getName() + ".");
+                    } else {
+                        for (Entry<FuncDef, String> entry : errors.entrySet()) {
+                            entry.getKey().addError(entry.getValue());
+                        }
+                    }
                 }
             }
         }

@@ -454,4 +454,38 @@ public class InterfaceTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+
+    @Test
+    public void testOverride() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	interface I",
+                "		function foo(int x)",
+                "	class C implements I",
+                "		function foo(string x)",
+                "		function foo(int x)",
+                "		    testSuccess()",
+                "	init",
+                "		I i = new C()",
+                "		i.foo(7)",
+                "endpackage"
+        );
+    }
+
+
+    @Test
+    public void testOverrideFail() {
+        testAssertErrorsLines(false, "Cannot implement interface I because of function foo: The type of parameter x is string but it should be integer",
+                "package test",
+                "	native testSuccess()",
+                "	interface I",
+                "		function foo(int x)",
+                "	class C implements I",
+                "		function foo(string x)",
+                "		function foo(int x, int y)",
+                "endpackage"
+        );
+    }
 }
