@@ -1,4 +1,6 @@
-Wurstscript is a scripting language which can compile to Jass code which is used in WarCraft III.
+# WurstScript
+
+Wurstscript is a programming language which can compile to Jass code which is used in WarCraft III.
 
 [![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/)
 [![Travis](https://img.shields.io/travis/wurstscript/WurstScript.svg)]()
@@ -6,30 +8,27 @@ Wurstscript is a scripting language which can compile to Jass code which is used
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 
 
-User Documentation
-==================
+## User Documentation
 
-If you want to know how to use the Wurst language, check out the [Manual](https://wurstscript.github.io/WurstScript/manual.html).
-
-
-Reporting Bugs
-==============
-
-Bugs should be reported using our [Issue tracker on github](https://github.com/wurstscript/WurstScript/issues).
-
-Please include all steps needed to reproduce the bug.
-
-Contributing
-============
-
-If you want to contribute, the best way is to contact us prior to starting your contribution.
-
-Alternatively create a new issue or choose an existing one and indicate that you are working on it. 
-When you are done you can create us a pull request, which we will gladly accept once it meets our expectations.
+Using WurstScript for your map is easy! Check out the [Setup Guide](https://wurstscript.github.io/start.html) on how to get started.
+For a formal description of all features, visit the [Manual](https://wurstscript.github.io/manual.html).
 
 
-System Overview
-===============
+##  Reporting Bugs
+
+Please report any bugs your encounter with our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues).
+Include as much information as possible, ideally with logs. 
+Logfiles are located in your operating system's `Temp` folder under `wurst`.
+Find the last modified file and copy it's contents.
+
+## Contributing
+
+We gladly welcome any contributions - however it is heavily advised to contact us prior to starting your contribution.
+
+You can do this by either creating a ticket with our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues) or contacting us directly and then create the pull request after the task was accepted.
+For small changes you can also directly make a pull request, but bigger unannounced PRs might not be merged.
+
+## System Overview
 
 This project contains the following sub-projects:
 
@@ -42,15 +41,11 @@ This project contains the following sub-projects:
 
 IDE support is provided via a VSCode plugin: https://github.com/peq/wurst4vscode
 
-The documentation is on a separate branch named gh-pages.
-	
+The source for the wurstscript website can be found here: https://github.com/wurstscript/wurstscript.github.io
 
-Build Process
-================
+## Build Process
 
-## Building the compiler
-
-### Using gradle
+### Using Gradle
 
 Simply run the appropriate gradle task using the provided gradle wrapper.
 
@@ -64,10 +59,15 @@ For deploying .jars and .zips see tasks in **deploy.gradle**
 ./gradlew create_zip_wurstpack_compiler
 ```
 
+### Import into IDE
+
+You can import the compiler project into any IDE that provides a gradle plugin, like IntelliJ IDEA or Eclipse.
+To run the Test Suite, execute `tests.wurstscript.tests.AllTests` as JUnit test.
+
 ### Updating the version number
 
 - Change the version in `de.peeeq.wurstscript/version.properties`.
-- Run gradle task :versionInfoFile
+- Run gradle task `:versionInfoFile`
 
 
 
