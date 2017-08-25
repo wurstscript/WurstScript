@@ -18,9 +18,9 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
--optimizationpasses 5
 -verbose
--optimizations !code/simplification/arithmetic, !code/allocation/variable
+-dontobfuscate
+-dontoptimize
 
 -renamesourcefileattribute SourceFile
 -keepattributes EnclosingMethod,Signature
@@ -39,6 +39,10 @@
 
 -keep class org.eclipse.jgit.lib.Repository
 -keep class org.eclipse.jgit.transport.RemoteConfig { *** removeURI(...); }
+
+-keepclassmembers class org.eclipse.jgit {
+    public *;
+}
 
 -keep public class * {
     public protected *;
