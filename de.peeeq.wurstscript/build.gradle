@@ -160,6 +160,7 @@ task gen {
 }
 gen.dependsOn genAst
 gen.dependsOn versionInfoFile
+gen.dependsOn generateGrammarSource
 
 compileJava.dependsOn gen
 
