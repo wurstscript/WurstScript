@@ -16,6 +16,7 @@ dependencies {
     compile group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '4.8.0.201706111038-r'
     compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
     compile group: 'args4j', name: 'args4j', version: '2.33'
+    compile 'org.slf4j:slf4j-api:1.7.25'
 }
 
 buildscript {

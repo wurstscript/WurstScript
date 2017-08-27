@@ -1,6 +1,7 @@
 package ui;
 
 import file.GlobalWurstConfig;
+import file.ProjectUpdateWorker;
 import file.WurstProjectConfig;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Ref;
@@ -13,6 +14,7 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.text.DefaultCaret;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
@@ -33,7 +35,8 @@ import static java.awt.GridBagConstraints.VERTICAL;
 
 public class MainWindow extends JFrame {
     public final UI ui;
-    private JFileChooser projectRootChooser;
+    private JFileChooser saveChooser;
+    private JSystemFileChooser importChooser;
     private static final Pattern projNamePattern = Pattern.compile("(\\w|\\s)+");
     static Point point = new Point();
 
@@ -42,7 +45,7 @@ public class MainWindow extends JFrame {
      */
     public MainWindow() {
         setLayout(new BorderLayout());
-        setSize(570, 340);
+        setSize(570, 360);
         setBackground(new Color(36, 36, 36));
         centerWindow();
         setUndecorated(true);
@@ -84,6 +87,7 @@ public class MainWindow extends JFrame {
         private JTextField gamePathTF;
         private JTextField dependencyTF;
         private List<String> dependencies;
+        private JTextField projectNameTF;
 
         public UI() {
             // Add default stdlib
@@ -101,7 +105,7 @@ public class MainWindow extends JFrame {
             title.setBackground(new Color(94, 97, 99));
             windowLabel.setForeground(new Color(255, 255, 255));
             contentTable = new Table();
-            contentTable.setSize(570, 340);
+            contentTable.setSize(570, 360);
 
             getContentPane().add(contentTable);
 
@@ -245,9 +249,14 @@ public class MainWindow extends JFrame {
         }
 
         private void createConfigTable() {
+            UI that = this;
             Table configTable = new Table();
+            configTable.row().height(24);
             configTable.addCell(new JLabel("Project name:")).left();
-            JTextField projectNameTF = new JTextField("MyWurstProject");
+
+            Table projectInputTable = new Table();
+            projectInputTable.row().height(24);
+            projectNameTF = new JTextField("MyWurstProject");
             projectNameTF.getDocument().addDocumentListener(new DocumentListener() {
                 public void changedUpdate(DocumentEvent e) {
                     warn();
@@ -270,50 +279,73 @@ public class MainWindow extends JFrame {
                         if (projectNameTF.getText().length() == 0) {
                             btnCreate.setEnabled(false);
                         } else {
-                            projectRootTF.setText(projectRootChooser.getCurrentDirectory().getAbsolutePath() + "\\" + projectNameTF.getText());
+                            projectRootTF.setText(saveChooser.getCurrentDirectory().getAbsolutePath() + File.separator + projectNameTF.getText());
                             btnCreate.setEnabled(true);
                         }
                     }
                 }
             });
-            configTable.addCell(projectNameTF).growX();
+            projectInputTable.addCell(projectNameTF).growX();
+            SetupButton importButton = new SetupButton("Import");
+            importButton.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent arg0) {
+                    if (importChooser.showOpenDialog(that) == JFileChooser.APPROVE_OPTION) {
+                        try {
+                            WurstProjectConfig config = WurstProjectConfig.loadProject(importChooser.getSelectedFile());
+                            if (config != null) {
+                                projectNameTF.setText(config.getProjectName());
+                                projectRootTF.setText(config.getProjectRoot().toString());
+                                dependencies = config.dependencies;
+                                dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
+                                btnCreate.setText("Update Project");
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+            projectInputTable.addCell(importButton);
+            configTable.addCell(projectInputTable).growX();
 
-            configTable.row().padTop(2);
+            configTable.row().height(24).padTop(2);
 
             configTable.addCell(new JLabel("Project root:")).left();
 
             Table projectTF = new Table();
-            projectRootTF = new JTextField(projectRootChooser.getCurrentDirectory().getAbsolutePath() + "\\" + projectNameTF.getText());
+            projectRootTF = new JTextField(saveChooser.getCurrentDirectory().getAbsolutePath() + File.separator + projectNameTF.getText());
             projectRootTF.setEditable(false);
+            projectTF.row().height(24);
             projectTF.addCell(projectRootTF).growX();
             SetupButton selectProjectRoot = new SetupButton("...");
-            UI that = this;
+
             selectProjectRoot.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if (projectRootChooser.showSaveDialog(that) == JFileChooser.APPROVE_OPTION) {
-                        projectRootTF.setText(projectRootChooser.getSelectedFile().getAbsolutePath() + "\\" + projectNameTF.getText());
+                    if (saveChooser.showSaveDialog(that) == JFileChooser.APPROVE_OPTION) {
+                        projectRootTF.setText(saveChooser.getSelectedFile().getAbsolutePath() + File.separator + projectNameTF.getText());
                     }
                 }
             });
-            projectTF.addCell(selectProjectRoot).height(20).pad(0, 2, 0, 2);
+            projectTF.addCell(selectProjectRoot).pad(0, 2, 0, 2);
 
             configTable.addCell(projectTF).growX();
 
-            configTable.row().padTop(2);
+            configTable.row().height(24).padTop(2);
 
             configTable.addCell(new JLabel("Game path:")).left();
 
             Table gameTF = new Table();
             gamePathTF = new JTextField("Select your wc3 installation folder (optional)");
             gamePathTF.setEditable(false);
-            gameTF.addCell(gamePathTF).growX();
+            gameTF.addCell(gamePathTF).height(24).growX();
             SetupButton selectGamePath = new SetupButton("...");
             selectGamePath.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if (projectRootChooser.showSaveDialog(that) == JFileChooser.APPROVE_OPTION) {
-                        gamePathTF.setText(projectRootChooser.getSelectedFile().getAbsolutePath());
+                    if (saveChooser.showSaveDialog(that) == JFileChooser.APPROVE_OPTION) {
+                        gamePathTF.setText(saveChooser.getSelectedFile().getAbsolutePath());
                     }
                 }
             });
@@ -321,7 +353,7 @@ public class MainWindow extends JFrame {
                 try {
                     String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
                     if (wc3Path != null) {
-                        if (!wc3Path.endsWith("\\")) wc3Path = wc3Path + "\\";
+                        if (!wc3Path.endsWith(File.separator )) wc3Path = wc3Path + File.separator ;
                         File gameFolder = new File(wc3Path);
                         if (gameFolder.exists()) {
                             gamePathTF.setText(wc3Path);
@@ -331,24 +363,24 @@ public class MainWindow extends JFrame {
                     e.printStackTrace();
                 }
             }
-            gameTF.addCell(selectGamePath).height(20).pad(0, 2, 0, 2);
+            gameTF.addCell(selectGamePath).height(24).pad(0, 2, 0, 2);
 
             configTable.addCell(gameTF).growX();
-            configTable.row().padTop(2);
+            configTable.row().height(24).padTop(2);
 
             configTable.addCell(new JLabel("Dependencies:")).left();
 
             Table dependencyTable = new Table();
             dependencyTF = new JTextField("wurstStdlib2");
             dependencyTF.setEditable(false);
-            dependencyTable.addCell(dependencyTF).growX();
+            dependencyTable.addCell(dependencyTF).height(24).growX();
             SetupButton manageDependencies = new SetupButton("Advanced");
             manageDependencies.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
                     String url = JOptionPane.showInputDialog("Enter git remote addres (https://github.com/user/project)");
-                    if(url != null && url.length() > 0) {
-                        if(dependencies.contains(url)) {
+                    if (url != null && url.length() > 0) {
+                        if (dependencies.contains(url)) {
                             Init.log("This git repo is already added");
                             return;
                         }
@@ -371,7 +403,7 @@ public class MainWindow extends JFrame {
                     }
                 }
             });
-            dependencyTable.addCell(manageDependencies).height(20).pad(0, 2, 0, 2);
+            dependencyTable.addCell(manageDependencies).height(24).pad(0, 2, 0, 2);
 
             configTable.addCell(dependencyTable).growX();
 
@@ -410,7 +442,7 @@ public class MainWindow extends JFrame {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
                     if (btnUpdate.isEnabled()) {
-                        handleUpdateButton();
+                        handleWurstUpdate();
                     }
                 }
             });
@@ -420,8 +452,15 @@ public class MainWindow extends JFrame {
             btnCreate.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if(btnCreate.isEnabled()) {
-                        handleCreateProject();
+                    if (btnCreate.isEnabled()) {
+                        progressBar.setIndeterminate(true);
+                        btnUpdate.setEnabled(false);
+                        File buildFile = new File(projectRootTF.getText(), "wurst.build");
+                        if (buildFile.exists()) {
+                            handleUpdateProject(buildFile);
+                        } else {
+                            handleCreateProject();
+                        }
                     }
                 }
             });
@@ -429,20 +468,22 @@ public class MainWindow extends JFrame {
             contentTable.addCell(buttonTable).growX().pad(2);
         }
 
+        private void handleUpdateProject(File buildFile) {
+            new ProjectUpdateWorker(buildFile).execute();
+        }
+
         private void handleCreateProject() {
             String gamePath = gamePathTF.getText();
             File projectRoot = new File(projectRootTF.getText());
             File gameRoot = (gamePath != null && gamePath.length() > 0) ? new File(gamePath) : null;
-            WurstProjectConfig config = new WurstProjectConfig(projectRoot, gameRoot);
+            WurstProjectConfig config = new WurstProjectConfig(projectRoot, gameRoot, projectNameTF.getText());
             for (String dep : dependencies) {
                 config.addDependency(dep);
             }
             WurstProjectConfig.handleCreate(config);
         }
 
-        private void handleUpdateButton() {
-            btnUpdate.setEnabled(false);
-            progressBar.setIndeterminate(true);
+        private void handleWurstUpdate() {
             GlobalWurstConfig.handleUpdate();
         }
     }
@@ -457,11 +498,18 @@ public class MainWindow extends JFrame {
     }
 
     private void initChooser() {
-        projectRootChooser = new JSystemFileChooser();
-        projectRootChooser.setCurrentDirectory(new java.io.File("."));
-        projectRootChooser.setDialogTitle("Select project root");
-        projectRootChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-        projectRootChooser.setAcceptAllFileFilterUsed(false);
+        saveChooser = new JSystemFileChooser();
+        saveChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        saveChooser.setCurrentDirectory(new java.io.File("."));
+        saveChooser.setDialogTitle("Select project root");
+        saveChooser.setAcceptAllFileFilterUsed(false);
+
+        importChooser = new JSystemFileChooser();
+        importChooser.setCurrentDirectory(new java.io.File("."));
+        importChooser.setDialogTitle("Select wurst.build file");
+        importChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+        importChooser.setAcceptAllFileFilterUsed(false);
+        importChooser.setFileFilter(new FileNameExtensionFilter("wurst.build files", "build"));
     }
 
     public static class SetupButton extends JButton {

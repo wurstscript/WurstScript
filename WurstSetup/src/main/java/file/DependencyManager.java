@@ -1,11 +1,11 @@
 package file;
 
 import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.api.PullResult;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.transport.FetchResult;
 import ui.Init;
 
 import java.io.File;
@@ -33,10 +33,12 @@ public class DependencyManager {
                 depFolders.add(depFolder.getAbsolutePath());
                 // update
                 try {
-                    try (Repository repository = new FileRepository(depFolder)) {
+                    try (Repository repository = new FileRepository(depFolder + "/.git")) {
                         try (Git git = new Git(repository)) {
-                            FetchResult result = git.fetch().setCheckFetchedObjects(true).call();
-                            System.out.println("Messages: " + result.getMessages());
+                            git.reset().call();
+                            PullResult pullResult = git.pull().call();
+                            Init.log("done\n");
+                            System.out.println("Messages: " + pullResult.getFetchResult());
                         } catch (Exception e) {
                             Init.log("error when trying to fetch remote\n");
                             e.printStackTrace();

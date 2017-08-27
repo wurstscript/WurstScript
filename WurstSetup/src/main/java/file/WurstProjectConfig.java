@@ -16,14 +16,18 @@ import java.util.List;
  */
 public class WurstProjectConfig {
     private File projectRoot;
+
     private File gameRoot;
 
     public String releaseName = "myRelease.w3x";
+
+    public String projectName;
     public List<String> dependencies = new ArrayList<>();
 
-    public WurstProjectConfig(File projectRoot, File gameRoot) {
+    public WurstProjectConfig(File projectRoot, File gameRoot, String projectName) {
         this.projectRoot = projectRoot;
         this.gameRoot = gameRoot;
+        this.projectName = projectName;
     }
 
     public void addDependency(String url) {
@@ -51,13 +55,21 @@ public class WurstProjectConfig {
         }).start();
     }
 
-    public static WurstProjectConfig loadProject(File projectRoot) throws IOException {
+    public static WurstProjectConfig loadProject(File buildFile) throws IOException {
         Init.log("Loading project..");
-        if (projectRoot.exists()) {
-            File buildFile = new File(projectRoot, "wurst.build");
-            if (buildFile.exists()) {
-                return GlobalWurstConfig.yaml.loadAs(new String(Files.readAllBytes(buildFile.toPath())), WurstProjectConfig.class);
+        if (buildFile.exists() && buildFile.getName().equalsIgnoreCase("wurst.build")) {
+            String fileInput = new String(Files.readAllBytes(buildFile.toPath()));
+            if (fileInput.startsWith("!!")) {
+                fileInput = fileInput.substring(fileInput.indexOf("\n"));
             }
+            WurstProjectConfig config = GlobalWurstConfig.yaml.loadAs(fileInput, WurstProjectConfig.class);
+            config.projectRoot = buildFile.getParentFile();
+            if (config.projectName == null || config.projectName.isEmpty()) {
+                config.projectName = config.projectRoot.getName();
+                saveProjectConfig(config);
+            }
+            Init.log("done\n");
+            return config;
         }
         return null;
     }
@@ -101,8 +113,7 @@ public class WurstProjectConfig {
                     Init.log("Create config..");
                     setupVSCode(projectRoot, gameRoot);
 
-                    String projectYaml = GlobalWurstConfig.yaml.dump(projectConfig);
-                    Files.write(new File(projectRoot, "wurst.build").toPath(), projectYaml.getBytes());
+                    saveProjectConfig(projectConfig);
                     Init.log("done\n");
 
                     DependencyManager.updateDependencies(projectConfig);
@@ -123,15 +134,37 @@ public class WurstProjectConfig {
         }
     }
 
+    private static void saveProjectConfig(WurstProjectConfig projectConfig) throws IOException {
+        String projectYaml = GlobalWurstConfig.yaml.dump(projectConfig);
+        Files.write(new File(projectConfig.projectRoot, "wurst.build").toPath(), projectYaml.getBytes());
+    }
+
     private static void setupVSCode(File projectRoot, File gamePath) throws IOException {
         Path vsCode = new File(projectRoot, ".vscode/settings.json").toPath();
         String json = new String(Files.readAllBytes(vsCode));
         String absolutePath = GlobalWurstConfig.getWurstCompilerJar().getAbsolutePath();
-        json = json.replace("%wurstjar%", absolutePath.replaceAll("\\\\", "\\\\\\\\"));
+        json = json.replace("%wurstjar%", absolutePath.replaceAll(File.separator, File.separator + File.separator));
 
         if (gamePath != null) {
-            json = json.replace("%gamepath%", gamePath.getAbsolutePath().replaceAll("\\\\", "\\\\\\\\"));
+            json = json.replace("%gamepath%", gamePath.getAbsolutePath().replaceAll(File.separator, File.separator + File.separator));
         }
         Files.write(vsCode, json.getBytes());
+    }
+
+    public String getProjectName() {
+        return projectName;
+    }
+
+    public static void handleUpdate(File buildFile) {
+        Init.log("Updating project...\n");
+        try {
+            WurstProjectConfig config = loadProject(buildFile);
+            DependencyManager.updateDependencies(config);
+            Init.log("Project updated\n");
+            Init.refreshUi();
+        } catch (IOException ignored) {
+            Init.log("error!\n");
+        }
+
     }
 }
