@@ -106,8 +106,6 @@ public class WurstProjectConfig {
                         }
                         uselessFolder.delete();
                     }
-                    new File(projectRoot, "imports" + File.pathSeparator + ".gitkeep").delete();
-
                     Init.log("done\n");
 
                     Init.log("Create config..");
@@ -140,7 +138,11 @@ public class WurstProjectConfig {
     }
 
     private static void setupVSCode(File projectRoot, File gamePath) throws IOException {
-        Path vsCode = new File(projectRoot, ".vscode/settings.json").toPath();
+        File vsCodeF = new File(projectRoot, ".vscode/settings.json");
+        Path vsCode = vsCodeF.toPath();
+        if (!vsCodeF.exists()) {
+            Files.write(vsCode, VSCODE_MIN_CONFIG.getBytes());
+        }
         String json = new String(Files.readAllBytes(vsCode));
         String absolutePath = GlobalWurstConfig.getWurstCompilerJar().getAbsolutePath();
         json = json.replace("%wurstjar%", absolutePath.replaceAll(File.separator, File.separator + File.separator));
@@ -159,7 +161,12 @@ public class WurstProjectConfig {
         Init.log("Updating project...\n");
         try {
             WurstProjectConfig config = loadProject(buildFile);
+
+            setupVSCode(config.projectRoot, config.gameRoot);
+
             DependencyManager.updateDependencies(config);
+
+
             Init.log("Project updated\n");
             Init.refreshUi();
         } catch (IOException ignored) {
@@ -167,4 +174,9 @@ public class WurstProjectConfig {
         }
 
     }
+
+    private static String VSCODE_MIN_CONFIG = "{\n" +
+            "    \"wurst.wurstJar\": \"%wurstjar%\",\n" +
+            "    \"wurst.wc3path\": \"%gamepath%\"\n" +
+            "}";
 }
