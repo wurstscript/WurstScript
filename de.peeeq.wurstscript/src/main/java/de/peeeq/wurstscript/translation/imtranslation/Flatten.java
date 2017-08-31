@@ -56,6 +56,8 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
+
+
     public static class Result {
         final List<ImStmt> stmts;
         final ImExpr expr;
@@ -317,6 +319,10 @@ public class Flatten {
             f.flatten(translator);
         }
         translator.assertProperties(AssertProperty.FLAT);
+    }
+
+    public static Result flatten(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
+        return new Result(e);
     }
 
 

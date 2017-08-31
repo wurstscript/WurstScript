@@ -408,4 +408,9 @@ public class ImPrinter {
     }
 
 
+    public static void print(ImCompiletimeExpr e, StringBuilder sb, int indent) {
+        sb.append("compiletime<<");
+        e.getExpr().print(sb, indent);
+        sb.append(">>");
+    }
 }

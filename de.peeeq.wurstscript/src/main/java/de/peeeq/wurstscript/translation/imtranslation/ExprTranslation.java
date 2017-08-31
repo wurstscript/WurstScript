@@ -391,6 +391,13 @@ public class ExprTranslation {
             return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
+        if (e.getFuncName().equals("compiletime")
+                && e.attrImplicitParameter() instanceof NoExpr
+                && e.getArgs().size() == 1) {
+            // special compiletime-expression
+            return JassIm.ImCompiletimeExpr(e.getArgs().get(0).imTranslateExpr(t, f));
+        }
+
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
         boolean dynamicDispatch = false;

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassAst.JassExprVarAccess;
 import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
@@ -117,4 +118,9 @@ public class ExprTranslation {
     }
 
 
+    public static JassExpr translate(ImCompiletimeExpr e, ImToJassTranslator translator) {
+        throw new CompileError(e.attrTrace().attrSource(),
+                "Compiletime expression must be evaluated before translation. " +
+                "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
+    }
 }

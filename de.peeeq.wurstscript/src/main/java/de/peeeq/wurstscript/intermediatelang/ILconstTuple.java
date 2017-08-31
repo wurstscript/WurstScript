@@ -1,7 +1,11 @@
 package de.peeeq.wurstscript.intermediatelang;
 
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeString;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class ILconstTuple extends ILconstAbstract {
 
@@ -55,6 +59,9 @@ public class ILconstTuple extends ILconstAbstract {
         return values[index];
     }
 
+    public List<ILconst> values() {
+        return ImmutableList.copyOf(values);
+    }
 
     public ILconstTuple updated(int tupleIndex, ILconst newVal) {
         ILconst[] newValues = new ILconst[values.length];

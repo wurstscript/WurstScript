@@ -254,4 +254,7 @@ public class EvaluateExpr {
         return new ILconstString(sb.toString());
     }
 
+    public static ILconst eval(ImCompiletimeExpr expr, ProgramState globalState, LocalState localState) {
+        return expr.getExpr().evaluate(globalState, localState);
+    }
 }
