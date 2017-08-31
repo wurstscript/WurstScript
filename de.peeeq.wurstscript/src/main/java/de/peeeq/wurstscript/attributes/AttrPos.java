@@ -147,9 +147,10 @@ public class AttrPos {
         return updateRight(pos, pos.getLeftPos() + 6);
     }
 
-    public static WPos getErrorPos(FuncRef e) {
+    public static WPos getErrorPos(ExprFuncRef e) {
         return identifierPos(e, e.getFuncNameId());
     }
+
 
     /**
      * if an identifer only has an artificial position, try to

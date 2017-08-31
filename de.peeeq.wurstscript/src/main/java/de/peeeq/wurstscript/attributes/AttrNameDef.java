@@ -117,9 +117,13 @@ public class AttrNameDef {
         return e.attrTypeDef();
     }
 
+
+
     public static @Nullable NameDef tryGetNameDef(Element elem) {
         return null;
     }
+
+
 
 
 }

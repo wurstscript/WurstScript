@@ -18,31 +18,29 @@ import java.util.Collection;
  */
 public class AttrExprExpectedType {
 
+
     public static WurstType calculate(Expr expr) {
         try {
             Element parent = expr.getParent();
-            if (parent instanceof Arguments) {
-                Arguments args = (Arguments) parent;
+            if (parent instanceof Argument) {
+                Argument arg = (Argument) parent;
+                // TODO expected type should consider name in argument, not just position
+                Arguments args = (Arguments) parent.getParent();
                 Element parent2 = args.getParent();
                 if (parent2 instanceof StmtCall) {
                     StmtCall stmtCall = (StmtCall) parent2;
-                    return expectedType(expr, args, stmtCall);
-                } else if (parent2 instanceof ConstructorDef) {
-                    ConstructorDef constructorDef = (ConstructorDef) parent2;
-                    return expectedTypeSuperCall(constructorDef, expr);
+                    return expectedType(arg, args, stmtCall);
                 }
             } else if (parent instanceof StmtSet) {
                 StmtSet stmtSet = (StmtSet) parent;
                 if (stmtSet.getRight() == expr) {
-                    WurstType leftType = stmtSet.getUpdatedExpr().attrTyp();
-                    return leftType;
+                    return stmtSet.getUpdatedExpr().attrTyp();
                 } else if (stmtSet.getUpdatedExpr() == expr) {
                     return WurstTypeUnknown.instance();
                 }
             } else if (parent instanceof VarDef) {
                 VarDef varDef = (VarDef) parent;
-                WurstType leftType = varDef.attrTyp();
-                return leftType;
+                return varDef.attrTyp();
             } else if (parent instanceof ExprBinary) {
                 ExprBinary exprBinary = (ExprBinary) parent;
                 WurstType leftType = exprBinary.getLeft().attrTyp();
@@ -91,33 +89,7 @@ public class AttrExprExpectedType {
         return WurstTypeUnknown.instance();
     }
 
-    private static WurstType expectedTypeSuperCall(ConstructorDef constr, Expr expr) {
-        ClassDef c = constr.attrNearestClassDef();
-        if (c == null) {
-            return null;
-        }
-        ClassDef superClass = c.attrExtendedClass();
-        if (superClass == null) {
-            return null;
-        }
-        // call super constructor
-        ConstructorDefs constructors = superClass.getConstructors();
-
-
-        WurstType res = WurstTypeUnknown.instance();
-
-        int paramIndex = constr.getSuperArgs().indexOf(expr);
-
-        for (ConstructorDef superConstr : constructors) {
-            if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
-                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
-            }
-        }
-
-        return res;
-    }
-
-    private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
+    private static WurstType expectedType(Argument expr, Arguments args, StmtCall stmtCall) {
         Collection<FunctionSignature> sigs = stmtCall.attrPossibleFunctionSignatures();
 
         int index = args.indexOf(expr);
@@ -125,8 +97,8 @@ public class AttrExprExpectedType {
         WurstType res = WurstTypeUnknown.instance();
 
         for (FunctionSignature sig : sigs) {
-            if (index < sig.getParamTypes().size()) {
-                res = res.typeUnion(sig.getParamTypes().get(index), expr);
+            if (index < sig.getParamTypes().paramCount()) {
+                res = res.typeUnion(sig.getParamTypes().get(index).getType(), expr);
             }
         }
         return res;

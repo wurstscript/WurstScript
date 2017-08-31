@@ -403,4 +403,12 @@ public class DescriptionHtml {
     public static String description(ArrayInitializer arrayInitializer) {
         return "An array initializer";
     }
+
+    public static String description(NoIdentifier noIdentifier) {
+        return "no identifier";
+    }
+
+    public static String description(Argument argument) {
+        return argument.description();
+    }
 }

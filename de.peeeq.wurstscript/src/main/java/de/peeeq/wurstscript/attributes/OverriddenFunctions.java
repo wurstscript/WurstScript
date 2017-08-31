@@ -60,4 +60,7 @@ public class OverriddenFunctions {
         return t;
     }
 
+    public static FunctionDefinition getRealFuncDef(ConstructorDef c) {
+        return c;
+    }
 }

@@ -77,7 +77,7 @@ SwitchCase( de.peeeq.wurstscript.parser.WPos source, Expr expr, WStatements stmt
 SwitchDefaultCase = SwitchDefaultCaseStatements(de.peeeq.wurstscript.parser.WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot =
-	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
+	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, boolean isExplicit, WStatements body)
 	| OnDestroyDef(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, Identifier moduleNameId, TypeExprList typeArgs)
 	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId,
@@ -115,7 +115,7 @@ TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Ident
 
 
 WParameters * WParameter
-WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, Identifier nameId)
+WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, Identifier nameId, OptExpr defaultValue)
 
 
 WStatements * WStatement
@@ -211,8 +211,15 @@ ExprAtomic =
 	| ExprEmpty(de.peeeq.wurstscript.parser.WPos source)
 
 
+OptIdentifier = NoIdentifier() | Identifier
+
+Argument(de.peeeq.wurstscript.parser.WPos source, OptIdentifier argName, Expr expr)
+
+
+
+
 Indexes * Expr
-Arguments * Expr
+Arguments * Argument
 ExprList * Expr
 
 
@@ -241,12 +248,14 @@ StmtCall = FunctionCall | ExprNewObject
 
 FunctionCall = ExprMemberMethod | ExprFunctionCall
 
-FuncRef = ExprFuncRef | FunctionCall
+FuncRef = ExprFuncRef | StmtCall
+
+ConstructorRef = ExprNewObject | SuperCall
 
 
 NotExtensionFunction = NativeFunc | FuncDef | TupleDef
 
-FunctionDefinition = NotExtensionFunction | ExtensionFuncDef | FunctionImplementation
+FunctionDefinition = NotExtensionFunction | ExtensionFuncDef | FunctionImplementation | ConstructorDef
 
 FunctionImplementation = FuncDef | ExtensionFuncDef
 
@@ -270,7 +279,7 @@ WScope =
 
 PackageOrGlobal = WPackage | CompilationUnit
 
-TypeRef = TypeExpr | ExprNewObject
+TypeRef = TypeExpr
 
 NameDef = NamedScope | VarDef | TypeDef | ModuleDef | ModuleInstanciation | FunctionDefinition | WPackage | EnumDef | EnumMember
 
@@ -438,12 +447,9 @@ FunctionDefinition.attrIsDynamicClassMember()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.AttrIsClassMember.calculate
 
-FunctionDefinition.attrParameterTypesIncludingReceiver
-	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
-	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypesIncludingReceiver
 
 FunctionDefinition.attrParameterTypes
-	returns com.google.common.collect.ImmutableList<de.peeeq.wurstscript.types.WurstType>
+	returns de.peeeq.wurstscript.attributes.ParamTypes
 	implemented by de.peeeq.wurstscript.attributes.AttrParameterTypes.parameterTypes
 
 FunctionDefinition.attrReceiverType
@@ -622,12 +628,6 @@ ClassDef.isInnerClass()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.InnerClasses.isInnerClass
 
-ConstructorDef.attrSuperConstructor
-	returns ConstructorDef
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
-
-
-
 WurstModel.attrPackages
 	returns com.google.common.collect.ImmutableMap<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
@@ -747,13 +747,19 @@ FuncRef.attrFuncDef
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
-ExprNewObject.attrConstructorDef
+ConstructorRef.attrConstructorDef
 	returns @Nullable ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
 
 ExprBinary.attrFuncDef
 	returns @Nullable FunctionDefinition
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+
+StmtCall.getOrderedExpressions
+    "returns the expressions in the order defined by the function-parameters, using default expressions for missing arguments"
+    returns java.util.List<Expr>
+    implemented by de.peeeq.wurstscript.attributes.ArgumentsOrderedExpressions.getOrderedExpressions
 
 
 FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"

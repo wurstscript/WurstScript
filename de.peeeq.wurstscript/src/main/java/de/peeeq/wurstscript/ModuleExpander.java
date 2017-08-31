@@ -75,9 +75,11 @@ public class ModuleExpander {
                 mi.getConstructors().add(Ast.ConstructorDef(
                         source,
                         Ast.Modifiers(),
+                        Ast.Identifier(source, "construct"),
+                        Ast.TypeParamDefs(),
                         Ast.WParameters(),
+                        Ast.NoTypeExpr(),
                         false,
-                        Ast.Arguments(),
                         Ast.WStatements(
                                 Ast.StartFunctionStatement(source),
                                 Ast.EndFunctionStatement(source)

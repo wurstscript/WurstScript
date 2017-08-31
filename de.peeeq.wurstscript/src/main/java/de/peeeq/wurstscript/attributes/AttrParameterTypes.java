@@ -7,21 +7,12 @@ import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrParameterTypes {
 
-    public static ImmutableList<WurstType> parameterTypesIncludingReceiver(FunctionDefinition f) {
-        ImmutableList.Builder<WurstType> result = ImmutableList.builder();
-        if (f.attrReceiverType() != null) {
-            result.add(f.attrReceiverType());
+    public static ParamTypes parameterTypes(FunctionDefinition f) {
+        ImmutableList.Builder<ParamTypes.ParamInfo> result = ImmutableList.builder();
+        for (int i = 0; i < f.getParameters().size(); i++) {
+            result.add(new ParamTypes.ParamInfo(i, f.getParameters().get(i)));
         }
-        result.addAll(f.attrParameterTypes());
-        return result.build();
-    }
-
-    public static ImmutableList<WurstType> parameterTypes(FunctionDefinition f) {
-        ImmutableList.Builder<WurstType> result = ImmutableList.builder();
-        for (WParameter p : f.getParameters()) {
-            result.add(p.attrTyp());
-        }
-        return result.build();
+        return new ParamTypes(result.build());
     }
 
     public static @Nullable WurstType receiverType(FuncDef f) {
@@ -44,4 +35,7 @@ public class AttrParameterTypes {
         return null;
     }
 
+    public static WurstType receiverType(ConstructorDef constructorDef) {
+        return null;
+    }
 }

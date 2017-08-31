@@ -391,7 +391,7 @@ public class ExprTranslation {
             return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
-        List<Expr> arguments = Lists.newArrayList(e.getArgs());
+        List<Expr> arguments = e.getOrderedExpressions();
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
 
@@ -519,7 +519,7 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
         ConstructorDef constructorFunc = e.attrConstructorDef();
         ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-        return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        return ImFunctionCall(e, constructorImFunc, translateExprs(e.getOrderedExpressions(), t, f), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

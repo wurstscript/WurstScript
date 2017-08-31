@@ -51,6 +51,11 @@ public class SmallHelpers {
         return nd.getNameId().getName();
     }
 
+    public static String getName(ConstructorDef cd) {
+        ClassOrModule c = cd.attrNearestClassOrModule();
+        return c.getName() + "$construct";
+    }
+
 
     public static String getVarName(ExprMemberArrayVar e) {
         return e.getVarNameId().getName();
@@ -69,7 +74,11 @@ public class SmallHelpers {
         return e.getVarNameId().getName();
     }
 
-    public static String getFuncName(FuncRef e) {
+    public static String getFuncName(ExprFuncRef e) {
+        return e.getFuncNameId().getName();
+    }
+
+    public static String getFuncName(FunctionCall e) {
         return e.getFuncNameId().getName();
     }
 
@@ -85,4 +94,7 @@ public class SmallHelpers {
         return m.getModuleNameId().getName();
     }
 
+    public static String getFuncName(ExprNewObject e) {
+        return e.getTypeName() + "$construct";
+    }
 }

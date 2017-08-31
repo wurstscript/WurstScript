@@ -178,6 +178,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_NoIdentifier(NoIdentifier noIdentifier) {
+            return string("no identifier");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_StmtErr(StmtErr stmtErr) {
             return string("Error statement");
         }
@@ -386,6 +391,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ModuleUse(ModuleUse moduleUse) {
             return description(moduleUse.attrModuleDef());
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_Argument(Argument argument) {
+            return string("A named argument to a method.");
         }
 
         @Override

@@ -3,7 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 
 /**
- * calculates wether a variable is a class member
+ * calculates whether a variable is a dynamic class member,
+ * for example a non-static method or field
  */
 public class AttrIsClassMember {
 
@@ -41,4 +42,7 @@ public class AttrIsClassMember {
         return false;
     }
 
+    public static boolean calculate(ConstructorDef constructorDef) {
+        return false;
+    }
 }

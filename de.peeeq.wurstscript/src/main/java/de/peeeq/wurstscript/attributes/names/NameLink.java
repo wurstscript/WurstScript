@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes.names;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ArgTypes;
+import de.peeeq.wurstscript.attributes.ParamTypes;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
@@ -22,7 +24,7 @@ public class NameLink {
     private @Nullable WurstType receiverType = null;
     private final NameDef nameDef;
     private @Nullable WurstType returnType;
-    private @Nullable List<WurstType> parameterTypes;
+    private @Nullable ParamTypes parameterTypes;
 
 
     @Override
@@ -66,7 +68,7 @@ public class NameLink {
     }
 
     private NameLink(Visibility visibility, NameLinkType type,
-                     WScope definedIn, NameDef nameDef, @Nullable WurstType returnType, @Nullable List<WurstType> parameterTypes) {
+                     WScope definedIn, NameDef nameDef, @Nullable WurstType returnType, @Nullable ParamTypes parameterTypes) {
         super();
         this.visibility = visibility;
         this.type = type;
@@ -80,6 +82,12 @@ public class NameLink {
         Visibility visibiliy = calcVisibility(definedIn, nameDef);
         NameLinkType type = calcNameLinkType(nameDef);
         return new NameLink(visibiliy, type, definedIn, nameDef);
+    }
+
+    public static NameLink create(ConstructorDef cDef, WScope definedIn) {
+        Visibility visibiliy = calcVisibility(definedIn, cDef);
+        NameLinkType type = calcNameLinkType(cDef);
+        return new NameLink(visibiliy, type, definedIn, cDef);
     }
 
     private static @Nullable WurstType calcReceiverType(WScope definedIn, NameDef nameDef, NameLinkType type) {
@@ -254,19 +262,7 @@ public class NameLink {
         }
         WurstType newReturnType = adjustType(context, getReturnType(), binding);
         boolean changed = newReturnType != returnType;
-        List<WurstType> newParamTypes;
-        if (getParameterTypes().isEmpty()) {
-            newParamTypes = getParameterTypes();
-        } else {
-            newParamTypes = Lists.newArrayListWithCapacity(getParameterTypes().size());
-            for (WurstType pt : getParameterTypes()) {
-                WurstType newPt = adjustType(context, pt, binding);
-                if (newPt != pt) {
-                    changed = true;
-                }
-                newParamTypes.add(newPt);
-            }
-        }
+        ParamTypes newParamTypes = getParameterTypes().setTypeArgs(binding);
         if (changed) {
             return new NameLink(visibility, type, definedIn, nameDef, newReturnType, newParamTypes);
         } else {
@@ -288,14 +284,14 @@ public class NameLink {
         return r;
     }
 
-    public List<WurstType> getParameterTypes() {
-        List<WurstType> pts = parameterTypes;
+    public ParamTypes getParameterTypes() {
+        ParamTypes pts = parameterTypes;
         if (pts == null) {
             if (nameDef instanceof FunctionDefinition) {
                 FunctionDefinition f = (FunctionDefinition) nameDef;
                 pts = f.attrParameterTypes();
             } else {
-                pts = Collections.emptyList();
+                pts = ParamTypes.noParams();
             }
             parameterTypes = pts;
         }

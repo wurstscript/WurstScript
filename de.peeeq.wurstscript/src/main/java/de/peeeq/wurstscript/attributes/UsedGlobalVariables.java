@@ -141,4 +141,11 @@ public class UsedGlobalVariables {
     }
 
 
+    public static ImmutableList<VarDef> getUsedGlobals(ConstructorDef constructorDef) {
+        return constructorDef.getBody().attrUsedGlobalVariables();
+    }
+
+    public static ImmutableList<VarDef> getReadGlobals(ConstructorDef constructorDef) {
+        return constructorDef.getBody().attrReadGlobalVariables();
+    }
 }

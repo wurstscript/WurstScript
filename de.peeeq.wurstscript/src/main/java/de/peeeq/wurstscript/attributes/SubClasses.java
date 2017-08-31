@@ -46,21 +46,6 @@ public class SubClasses {
         }
     }
 
-    public static @Nullable ConstructorDef getSuperConstructor(ConstructorDef constr) {
-        ClassDef c = constr.attrNearestClassDef();
-        if (c == null) {
-            return null;
-        }
-        ClassDef superClass = c.attrExtendedClass();
-        if (superClass == null) {
-            return null;
-        }
-        // call super constructor
-        ConstructorDefs constructors = superClass.getConstructors();
-        ConstructorDef superConstr = OverloadingResolver.resolveSuperCall(constructors, constr);
-        return superConstr;
-    }
-
     public static WurstType getExtendedClassType(ClassDef c) {
         ClassDef ec = c.attrExtendedClass();
         if (ec != null) {

@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ArgTypes.ArgTypeCompatibility;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
@@ -12,9 +15,11 @@ import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -76,7 +81,7 @@ public class AttrFuncDef {
         WurstType leftType = left.attrTyp();
         String funcName = node.getFuncName();
 
-        FunctionDefinition result = searchMemberFunc(node, leftType, funcName, argumentTypes(node));
+        FunctionDefinition result = searchMemberFunc(node, leftType, funcName, ArgTypes.fromArguments(node.getArgs()));
         if (result == null) {
             node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
         }
@@ -84,10 +89,26 @@ public class AttrFuncDef {
     }
 
     public static @Nullable FunctionDefinition calculate(final ExprFunctionCall node) {
-        FunctionDefinition result = searchFunction(node.getFuncName(), node, argumentTypes(node));
+        String funcName = node.getFuncName();
+        if (funcName.equals("super")) {
+            ClassDef c = node.attrNearestClassDef();
+            if (c == null) {
+                node.addError("Can only use super-calls in class-constructors.");
+                return null;
+            } else {
+                ClassDef ec = c.attrExtendedClass();
+                if (ec == null) {
+                    node.addError("Could not find super-class for super-call.");
+                    return null;
+                } else {
+                    funcName = ec.getName() + "$construct";
+                }
+            }
+        }
+
+        FunctionDefinition result = searchFunction(funcName, node, ArgTypes.fromArguments(node.getArgs()));
 
         if (result == null) {
-            String funcName = node.getFuncName();
             if (funcName.startsWith("InitTrig_")
                     && node.attrNearestFuncDef() != null
                     && node.attrNearestFuncDef().getName().equals("InitCustomTriggers")) {
@@ -99,12 +120,18 @@ public class AttrFuncDef {
         return result;
     }
 
+    public static FunctionDefinition calculate(ExprNewObject node) {
+        // TODO constructor name
+        return searchFunction(node.getFuncName(), node, ArgTypes.fromArguments(node.getArgs()));
+    }
+
+
     private static @Nullable FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
         String funcName = op.getOverloadingFuncName();
         if (funcName == null || nativeOperator(op, left.attrTyp(), right.attrTyp(), left)) {
             return null;
         }
-        return searchMemberFunc(left, left.attrTyp(), funcName, Collections.singletonList(right.attrTyp()));
+        return searchMemberFunc(left, left.attrTyp(), funcName, ArgTypes.fromExprs(right));
     }
 
 
@@ -125,16 +152,7 @@ public class AttrFuncDef {
     }
 
 
-    private static List<WurstType> argumentTypes(FunctionCall node) {
-        List<WurstType> result = Lists.newArrayList();
-        for (Expr arg : node.getArgs()) {
-            result.add(arg.attrTyp());
-        }
-        return result;
-    }
-
-
-    private static @Nullable FunctionDefinition searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
+    private static @Nullable FunctionDefinition searchFunction(String funcName, @Nullable FuncRef node, ArgTypes argumentTypes) {
         if (node == null) {
             return null;
         }
@@ -157,8 +175,10 @@ public class AttrFuncDef {
 
             funcs = useLocalPackageIfPossible(node, funcs);
 
-            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
-                    + Utils.printAlternatives(funcs));
+            if (funcs.size() > 1) {
+                node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
+                        + Utils.printAlternatives(funcs));
+            }
             return firstFunc(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
@@ -193,7 +213,7 @@ public class AttrFuncDef {
     }
 
 
-    private static @Nullable FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
+    private static @Nullable FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, ArgTypes arguments) {
         Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
         if (funcs1.size() == 0) {
             return null;
@@ -204,9 +224,11 @@ public class AttrFuncDef {
 
             // chose method with most specific receiver type
             funcs = filterByReceiverType(node, funcName, funcs);
-            funcs = filterByParameters(node, argumentTypes, funcs);
+            funcs = filterByParameters(node, arguments, funcs);
 
-            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+            if (funcs.size() > 1) {
+                node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+            }
             return firstFunc(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
@@ -214,52 +236,26 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterByParameters(Element node,
-                                                     List<WurstType> argumentTypes, List<NameLink> funcs)
+    private static List<NameLink> filterByParameters(Element node, ArgTypes argumentTypes, List<NameLink> funcs)
             throws EarlyReturn {
-        // filter out methods with wrong number of params
-        funcs = filterByParamaeterNumber(argumentTypes, funcs);
+        if (funcs.size() <= 1) {
+            return funcs;
+        }
 
-        // filter out methods for which the arguments have wrong types
-        funcs = filterByParameterTypes(node, argumentTypes, funcs);
-        return funcs;
-    }
+        ArgTypeCompatibility maxComp = ArgTypeCompatibility.WRONG_NUMBER_OF_ARGS;
 
-
-    private static List<NameLink> filterByParameterTypes(
-            Element node, List<WurstType> argumentTypes, List<NameLink> funcs3) throws EarlyReturn {
-        List<NameLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
-        nextFunc:
-        for (NameLink f : funcs3) {
-            for (int i = 0; i < argumentTypes.size(); i++) {
-                if (!argumentTypes.get(i).isSubtypeOf(f.getParameterTypes().get(i), node)) {
-                    continue nextFunc;
-                }
+        List<NameLink> result = new ArrayList<>();
+        for (NameLink func : funcs) {
+            ArgTypeCompatibility funcComp = argumentTypes.compatibilityWith(func.getParameterTypes());
+            if (funcComp.compareTo(maxComp) > 0) {
+                maxComp = funcComp;
+                result.clear();
             }
-            funcs4.add(f);
-        }
-        if (funcs4.size() == 0) {
-            throw new EarlyReturn(firstFunc(funcs3));
-        } else if (funcs4.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs4));
-        }
-        return funcs4;
-    }
-
-
-    private static List<NameLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<NameLink> funcs2) throws EarlyReturn {
-        List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
-        for (NameLink f : funcs2) {
-            if (f.getParameterTypes().size() == argumentTypes.size()) {
-                funcs3.add(f);
+            if (funcComp.compareTo(maxComp) >= 0) {
+                result.add(func);
             }
         }
-        if (funcs3.size() == 0) {
-            throw new EarlyReturn(firstFunc(funcs2));
-        } else if (funcs3.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs3));
-        }
-        return funcs3;
+        return result;
     }
 
 
@@ -329,6 +325,7 @@ public class AttrFuncDef {
         }
         throw new Error("Collection of funcs was empty");
     }
+
 
 
 }

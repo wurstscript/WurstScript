@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ParamTypes;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -12,25 +14,27 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(null, Collections.<WurstType>emptyList(), Collections.<String>emptyList(), WurstTypeUnknown.instance());
+    public static final FunctionSignature empty = new FunctionSignature(null, ParamTypes.noParams(), WurstTypeUnknown.instance());
     private final @Nullable WurstType receiverType;
-    private final List<WurstType> paramTypes;
-    private final List<String> paramNames; // optional list of parameter names
+    private final ParamTypes paramTypes;
     private final WurstType returnType;
 
 
-    public FunctionSignature(@Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(@Nullable WurstType receiverType, ParamTypes paramTypes, WurstType returnType) {
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
         this.receiverType = receiverType;
         this.paramTypes = paramTypes;
         this.returnType = returnType;
-        this.paramNames = paramNames;
     }
 
 
-    public List<WurstType> getParamTypes() {
+    public ParamTypes getParamTypes() {
         return paramTypes;
+    }
+
+    public List<WurstType> getParamTypeList() {
+        return paramTypes.getTypeList();
     }
 
     public WurstType getReturnType() {
@@ -43,11 +47,7 @@ public class FunctionSignature {
 
     public FunctionSignature setTypeArgs(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
         WurstType r2 = returnType.setTypeArgs(typeArgBinding);
-        List<WurstType> pt2 = Lists.newArrayList();
-        for (WurstType p : paramTypes) {
-            pt2.add(p.setTypeArgs(typeArgBinding));
-        }
-        return new FunctionSignature(receiverType, pt2, paramNames, r2);
+        return new FunctionSignature(receiverType, paramTypes.setTypeArgs(typeArgBinding) , r2);
     }
 
 
@@ -63,9 +63,8 @@ public class FunctionSignature {
         }
 
 
-        List<WurstType> paramTypes = f.attrParameterTypes();
-        List<String> paramNames = getParamNames(f.getParameters());
-        return new FunctionSignature(f.attrReceiverType(), paramTypes, paramNames, returnType);
+        ParamTypes paramTypes = f.attrParameterTypes();
+        return new FunctionSignature(f.attrReceiverType(), paramTypes, returnType);
     }
 
 
@@ -82,44 +81,30 @@ public class FunctionSignature {
             AstElementWithParameters n = (AstElementWithParameters) f.getNameDef();
             pNames = getParamNames(n.getParameters());
         }
-        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType());
+        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), f.getReturnType());
     }
 
 
     public boolean isEmpty() {
-        return receiverType == null && paramTypes.isEmpty() && returnType instanceof WurstTypeUnknown;
+        return receiverType == null && paramTypes.getParams().isEmpty() && returnType instanceof WurstTypeUnknown;
     }
 
 
     public String getParameterDescription() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < paramTypes.size(); i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
-            sb.append(paramTypes.get(i).toString());
-            if (i < paramNames.size()) {
-                sb.append(" ");
-                sb.append(paramNames.get(i));
-            }
-        }
-        return sb.toString();
+        return paramTypes.toString();
     }
 
 
     public String getParamName(int i) {
-        if (i >= 0 && i < paramNames.size()) {
-            return paramNames.get(i);
-        }
-        return "";
+        return paramTypes.getParamName(i);
     }
 
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        result.append(returnType + " ");
+        result.append(returnType).append(" ");
         if (receiverType != null) {
-            result.append(receiverType + ".");
+            result.append(receiverType).append(".");
         }
         result.append("(");
         result.append(getParameterDescription());

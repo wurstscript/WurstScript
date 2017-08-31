@@ -155,8 +155,8 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
-					('super' '(' superArgs=exprList ')' NL)?
+                  modifiersWithDoc name='construct' formalParameters NL (STARTBLOCK
+					('super' superArgs=argumentList NL)?
 					stmts+=statement*
                   ENDBLOCK)?
               ;
@@ -209,7 +209,7 @@ funcSignature:
 formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				   typeExpr name=ID
+				   typeExpr name=ID ('=' defaultValue=expr)?
 			   ;
 
 typeExpr:
@@ -338,14 +338,14 @@ stmtCall:
 		;
 
 exprMemberMethod:
-					receiver=expr dots=('.'|'..') funcName=ID? typeArgs ('(' exprList ')')?
+					receiver=expr dots=('.'|'..') funcName=ID? typeArgs (argumentList)?
 				;
 
 expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
+	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
 	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
@@ -388,10 +388,10 @@ exprStatementsBlock:
 
 
 exprFunctionCall:
-					funcName=ID typeArgs '(' exprList ')'
+					funcName=ID typeArgs argumentList
 				;
 	  
-exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
+exprNewObject:'new' className=ID typeArgs argumentList?;
 
 exprClosure: formalParameters '->' (skip='skip'|expr);
 		  
@@ -422,7 +422,9 @@ typeArgs: ('<' (args+=typeExpr (',' args+=typeExpr)*)? '>')?;
 
 exprList : exprs+=expr (',' exprs+=expr)*;
 
+argumentList: '(' args+=argument (',' args+=argument)* ')';
 
+argument: (argumentName=ID '=')? expr;
 
 nativeType: 'nativetype' name=ID ('extends' extended=ID)? NL;
 initBlock: 'init' NL statementsBlock; 

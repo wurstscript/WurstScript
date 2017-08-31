@@ -445,10 +445,19 @@ public class AntlrJurstParseTreeTransformer {
         WParameters parameters = transformFormalParameters(
                 c.formalParameters(), false);
         WStatements body = transformStatementList(c.stmts);
+
+        // add artificial super-call in beginning:
         boolean isExplicit = c.superArgs != null;
-        Arguments superArgs = transformExprs(c.superArgs);
-        return Ast.ConstructorDef(source, modifiers, parameters, isExplicit,
-                superArgs, body);
+        if (isExplicit) {
+            Arguments superArgs = transformArgs(c.superArgs);
+            Identifier superCallName = Ast.Identifier(source(c.name), "super");
+            body.add(0, Ast.ExprFunctionCall(superArgs.attrSource(), superCallName, Ast.TypeExprList(), superArgs));
+        }
+
+        Identifier name = Ast.Identifier(source(c.name), "construct");
+
+        TypeParamDefs typeParams = Ast.TypeParamDefs();
+        return Ast.ConstructorDef(source, modifiers, name, typeParams, parameters, Ast.NoTypeExpr(), isExplicit, body);
     }
 
     private WStatements transformStatementList(List<StatementContext> stmts) {
@@ -825,7 +834,7 @@ public class AntlrJurstParseTreeTransformer {
     private ExprNewObject transformExprNewObject(ExprNewObjectContext e) {
         Identifier typeName = text(e.className);
         TypeExprList typeArgs = transformTypeArgs(e.typeArgs());
-        Arguments args = transformExprs(e.exprList());
+        Arguments args = transformArgs(e.exprList());
         return Ast.ExprNewObject(source(e), typeName, typeArgs, args);
     }
 
@@ -851,21 +860,38 @@ public class AntlrJurstParseTreeTransformer {
 
         if (dots.getType() == JurstParser.DOT) {
             return Ast.ExprMemberMethodDot(source, left, text(funcName),
-                    transformTypeArgs(typeArgs), transformExprs(args));
+                    transformTypeArgs(typeArgs), transformArgs(args));
         } else {
             return Ast.ExprMemberMethodDotDot(source, left, text(funcName),
-                    transformTypeArgs(typeArgs), transformExprs(args));
+                    transformTypeArgs(typeArgs), transformArgs(args));
         }
 
     }
 
     private ExprFunctionCall transformFunctionCall(ExprFunctionCallContext c) {
         return Ast.ExprFunctionCall(source(c), text(c.funcName),
-                transformTypeArgs(c.typeArgs()), transformExprs(c.exprList()));
+                transformTypeArgs(c.typeArgs()), transformArgs(c.exprList()));
     }
 
-    private Arguments transformExprs(@Nullable ExprListContext es) {
+    private Arguments transformArgs(@Nullable ExprListContext es) {
         Arguments result = Ast.Arguments();
+        if (es != null) {
+            for (ExprContext e : es.exprs) {
+                result.add(transformArg(e));
+            }
+        }
+        if (result.size() == 1 && result.get(0).getExpr() instanceof ExprEmpty) {
+            result.clear();
+        }
+        return result;
+    }
+
+    private Argument transformArg(ExprContext e) {
+        return Ast.Argument(source(e), Ast.NoIdentifier(), transformExpr(e));
+    }
+
+    private ExprList transformExprs(@Nullable ExprListContext es) {
+        ExprList result = Ast.ExprList();
         if (es != null) {
             for (ExprContext e : es.exprs) {
                 result.add(transformExpr(e));
@@ -1253,7 +1279,7 @@ public class AntlrJurstParseTreeTransformer {
             modifiers.add(Ast.ModConstant(source(p).artificial()));
         }
         return Ast.WParameter(source(p), modifiers,
-                transformTypeExpr(p.typeExpr()), text(p.name));
+                transformTypeExpr(p.typeExpr()), text(p.name), Ast.NoExpr());
     }
 
     private TypeParamDefs transformTypeParams(@Nullable TypeParamsContext typeParams) {

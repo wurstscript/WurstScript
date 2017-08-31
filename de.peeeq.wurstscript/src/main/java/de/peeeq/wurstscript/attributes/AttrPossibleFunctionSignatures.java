@@ -43,12 +43,12 @@ public class AttrPossibleFunctionSignatures {
         }
     }
 
-    private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
-        if (argTypes.size() > paramTypes.size()) {
+    private static boolean paramTypesCanMatch(ParamTypes paramTypes, List<WurstType> argTypes, Element location) {
+        if (argTypes.size() > paramTypes.paramCount()) {
             return false;
         }
         for (int i = 0; i < argTypes.size(); i++) {
-            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
+            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i).getType(), location)) {
                 if (!(argTypes.get(i) instanceof WurstTypeUnknown)) {
                     return false;
                 }
@@ -59,8 +59,8 @@ public class AttrPossibleFunctionSignatures {
 
     private static List<WurstType> partialArgTypes(FunctionCall fc) {
         List<WurstType> result = new ArrayList<>();
-        for (Expr arg : fc.getArgs()) {
-            result.add(arg.attrTyp());
+        for (Argument arg : fc.getArgs()) {
+            result.add(arg.getExpr().attrTyp());
         }
         return result;
     }
@@ -75,13 +75,10 @@ public class AttrPossibleFunctionSignatures {
 
         WurstType returnType = struct.attrTyp().dynamic();
         Map<TypeParamDef, WurstTypeBoundTypeParam> binding2 = fc.attrTypeParameterBindings();
-        List<WurstType> paramTypes = Lists.newArrayList();
-        for (WParameter p : f.getParameters()) {
-            paramTypes.add(p.attrTyp().setTypeArgs(binding2));
-        }
+        ParamTypes paramTypes = ParamTypes.fromParams(f.getParameters()).setTypeArgs(binding2);
         returnType = returnType.setTypeArgs(binding2);
         List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
-        return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType));
+        return ImmutableList.of(new FunctionSignature(null, paramTypes, returnType));
     }
 
 }

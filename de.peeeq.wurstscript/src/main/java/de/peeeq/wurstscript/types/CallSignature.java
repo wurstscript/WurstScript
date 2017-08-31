@@ -1,17 +1,19 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ArgTypes;
+import de.peeeq.wurstscript.attributes.ParamTypes;
+import de.peeeq.wurstscript.attributes.ParamTypes.ParamInfo;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class CallSignature {
     private final @Nullable Expr receiver;
-    private final List<Expr> arguments;
+    private final ArgTypes arguments;
 
-    public CallSignature(@Nullable OptExpr optExpr, List<Expr> arguments) {
+    public CallSignature(@Nullable OptExpr optExpr, ArgTypes arguments) {
         if (optExpr instanceof Expr) {
             this.receiver = (Expr) optExpr;
         } else {
@@ -20,7 +22,7 @@ public class CallSignature {
         this.arguments = arguments;
     }
 
-    public List<Expr> getArguments() {
+    public ArgTypes getArguments() {
         return arguments;
     }
 
@@ -41,27 +43,32 @@ public class CallSignature {
                         "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
             }
         }
-        if (getArguments().size() > sig.getParamTypes().size()) {
-            if (sig.getParamTypes().size() == 0) {
-                pos.addError("Too many arguments. Function " + funcName + " takes no parameter.");
-            } else if (sig.getParamTypes().size() < 2) {
-                pos.addError("Too many arguments. Function " + funcName + " only takes " + sig.getParamTypes().size()
-                        + " parameter.");
-            } else {
-                pos.addError("Too many arguments. Function " + funcName + " only takes " + sig.getParamTypes().size()
-                        + " parameters.");
-            }
-        } else if (getArguments().size() < sig.getParamTypes().size()) {
-            pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
-        } else {
-            for (int i = 0; i < getArguments().size(); i++) {
-                if (!getArguments().get(i).attrTyp().isSubtypeOf(sig.getParamTypes().get(i), pos)) {
-                    getArguments().get(i).addError("Wrong parameter type when calling " + funcName + ".\n"
-                            + "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i) + " " + sig.getParamName(i));
-                }
-            }
-        }
-
+        arguments.checkCall(sig.getParamTypes(), funcName, pos);
     }
 
+    public List<Expr> getOrderedExpressions(FunctionSignature functionSignature, Arguments args, WParameters parameters) {
+        Expr[] result = new Expr[parameters.size()];
+        ParamTypes paramTypes = functionSignature.getParamTypes();
+        for (int i = 0; i < args.size(); i++) {
+            Argument arg = args.get(i);
+            OptIdentifier argNameId = arg.getArgName();
+            ParamInfo param;
+            if (argNameId instanceof Identifier) {
+                String argName = ((Identifier) argNameId).getName();
+                param = paramTypes.getParam(argName)
+                        .orElseThrow(() -> new RuntimeException("Param " + argName + " not found"));
+            } else {
+                param = paramTypes.getParam(i);
+            }
+            result[param.getIndex()] = arg.getExpr();
+        }
+
+        for (int i = 0; i < result.length; i++) {
+            if (result[i] == null) {
+                // for missing parameters there must be a default value:
+                result[i] = (Expr) parameters.get(i).getDefaultValue();
+            }
+        }
+        return Arrays.asList(result);
+    }
 }

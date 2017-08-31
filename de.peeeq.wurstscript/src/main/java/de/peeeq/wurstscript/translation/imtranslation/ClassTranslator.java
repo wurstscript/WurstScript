@@ -381,16 +381,6 @@ public class ClassTranslator {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructFunc(constr);
         ImVar thisVar = translator.getThisVar(constr);
-        ConstructorDef superConstr = constr.attrSuperConstructor();
-        if (superConstr != null) {
-            // call super constructor
-            ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
-            ImExprs arguments = ImExprs(ImVarAccess(thisVar));
-            for (Expr a : constr.getSuperArgs()) {
-                arguments.add(a.imTranslateExpr(translator, f));
-            }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
-        }
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
             ImVar v = i.getA();

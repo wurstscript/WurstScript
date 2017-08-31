@@ -3,12 +3,14 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.ParamTypes.ParamInfo;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +31,7 @@ public class Generics {
             ExprMemberMethod emm = (ExprMemberMethod) fc;
             inferTypeParameterUsingReceiver(result, emm, typeParams);
         }
-        inferTypeParametersUsingArguments(result, fc.getArgs(), def.getParameters(), typeParams);
+        inferTypeParametersUsingArguments(result, fc.getArgs(), ParamTypes.fromParams(def.getParameters()), typeParams);
         return ImmutableMap.copyOf(result);
     }
 
@@ -46,10 +48,13 @@ public class Generics {
 
     // TODO in the future this should also take return type into account
     // e.g. List<String> = new List() // infer String here
-    private static void inferTypeParametersUsingArguments(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Arguments args, WParameters params, TypeParamDefs typeParams) {
+    private static void inferTypeParametersUsingArguments(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Arguments args, ParamTypes params, TypeParamDefs typeParams) {
         // calculate (most general) unifier
-        for (int i = 0; i < args.size() && i < params.size(); i++) {
-            inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
+        LinkedHashMap<ParamInfo, ArgTypes.Arg> matchedArgs = ArgTypes.fromArguments(args).matchWith(params);
+        for (Map.Entry<ParamInfo, ArgTypes.Arg> entry : matchedArgs.entrySet()) {
+            ArgTypes.Arg arg = entry.getValue();
+            ParamInfo param = entry.getKey();
+            inferTypeParameters(result, args, arg.expr.attrTyp(), param.getType(), typeParams);
         }
         if (result.size() < typeParams.size()) {
             for (TypeParamDef tp : typeParams) {
@@ -101,7 +106,7 @@ public class Generics {
         }
 
         Map<TypeParamDef, WurstTypeBoundTypeParam> result = Maps.newLinkedHashMap();
-        inferTypeParametersUsingArguments(result, e.getArgs(), constrDef.getParameters(), typeParams);
+        inferTypeParametersUsingArguments(result, e.getArgs(), ParamTypes.fromParams(constrDef.getParameters()), typeParams);
         return ImmutableMap.copyOf(result);
     }
 

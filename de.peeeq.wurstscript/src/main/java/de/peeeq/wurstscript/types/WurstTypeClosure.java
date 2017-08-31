@@ -32,10 +32,7 @@ public class WurstTypeClosure extends WurstType {
                 }
             }
             // covariant return types
-            if (!returnType.isSubtypeOf(o.returnType, location)) {
-                return false;
-            }
-            return true;
+            return returnType.isSubtypeOf(o.returnType, location);
         } else if (other instanceof WurstTypeCode) {
             return paramTypes.size() == 0;
         } else {
@@ -50,13 +47,13 @@ public class WurstTypeClosure extends WurstType {
 
     private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
                                                     Element location) {
-        if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
+        if (paramTypes.size() != abstractMethod.getParamTypes().paramCount()) {
             return false;
         }
 
         // contravariant parameter types
         for (int i = 0; i < paramTypes.size(); i++) {
-            if (!abstractMethod.getParamTypes().get(i).isSubtypeOf(paramTypes.get(i), location)) {
+            if (!abstractMethod.getParamTypes().get(i).getType().isSubtypeOf(paramTypes.get(i), location)) {
                 return false;
             }
         }

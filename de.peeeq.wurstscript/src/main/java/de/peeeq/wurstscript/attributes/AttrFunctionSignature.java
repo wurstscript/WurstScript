@@ -21,7 +21,7 @@ public class AttrFunctionSignature {
     private static FunctionSignature filterSigs(
             Collection<FunctionSignature> sigs,
             Map<TypeParamDef, WurstTypeBoundTypeParam> typeParameterBindings,
-            List<WurstType> argTypes, StmtCall location) {
+            ArgTypes argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
             if (!isInitTrigFunc(location)) {
                 location.addError("Could not find " + name(location) + ".");
@@ -72,28 +72,16 @@ public class AttrFunctionSignature {
         return Utils.printElement(s);
     }
 
-    private static boolean paramTypesMatch(FunctionSignature sig, List<WurstType> argTypes, Element location) {
+    private static boolean paramTypesMatch(FunctionSignature sig, ArgTypes argTypes, Element location) {
         return paramTypesMatch(sig.getParamTypes(), argTypes, location);
     }
 
-    private static boolean paramTypesMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
-        if (paramTypes.size() != argTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < paramTypes.size(); i++) {
-            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                return false;
-            }
-        }
-        return true;
+    private static boolean paramTypesMatch(ParamTypes paramTypes, ArgTypes argTypes, Element location) {
+        return argTypes.compatibilityWith(paramTypes) == ArgTypes.ArgTypeCompatibility.FULL_COMPATIBILITY;
     }
 
-    private static List<WurstType> argTypes(AstElementWithArgs fc) {
-        List<WurstType> result = new ArrayList<>();
-        for (Expr arg : fc.getArgs()) {
-            result.add(arg.attrTyp());
-        }
-        return result;
+    private static ArgTypes argTypes(AstElementWithArgs fc) {
+        return ArgTypes.fromArguments(fc.getArgs());
     }
 
 

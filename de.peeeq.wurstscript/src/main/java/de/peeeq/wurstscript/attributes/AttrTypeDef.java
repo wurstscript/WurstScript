@@ -41,11 +41,6 @@ public class AttrTypeDef {
             }
 
             @Override
-            public String case_ExprNewObject(ExprNewObject exprNewObject) {
-                return exprNewObject.getTypeName();
-            }
-
-            @Override
             public @Nullable String case_TypeExprThis(TypeExprThis typeExprThis) {
                 return null;
             }

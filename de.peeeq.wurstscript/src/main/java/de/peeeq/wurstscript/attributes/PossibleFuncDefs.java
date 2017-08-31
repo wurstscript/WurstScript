@@ -47,6 +47,7 @@ public class PossibleFuncDefs {
     }
 
 
+
     public static ImmutableCollection<FunctionDefinition> calculate(final ExprMemberMethod node) {
 
         Expr left = node.getLeft();
@@ -57,8 +58,28 @@ public class PossibleFuncDefs {
     }
 
     public static ImmutableCollection<FunctionDefinition> calculate(final ExprFunctionCall node) {
+        String funcName = node.getFuncName();
+        if (funcName.equals("super")) {
+            ClassDef c = node.attrNearestClassDef();
+            if (c == null) {
+                return ImmutableList.of();
+            } else {
+                ClassDef ec = c.attrExtendedClass();
+                if (ec == null) {
+                    return ImmutableList.of();
+                } else {
+                    funcName = ec.getName() + "$construct";
+                }
+            }
+        }
+        return searchFunction(funcName, node);
+    }
+
+    public static ImmutableCollection<FunctionDefinition> calculate(ExprNewObject node) {
+        // TODO name for constructors??
         return searchFunction(node.getFuncName(), node);
     }
+
 
     private static ImmutableCollection<FunctionDefinition> getExtensionFunction(Expr left, Expr right, WurstOperator op) {
         String funcName = op.getOverloadingFuncName();
@@ -203,5 +224,6 @@ public class PossibleFuncDefs {
         }
         throw new Error("Collection of funcs was empty");
     }
+
 
 }

@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import static de.peeeq.wurstscript.ast.Ast.*;
+
 /**
  * general rules for syntactic sugar:
  * <p>
@@ -314,8 +315,11 @@ public class SyntacticSugar {
                 c.getConstructors().add(Ast.ConstructorDef(
                         source,
                         Ast.Modifiers(),
+                        Ast.Identifier(source, "construct"),
+                        Ast.TypeParamDefs(),
                         Ast.WParameters(),
-                        false, Ast.Arguments(),
+                        Ast.NoTypeExpr(),
+                        false,
                         Ast.WStatements()));
             }
         }

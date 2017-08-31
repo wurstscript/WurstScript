@@ -6,10 +6,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.CheckHelper;
-import de.peeeq.wurstscript.attributes.CofigOverridePackages;
-import de.peeeq.wurstscript.attributes.CompileError;
-import de.peeeq.wurstscript.attributes.ImplicitFuncs;
+import de.peeeq.wurstscript.attributes.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -1075,7 +1072,7 @@ public class WurstValidator {
 
         // special check for filter & condition:
         if (Utils.oneOf(funcName, "Condition", "Filter") && !stmtCall.getArgs().isEmpty()) {
-            Expr firstArg = stmtCall.getArgs().get(0);
+            Expr firstArg = stmtCall.getArgs().get(0).getExpr();
             if (firstArg instanceof ExprFuncRef) {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
                 FunctionDefinition f = exprFuncRef.attrFuncDef();
@@ -1097,11 +1094,6 @@ public class WurstValidator {
     // List<PscriptType> parameterTypes = calledFunc.attrParameterTypes();
     // checkParams(where, args, parameterTypes);
     // }
-
-    @Deprecated
-    private void checkParams(Element where, String preMsg, List<Expr> args, FunctionSignature sig) {
-        checkParams(where, preMsg, args, sig.getParamTypes());
-    }
 
     @Deprecated
     private void checkParams(Element where, String preMsg, List<Expr> args, List<WurstType> parameterTypes) {
@@ -1128,7 +1120,8 @@ public class WurstValidator {
         FunctionDefinition def = expr.attrFuncDef();
         if (def != null) {
             FunctionSignature sig = FunctionSignature.forFunctionDefinition(def);
-            CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
+            CallSignature callSig = new CallSignature(expr.getLeft(),
+                    ArgTypes.fromExprs(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
         }
     }
@@ -1396,7 +1389,7 @@ public class WurstValidator {
             return;
         }
         if (ref.attrTyp() instanceof WurstTypeCode) {
-            if (called.attrParameterTypesIncludingReceiver().size() > 0) {
+            if (called.attrParameterTypes().paramCount() > 0) {
                 String msg = "Can only use functions without parameters in 'code' function references.";
                 if (called.attrIsDynamicClassMember()) {
                     msg += "\nNote that " + called.getName()
@@ -1584,28 +1577,6 @@ public class WurstValidator {
                 d.getParameters().addError("Module constructors must not have parameters.");
             }
         }
-        StructureDef s = d.attrNearestStructureDef();
-        if (s instanceof ClassDef) {
-            ClassDef c = (ClassDef) s;
-            if (c.attrExtendedClass() != null) {
-                // check if super constructor is called correctly...
-                // TODO check constr.
-                ConstructorDef sc = d.attrSuperConstructor();
-                if (sc == null) {
-                    d.addError("No super constructor found.");
-                } else {
-                    List<WurstType> paramTypes = Lists.newArrayList();
-                    for (WParameter p : sc.getParameters()) {
-                        paramTypes.add(p.attrTyp());
-                    }
-                    checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
-                }
-            }
-        } else {
-            if (!d.getSuperArgs().isEmpty()) {
-                d.addError("Module constructors cannot have super calls.");
-            }
-        }
     }
 
     private void checkInstanceDef(ClassDef classDef) {
@@ -1628,7 +1599,7 @@ public class WurstValidator {
                     if (c_nameDef instanceof FuncDef) {
                         FuncDef c_funcDef = (FuncDef) c_nameDef;
                         if (c_funcDef.attrIsAbstract()) {
-                            continue ;
+                            continue;
                         }
 
                         Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
@@ -1705,11 +1676,8 @@ public class WurstValidator {
             calledFunctions.put(e.attrNearestScope(), constr);
             if (constr.attrNearestClassDef().attrIsAbstract()) {
                 e.addError("Cannot create an instance of the abstract class " + constr.attrNearestClassDef().getName());
-                return;
             }
-            checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
         }
-
     }
 
     private void nameDefsMustNotBeNamedAfterJassNativeTypes(NameDef n) {
@@ -1793,7 +1761,7 @@ public class WurstValidator {
                     return;
                 }
                 NameLink func = Utils.getFirst(funcs);
-                if (func.getParameterTypes().size() != 0) {
+                if (func.getParameterTypes().paramCount() != 0) {
                     e.addError("Function " + exFunc + " must not have any parameters.");
                 }
             } else {
@@ -1804,8 +1772,7 @@ public class WurstValidator {
 
     private boolean isViableSwitchtype(Expr expr) {
         WurstType typ = expr.attrTyp();
-        if (typ.equalsType(WurstTypeInt.instance(), null) || typ.equalsType(WurstTypeString.instance(), null)
-                || (typ instanceof WurstTypeEnum)) {
+        if (typ.equalsType(WurstTypeInt.instance(), null) || typ.equalsType(WurstTypeString.instance(), null)) {
             return true;
         } else if (typ instanceof WurstTypeEnum) {
             WurstTypeEnum wte = (WurstTypeEnum) typ;
@@ -1988,13 +1955,13 @@ public class WurstValidator {
      * checks if func1 can override func2
      */
     public static boolean canOverride(NameLink func1, NameLink func2) {
-        if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
+        if (func1.getParameterTypes().paramCount() != func2.getParameterTypes().paramCount()) {
             return false;
         }
 
         // contravariant parametertypes
-        for (int i = 0; i < func1.getParameterTypes().size(); i++) {
-            if (!func1.getParameterTypes().get(i).isSupertypeOf(func2.getParameterTypes().get(i), func1.getNameDef())) {
+        for (int i = 0; i < func1.getParameterTypes().paramCount(); i++) {
+            if (!func1.getParameterTypes().get(i).getType().isSupertypeOf(func2.getParameterTypes().get(i).getType(), func1.getNameDef())) {
                 return false;
             }
         }

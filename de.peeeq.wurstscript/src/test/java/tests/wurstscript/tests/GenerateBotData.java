@@ -41,7 +41,7 @@ public class GenerateBotData {
 
         public Sig(String name, FunctionSignature sig) {
             this.name = name;
-            this.paramTypes = new ArrayList<>(sig.getParamTypes());
+            this.paramTypes = new ArrayList<>(sig.getParamTypes().getTypeList());
             if (sig.getReceiverType() != null) {
                 paramTypes.add(0, sig.getReceiverType());
                 this.name = sig.getReceiverType() + "." + name;

@@ -163,7 +163,7 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL 
+                  modifiersWithDoc name='construct' formalParameters NL
 					('super' '(' superArgs=exprList ')' NL)?
 					stmts+=statement*
                   ('end'|'endconstruct') NL
