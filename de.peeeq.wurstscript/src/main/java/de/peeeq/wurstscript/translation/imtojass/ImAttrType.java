@@ -155,4 +155,7 @@ public class ImAttrType {
         return TypesHelper.imString();
     }
 
+    public static ImType getType(ImCompiletimeExpr e) {
+        return e.getExpr().attrTyp();
+    }
 }
