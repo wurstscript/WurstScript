@@ -57,8 +57,8 @@ public class CompiletimeFunctionRunner {
 //		interpreter.executeFunction("main");
 //		interpreter.executeFunction("initGlobals");
         try {
-            executeCompiletimeFunctions();
             executeCompiletimeExpressions();
+            executeCompiletimeFunctions();
 
             if (functionFlag == FunctionFlagEnum.IS_COMPILETIME) {
                 interpreter.writebackGlobalState(isInjectObjects());
