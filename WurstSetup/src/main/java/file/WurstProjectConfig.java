@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
 
 /**
  * Created by Frotty on 10.07.2017.
@@ -146,10 +145,10 @@ public class WurstProjectConfig {
         }
         String json = new String(Files.readAllBytes(vsCode));
         String absolutePath = GlobalWurstConfig.getWurstCompilerJar().getAbsolutePath();
-        json = json.replace("%wurstjar%", absolutePath.replaceAll("\\\\", Matcher.quoteReplacement(File.separator+File.separator)));
+        json = json.replace("%wurstjar%", absolutePath.replaceAll("\\\\", "\\\\\\\\"));
 
         if (gamePath != null) {
-            json = json.replace("%gamepath%", gamePath.getAbsolutePath().replaceAll("\\\\", Matcher.quoteReplacement(File.separator+File.separator)));
+            json = json.replace("%gamepath%", gamePath.getAbsolutePath().replaceAll("\\\\", "\\\\\\\\"));
         }
         Files.write(vsCode, json.getBytes());
     }
