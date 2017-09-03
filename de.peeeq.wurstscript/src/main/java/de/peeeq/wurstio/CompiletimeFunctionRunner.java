@@ -93,7 +93,7 @@ public class CompiletimeFunctionRunner {
 
         for (ImCompiletimeExpr cte : compiletimeExprs) {
             LocalState localState = new LocalState();
-            ILconst value = cte.getExpr().evaluate(interpreter.getGlobalState(), localState);
+            ILconst value = cte.evaluate(interpreter.getGlobalState(), localState);
             ImExpr newExpr = constantToExpr(cte, value);
             cte.replaceBy(newExpr);
         }

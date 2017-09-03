@@ -265,7 +265,12 @@ ImExpr.evaluate(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState g
 		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
 	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.eval
-	
+
+ImCompiletimeExpr.evaluationResult
+    returns java.util.concurrent.atomic.AtomicReference<de.peeeq.wurstscript.intermediatelang.ILconst>
+    implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.compiletimeEvaluationResult
+
+
 ImFunction.isNative()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isNative
