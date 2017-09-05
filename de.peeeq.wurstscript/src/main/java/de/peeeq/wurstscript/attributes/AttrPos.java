@@ -207,6 +207,17 @@ public class AttrPos {
         return identifierPos(e, e.getFuncNameId());
     }
 
+    public static WPos getErrorPos(ExprClosure e) {
+        int right = e.getImplementation().getSource().getLeftPos();
+        int left;
+        if (e.getParameters().isEmpty()) {
+            left = right - 4;
+        } else {
+            left = e.getParameters().attrSource().getRightPos() + 1;
+        }
+        return e.getSource().withLeftPos(left).withRightPos(right);
+    }
+
 
     public static WPos getErrorPos(ExprNewObject e) {
         return identifierPos(e, e.getTypeNameId());
