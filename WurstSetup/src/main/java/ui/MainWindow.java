@@ -507,7 +507,6 @@ public class MainWindow extends JFrame {
         importChooser = new JSystemFileChooser();
         importChooser.setCurrentDirectory(new java.io.File("."));
         importChooser.setDialogTitle("Select wurst.build file");
-        importChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
         importChooser.setAcceptAllFileFilterUsed(false);
         importChooser.setFileFilter(new FileNameExtensionFilter("wurst.build files", "build"));
     }

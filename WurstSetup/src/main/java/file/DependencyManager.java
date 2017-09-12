@@ -31,6 +31,23 @@ public class DependencyManager {
             File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
             if (depFolder.exists()) {
                 depFolders.add(depFolder.getAbsolutePath());
+                // clean
+                try {
+                    try (Repository repository = new FileRepository(depFolder + "/.git")) {
+                        try (Git git = new Git(repository)) {
+                            git.clean().setCleanDirectories(true).setForce(true).call();
+                            git.stashCreate().call();
+                        } catch (Exception e) {
+                            Init.log("error when trying to clean repository\n");
+                            e.printStackTrace();
+                        }
+                    } catch (Exception e) {
+                        Init.log("error when trying open repository");
+                        e.printStackTrace();
+                    }
+                } catch (Exception ignored) {
+                }
+
                 // update
                 try {
                     try (Repository repository = new FileRepository(depFolder + "/.git")) {
@@ -90,9 +107,9 @@ public class DependencyManager {
                         try (Git git = new Git(repository)) {
                             Collection<Ref> refs = git.lsRemote().setHeads(true).call();
                             Status status = git.status().call();
-                            if(status.hasUncommittedChanges()) {
+                            if (status.hasUncommittedChanges()) {
                                 Init.log("You have modified files in your dependencies folder.");
-                            } else if(status.isClean()) {
+                            } else if (status.isClean()) {
 
                             }
                         } catch (Exception e) {
@@ -105,7 +122,7 @@ public class DependencyManager {
                     }
                 } catch (Exception ignored) {
                 }
-            } else  {
+            } else {
                 return true;
             }
 
