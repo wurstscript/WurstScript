@@ -14,6 +14,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class EvaluateExpr {
 
@@ -255,6 +256,16 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImCompiletimeExpr expr, ProgramState globalState, LocalState localState) {
-        return expr.getExpr().evaluate(globalState, localState);
+        // make sure that compiletime expression is only evaluated once
+        ILconst res = expr.evaluationResult().get();
+        if (res == null) {
+            res = expr.getExpr().evaluate(globalState, localState);
+            expr.evaluationResult().set(res);
+        }
+        return res;
+    }
+
+    public static AtomicReference<ILconst> compiletimeEvaluationResult(ImCompiletimeExpr imCompiletimeExpr) {
+        return new AtomicReference<>();
     }
 }

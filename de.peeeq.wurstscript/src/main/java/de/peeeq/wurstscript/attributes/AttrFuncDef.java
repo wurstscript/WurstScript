@@ -5,10 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeInt;
-import de.peeeq.wurstscript.types.WurstTypeReal;
-import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -241,6 +238,9 @@ public class AttrFuncDef {
         if (funcs4.size() == 0) {
             throw new EarlyReturn(firstFunc(funcs3));
         } else if (funcs4.size() == 1) {
+            throw new EarlyReturn(firstFunc(funcs4));
+        } else if (argumentTypes.stream().anyMatch(t -> t instanceof WurstTypeUnknown)) {
+            // if some argument type could not be determined, we don't want errors here, just take the first one
             throw new EarlyReturn(firstFunc(funcs4));
         }
         return funcs4;

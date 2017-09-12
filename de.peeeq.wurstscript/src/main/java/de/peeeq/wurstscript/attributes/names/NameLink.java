@@ -308,4 +308,10 @@ public class NameLink {
     }
 
 
+    public boolean receiverCompatibleWith(WurstType receiverType, Element location) {
+        if (this.receiverType == null) {
+            return receiverType == null;
+        }
+        return this.receiverType.isSubtypeOf(receiverType, location);
+    }
 }

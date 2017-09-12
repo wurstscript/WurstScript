@@ -353,12 +353,6 @@ public class Main {
         File mapFile = compiler.getMapFile();
 
         if (runArgs.runCompiletimeFunctions()) {
-            if (mapFile == null) {
-                throw new RuntimeException("mapFile must not be null when running compiletime functions");
-            }
-            if (mpqEditor == null) {
-                throw new RuntimeException("mpqEditor must not be null when running compiletime functions");
-            }
             // tests
             gui.sendProgress("Running tests");
             CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_TEST);
