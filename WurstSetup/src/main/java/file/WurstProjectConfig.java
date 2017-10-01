@@ -5,9 +5,7 @@ import ui.Init;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -141,7 +139,8 @@ public class WurstProjectConfig {
         File vsCodeF = new File(projectRoot, ".vscode/settings.json");
         Path vsCode = vsCodeF.toPath();
         if (!vsCodeF.exists()) {
-            Files.write(vsCode, VSCODE_MIN_CONFIG.getBytes());
+            Files.createDirectories(vsCode.getParent());
+            Files.write(vsCode, VSCODE_MIN_CONFIG.getBytes(), StandardOpenOption.CREATE_NEW);
         }
         String json = new String(Files.readAllBytes(vsCode));
         String absolutePath = GlobalWurstConfig.getWurstCompilerJar().getAbsolutePath();
