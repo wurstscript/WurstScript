@@ -237,8 +237,7 @@ public class ProgramStateIO extends ProgramState {
             return null;
         }
         File folder = new File(mapFile.getParent(), "objectEditingOutput");
-        boolean created = folder.mkdirs();
-        if (!created) {
+        if (!folder.exists() && !folder.mkdirs()) {
             WLogger.info("Could not create folder " + folder.getAbsoluteFile());
             return null;
         }
