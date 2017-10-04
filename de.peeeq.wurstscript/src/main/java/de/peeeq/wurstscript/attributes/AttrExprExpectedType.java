@@ -79,12 +79,20 @@ public class AttrExprExpectedType {
                 SwitchCase sc = (SwitchCase) parent;
                 SwitchStmt s = (SwitchStmt) sc.getParent().getParent();
                 return s.getExpr().attrTyp();
+            } else if (parent instanceof ExprIfElse) {
+                ExprIfElse ie = (ExprIfElse) parent;
+                if (expr == ie.getCond()) {
+                    return WurstTypeBool.instance();
+                } else {
+                    return ie.attrExpectedTypRaw();
+                }
+            }
 //			} else if (parent instanceof ExprMemberMethod) {
 //				ExprMemberMethod m = (ExprMemberMethod) parent;
 //				if (m.getLeft() == expr) {
 //					return m.attrFunctionSignature().getReceiverType();
 //				}
-            }
+//            }
         } catch (CompileError t) {
             WLogger.info(t);
         }

@@ -563,6 +563,10 @@ public class AttrExprType {
         }
         WurstType tt = e.getIfTrue().attrTyp();
         WurstType tf = e.getIfFalse().attrTyp();
-        return WurstTypeUnion.create(tt, tf, e);
+        WurstType resT = WurstTypeUnion.create(tt, tf, e);
+        if (resT instanceof WurstTypeNull) {
+            e.addError("Both branches of conditional expression have type null.");
+        }
+        return resT;
     }
 }
