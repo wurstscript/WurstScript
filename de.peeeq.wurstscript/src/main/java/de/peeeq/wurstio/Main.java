@@ -396,13 +396,15 @@ public class Main {
         outputMapscript.getParentFile().mkdirs();
         Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
 
-        Result pJassResult = Pjass.runPjass(outputMapscript);
-        WLogger.info(pJassResult.getMessage());
-        if (!pJassResult.isOk()) {
-            for (CompileError err : pJassResult.getErrors()) {
-                gui.sendError(err);
+        if (!runArgs.isDisablePjass()) {
+            Result pJassResult = Pjass.runPjass(outputMapscript);
+            WLogger.info(pJassResult.getMessage());
+            if (!pJassResult.isOk()) {
+                for (CompileError err : pJassResult.getErrors()) {
+                    gui.sendError(err);
+                }
+                return null;
             }
-            return null;
         }
         return mapScript;
     }

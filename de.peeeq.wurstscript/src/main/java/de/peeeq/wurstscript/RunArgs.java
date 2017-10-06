@@ -37,6 +37,7 @@ public class RunArgs {
     private RunOption optionNoExtractMapScript;
     private RunOption optionFixInstall;
     private RunOption optionCopyMap;
+    private RunOption optionDisablePjass;
 
     private class RunOption {
         final String name;
@@ -96,6 +97,7 @@ public class RunArgs {
                 + "like code completion, validations, and find declaration. The communication to the language server is via standard input output.");
 
         optionHelp = addOption("help", "Prints this help message.");
+        optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -261,5 +263,8 @@ public class RunArgs {
         return optionCopyMap.isSet;
     }
 
+    public boolean isDisablePjass() {
+        return optionDisablePjass.isSet;
+    }
 
 }
