@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
@@ -334,6 +335,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImTranslator imTranslator2 = getImTranslator();
         ImProg imProg2 = getImProg();
         imTranslator2.assertProperties();
+        checkNoCompiletimeExpr(imProg2);
         int stage = 2;
         // eliminate classes
         beginPhase(2, "translate classes");
@@ -428,6 +430,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             prog = null;
         }
         return prog;
+    }
+
+    private void checkNoCompiletimeExpr(ImProg prog) {
+        prog.accept(new ImProg.DefaultVisitor() {
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+                throw new CompileError(e.attrTrace().attrSource(), "Compiletime expressions require compilation with '-runcompiletimefunctions' option.");
+            }
+        });
     }
 
     private ImTranslator getImTranslator() {

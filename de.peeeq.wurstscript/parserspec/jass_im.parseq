@@ -84,7 +84,7 @@ ImFlatExpr =
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
-	| ImCompiletimeExpr(ImExpr expr)
+	| ImCompiletimeExpr(de.peeeq.wurstscript.ast.Element trace, ImExpr expr)
 	
 ImClassRelatedExpr = 
 	  ImMethodCall(de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
@@ -116,7 +116,7 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
- | ImMethodCall | ImFunctionCall
+ | ImMethodCall | ImFunctionCall | ImCompiletimeExpr
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 

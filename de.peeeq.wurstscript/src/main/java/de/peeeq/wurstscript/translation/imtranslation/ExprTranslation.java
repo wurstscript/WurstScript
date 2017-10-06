@@ -395,7 +395,7 @@ public class ExprTranslation {
                 && e.attrImplicitParameter() instanceof NoExpr
                 && e.getArgs().size() == 1) {
             // special compiletime-expression
-            return JassIm.ImCompiletimeExpr(e.getArgs().get(0).imTranslateExpr(t, f));
+            return JassIm.ImCompiletimeExpr(e, e.getArgs().get(0).imTranslateExpr(t, f));
         }
 
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
