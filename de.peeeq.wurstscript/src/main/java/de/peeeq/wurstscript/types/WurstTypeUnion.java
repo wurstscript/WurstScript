@@ -42,6 +42,7 @@ public class WurstTypeUnion extends WurstType {
 
     @Override
     public ImType imTranslateType() {
+        // TODO union of typeA and typeB
         return typeA.imTranslateType();
     }
 

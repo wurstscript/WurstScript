@@ -613,16 +613,19 @@ public class ExprTranslation {
     }
 
     public static ImExpr translate(ExprIfElse e, ImTranslator t, ImFunction f) {
-        ImVar res = JassIm.ImVar(e, e.attrTyp().imTranslateType(), "cond_result", false);
+        ImExpr ifTrue = e.getIfTrue().imTranslateExpr(t, f);
+        ImExpr ifFalse = e.getIfFalse().imTranslateExpr(t, f);
+        // TODO common super type of both
+        ImVar res = JassIm.ImVar(e, ifTrue.attrTyp(), "cond_result", false);
         f.getLocals().add(res);
         return JassIm.ImStatementExpr(
                 ImStmts(
                         ImIf(e, e.getCond().imTranslateExpr(t, f),
                                 ImStmts(
-                                        ImSet(e.getIfTrue(), res, e.getIfTrue().imTranslateExpr(t, f))
+                                        ImSet(e.getIfTrue(), res, ifTrue)
                                 ),
                                 ImStmts(
-                                        ImSet(e.getIfFalse(), res, e.getIfFalse().imTranslateExpr(t, f))
+                                        ImSet(e.getIfFalse(), res, ifFalse)
                                 ))
                 ),
                 JassIm.ImVarAccess(res)

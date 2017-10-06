@@ -216,6 +216,18 @@ public class ExpressionTests extends WurstScriptTest {
     }
 
     @Test
+    public void conditionalExpr_real() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    real r = 1<3 ? 123 : 456",
+                "    if r == 123.0",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
     public void conditionalExpr_inferNull_right1() {
         testAssertOkLines(false,
                 "package test",
