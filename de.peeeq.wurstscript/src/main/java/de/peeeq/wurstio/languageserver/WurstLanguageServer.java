@@ -44,6 +44,8 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
         capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));
         capabilities.setCodeActionProvider(true);
+        capabilities.setDocumentSymbolProvider(true);
+        capabilities.setWorkspaceSymbolProvider(true);
 
 
         InitializeResult res = new InitializeResult(capabilities);

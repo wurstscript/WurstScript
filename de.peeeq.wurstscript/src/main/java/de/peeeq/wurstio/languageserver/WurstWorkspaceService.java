@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstio.languageserver.requests.SymbolInformationRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.WorkspaceService;
@@ -21,7 +22,7 @@ public class WurstWorkspaceService implements WorkspaceService {
     @Override
     public CompletableFuture<List<? extends SymbolInformation>> symbol(WorkspaceSymbolParams params) {
         WLogger.info("symbol");
-        return null;
+        return server.worker().handle(new SymbolInformationRequest(params));
     }
 
     @Override

@@ -64,7 +64,8 @@ public class WFile {
     }
 
     public String getUriString() {
-        return getFile().toURI().toString();
+        return "file://" + file.getAbsolutePath();
+//        return getFile().toURI().toString();
     }
 
     public Path getPath() {
