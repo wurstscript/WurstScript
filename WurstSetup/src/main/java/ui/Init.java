@@ -5,6 +5,7 @@ import file.DependencyManager;
 import file.GlobalWurstConfig;
 import file.WurstProjectConfig;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +43,11 @@ public class Init {
 
     private static void initUI() {
         mainFrame = new MainWindow();
+        try {
+            mainFrame.setIconImage(ImageIO.read(Init.class.getResourceAsStream("/icon.png")));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void log(String message) {
