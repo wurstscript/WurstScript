@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.lsp4j.*;
@@ -19,7 +21,13 @@ public class Convert {
         ));
     }
 
+    public static Location location(Element e) {
+        return posToLocation(e.attrSource());
+    }
 
+    public static Location errorLocation(Element e) {
+        return posToLocation(e.attrErrorPos());
+    }
 
     public static PublishDiagnosticsParams createDiagnostics(String extra, WFile filename, List<CompileError> errors) {
         List<Diagnostic> diagnostics = new ArrayList<>();
@@ -40,6 +48,7 @@ public class Convert {
         }
         return new PublishDiagnosticsParams(filename.getUriString(), diagnostics);
     }
+
 
 
 }

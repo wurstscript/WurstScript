@@ -72,8 +72,7 @@ public class WurstTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
-        WLogger.info("documentSymbol");
-        return null;
+        return worker.handle(new SymbolInformationRequest(params));
     }
 
     @Override

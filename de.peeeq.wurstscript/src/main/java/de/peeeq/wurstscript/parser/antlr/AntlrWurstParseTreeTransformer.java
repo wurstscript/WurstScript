@@ -1200,8 +1200,10 @@ public class AntlrWurstParseTreeTransformer {
 
     private TypeParamDefs transformTypeParams(TypeParamsContext typeParams) {
         TypeParamDefs result = Ast.TypeParamDefs();
-        for (TypeParamContext p : typeParams.params) {
-            result.add(transformTypeParam(p));
+        if (typeParams != null && typeParams.params != null) {
+            for (TypeParamContext p : typeParams.params) {
+                result.add(transformTypeParam(p));
+            }
         }
         return result;
     }

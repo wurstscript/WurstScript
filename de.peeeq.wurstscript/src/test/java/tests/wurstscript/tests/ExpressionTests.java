@@ -215,6 +215,59 @@ public class ExpressionTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void conditionalExpr_real() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    real r = 1<3 ? 123 : 456",
+                "    if r == 123.0",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_inferNull_right1() {
+        testAssertOkLines(false,
+                "package test",
+                "class A",
+                "class B extends A",
+                "init",
+                "	A a = 1<3 ? new B : null"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_inferNull_right2() {
+        testAssertOkLines(false,
+                "package test",
+                "class A",
+                "init",
+                "	let a = 1<3 ? new A : null"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_inferNull_left() {
+        testAssertOkLines(false,
+                "package test",
+                "class A",
+                "init",
+                "	let a = 1<3 ? null : new A"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_inferNull_fail() {
+        testAssertErrorsLines(false, "Both branches of conditional expression have type null",
+                "package test",
+                "class A",
+                "init",
+                "	let a = 1<3 ? null : null"
+        );
+    }
+
 
 
     private String makeProg(String booleanExpr) {

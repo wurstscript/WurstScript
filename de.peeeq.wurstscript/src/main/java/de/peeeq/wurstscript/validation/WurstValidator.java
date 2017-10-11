@@ -2115,9 +2115,9 @@ public class WurstValidator {
     }
 
     private void checkVarDef(VarDef v) {
-        v.attrTyp();
+        WurstType vtype = v.attrTyp();
 
-        if (v.attrTyp() instanceof WurstTypeCode && v.attrIsDynamicClassMember()) {
+        if (vtype instanceof WurstTypeCode && v.attrIsDynamicClassMember()) {
             v.addError("Code members not allowed as dynamic class members (variable " + v.getName() + ")\n"
                     + "Try using a trigger or conditionfunc instead.");
         }
@@ -2129,8 +2129,8 @@ public class WurstValidator {
             }
         }
 
-        if (v.attrTyp() instanceof WurstTypeArray) {
-            WurstTypeArray wta = (WurstTypeArray) v.attrTyp();
+        if (vtype instanceof WurstTypeArray) {
+            WurstTypeArray wta = (WurstTypeArray) vtype;
             if (wta.getDimensions() == 0) {
                 v.addError("0-dimensionals arrays are not possible");
             } else if (wta.getDimensions() == 1) {
@@ -2142,6 +2142,10 @@ public class WurstValidator {
             } else {
                 v.addError("Multidimensional Arrays are not yet supported.");
             }
+        }
+
+        if (vtype instanceof WurstTypeNull) {
+            v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
     }
