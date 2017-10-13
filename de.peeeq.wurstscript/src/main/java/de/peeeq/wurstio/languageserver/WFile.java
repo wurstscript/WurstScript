@@ -2,6 +2,8 @@ package de.peeeq.wurstio.languageserver;
 
 import java.io.File;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -30,14 +32,27 @@ public class WFile {
     }
 
     public static WFile create(URI f) {
-        return new WFile(new File(f));
+        try {
+            return new WFile(new File(f));
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("URI " + f + " is not a vald file", e);
+        }
     }
 
     public static WFile create(String uri) {
-        if (uri.startsWith("file:")) {
-            return create(URI.create(uri));
-        } else {
+        try {
+            URI u = new URI(uri);
+            if (u.isAbsolute()) {
+                return create(u);
+            }
+        } catch (URISyntaxException e) {
+            // ignore
+        }
+        // if it is not a valid absolute URI, maybe it is a valid path?
+        try {
             return create(Paths.get(uri));
+        } catch (InvalidPathException e2) {
+            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
         }
     }
 
