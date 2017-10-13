@@ -67,6 +67,12 @@ public abstract class WLogger {
 
     }
 
+    public static void warning(String msg, Throwable e) {
+        keep("warning", msg);
+        instance.warning(msg, e);
+
+    }
+
 
     public static void keepLogs(boolean keepLogs) {
         if (keepLogs) {

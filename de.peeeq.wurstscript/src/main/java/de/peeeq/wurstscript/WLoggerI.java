@@ -19,4 +19,5 @@ public interface WLoggerI {
 
     void setLevel(Level level);
 
+    void warning(String msg, Throwable e);
 }

@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.parser.antlr;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.antlr.WurstParser.*;
@@ -45,9 +46,9 @@ public class AntlrWurstParseTreeTransformer {
             }
         } catch (CompileError e) {
             cuErrorHandler.sendError(e);
-            e.printStackTrace();
+            WLogger.warning("Compilation error in parse tree transformer", e);
         } catch (NullPointerException e) {
-            e.printStackTrace();
+            WLogger.warning("Error transforming compilation unit " + line(cu), e);
             // ignore
         }
 
@@ -153,27 +154,45 @@ public class AntlrWurstParseTreeTransformer {
 
     private WStatements transformJassStatements(JassStatementsContext stmts) {
         WStatements result = Ast.WStatements();
-        for (JassStatementContext s : stmts.jassStatement()) {
-            result.add(transformJassStatement(s));
+        if (stmts != null && stmts.jassStatement() != null) {
+            for (JassStatementContext s : stmts.jassStatement()) {
+                result.add(transformJassStatement(s));
+            }
         }
         return result;
     }
 
     private WStatement transformJassStatement(JassStatementContext s) {
-        if (s.jassStatementCall() != null) {
-            return transformJassStatementCall(s.jassStatementCall());
-        } else if (s.jassStatementExithwhen() != null) {
-            return transformJassStatementExitwhen(s.jassStatementExithwhen());
-        } else if (s.jassStatementIf() != null) {
-            return transformJassStatementIf(s.jassStatementIf());
-        } else if (s.jassStatementLoop() != null) {
-            return transformJassStatementLoop(s.jassStatementLoop());
-        } else if (s.jassStatementReturn() != null) {
-            return transformJassStatementReturn(s.jassStatementReturn());
-        } else if (s.jassStatementSet() != null) {
-            return transformJassStatementSet(s.jassStatementSet());
+        try {
+            if (s.jassStatementCall() != null) {
+                return transformJassStatementCall(s.jassStatementCall());
+            } else if (s.jassStatementExithwhen() != null) {
+                return transformJassStatementExitwhen(s.jassStatementExithwhen());
+            } else if (s.jassStatementIf() != null) {
+                return transformJassStatementIf(s.jassStatementIf());
+            } else if (s.jassStatementLoop() != null) {
+                return transformJassStatementLoop(s.jassStatementLoop());
+            } else if (s.jassStatementReturn() != null) {
+                return transformJassStatementReturn(s.jassStatementReturn());
+            } else if (s.jassStatementSet() != null) {
+                return transformJassStatementSet(s.jassStatementSet());
+            }
+        } catch (NullPointerException t) {
+            WLogger.warning("Error when transforming statement " + line(s), t);
+            return Ast.StmtErr(source(s));
         }
         throw error(s, "unhandled case: " + text(s));
+    }
+
+    private String line(ParserRuleContext s) {
+        if (s == null) {
+            return "file " + file;
+        }
+        Token start = s.start;
+        if (start == null) {
+            return "file " + file;
+        }
+        return "file " + file + ", line " + start.getLine();
     }
 
     private WStatement transformJassStatementSet(JassStatementSetContext s) {
@@ -243,7 +262,7 @@ public class AntlrWurstParseTreeTransformer {
         return Ast.WPackage(source, modifiers, text(p.name), imports, elements);
     }
 
-    private WEntity transformEntity(EntityContext e) {
+    private @Nullable WEntity transformEntity(EntityContext e) {
         try {
             if (e.nativeType() != null) {
                 return transformNativeType(e.nativeType());
@@ -275,8 +294,7 @@ public class AntlrWurstParseTreeTransformer {
             // TODO Auto-generated method stub
             throw error(e, "not implemented " + text(e));
         } catch (NullPointerException npe) {
-            // TODO
-            npe.printStackTrace();
+            WLogger.warning("Error transforming entity in line " + line(e), npe);
             return null;
         }
     }
@@ -410,8 +428,7 @@ public class AntlrWurstParseTreeTransformer {
             }
             throw error(s, "not matched: " + text(s));
         } catch (NullPointerException npe) {
-            // TODO
-            npe.printStackTrace();
+            WLogger.warning("Error transforming classlot in " + line(s), npe);
             return null;
         }
     }
@@ -851,43 +868,49 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private Expr transformExpr(ExprContext e) {
-        WPos source = source(e);
-        if (e.exprPrimary() != null) {
-            return transformExprPrimary(e.exprPrimary());
-        } else if (e.left != null && e.right != null && e.op != null) {
-            return Ast.ExprBinary(source, transformExpr(e.left),
-                    transformOp(e.op), transformExpr(e.right));
-        } else if (e.op != null && e.op.getType() == WurstParser.NOT) {
-            return Ast.ExprUnary(source, WurstOperator.NOT,
-                    transformExpr(e.right));
-        } else if (e.op != null && e.op.getType() == WurstParser.MINUS) {
-            return Ast.ExprUnary(source, WurstOperator.UNARY_MINUS,
-                    transformExpr(e.right));
-        } else if (e.castToType != null) {
-            return Ast.ExprCast(source, transformTypeExpr(e.castToType),
-                    transformExpr(e.left));
-        } else if (e.dotsVar != null) {
-            return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
-                    e.varName, e.indexes());
-        } else if (e.dotsCall != null) {
-            return transformMemberMethodCall2(source, e.receiver, e.dotsCall,
-                    e.funcName, e.typeArgs(), e.exprList());
-        } else if (e.instaneofType != null) {
-            return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType),
-                    transformExpr(e.left));
-        } else if (e.cond != null) {
-            return Ast.ExprIfElse(source, transformExpr(e.cond), transformExpr(e.ifTrueExpr), transformExpr(e.ifFalseExpr));
+        try {
+            WPos source = source(e);
+            if (e.exprPrimary() != null) {
+                return transformExprPrimary(e.exprPrimary());
+            } else if (e.left != null && e.right != null && e.op != null) {
+                return Ast.ExprBinary(source, transformExpr(e.left),
+                        transformOp(e.op), transformExpr(e.right));
+            } else if (e.op != null && e.op.getType() == WurstParser.NOT) {
+                return Ast.ExprUnary(source, WurstOperator.NOT,
+                        transformExpr(e.right));
+            } else if (e.op != null && e.op.getType() == WurstParser.MINUS) {
+                return Ast.ExprUnary(source, WurstOperator.UNARY_MINUS,
+                        transformExpr(e.right));
+            } else if (e.castToType != null) {
+                return Ast.ExprCast(source, transformTypeExpr(e.castToType),
+                        transformExpr(e.left));
+            } else if (e.dotsVar != null) {
+                return transformExprMemberVarAccess2(source, e.receiver, e.dotsVar,
+                        e.varName, e.indexes());
+            } else if (e.dotsCall != null) {
+                return transformMemberMethodCall2(source, e.receiver, e.dotsCall,
+                        e.funcName, e.typeArgs(), e.exprList());
+            } else if (e.instaneofType != null) {
+                return Ast.ExprInstanceOf(source, transformTypeExpr(e.instaneofType),
+                        transformExpr(e.left));
+            } else if (e.cond != null) {
+                return Ast.ExprIfElse(source, transformExpr(e.cond), transformExpr(e.ifTrueExpr), transformExpr(e.ifFalseExpr));
+            }
+
+            ParseTree left = getLeftParseTree(e);
+            if (left != null) {
+                source = source.withLeftPos(1 + stopPos(left));
+            }
+            ParseTree right = getRightParseTree(e);
+            if (right != null) {
+                source = source.withRightPos(beginPos(right));
+            }
+            return Ast.ExprEmpty(source);
+        } catch (NullPointerException t) {
+            WLogger.warning("Error transforming expression in line " + line(e), t);
+            return Ast.ExprIncomplete(source(e), "Incomplete expression.");
         }
 
-        ParseTree left = getLeftParseTree(e);
-        if (left != null) {
-            source = source.withLeftPos(1 + stopPos(left));
-        }
-        ParseTree right = getRightParseTree(e);
-        if (right != null) {
-            source = source.withRightPos(beginPos(right));
-        }
-        return Ast.ExprEmpty(source);
     }
 
     private int beginPos(ParseTree left) {
