@@ -29,6 +29,7 @@ import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.*;
 
 /**
  * Created by peter on 05.05.16.
@@ -52,7 +53,7 @@ public class RunTests extends UserRequest<Object> {
     @Override
     public Object execute(ModelManager modelManager) {
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);
-        print("Running tests ... \n\n\n");
+        println("Running unit tests..\n");
 
         CompilationUnit cu = filename == null ? null : modelManager.getCompilationUnit(filename);
         WLogger.info("test.cu = " + Utils.printElement(cu));
@@ -62,7 +63,7 @@ public class RunTests extends UserRequest<Object> {
 
         ImProg imProg = translateProg(modelManager);
         if (imProg == null) {
-            print("Could not run tests, because program did not compile.\n");
+            println("Could not run tests, because program did not compile.\n");
             return "Could not translate program";
         }
 
@@ -88,31 +89,51 @@ public class RunTests extends UserRequest<Object> {
                 }
 
 
-                print("Testing " + Utils.printElementWithSource(trace) + "	...\n");
+                print("Running test <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + "." + f.getName() + "> .. ");
                 try {
-                    interpreter.runVoidFunc(f, null);
-                    successTests.add(f);
-                    print("✓\n");
+                    Callable run = () -> {
+                        interpreter.runVoidFunc(f, null);
+                        successTests.add(f);
+                        println("success!");
+                        return null;
+                    };
+                    RunnableFuture future = new FutureTask(run);
+                    ExecutorService service = Executors.newSingleThreadExecutor();
+                    service.execute(future);
+                    try {
+                        future.get(10, TimeUnit.SECONDS); // Wait 10 seconds for test to complete
+                    } catch (TimeoutException ex) {
+                        future.cancel(true);
+                        throw new TestTimeOutException();
+                    }
+                    service.shutdown();
+
                 } catch (TestSuccessException e) {
-                    print("✓✓\n");
+                    println("success!");
                 } catch (TestFailException e) {
                     failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
-                    print("FAIL\n");
+                    println("FAILED");
+                } catch (TestTimeOutException e) {
+                    failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+                    println("FAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
                 } catch (Exception e) {
                     failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
-                    print("FAIL with exception:\n");
-                    print(e.getMessage());
+                    println("FAILED with exception:");
+                    println("\t" + e.getMessage());
                 }
             }
         }
-        print(successTests.size() + " tests OK, ");
-        print(failTests.size() + " tests failed\n");
-        for (Entry<ImFunction, Pair<ImStmt, String>> e : failTests.entrySet()) {
-            print(Utils.printElementWithSource(e.getKey().attrTrace())
-                    + "\n\t" + e.getValue().getB()
-                    + "\n\tat " + Utils.printElementWithSource(e.getValue().getA().attrTrace()) + "\n");
+        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size()+failTests.size()));
+        if(failTests.size() == 0) {
+            println(">> All tests have passed successfully!");
+        } else {
+            println(">> The following tests failed:");
+            for (Entry<ImFunction, Pair<ImStmt, String>> e : failTests.entrySet()) {
+                println(Utils.printElementWithSource(e.getKey().attrTrace())
+                        + "\n\t" + e.getValue().getB()
+                        + "\n\tat " + Utils.printElementWithSource(e.getValue().getA().attrTrace()) + "\n");
+            }
         }
-
         WLogger.info("finished tests");
         return "ok";
     }
@@ -124,13 +145,13 @@ public class RunTests extends UserRequest<Object> {
             @Override
             public void write(int b) throws IOException {
                 if (b > 0) {
-                    print("" + (char) b);
+                    println("" + (char) b);
                 }
             }
 
             @Override
             public void write(byte b[], int off, int len) throws IOException {
-                print(new String(b, off, len));
+                println(new String(b, off, len));
             }
 
 
@@ -138,12 +159,13 @@ public class RunTests extends UserRequest<Object> {
         globalState.setOutStream(new PrintStream(os));
     }
 
-
-    private void print(String message) {
-//		server.sendConsoleOutput(message);
-        System.err.println(message); // TODO how?
+    private void println(String message) {
+        System.err.println(message);
     }
 
+    private void print(String message) {
+        System.err.print(message);
+    }
 
     private ImProg translateProg(ModelManager modelManager) {
         ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false);
@@ -181,9 +203,11 @@ public class RunTests extends UserRequest<Object> {
 
         @Override
         public void showInfoMessage(String message) {
-            print(message + "\n");
+            println(message + "\n");
         }
 
     }
 
+    private class TestTimeOutException extends Throwable {
+    }
 }
