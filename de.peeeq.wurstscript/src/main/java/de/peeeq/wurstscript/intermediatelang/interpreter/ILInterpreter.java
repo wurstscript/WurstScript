@@ -13,10 +13,10 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
-import java.util.Stack;
 
 public class ILInterpreter {
     private ImProg prog;
@@ -97,13 +97,8 @@ public class ILInterpreter {
         } catch (Exception _e) {
             // ignore
         }
-        for (int i = globalState.getStackFrames().size() - 1; i >= 0; i--) {
-            ILStackFrame sf = globalState.getStackFrames().get(i);
-            err.append(sf.getMessage());
-            err.append("\n");
-        }
-        String msg = err.toString();
-        return msg;
+        globalState.getStackFrames().appendTo(err);
+        return err.toString();
     }
 
     @SuppressWarnings("null")
@@ -141,8 +136,8 @@ public class ILInterpreter {
         } else {
             globalState.getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
         }
-        for (ILStackFrame sf : globalState.getStackFrames()) {
-            globalState.getGui().sendError(new CompileError(sf.trace, sf.trace.printShort()));
+        for (ILStackFrame sf : Utils.iterateReverse(globalState.getStackFrames().getStackFrames())) {
+            globalState.getGui().sendError(sf.makeCompileError());
         }
         return new LocalState();
     }
@@ -201,7 +196,7 @@ public class ILInterpreter {
         globalState.resetStackframes();
     }
 
-    public Stack<ILStackFrame> getStackFrames() {
+    public ProgramState.StackTrace getStackFrames() {
         return globalState.getStackFrames();
 
     }

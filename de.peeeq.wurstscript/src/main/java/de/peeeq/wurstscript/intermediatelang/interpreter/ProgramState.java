@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
@@ -14,9 +15,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class ProgramState extends State {
 
@@ -152,8 +151,53 @@ public class ProgramState extends State {
         lastStatements.clear();
     }
 
-    public Stack<ILStackFrame> getStackFrames() {
-        return stackFrames;
+    public StackTrace getStackFrames() {
+        return new StackTrace(stackFrames);
+    }
+
+    public static class StackTrace {
+        private final List<ILStackFrame> stackFrames;
+
+        public StackTrace(Stack<ILStackFrame> stackFrames) {
+            ImmutableList.Builder<ILStackFrame> builder = ImmutableList.builder();
+            for (ILStackFrame stackFrame : stackFrames) {
+                builder.add(stackFrame);
+            }
+            this.stackFrames = builder.build();
+        }
+
+        public void appendTo(StringBuilder sb) {
+            for (int i = stackFrames.size()-1; i>= 0; i--) {
+                sb.append(stackFrames.get(i).getMessage());
+                sb.append("\n");
+            }
+        }
+
+        public List<ILStackFrame> getStackFrames() {
+            return stackFrames;
+        }
+
+        public Iterable<ILStackFrame> getStackFramesReversed() {
+            return new Iterable<ILStackFrame>() {
+                @Override
+                public Iterator<ILStackFrame> iterator() {
+                    ListIterator<ILStackFrame> it = stackFrames.listIterator();
+                    return new Iterator<ILStackFrame>() {
+                        @Override
+                        public boolean hasNext() {
+                            return it.hasPrevious();
+                        }
+
+                        @Override
+                        public ILStackFrame next() {
+                            return it.previous();
+                        }
+                    };
+                }
+            };
+        }
+
+
     }
 
     public boolean isCompiletime() {
