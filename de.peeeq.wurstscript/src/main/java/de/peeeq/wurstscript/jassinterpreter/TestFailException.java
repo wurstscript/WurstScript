@@ -15,7 +15,11 @@ public class TestFailException extends Error {
 
     @Override
     public String toString() {
-        return "test failed: " + test;
+        return getMessage();
     }
 
+    @Override
+    public String getMessage() {
+        return "test failed: " + test;
+    }
 }

@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -45,6 +46,9 @@ public class RunTests extends UserRequest<Object> {
         private final String message;
 
         public TestFailure(ImFunction function, StackTrace stackTrace, String message) {
+            Preconditions.checkNotNull(function);
+            Preconditions.checkNotNull(stackTrace);
+            Preconditions.checkNotNull(message);
             this.function = function;
             this.stackTrace = stackTrace;
             this.message = message;
@@ -163,10 +167,10 @@ public class RunTests extends UserRequest<Object> {
                     println("success!");
                 } catch (TestFailException e) {
 
-                    failTests.add( new TestFailure(f, interpreter.getStackFrames(), e.toString()));
+                    failTests.add( new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("FAILED");
                 } catch (TestTimeOutException e) {
-                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
+                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("FAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
@@ -264,6 +268,17 @@ public class RunTests extends UserRequest<Object> {
     }
 
     private class TestTimeOutException extends Throwable {
+
+
+        @Override
+        public String getMessage() {
+            return "test failed with timeout (This test did not complete in 10 seconds, it might contain an endless loop)";
+        }
+
+        @Override
+        public String toString() {
+            return super.toString();
+        }
     }
 
 

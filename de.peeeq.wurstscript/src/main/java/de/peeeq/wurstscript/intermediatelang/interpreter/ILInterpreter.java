@@ -35,6 +35,9 @@ public class ILInterpreter {
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
                                      ILconst... args) {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterpreterException(globalState, "Execution interrupted");
+        }
         try {
             String[] parameterTypes = new String[args.length];
             for (int i = 0; i < args.length; i++) {

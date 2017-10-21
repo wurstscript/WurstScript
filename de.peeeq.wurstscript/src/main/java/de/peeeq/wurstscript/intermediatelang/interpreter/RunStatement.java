@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.datastructures.IntTuple;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
@@ -32,6 +33,9 @@ public class RunStatement {
     public static void run(ImLoop s, ProgramState globalState, LocalState localState) {
         try {
             while (true) {
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new InterpreterException(globalState, "Execution interrupted");
+                }
                 s.getBody().runStatements(globalState, localState);
             }
         } catch (ExitwhenException e) {
