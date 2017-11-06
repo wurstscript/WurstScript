@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.parser.WPos;
 
+import java.io.File;
+
 public class ILStackFrame {
 
     public final ImFunction f;
@@ -29,6 +31,12 @@ public class ILStackFrame {
             first = false;
         }
         sb.append(")");
+
+        if (trace != null) {
+            String file = new File(trace.getFile()).getName();
+            sb.append(" in " + file + ":" + trace.getLine());
+        }
+
         return sb.toString();
     }
 
@@ -36,4 +44,7 @@ public class ILStackFrame {
         return new CompileError(trace, getMessage());
     }
 
+    public WPos getTrace() {
+        return trace;
+    }
 }

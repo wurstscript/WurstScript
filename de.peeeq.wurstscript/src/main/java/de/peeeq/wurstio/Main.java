@@ -9,6 +9,7 @@ import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
+import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -21,6 +22,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
@@ -31,6 +33,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
@@ -352,15 +355,38 @@ public class Main {
 
         File mapFile = compiler.getMapFile();
 
-        if (runArgs.runCompiletimeFunctions()) {
+        if (runArgs.isRunTests()) {
+            PrintStream out = System.out;
             // tests
             gui.sendProgress("Running tests");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_TEST);
-            ctr.run();
+            System.out.println("Running tests");
+            RunTests runTests = new RunTests(null,0,0) {
+                @Override
+                protected void print(String message) {
+                    out.print(message);
+                }
+            };
+            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null);
+
+
+            for (RunTests.TestFailure e : runTests.getFailTests()) {
+                gui.sendError(new CompileError(e.getFunction().attrTrace().attrErrorPos(), e.getMessage()));
+                if (runArgs.isGui()) {
+                    // when using graphical user interface, send stack trace to GUI
+                    for (ILStackFrame sf : Utils.iterateReverse(e.getStackTrace().getStackFrames())) {
+                        gui.sendError(sf.makeCompileError());
+                    }
+                }
+            }
+
+            System.out.println("Finished running tests");
+        }
+
+        if (runArgs.runCompiletimeFunctions()) {
 
             // compiletime functions
             gui.sendProgress("Running compiletime functions");
-            ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_COMPILETIME);
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_COMPILETIME);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.run();
         }

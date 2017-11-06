@@ -249,10 +249,7 @@ public class EvaluateExpr {
     public static ILconst eval(ImGetStackTrace e, ProgramState globalState,
                                LocalState localState) {
         StringBuilder sb = new StringBuilder();
-        for (ILStackFrame sf : globalState.getStackFrames()) {
-            sb.append(sf.getMessage());
-            sb.append("\n");
-        }
+        globalState.getStackFrames().appendTo(sb);
         return new ILconstString(sb.toString());
     }
 

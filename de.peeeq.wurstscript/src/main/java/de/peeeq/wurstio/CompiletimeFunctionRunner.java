@@ -71,7 +71,7 @@ public class CompiletimeFunctionRunner {
                 gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
 
                 // stackframe messages ...
-                for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames())) {
+                for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
                     gui.sendError(sf.makeCompileError());
                 }
 

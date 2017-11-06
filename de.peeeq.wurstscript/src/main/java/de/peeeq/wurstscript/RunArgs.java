@@ -267,4 +267,9 @@ public class RunArgs {
         return optionDisablePjass.isSet;
     }
 
+    public boolean isRunTests() {
+        return optionRuntests.isSet;
+    }
+
+
 }
