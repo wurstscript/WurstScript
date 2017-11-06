@@ -1,4 +1,6 @@
-package file;
+package workers;
+
+import file.WurstProjectConfig;
 
 import javax.swing.*;
 

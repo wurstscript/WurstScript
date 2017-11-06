@@ -1,11 +1,13 @@
 package ui;
 
 import file.GlobalWurstConfig;
-import file.ProjectUpdateWorker;
 import file.WurstProjectConfig;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.lib.Ref;
 import tablelayout.Table;
+import workers.CompilerUpdateWorker;
+import workers.ProjectCreateWorker;
+import workers.ProjectUpdateWorker;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -292,19 +294,21 @@ public class MainWindow extends JFrame {
             importButton.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if (importChooser.showOpenDialog(that) == JFileChooser.APPROVE_OPTION) {
-                        try {
-                            WurstProjectConfig config = WurstProjectConfig.loadProject(importChooser.getSelectedFile());
-                            if (config != null) {
-                                projectNameTF.setText(config.getProjectName());
-                                projectRootTF.setText(config.getProjectRoot().toString());
-                                dependencies = config.dependencies;
-                                dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
-                                btnCreate.setText("Update Project");
-                                selectedConfig = config;
+                    if (importButton.isEnabled() && !progressBar.isIndeterminate()) {
+                        if (importChooser.showOpenDialog(that) == JFileChooser.APPROVE_OPTION) {
+                            try {
+                                WurstProjectConfig config = WurstProjectConfig.loadProject(importChooser.getSelectedFile());
+                                if (config != null) {
+                                    projectNameTF.setText(config.getProjectName());
+                                    projectRootTF.setText(config.getProjectRoot().toString());
+                                    dependencies = config.dependencies;
+                                    dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
+                                    btnCreate.setText("Update Project");
+                                    selectedConfig = config;
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
                         }
                     }
                 }
@@ -444,7 +448,7 @@ public class MainWindow extends JFrame {
             btnUpdate.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if (btnUpdate.isEnabled()) {
+                    if (btnUpdate.isEnabled() && !progressBar.isIndeterminate()) {
                         handleWurstUpdate();
                     }
                 }
@@ -455,10 +459,10 @@ public class MainWindow extends JFrame {
             btnCreate.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent arg0) {
-                    if (btnCreate.isEnabled()) {
+                    if (btnCreate.isEnabled() && !progressBar.isIndeterminate()) {
                         progressBar.setIndeterminate(true);
                         btnUpdate.setEnabled(false);
-                        if(selectedConfig == null ) {
+                        if (selectedConfig == null) {
                             try {
                                 selectedConfig = WurstProjectConfig.loadProject(new File(projectRootTF.getText(), "wurst.build"));
                             } catch (IOException e) {
@@ -486,6 +490,8 @@ public class MainWindow extends JFrame {
         }
 
         private void handleCreateProject() {
+            btnCreate.setEnabled(false);
+            progressBar.setIndeterminate(true);
             String gamePath = gamePathTF.getText();
             File projectRoot = new File(projectRootTF.getText());
             File gameRoot = (gamePath != null && gamePath.length() > 0) ? new File(gamePath) : null;
@@ -493,11 +499,13 @@ public class MainWindow extends JFrame {
             for (String dep : dependencies) {
                 config.addDependency(dep);
             }
-            WurstProjectConfig.handleCreate(config);
+            new ProjectCreateWorker(config).execute();
         }
 
         private void handleWurstUpdate() {
-            GlobalWurstConfig.handleUpdate();
+            btnUpdate.setEnabled(false);
+            progressBar.setIndeterminate(true);
+            new CompilerUpdateWorker().execute();
         }
     }
 
