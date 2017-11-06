@@ -5,7 +5,10 @@ import ui.Init;
 import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,14 +49,12 @@ public class WurstProjectConfig {
     }
 
     public static void handleCreate(WurstProjectConfig projectConfig) {
-        new Thread(() -> {
-            try {
-                createProject(projectConfig);
-                Init.refreshUi();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
+        try {
+            createProject(projectConfig);
+            Init.refreshUi();
+        } catch (Exception e) {
+            Init.print("\n===ERROR PROJECT CREATE===\n" + e.getMessage() + "\nPlease report here: github.com/wurstscript/WurstScript/issues\n");
+        }
     }
 
     public static WurstProjectConfig loadProject(File buildFile) throws IOException {
@@ -139,7 +140,7 @@ public class WurstProjectConfig {
 
     private static void setupVSCode(File projectRoot, File gamePath) throws IOException {
         Init.print("Updating vsconfig..");
-        if(!projectRoot.exists()) {
+        if (!projectRoot.exists()) {
             throw new IOException("Project root does not exist!");
         }
         File vsCodeF = new File(projectRoot, ".vscode/settings.json");
@@ -172,8 +173,8 @@ public class WurstProjectConfig {
 
             Init.print("Project successfully updated!\nReload vscode to apply the changed dependencies.\n");
             Init.refreshUi();
-        } catch (IOException ignored) {
-            Init.print("error!\n");
+        } catch (Exception e) {
+            Init.print("\n===ERROR PROJECT UPDATE===\n" + e.getMessage() + "\nPlease report here: github.com/wurstscript/WurstScript/issues\n");
         }
 
     }

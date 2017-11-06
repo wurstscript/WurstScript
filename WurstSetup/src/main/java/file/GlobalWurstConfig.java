@@ -61,8 +61,12 @@ public class GlobalWurstConfig {
                 if (globalConfigFile.exists()) {
                     configData = yaml.loadAs(new String(Files.readAllBytes(globalConfigFile.toPath())), WurstConfigData.class);
                     wurstCompilerJar = new File(GlobalWurstConfig.getWurstConfigFolder(), "wurstscript.jar");
-                    updateAvailable = latestBuildAvailable > configData.getBuildNumber();
-
+                    if (!wurstCompilerJar.exists()) {
+                        wurstCompilerJar = null;
+                        isFreshInstall = true;
+                    } else {
+                        updateAvailable = latestBuildAvailable > configData.getBuildNumber();
+                    }
                 } else {
                     isFreshInstall = true;
                 }
@@ -129,7 +133,7 @@ public class GlobalWurstConfig {
 
             Init.refreshUi();
         } catch (Exception e) {
-            e.printStackTrace();
+            Init.print("\n===ERROR COMPILER UPDATE===\n" + e.getMessage() + "\nPlease report here: github.com/wurstscript/WurstScript/issues\n");
         }
     }
 
