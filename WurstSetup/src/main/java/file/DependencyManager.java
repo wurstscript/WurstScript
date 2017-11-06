@@ -24,10 +24,10 @@ public class DependencyManager {
     public static void updateDependencies(WurstProjectConfig projectConfig) {
         List<String> depFolders = new ArrayList<>();
         // Iterate through git dependencies
-        Init.log("Updating dependencies...\n");
+        Init.print("Updating dependencies...\n");
         for (String dependency : projectConfig.dependencies) {
             String dependencyName = dependency.substring(dependency.lastIndexOf("/") + 1);
-            Init.log("Updating dependency - " + dependencyName + " ..");
+            Init.print("Updating dependency - " + dependencyName + " ..");
             File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
             if (depFolder.exists()) {
                 depFolders.add(depFolder.getAbsolutePath());
@@ -38,11 +38,11 @@ public class DependencyManager {
                             git.clean().setCleanDirectories(true).setForce(true).call();
                             git.stashCreate().call();
                         } catch (Exception e) {
-                            Init.log("error when trying to clean repository\n");
+                            Init.print("error when trying to clean repository\n");
                             e.printStackTrace();
                         }
                     } catch (Exception e) {
-                        Init.log("error when trying open repository");
+                        Init.print("error when trying open repository");
                         e.printStackTrace();
                     }
                 } catch (Exception ignored) {
@@ -54,14 +54,14 @@ public class DependencyManager {
                         try (Git git = new Git(repository)) {
                             git.reset().call();
                             PullResult pullResult = git.pull().call();
-                            Init.log("done\n");
+                            Init.print("done\n");
                             System.out.println("Messages: " + pullResult.getFetchResult());
                         } catch (Exception e) {
-                            Init.log("error when trying to fetch remote\n");
+                            Init.print("error when trying to fetch remote\n");
                             e.printStackTrace();
                         }
                     } catch (Exception e) {
-                        Init.log("error when trying open repository");
+                        Init.print("error when trying open repository");
                         e.printStackTrace();
                     }
                 } catch (Exception ignored) {
@@ -73,9 +73,9 @@ public class DependencyManager {
                     try (Git result = Git.cloneRepository().setURI(dependency)
                             .setDirectory(depFolder)
                             .call()) {
-                        Init.log("done\n");
+                        Init.print("done\n");
                     } catch (Exception e) {
-                        Init.log("error!\n");
+                        Init.print("error!\n");
                         e.printStackTrace();
                     }
                 } catch (Exception ignored) {
@@ -95,10 +95,10 @@ public class DependencyManager {
     }
 
     public static boolean isUpdateAvailable(WurstProjectConfig projectConfig) {
-        Init.log("Checking dependencies...\n");
+        Init.print("Checking dependencies...\n");
         for (String dependency : projectConfig.dependencies) {
             String dependencyName = dependency.substring(dependency.lastIndexOf("/") + 1);
-            Init.log("Checking dependency - " + dependencyName + " ..");
+            Init.print("Checking dependency - " + dependencyName + " ..");
             File depFolder = new File(projectConfig.getProjectRoot(), "_build/dependencies/" + dependencyName);
             if (depFolder.exists()) {
                 // update
@@ -108,16 +108,16 @@ public class DependencyManager {
                             Collection<Ref> refs = git.lsRemote().setHeads(true).call();
                             Status status = git.status().call();
                             if (status.hasUncommittedChanges()) {
-                                Init.log("You have modified files in your dependencies folder.");
+                                Init.print("You have modified files in your dependencies folder.");
                             } else if (status.isClean()) {
 
                             }
                         } catch (Exception e) {
-                            Init.log("error when trying to fetch remote\n");
+                            Init.print("error when trying to fetch remote\n");
                             e.printStackTrace();
                         }
                     } catch (Exception e) {
-                        Init.log("error when trying open repository");
+                        Init.print("error when trying open repository");
                         e.printStackTrace();
                     }
                 } catch (Exception ignored) {

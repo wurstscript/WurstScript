@@ -37,6 +37,10 @@ public class WurstProjectConfig {
     public WurstProjectConfig() {
     }
 
+    public void setGameRoot(File gameRoot) {
+        this.gameRoot = gameRoot;
+    }
+
     public File getProjectRoot() {
         return projectRoot;
     }
@@ -44,7 +48,6 @@ public class WurstProjectConfig {
     public static void handleCreate(WurstProjectConfig projectConfig) {
         new Thread(() -> {
             try {
-                Init.log("Creating project root..");
                 createProject(projectConfig);
                 Init.refreshUi();
             } catch (Exception e) {
@@ -54,7 +57,7 @@ public class WurstProjectConfig {
     }
 
     public static WurstProjectConfig loadProject(File buildFile) throws IOException {
-        Init.log("Loading project..");
+        Init.print("Loading project..");
         if (buildFile.exists() && buildFile.getName().equalsIgnoreCase("wurst.build")) {
             String fileInput = new String(Files.readAllBytes(buildFile.toPath()));
             if (fileInput.startsWith("!!")) {
@@ -66,7 +69,7 @@ public class WurstProjectConfig {
                 config.projectName = config.projectRoot.getName();
                 saveProjectConfig(config);
             }
-            Init.log("done\n");
+            Init.print("done\n");
             return config;
         }
         return null;
@@ -75,23 +78,24 @@ public class WurstProjectConfig {
     private static void createProject(WurstProjectConfig projectConfig) throws Exception {
         File projectRoot = projectConfig.projectRoot;
         File gameRoot = projectConfig.gameRoot;
+        Init.print("Creating project root..");
         if (projectRoot.exists()) {
-            Init.log("\nError: Project root already exists!");
+            Init.print("\nError: Project root already exists!\n");
         } else {
             if (projectRoot.mkdirs()) {
-                Init.log("done\n");
+                Init.print("done\n");
 
-                Init.log("Download template..");
+                Init.print("Download template..");
                 File file = Download.downloadBareboneProject();
-                Init.log("done\n");
+                Init.print("done\n");
 
-                Init.log("Extracting template..");
+                Init.print("Extracting template..");
                 ZipArchiveExtractor zipArchiveExtractor = new ZipArchiveExtractor();
                 boolean extractSuccess = zipArchiveExtractor.extractArchive(file, projectRoot);
 
                 if (extractSuccess) {
-                    Init.log("done\n");
-                    Init.log("Clean up..");
+                    Init.print("done\n");
+                    Init.print("Clean up..");
                     String[] children = projectRoot.list();
                     if (children != null && children.length == 1) {
                         File uselessFolder = new File(projectRoot, children[0]);
@@ -104,24 +108,22 @@ public class WurstProjectConfig {
                         }
                         uselessFolder.delete();
                     }
-                    Init.log("done\n");
+                    Init.print("done\n");
 
-                    Init.log("Create config..");
                     setupVSCode(projectRoot, gameRoot);
 
                     saveProjectConfig(projectConfig);
-                    Init.log("done\n");
 
                     DependencyManager.updateDependencies(projectConfig);
 
-                    Init.log("---\n\n");
+                    Init.print("---\n\n");
                     if (gameRoot == null || !gameRoot.exists()) {
-                        Init.log("Warning: Your game path has not been set.\nThis means you will be able to develop, but not run maps.\n");
+                        Init.print("Warning: Your game path has not been set.\nThis means you will be able to develop, but not run maps.\n");
                     }
-                    Init.log("Your project has been successfully created!\n" +
+                    Init.print("Your project has been successfully created!\n" +
                             "You can now open your project folder in VSCode.\nOpen the wurst/Hello.wurst package to continue.\n");
                 } else {
-                    Init.log("error\n");
+                    Init.print("error\n");
                     JOptionPane.showMessageDialog(null,
                             "Error: Cannot extract patch files.\nWurst might still be in use.\nClose any Wurst, VSCode or Eclipse instances before updating.",
                             "Error Massage", JOptionPane.ERROR_MESSAGE);
@@ -136,6 +138,10 @@ public class WurstProjectConfig {
     }
 
     private static void setupVSCode(File projectRoot, File gamePath) throws IOException {
+        Init.print("Updating vsconfig..");
+        if(!projectRoot.exists()) {
+            throw new IOException("Project root does not exist!");
+        }
         File vsCodeF = new File(projectRoot, ".vscode/settings.json");
         Path vsCode = vsCodeF.toPath();
         if (!vsCodeF.exists()) {
@@ -146,30 +152,28 @@ public class WurstProjectConfig {
         String absolutePath = GlobalWurstConfig.getWurstCompilerJar().getAbsolutePath();
         json = json.replace("%wurstjar%", absolutePath.replaceAll("\\\\", "\\\\\\\\"));
 
-        if (gamePath != null) {
+        if (gamePath != null && gamePath.exists()) {
             json = json.replace("%gamepath%", gamePath.getAbsolutePath().replaceAll("\\\\", "\\\\\\\\"));
         }
-        Files.write(vsCode, json.getBytes());
+        Files.write(vsCode, json.getBytes(), StandardOpenOption.TRUNCATE_EXISTING);
+        Init.print("done.\n");
     }
 
     public String getProjectName() {
         return projectName;
     }
 
-    public static void handleUpdate(File buildFile) {
-        Init.log("Updating project...\n");
+    public static void handleUpdate(WurstProjectConfig config) {
+        Init.print("Updating project...\n");
         try {
-            WurstProjectConfig config = loadProject(buildFile);
-
             setupVSCode(config.projectRoot, config.gameRoot);
 
             DependencyManager.updateDependencies(config);
 
-
-            Init.log("Project updated\n");
+            Init.print("Project successfully updated!\nReload vscode to apply the changed dependencies.\n");
             Init.refreshUi();
         } catch (IOException ignored) {
-            Init.log("error!\n");
+            Init.print("error!\n");
         }
 
     }

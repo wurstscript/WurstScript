@@ -89,6 +89,8 @@ public class MainWindow extends JFrame {
         private List<String> dependencies;
         private JTextField projectNameTF;
 
+        private WurstProjectConfig selectedConfig = null;
+
         public UI() {
             // Add default stdlib
             dependencies = new ArrayList<>();
@@ -131,9 +133,9 @@ public class MainWindow extends JFrame {
             lblVersions.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    Init.log("\nchecking for updates..");
+                    Init.print("\nchecking for updates..");
                     Init.init(true, null);
-                    Init.log("done\n");
+                    Init.print("done\n");
                 }
             });
             Table noteTable = new Table();
@@ -299,6 +301,7 @@ public class MainWindow extends JFrame {
                                 dependencies = config.dependencies;
                                 dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
                                 btnCreate.setText("Update Project");
+                                selectedConfig = config;
                             }
                         } catch (IOException e) {
                             e.printStackTrace();
@@ -353,7 +356,7 @@ public class MainWindow extends JFrame {
                 try {
                     String wc3Path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
                     if (wc3Path != null) {
-                        if (!wc3Path.endsWith(File.separator )) wc3Path = wc3Path + File.separator ;
+                        if (!wc3Path.endsWith(File.separator)) wc3Path = wc3Path + File.separator;
                         File gameFolder = new File(wc3Path);
                         if (gameFolder.exists()) {
                             gamePathTF.setText(wc3Path);
@@ -381,23 +384,23 @@ public class MainWindow extends JFrame {
                     String url = JOptionPane.showInputDialog("Enter git remote addres (https://github.com/user/project)");
                     if (url != null && url.length() > 0) {
                         if (dependencies.contains(url)) {
-                            Init.log("This git repo is already added");
+                            Init.print("This git repo is already added");
                             return;
                         }
-                        Init.log("Checking git repo..");
+                        Init.print("Checking git repo..");
                         try {
                             Collection<Ref> result = Git.lsRemoteRepository()
                                     .setRemote(url)
                                     .call();
                             if (!result.isEmpty()) {
-                                Init.log("valid!\n");
+                                Init.print("valid!\n");
                                 dependencies.add(url);
                                 dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
                             } else {
-                                Init.log("Error: Entered invalid git repo\n");
+                                Init.print("Error: Entered invalid git repo\n");
                             }
                         } catch (Exception e) {
-                            Init.log("Error: Entered invalid git repo\n");
+                            Init.print("Error: Entered invalid git repo\n");
                             e.printStackTrace();
                         }
                     }
@@ -420,12 +423,12 @@ public class MainWindow extends JFrame {
             } else if (GlobalWurstConfig.updateAvailable) {
                 lblNote.setText("There is an update available!");
                 lblNote.setForeground(new Color(25, 125, 125));
-                btnUpdate.setText("Update WurstScript");
+                btnUpdate.setText("Update Compiler");
                 btnUpdate.setEnabled(true);
                 btnCreate.setEnabled(true);
             } else {
                 lblNote.setText("WurstScript is up to date!");
-                btnUpdate.setText("Up to date");
+                btnUpdate.setText("Compiler up to date");
                 btnUpdate.setEnabled(false);
                 btnCreate.setEnabled(true);
             }
@@ -455,9 +458,15 @@ public class MainWindow extends JFrame {
                     if (btnCreate.isEnabled()) {
                         progressBar.setIndeterminate(true);
                         btnUpdate.setEnabled(false);
-                        File buildFile = new File(projectRootTF.getText(), "wurst.build");
-                        if (buildFile.exists()) {
-                            handleUpdateProject(buildFile);
+                        if(selectedConfig == null ) {
+                            try {
+                                selectedConfig = WurstProjectConfig.loadProject(new File(projectRootTF.getText(), "wurst.build"));
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if (selectedConfig != null) {
+                            handleUpdateProject();
                         } else {
                             handleCreateProject();
                         }
@@ -468,8 +477,12 @@ public class MainWindow extends JFrame {
             contentTable.addCell(buttonTable).growX().pad(2);
         }
 
-        private void handleUpdateProject(File buildFile) {
-            new ProjectUpdateWorker(buildFile).execute();
+        private void handleUpdateProject() {
+            File file = new File(gamePathTF.getText());
+            if (file.exists()) {
+                selectedConfig.setGameRoot(file);
+            }
+            new ProjectUpdateWorker(selectedConfig).execute();
         }
 
         private void handleCreateProject() {

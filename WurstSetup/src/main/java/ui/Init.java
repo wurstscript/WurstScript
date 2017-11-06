@@ -50,7 +50,7 @@ public class Init {
         }
     }
 
-    public static void log(String message) {
+    public static void print(String message) {
         if (mainFrame != null) {
             mainFrame.ui.jTextArea.append(message);
             mainFrame.ui.jTextArea.setCaretPosition(mainFrame.ui.jTextArea.getText().length() - 1);

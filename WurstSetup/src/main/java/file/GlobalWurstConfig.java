@@ -65,7 +65,7 @@ public class GlobalWurstConfig {
 
                 } else {
                     isFreshInstall = true;
-//                    Init.log("Wurst installation invalid. Please reinstall.\n");
+//                    Init.print("Wurst installation invalid. Please reinstall.\n");
                 }
             }
 
@@ -95,35 +95,35 @@ public class GlobalWurstConfig {
     public static void handleUpdate() {
         new Thread(() -> {
             try {
-                Init.log(isFreshInstall ? "Installing WurstScript..\n" : "Updating WursScript..\n");
+                Init.print(isFreshInstall ? "Installing WurstScript..\n" : "Updating WursScript..\n");
 
-                Init.log("Downloading compiler..");
+                Init.print("Downloading compiler..");
                 File file = Download.downloadCompiler();
-                Init.log("done\n");
+                Init.print("done\n");
 
-                Init.log("Extracting compiler..");
+                Init.print("Extracting compiler..");
                 ZipArchiveExtractor zipArchiveExtractor = new ZipArchiveExtractor();
                 boolean extractSuccess = zipArchiveExtractor.extractArchive(file, GlobalWurstConfig.getWurstConfigFolder());
                 if (extractSuccess) {
-                    Init.log("done\n");
+                    Init.print("done\n");
                     WurstConfigData wurstConfigData = new WurstConfigData();
                     wurstConfigData.setBuildNumber(latestBuildAvailable);
-                    Init.log(isFreshInstall ? "Generating Config.." : "Updating Config..");
+                    Init.print(isFreshInstall ? "Generating Config.." : "Updating Config..");
                     save(wurstConfigData);
-                    Init.log("done\n");
+                    Init.print("done\n");
 
                     wurstCompilerJar = new File(GlobalWurstConfig.getWurstConfigFolder(), "wurstscript.jar");
                     updateAvailable = false;
                     isFreshInstall = false;
 
                     if (!wurstCompilerJar.exists()) {
-                        Init.log("ERROR");
+                        Init.print("ERROR");
                     } else {
-                        Init.log(isFreshInstall ? "Installation complete\n" : "Update complete\n");
+                        Init.print(isFreshInstall ? "Installation complete\n" : "Update complete\n");
                     }
 
                 } else {
-                    Init.log("error\n");
+                    Init.print("error\n");
                     JOptionPane.showMessageDialog(null,
                             "Error: Cannot extract patch files.\nWurst might still be in use.\nClose VSCode and Eclipse before updating.",
                             "Error Massage", JOptionPane.ERROR_MESSAGE);

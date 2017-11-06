@@ -1,18 +1,17 @@
 package file;
 
 import javax.swing.*;
-import java.io.File;
 
 public class ProjectUpdateWorker extends SwingWorker<Boolean, Void> {
-    private final File buildFile;
+    private final WurstProjectConfig config;
 
-    public ProjectUpdateWorker(File buildFile) {
-        this.buildFile = buildFile;
+    public ProjectUpdateWorker(WurstProjectConfig config) {
+        this.config = config;
     }
 
     @Override
     protected Boolean doInBackground() throws Exception {
-        WurstProjectConfig.handleUpdate(buildFile);
+        WurstProjectConfig.handleUpdate(config);
         return null;
     }
 }
