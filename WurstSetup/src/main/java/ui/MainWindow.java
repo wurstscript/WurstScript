@@ -135,7 +135,7 @@ public class MainWindow extends JFrame {
             lblVersions.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    Init.print("\nchecking for updates..");
+                    Init.print("\nChecking for updates..");
                     Init.init(true, null);
                     Init.print("done\n");
                 }
@@ -305,6 +305,7 @@ public class MainWindow extends JFrame {
                                     dependencyTF.setText(dependencies.stream().map(i -> i.substring(i.lastIndexOf("/") + 1)).collect(Collectors.joining(", ")));
                                     btnCreate.setText("Update Project");
                                     selectedConfig = config;
+                                    Init.print("Use the \"Update Project\" button to update config and dependencies.\n");
                                 }
                             } catch (IOException e) {
                                 e.printStackTrace();
@@ -504,6 +505,7 @@ public class MainWindow extends JFrame {
 
         private void handleWurstUpdate() {
             btnUpdate.setEnabled(false);
+            btnCreate.setEnabled(false);
             progressBar.setIndeterminate(true);
             new CompilerUpdateWorker().execute();
         }
