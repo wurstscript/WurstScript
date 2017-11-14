@@ -44,6 +44,7 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.SimpleFormatter;
 
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static javax.swing.SwingConstants.CENTER;
 
 public class Main {
@@ -386,7 +387,7 @@ public class Main {
 
             // compiletime functions
             gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, FunctionFlagEnum.IS_COMPILETIME);
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, CompiletimeFunctions);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.run();
         }

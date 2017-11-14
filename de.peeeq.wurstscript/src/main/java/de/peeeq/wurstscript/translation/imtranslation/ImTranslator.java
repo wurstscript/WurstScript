@@ -89,6 +89,9 @@ public class ImTranslator {
 
     private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
 
+    private int compiletimeOrderCounter = 1;
+    private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
+    private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
 
@@ -108,6 +111,8 @@ public class ImTranslator {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
             debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+
+            calculateCompiletimeOrder();
 
             for (CompilationUnit cu : wurstProg) {
                 translateCompilationUnit(cu);
@@ -134,6 +139,47 @@ public class ImTranslator {
                     "\nPlease open a ticket with source code and the error log.", t);
         }
     }
+
+    /**
+     * Number all the compiletime functions and expressions,
+     * so that the one with the lowest number can be executed first.
+     * <p>
+     * Dependendend packages are executed first and inside a package
+     * it goes from top to bottom.
+     */
+    private void calculateCompiletimeOrder() {
+        Set<WPackage> visited = new HashSet<>();
+        ImmutableCollection<WPackage> packages = wurstProg.attrPackages().values();
+
+        for (WPackage p : packages) {
+            calculateCompiletimeOrder_walk(p, visited);
+        }
+    }
+
+    private void calculateCompiletimeOrder_walk(WPackage p, Set<WPackage> visited) {
+        if (!visited.add(p)) {
+            return;
+        }
+        for (WPackage dep : p.attrInitDependencies()) {
+            calculateCompiletimeOrder_walk(dep, visited);
+        }
+        p.accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
+            @Override
+            public void visit(FuncDef funcDef) {
+                if (funcDef.attrIsCompiletime()) {
+                    compiletimeFlags.put(funcDef, new FunctionFlagCompiletime(compiletimeOrderCounter++));
+                }
+            }
+
+            @Override
+            public void visit(ExprFunctionCall fc) {
+                if (fc.getFuncName().equals("compiletime")) {
+                    compiletimeExpressionsOrder.put(fc, compiletimeOrderCounter++);
+                }
+            }
+        });
+    }
+
 
     /**
      * sorting everything is supposed to make the translation deterministic
@@ -423,6 +469,14 @@ public class ImTranslator {
                 ImExpr translated = expr.imTranslateExpr(this, f);
                 f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
             }
+            // abusing tuples to store multiple expressions for globalInit
+            imProg.getGlobalInits().put(v, JassIm.ImTupleExpr(
+                    JassIm.ImExprs(
+                            arInit.getValues().stream()
+                                    .map(expr -> expr.imTranslateExpr(this, f))
+                                    .collect(Collectors.toList())
+                    )
+            ));
         }
     }
 
@@ -526,7 +580,11 @@ public class ImTranslator {
         if (funcDef instanceof FuncDef) {
             FuncDef funcDef2 = (FuncDef) funcDef;
             if (funcDef2.attrIsCompiletime()) {
-                flags.add(IS_COMPILETIME);
+                FunctionFlagCompiletime flag = compiletimeFlags.get(funcDef);
+                if (flag == null) {
+                    throw new CompileError(funcDef.getSource(), "Compiletime flag not supported here.");
+                }
+                flags.add(flag);
             }
             if (funcDef2.attrHasAnnotation("compiletimenative")) {
                 flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
@@ -1315,6 +1373,10 @@ public class ImTranslator {
         }
         FuncDef f = (FuncDef) funcs.stream().findAny().get().getNameDef();
         return Optional.of(f);
+    }
+
+    int getCompiletimeExpressionsOrder(FunctionCall fc) {
+        return compiletimeExpressionsOrder.getOrDefault(fc, 0);
     }
 
 

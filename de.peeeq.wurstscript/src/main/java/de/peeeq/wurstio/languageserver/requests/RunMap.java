@@ -46,6 +46,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
+
 /**
  * Created by peter on 16.05.16.
  */
@@ -286,7 +288,7 @@ public class RunMap extends UserRequest<Object> {
                 // TODO run optimizations later?
                 gui.sendProgress("Running compiletime functions");
                 CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
-                        FunctionFlagEnum.IS_COMPILETIME);
+                        CompiletimeFunctions);
                 ctr.setInjectObjects(runArgs.isInjectObjects());
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
