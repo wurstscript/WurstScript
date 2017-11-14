@@ -20,7 +20,9 @@ public class WurstProjectConfig {
 
     private File gameRoot;
 
-    public String releaseName = "myRelease.w3x";
+    public String buildMapName = "MyMap 0.01";
+    public String buildMapFileName = "MyMap_0.01";
+    public String buildMapAuthor = "YourName";
 
     public String projectName;
     public List<String> dependencies = new ArrayList<>();
