@@ -55,3 +55,4 @@ Checksums/testmd5.txt
 *.iml
 downloads/
 WurstSetup/proguard.map
+de.peeeq.wurstscript/output.txt
