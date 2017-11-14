@@ -2,10 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstio.languageserver.requests.CleanProject;
-import de.peeeq.wurstio.languageserver.requests.PerformCodeActionRequest;
-import de.peeeq.wurstio.languageserver.requests.RunMap;
-import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 
@@ -29,6 +26,7 @@ public class WurstCommands {
     public static final String WURST_RESTART = "wurst.restart";
     public static final String WURST_CLEAN = "wurst.clean";
     public static final String WURST_STARTMAP = "wurst.startmap";
+    public static final String WURST_BUILDMAP = "wurst.buildmap";
     public static final String WURST_STARTLAST = "wurst.startlast";
     public static final String WURST_TESTS = "wurst.tests";
     public static final String WURST_TESTS_FILE = "wurst.tests_file";
@@ -39,6 +37,7 @@ public class WurstCommands {
         return Arrays.asList(
                 WURST_CLEAN,
                 WURST_STARTMAP,
+                WURST_BUILDMAP,
                 WURST_TESTS,
                 WURST_PERFORM_CODE_ACTION
         );
@@ -54,6 +53,8 @@ public class WurstCommands {
                 return testMap(server, params);
             case WURST_PERFORM_CODE_ACTION:
                 return server.worker().handle(new PerformCodeActionRequest(server, params));
+            case WURST_BUILDMAP:
+                return buildmap(server, params);
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
@@ -67,6 +68,22 @@ public class WurstCommands {
         int line = Optional.ofNullable(options.get("line")).map(l -> (Double) l).orElse(-1.).intValue();
         int column = Optional.ofNullable(options.get("column")).map(l -> (Double) l).orElse(-1.).intValue();
         return server.worker().handle(new RunTests(filename, line, column));
+    }
+
+    private static CompletableFuture<Object> buildmap(WurstLanguageServer server, ExecuteCommandParams params) {
+        WFile workspaceRoot = server.getRootUri();
+        if (params.getArguments().isEmpty()) {
+            throw new RuntimeException("Missing arguments");
+        }
+        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
+        String mapPath = (String) options.get("mappath");
+        if (mapPath == null) {
+            throw new RuntimeException("No mappath given");
+        }
+
+        File map = new File(mapPath);
+        List<String> compileArgs = getCompileArgs(workspaceRoot);
+        return server.worker().handle(new BuildMap(workspaceRoot, map, compileArgs)).thenApply(x -> x);
     }
 
     private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params) {

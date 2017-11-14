@@ -73,8 +73,13 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:JMPQ3:1.5.5'
+    compile 'com.github.inwc3:jmpq3:1.5.7'
 
+    // Read Write YAML files
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
+
+    // Water's wc3 libs
+    compile 'com.github.inwc3:wc3libs:37437f37a5'
 }
 
 task genAst {

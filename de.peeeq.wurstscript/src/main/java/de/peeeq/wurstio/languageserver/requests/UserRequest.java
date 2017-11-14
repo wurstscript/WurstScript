@@ -5,13 +5,14 @@ import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public abstract class UserRequest<Res> {
 
     private CompletableFuture<Res> fut = new CompletableFuture<>();
 
-    public abstract Res execute(ModelManager modelManager);
+    public abstract Res execute(ModelManager modelManager) throws IOException;
 
     public boolean keepDuplicateRequests() {
         return false;

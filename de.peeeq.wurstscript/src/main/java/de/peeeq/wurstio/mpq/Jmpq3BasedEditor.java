@@ -69,6 +69,11 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
+    public void setKeepHeaderOffset(boolean flag) {
+        editor.setKeepHeaderOffset(flag);
+    }
+
+    @Override
     protected void finalize() throws Throwable {
         if (editor != null) {
             WLogger.severe("JMPQ editor not closed normally");

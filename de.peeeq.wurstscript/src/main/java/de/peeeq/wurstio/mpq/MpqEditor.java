@@ -12,4 +12,5 @@ public interface MpqEditor extends Closeable {
 
     boolean hasFile(String fileName) throws Exception;
 
+    void setKeepHeaderOffset(boolean flag);
 }
