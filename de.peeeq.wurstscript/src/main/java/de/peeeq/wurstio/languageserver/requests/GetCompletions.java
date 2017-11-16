@@ -593,7 +593,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setKind(CompletionItemKind.Constructor);
         String params = Utils.getParameterListText(constr);
         completion.setDetail("(" + params + ")");
-        completion.setDocumentation(constr.descriptionHtml());
+        completion.setDocumentation(HoverInfo.descriptionString(constr));
         completion.setInsertTextFormat(InsertTextFormat.Snippet);
         completion.setInsertText(replacementString);
         completion.setSortText(ratingToString(calculateRating(c.getName(), c.attrTyp().dynamic())));

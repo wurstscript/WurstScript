@@ -44,11 +44,11 @@ public class HoverInfo extends UserRequest<Hover> {
         return res;
     }
 
-    private static List<Either<String, MarkedString>> description(NameDef n) {
+    private static List<Either<String, MarkedString>> description(Element n) {
         return n.match(new Description());
     }
 
-    static String descriptionString(NameDef n) {
+    static String descriptionString(Element n) {
         List<Either<String, MarkedString>> descr = description(n);
         StringBuilder res = new StringBuilder();
         for (Either<String, MarkedString> d : descr) {
