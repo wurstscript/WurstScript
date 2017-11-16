@@ -4,11 +4,16 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ModuleExpander {
 
@@ -30,7 +35,17 @@ public class ModuleExpander {
     }
 
     public static ModuleInstanciations expandModules(ClassOrModule m) {
+        return expandModules(m, new ArrayList<>());
+    }
+
+    public static ModuleInstanciations expandModules(ClassOrModule m, Collection<ClassOrModule> visited) {
         Preconditions.checkNotNull(m);
+        if (visited.contains(m)) {
+            throw new CompileError(m.getSource(), "Cyclic module dependencies: " +
+                visited.stream().map(ClassOrModule::getName).sorted().collect(Collectors.joining(", ")));
+        }
+        visited.add(m);
+
         if (m.getP_moduleInstanciations().size() > 0) {
             return m.getP_moduleInstanciations();
         }
@@ -42,7 +57,7 @@ public class ModuleExpander {
                 moduleUse.addError("not found");
                 continue;
             }
-            expandModules(usedModule);
+            expandModules(usedModule, visited);
 
 
             int numTypeArgs = moduleUse.getTypeArgs().size();

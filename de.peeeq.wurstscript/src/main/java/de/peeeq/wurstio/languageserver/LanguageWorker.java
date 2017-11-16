@@ -16,6 +16,25 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LanguageWorker implements Runnable {
 
+    private class Workitem {
+        private String description;
+        private Runnable runnable;
+
+        public Workitem(String description, Runnable runnable) {
+            this.description = description;
+            this.runnable = runnable;
+        }
+
+        void run() {
+            runnable.run();
+        }
+
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+
     private final Map<WFile, PendingChange> changes = new LinkedHashMap<>();
     private final AtomicLong currentTime = new AtomicLong();
     private final Queue<UserRequest<?>> userRequests = new LinkedList<>();
@@ -112,7 +131,7 @@ public class LanguageWorker implements Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                Runnable work;
+                Workitem work;
                 synchronized (lock) {
                     work = getNextWorkItem();
                     if (work == null) {
@@ -125,9 +144,10 @@ public class LanguageWorker implements Runnable {
                     // come in while the work is done
                     try {
                         work.run();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e.toString()));
                         WLogger.severe(e);
-                        System.err.println("Error in request " + work + " (see log for details): " + e.getMessage());
+                        System.err.println("Error in request '" + work + "' (see log for details): " + e.getMessage());
                     }
                 }
             }
@@ -137,24 +157,24 @@ public class LanguageWorker implements Runnable {
         WLogger.info("Language Worker interrupted");
     }
 
-    private Runnable getNextWorkItem() {
+    private Workitem getNextWorkItem() {
         if (modelManager == null) {
             if (rootPath != null) {
                 WLogger.info("LanguageWorker start init");
-                return () -> doInit(rootPath);
+                return new Workitem("init", () -> doInit(rootPath));
             } else {
                 // cannot do anything useful at the moment
                 WLogger.info("LanguageWorker is waiting for init ... ");
             }
         } else if (!userRequests.isEmpty()) {
-            return () -> {
-                UserRequest<?> req = userRequests.remove();
+            UserRequest<?> req = userRequests.remove();
+            return new Workitem(req.toString(),  () -> {
                 req.run(modelManager);
-            };
+            });
         } else if (!changes.isEmpty()) {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
-            return () -> {
+            return new Workitem(change.toString(), () -> {
                 if (change.getFilename().getFile().getName().endsWith("wurst.dependencies")) {
                     if (!(change instanceof FileReconcile)) {
                         modelManager.clean();
@@ -169,7 +189,7 @@ public class LanguageWorker implements Runnable {
                 } else {
                     WLogger.info("unhandled change request: " + change);
                 }
-            };
+            });
         }
         return null;
     }
