@@ -84,7 +84,7 @@ ImFlatExpr =
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
-	| ImCompiletimeExpr(de.peeeq.wurstscript.ast.Element trace, ImExpr expr)
+	| ImCompiletimeExpr(de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
 	
 ImClassRelatedExpr = 
 	  ImMethodCall(de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)

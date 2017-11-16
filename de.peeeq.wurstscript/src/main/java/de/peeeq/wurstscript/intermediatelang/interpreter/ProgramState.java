@@ -7,10 +7,7 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImStmt;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -202,6 +199,24 @@ public class ProgramState extends State {
 
     public boolean isCompiletime() {
         return isCompiletime;
+    }
+
+    protected Map<Integer, ILconst> getArray(ImVar v) {
+        Map<Integer, ILconst> r = arrayValues.get(v);
+        if (r == null) {
+            r = Maps.newLinkedHashMap();
+            arrayValues.put(v, r);
+            ImExpr e = prog.getGlobalInits().get(v);
+            if (e instanceof ImTupleExpr) {
+                ImTupleExpr te = (ImTupleExpr) e;
+                LocalState ls = new LocalState();
+                for (int i = 0; i < te.getExprs().size(); i++) {
+                    ILconst val = te.getExprs().get(i).evaluate(this, ls);
+                    r.put(i, val);
+                }
+            }
+        }
+        return r;
     }
 
 

@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
+
 public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
@@ -404,7 +406,7 @@ public class WurstScriptTest {
     }
 
     private void executeTests(WurstGui gui, ImProg imProg) {
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, FunctionFlagEnum.IS_TEST);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, Tests);
         cfr.run();
         WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
         int failedTestCount = cfr.getFailTests().size();

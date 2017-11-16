@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagCompiletime;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 
 public class ImAttributes {
@@ -64,7 +65,8 @@ public class ImAttributes {
     }
 
     public static boolean isCompiletime(ImFunction f) {
-        return f.getFlags().contains(FunctionFlagEnum.IS_COMPILETIME);
+        return f.getFlags().stream()
+                .anyMatch(flag -> flag instanceof FunctionFlagCompiletime);
     }
 
 

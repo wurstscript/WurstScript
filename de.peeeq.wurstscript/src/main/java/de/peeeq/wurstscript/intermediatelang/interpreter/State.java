@@ -11,7 +11,7 @@ import java.util.Map.Entry;
 public abstract class State {
 
     private Map<ImVar, ILconst> values = Maps.newLinkedHashMap();
-    private Map<ImVar, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
+    protected Map<ImVar, Map<Integer, ILconst>> arrayValues = Maps.newLinkedHashMap();
 
 
     public void setVal(ImVar v, ILconst val) {
@@ -22,7 +22,7 @@ public abstract class State {
         return values.get(v);
     }
 
-    private Map<Integer, ILconst> getArray(ImVar v) {
+    protected Map<Integer, ILconst> getArray(ImVar v) {
         Map<Integer, ILconst> r = arrayValues.get(v);
         if (r == null) {
             r = Maps.newLinkedHashMap();

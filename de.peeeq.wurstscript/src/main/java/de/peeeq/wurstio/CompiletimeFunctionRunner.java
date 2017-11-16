@@ -20,9 +20,11 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagCompiletime;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -34,13 +36,31 @@ public class CompiletimeFunctionRunner {
     private final ImProg imProg;
     private ILInterpreter interpreter;
     private WurstGui gui;
-    private FunctionFlag functionFlag;
+    private FunctionFlagToRun functionFlag;
     private List<ImFunction> successTests = Lists.newArrayList();
     private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
     private boolean injectObjects;
 
 
-    public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlag flag) {
+    public enum FunctionFlagToRun {
+        Tests {
+            @Override
+            public boolean matches(ImFunction f) {
+                return f.hasFlag(FunctionFlagEnum.IS_TEST);
+            }
+        },
+        CompiletimeFunctions {
+            @Override
+            public boolean matches(ImFunction f) {
+                return f.isCompiletime();
+            }
+        };
+
+        public abstract boolean matches(ImFunction f);
+    }
+
+
+    public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
         Preconditions.checkNotNull(imProg);
         this.imProg = imProg;
         ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
@@ -57,10 +77,16 @@ public class CompiletimeFunctionRunner {
 //		interpreter.executeFunction("main");
 //		interpreter.executeFunction("initGlobals");
         try {
-            executeCompiletimeExpressions();
-            executeCompiletimeFunctions();
+            List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
+            collectCompiletimeExpressions(toExecute);
+            collectCompiletimeFunctions(toExecute);
+            
+            toExecute.sort(Comparator.comparing(this::getOrderIndex));
 
-            if (functionFlag == FunctionFlagEnum.IS_COMPILETIME) {
+            execute(toExecute);
+
+
+            if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
         } catch (Throwable e) {
@@ -82,22 +108,59 @@ public class CompiletimeFunctionRunner {
 
     }
 
-    private void executeCompiletimeExpressions() {
-        List<ImCompiletimeExpr> compiletimeExprs = new ArrayList<>();
+    private void execute(List<Either<ImCompiletimeExpr, ImFunction>> es) {
+        for (Either<ImCompiletimeExpr, ImFunction> e : es) {
+            if (e.isLeft()) {
+                ImCompiletimeExpr cte = e.getLeft();
+                executeCompiletimeExpr(cte);
+            } else {
+                ImFunction f = e.getRight();
+                executeCompiletimeFunction(f);
+            }
+        }
+    }
+
+    private int getOrderIndex(Either<ImCompiletimeExpr, ImFunction> e) {
+        if (e.isLeft()) {
+            ImCompiletimeExpr cte = e.getLeft();
+            return cte.getExecutionOrderIndex();
+        } else {
+            ImFunction f = e.getRight();
+            for (FunctionFlag flag : f.getFlags()) {
+                if (flag instanceof FunctionFlagCompiletime) {
+                    FunctionFlagCompiletime cflag = (FunctionFlagCompiletime) flag;
+                    return cflag.getOrderIndex();
+
+                }
+            }
+            return 0;
+        }
+    }
+
+    private void collectCompiletimeFunctions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
+        for (ImFunction f : imProg.getFunctions()) {
+            if (functionFlag.matches(f)) {
+                toExecute.add(Either.forRight(f));
+            }
+        }
+    }
+
+    private void collectCompiletimeExpressions(List<Either<ImCompiletimeExpr, ImFunction>> toExecute) {
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
-                compiletimeExprs.add(e);
+                toExecute.add(Either.forLeft(e));
             }
         });
+    }
 
-        for (ImCompiletimeExpr cte : compiletimeExprs) {
-            LocalState localState = new LocalState();
-            ILconst value = cte.evaluate(interpreter.getGlobalState(), localState);
-            ImExpr newExpr = constantToExpr(cte, value);
-            cte.replaceBy(newExpr);
-        }
 
+
+    private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
+        LocalState localState = new LocalState();
+        ILconst value = cte.evaluate(interpreter.getGlobalState(), localState);
+        ImExpr newExpr = constantToExpr(cte, value);
+        cte.replaceBy(newExpr);
     }
 
     private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
@@ -120,18 +183,17 @@ public class CompiletimeFunctionRunner {
         }
     }
 
-    private void executeCompiletimeFunctions() {
-        for (ImFunction f : imProg.getFunctions()) {
-            if (f.hasFlag(functionFlag)) {
-                try {
-                    WLogger.info("running " + functionFlag + " function " + f.getName());
-                    interpreter.runVoidFunc(f, null);
-                    successTests.add(f);
-                } catch (TestSuccessException e) {
-                    successTests.add(f);
-                } catch (TestFailException e) {
-                    failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
-                }
+
+    private void executeCompiletimeFunction(ImFunction f) {
+        if (functionFlag.matches(f)) {
+            try {
+                WLogger.info("running " + functionFlag + " function " + f.getName());
+                interpreter.runVoidFunc(f, null);
+                successTests.add(f);
+            } catch (TestSuccessException e) {
+                successTests.add(f);
+            } catch (TestFailException e) {
+                failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
             }
         }
     }
