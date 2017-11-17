@@ -2,16 +2,24 @@ package file;
 
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.introspector.BeanAccess;
+import org.yaml.snakeyaml.introspector.FieldProperty;
+import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.introspector.PropertyUtils;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 import ui.Init;
 import us.monoid.json.JSONObject;
 import us.monoid.web.Resty;
 
 import javax.swing.*;
+import java.beans.IntrospectionException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
+import java.util.*;
 
 import static us.monoid.web.Resty.path;
 
@@ -32,9 +40,27 @@ public class GlobalWurstConfig {
     private static final DumperOptions options = new DumperOptions();
     public static final Yaml yaml;
 
+    private static class UnsortedPropertyUtils extends PropertyUtils {
+        @Override
+        protected Set<Property> createPropertySet(Class<? extends Object> type, BeanAccess bAccess) throws IntrospectionException {
+            Set<Property> properties = new LinkedHashSet<>();
+            Collection<Property> props = getPropertiesMap(type, bAccess).values();
+            for (Property property : props) {
+                if ((property.isReadable() || property.isWritable()) && property instanceof FieldProperty) {
+                    properties.add(property);
+                }
+            }
+            return properties;
+        }
+    }
+
     static {
         options.setTags(Collections.emptyMap());
-        yaml = new Yaml(options);
+        Representer representer = new Representer();
+        representer.setPropertyUtils(new UnsortedPropertyUtils());
+        representer.getPropertyUtils().setSkipMissingProperties(true);
+        representer.addClassTag(WurstProjectConfig.class, Tag.MAP);
+        yaml = new Yaml(new Constructor(WurstProjectConfig.class), representer, options);
     }
 
     public static final Resty resty = new Resty();

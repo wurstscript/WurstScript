@@ -20,12 +20,12 @@ public class WurstProjectConfig {
 
     private File gameRoot;
 
-    public String buildMapName = "MyMap 0.01";
-    public String buildMapFileName = "MyMap_0.01";
-    public String buildMapAuthor = "YourName";
-
-    public String projectName;
+    public String projectName = "DefaultName";
     public List<String> dependencies = new ArrayList<>();
+
+    public String buildMapName = "DefaultName";
+    public String buildMapFileName = "DefaultFileName";
+    public String buildMapAuthor = "DefaultAuthor";
 
     public WurstProjectConfig(File projectRoot, File gameRoot, String projectName) {
         this.projectRoot = projectRoot;
@@ -63,9 +63,6 @@ public class WurstProjectConfig {
         Init.print("Loading project..");
         if (buildFile.exists() && buildFile.getName().equalsIgnoreCase("wurst.build")) {
             String fileInput = new String(Files.readAllBytes(buildFile.toPath()));
-            if (fileInput.startsWith("!!")) {
-                fileInput = fileInput.substring(fileInput.indexOf("\n"));
-            }
             WurstProjectConfig config = GlobalWurstConfig.yaml.loadAs(fileInput, WurstProjectConfig.class);
             config.projectRoot = buildFile.getParentFile();
             if (config.projectName == null || config.projectName.isEmpty()) {
@@ -170,12 +167,13 @@ public class WurstProjectConfig {
         Init.print("Updating project...\n");
         try {
             setupVSCode(config.projectRoot, config.gameRoot);
-
+            saveProjectConfig(config);
             DependencyManager.updateDependencies(config);
 
             Init.print("Project successfully updated!\nReload vscode to apply the changed dependencies.\n");
             Init.refreshUi();
         } catch (Exception e) {
+            e.printStackTrace();
             Init.print("\n===ERROR PROJECT UPDATE===\n" + e.getMessage() + "\nPlease report here: github.com/wurstscript/WurstScript/issues\n");
         }
 

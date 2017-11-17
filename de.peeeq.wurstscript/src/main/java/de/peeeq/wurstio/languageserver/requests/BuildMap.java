@@ -22,7 +22,6 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.app.W3I;
@@ -31,7 +30,15 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.introspector.BeanAccess;
+import org.yaml.snakeyaml.introspector.FieldProperty;
+import org.yaml.snakeyaml.introspector.Property;
+import org.yaml.snakeyaml.introspector.PropertyUtils;
+import org.yaml.snakeyaml.nodes.Tag;
+import org.yaml.snakeyaml.representer.Representer;
 
+import java.beans.IntrospectionException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -56,12 +63,12 @@ public class BuildMap extends UserRequest<Object> {
     static class WurstProjectConfig {
         private static final String FILE_NAME = "wurst.build";
 
-        public String projectName;
+        public String projectName = "DefaultName";
         public List<String> dependencies = new ArrayList<>();
 
-        public String buildMapName;
-        public String buildMapFileName;
-        public String buildMapAuthor;
+        public String buildMapName = "DefaultName";
+        public String buildMapFileName = "DefaultFileName";
+        public String buildMapAuthor = "DefaultAuthor";
 
         public WurstProjectConfig() {
         }
@@ -69,9 +76,27 @@ public class BuildMap extends UserRequest<Object> {
         private static final DumperOptions options = new DumperOptions();
         public static final Yaml yaml;
 
+        private static class UnsortedPropertyUtils extends PropertyUtils {
+            @Override
+            protected Set<Property> createPropertySet(Class<? extends Object> type, BeanAccess bAccess) throws IntrospectionException {
+                Set<Property> properties = new LinkedHashSet<>();
+                Collection<Property> props = getPropertiesMap(type, bAccess).values();
+                for (Property property : props) {
+                    if ((property.isReadable() || property.isWritable()) && property instanceof FieldProperty) {
+                        properties.add(property);
+                    }
+                }
+                return properties;
+            }
+        }
+
         static {
             options.setTags(Collections.emptyMap());
-            yaml = new Yaml(options);
+            Representer representer = new Representer();
+            representer.setPropertyUtils(new UnsortedPropertyUtils());
+            representer.getPropertyUtils().setSkipMissingProperties(true);
+            representer.addClassTag(WurstProjectConfig.class, Tag.MAP);
+            yaml = new Yaml(new Constructor(WurstProjectConfig.class), representer, options);
         }
     }
 
