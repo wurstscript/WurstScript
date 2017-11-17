@@ -59,7 +59,7 @@ public class HoverInfo extends UserRequest<Hover> {
             }
             res.append("\n");
         }
-        return res.toString();
+        return res.toString().trim();
     }
 
     static class Description implements Element.Matcher<List<Either<String, MarkedString>>> {
