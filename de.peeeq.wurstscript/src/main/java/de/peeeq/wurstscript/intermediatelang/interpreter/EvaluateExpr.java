@@ -109,7 +109,7 @@ public class EvaluateExpr {
                 if (initExpr != null) {
                     r = initExpr.evaluate(globalState, localState);
                 } else {
-                    throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initalized.");
+                    throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initialized.");
                 }
                 globalState.setVal(var, r);
             }
@@ -186,7 +186,7 @@ public class EvaluateExpr {
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ILconstInt receiver = (ILconstInt) ma.getReceiver().evaluate(globalState, localState);
         if (receiver.getVal() == 0) {
-            throw new RuntimeException("Null pointer derefenced at ...");
+            throw new RuntimeException("Null pointer dereference");
         }
         return notNull(globalState.getArrayVal(ma.getVar(), receiver.getVal()), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
     }

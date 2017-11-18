@@ -99,7 +99,7 @@ public class ProgramState extends State {
 
     public void assertAllocated(int obj, Element trace) {
         if (obj == 0) {
-            throw new InterpreterException(trace, "Null pointer derefenced");
+            throw new InterpreterException(trace, "Null pointer dereference");
         }
         if (!objectToClassKey.containsKey(obj)) {
             throw new InterpreterException(trace, "Object already destroyed");
