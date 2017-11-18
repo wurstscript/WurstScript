@@ -358,4 +358,23 @@ public class TupleTests extends WurstScriptTest {
                 "        testSuccess()"
         );
     }
+
+    @Test
+    public void tupleReturn() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native GetRandomReal(real x, real y) returns real",
+                "tuple vec2(real x, real y)",
+                "function randomPoint() returns vec2",
+                "    return vec2(GetRandomReal(0, 1), GetRandomReal(3, 4))",
+                "function a() returns vec2",
+                "    return randomPoint()",
+                "init",
+                "    let v = a()",
+                "    testSuccess()"
+        );
+    }
+
+
 }

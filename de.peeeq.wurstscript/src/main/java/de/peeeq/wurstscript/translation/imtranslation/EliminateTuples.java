@@ -613,7 +613,15 @@ public class EliminateTuples {
 
     public static ImExpr eliminateTuplesExpr(ImStatementExpr imStatementExpr,
                                              ImTranslator translator, ImFunction f) {
-        return eliminateTuples2(imStatementExpr, translator, f);
+        ImStatementExpr e = eliminateTuples2(imStatementExpr, translator, f);
+        if (e.getExpr() instanceof ImStatementExpr) {
+            ImStatementExpr se = (ImStatementExpr) e.getExpr();
+            e.getStatements().addAll(se.getStatements().removeAll());
+            ImExpr see = se.getExpr();
+            see.setParent(null);
+            e.setExpr(see);
+        }
+        return e;
     }
 
 
