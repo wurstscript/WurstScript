@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.jurst;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jurst.antlr.JurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -66,7 +67,7 @@ public class ExtendedJurstLexer implements TokenSource {
         Token t = nextTokenIntern();
 
         debugSb.append(t.getText() + " ");
-        if (debug) System.out.println("		new token: " + t);
+        if (debug) WLogger.info("		new token: " + t);
         return t;
     }
 
@@ -85,7 +86,7 @@ public class ExtendedJurstLexer implements TokenSource {
         for (; ; ) {
             Token token = orig.nextToken();
 
-            if (debug) System.out.println("orig token = " + token);
+            if (debug) WLogger.info("orig token = " + token);
 
             if (token == null) {
                 continue;
@@ -171,7 +172,6 @@ public class ExtendedJurstLexer implements TokenSource {
                 case BEGIN_LINE:
                     if (token.getType() == JurstParser.NL) {
                         state(State.NEWLINES);
-                        continue;
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
                         state(State.WRAP_CHAR);
@@ -199,7 +199,7 @@ public class ExtendedJurstLexer implements TokenSource {
 
 
     private void state(State s) {
-        if (debug) System.out.println("state " + state + " -> " + s);
+        if (debug) WLogger.info("state " + state + " -> " + s);
         state = s;
     }
 

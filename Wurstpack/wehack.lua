@@ -481,13 +481,14 @@ function testmap(cmdline)
 	--mappath = strsplit(" ",cmdline)[2]
 	--compilemap_path(mappath)
 	
-	if haveSharpCraft and sharpCraftEnable.checked then
-		-- remove default .exe
-		local pos = string.find(cmdline, ".exe")
-		cmdline = string.sub(cmdline, 4 + pos)
-		-- replace with SharpCraft exe
-		cmdline = "SharpCraft\\SharpCraft.exe -game " .. cmdline
-	end
+	mapFolder = grim.getregpair(grimregpath,"War3MapPath")
+	testmapPath = mapFolder .. "\\WurstpackMap.w3x"
+	
+	mappath = path .. "\\" .. strsplit("-loadfile ",cmdline)[2]
+
+	wehack.runprocess2("wurstscript\\wurstscript.exe --copyMap")
+	
+	cmdline = path .. "\\..\\war3.exe -loadfile " .. strsplit("-loadfile ",cmdline)[2]
 	
 	if wh_opengl.checked then
 		cmdline = cmdline .. " -opengl"

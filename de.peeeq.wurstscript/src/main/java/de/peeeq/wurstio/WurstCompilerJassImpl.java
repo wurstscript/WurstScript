@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
+import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
@@ -334,6 +335,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImTranslator imTranslator2 = getImTranslator();
         ImProg imProg2 = getImProg();
         imTranslator2.assertProperties();
+        checkNoCompiletimeExpr(imProg2);
         int stage = 2;
         // eliminate classes
         beginPhase(2, "translate classes");
@@ -371,6 +373,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
+        getImProg().flatten(imTranslator2);
         getImProg().eliminateTuples(imTranslator2);
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
@@ -428,6 +431,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             prog = null;
         }
         return prog;
+    }
+
+    private void checkNoCompiletimeExpr(ImProg prog) {
+        prog.accept(new ImProg.DefaultVisitor() {
+            @Override
+            public void visit(ImCompiletimeExpr e) {
+                throw new CompileError(e.attrTrace().attrSource(), "Compiletime expressions require compilation with '-runcompiletimefunctions' option.");
+            }
+        });
     }
 
     private ImTranslator getImTranslator() {
@@ -568,10 +580,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         gui.sendProgress("Parsing File " + file.getName());
         String source = file.getAbsolutePath();
-        Reader reader = null;
-        try {
-            reader = FileReading.getFileReader(file);
-
+        try (Reader reader = FileReading.getFileReader(file)){
             // scanning
             return parse(source, reader);
 
@@ -584,12 +593,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         } catch (IOException e) {
             gui.sendError(new CompileError(new WPos(source, LineOffsets.dummy, 0, 0), "Could not read file."));
             return emptyCompilationUnit();
-        } finally {
-            try {
-                if (reader != null)
-                    reader.close();
-            } catch (IOException e) {
-            }
         }
     }
 

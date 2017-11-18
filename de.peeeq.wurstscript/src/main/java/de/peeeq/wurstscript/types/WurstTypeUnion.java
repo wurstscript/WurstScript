@@ -15,12 +15,12 @@ public class WurstTypeUnion extends WurstType {
         this.typeB = typeB;
     }
 
-    public static WurstType create(WurstType a, WurstType b) {
+    public static WurstType create(WurstType a, WurstType b, Element loc) {
         if (a instanceof WurstTypeUnknown) return b;
         if (b instanceof WurstTypeUnknown) return a;
         // TODO simplify types
-//		if (a.isSubtypeOf(b, null)) return b;
-//		if (b.isSubtypeOf(a, null)) return a;
+		if (a.isSubtypeOf(b, loc)) return b;
+		if (b.isSubtypeOf(a, loc)) return a;
         return new WurstTypeUnion(a, b);
     }
 
@@ -32,16 +32,17 @@ public class WurstTypeUnion extends WurstType {
 
     @Override
     public String getName() {
-        return typeA.getName() + " or " + typeB.getName();
+        return "(" + typeA.getName() + " or " + typeB.getName() + ")";
     }
 
     @Override
     public String getFullName() {
-        return typeA.getFullName() + " or " + typeB.getFullName();
+        return "(" + typeA.getFullName() + " or " + typeB.getFullName() + ")";
     }
 
     @Override
     public ImType imTranslateType() {
+        // TODO union of typeA and typeB
         return typeA.imTranslateType();
     }
 

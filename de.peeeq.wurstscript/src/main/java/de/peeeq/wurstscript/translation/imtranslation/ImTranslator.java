@@ -46,6 +46,7 @@ import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
+import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
 
 public class ImTranslator {
 
@@ -88,6 +89,9 @@ public class ImTranslator {
 
     private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
 
+    private int compiletimeOrderCounter = 1;
+    private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
+    private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
 
@@ -107,6 +111,8 @@ public class ImTranslator {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
             debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+
+            calculateCompiletimeOrder();
 
             for (CompilationUnit cu : wurstProg) {
                 translateCompilationUnit(cu);
@@ -133,6 +139,47 @@ public class ImTranslator {
                     "\nPlease open a ticket with source code and the error log.", t);
         }
     }
+
+    /**
+     * Number all the compiletime functions and expressions,
+     * so that the one with the lowest number can be executed first.
+     * <p>
+     * Dependendend packages are executed first and inside a package
+     * it goes from top to bottom.
+     */
+    private void calculateCompiletimeOrder() {
+        Set<WPackage> visited = new HashSet<>();
+        ImmutableCollection<WPackage> packages = wurstProg.attrPackages().values();
+
+        for (WPackage p : packages) {
+            calculateCompiletimeOrder_walk(p, visited);
+        }
+    }
+
+    private void calculateCompiletimeOrder_walk(WPackage p, Set<WPackage> visited) {
+        if (!visited.add(p)) {
+            return;
+        }
+        for (WPackage dep : p.attrInitDependencies()) {
+            calculateCompiletimeOrder_walk(dep, visited);
+        }
+        p.accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
+            @Override
+            public void visit(FuncDef funcDef) {
+                if (funcDef.attrIsCompiletime()) {
+                    compiletimeFlags.put(funcDef, new FunctionFlagCompiletime(compiletimeOrderCounter++));
+                }
+            }
+
+            @Override
+            public void visit(ExprFunctionCall fc) {
+                if (fc.getFuncName().equals("compiletime")) {
+                    compiletimeExpressionsOrder.put(fc, compiletimeOrderCounter++);
+                }
+            }
+        });
+    }
+
 
     /**
      * sorting everything is supposed to make the translation deterministic
@@ -391,18 +438,23 @@ public class ImTranslator {
     }
 
 
-    public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, OptExpr initialExpr) {
+    public void addGlobalInitalizer(ImVar v, PackageOrGlobal packageOrGlobal, VarInitialization initialExpr) {
+        if (initialExpr instanceof NoExpr) {
+            // nothing to initialize
+            return;
+        }
+
+
+        ImFunction f;
+        if (packageOrGlobal instanceof WPackage) {
+            WPackage p = (WPackage) packageOrGlobal;
+            f = getInitFuncFor(p);
+        } else {
+            f = globalInitFunc;
+        }
+        de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
         if (initialExpr instanceof Expr) {
             Expr expr = (Expr) initialExpr;
-
-            ImFunction f;
-            if (packageOrGlobal instanceof WPackage) {
-                WPackage p = (WPackage) packageOrGlobal;
-                f = getInitFuncFor(p);
-            } else {
-                f = globalInitFunc;
-            }
-            de.peeeq.wurstscript.ast.Element trace = packageOrGlobal == null ? emptyTrace : packageOrGlobal;
             ImExpr translated = expr.imTranslateExpr(this, f);
             if (!v.getIsBJ()) {
                 // add init statement for non-bj vars
@@ -410,6 +462,21 @@ public class ImTranslator {
                 f.getBody().add(ImSet(trace, v, translated));
             }
             imProg.getGlobalInits().put(v, translated);
+        } else if (initialExpr instanceof ArrayInitializer) {
+            ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+            for (int i = 0; i < arInit.getValues().size(); i++) {
+                Expr expr = arInit.getValues().get(i);
+                ImExpr translated = expr.imTranslateExpr(this, f);
+                f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
+            }
+            // abusing tuples to store multiple expressions for globalInit
+            imProg.getGlobalInits().put(v, JassIm.ImTupleExpr(
+                    JassIm.ImExprs(
+                            arInit.getValues().stream()
+                                    .map(expr -> expr.imTranslateExpr(this, f))
+                                    .collect(Collectors.toList())
+                    )
+            ));
         }
     }
 
@@ -513,12 +580,16 @@ public class ImTranslator {
         if (funcDef instanceof FuncDef) {
             FuncDef funcDef2 = (FuncDef) funcDef;
             if (funcDef2.attrIsCompiletime()) {
-                flags.add(IS_COMPILETIME);
+                FunctionFlagCompiletime flag = compiletimeFlags.get(funcDef);
+                if (flag == null) {
+                    throw new CompileError(funcDef.getSource(), "Compiletime flag not supported here.");
+                }
+                flags.add(flag);
             }
             if (funcDef2.attrHasAnnotation("compiletimenative")) {
                 flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
             }
-            if (funcDef2.attrHasAnnotation("test")) {
+            if (funcDef2.attrHasAnnotation("test") || funcDef2.attrHasAnnotation("Test")) {
                 flags.add(IS_TEST);
             }
         }
@@ -826,11 +897,11 @@ public class ImTranslator {
     }
 
 
-    private Map<ClassDef, List<Pair<ImVar, OptExpr>>> classDynamicInitMap = Maps.newLinkedHashMap();
+    private Map<ClassDef, List<Pair<ImVar, VarInitialization>>> classDynamicInitMap = Maps.newLinkedHashMap();
     private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
-    public List<Pair<ImVar, OptExpr>> getDynamicInits(ClassDef c) {
-        List<Pair<ImVar, OptExpr>> r = classDynamicInitMap.get(c);
+    public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
+        List<Pair<ImVar, VarInitialization>> r = classDynamicInitMap.get(c);
         if (r == null) {
             r = Lists.newArrayList();
             classDynamicInitMap.put(c, r);
@@ -941,12 +1012,42 @@ public class ImTranslator {
             return;
         }
         directSubclasses = HashMultimap.create();
+        for (ClassDef c : classes()) {
+            if (c.attrExtendedClass() != null) {
+                directSubclasses.put(c.attrExtendedClass(), c);
+            }
+        }
+    }
+
+    /**
+     * calculates list of all classes
+     * ignoring the ones in modules, only module instantiations
+     */
+    private List<ClassDef> classes() {
+        List<ClassDef> result = new ArrayList<>();
         for (CompilationUnit cu : wurstProg) {
-            for (ClassDef c : cu.attrGetByType().classes) {
-                if (c.attrExtendedClass() != null) {
-                    directSubclasses.put(c.attrExtendedClass(), c);
+            for (WPackage p : cu.getPackages()) {
+                for (WEntity e : p.getElements()) {
+                    if (e instanceof ClassDef) {
+                        ClassDef c = (ClassDef) e;
+                        classesAdd(result, c);
+                    }
                 }
             }
+        }
+        return result;
+
+    }
+
+    private void classesAdd(List<ClassDef> result, ClassOrModuleInstanciation c) {
+        if (c instanceof ClassDef) {
+            result.add(((ClassDef) c));
+        }
+        for (ClassDef ic : c.getInnerClasses()) {
+            classesAdd(result, ic);
+        }
+        for (ModuleInstanciation mi : c.getModuleInstanciations()) {
+            classesAdd(result, mi);
         }
     }
 
@@ -1173,7 +1274,7 @@ public class ImTranslator {
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            m = JassIm.ImMethod(f, f.getName(), imFunc, Lists.<ImMethod>newArrayList(), false);
+            m = JassIm.ImMethod(f, elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;
@@ -1272,6 +1373,10 @@ public class ImTranslator {
         }
         FuncDef f = (FuncDef) funcs.stream().findAny().get().getNameDef();
         return Optional.of(f);
+    }
+
+    int getCompiletimeExpressionsOrder(FunctionCall fc) {
+        return compiletimeExpressionsOrder.getOrDefault(fc, 0);
     }
 
 

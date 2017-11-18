@@ -25,10 +25,7 @@ public class SmallHelpers {
 
     public static boolean isModuleUseTypeArg(TypeExpr e) {
         Optional<ModuleUse> mUse = Utils.getNearestByType(e, ModuleUse.class);
-        if (mUse.isPresent()) {
-            return mUse.get().isSubtreeOf(e);
-        }
-        return false;
+        return mUse.map(moduleUse -> moduleUse.isSubtreeOf(e)).orElse(false);
     }
 
     public static boolean isSubtreeOf(@Nullable Element subtree, Element of) {

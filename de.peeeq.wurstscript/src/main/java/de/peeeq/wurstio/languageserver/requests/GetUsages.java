@@ -1,37 +1,41 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.Range;
+import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.Convert;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.*;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-public class GetUsages extends UserRequest {
+public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
-    private final String filename;
+    private final WFile filename;
     private final String buffer;
     private final int line;
     private final int column;
     private final boolean global;
 
-    public GetUsages(int requestNr, String filename, String buffer, int line, int column, boolean global) {
-        super(requestNr);
-        this.filename = filename;
-        this.buffer = buffer;
-        this.line = line;
-        this.column = column - 1;
+
+
+    public GetUsages(TextDocumentPositionParams position, BufferManager bufferManager, boolean global) {
+        this.filename = WFile.create(position.getTextDocument().getUri());
+        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.line = position.getPosition().getLine() + 1;
+        this.column = position.getPosition().getCharacter() + 1;
         this.global = global;
     }
 
 
     @Override
-    public Object execute(ModelManager modelManager) {
+    public List<UsagesData> execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
         Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
         NameDef nameDef = astElem.tryGetNameDef();
@@ -40,7 +44,7 @@ public class GetUsages extends UserRequest {
 
             if (global || nameDef.getSource().getFile().equals(filename)) {
                 // add declaration
-                usages.add(new UsagesData(nameDef.getSource().getFile(), nameDef.attrErrorPos().getRange(), DocumentHighlightKind.Write));
+                usages.add(new UsagesData(Convert.posToLocation(nameDef.attrErrorPos()), DocumentHighlightKind.Write));
             }
             Deque<Element> todo = new ArrayDeque<>();
             if (global) {
@@ -56,8 +60,7 @@ public class GetUsages extends UserRequest {
                 }
                 NameDef e_def = e.tryGetNameDef();
                 if (e_def == nameDef) {
-                    UsagesData usagesData = new UsagesData(e.attrSource().getFile()
-                            , e.attrErrorPos().getRange(), DocumentHighlightKind.Read);
+                    UsagesData usagesData = new UsagesData(Convert.posToLocation(e.attrErrorPos()), DocumentHighlightKind.Read);
                     usages.add(usagesData);
                 }
             }
@@ -66,35 +69,36 @@ public class GetUsages extends UserRequest {
         return usages;
     }
 
-    static enum DocumentHighlightKind {
-        Text, Read, Write
-    }
+//    static enum DocumentHighlightKind {
+//        Text, Read, Write
+//    }
 
-    static class UsagesData {
-        private String filename;
-        private Range range;
+    public static class UsagesData {
+        private Location location;
+//        private String filename;
+//        private Range range;
         private DocumentHighlightKind kind;
 
-        public UsagesData(String filename, Range range, DocumentHighlightKind kind) {
-            this.setFilename(filename);
-            this.setRange(range);
-            this.setKind(kind);
+
+        public UsagesData(Location location, DocumentHighlightKind kind) {
+            this.location = location;
+            this.kind = kind;
         }
 
         public String getFilename() {
-            return filename;
+            return location.getUri();
         }
 
         public void setFilename(String filename) {
-            this.filename = filename;
+            location.setUri(filename);
         }
 
         public Range getRange() {
-            return range;
+            return location.getRange();
         }
 
         public void setRange(Range range) {
-            this.range = range;
+            location.setRange(range);
         }
 
         public DocumentHighlightKind getKind() {
@@ -105,5 +109,12 @@ public class GetUsages extends UserRequest {
             this.kind = kind;
         }
 
+        public Location getLocation() {
+            return location;
+        }
+
+        public DocumentHighlight toDocumentHighlight() {
+            return new DocumentHighlight(location.getRange(), kind);
+        }
     }
 }

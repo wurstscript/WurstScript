@@ -2,46 +2,51 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.attributes.CompileError;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
 public interface ModelManager {
 
-    boolean removeCompilationUnit(String filename);
+    boolean removeCompilationUnit(WFile filename);
 
     /**
      * synchronizes with file system
      *
      * @throws IOException
      */
-    void replaceCompilationUnit(String filename);
+    void replaceCompilationUnit(WFile filename);
 
     /**
      * cleans the model
      */
     void clean();
 
-    void updateCompilationUnit(String filename, String contents, boolean reportErrors);
+    List<CompileError> getParseErrors();
 
-    void onCompilationResult(Consumer<CompilationResult> f);
+    void updateCompilationUnit(WFile filename, String contents, boolean reportErrors);
+
+    void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 
     void buildProject();
 
-    void syncCompilationUnit(String changedFilePath);
+    void syncCompilationUnit(WFile changedFilePath);
 
-    void syncCompilationUnitContent(String filename, String contents);
+    void syncCompilationUnitContent(WFile filename, String contents);
 
-    CompilationUnit replaceCompilationUnitContent(String filename, String buffer, boolean reportErrors);
+    CompilationUnit replaceCompilationUnitContent(WFile filename, String buffer, boolean reportErrors);
 
     /**
      * get all wurst files in dependency folders
      */
     Set<File> getDependencyWurstFiles();
 
-    CompilationUnit getCompilationUnit(String filename);
+    CompilationUnit getCompilationUnit(WFile filename);
 
     WurstModel getModel();
 

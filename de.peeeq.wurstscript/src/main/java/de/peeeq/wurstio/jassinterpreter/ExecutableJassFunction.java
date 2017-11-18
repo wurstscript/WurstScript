@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassAst.JassFunction;
 
 import java.lang.reflect.InvocationTargetException;
@@ -44,9 +44,7 @@ class NativeJassFunction implements ExecutableJassFunction {
         try {
             Object result = method.invoke(natives, (Object[]) arguments);
             return (ILconst) result;
-        } catch (IllegalArgumentException e) {
-            throw new Error(e);
-        } catch (IllegalAccessException e) {
+        } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new Error(e);
         } catch (InvocationTargetException e) {
             if (e.getCause() instanceof Error) {

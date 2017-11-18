@@ -1,9 +1,9 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.ILconst;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NativesProvider;
-import de.peeeq.wurstscript.intermediateLang.interpreter.NoSuchNativeException;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public abstract class ReflectionBasedNativeProvider implements NativesProvider {
 
-    protected PrintStream outStream = System.out;
+    protected PrintStream outStream = System.err;
 
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {

@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.objectreader;
 
 import com.google.common.base.Charsets;
-import de.peeeq.wurstscript.intermediateLang.interpreter.VariableType;
+import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
 
 import java.io.IOException;
 

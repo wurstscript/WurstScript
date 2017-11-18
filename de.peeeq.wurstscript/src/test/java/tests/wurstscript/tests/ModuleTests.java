@@ -55,17 +55,17 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_conflict() {
         testAssertErrorsLines(false, "ambiguous",
                 "package test",
-                "	module A",
-                "		function foo() returns int",
-                "			return 3",
-                "	module B",
-                "		function foo() returns int",
-                "			return 4",
-                "	class C",
-                "		use A",
-                "		use B",
-                "		function test()",
-                "			foo()",
+                "    module A",
+                "        function foo() returns int",
+                "            return 3",
+                "    module B",
+                "        function foo() returns int",
+                "            return 4",
+                "    class C",
+                "        use A",
+                "        use B",
+                "        function test()",
+                "            foo()",
                 "endpackage"
         );
     }
@@ -76,17 +76,17 @@ public class ModuleTests extends WurstScriptTest {
         // each function in a module should be either private or public
         testAssertOkLines(true,
                 "package test",
-                "	native testSuccess()",
-                "	module A",
-                "		function foo() returns thistype",
-                "			return this",
-                "	class C",
-                "		use A",
-                "	init",
-                "		C c1 = new C()",
-                "		C c2 = c1.foo()",
-                "		if c1 == c2",
-                "			testSuccess()",
+                "    native testSuccess()",
+                "    module A",
+                "        function foo() returns thistype",
+                "            return this",
+                "    class C",
+                "        use A",
+                "    init",
+                "        C c1 = new C()",
+                "        C c2 = c1.foo()",
+                "        if c1 == c2",
+                "            testSuccess()",
                 "endpackage"
         );
     }
@@ -97,19 +97,19 @@ public class ModuleTests extends WurstScriptTest {
         // each function in a module should be either private or public
         testAssertOkLines(true,
                 "package Blub",
-                "	public module BlubModule",
-                "		function foo() returns int",
-                "			return 3",
+                "    public module BlubModule",
+                "        function foo() returns int",
+                "            return 3",
                 "endpackage",
                 "package test",
-                "	import Blub",
-                "	native testSuccess()",
-                "	class C",
-                "		use BlubModule",
-                "	init",
-                "		C c = new C()",
-                "		if c.foo() == 3",
-                "			testSuccess()",
+                "    import Blub",
+                "    native testSuccess()",
+                "    class C",
+                "        use BlubModule",
+                "    init",
+                "        C c = new C()",
+                "        if c.foo() == 3",
+                "            testSuccess()",
                 "endpackage"
         );
     }
@@ -119,20 +119,20 @@ public class ModuleTests extends WurstScriptTest {
         // each function in a module should be either private or public
         testAssertOkLines(true,
                 "function random takes nothing returns int",
-                "	return 3 // totally random, chosen by fair dice roll",
+                "    return 3 // totally random, chosen by fair dice roll",
                 "endfunction",
                 "",
                 "package test",
-                "	native testSuccess()",
-                "	module BlubModule",
-                "		function foo() returns int",
-                "			return random()",
-                "	class C",
-                "		use BlubModule",
-                "	init",
-                "		C c = new C()",
-                "		if c.foo() == 3",
-                "			testSuccess()",
+                "    native testSuccess()",
+                "    module BlubModule",
+                "        function foo() returns int",
+                "            return random()",
+                "    class C",
+                "        use BlubModule",
+                "    init",
+                "        C c = new C()",
+                "        if c.foo() == 3",
+                "            testSuccess()",
                 "endpackage"
         );
     }
@@ -141,18 +141,18 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_abstract() {
         testAssertOkLines(true,
                 "package test",
-                "	native testSuccess()",
-                "	module A",
-                "		abstract function foo() returns int",
-                "	class C",
-                "		use A",
-                "		override function foo() returns int",
-                "			return 3",
+                "    native testSuccess()",
+                "    module A",
+                "        abstract function foo() returns int",
+                "    class C",
+                "        use A",
+                "        override function foo() returns int",
+                "            return 3",
                 "",
-                "	init",
-                "		C c = new C()",
-                "		if c.foo() == 3",
-                "			testSuccess()",
+                "    init",
+                "        C c = new C()",
+                "        if c.foo() == 3",
+                "            testSuccess()",
                 "endpackage"
         );
     }
@@ -161,10 +161,10 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_abstract_err() {
         testAssertErrorsLines(false, "must implement",
                 "package test",
-                "	module A",
-                "		abstract function foo() returns int",
-                "	class C",
-                "		use A",
+                "    module A",
+                "        abstract function foo() returns int",
+                "    class C",
+                "        use A",
                 "endpackage"
         );
     }
@@ -173,12 +173,12 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_missing_override() {
         testAssertErrorsLines(false, "override",
                 "package test",
-                "	module A",
-                "		abstract function foo() returns int",
-                "	class C",
-                "		use A",
-                "		function foo() returns int",
-                "			return 3",
+                "    module A",
+                "        abstract function foo() returns int",
+                "    class C",
+                "        use A",
+                "        function foo() returns int",
+                "            return 3",
                 "endpackage"
         );
     }
@@ -187,15 +187,15 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_wrong_param_count1() {
         testAssertErrorsLines(false, "parameter",
                 "package test",
-                "	module A",
-                "		function foo()",
-                "			bar(3)",
-                "		function bar()",
+                "    module A",
+                "        function foo()",
+                "            bar(3)",
+                "        function bar()",
                 "",
-                "	class C",
-                "		use A",
-                "		function xyz()",
-                "			foo()",
+                "    class C",
+                "        use A",
+                "        function xyz()",
+                "            foo()",
                 "endpackage"
         );
     }
@@ -204,15 +204,15 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_wrong_param_count2() {
         testAssertErrorsLines(false, "not enough",
                 "package test",
-                "	module A",
-                "		function foo()",
-                "			bar(3)",
-                "		function bar(int x, int y)",
+                "    module A",
+                "        function foo()",
+                "            bar(3)",
+                "        function bar(int x, int y)",
                 "",
-                "	class C",
-                "		use A",
-                "		function xyz()",
-                "			foo()",
+                "    class C",
+                "        use A",
+                "        function xyz()",
+                "            foo()",
                 "endpackage"
         );
     }
@@ -221,18 +221,18 @@ public class ModuleTests extends WurstScriptTest {
     public void modules_call_indirect() {
         testAssertOkLines(false,
                 "package test",
-                "	native testSuccess()",
-                "	module A",
-                "		function foo()",
-                "			bar()",
-                "		function bar()",
-                "			testSuccess()",
-                "	class C",
-                "		use A",
-                "		construct()",
-                "			foo()",
-                "	init",
-                "		new C()",
+                "    native testSuccess()",
+                "    module A",
+                "        function foo()",
+                "            bar()",
+                "        function bar()",
+                "            testSuccess()",
+                "    class C",
+                "        use A",
+                "        construct()",
+                "            foo()",
+                "    init",
+                "        new C()",
                 "endpackage"
         );
     }
@@ -241,10 +241,10 @@ public class ModuleTests extends WurstScriptTest {
     public void static_external() {
         testAssertErrorsLines(false, "variable b",
                 "package test",
-                "	module A",
-                "		static int b = 0",
-                "	init",
-                "		A.b = 0",
+                "    module A",
+                "        static int b = 0",
+                "    init",
+                "        A.b = 0",
                 "endpackage"
         );
     }
@@ -253,10 +253,10 @@ public class ModuleTests extends WurstScriptTest {
     public void staticmeth_external() {
         testAssertErrorsLines(false, "method b is undefined",
                 "package test",
-                "	module A",
-                "		static function b(int b)",
-                "	init",
-                "		A.b(0)",
+                "    module A",
+                "        static function b(int b)",
+                "    init",
+                "        A.b(0)",
                 "endpackage"
         );
     }
@@ -266,17 +266,17 @@ public class ModuleTests extends WurstScriptTest {
         testAssertOkLines(false,
                 "package Test",
                 "module Test",
-                "	construct()",
-                "		skip",
+                "    construct()",
+                "        skip",
 
                 "class A",
-                "	construct(int x)",
-                "		skip",
+                "    construct(int x)",
+                "        skip",
 
                 "class B extends A",
-                "	use Test",
-                "	construct()",
-                "		super(3)"
+                "    use Test",
+                "    construct()",
+                "        super(3)"
         );
     }
 
@@ -285,12 +285,12 @@ public class ModuleTests extends WurstScriptTest {
         testAssertErrorsLines(false, "override static function",
                 "package Test",
                 "module Test",
-                "	abstract static function foo()",
+                "    abstract static function foo()",
 
                 "class A",
-                "	use Test",
-                "	override function foo()",
-                "		skip"
+                "    use Test",
+                "    override function foo()",
+                "        skip"
         );
     }
 
@@ -299,12 +299,12 @@ public class ModuleTests extends WurstScriptTest {
         testAssertOkLines(false,
                 "package Test",
                 "module Test",
-                "	construct()",
-                "		int x = 5",
+                "    construct()",
+                "        int x = 5",
                 "class A",
-                "	use Test",
-                "	construct()",
-                "	construct(int i)"
+                "    use Test",
+                "    construct()",
+                "    construct(int i)"
         );
     }
 
@@ -315,23 +315,22 @@ public class ModuleTests extends WurstScriptTest {
                 "native testSuccess()",
                 "int res = 1", // 1) res == 1
                 "module Test",
-                "	construct()",
-                "		int x = 2",
-                "		res += x", // 2) res == 3 // 4) res == 6
-                "	construct()",
-                "		int y = 1",
-                "		res -= y", // 3) res == 2  // 5) res == 5
+                "    construct()",
+                "        int x = 2",
+                "        res += x", // 2) res == 3 // 4) res == 6
+                "        int y = 1",
+                "        res -= y", // 3) res == 2  // 5) res == 5
                 "class A",
-                "	use Test",
-                "	construct()",
-                "		res *= 2", // 3) res == 4
-                "	construct(int i)",
-                "		res *= i", // 6) res == 15
+                "    use Test",
+                "    construct()",
+                "        res *= 2", // 3) res == 4
+                "    construct(int i)",
+                "        res *= i", // 6) res == 15
                 "init",
-                "	new A()",
-                "	new A(3)",
-                "	if res == 15",
-                "		testSuccess()"
+                "    new A()",
+                "    new A(3)",
+                "    if res == 15",
+                "        testSuccess()"
         );
     }
 
@@ -343,24 +342,160 @@ public class ModuleTests extends WurstScriptTest {
                 "native testSuccess()",
                 "native testFail(string message)",
                 "module M",
-                "	int i = 0",
+                "    int i = 0",
                 "class A",
-                "	use M",
-                "	function f()",
-                "		i++",
-                "		this.i++",
+                "    use M",
+                "    function f()",
+                "        i++",
+                "        this.i++",
                 "class B extends A",
-                "	function g()",
-                "		i++", // line 13
-                "		this.i++",
-                "		super.i++",
+                "    function g()",
+                "        i++", // line 13
+                "        this.i++",
+                "        super.i++",
                 "init",
-                "	let b = new B()",
-                "	A a = b",
-                "	a.f()",
-                "	b.g()",
-                "	if a.i != 5",
-                "		testFail(\"foo\")",
-                "	testSuccess()");
+                "    let b = new B()",
+                "    A a = b",
+                "    a.f()",
+                "    b.g()",
+                "    if a.i != 5",
+                "        testFail(\"foo\")",
+                "    testSuccess()");
+    }
+
+    @Test
+    public void multi_modules() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "public module LinkedListModule",
+                "    static function iterator() returns Iterator",
+                "        return new Iterator()",
+                "",
+                "    static class Iterator",
+                "",
+                "        function hasNext() returns boolean",
+                "            return false",
+                "",
+                "        function next() returns LinkedListModule.thistype",
+                "            return null",
+                "",
+                "        function reset()",
+                "",
+                "        function close()",
+                "",
+                "public class MyClass",
+                "    use MyModule",
+                "",
+                "",
+                "    static function all()",
+                "        for elem in MyClass",
+                "            elem.do()",
+                "",
+                "    function do()",
+                "",
+                "public module MyModule",
+                "    use LinkedListModule",
+                "",
+                "init",
+                "    new MyClass",
+                "    new MyClass",
+                "    MyClass.all()",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void multi_modules2() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "public module LinkedListModule",
+                "    static function iterator() returns Iterator",
+                "        return new Iterator()",
+                "",
+                "    static class Iterator",
+                "",
+                "        function hasNext() returns boolean",
+                "            return false",
+                "",
+                "public class MyClass",
+                "    use MyModule",
+                "",
+                "public module MyModule",
+                "    use LinkedListModule",
+                "",
+                "init",
+                "    MyClass.iterator().hasNext()",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void nested_module_init() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct()",
+                "        x = x - 1",
+                "public module B",
+                "    use A",
+                "public class C",
+                "    use B",
+                "",
+                "init",
+                "    let c = new C()",
+                "    if c.x == 2",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void nested_class_module() { // bug #542
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "abstract class C",
+                "    abstract function foo()",
+                "public module A",
+                "    static class D extends C",
+                "        override function foo()",
+                "            testSuccess()",
+                "    function test()",
+                "        new D().foo()",
+                "class E",
+                "    use A",
+                "init",
+                "    let e = new E()",
+                "    e.test()"
+        );
+    }
+
+    @Test
+    public void multiple_constructors() {
+        testAssertErrorsLines(false, "Duplicate constructor",
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct()",
+                "        x = x - 1",
+                "    construct()",
+                "        x = x + 1"
+        );
+    }
+
+    @Test
+    public void arg_constructor() {
+        testAssertErrorsLines(false, "Module constructors must not have parameters",
+                "package Test",
+                "native testSuccess()",
+                "public module A",
+                "    int x = 3",
+                "    construct(int i)",
+                "        x = x - 1"
+        );
     }
 }

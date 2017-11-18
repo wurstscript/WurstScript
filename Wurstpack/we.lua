@@ -1,5 +1,7 @@
-dofile("findpath.lua")
+-- Fix installation
+os.execute("wurstscript\\wurstscript.exe --fixInstallation")
 
+dofile("findpath.lua")
 if path==0 or path=="" then
 	path = "."
 end
@@ -10,8 +12,7 @@ if not grim.exists(exe) then
 	return
 end
 
--- Inject CD Keys into mpq
-os.execute("wurstscript\\wurstscript.exe --insertKeys")
+
 
 -- put 1.21 world editor exe in place replacing possible newer versions
 exe = path.."\\worldedit121.exe"

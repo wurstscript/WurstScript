@@ -220,14 +220,13 @@ public class WurstValidator {
                 checkTypeParameters((AstElementWithTypeParameters) e);
             if (e instanceof AstElementWithNameId)
                 checkName((AstElementWithNameId) e);
-            if (e instanceof ClassDef)
+            if (e instanceof ClassDef) {
                 checkInstanceDef((ClassDef) e);
-            if (e instanceof ClassDef)
                 checkOverrides((ClassDef) e);
-            if (e instanceof ClassDef)
-                checkConstructorsUnique((ClassDef) e);
-            if (e instanceof ClassDef)
                 visit((ClassDef) e);
+            }
+            if (e instanceof ClassOrModule)
+                checkConstructorsUnique((ClassOrModule) e);
             if (e instanceof CompilationUnit)
                 checkPackageName((CompilationUnit) e);
             if (e instanceof ConstructorDef)
@@ -568,7 +567,7 @@ public class WurstValidator {
 
     }
 
-    private void checkConstructorsUnique(ClassDef c) {
+    private void checkConstructorsUnique(ClassOrModule c) {
         List<ConstructorDef> constrs = c.getConstructors();
 
         for (int i = 0; i < constrs.size() - 1; i++) {
@@ -826,8 +825,30 @@ public class WurstValidator {
             WurstType rightType = initial.attrTyp();
 
             checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+        } else if (s.getInitialExpr() instanceof ArrayInitializer) {
+            ArrayInitializer arInit = (ArrayInitializer) s.getInitialExpr();
+            checkArrayInit(s, arInit);
         }
         checkIfRead(s);
+    }
+
+    private void checkArrayInit(VarDef def, ArrayInitializer arInit) {
+        WurstType leftType = def.attrTyp();
+        if (leftType instanceof WurstTypeArray) {
+            WurstTypeArray arT = (WurstTypeArray) leftType;
+            if (arT.getDimensions() > 1) {
+                def.addError("Array initializer can only be used with one-dimensional arrays.");
+            }
+            WurstType baseType = arT.getBaseType();
+            for (Expr expr : arInit.getValues()) {
+                if (!expr.attrTyp().isSubtypeOf(baseType, expr)) {
+                    expr.addError("Expected expression of type " + baseType + " in array initialization, but found " + expr.attrTyp());
+                }
+            }
+        } else {
+            def.addError("Array initializer can only be used with array-variables, but " + Utils.printElement(def) + " has type " + leftType);
+        }
+
     }
 
     private void checkIfRead(VarDef s) {
@@ -914,6 +935,8 @@ public class WurstValidator {
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
             checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+        } else if (s.getInitialExpr() instanceof ArrayInitializer) {
+            checkArrayInit(s, (ArrayInitializer) s.getInitialExpr());
         }
 
         if (s.attrTyp() instanceof WurstTypeArray && !s.attrIsStatic() && s.attrIsDynamicClassMember()) {
@@ -1057,8 +1080,8 @@ public class WurstValidator {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
                 FunctionDefinition f = exprFuncRef.attrFuncDef();
                 if (f != null) {
-                    if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool)) {
-                        firstArg.addError("Functions passed to Filter or Condition must return boolean.");
+                    if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool) && !(f.getReturnTyp().attrTyp() instanceof WurstTypeVoid)) {
+                        firstArg.addError("Functions passed to Filter or Condition must return boolean or nothing.");
                     }
                 }
             }
@@ -1213,7 +1236,6 @@ public class WurstValidator {
             checkDestroyInterface(stmtDestroy, i);
         } else {
             stmtDestroy.addError("Cannot destroy objects of type " + typ);
-            return;
         }
     }
 
@@ -1587,6 +1609,10 @@ public class WurstValidator {
     }
 
     private void checkInstanceDef(ClassDef classDef) {
+        if (classDef.attrIsAbstract()) {
+            // only concrete classes have to be checked
+            return;
+        }
         for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
             InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
             Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
@@ -1595,19 +1621,39 @@ public class WurstValidator {
             nextFunction:
             for (FuncDef i_funcDef : interfaceDef.getMethods()) {
                 Collection<NameLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
+
+                Map<FuncDef, String> errors = new LinkedHashMap<>();
                 for (NameLink nameLink : c_funcDefs) {
                     NameDef c_nameDef = nameLink.getNameDef();
                     if (c_nameDef instanceof FuncDef) {
                         FuncDef c_funcDef = (FuncDef) c_nameDef;
+                        if (c_funcDef.attrIsAbstract()) {
+                            continue ;
+                        }
 
-                        CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
-                                "Cannot implement interface " + interfaceDef.getName() + " because of function ", true);
-                        continue nextFunction;
+                        Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
+                                "Cannot implement interface " + interfaceDef.getName() + " because of function ");
+                        if (err.isPresent()) {
+                            if (c_funcDef.attrIsOverride()) {
+                                c_funcDef.addError(err.get());
+                                continue nextFunction;
+                            }
+                            errors.put(c_funcDef, err.get());
+                        } else {
+                            continue nextFunction;
+                        }
                     }
                 }
+
                 if (i_funcDef.attrHasEmptyBody()) {
-                    classDef.addError("The class " + classDef.getName() + " must implement the function "
-                            + i_funcDef.getName() + ".");
+                    if (errors.isEmpty()) {
+                        classDef.addError("The class " + classDef.getName() + " must implement the function "
+                                + i_funcDef.getName() + ".");
+                    } else {
+                        for (Entry<FuncDef, String> entry : errors.entrySet()) {
+                            entry.getKey().addError(entry.getValue());
+                        }
+                    }
                 }
             }
         }
@@ -1670,7 +1716,6 @@ public class WurstValidator {
         PackageOrGlobal p = n.attrNearestPackage();
         if (p == null) {
             n.addError("Not in package or global: " + n.getName());
-            return;
         }
         // checkIfTypeDefExists(n, p);
         // if (p instanceof WPackage) {
@@ -1750,7 +1795,6 @@ public class WurstValidator {
                 NameLink func = Utils.getFirst(funcs);
                 if (func.getParameterTypes().size() != 0) {
                     e.addError("Function " + exFunc + " must not have any parameters.");
-                    return;
                 }
             } else {
                 e.addError("Wurst does only support ExecuteFunc with a single string as argument.");
@@ -2071,9 +2115,9 @@ public class WurstValidator {
     }
 
     private void checkVarDef(VarDef v) {
-        v.attrTyp();
+        WurstType vtype = v.attrTyp();
 
-        if (v.attrTyp() instanceof WurstTypeCode && v.attrIsDynamicClassMember()) {
+        if (vtype instanceof WurstTypeCode && v.attrIsDynamicClassMember()) {
             v.addError("Code members not allowed as dynamic class members (variable " + v.getName() + ")\n"
                     + "Try using a trigger or conditionfunc instead.");
         }
@@ -2085,8 +2129,8 @@ public class WurstValidator {
             }
         }
 
-        if (v.attrTyp() instanceof WurstTypeArray) {
-            WurstTypeArray wta = (WurstTypeArray) v.attrTyp();
+        if (vtype instanceof WurstTypeArray) {
+            WurstTypeArray wta = (WurstTypeArray) vtype;
             if (wta.getDimensions() == 0) {
                 v.addError("0-dimensionals arrays are not possible");
             } else if (wta.getDimensions() == 1) {
@@ -2098,6 +2142,10 @@ public class WurstValidator {
             } else {
                 v.addError("Multidimensional Arrays are not yet supported.");
             }
+        }
+
+        if (vtype instanceof WurstTypeNull) {
+            v.addError("Initial value of variable " + v.getName() + " is 'null'. Specify a concrete type.");
         }
 
     }

@@ -4,12 +4,19 @@ import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.utils.Utils;
 import org.junit.Test;
 
-import java.io.File;
 import java.util.Collections;
 import java.util.Map;
 
 public class JurstTests extends WurstScriptTest {
 
+    @Test
+    public void multilineString() {
+        testJurst(false, false, Utils.string(
+                "package test",
+                "let s = \"12345678",
+                "90\"",
+                ""));
+    }
 
     @Test
     public void thisAsVarNameInJass() { // #498
@@ -33,16 +40,19 @@ public class JurstTests extends WurstScriptTest {
                 "	end",
                 "endpackage");
 
-        boolean withStdLib = false;
-        boolean executeTests = false;
-        boolean executeProg = true;
-        String name = "Blub";
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
         Map<String, String> inputs = ImmutableMap.of(
-                "example.j", jassCode,
-                "test.jurst", jurstCode
+                "example.j", jass,
+                "test.jurst", jurst
         );
-        Iterable<File> inputFiles = Collections.emptyList();
-        testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests);
+        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false);
+    }
+
+    private void testJurst(boolean executeProg, boolean withStdLib, String jurst) {
+        testScript("test.jurst", jurst, "JurstTest", executeProg, withStdLib);
     }
 
 }

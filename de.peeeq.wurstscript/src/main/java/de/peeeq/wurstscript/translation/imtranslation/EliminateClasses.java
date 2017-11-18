@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
@@ -31,6 +32,8 @@ public class EliminateClasses {
     }
 
     public void eliminateClasses() {
+
+
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
         }
@@ -394,8 +397,12 @@ public class EliminateClasses {
         ImExprs arguments = JassIm.ImExprs(receiver);
         arguments.addAll(mc.getArguments().removeAll());
 
+        ImFunction dispatch = dispatchFuncs.get(mc.getMethod());
+        if (dispatch == null) {
+            throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + mc.getMethod().getName());
+        }
         mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(),
-                dispatchFuncs.get(mc.getMethod()), arguments, false, CallType.NORMAL));
+                dispatch, arguments, false, CallType.NORMAL));
 
     }
 

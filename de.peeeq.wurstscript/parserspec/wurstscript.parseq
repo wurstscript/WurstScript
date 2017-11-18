@@ -93,8 +93,12 @@ ClassMember =
 EnumMember(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId)
 
 
-GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, OptExpr initialExpr)
-LocalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, OptExpr initialExpr)
+GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, VarInitialization initialExpr)
+LocalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, VarInitialization initialExpr)
+
+VarInitialization =
+    OptExpr
+  | ArrayInitializer(de.peeeq.wurstscript.parser.WPos source, ExprList values)
 
 
 FuncDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters, WParameters parameters, OptTypeExpr returnTyp, WStatements body)
@@ -171,6 +175,7 @@ Expr =
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ExprDestroy(de.peeeq.wurstscript.parser.WPos source, Expr destroyedObj)
+	| ExprIfElse(de.peeeq.wurstscript.parser.WPos source, Expr cond, Expr ifTrue, Expr ifFalse)
 
 ExprMember =
 	  ExprMemberVar
@@ -208,7 +213,7 @@ ExprAtomic =
 
 Indexes * Expr
 Arguments * Expr
-
+ExprList * Expr
 
 
 
@@ -315,6 +320,7 @@ HasReceiver = ExprMemberVar | ExprMemberArrayVar | ExprMemberMethod
 AstElementWithSource = Identifier | WPackage | WImport | WEntity | TypeExpr | TypeDef | SwitchCase 
   | ClassSlot | ClassMember | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WStatement | Expr
   | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs | NameRef | VarDef | FunctionDefinition | NameRef | NameDef
+  | Modifier
 
 AstElementWithIndexes = ExprMemberArrayVar | ExprVarArrayAccess
 
@@ -379,7 +385,7 @@ Expr.attrTyp
 
 
 Expr.attrConstantValue
-	returns de.peeeq.wurstscript.intermediateLang.ILconst
+	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.attributes.AttrConstantValue.calculate
 
 

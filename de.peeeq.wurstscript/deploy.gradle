@@ -47,7 +47,7 @@ task create_zips << {
         into '../downloads/Wurstpack/'
     }
     copy {
-        from '../Wurst Updater v2/WurstUpdater.jar'
+        from '../WurstSetup/build/libs/WurstSetup.jar'
         into '../downloads/'
     }
     // create checksums
@@ -66,14 +66,18 @@ create_zips.dependsOn(installDist)
 create_zips.dependsOn(create_zip_wurstpack_complete)
 create_zips.dependsOn(create_zip_wurstpack_compiler)
 
-
 task generate_hotdoc << {
+    copy {
+        from("/src/main/resources/")
+        into("/build/classes/main/")
+    }
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
         main = "de.peeeq.wurstio.Main"
         args = ["--hotdoc",
-                "./../Wurstpack/wurstscript/lib",
+                "./build/deps/",
                 "../downloads/hotdoc"]
     }
 }
 generate_hotdoc.dependsOn(compileJava)
+generate_hotdoc.dependsOn(downloadAndUnzipFile)

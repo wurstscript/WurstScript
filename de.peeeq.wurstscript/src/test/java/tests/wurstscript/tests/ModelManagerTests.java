@@ -3,10 +3,12 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.languageserver.CompilationResult;
-import de.peeeq.wurstio.languageserver.ExternCompileError;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
+import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsNot;
 import org.junit.Test;
@@ -58,19 +60,19 @@ public class ModelManagerTests {
         writeFile(wurstFolder, "Wurst.wurst", "package Wurst\n");
 
 
-        ModelManagerImpl manager = new ModelManagerImpl(projectFolder);
+        ModelManagerImpl manager = new ModelManagerImpl(projectFolder, new BufferManager());
 
         // keep error messages in a map:
-        Map<String, String> results = new HashMap<>();
-        manager.onCompilationResult((CompilationResult res) -> {
+        Map<WFile, String> results = new HashMap<>();
+        manager.onCompilationResult((PublishDiagnosticsParams res) -> {
 
-            String errors = res.getErrors().stream()
+            String errors = res.getDiagnostics().stream()
                     .map(e -> e.toString())
                     .collect(Collectors.joining("\n"));
 
-            results.put(res.getFilename(), errors);
+            results.put(WFile.create(res.getUri()), errors);
 
-            for (ExternCompileError err : res.getErrors()) {
+            for (Diagnostic err : res.getDiagnostics()) {
                 System.out.println("   err: " + err);
             }
         });
@@ -79,9 +81,9 @@ public class ModelManagerTests {
         manager.buildProject();
 
 
-        String fileA = new File(wurstFolder, "A.wurst").getCanonicalPath();
-        String fileB = new File(wurstFolder, "B.wurst").getCanonicalPath();
-        String fileC = new File(wurstFolder, "C.wurst").getCanonicalPath();
+        WFile fileA = WFile.create(new File(wurstFolder, "A.wurst"));
+        WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
+        WFile fileC = WFile.create(new File(wurstFolder, "C.wurst"));
 
         assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function b could not be resolved"));
         assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function c could not be resolved"));
@@ -91,7 +93,7 @@ public class ModelManagerTests {
         // no assume we fix package B
         String packageB_v2 = packageB_v1.replace("b_old", "b");
         results.clear();
-        manager.syncCompilationUnitContent("wurst/B.wurst", packageB_v2);
+        manager.syncCompilationUnitContent(fileB, packageB_v2);
         // the change of B should trigger rechecks of A and B, but not of C
         assertEquals(ImmutableSet.of(fileA, fileB), results.keySet());
 

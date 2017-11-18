@@ -34,6 +34,7 @@ public abstract class WLogger {
 
 
     public static void info(String msg) {
+//        System.err.println("info: " + msg);
         keep("info", msg);
         instance.info(msg);
 
@@ -63,6 +64,12 @@ public abstract class WLogger {
     public static void warning(String msg) {
         keep("warning", msg);
         instance.warning(msg);
+
+    }
+
+    public static void warning(String msg, Throwable e) {
+        keep("warning", msg);
+        instance.warning(msg, e);
 
     }
 

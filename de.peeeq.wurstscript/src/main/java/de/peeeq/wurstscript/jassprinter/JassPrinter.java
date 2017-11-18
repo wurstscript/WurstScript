@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.jassprinter;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import de.peeeq.wurstio.gui.About;
+import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 public class JassPrinter {
 
     public static final String WURST_COMMENT_RAW = "// this script was compiled with wurst ";
-    public static final String WURST_COMMENT = WURST_COMMENT_RAW + About.version;
+    public static final String WURST_COMMENT = WURST_COMMENT_RAW + AboutDialog.version;
     private boolean withSpace;
     private JassProg prog;
 

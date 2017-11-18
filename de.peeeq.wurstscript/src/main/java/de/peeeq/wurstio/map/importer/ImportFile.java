@@ -41,7 +41,7 @@ public class ImportFile {
         }
     }
 
-    private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws IOException, Exception {
+    private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws Exception {
         try (MpqEditor editor = MpqEditorFactory.getEditor(tempMap)) {
             LinkedList<String> failed = extractImportedFiles(editor, importDirectory);
 

@@ -2,7 +2,7 @@ package de.peeeq.wurstscript;
 
 import com.google.common.base.Supplier;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
-import de.peeeq.wurstscript.intermediateLang.*;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
 import de.peeeq.wurstscript.jassAst.JassOpBinary;
 import de.peeeq.wurstscript.jassAst.JassOpUnary;
@@ -32,7 +32,7 @@ public enum WurstOperator {
     private String rep;
     private int numArgs;
 
-    private WurstOperator(String rep, int numArgs) {
+    WurstOperator(String rep, int numArgs) {
         this.rep = rep;
         this.numArgs = numArgs;
     }

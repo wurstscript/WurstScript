@@ -40,9 +40,6 @@ public class ObjectFile {
 
             this.origTable = ObjectTable.readFromStream(in, fileType);
             this.modifiedTable = ObjectTable.readFromStream(in, fileType);
-        } catch (FileNotFoundException e) {
-            WLogger.severe(e);
-            throw new Error(e);
         } catch (IOException e) {
             WLogger.severe(e);
             throw new Error(e);

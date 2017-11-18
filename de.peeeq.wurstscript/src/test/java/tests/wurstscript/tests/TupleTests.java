@@ -53,7 +53,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void return_value() {
+    public void returnValue() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -131,7 +131,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void vecs_trim() {
+    public void vecsTrim() {
         testAssertOkLines(false,
                 "package test",
                 "	native testSuccess()",
@@ -155,7 +155,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void vecs_trim2() {
+    public void vecsTrim2() {
         testAssertOkLines(false,
                 "package test",
                 "	native testSuccess()",
@@ -237,7 +237,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_equals() {
+    public void testEquals() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -253,7 +253,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_unequals() {
+    public void testUnequals() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -269,7 +269,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_singletuple() {
+    public void testSingletuple() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -287,7 +287,7 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
-    public void test_singletuple2() {
+    public void testSingletuple2() {
         testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
@@ -358,4 +358,41 @@ public class TupleTests extends WurstScriptTest {
                 "        testSuccess()"
         );
     }
+
+    @Test
+    public void tupleReturn() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native GetRandomReal(real x, real y) returns real",
+                "tuple vec2(real x, real y)",
+                "function randomPoint() returns vec2",
+                "    return vec2(GetRandomReal(0, 1), GetRandomReal(3, 4))",
+                "function a() returns vec2",
+                "    return randomPoint()",
+                "init",
+                "    let v = a()",
+                "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleReturn2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native GetRandomReal(real x, real y) returns real",
+                "tuple vec2(real x, real y)",
+                "tuple t(vec2 v, real r)",
+                "function randomPoint() returns vec2",
+                "    return vec2(GetRandomReal(0, 1), GetRandomReal(3, 4))",
+                "function a() returns t",
+                "    return t(randomPoint(), 1)",
+                "init",
+                "    let v = a()",
+                "    testSuccess()"
+        );
+    }
+
+
 }

@@ -557,4 +557,16 @@ public class AttrExprType {
         return new WurstTypeUnknown("empty expression");
     }
 
+    public static WurstType calculate(ExprIfElse e) {
+        if (!e.getCond().attrTyp().isSubtypeOf(WurstTypeBool.instance(), e)) {
+            e.getCond().addError("Condition must be of type boolean, but found " + e.getCond().attrTyp());
+        }
+        WurstType tt = e.getIfTrue().attrTyp();
+        WurstType tf = e.getIfFalse().attrTyp();
+        WurstType resT = WurstTypeUnion.create(tt, tf, e);
+        if (resT instanceof WurstTypeNull) {
+            e.addError("Both branches of conditional expression have type null.");
+        }
+        return resT;
+    }
 }

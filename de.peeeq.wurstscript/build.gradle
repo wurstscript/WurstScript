@@ -1,3 +1,5 @@
+import de.undercouch.gradle.tasks.download.Download
+
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 // Apply the java plugin to add support for Java
@@ -24,6 +26,9 @@ sourceSets {
             srcDir 'src/main/java'
             srcDir genDir
         }
+        resources {
+            srcDir 'src/main/resources'
+        }
     }
 }
 
@@ -36,7 +41,6 @@ repositories {
     mavenCentral()
     maven { url 'https://jitpack.io' }
 }
-
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
@@ -53,6 +57,9 @@ dependencies {
     // Google guava
     compile 'com.google.guava:guava:21.0'
 
+    // Support for the vscode language server protocol
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.2.0'
+
     // @Nullable annotations
     compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
 
@@ -66,9 +73,14 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:JMPQ3:1.5.3'
-}
+    compile 'com.github.inwc3:jmpq3:1.5.7'
 
+    // Read Write YAML files
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
+
+    // Water's wc3 libs
+    compile 'com.github.inwc3:wc3libs:37437f37a5'
+}
 
 task genAst {
     description = 'Compile ast specifications'
@@ -153,6 +165,7 @@ task gen {
 }
 gen.dependsOn genAst
 gen.dependsOn versionInfoFile
+gen.dependsOn generateGrammarSource
 
 compileJava.dependsOn gen
 
@@ -166,4 +179,33 @@ clean.doFirst {
     delete genDir
 }
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.12'
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
+    }
+}
+
+apply plugin: 'de.undercouch.download'
+
+task downloadZipFile(type: Download) {
+    src 'https://github.com/Frotty/wurstStdlib2/archive/master.zip'
+    dest new File(buildDir, 'stdlib2.zip')
+}
+
+task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
+    from zipTree(downloadZipFile.dest)
+    into new File(buildDir, '/deps/')
+}
+
 apply from: 'deploy.gradle'
+
+
+
+

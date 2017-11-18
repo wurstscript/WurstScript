@@ -1,163 +1,91 @@
 package de.peeeq.wurstio.languageserver;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.ImmutableList;
-import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstio.languageserver.requests.HoverInfo;
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
+import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
-import java.util.Map.Entry;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
+/**
+ *
+ */
 public class LanguageWorker implements Runnable {
 
-    private final Map<String, PendingChange> changes = new LinkedHashMap<>();
+    private class Workitem {
+        private String description;
+        private Runnable runnable;
+
+        public Workitem(String description, Runnable runnable) {
+            this.description = description;
+            this.runnable = runnable;
+        }
+
+        void run() {
+            runnable.run();
+        }
+
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+
+    private final Map<WFile, PendingChange> changes = new LinkedHashMap<>();
     private final AtomicLong currentTime = new AtomicLong();
-    private final LanguageServer server;
-    private final Queue<UserRequest> userRequests = new LinkedList<>();
-    private final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects",
-            "-stacktraces");
+    private final Queue<UserRequest<?>> userRequests = new LinkedList<>();
+    private final Thread thread;
 
     private ModelManager modelManager;
-    private String rootPath;
+
+    public void setRootPath(WFile rootPath) {
+        this.rootPath = rootPath;
+    }
+
+    private WFile rootPath;
 
     private final Object lock = new Object();
     private int initRequestSequenceNr = -1;
+    private BufferManager bufferManager = new BufferManager();
+    private LanguageClient languageClient;
 
-    public LanguageWorker(LanguageServer server) {
-        this.server = server;
+    public LanguageWorker() {
+        // start working
+        thread = new Thread(this);
+        thread.setName("Wurst LanguageWorker");
+        thread.start();
     }
 
-    public void handleFileChanged(String filePath) {
-        if (!Utils.isWurstFile(filePath) && !filePath.endsWith("wurst.dependencies")) {
-            // ignore all files which are not relevant for wurst
-            return;
-        }
-        if (Paths.get(filePath).startsWith(Paths.get(rootPath, "_build"))) {
-            // ignore build folder
-            return;
-        }
-
-        WLogger.info("handle handleFileChanged " + filePath);
-        synchronized (lock) {
-            changes.put(filePath, new FileUpdated(filePath));
-            lock.notifyAll();
-        }
-        WLogger.info("handle handleFileChanged END " + filePath);
+    public BufferManager getBufferManager() {
+        return bufferManager;
     }
 
-    public void handleInit(int sequenceNr, String rootPath) {
-        WLogger.info("handle init " + rootPath);
-        synchronized (lock) {
-            this.rootPath = rootPath;
-            this.modelManager = null;
-            this.initRequestSequenceNr = sequenceNr;
-            lock.notifyAll();
-        }
-        WLogger.info("handle init END " + rootPath);
+    public void setLanguageClient(LanguageClient languageClient) {
+        this.languageClient = languageClient;
     }
 
-    public void handleReconcile(int sequenceNr, String file, String content) {
-        synchronized (lock) {
-            changes.put(file, new FileReconcile(file, content));
-            // reply directly
-            server.reply(sequenceNr, "request queued");
-            lock.notifyAll();
-        }
+    public void stop() {
+        thread.interrupt();
     }
 
-    public void handleGetDefinition(int sequenceNr, String filename, String buffer, int line, int column) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof GetDefinition);
-            userRequests.add(new GetDefinition(sequenceNr, filename, buffer, line, column));
-            lock.notifyAll();
-        }
-    }
 
-    public void handleGetHoverInfo(int sequenceNr, String filename, String buffer, int line, int column) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof HoverInfo);
-            userRequests.add(new HoverInfo(sequenceNr, filename, buffer, line, column));
-            lock.notifyAll();
-        }
-    }
+//    public void handleRuntests(int sequenceNr, String filename, int line, int column) {
+//        synchronized (lock) {
+//            userRequests.add(new RunTests(sequenceNr, server, filename, line, column));
+//            lock.notifyAll();
+//        }
+//
+//    }
 
-    public void handleGetCompletions(int sequenceNr, String filename, String buffer, int line, int column) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof GetCompletions);
-            userRequests.add(new GetCompletions(sequenceNr, filename, buffer, line, column));
-            lock.notifyAll();
-        }
-    }
-
-    public void handleSignatureHelp(int sequenceNr, String filename, int line, int column) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof SignatureInfo);
-            userRequests.add(new SignatureInfo(sequenceNr, filename, line, column));
-            lock.notifyAll();
-        }
-    }
-
-    public void handleClean(int sequenceNr) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof CleanProject);
-            userRequests.add(new CleanProject(sequenceNr));
-            lock.notifyAll();
-        }
-    }
-
-    public void handleGetUsages(int sequenceNr, String filename, String buffer, int line, int column, boolean global) {
-        synchronized (lock) {
-            userRequests.removeIf(req -> req instanceof GetUsages);
-            userRequests.add(new GetUsages(sequenceNr, filename, buffer, line, column, global));
-            lock.notifyAll();
-        }
-    }
-
-    public void handleRunmap(int requestNr, String mapPath, String wc3path) {
-        synchronized (lock) {
-            List<String> compileArgs = getCompileArgs();
-            userRequests.add(new RunMap(requestNr, rootPath, wc3path, new File(mapPath), compileArgs));
-            lock.notifyAll();
-        }
-    }
-
-    private List<String> getCompileArgs() {
-        try {
-            Path configFile = Paths.get(rootPath, "wurst_run.args");
-            if (Files.exists(configFile)) {
-                return Files.lines(configFile).collect(Collectors.toList());
-            } else {
-
-                String cfg = String.join("\n", defaultArgs) + "\n";
-                Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
-                return defaultArgs;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Could not access wurst run config file", e);
-        }
-    }
-
-    public void handleRuntests(int sequenceNr, String filename, int line, int column) {
-        synchronized (lock) {
-            userRequests.add(new RunTests(sequenceNr, server, filename, line, column));
-            lock.notifyAll();
-        }
-
-    }
-
-    private abstract class PendingChange {
+    abstract class PendingChange {
         private long time;
-        private String filename;
+        private WFile filename;
 
-        public PendingChange(String filename) {
+        public PendingChange(WFile filename) {
             time = currentTime.incrementAndGet();
             this.filename = filename;
         }
@@ -166,30 +94,30 @@ public class LanguageWorker implements Runnable {
             return time;
         }
 
-        public String getFilename() {
+        public WFile getFilename() {
             return filename;
         }
     }
 
-    private class FileUpdated extends PendingChange {
+    class FileUpdated extends PendingChange {
 
-        public FileUpdated(String filename) {
+        public FileUpdated(WFile filename) {
             super(filename);
         }
     }
 
-    private class FileDeleted extends PendingChange {
+    class FileDeleted extends PendingChange {
 
-        public FileDeleted(String filename) {
+        public FileDeleted(WFile filename) {
             super(filename);
         }
     }
 
-    private class FileReconcile extends PendingChange {
+    class FileReconcile extends PendingChange {
 
         private String contents;
 
-        public FileReconcile(String filename, String contents) {
+        public FileReconcile(WFile filename, String contents) {
             super(filename);
             this.contents = contents;
         }
@@ -203,7 +131,7 @@ public class LanguageWorker implements Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                Runnable work;
+                Workitem work;
                 synchronized (lock) {
                     work = getNextWorkItem();
                     if (work == null) {
@@ -216,9 +144,10 @@ public class LanguageWorker implements Runnable {
                     // come in while the work is done
                     try {
                         work.run();
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e.toString()));
                         WLogger.severe(e);
-                        System.err.println("Error in request " + work + " (see log for details): " + e.getMessage());
+                        System.err.println("Error in request '" + work + "' (see log for details): " + e.getMessage());
                     }
                 }
             }
@@ -228,25 +157,25 @@ public class LanguageWorker implements Runnable {
         WLogger.info("Language Worker interrupted");
     }
 
-    private Runnable getNextWorkItem() {
+    private Workitem getNextWorkItem() {
         if (modelManager == null) {
             if (rootPath != null) {
-                return () -> doInit(rootPath);
+                WLogger.info("LanguageWorker start init");
+                return new Workitem("init", () -> doInit(rootPath));
             } else {
                 // cannot do anything useful at the moment
                 WLogger.info("LanguageWorker is waiting for init ... ");
             }
         } else if (!userRequests.isEmpty()) {
-            return () -> {
-                UserRequest req = userRequests.remove();
-                Object response = req.execute(modelManager);
-                server.reply(req.getRequestNr(), response);
-            };
+            UserRequest<?> req = userRequests.remove();
+            return new Workitem(req.toString(),  () -> {
+                req.run(modelManager);
+            });
         } else if (!changes.isEmpty()) {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
-            return () -> {
-                if (change.getFilename().endsWith("wurst.dependencies")) {
+            return new Workitem(change.toString(), () -> {
+                if (change.getFilename().getFile().getName().endsWith("wurst.dependencies")) {
                     if (!(change instanceof FileReconcile)) {
                         modelManager.clean();
                     }
@@ -260,36 +189,102 @@ public class LanguageWorker implements Runnable {
                 } else {
                     WLogger.info("unhandled change request: " + change);
                 }
-            };
+            });
         }
         return null;
     }
 
-    private PendingChange removeFirst(Map<String, PendingChange> changes) {
-        Iterator<Entry<String, PendingChange>> it = changes.entrySet().iterator();
-        Entry<String, PendingChange> e = it.next();
+    private PendingChange removeFirst(Map<WFile, PendingChange> changes) {
+        Iterator<Map.Entry<WFile, PendingChange>> it = changes.entrySet().iterator();
+        Map.Entry<WFile, PendingChange> e = it.next();
         it.remove();
         return e.getValue();
     }
 
-    private void doInit(String rootPath) {
+    private void doInit(WFile rootPath) {
         try {
             log("Handle init " + rootPath);
-            modelManager = new ModelManagerImpl(rootPath);
-            modelManager.onCompilationResult(server::onCompilationResult);
+            modelManager = new ModelManagerImpl(rootPath.getFile(), bufferManager);
+            modelManager.onCompilationResult(this::onCompilationResult);
 
             log("Start building " + rootPath);
             modelManager.buildProject();
 
             log("Finished building " + rootPath);
-            server.reply(initRequestSequenceNr, "done");
+            // TODO
+//            server.reply(initRequestSequenceNr, "done");
         } catch (Exception e) {
             WLogger.severe(e);
         }
+    }
+
+
+    private void onCompilationResult(PublishDiagnosticsParams compilationResult) {
+        languageClient.publishDiagnostics(compilationResult);
     }
 
     private void log(String s) {
         WLogger.info(s);
     }
 
+
+    public void handleFileChanged(DidChangeWatchedFilesParams params) {
+        synchronized (lock) {
+            for (FileEvent fileEvent : params.getChanges()) {
+                bufferManager.handleFileChange(fileEvent);
+
+                WFile file = WFile.create(fileEvent.getUri());
+                if (fileEvent.getType() == FileChangeType.Deleted) {
+                    changes.put(file, new FileDeleted(file));
+                } else {
+                    changes.put(file, new FileUpdated(file));
+                }
+            }
+            lock.notifyAll();
+        }
+    }
+
+    public void handleChange(DidChangeTextDocumentParams params) {
+        synchronized (lock) {
+            bufferManager.handleChange(params);
+            WFile file = WFile.create(params.getTextDocument().getUri());
+
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
+            lock.notifyAll();
+        }
+    }
+
+    public <Res> CompletableFuture<Res> handle(UserRequest<Res> request) {
+        synchronized (lock) {
+            if (!request.keepDuplicateRequests()) {
+                Iterator<UserRequest<?>> it = userRequests.iterator();
+                while (it.hasNext()) {
+                    UserRequest<?> o = it.next();
+                    if (it.getClass().equals(request.getClass())) {
+                        o.cancel();
+                        it.remove();
+                    }
+                }
+            }
+            userRequests.add(request);
+            lock.notifyAll();
+            CompletableFuture<Res> fut = request.getFuture();
+            CompletableFuture<Res> resFut = new CompletableFuture<>();
+            fut.whenComplete((res, err) -> {
+                if (err != null) {
+                    request.handleException(languageClient, err, resFut);
+                } else if (res == null) {
+                    System.err.println("Request returned null: " + request);
+                    if(!(request instanceof HoverInfo)) {
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
+                    }
+                    resFut.completeExceptionally(new RuntimeException("Request returned null: " + request));
+                } else {
+                    resFut.complete(res);
+                }
+
+            });
+            return resFut;
+        }
+    }
 }

@@ -32,9 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
-
 /**
  * flattening expressions and statements
  * after flattening there will be no more StatementExprs
@@ -56,6 +54,8 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
  * alternative: relax language semantics
  */
 public class Flatten {
+
+
 
 
     public static class Result {
@@ -319,6 +319,10 @@ public class Flatten {
             f.flatten(translator);
         }
         translator.assertProperties(AssertProperty.FLAT);
+    }
+
+    public static Result flatten(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
+        return new Result(e);
     }
 
 

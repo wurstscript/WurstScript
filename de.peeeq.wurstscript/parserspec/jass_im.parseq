@@ -84,6 +84,7 @@ ImFlatExpr =
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
+	| ImCompiletimeExpr(de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
 	
 ImClassRelatedExpr = 
 	  ImMethodCall(de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
@@ -115,7 +116,7 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
- | ImMethodCall | ImFunctionCall
+ | ImMethodCall | ImFunctionCall | ImCompiletimeExpr
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 
@@ -132,7 +133,7 @@ ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
 attributes:
 	
 ImType.defaultValue
-	returns de.peeeq.wurstscript.intermediateLang.ILconst
+	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.translation.imtojass.DefaultValue.get
 
 ImPrintable.print(java.lang.StringBuilder sb, int indent)
@@ -250,21 +251,26 @@ ImExpr.translateToLua(de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
 	implemented by de.peeeq.wurstscript.lua.translation.ExprTranslation.translate
 
 	
-ImStmts.runStatements(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
-		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
+ImStmts.runStatements(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
 	returns void
-	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.RunStatement.run
+	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.RunStatement.run
 	
-ImStmt.runStatement(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
-		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
+ImStmt.runStatement(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
 	returns void
-	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.RunStatement.run
+	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.RunStatement.run
 	
-ImExpr.evaluate(de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState globalState
-		, de.peeeq.wurstscript.intermediateLang.interpreter.LocalState localState)
-	returns de.peeeq.wurstscript.intermediateLang.ILconst
-	implemented by de.peeeq.wurstscript.intermediateLang.interpreter.EvaluateExpr.eval
-	
+ImExpr.evaluate(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
+	returns de.peeeq.wurstscript.intermediatelang.ILconst
+	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.eval
+
+ImCompiletimeExpr.evaluationResult
+    returns java.util.concurrent.atomic.AtomicReference<de.peeeq.wurstscript.intermediatelang.ILconst>
+    implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.compiletimeEvaluationResult
+
+
 ImFunction.isNative()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isNative

@@ -1,10 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
@@ -18,37 +15,43 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * keeps a version of the model which is always the most recent one
  */
 public class ModelManagerImpl implements ModelManager {
 
+    private final BufferManager bufferManager;
     private volatile @Nullable WurstModel model;
     private File projectPath;
     private boolean needsFullBuild = true;
     // dependency folders (folders mentioned in wurst.dependencies)
     private final Set<String> dependencies = Sets.newLinkedHashSet();
     // private WurstGui gui = new WurstGuiLogger();
-    private List<Consumer<CompilationResult>> onCompilationResultListeners = new ArrayList<>();
+    private List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
     // compile errors for each file
-    private Map<String, List<CompileError>> parseErrors = new LinkedHashMap<>();
+    private Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
+    // other errors for each file
+    private Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
 
     // hashcode for each compilation unit content as string
-    private Map<String, Integer> fileHashcodes = new HashMap<>();
+    private Map<WFile, Integer> fileHashcodes = new HashMap<>();
 
-    public ModelManagerImpl(String projectPath) {
-        this(new File(projectPath));
+    public ModelManagerImpl(String projectPath, BufferManager bufferManager) {
+        this(new File(projectPath), bufferManager);
     }
 
-    public ModelManagerImpl(File projectPath) {
+    public ModelManagerImpl(File projectPath, BufferManager bufferManager) {
         this.projectPath = projectPath;
+        this.bufferManager = bufferManager;
     }
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
@@ -63,7 +66,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public boolean removeCompilationUnit(String resource) {
+    public boolean removeCompilationUnit(WFile resource) {
         parseErrors.remove(resource);
         WurstModel model2 = model;
         if (model2 == null) {
@@ -138,13 +141,13 @@ public class ModelManagerImpl implements ModelManager {
             if (f.isDirectory()) {
                 processWurstFiles(f);
             } else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
-                processWurstFile(f);
+                processWurstFile(WFile.create(f));
             }
         }
     }
 
-    private void processWurstFile(File f) throws IOException {
-        System.out.println("processing file " + f);
+    private void processWurstFile(WFile f) throws IOException {
+        WLogger.info("processing file " + f);
         replaceCompilationUnit(f);
     }
 
@@ -198,16 +201,18 @@ public class ModelManagerImpl implements ModelManager {
         dependencies.add(fileName);
     }
 
-    private List<CompilationUnit> getCompilationUnits(List<String> fileNames) {
+    private List<CompilationUnit> getCompilationUnits(List<WFile> fileNames) {
         WurstModel model2 = model;
         if (model2 == null) {
             return Collections.emptyList();
         }
-        return model2.stream().filter(cu -> fileNames.contains(cu.getFile())).collect(Collectors.toList());
+        return model2.stream().filter(cu -> fileNames.contains(WFile.create(cu.getFile()))).collect(Collectors.toList());
     }
 
-    private List<String> getfileNames(List<CompilationUnit> compilationUnits) {
-        return compilationUnits.stream().map(CompilationUnit::getFile).collect(Collectors.toList());
+    private List<WFile> getfileNames(List<CompilationUnit> compilationUnits) {
+        return compilationUnits.stream()
+                .map(cu -> WFile.create(cu.getFile()))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -305,34 +310,35 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void reportErrorsForProject(String extra, WurstGui gui) {
-        Multimap<String, CompileError> typeErrors = ArrayListMultimap.create();
+        Multimap<WFile, CompileError> typeErrors = ArrayListMultimap.create();
         for (CompileError e : gui.getErrorsAndWarnings()) {
-            typeErrors.put(e.getSource().getFile(), e);
+            typeErrors.put(WFile.create(e.getSource().getFile()), e);
         }
 
-        for (String file : parseErrors.keySet()) {
+        for (WFile file : parseErrors.keySet()) {
             List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
             errors.addAll(typeErrors.get(file));
             reportErrors(extra, file, errors);
         }
     }
 
-    private void reportErrorsForFiles(String extra, List<String> filenames, WurstGui gui) {
-        Multimap<String, CompileError> typeErrors = ArrayListMultimap.create();
+    private void reportErrorsForFiles(String extra, List<WFile> filenames, WurstGui gui) {
+        Multimap<WFile, CompileError> typeErrors = ArrayListMultimap.create();
         for (CompileError e : gui.getErrorsAndWarnings()) {
-            typeErrors.put(e.getSource().getFile(), e);
+            typeErrors.put(WFile.create(e.getSource().getFile()), e);
         }
 
-        for (String file : filenames) {
+        for (WFile file : filenames) {
             List<CompileError> errors = new ArrayList<>(parseErrors.getOrDefault(file, Collections.emptyList()));
             errors.addAll(typeErrors.get(file));
             reportErrors(extra, file, errors);
         }
     }
 
-    private void reportErrors(String extra, String filename, List<CompileError> errors) {
-        CompilationResult cr = CompilationResult.create(extra, filename, errors);
-        for (Consumer<CompilationResult> consumer : onCompilationResultListeners) {
+    private void reportErrors(String extra, WFile filename, List<CompileError> errors) {
+        PublishDiagnosticsParams cr = Convert.createDiagnostics(extra, filename, errors);
+        otherErrors.put(filename, ImmutableList.copyOf(errors));
+        for (Consumer<PublishDiagnosticsParams> consumer : onCompilationResultListeners) {
             consumer.accept(cr);
         }
     }
@@ -346,8 +352,8 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void updateModel(CompilationUnit cu, WurstGui gui) {
-        System.out.println("update model with " + cu.getFile());
-        parseErrors.put(cu.getFile(), new ArrayList<>(gui.getErrorsAndWarnings()));
+        WLogger.info("update model with " + cu.getFile());
+        parseErrors.put(WFile.create(cu.getFile()), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
         if (model2 == null) {
@@ -418,83 +424,52 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     @Override
-    public void replaceCompilationUnit(String filename) {
-        try {
-            File f = getFile(filename);
-            replaceCompilationUnit(f);
-        } catch (IOException e) {
-            WLogger.severe(e);
-            throw new ModelManagerException(e);
-        }
-    }
-
-    /**
-     * get a file object, where relative files are resolved with respect to
-     * the project root
-     */
-    private File getFile(String filename) {
-        File f = new File(filename);
-        if (f.isAbsolute()) {
-            return f;
-        }
-        return new File(projectPath, filename);
-    }
-
-    private void replaceCompilationUnit(File f) throws IOException {
+    public void replaceCompilationUnit(WFile filename) {
+        File f = filename.getFile();
         if (!f.exists()) {
-            removeCompilationUnit(getCanonicalPath(f));
+            removeCompilationUnit(filename);
             return;
         }
-        WLogger.info("replaceCompilationUnit 1 " + f);
-        String filename = getCanonicalPath(f);
-        WLogger.info("replaceCompilationUnit 2 " + f);
-        String contents = Files.toString(f, Charsets.UTF_8);
-        replaceCompilationUnit(filename, contents, true);
-        WLogger.info("replaceCompilationUnit 3 " + f);
-    }
-
-    @Override
-    public void syncCompilationUnit(String filename) {
-        WLogger.info("syncCompilationUnit " + filename);
         try {
-            File f = getFile(filename);
-            syncCompilationUnit(f);
+            String contents = Files.toString(f, Charsets.UTF_8);
+            bufferManager.updateFile(WFile.create(f), contents);
+            replaceCompilationUnit(filename, contents, true);
+            WLogger.info("replaceCompilationUnit 3 " + f);
         } catch (IOException e) {
             WLogger.severe(e);
             throw new ModelManagerException(e);
         }
     }
 
+
+    private File getFile(WFile filename) {
+        return filename.getFile();
+    }
+
     @Override
-    public void syncCompilationUnitContent(String filename, String contents) {
+    public void syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
-        filename = normalizeFilename(filename);
         replaceCompilationUnit(filename, contents, true);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, true, ImmutableList.of(filename));
     }
 
     @Override
-    public CompilationUnit replaceCompilationUnitContent(String filename, String contents, boolean reportErrors) {
-        filename = normalizeFilename(filename);
+    public CompilationUnit replaceCompilationUnitContent(WFile filename, String contents, boolean reportErrors) {
         return replaceCompilationUnit(filename, contents, reportErrors);
     }
 
-    private String normalizeFilename(String filename) {
-        File f = getFile(filename);
-        filename = getCanonicalPath(f);
-        return filename;
-    }
 
-    private void syncCompilationUnit(File f) throws IOException {
+    @Override
+    public void syncCompilationUnit(WFile f) {
         WLogger.info("syncCompilationUnit File " + f);
         replaceCompilationUnit(f);
         WLogger.info("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
-        doTypeCheckPartial(gui, true, ImmutableList.of(getCanonicalPath(f)));
+        doTypeCheckPartial(gui, true, ImmutableList.of(f));
     }
 
-    private CompilationUnit replaceCompilationUnit(String filename, String contents, boolean reportErrors) {
+    private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
         if (fileHashcodes.containsKey(filename)) {
             int oldHash = fileHashcodes.get(filename);
             WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
@@ -508,24 +483,23 @@ public class ModelManagerImpl implements ModelManager {
         WLogger.info("replace CU " + filename);
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl c = getCompiler(gui);
-        CompilationUnit cu = c.parse(filename, new StringReader(contents));
-        cu.setFile(filename);
+        CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
+        cu.setFile(filename.toString());
         updateModel(cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
-            System.out.println("found " + gui.getErrorCount() + " errors in file " + filename);
+            WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
             reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
         }
         return cu;
     }
 
     @Override
-    public CompilationUnit getCompilationUnit(String filename) {
-        filename = normalizeFilename(filename);
+    public CompilationUnit getCompilationUnit(WFile filename) {
         List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
         if (matches.isEmpty()) {
             WLogger.info("compilation unit not found: " + filename);
-            WLogger.info("available: " + model.stream().map(cu -> cu.getFile()).collect(Collectors.joining(", ")));
+            WLogger.info("available: " + model.stream().map(CompilationUnit::getFile).collect(Collectors.joining(", ")));
             return null;
         }
         return matches.get(0);
@@ -538,43 +512,64 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public boolean hasErrors() {
-        // TODO add type errors as well
-        return parseErrors.values().stream().anyMatch(l -> !l.isEmpty());
+        return errorStream().findAny().isPresent();
     }
 
     @Override
-    public void updateCompilationUnit(String filename, String contents, boolean reportErrors) {
-        replaceCompilationUnit(normalizeFilename(filename), contents, reportErrors);
+    public List<CompileError> getParseErrors() {
+        return parseErrorStream().collect(Collectors.toList());
+    }
+
+    private Stream<CompileError> parseErrorStream() {
+        return parseErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.ERROR);
+    }
+
+    private Stream<CompileError> otherErrorStream() {
+        return otherErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.ERROR);
+    }
+
+    private Stream<CompileError> errorStream() {
+        return Streams.concat(parseErrorStream(), otherErrorStream());
+    }
+
+
+    @Override
+    public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {
+        replaceCompilationUnit(filename, contents, reportErrors);
     }
 
     @Override
-    public void onCompilationResult(Consumer<CompilationResult> f) {
+    public void onCompilationResult(Consumer<PublishDiagnosticsParams> f) {
         onCompilationResultListeners.add(f);
     }
 
-    public static void main(String[] args) throws IOException {
-        // WurstGui gui = new WurstGuiCliImpl();
-        // WurstCompilerJassImpl c = new WurstCompilerJassImpl(gui, null, new
-        // RunArgs(Arrays.asList()));
-        // CompilationUnit cu = c.parse("RegionData.wurst", new
-        // FileReader("/home/peter/work/EBR/wurst/region/RegionData.wurst"));
-        //
-        // for (CompileError err : gui.getErrorsAndWarnings()) {
-        // System.out.println(err);
-        // System.out.println(ExternCompileError.convert(err));
-        // }
+//    public static void main(String[] args) throws IOException {
+//        // WurstGui gui = new WurstGuiCliImpl();
+//        // WurstCompilerJassImpl c = new WurstCompilerJassImpl(gui, null, new
+//        // RunArgs(Arrays.asList()));
+//        // CompilationUnit cu = c.parse("RegionData.wurst", new
+//        // FileReader("/home/peter/work/EBR/wurst/region/RegionData.wurst"));
+//        //
+//        // for (CompileError err : gui.getErrorsAndWarnings()) {
+//        // System.out.println(err);
+//        // System.out.println(ExternCompileError.convert(err));
+//        // }
+//
+//        ModelManagerImpl m = new ModelManagerImpl("/home/peter/work/EBR");
+//        m.onCompilationResult(cr -> {
+//            for (ExternCompileError err : cr.getErrors()) {
+//                System.err.println(cr.getFilename());
+//                System.err.println("	" + err);
+//            }
+//        });
+//        m.buildProject();
+//    }
 
-        ModelManagerImpl m = new ModelManagerImpl("/home/peter/work/EBR");
-        m.onCompilationResult(cr -> {
-            for (ExternCompileError err : cr.getErrors()) {
-                System.err.println(cr.getFilename());
-                System.err.println("	" + err);
-            }
-        });
-        m.buildProject();
-    }
-
-    private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<String> toCheckFilenames) {
+    private void doTypeCheckPartial(WurstGui gui, boolean addErrorMarkers, List<WFile> toCheckFilenames) {
         WLogger.info("do typecheck partial of " + toCheckFilenames);
         WurstCompilerJassImpl comp = getCompiler(gui);
         List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
@@ -598,7 +593,7 @@ public class ModelManagerImpl implements ModelManager {
             gui.sendError(e);
         }
         if (addErrorMarkers) {
-            List<String> fileNames = getfileNames(clearedCUs);
+            List<WFile> fileNames = getfileNames(clearedCUs);
             reportErrorsForFiles("partial ", fileNames, gui);
         }
     }

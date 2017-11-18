@@ -17,7 +17,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
@@ -31,13 +31,15 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import junit.framework.Assert;
+import org.junit.Assert;
 
 import java.io.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
 
 public class WurstScriptTest {
 
@@ -160,7 +162,7 @@ public class WurstScriptTest {
     }
 
     protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-        RunArgs runArgs = new RunArgs(new String[]{"-lib", StdLib.getLib()});
+        RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
         compiler.getErrorHandler().enableUnitTestMode();
@@ -196,7 +198,7 @@ public class WurstScriptTest {
 
         if (testLua && !withStdLib) {
             // test lua translation
-            compiler.setRunArgs(new RunArgs(new String[]{"-lua"}));
+            compiler.setRunArgs(new RunArgs("-lua"));
             translateAndTestLua(name, executeProg, gui, model);
         }
         return model;
@@ -204,29 +206,29 @@ public class WurstScriptTest {
     }
 
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+                                                  WurstCompilerJassImpl compiler, WurstModel model) throws Error {
         // test with inlining and local optimization
-        compiler.setRunArgs(new RunArgs(new String[]{"-inline", "-localOptimizations"}));
+        compiler.setRunArgs(new RunArgs("-inline", "-localOptimizations"));
         translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model);
     }
 
     private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                  WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+                                  WurstCompilerJassImpl compiler, WurstModel model) throws Error {
         // test with inlining
-        compiler.setRunArgs(new RunArgs(new String[]{"-inline"}));
+        compiler.setRunArgs(new RunArgs("-inline"));
         translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model);
     }
 
     private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                            WurstCompilerJassImpl compiler, WurstModel model) throws CompileError, Error, TestFailException {
+                                            WurstCompilerJassImpl compiler, WurstModel model) throws Error {
         // test with local optimization
-        compiler.setRunArgs(new RunArgs(new String[]{"-localOptimizations"}));
+        compiler.setRunArgs(new RunArgs("-localOptimizations"));
         translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model);
     }
 
     private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
                                                     WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model)
-            throws CompileError, Error, TestFailException {
+            throws Error {
         // test without inlining and optimization
         translateAndTest(name, executeProg, executeTests, gui, compiler, model);
     }
@@ -300,7 +302,7 @@ public class WurstScriptTest {
 
     private void translateAndTest(String name, boolean executeProg,
                                   boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
-                                  WurstModel model) throws CompileError, Error, TestFailException {
+                                  WurstModel model) throws Error {
         compiler.translateProg(model);
 
         if (gui.getErrorCount() > 0) {
@@ -404,7 +406,7 @@ public class WurstScriptTest {
     }
 
     private void executeTests(WurstGui gui, ImProg imProg) {
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, FunctionFlagEnum.IS_TEST);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, Tests);
         cfr.run();
         WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
         int failedTestCount = cfr.getFailTests().size();

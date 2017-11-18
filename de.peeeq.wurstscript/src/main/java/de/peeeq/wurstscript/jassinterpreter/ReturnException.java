@@ -1,6 +1,6 @@
 package de.peeeq.wurstscript.jassinterpreter;
 
-import de.peeeq.wurstscript.intermediateLang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class ReturnException extends Error {

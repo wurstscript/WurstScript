@@ -396,4 +396,11 @@ public class DescriptionHtml {
         return "";
     }
 
+    public static String description(ExprIfElse exprIfElse) {
+        return "A conditional expression.";
+    }
+
+    public static String description(ArrayInitializer arrayInitializer) {
+        return "An array initializer";
+    }
 }

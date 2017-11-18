@@ -2,3 +2,5 @@
 *.java text eol=lf
 *.wurst text=auto
 *.wurst text eol=lf
+docs/* linguist-vendored
+de.peeeq.wurstscript/testscripts/* linguist-vendored

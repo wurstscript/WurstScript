@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.parser.antlr;
 
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -100,7 +101,7 @@ public class ExtendedWurstLexer implements TokenSource {
         Token t = nextTokenIntern();
         lastToken = t;
 
-        if (debug) System.out.println("		new token: " + t);
+        if (debug) WLogger.info("		new token: " + t);
         return t;
     }
 
@@ -119,7 +120,7 @@ public class ExtendedWurstLexer implements TokenSource {
         for (; ; ) {
             Token token = orig.nextToken();
 
-            if (debug) System.out.println("orig token = " + token);
+            if (debug) WLogger.info("orig token = " + token);
 
             if (token == null) {
                 continue;
@@ -130,7 +131,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
                     assert token != null;
                 } else if (token.getType() == WurstParser.ENDPACKAGE) {
-                    handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                    handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                     isWurst = false;
                 }
             } else {
@@ -151,7 +152,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
             if (token.getType() == WurstParser.EOF) {
                 // at EOF close all blocks and return an extra newline
-                handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                 eof = token;
                 if (isWurst) {
                     // if inside wurst, add a closing 'endpackage' and a newline
@@ -166,9 +167,14 @@ public class ExtendedWurstLexer implements TokenSource {
             switch (state) {
                 case INIT:
                     if (token.getType() == WurstParser.NL) {
-                        firstNewline = token;
-                        state(State.NEWLINES);
-                        continue;
+                        if (lastCharWasWrap) {
+                            // ignore the newline following a wrap-character
+                            continue;
+                        } else {
+                            firstNewline = token;
+                            state(State.NEWLINES);
+                            continue;
+                        }
                     } else if (isTab(token)) {
                         continue;
                     }
@@ -189,7 +195,7 @@ public class ExtendedWurstLexer implements TokenSource {
                         continue;
                     } else {
                         // no tabs after newline
-                        handleIndent(0, token.getStartIndex(), token.getStopIndex());
+                        handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
                         nextTokens.add(token);
                         state(State.INIT);
                         return firstNewline;
@@ -219,10 +225,8 @@ public class ExtendedWurstLexer implements TokenSource {
                     if (isTab(token)) {
                         readTabChar(token);
                         numberOfTabs++;
-                        continue;
                     } else if (token.getType() == WurstParser.NL) {
                         state(State.NEWLINES);
-                        continue;
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
                         lastCharWasWrap = true;
@@ -234,7 +238,7 @@ public class ExtendedWurstLexer implements TokenSource {
                             state(State.INIT);
                             return token;
                         } else {
-                            handleIndent(numberOfTabs, token.getStartIndex(), token.getStopIndex());
+                            handleIndent(numberOfTabs, token, token.getStartIndex(), token.getStopIndex());
                             state(State.INIT);
                             nextTokens.add(token);
                             return firstNewline;
@@ -285,21 +289,21 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
     private void state(State s) {
-        if (debug) System.out.println("state " + state + " -> " + s);
+        if (debug) WLogger.info("state " + state + " -> " + s);
         state = s;
     }
 
 
-    private void handleIndent(int n, int start, int stop) {
+    private void handleIndent(int n, Token token, int start, int stop) {
         if (!isWurst) {
             return;
         }
-        Token t = lastToken;
-        if (t != null) {
-            start = t.getStopIndex();
-            stop = t.getStopIndex();
-        }
-        if (debug) System.out.println("handleIndent " + n + "	 " + indentationLevels);
+//        Token t = lastToken;
+//        if (t != null) {
+//            start = t.getStopIndex();
+//            stop = t.getStopIndex();
+//        }
+        if (debug) WLogger.info("handleIndent " + n + "	 " + indentationLevels);
         if (n > indentationLevels.peek()) {
             indentationLevels.push(n);
             nextTokens.add(makeToken(WurstParser.STARTBLOCK, "$begin", start, stop));
@@ -308,10 +312,15 @@ public class ExtendedWurstLexer implements TokenSource {
                 indentationLevels.pop();
                 nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", start, stop));
             }
-            if (n != indentationLevels.peek()) {
-                for (ANTLRErrorListener el : orig.getErrorListeners()) {
-                    int line = lineOffsets.getLine(start);
-                    el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level.", null);
+            Integer expectedIndentation = indentationLevels.peek();
+            if (n != expectedIndentation) {
+                // all lines must be indented on the same level,
+                // with the exception of the 'end' keyword, which can be on a different line
+                if (token.getType() != WurstParser.END) {
+                    for (ANTLRErrorListener el : orig.getErrorListeners()) {
+                        int line = lineOffsets.getLine(start);
+                        el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".", null);
+                    }
                 }
             }
         }
@@ -333,6 +342,8 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.AND:
             case WurstParser.OR:
             case WurstParser.ARROW:
+            case WurstParser.QUESTION:
+            case WurstParser.COLON:
                 return true;
         }
         return false;

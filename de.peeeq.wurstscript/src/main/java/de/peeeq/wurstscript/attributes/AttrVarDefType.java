@@ -36,7 +36,7 @@ public class AttrVarDefType {
 
     private static WurstType defaultCase(GlobalOrLocalVarDef v) {
         OptTypeExpr typ = v.getOptTyp();
-        final OptExpr initialExpr = v.getInitialExpr();
+        final VarInitialization initialExpr = v.getInitialExpr();
         if (typ instanceof TypeExpr) {
             return typ.attrTyp().dynamic();
         } else {
@@ -47,6 +47,17 @@ public class AttrVarDefType {
                     return WurstTypeInt.instance();
                 }
                 return result.normalize();
+            } else if (initialExpr instanceof ArrayInitializer) {
+                ArrayInitializer ai = (ArrayInitializer) initialExpr;
+                ExprList values = ai.getValues();
+                if (values.isEmpty()) {
+                    v.addError("Could not infer the type of variable '" + v.getName() + "' because the array is empty.");
+                    return new WurstTypeArray(WurstTypeUnknown.instance());
+                }
+                // infer the type from the first expression
+                // we can make this smarter later by finding a common supertype
+                // for all given values
+                return new WurstTypeArray(values.get(0).attrTyp());
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");

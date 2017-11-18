@@ -57,7 +57,6 @@ public class WurstGuiImpl extends WurstGui {
         @Override
         public void run() {
             try {
-
                 // init the windows:
                 SwingUtilities.invokeAndWait(new Runnable() {
                     @Override
@@ -70,6 +69,8 @@ public class WurstGuiImpl extends WurstGui {
                         statusWindow.toFront();
                         errorWindow.setAlwaysOnTop(true);
                         statusWindow.setAlwaysOnTop(true);
+                        statusWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                        errorWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                     }
                 });
 

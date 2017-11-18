@@ -877,5 +877,20 @@ public class BugTests extends WurstScriptTest {
                 "        return null");
     }
 
+    @Test
+    public void parseHexValues() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "init",
+                "    int i1 = 12345678",
+                "    int i2 = 0xBC614E",
+                "    int i3 = $BC614E",
+                "    if i1 == i2 and i2 == i3",
+                "       testSuccess()");
+
+    }
+
+
 
 }

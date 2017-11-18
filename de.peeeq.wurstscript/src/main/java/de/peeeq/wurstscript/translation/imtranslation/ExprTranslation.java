@@ -391,6 +391,13 @@ public class ExprTranslation {
             return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
+        if (e.getFuncName().equals("compiletime")
+                && e.attrImplicitParameter() instanceof NoExpr
+                && e.getArgs().size() == 1) {
+            // special compiletime-expression
+            return JassIm.ImCompiletimeExpr(e, e.getArgs().get(0).imTranslateExpr(t, f), t.getCompiletimeExpressionsOrder(e));
+        }
+
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
@@ -605,4 +612,23 @@ public class ExprTranslation {
         throw new CompileError(s.getSource(), "cannot translate empty expression");
     }
 
+    public static ImExpr translate(ExprIfElse e, ImTranslator t, ImFunction f) {
+        ImExpr ifTrue = e.getIfTrue().imTranslateExpr(t, f);
+        ImExpr ifFalse = e.getIfFalse().imTranslateExpr(t, f);
+        // TODO common super type of both
+        ImVar res = JassIm.ImVar(e, ifTrue.attrTyp(), "cond_result", false);
+        f.getLocals().add(res);
+        return JassIm.ImStatementExpr(
+                ImStmts(
+                        ImIf(e, e.getCond().imTranslateExpr(t, f),
+                                ImStmts(
+                                        ImSet(e.getIfTrue(), res, ifTrue)
+                                ),
+                                ImStmts(
+                                        ImSet(e.getIfFalse(), res, ifFalse)
+                                ))
+                ),
+                JassIm.ImVarAccess(res)
+        );
+    }
 }

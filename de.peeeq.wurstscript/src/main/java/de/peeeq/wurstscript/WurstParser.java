@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -58,6 +59,17 @@ public class WurstParser {
                 public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line, int charPositionInLine,
                                         @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
 
+                    // try to improve error message
+                    if (e instanceof NoViableAltException) {
+                        NoViableAltException ne = (NoViableAltException) e;
+                        if (ne.getStartToken().getType() == WurstLexer.HOTDOC_COMMENT) {
+                            msg = "Hotdoc comment is in invalid position, it can " +
+                                    "only appear before function definitions, classes, and " +
+                                    "other elements that can be documented.";
+                            offendingSymbol = ne.getStartToken();
+                        }
+                    }
+
                     LineOffsets offsets = lexer.getLineOffsets();
                     int pos;
                     int posStop;
@@ -69,6 +81,9 @@ public class WurstParser {
                         pos = offsets.get(line) + charPositionInLine;
                         posStop = pos + 1;
                     }
+
+
+
 
 //					msg = msg + " || " + input.getText(new Interval(pos, pos+10));
 //					

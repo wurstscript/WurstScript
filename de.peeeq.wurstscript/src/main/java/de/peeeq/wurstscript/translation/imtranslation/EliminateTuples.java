@@ -128,7 +128,7 @@ public class EliminateTuples {
      * eliminates tuples in all subexpressions.
      * Use this for all ast-elements which are not directly related to tuple-elimination
      */
-    public static Element eliminateTuples2(Element e, ImTranslator translator, ImFunction f) {
+    public static <T extends Element> T eliminateTuples2(T e, ImTranslator translator, ImFunction f) {
         for (int i = 0; i < e.size(); i++) {
             Element c = e.get(i);
             Element newC = eliminateTuplesDispatch(c, translator, f);
@@ -157,15 +157,15 @@ public class EliminateTuples {
 
 
     public static ImStmt eliminateTuples(ImExitwhen e, ImTranslator translator, ImFunction f) {
-        return (ImStmt) eliminateTuples2(e, translator, f);
+        return eliminateTuples2(e, translator, f);
     }
 
     public static ImStmt eliminateTuples(ImIf e, ImTranslator translator, ImFunction f) {
-        return (ImStmt) eliminateTuples2(e, translator, f);
+        return eliminateTuples2(e, translator, f);
     }
 
     public static ImStmt eliminateTuples(ImLoop e, ImTranslator translator, ImFunction f) {
-        return (ImStmt) eliminateTuples2(e, translator, f);
+        return eliminateTuples2(e, translator, f);
     }
 
     public static ImStmt eliminateTuples(ImExpr e, ImTranslator translator, ImFunction f) {
@@ -173,9 +173,7 @@ public class EliminateTuples {
         if (e2 instanceof ImTupleExpr) {
             ImTupleExpr te = (ImTupleExpr) e2;
             ImStmts stmts = JassIm.ImStmts();
-            for (ImExpr child : te.getExprs().removeAll()) {
-                stmts.add(child);
-            }
+            stmts.addAll(te.getExprs().removeAll());
             return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
         }
         return e2;
@@ -244,7 +242,7 @@ public class EliminateTuples {
         if (e.getParent() == null) {
             return e;
         }
-        return (ImExpr) e.copy();
+        return e.copy();
     }
 
 
@@ -466,7 +464,7 @@ public class EliminateTuples {
 //			System.out.println("tupleExpr-range: " + range);
         } else {
             if (e.getTupleIndex() == 0) {
-                return (ImExpr) tupleExpr.copy();
+                return tupleExpr.copy();
             }
             throw new CompileError(e.attrTrace().attrSource(), "problem with " + tupleExpr + "\n" +
                     "has type " + tupleExpr.attrTyp());
@@ -565,7 +563,7 @@ public class EliminateTuples {
         if (varsForTuple.size() > 1 || varsForTuple.getOnlyEment() != v) {
             return makeVarAccessToTuple(varsForTuple);
         }
-        return (ImExpr) eliminateTuples2(e, translator, f);
+        return eliminateTuples2(e, translator, f);
     }
 
     private static ImExpr makeVarAccessToTuple(ImmutableTree<ImVar> varsForTuple) {
@@ -592,7 +590,7 @@ public class EliminateTuples {
             ImExpr tupleExpr = makeArrayAccessToTuple(varsForTuple, tempIndex);
             return JassIm.ImStatementExpr(statements, tupleExpr);
         }
-        return (ImExpr) eliminateTuples2(e, translator, f);
+        return eliminateTuples2(e, translator, f);
     }
 
     private static ImExpr makeArrayAccessToTuple(ImmutableTree<ImVar> varsForTuple, ImVar tempIndex) {
@@ -615,7 +613,15 @@ public class EliminateTuples {
 
     public static ImExpr eliminateTuplesExpr(ImStatementExpr imStatementExpr,
                                              ImTranslator translator, ImFunction f) {
-        return (ImExpr) eliminateTuples2(imStatementExpr, translator, f);
+        ImStatementExpr e = eliminateTuples2(imStatementExpr, translator, f);
+        if (e.getExpr() instanceof ImStatementExpr) {
+            ImStatementExpr se = (ImStatementExpr) e.getExpr();
+            e.getStatements().addAll(se.getStatements().removeAll());
+            ImExpr see = se.getExpr();
+            see.setParent(null);
+            e.setExpr(see);
+        }
+        return e;
     }
 
 
@@ -695,7 +701,7 @@ public class EliminateTuples {
         }
         ImExpr ret = (ImExpr) ret1;
         ImStmts statements = JassIm.ImStmts();
-        ImExpr retExpr = elimStatementExpr(statements, (ImExpr) ret, translator, f);
+        ImExpr retExpr = elimStatementExpr(statements, ret, translator, f);
         ImExpr result;
         if (retExpr instanceof ImTupleExpr) {
             ImTupleExpr te = (ImTupleExpr) retExpr;
@@ -743,4 +749,7 @@ public class EliminateTuples {
     }
 
 
+    public static ImExpr eliminateTuplesExpr(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
+        return eliminateTuples2(e, translator, f);
+    }
 }

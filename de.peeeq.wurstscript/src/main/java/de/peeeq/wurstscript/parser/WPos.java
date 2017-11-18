@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser;
 
-import de.peeeq.wurstio.languageserver.Range;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -36,9 +35,6 @@ public class WPos {
         return rightPos;
     }
 
-    public Range getRange() {
-        return new Range(getLine() - 1, getStartColumn() - 1, getEndLine() - 1, getEndColumn() - 1);
-    }
 
     public int getLine() {
         LineOffsets lo = lineOffsets;
@@ -83,7 +79,7 @@ public class WPos {
     }
 
     public String printShort() {
-        Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^\\.]*$");
+        Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^.]*$");
         String shortFile = file;
         Matcher m = p.matcher(file);
         if (m.find()) {

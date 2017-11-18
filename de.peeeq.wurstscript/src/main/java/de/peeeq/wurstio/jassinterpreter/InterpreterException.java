@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.intermediateLang.interpreter.ProgramState;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.parser.WPos;
 
 public class InterpreterException extends RuntimeException {

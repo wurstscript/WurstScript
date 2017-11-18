@@ -79,12 +79,20 @@ public class AttrExprExpectedType {
                 SwitchCase sc = (SwitchCase) parent;
                 SwitchStmt s = (SwitchStmt) sc.getParent().getParent();
                 return s.getExpr().attrTyp();
+            } else if (parent instanceof ExprIfElse) {
+                ExprIfElse ie = (ExprIfElse) parent;
+                if (expr == ie.getCond()) {
+                    return WurstTypeBool.instance();
+                } else {
+                    return ie.attrExpectedTypRaw();
+                }
+            }
 //			} else if (parent instanceof ExprMemberMethod) {
 //				ExprMemberMethod m = (ExprMemberMethod) parent;
 //				if (m.getLeft() == expr) {
 //					return m.attrFunctionSignature().getReceiverType();
 //				}
-            }
+//            }
         } catch (CompileError t) {
             WLogger.info(t);
         }
@@ -110,7 +118,7 @@ public class AttrExprExpectedType {
 
         for (ConstructorDef superConstr : constructors) {
             if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
-                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp());
+                res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
             }
         }
 
@@ -126,7 +134,7 @@ public class AttrExprExpectedType {
 
         for (FunctionSignature sig : sigs) {
             if (index < sig.getParamTypes().size()) {
-                res = res.typeUnion(sig.getParamTypes().get(index));
+                res = res.typeUnion(sig.getParamTypes().get(index), expr);
             }
         }
         return res;

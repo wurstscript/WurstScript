@@ -13,7 +13,9 @@ public class WLoggerDefault implements WLoggerI {
         logger.setLevel(Level.OFF); // adjust level for debugging
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#info(java.lang.String)
      */
     @Override
@@ -21,7 +23,9 @@ public class WLoggerDefault implements WLoggerI {
         logger.info(msg);
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#warning(java.lang.String)
      */
     @Override
@@ -29,7 +33,19 @@ public class WLoggerDefault implements WLoggerI {
         logger.log(Level.WARNING, msg);
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
+     * @see de.peeeq.wurstscript.WLoggerI#warning(java.lang.String, Throwable)
+     */
+    @Override
+    public void warning(String msg, Throwable e) {
+        logger.log(Level.WARNING, msg, e);
+    }
+
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#severe(java.lang.String)
      */
     @Override
@@ -37,7 +53,9 @@ public class WLoggerDefault implements WLoggerI {
         logger.log(Level.SEVERE, msg);
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#severe(java.lang.Throwable)
      */
     @Override
@@ -46,7 +64,9 @@ public class WLoggerDefault implements WLoggerI {
         logger.log(Level.SEVERE, "Error", t);
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#info(java.lang.Throwable)
      */
     @Override
@@ -55,7 +75,9 @@ public class WLoggerDefault implements WLoggerI {
 
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#setHandler(java.util.logging.Handler)
      */
     @Override
@@ -64,7 +86,9 @@ public class WLoggerDefault implements WLoggerI {
         logger.addHandler(handler);
     }
 
-    /* (non-Javadoc)
+    /**
+     * (non-Javadoc)
+     *
      * @see de.peeeq.wurstscript.WLoggerI#setLevel(java.util.logging.Level)
      */
     @Override

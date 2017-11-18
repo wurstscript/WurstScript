@@ -223,8 +223,14 @@ typeExpr:
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=ID ('=' initial=expr)? NL 
+		  name=ID ('=' variableInit)? NL
 	  ;		  
+
+variableInit: (arrayInit | initial=expr);
+
+
+arrayInit: '[' exprList ']';
+
 
 statements:
 			statement*
@@ -289,8 +295,9 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' initial=expr)? 
-	  ;	
+		  name=ID ('=' variableInit)?
+	  ;
+
 
 localVarDefInline:
 					 typeExpr? name=ID
@@ -349,6 +356,7 @@ expr:
 	  | op='not' right=expr
 	  | left=expr op='and' right=expr
 	  | left=expr op='or' right=expr
+	  | cond=expr '?' ifTrueExpr=expr ':' ifFalseExpr=expr
 	  |
 	;
 
@@ -522,6 +530,8 @@ DIV_REAL: '/';
 MOD_REAL: '%';
 DOT: '.';
 DOTDOT: '..';
+QUESTION: '?';
+COLON: ':';
 PAREN_LEFT: '(';
 PAREN_RIGHT: ')';
 BRACKET_LEFT: '[';
@@ -558,7 +568,7 @@ ANNOTATION: '@' [a-zA-Z0-9_]+;
 
 STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') )* '"';
 REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
-INT: [0-9]+ | '0x' [0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
+INT: [0-9]+ | '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
 
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 

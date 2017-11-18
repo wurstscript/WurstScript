@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediateLang.*;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.List;

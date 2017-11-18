@@ -157,7 +157,7 @@ public class StackTraceInjector2 {
                     stmts.add(JassIm.ImSet(trace, stackSize, JassIm.ImIntVal(1)));
                     stmts.add(JassIm.ImSetArray(trace, stack, JassIm.ImIntVal(0), str(f.getName())));
                 } else {
-                    WPos source = call.attrTrace().attrSource();
+                    WPos source = call.attrTrace().attrErrorPos();
                     String callPos;
                     if (source.getFile().startsWith("<")) {
                         callPos = "";
