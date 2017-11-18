@@ -320,6 +320,7 @@ HasReceiver = ExprMemberVar | ExprMemberArrayVar | ExprMemberMethod
 AstElementWithSource = Identifier | WPackage | WImport | WEntity | TypeExpr | TypeDef | SwitchCase 
   | ClassSlot | ClassMember | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WStatement | Expr
   | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs | NameRef | VarDef | FunctionDefinition | NameRef | NameDef
+  | Modifier
 
 AstElementWithIndexes = ExprMemberArrayVar | ExprVarArrayAccess
 
