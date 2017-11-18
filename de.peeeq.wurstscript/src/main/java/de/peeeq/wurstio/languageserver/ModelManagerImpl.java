@@ -1,10 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
@@ -42,6 +39,8 @@ public class ModelManagerImpl implements ModelManager {
     private List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
     // compile errors for each file
     private Map<WFile, List<CompileError>> parseErrors = new LinkedHashMap<>();
+    // other errors for each file
+    private Map<WFile, List<CompileError>> otherErrors = new LinkedHashMap<>();
 
     // hashcode for each compilation unit content as string
     private Map<WFile, Integer> fileHashcodes = new HashMap<>();
@@ -338,6 +337,7 @@ public class ModelManagerImpl implements ModelManager {
 
     private void reportErrors(String extra, WFile filename, List<CompileError> errors) {
         PublishDiagnosticsParams cr = Convert.createDiagnostics(extra, filename, errors);
+        otherErrors.put(filename, ImmutableList.copyOf(errors));
         for (Consumer<PublishDiagnosticsParams> consumer : onCompilationResultListeners) {
             consumer.accept(cr);
         }
@@ -512,7 +512,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public boolean hasErrors() {
-        return parseErrorStream().findAny().isPresent();
+        return errorStream().findAny().isPresent();
     }
 
     @Override
@@ -525,6 +525,17 @@ public class ModelManagerImpl implements ModelManager {
                 .flatMap(Collection::stream)
                 .filter(err -> err.getErrorType() == CompileError.ErrorType.ERROR);
     }
+
+    private Stream<CompileError> otherErrorStream() {
+        return otherErrors.values().stream()
+                .flatMap(Collection::stream)
+                .filter(err -> err.getErrorType() == CompileError.ErrorType.ERROR);
+    }
+
+    private Stream<CompileError> errorStream() {
+        return Streams.concat(parseErrorStream(), otherErrorStream());
+    }
+
 
     @Override
     public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {

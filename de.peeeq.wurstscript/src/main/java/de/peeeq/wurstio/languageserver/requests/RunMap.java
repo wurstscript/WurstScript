@@ -91,6 +91,10 @@ public class RunMap extends UserRequest<Object> {
 
     @Override
     public Object execute(ModelManager modelManager) {
+        if (modelManager.hasErrors()) {
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.");
+        }
+
 
         // TODO use normal compiler for this, avoid code duplication
         WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);

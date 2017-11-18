@@ -132,6 +132,10 @@ public class BuildMap extends UserRequest<Object> {
 
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
+        if (modelManager.hasErrors()) {
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.");
+        }
+
         File buildFile = new File(workspaceRoot.getFile(), WurstProjectConfig.FILE_NAME);
         if (!buildFile.exists()) {
             throw new RequestFailedException(MessageType.Error, WurstProjectConfig.FILE_NAME + " file doesn't exist");
