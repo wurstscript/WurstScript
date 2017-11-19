@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.llvm.ast.Ast;
 import de.peeeq.wurstscript.llvm.ast.BasicBlock;
 import de.peeeq.wurstscript.llvm.ast.Operand;
+import de.peeeq.wurstscript.llvm.ast.TemporaryVar;
 
 /**
  *
@@ -97,7 +98,12 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
 
     @Override
     public void case_ImSetArray(ImSetArray e) {
-        throw new RuntimeException("TODO");
+        Operand vl = tr.getVarLocation(e.getLeft());
+        Operand r = tr.translateExpr(e.getRight());
+        Operand index = tr.translateExpr(e.getIndex());
+        TemporaryVar ta = Ast.TemporaryVar("array_address");
+        tr.addInstruction(Ast.GetElementPtr(ta, vl, Ast.OperandList(Ast.ConstInt(0), index)));
+        tr.addInstruction(Ast.Store(Ast.VarRef(ta), r));
     }
 
 
@@ -188,6 +194,11 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
 
     @Override
     public void case_ImIntVal(ImIntVal e) {
+        tr.translateExpr(e);
+    }
+
+    @Override
+    public void case_ImCompiletimeExpr(ImCompiletimeExpr e) {
         tr.translateExpr(e);
     }
 

@@ -1,8 +1,9 @@
 package de.peeeq.wurstscript.llvm.tollvm;
 
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.llvm.ast.*;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 
@@ -21,24 +22,12 @@ public class LlvmTranslator {
     private StmtTranslator stmtTranslator = new StmtTranslator(this);
     private ExprTranslator exprTranslator = new ExprTranslator(this);
     private Map<ImVar, Global> globals = new HashMap<>();
+    private Map<ImClass, TypeStruct> structFor = new HashMap<>();
+    private Table<ImClass, ImVar, Integer> fieldIndex = HashBasedTable.create();
 
-    private GetAForB<ImFunction, Proc> procFor = new GetAForB<ImFunction, Proc>() {
-        @Override
-        public Proc initFor(ImFunction function) {
-            BasicBlockList blocks = Ast.BasicBlockList();
-            Proc proc = Ast.Proc(
-                    function.getName(),
-                    translateType(function.getReturnType()),
-                    function.getParameters()
-                            .stream()
-                            .map(LlvmTranslator.this::translateParameter)
-                            .collect(Collectors.toCollection(Ast::ParameterList)),
-                    blocks
-            );
-            prog.getProcedures().add(proc);
-            return proc;
-        }
-    };
+
+    private Map<ImFunction, Proc> procFor = new HashMap<ImFunction, Proc>();
+
     private BasicBlock currentBlock;
     private Proc currentProc;
     private Map<ImVar, TemporaryVar> localVars = new HashMap<>();
@@ -58,15 +47,59 @@ public class LlvmTranslator {
 
     public Prog translateProg() {
         prog = Ast.Prog(Ast.TypeDefList(), Ast.GlobalList(), Ast.ProcList());
+        initClasses();
+        initProcs();
+
         for (ImFunction function : program.getFunctions()) {
             translateFunction(function);
         }
         return prog;
     }
 
+    private void initProcs() {
+        for (ImFunction function : program.getFunctions()) {
+            BasicBlockList blocks = Ast.BasicBlockList();
+            Proc proc = Ast.Proc(
+                    function.getName(),
+                    translateType(function.getReturnType()),
+                    function.getParameters()
+                            .stream()
+                            .map(LlvmTranslator.this::translateParameter)
+                            .collect(Collectors.toCollection(Ast::ParameterList)),
+                    blocks
+            );
+            prog.getProcedures().add(proc);
+            procFor.put(function, proc);
+        }
+    }
+
+    private void initClasses() {
+        for (ImClass c : program.getClasses()) {
+            StructFieldList fields = Ast.StructFieldList();
+            structFor.put(c, Ast.TypeStruct(c.getName(), fields));
+        }
+
+        for (ImClass c : program.getClasses()) {
+            StructFieldList fields = structFor.get(c).getFields();
+            addFields(c, c, fields);
+        }
+    }
+
+    private void addFields(ImClass c, ImClass superClass, StructFieldList fields) {
+        for (ImClass sc : superClass.getSuperClasses()) {
+            addFields(c, sc, fields);
+        }
+        for (ImVar v : superClass.getFields()) {
+            StructField f = Ast.StructField(translateType(v.getType()), c.getName() + "_" + v.getName());
+            fieldIndex.put(c, v, fields.size());
+            fields.add(f);
+        }
+    }
+
+
     private void translateFunction(ImFunction function) {
 
-        Proc p = procFor.getFor(function);
+        Proc p = procFor.get(function);
         if (function.hasFlag(FunctionFlagEnum.IS_NATIVE)) {
             // do not translate natives
             return;
@@ -150,6 +183,38 @@ public class LlvmTranslator {
     }
 
     public Proc getProcFor(ImFunction func) {
-        return procFor.getFor(func);
+        return procFor.get(func);
+    }
+
+    public TypeStruct getStructFor(ImClass clazz) {
+        return structFor.get(clazz);
+    }
+
+
+    enum BuiltinProc {
+        free {
+            @Override
+            public Proc init(LlvmTranslator tr) {
+                Proc proc = Ast.Proc("free", Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypePointer(Ast.TypeByte()), "ptr")), Ast.BasicBlockList());
+                tr.prog.getProcedures().add(0, proc);
+                return proc;
+            }
+        }, alloc {
+            @Override
+            public Proc init(LlvmTranslator tr) {
+                Proc proc = Ast.Proc("alloc", Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypeInt(), "size")), Ast.BasicBlockList());
+                tr.prog.getProcedures().add(0, proc);
+                return proc;
+            }
+        };
+
+        public  abstract Proc init(LlvmTranslator tr);
+
+    }
+
+    private HashMap<BuiltinProc, Proc> buitinProcs = new HashMap<>();
+
+    public Proc builtinProc(BuiltinProc proc) {
+        return buitinProcs.computeIfAbsent(proc, p -> p.init(this));
     }
 }
