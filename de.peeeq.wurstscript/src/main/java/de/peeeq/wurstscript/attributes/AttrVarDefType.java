@@ -57,7 +57,11 @@ public class AttrVarDefType {
                 // infer the type from the first expression
                 // we can make this smarter later by finding a common supertype
                 // for all given values
-                return new WurstTypeArray(values.get(0).attrTyp());
+                WurstType valueType = values.get(0).attrTyp();
+                if (valueType instanceof WurstTypeIntLiteral) {
+                    valueType = WurstTypeInt.instance();
+                }
+                return new WurstTypeArray(valueType);
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");

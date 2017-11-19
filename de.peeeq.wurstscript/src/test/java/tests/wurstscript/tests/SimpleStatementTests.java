@@ -490,4 +490,37 @@ public class SimpleStatementTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void intLiteralVar() {
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "function equals2(int x) returns boolean",
+                "    return x == 2",
+                "function equals2(real x) returns boolean",
+                "    return x == 2",
+                "init",
+                "    var a = 2",
+                "    if equals2(a)",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void intLiteralArray() {
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "function equals2(int x) returns boolean",
+                "    return x == 2",
+                "function equals2(real x) returns boolean",
+                "    return x == 2",
+                "init",
+                "    var a = [1,2,3]",
+                "    if equals2(a[1])",
+                "        testSuccess()"
+        );
+    }
+
+
 }
