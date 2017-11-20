@@ -54,12 +54,16 @@ public class AttrVarDefType {
                     v.addError("Could not infer the type of variable '" + v.getName() + "' because the array is empty.");
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
+
                 // infer the type from the first expression
                 // we can make this smarter later by finding a common supertype
                 // for all given values
                 WurstType valueType = values.get(0).attrTyp();
                 if (valueType instanceof WurstTypeIntLiteral) {
                     valueType = WurstTypeInt.instance();
+                } else if (valueType instanceof WurstTypeArray) {
+                    v.addError("Array parameters are not permitted. Remember that initialized arrays do not have an identity nor length.");
+                    return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
                 return new WurstTypeArray(valueType);
             } else {

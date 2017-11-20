@@ -523,4 +523,17 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void testArrayInit() {
+        testAssertErrorsLines(false, "Array parameters",
+                "package test",
+                "native testSuccess()",
+                "let a = [1,2]",
+                "",
+                "let b = [a]",
+                ""
+        );
+    }
+
+
 }
