@@ -13,14 +13,7 @@ public class ForwardExecution<T, Target extends AstElementWithBody> {
     private Map<WStatement, T> currentValues = Maps.newLinkedHashMap();
     private AstElementWithBody f;
 
-    private PriorityQueue<WStatement> todo = new PriorityQueue<WStatement>(11, new Comparator<WStatement>() {
-
-        @Override
-        public int compare(WStatement o1, WStatement o2) {
-            return o2.getSource().getLeftPos() - o1.getSource().getLeftPos();
-        }
-
-    });
+    private PriorityQueue<WStatement> todo = new PriorityQueue<>(11, (o1, o2) -> o2.getSource().getLeftPos() - o1.getSource().getLeftPos());
 
     ForwardExecution(Target f, ForwardMethod<T, Target> method) {
         this.f = f;

@@ -99,7 +99,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<ImVar, ImExpr>());
+        imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<>());
     }
 
 
@@ -198,12 +198,12 @@ public class ImTranslator {
     private <T extends Element> void sortList(List<T> list) {
         List<T> classes = removeAll(list);
         Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
-        Collections.sort(classes, comparator);
+        classes.sort(comparator);
         list.addAll(classes);
     }
 
     public <T> List<T> removeAll(List<T> list) {
-        List<T> result = new ArrayList<T>();
+        List<T> result = new ArrayList<>();
         while (!list.isEmpty()) {
             result.add(0, list.remove(list.size() - 1));
         }
@@ -501,14 +501,15 @@ public class ImTranslator {
     }
 
     private ImExpr getDefaultValueForJassTypeName(String typeName) {
-        if (typeName.equals("integer")) {
-            return ImIntVal(0);
-        } else if (typeName.equals("real")) {
-            return ImRealVal("0.");
-        } else if (typeName.equals("boolean")) {
-            return ImBoolVal(false);
-        } else {
-            return ImNull();
+        switch (typeName) {
+            case "integer":
+                return ImIntVal(0);
+            case "real":
+                return ImRealVal("0.");
+            case "boolean":
+                return ImBoolVal(false);
+            default:
+                return ImNull();
         }
     }
 
@@ -634,13 +635,8 @@ public class ImTranslator {
     }
 
     public ImFunction getInitFuncFor(WPackage p) {
-        ImFunction f = initFuncMap.get(p);
-        if (f == null) {
-            f = JassIm.ImFunction(p, "init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-            initFuncMap.put(p, f);
-            // TODO more precise trace
-        }
-        return f;
+        // TODO more precise trace
+        return  initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
     }
 
     /**
@@ -901,12 +897,7 @@ public class ImTranslator {
     private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
     public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
-        List<Pair<ImVar, VarInitialization>> r = classDynamicInitMap.get(c);
-        if (r == null) {
-            r = Lists.newArrayList();
-            classDynamicInitMap.put(c, r);
-        }
-        return r;
+        return classDynamicInitMap.computeIfAbsent(c, k -> Lists.newArrayList());
     }
 
 
@@ -988,9 +979,6 @@ public class ImTranslator {
     private Multimap<ClassDef, ClassDef> subclasses = null;
     private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
-    private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
-
-
     private boolean isEclipseMode = false;
 
     public Collection<ClassDef> getSubClasses(ClassDef classDef) {
@@ -1051,10 +1039,11 @@ public class ImTranslator {
         }
     }
 
+    private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
+
     public void addCompiletimeFunc(ImFunction f) {
         compiletimeFuncs.add(f);
     }
-
 
     public int getEnumMemberId(EnumMember enumMember) {
         return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
@@ -1174,12 +1163,7 @@ public class ImTranslator {
     }
 
     public ImType getOriginalReturnValue(ImFunction f) {
-        ImType result = originalReturnValues.get(f);
-        if (result == null) {
-            result = f.getReturnType();
-            originalReturnValues.put(f, result);
-        }
-        return result;
+        return originalReturnValues.computeIfAbsent(f, ImFunction::getReturnType);
     }
 
     public void assertProperties(AssertProperty... properties1) {
@@ -1259,12 +1243,8 @@ public class ImTranslator {
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
-        ImClass c = classForStructureDef.get(s);
-        if (c == null) {
-            c = JassIm.ImClass(s, s.getName(), JassIm.ImVars(), JassIm.ImMethods(), Lists.<ImClass>newArrayList());
-            classForStructureDef.put(s, c);
-        }
-        return c;
+        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImVars(), JassIm.ImMethods(),
+                Lists.<ImClass>newArrayList()));
     }
 
 
@@ -1306,11 +1286,7 @@ public class ImTranslator {
         classManagementVars = Maps.newLinkedHashMap();
         for (ImClass c : imProg.getClasses()) {
             ImClass rep = p.getRep(c);
-            ClassManagementVars v = classManagementVars.get(rep);
-            if (v == null) {
-                v = new ClassManagementVars(rep, this);
-                classManagementVars.put(rep, v);
-            }
+            ClassManagementVars v = classManagementVars.computeIfAbsent(rep, r -> new ClassManagementVars(r, this));
             classManagementVars.put(c, v);
         }
         return classManagementVars;

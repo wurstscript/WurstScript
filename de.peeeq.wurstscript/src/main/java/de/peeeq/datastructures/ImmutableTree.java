@@ -21,11 +21,11 @@ public class ImmutableTree<T> implements Iterable<ImmutableTree<T>> {
     }
 
     public static <T> ImmutableTree<T> node(ImmutableList<ImmutableTree<T>> children) {
-        return new ImmutableTree<T>(children, null);
+        return new ImmutableTree<>(children, null);
     }
 
     public static <T> ImmutableTree<T> leaf(T t) {
-        return new ImmutableTree<T>(null, t);
+        return new ImmutableTree<>(null, t);
     }
 
     public int size() {

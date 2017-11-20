@@ -25,7 +25,7 @@ public class ImToJassTranslator {
     private ImFunction mainFunc;
     private ImFunction confFunction;
     private @Nullable JassProg prog;
-    private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
+    private Stack<ImFunction> translatingFunctions = new Stack<>();
     private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
     private Set<String> usedNames = Sets.newLinkedHashSet();
     private static ImmutableSet<String> restrictedNames = ImmutableSet.of("loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call");
@@ -99,13 +99,7 @@ public class ImToJassTranslator {
 
     private List<ImFunction> sorted(Collection<ImFunction> collection) {
         List<ImFunction> r = Lists.newArrayList(collection);
-        Collections.sort(r, new Comparator<ImFunction>() {
-
-            @Override
-            public int compare(ImFunction f, ImFunction g) {
-                return f.getName().compareTo(g.getName());
-            }
-        });
+        r.sort(Comparator.comparing(ImFunction::getName));
         return r;
     }
 

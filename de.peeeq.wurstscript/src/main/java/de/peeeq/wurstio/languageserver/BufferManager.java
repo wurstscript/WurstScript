@@ -30,12 +30,7 @@ public class BufferManager {
     }
 
     private StringBuilder buffer(WFile uri) {
-        StringBuilder res = currentBuffer.get(uri);
-        if (res == null) {
-            res = new StringBuilder();
-            currentBuffer.put(uri, res);
-        }
-        return res;
+        return currentBuffer.computeIfAbsent(uri, k -> new StringBuilder());
     }
 
     synchronized void handleFileChange(FileEvent fileEvent) {

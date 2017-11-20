@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.HoverInfo;
-import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.languageserver.requests.UserRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
@@ -168,9 +167,7 @@ public class LanguageWorker implements Runnable {
             }
         } else if (!userRequests.isEmpty()) {
             UserRequest<?> req = userRequests.remove();
-            return new Workitem(req.toString(),  () -> {
-                req.run(modelManager);
-            });
+            return new Workitem(req.toString(), () -> req.run(modelManager));
         } else if (!changes.isEmpty()) {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);

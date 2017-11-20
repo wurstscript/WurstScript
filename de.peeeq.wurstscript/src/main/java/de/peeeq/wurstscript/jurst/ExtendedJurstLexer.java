@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jurst.antlr.JurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -33,7 +32,7 @@ public class ExtendedJurstLexer implements TokenSource {
 
     public ExtendedJurstLexer(CharStream input) {
         orig = new JurstLexer(input);
-        sourcePair = new Pair<TokenSource, CharStream>(orig, input);
+        sourcePair = new Pair<>(orig, input);
     }
 
 
@@ -249,8 +248,7 @@ public class ExtendedJurstLexer implements TokenSource {
     }
 
 
-    private @NotNull
-    Token makeToken(int type, String text, int start, int stop) {
+    private Token makeToken(int type, String text, int start, int stop) {
         Pair<TokenSource, CharStream> source = sourcePair;
         int channel = 0;
         CommonToken t = new CommonToken(source, type, channel, start, stop);

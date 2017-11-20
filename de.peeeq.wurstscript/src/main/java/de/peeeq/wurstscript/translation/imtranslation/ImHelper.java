@@ -161,14 +161,15 @@ public class ImHelper {
 
     public static ImExpr defaultValueForType(ImSimpleType t) {
         String type = t.getTypename();
-        if (type.equals("integer")) {
-            return JassIm.ImIntVal(0);
-        } else if (type.equals("boolean")) {
-            return JassIm.ImBoolVal(false);
-        } else if (type.equals("real")) {
-            return JassIm.ImRealVal("0.");
-        } else {
-            return JassIm.ImNull();
+        switch (type) {
+            case "integer":
+                return JassIm.ImIntVal(0);
+            case "boolean":
+                return JassIm.ImBoolVal(false);
+            case "real":
+                return JassIm.ImRealVal("0.");
+            default:
+                return JassIm.ImNull();
         }
     }
 

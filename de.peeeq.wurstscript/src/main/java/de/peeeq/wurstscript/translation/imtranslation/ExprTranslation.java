@@ -286,7 +286,7 @@ public class ExprTranslation {
     }
 
     private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
-        List<WParameter> indexes = new ArrayList<WParameter>();
+        List<WParameter> indexes = new ArrayList<>();
 
         Expr expr = mv;
         while (true) {

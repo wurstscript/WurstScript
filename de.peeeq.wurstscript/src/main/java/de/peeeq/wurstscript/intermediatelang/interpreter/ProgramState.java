@@ -175,22 +175,19 @@ public class ProgramState extends State {
         }
 
         public Iterable<ILStackFrame> getStackFramesReversed() {
-            return new Iterable<ILStackFrame>() {
-                @Override
-                public Iterator<ILStackFrame> iterator() {
-                    ListIterator<ILStackFrame> it = stackFrames.listIterator();
-                    return new Iterator<ILStackFrame>() {
-                        @Override
-                        public boolean hasNext() {
-                            return it.hasPrevious();
-                        }
+            return () -> {
+                ListIterator<ILStackFrame> it = stackFrames.listIterator();
+                return new Iterator<ILStackFrame>() {
+                    @Override
+                    public boolean hasNext() {
+                        return it.hasPrevious();
+                    }
 
-                        @Override
-                        public ILStackFrame next() {
-                            return it.previous();
-                        }
-                    };
-                }
+                    @Override
+                    public ILStackFrame next() {
+                        return it.previous();
+                    }
+                };
             };
         }
 

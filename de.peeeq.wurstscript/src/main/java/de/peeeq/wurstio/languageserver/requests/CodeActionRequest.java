@@ -160,7 +160,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
 
     private List<Command> makeImportCommands(List<String> possibleImports) {
         return possibleImports.stream()
-                .map(imp -> makeImportCommand(imp))
+                .map(this::makeImportCommand)
                 .collect(Collectors.toList());
     }
 

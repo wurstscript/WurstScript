@@ -23,12 +23,7 @@ public abstract class State {
     }
 
     protected Map<Integer, ILconst> getArray(ImVar v) {
-        Map<Integer, ILconst> r = arrayValues.get(v);
-        if (r == null) {
-            r = Maps.newLinkedHashMap();
-            arrayValues.put(v, r);
-        }
-        return r;
+        return arrayValues.computeIfAbsent(v, k -> Maps.newLinkedHashMap());
     }
 
     public void setArrayVal(ImVar v, int index, ILconst val) {

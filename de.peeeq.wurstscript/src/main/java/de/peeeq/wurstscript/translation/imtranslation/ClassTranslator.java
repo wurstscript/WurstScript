@@ -20,11 +20,11 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
-import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class ClassTranslator {
 

@@ -182,13 +182,7 @@ public class ConstantAndCopyPropagation {
                     // x = a; [x->a]
                     // y = b; [x->a, y->b]
                     // a = 5; [y->b, a->5] // here [x->a] has been invalidated
-                    Iterator<Entry<ImVar, Value>> it = newOut.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<ImVar, Value> entry = it.next();
-                        if (entry.getValue().equalValue(new Value(var))) {
-                            it.remove();
-                        }
-                    }
+                    newOut.entrySet().removeIf(entry -> entry.getValue().equalValue(new Value(var)));
                 }
             }
 

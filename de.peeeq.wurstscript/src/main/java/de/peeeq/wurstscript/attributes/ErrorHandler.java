@@ -8,8 +8,8 @@ import java.util.List;
 
 public class ErrorHandler {
 
-    private List<CompileError> errors = new NotNullList<CompileError>();
-    private List<CompileError> warnings = new NotNullList<CompileError>();
+    private List<CompileError> errors = new NotNullList<>();
+    private List<CompileError> warnings = new NotNullList<>();
     private WurstGui gui;
     private boolean unitTestMode = false;
 

@@ -180,12 +180,7 @@ public class ControlFlowGraph {
     }
 
     private <K> Node getNode(Map<K, Node> cache, K key, @Nullable ImStmt s) {
-        Node result = cache.get(key);
-        if (result == null) {
-            result = new Node(s);
-            cache.put(key, result);
-        }
-        return result;
+        return cache.computeIfAbsent(key, k -> new Node(s));
     }
 
     public List<Node> getNodes() {

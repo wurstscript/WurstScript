@@ -39,14 +39,15 @@ public class JassInterpreter {
     }
 
     public static ILconst getDefaultValue(String type) {
-        if (type.equals("integer")) {
-            return new ILconstInt(0);
-        } else if (type.equals("boolean")) {
-            return ILconstBool.FALSE;
-        } else if (type.equals("real")) {
-            return new ILconstReal(0.0f);
-        } else {
-            return ILconstNull.instance();
+        switch (type) {
+            case "integer":
+                return new ILconstInt(0);
+            case "boolean":
+                return ILconstBool.FALSE;
+            case "real":
+                return new ILconstReal(0.0f);
+            default:
+                return ILconstNull.instance();
         }
     }
 

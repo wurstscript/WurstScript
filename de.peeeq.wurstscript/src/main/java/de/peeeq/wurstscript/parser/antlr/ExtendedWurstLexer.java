@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -66,7 +65,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
     public ExtendedWurstLexer(CharStream input) {
         orig = new WurstLexer(input);
-        sourcePair = new Pair<TokenSource, CharStream>(orig, input);
+        sourcePair = new Pair<>(orig, input);
         indentationLevels.push(0);
     }
 
@@ -374,8 +373,7 @@ public class ExtendedWurstLexer implements TokenSource {
     }
 
 
-    private @NotNull
-    Token makeToken(int type, String text, int start, int stop) {
+    private Token makeToken(int type, String text, int start, int stop) {
         Pair<TokenSource, CharStream> source = sourcePair;
         int channel = 0;
         CommonToken t = new CommonToken(source, type, channel, start, stop);

@@ -14,7 +14,7 @@ public class SubClasses {
 
 
     public static @Nullable ClassDef getExtendedClass(ClassDef classDef) {
-        assertNonCyclicClassHierarchy(classDef, new ArrayList<ClassDef>());
+        assertNonCyclicClassHierarchy(classDef, new ArrayList<>());
 
         if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
             WurstTypeClass c = (WurstTypeClass) classDef.getExtendedClass().attrTyp();

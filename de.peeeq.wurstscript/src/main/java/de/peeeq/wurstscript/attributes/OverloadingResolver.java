@@ -37,7 +37,7 @@ public abstract class OverloadingResolver<F extends Element, C> {
         if (size == 1) {
             return Optional.of(Utils.getFirst(alternativeFunctions));
         }
-        List<String> hints = new NotNullList<String>();
+        List<String> hints = new NotNullList<>();
 
         Map<F, Integer> numMatches = new HashMap<>();
         for (F f : alternativeFunctions) {

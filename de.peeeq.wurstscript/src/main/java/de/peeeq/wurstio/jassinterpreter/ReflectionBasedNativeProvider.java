@@ -26,11 +26,7 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
                 Object r = null;
                 try {
                     if (args.length != method.getParameterTypes().length) {
-                        continue nextMethod;
-//						throw new Error("Wrong number of parameters when calling " +funcname+
-//								" . Expected " +
-//								method.getParameterTypes().length + " but found " +
-//								args.length);
+                        continue;
                     }
                     int i = 0;
                     for (Class<?> paramType : method.getParameterTypes()) {

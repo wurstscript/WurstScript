@@ -171,7 +171,7 @@ public class Utils {
      * @throws TopsortCycleException if there exist items a,b so that a > b and b > a
      */
     public static <T> List<T> topSort(Collection<T> items,
-                                      Function<T, ? extends Collection<T>> biggerItems)
+                                      java.util.function.Function<T, ? extends Collection<T>> biggerItems)
             throws TopsortCycleException {
         Set<T> visitedItems = new HashSet<>();
         List<T> result = new ArrayList<>(items.size());
@@ -179,7 +179,7 @@ public class Utils {
         for (T t : items) {
             if (t == null)
                 throw new IllegalArgumentException();
-            topSortHelper(result, visitedItems, activeItems, biggerItems, t);
+            topSortHelper(result, visitedItems, activeItems, biggerItems::apply, t);
         }
         return result;
     }
@@ -231,7 +231,7 @@ public class Utils {
 
     private static <T> void topSortHelperIgnoreCycles(List<T> result,
                                                       Set<T> visitedItems,
-                                                      Function<T, ? extends Collection<T>> biggerItems, T item) {
+                                                      java.util.function.Function<T, ? extends Collection<T>> biggerItems, T item) {
         if (visitedItems.contains(item)) {
             return;
         }
@@ -447,7 +447,7 @@ public class Utils {
     public static <T extends NameDef> List<T> sortByName(
             Collection<T> c) {
         List<T> r = Lists.newArrayList(c);
-        Collections.sort(r, Comparator.comparing(NameDef::getName));
+        r.sort(Comparator.comparing(NameDef::getName));
         return r;
     }
 
@@ -694,13 +694,7 @@ public class Utils {
 
 
     public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
-        return new Comparator<T>() {
-
-            @Override
-            public int compare(T a, T b) {
-                return a.getName().compareTo(b.getName());
-            }
-        };
+        return Comparator.comparing(JassImElementWithName::getName);
     }
 
     public static String getParameterListText(AstElementWithParameters f) {
@@ -778,13 +772,7 @@ public class Utils {
     }
 
     public static <K, V> void removeValuesFromMap(Map<K, V> map, Collection<V> removed) {
-        Iterator<Entry<K, V>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<K, V> e = it.next();
-            if (removed.contains(e.getValue())) {
-                it.remove();
-            }
-        }
+        map.entrySet().removeIf(e -> removed.contains(e.getValue()));
     }
 
     public static <T> ImmutableList<T> emptyList() {
@@ -794,7 +782,7 @@ public class Utils {
     public static <T>
     Collector<T, ?, ImmutableList<T>> toImmutableList() {
         Collectors.toList();
-        return new Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>() {
+        return new Collector<T, Builder<T>, ImmutableList<T>>() {
 
             @Override
             public Supplier<Builder<T>> supplier() {
@@ -817,7 +805,7 @@ public class Utils {
             }
 
             @Override
-            public Set<java.util.stream.Collector.Characteristics> characteristics() {
+            public Set<Characteristics> characteristics() {
                 return Collections.emptySet();
             }
         };
@@ -891,8 +879,8 @@ public class Utils {
      * <p>
      * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
      */
-    public static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+    public static String convertStreamToString(InputStream is) {
+        Scanner s = new Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
 

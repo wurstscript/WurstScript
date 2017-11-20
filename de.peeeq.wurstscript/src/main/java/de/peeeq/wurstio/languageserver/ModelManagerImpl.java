@@ -270,10 +270,8 @@ public class ModelManagerImpl implements ModelManager {
                 return true;
             } else {
                 WPackage importedPackage = imp.attrImportedPackage();
-                if (imp.getIsPublic() && importedPackage != null) {
-                    if (imports(importedPackage, packageNames, true, visited)) {
-                        return true;
-                    }
+                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)){
+                    return true;
                 }
             }
         }

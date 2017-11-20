@@ -2010,13 +2010,7 @@ public class WurstValidator {
      * private methods from other scopes
      */
     private void keepFunctions(List<NameLink> funcs) {
-        Iterator<NameLink> it = funcs.iterator();
-        while (it.hasNext()) {
-            NameLink func = it.next();
-            if (!(func.getNameDef() instanceof FuncDef) || func.getVisibility() == Visibility.PRIVATE_OTHER) {
-                it.remove();
-            }
-        }
+        funcs.removeIf(func -> !(func.getNameDef() instanceof FuncDef) || func.getVisibility() == Visibility.PRIVATE_OTHER);
     }
 
     /**
@@ -2025,12 +2019,7 @@ public class WurstValidator {
      * @param funcs
      */
     private void sortByLevel(List<NameLink> funcs) {
-        Collections.sort(funcs, new Comparator<NameLink>() {
-            @Override
-            public int compare(NameLink a, NameLink b) {
-                return a.getLevel() - b.getLevel();
-            }
-        });
+        funcs.sort(Comparator.comparingInt(NameLink::getLevel));
     }
 
     private void checkForDuplicateNames(WScope scope) {
@@ -2052,13 +2041,7 @@ public class WurstValidator {
                 }
             }
             if (other.size() > 1) {
-                Collections.sort(other, new Comparator<NameLink>() {
-
-                    @Override
-                    public int compare(NameLink o1, NameLink o2) {
-                        return o1.getNameDef().attrSource().getLeftPos() - o2.getNameDef().attrSource().getLeftPos();
-                    }
-                });
+                other.sort(Comparator.comparingInt(o -> o.getNameDef().attrSource().getLeftPos()));
                 NameLink l1 = other.get(0);
                 for (int j = 1; j < other.size(); j++) {
                     other.get(j).getNameDef().addError("An element with name " + name + " already exists: "

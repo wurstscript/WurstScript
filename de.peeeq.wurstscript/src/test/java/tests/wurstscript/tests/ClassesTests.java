@@ -1101,5 +1101,16 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void tupleArrayMember() {
+        testAssertErrorsLines(false, "cannot access",
+                "package test",
+                "   tuple t(int i)",
+                "   class A",
+                "       t array[2] b",
+                "endpackage"
+        );
+    }
+
 
 }

@@ -32,10 +32,7 @@ public class WurstTypeClosure extends WurstType {
                 }
             }
             // covariant return types
-            if (!returnType.isSubtypeOf(o.returnType, location)) {
-                return false;
-            }
-            return true;
+            return returnType.isSubtypeOf(o.returnType, location);
         } else if (other instanceof WurstTypeCode) {
             return paramTypes.size() == 0;
         } else {
