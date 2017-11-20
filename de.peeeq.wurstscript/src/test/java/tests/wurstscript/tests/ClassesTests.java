@@ -1,6 +1,7 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -1102,6 +1103,7 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore // Bug https://github.com/wurstscript/WurstScript/issues/572
     public void tupleArrayMember() {
         testAssertErrorsLines(false, "cannot access",
                 "package test",
