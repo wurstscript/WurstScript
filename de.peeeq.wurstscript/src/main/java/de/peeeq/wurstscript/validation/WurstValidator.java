@@ -1789,7 +1789,7 @@ public class WurstValidator {
                     for (NameLink nameLink : funcs) {
                         alternatives.append("\n - " + Utils.printElementWithSource(nameLink.getNameDef()));
                     }
-                    e.addError("Ambigious function name: " + exFunc + ". Alternatives are: " + alternatives);
+                    e.addError("Ambiguous function name: " + exFunc + ". Alternatives are: " + alternatives);
                     return;
                 }
                 NameLink func = Utils.getFirst(funcs);

@@ -25,7 +25,6 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -367,7 +366,7 @@ public class Main {
                     out.print(message);
                 }
             };
-            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null);
+            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null, null, null);
 
 
             for (RunTests.TestFailure e : runTests.getFailTests()) {

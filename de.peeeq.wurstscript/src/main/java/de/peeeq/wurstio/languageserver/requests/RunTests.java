@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -27,6 +28,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.concurrent.*;
+
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 /**
  * Created by peter on 05.05.16.
@@ -98,7 +101,11 @@ public class RunTests extends UserRequest<Object> {
             return "Could not translate program";
         }
 
-        runTests(imProg, funcToTest, cu);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        cfr.run();
+        WLogger.info("Ran compiletime functions");
+
+        runTests(imProg, funcToTest, cu, cfr.getInterpreter(), cfr.getGlobalState());
         return "ok";
     }
 
@@ -120,11 +127,16 @@ public class RunTests extends UserRequest<Object> {
         }
     }
 
-    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
+    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu, @Nullable ILInterpreter interpreter,
+                               @Nullable ProgramState globalState) {
         WurstGui gui = new TestGui();
-        ProgramState globalState = new ProgramState(gui, imProg, true);
-        ILInterpreter interpreter = new ILInterpreter(null, gui, null, globalState);
-        interpreter.addNativeProvider(new NativeFunctionsIO());
+        if(globalState == null) {
+            globalState = new ProgramState(gui, imProg, true);
+        }
+        if (interpreter == null) {
+            interpreter = new ILInterpreter(imProg, gui, null, globalState);
+            interpreter.addNativeProvider(new NativeFunctionsIO());
+        }
 
         redirectInterpreterOutput(globalState);
 
@@ -143,8 +155,9 @@ public class RunTests extends UserRequest<Object> {
 
                 print("Running test <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + "." + f.getName() + "> .. ");
                 try {
+                    @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
-                        interpreter.runVoidFunc(f, null);
+                        finalInterpreter.runVoidFunc(f, null);
                         successTests.add(f);
                         println("success!");
                         return null;
@@ -167,7 +180,7 @@ public class RunTests extends UserRequest<Object> {
                     println("success!");
                 } catch (TestFailException e) {
 
-                    failTests.add( new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
+                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("FAILED");
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
@@ -179,8 +192,8 @@ public class RunTests extends UserRequest<Object> {
                 }
             }
         }
-        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size()+failTests.size()));
-        if(failTests.size() == 0) {
+        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size() + failTests.size()));
+        if (failTests.size() == 0) {
             println(">> All tests have passed successfully!");
         } else {
             println(">> The following tests failed:");
@@ -189,7 +202,7 @@ public class RunTests extends UserRequest<Object> {
             }
         }
         WLogger.info("finished tests");
-        return new TestResult(successTests.size(), successTests.size()+failTests.size());
+        return new TestResult(successTests.size(), successTests.size() + failTests.size());
     }
 
 

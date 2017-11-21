@@ -26,7 +26,7 @@ public class WurstChecker {
 
         if (errorHandler.getErrorCount() > 0) return;
 
-        attachErrorHanlder(root);
+        attachErrorHandler(root);
 
         expandModules(root);
 
@@ -44,7 +44,7 @@ public class WurstChecker {
         WLogger.info("debug - finished checkProg");
     }
 
-    private void attachErrorHanlder(WurstModel root) {
+    private void attachErrorHandler(WurstModel root) {
         for (CompilationUnit cu : root) {
             cu.setCuErrorHandler(errorHandler);
         }

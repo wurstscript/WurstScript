@@ -28,7 +28,10 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CompiletimeFunctionRunner {
@@ -40,6 +43,15 @@ public class CompiletimeFunctionRunner {
     private List<ImFunction> successTests = Lists.newArrayList();
     private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
     private boolean injectObjects;
+    private ProgramStateIO globalState;
+
+    public ILInterpreter getInterpreter() {
+        return interpreter;
+    }
+
+    public ProgramStateIO getGlobalState() {
+        return globalState;
+    }
 
 
     public enum FunctionFlagToRun {
@@ -63,7 +75,7 @@ public class CompiletimeFunctionRunner {
     public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
         Preconditions.checkNotNull(imProg);
         this.imProg = imProg;
-        ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
+        globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
         interpreter.addNativeProvider(new NativeFunctionsIO());
@@ -80,7 +92,7 @@ public class CompiletimeFunctionRunner {
             List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
             collectCompiletimeExpressions(toExecute);
             collectCompiletimeFunctions(toExecute);
-            
+
             toExecute.sort(Comparator.comparing(this::getOrderIndex));
 
             execute(toExecute);
@@ -155,7 +167,6 @@ public class CompiletimeFunctionRunner {
     }
 
 
-
     private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
         LocalState localState = new LocalState();
         ILconst value = cte.evaluate(interpreter.getGlobalState(), localState);
@@ -174,8 +185,8 @@ public class CompiletimeFunctionRunner {
             return JassIm.ImTupleExpr(
                     JassIm.ImExprs(
                             ((ILconstTuple) value).values().stream()
-                            .map(e -> constantToExpr(cte, e))
-                            .collect(Collectors.toList())
+                                    .map(e -> constantToExpr(cte, e))
+                                    .collect(Collectors.toList())
                     )
             );
         } else {
