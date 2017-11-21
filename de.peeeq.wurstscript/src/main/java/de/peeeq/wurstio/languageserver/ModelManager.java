@@ -39,7 +39,7 @@ public interface ModelManager {
 
     void syncCompilationUnitContent(WFile filename, String contents);
 
-    CompilationUnit replaceCompilationUnitContent(WFile filename, String buffer, boolean reportErrors);
+    CompilationUnit replaceCompilationUnitContent(WFile filename, boolean reportErrors);
 
     /**
      * get all wurst files in dependency folders

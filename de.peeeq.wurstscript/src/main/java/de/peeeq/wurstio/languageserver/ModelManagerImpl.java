@@ -1,8 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.*;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
@@ -18,6 +16,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
@@ -44,6 +43,8 @@ public class ModelManagerImpl implements ModelManager {
 
     // hashcode for each compilation unit content as string
     private Map<WFile, Integer> fileHashcodes = new HashMap<>();
+
+    private Map<WFile, Long> timeStamps = new HashMap<>();
 
     public ModelManagerImpl(String projectPath, BufferManager bufferManager) {
         this(new File(projectPath), bufferManager);
@@ -85,6 +86,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void clean() {
+        timeStamps.clear();
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
@@ -425,18 +427,12 @@ public class ModelManagerImpl implements ModelManager {
     public void replaceCompilationUnit(WFile filename) {
         File f = filename.getFile();
         if (!f.exists()) {
+            WLogger.info("Removing nonexistant CU: " + f);
             removeCompilationUnit(filename);
             return;
         }
-        try {
-            String contents = Files.toString(f, Charsets.UTF_8);
-            bufferManager.updateFile(WFile.create(f), contents);
-            replaceCompilationUnit(filename, contents, true);
-            WLogger.info("replaceCompilationUnit 3 " + f);
-        } catch (IOException e) {
-            WLogger.severe(e);
-            throw new ModelManagerException(e);
-        }
+        replaceCompilationUnit(filename, true);
+        WLogger.info("replaceCompilationUnit 3 " + f);
     }
 
 
@@ -447,14 +443,14 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
-        replaceCompilationUnit(filename, contents, true);
+        replaceCompilationUnit(filename, true);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, true, ImmutableList.of(filename));
     }
 
     @Override
-    public CompilationUnit replaceCompilationUnitContent(WFile filename, String contents, boolean reportErrors) {
-        return replaceCompilationUnit(filename, contents, reportErrors);
+    public CompilationUnit replaceCompilationUnitContent(WFile filename, boolean reportErrors) {
+        return replaceCompilationUnit(filename, reportErrors);
     }
 
 
@@ -467,29 +463,43 @@ public class ModelManagerImpl implements ModelManager {
         doTypeCheckPartial(gui, true, ImmutableList.of(f));
     }
 
-    private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        if (fileHashcodes.containsKey(filename)) {
-            int oldHash = fileHashcodes.get(filename);
-            WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
-            if (oldHash == contents.hashCode()) {
-                // no change
-                WLogger.info("CU " + filename + " was unchanged.");
-                return getCompilationUnit(filename);
+    private CompilationUnit replaceCompilationUnit(WFile wFile, boolean reportErrors) {
+        wFile = WFile.create(new File(projectPath, projectPath.toPath().relativize(wFile.getPath()).toString()));
+
+        long lastModified = wFile.getFile().lastModified();
+        if(timeStamps.containsKey(wFile)) {
+            // File has been cached before
+            long lastParsed = timeStamps.get(wFile);
+            WLogger.info("lastModified = " + lastModified + ", lastParsed = " + lastParsed);
+            if(lastParsed == lastModified) {
+                // Cached version should be good
+                WLogger.info("CU " + wFile + " was unchanged.");
+                return getCompilationUnit(wFile);
             }
         }
+        // File is new
+        try {
+            String contents = new String(Files.readAllBytes(wFile.getPath()));
+            bufferManager.updateFile(wFile, contents);
+            timeStamps.put(wFile, lastModified);
+            WLogger.info("adding CU " + wFile + " contents.length: " + contents.length());
+            WurstGui gui = new WurstGuiLogger();
+            WurstCompilerJassImpl c = getCompiler(gui);
+            CompilationUnit cu = c.parse(wFile.toString(), new StringReader(contents));
+            cu.setFile(wFile.toString());
+            updateModel(cu, gui);
 
-        WLogger.info("replace CU " + filename);
-        WurstGui gui = new WurstGuiLogger();
-        WurstCompilerJassImpl c = getCompiler(gui);
-        CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
-        cu.setFile(filename.toString());
-        updateModel(cu, gui);
-        fileHashcodes.put(filename, contents.hashCode());
-        if (reportErrors) {
-            WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
-            reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
+            if (reportErrors) {
+                WLogger.info("found " + gui.getErrorCount() + " errors in file " + wFile);
+                reportErrors("sync cu " + wFile, wFile, gui.getErrorsAndWarnings());
+            }
+            return cu;
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return cu;
+
+
+        return null;
     }
 
     @Override
@@ -537,7 +547,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        replaceCompilationUnit(filename, contents, reportErrors);
+        replaceCompilationUnit(filename, reportErrors);
     }
 
     @Override

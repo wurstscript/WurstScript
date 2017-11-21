@@ -246,7 +246,7 @@ public class LanguageWorker implements Runnable {
             bufferManager.handleChange(params);
             WFile file = WFile.create(params.getTextDocument().getUri());
 
-            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(file)));
             lock.notifyAll();
         }
     }

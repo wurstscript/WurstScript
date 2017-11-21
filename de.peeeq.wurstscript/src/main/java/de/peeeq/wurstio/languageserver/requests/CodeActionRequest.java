@@ -24,8 +24,7 @@ import static de.peeeq.wurstio.languageserver.WurstCommands.WURST_PERFORM_CODE_A
  */
 public class CodeActionRequest extends UserRequest<List<? extends Command>> {
     private final CodeActionParams params;
-    private final WFile filename;
-    private final String buffer;
+    private final WFile wFile;
     private final int line;
     private final int column;
 
@@ -33,8 +32,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         this.params = params;
 
         TextDocumentIdentifier textDocument = params.getTextDocument();
-        this.filename = WFile.create(textDocument.getUri());
-        this.buffer = bufferManager.getBuffer(textDocument);
+        this.wFile = WFile.create(textDocument.getUri());
         this.line = params.getRange().getStart().getLine() + 1;
         this.column = params.getRange().getStart().getCharacter() + 1;
     }
@@ -46,7 +44,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             // we don't have to compute possible code actions
             return Collections.emptyList();
         }
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
         // get element under cursor
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
 
@@ -169,7 +167,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         String title = "Import package " + imp;
         List<Object> arguments = Collections.singletonList(
                 PerformCodeActionRequest.importPackageAction(
-                        filename.getUriString(),
+                        wFile.getUriString(),
                         imp)
         );
         return new Command(title, WURST_PERFORM_CODE_ACTION, arguments);
