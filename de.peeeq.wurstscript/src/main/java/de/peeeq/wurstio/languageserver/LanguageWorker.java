@@ -144,7 +144,8 @@ public class LanguageWorker implements Runnable {
                     try {
                         work.run();
                     } catch (Throwable e) {
-                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details): " + e.toString()));
+                        languageClient.showMessage(new MessageParams(MessageType.Error, "Request '" + work + "' could not be processed (see log for details):" +
+                                " " + e.toString()));
                         WLogger.severe(e);
                         System.err.println("Error in request '" + work + "' (see log for details): " + e.getMessage());
                     }
@@ -243,10 +244,10 @@ public class LanguageWorker implements Runnable {
 
     public void handleChange(DidChangeTextDocumentParams params) {
         synchronized (lock) {
-            bufferManager.handleChange(params);
             WFile file = WFile.create(params.getTextDocument().getUri());
+            bufferManager.handleChange(params);
 
-            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(params.getTextDocument())));
+            changes.put(file, new FileReconcile(file, bufferManager.getBuffer(file)));
             lock.notifyAll();
         }
     }
@@ -272,7 +273,7 @@ public class LanguageWorker implements Runnable {
                     request.handleException(languageClient, err, resFut);
                 } else if (res == null) {
                     System.err.println("Request returned null: " + request);
-                    if(!(request instanceof HoverInfo)) {
+                    if (!(request instanceof HoverInfo)) {
                         languageClient.showMessage(new MessageParams(MessageType.Error, "Request returned null: " + request));
                     }
                     resFut.completeExceptionally(new RuntimeException("Request returned null: " + request));

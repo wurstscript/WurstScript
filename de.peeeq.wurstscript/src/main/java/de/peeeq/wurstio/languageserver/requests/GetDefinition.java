@@ -16,15 +16,13 @@ import java.util.List;
 
 public class GetDefinition extends UserRequest<List<? extends Location>> {
 
-    private final WFile filename;
-    private final String buffer;
+    private final WFile wFile;
     private final int line;
     private final int column;
 
 
     public GetDefinition(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = WFile.create(position.getTextDocument().getUri());
-        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.wFile = WFile.create(position.getTextDocument().getUri());
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter() + 1;
     }
@@ -32,7 +30,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
 
     @Override
     public List<? extends Location> execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {

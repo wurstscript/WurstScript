@@ -1,8 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.*;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
@@ -18,6 +16,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
@@ -270,7 +269,7 @@ public class ModelManagerImpl implements ModelManager {
                 return true;
             } else {
                 WPackage importedPackage = imp.attrImportedPackage();
-                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)){
+                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)) {
                     return true;
                 }
             }
@@ -425,18 +424,12 @@ public class ModelManagerImpl implements ModelManager {
     public void replaceCompilationUnit(WFile filename) {
         File f = filename.getFile();
         if (!f.exists()) {
+            WLogger.info("Removing nonexistant CU: " + f);
             removeCompilationUnit(filename);
             return;
         }
-        try {
-            String contents = Files.toString(f, Charsets.UTF_8);
-            bufferManager.updateFile(WFile.create(f), contents);
-            replaceCompilationUnit(filename, contents, true);
-            WLogger.info("replaceCompilationUnit 3 " + f);
-        } catch (IOException e) {
-            WLogger.severe(e);
-            throw new ModelManagerException(e);
-        }
+        replaceCompilationUnit(filename, null, true);
+        WLogger.info("replaceCompilationUnit 3 " + f);
     }
 
 
@@ -467,27 +460,43 @@ public class ModelManagerImpl implements ModelManager {
         doTypeCheckPartial(gui, true, ImmutableList.of(f));
     }
 
-    private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        if (fileHashcodes.containsKey(filename)) {
-            int oldHash = fileHashcodes.get(filename);
-            WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
-            if (oldHash == contents.hashCode()) {
-                // no change
-                WLogger.info("CU " + filename + " was unchanged.");
-                return getCompilationUnit(filename);
+    private CompilationUnit replaceCompilationUnit(WFile wFile, String contents, boolean reportErrors) {
+        if (contents == null || contents.length() <= 0) {
+            try {
+                contents = bufferManager.getBuffer(wFile);
+                if(contents == null || contents.isEmpty()) {
+                    wFile = WFile.create(new File(projectPath, projectPath.toPath().relativize(wFile.getPath()).toString()));
+                    contents = new String(Files.readAllBytes(wFile.getPath()));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
 
-        WLogger.info("replace CU " + filename);
+        int newHash = contents.hashCode();
+        if (fileHashcodes.containsKey(wFile)) {
+            // File has been cached before
+            int oldHash = fileHashcodes.get(wFile);
+            WLogger.info("newHash = " + newHash + ", oldHash = " + oldHash);
+            if (oldHash == newHash) {
+                // Cached version should be good
+                WLogger.info("CU " + wFile + " was unchanged.");
+                return getCompilationUnit(wFile);
+            }
+        }
+        // File is new
+        bufferManager.updateFile(wFile, contents);
+        fileHashcodes.put(wFile, newHash);
+        WLogger.info("adding CU " + wFile + " contents.length: " + contents.length());
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl c = getCompiler(gui);
-        CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
-        cu.setFile(filename.toString());
+        CompilationUnit cu = c.parse(wFile.toString(), new StringReader(contents));
+        cu.setFile(wFile.toString());
         updateModel(cu, gui);
-        fileHashcodes.put(filename, contents.hashCode());
+
         if (reportErrors) {
-            WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
-            reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
+            WLogger.info("found " + gui.getErrorCount() + " errors in file " + wFile);
+            reportErrors("sync cu " + wFile, wFile, gui.getErrorsAndWarnings());
         }
         return cu;
     }

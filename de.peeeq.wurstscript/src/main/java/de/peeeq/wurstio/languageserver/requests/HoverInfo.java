@@ -23,21 +23,19 @@ import java.util.List;
 public class HoverInfo extends UserRequest<Hover> {
 
 
-    private final WFile filename;
-    private final String buffer;
+    private final WFile wFile;
     private final int line;
     private final int column;
 
     public HoverInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = WFile.create(position.getTextDocument().getUri());
-        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.wFile = WFile.create(position.getTextDocument().getUri());
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter() + 1;
     }
 
     @Override
     public Hover execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("hovering over " + Utils.printElement(e));
         Hover res = new Hover(e.match(new Description()));

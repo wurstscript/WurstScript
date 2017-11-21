@@ -32,7 +32,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
     private static final int MAX_COMPLETIONS = 100;
-    private final WFile filename;
+    private final WFile wFile;
     private final String buffer;
     private final String[] lines;
     private final int line;
@@ -47,8 +47,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
     public GetCompletions(TextDocumentPositionParams position, BufferManager bufferManager) {
-        this.filename = WFile.create(position.getTextDocument().getUri());
-        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.wFile = WFile.create(position.getTextDocument().getUri());
+        this.buffer = bufferManager.getBuffer(wFile);
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter();
         this.lines = buffer.split("\\n|\\r\\n");
@@ -67,7 +67,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     @Override
     public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {

@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.WLogger;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -35,25 +37,31 @@ public class WFile {
         try {
             return new WFile(new File(f));
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("URI " + f + " is not a vald file", e);
+            throw new RuntimeException("URI " + f + " is not a valid file", e);
         }
     }
 
     public static WFile create(String uri) {
+        WLogger.info("create WFile from uri: " + uri);
+        WFile result = null;
         try {
             URI u = new URI(uri);
-            if (u.isAbsolute()) {
-                return create(u);
-            }
+            result = WFile.create(u);
         } catch (URISyntaxException e) {
             // ignore
         }
-        // if it is not a valid absolute URI, maybe it is a valid path?
-        try {
-            return create(Paths.get(uri));
-        } catch (InvalidPathException e2) {
-            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
+        if (result == null) {
+            // if it is not a valid absolute URI, maybe it is a valid path?
+            try {
+                result = create(Paths.get(uri));
+            } catch (InvalidPathException e2) {
+                throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
+            }
         }
+        if (!result.getFile().exists()) {
+            throw new RuntimeException("File from uri '" + uri + "' points to inexistent file.");
+        }
+        return result;
     }
 
     public File getFile() {
@@ -70,7 +78,7 @@ public class WFile {
 
     @Override
     public int hashCode() {
-        return Objects.hash(file);
+        return file.hashCode();
     }
 
     @Override

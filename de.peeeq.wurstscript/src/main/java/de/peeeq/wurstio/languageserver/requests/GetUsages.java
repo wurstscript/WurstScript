@@ -17,8 +17,7 @@ import java.util.List;
 
 public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
-    private final WFile filename;
-    private final String buffer;
+    private final WFile wFile;
     private final int line;
     private final int column;
     private final boolean global;
@@ -26,8 +25,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
 
     public GetUsages(TextDocumentPositionParams position, BufferManager bufferManager, boolean global) {
-        this.filename = WFile.create(position.getTextDocument().getUri());
-        this.buffer = bufferManager.getBuffer(position.getTextDocument());
+        this.wFile = WFile.create(position.getTextDocument().getUri());
         this.line = position.getPosition().getLine() + 1;
         this.column = position.getPosition().getCharacter() + 1;
         this.global = global;
@@ -36,13 +34,13 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
     @Override
     public List<UsagesData> execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null, false);
         Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
         NameDef nameDef = astElem.tryGetNameDef();
         List<UsagesData> usages = new ArrayList<>();
         if (nameDef != null) {
 
-            if (global || nameDef.getSource().getFile().equals(filename)) {
+            if (global || nameDef.getSource().getFile().equals(wFile)) {
                 // add declaration
                 usages.add(new UsagesData(Convert.posToLocation(nameDef.attrErrorPos()), DocumentHighlightKind.Write));
             }
@@ -75,7 +73,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
     public static class UsagesData {
         private Location location;
-//        private String filename;
+//        private String wFile;
 //        private Range range;
         private DocumentHighlightKind kind;
 
