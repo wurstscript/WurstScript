@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import com.google.common.collect.Maps;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
@@ -71,6 +72,7 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
     @Native
     public ILconstInt StringHash(ILconstString s) {
         // TODO can we use same string hash function as used in wc3?
+        WLogger.info("stringhash of <" + s.getVal() + "> = " + s.getVal().hashCode());
         return new ILconstInt(s.getVal().hashCode());
     }
 
@@ -117,6 +119,48 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
             map2.remove(key2.getVal());
         }
         return ILconstInt.create(0);
+    }
+
+
+    public void SaveStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconstString value) {
+        @SuppressWarnings("unchecked")
+        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+        Map<Integer, Object> map2 = map.computeIfAbsent(key1.getVal(), k -> Maps.newLinkedHashMap());
+        map2.put(key2.getVal(), value);
+        WLogger.info("savestr of key1: " + key1.getVal() + ", key2: " + key2.getVal() + ", val: " + value.getVal());
+    }
+
+    public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        @SuppressWarnings("unchecked")
+        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+        Map<Integer, Object> map2 = map.get(key1.getVal());
+        if (map2 != null) {
+            Object value = map2.get(key2.getVal());
+            if (value instanceof ILconstString) {
+                return (ILconstString) value;
+            }
+        }
+        return new ILconstString("");
+    }
+
+    public ILconstString RemoveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        @SuppressWarnings("unchecked")
+        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+        Map<Integer, Object> map2 = map.get(key1.getVal());
+        if (map2 != null) {
+            map2.remove(key2.getVal());
+        }
+        return new ILconstString("");
+    }
+
+    public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        @SuppressWarnings("unchecked")
+        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+        Map<Integer, Object> map2 = map.get(key1.getVal());
+        if (map2 != null) {
+            return ILconstBool.instance(map2.containsKey(key2.getVal()));
+        }
+        return ILconstBool.FALSE;
     }
 
 
