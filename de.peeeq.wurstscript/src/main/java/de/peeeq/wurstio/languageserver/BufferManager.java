@@ -24,7 +24,7 @@ public class BufferManager {
     private String getBuffer(WFile uri) {
         StringBuilder sb = currentBuffer.get(uri);
         if (sb == null) {
-            return "";
+            return readFileFromDisk(uri);
         }
         return sb.toString();
     }
@@ -39,16 +39,22 @@ public class BufferManager {
         switch (fileEvent.getType()) {
             case Created:
             case Changed:
-                try {
-                    String str = Files.toString(uri.getFile(), StandardCharsets.UTF_8);
-                    StringBuilder sb = buffer(uri);
-                    sb.replace(0, sb.length(), str);
-                } catch (IOException e) {
-                    WLogger.severe("Could not read file " + uri);
-                    WLogger.severe(e);
-                }
+                    readFileFromDisk(uri);
             case Deleted:
                 currentBuffer.remove(uri);
+        }
+    }
+
+    private String readFileFromDisk(WFile uri) {
+        try {
+            String str = Files.toString(uri.getFile(), StandardCharsets.UTF_8);
+            StringBuilder sb = buffer(uri);
+            sb.replace(0, sb.length(), str);
+            return sb.toString();
+        } catch (IOException e) {
+            WLogger.severe("Could not read file " + uri);
+            WLogger.severe(e);
+            throw new RuntimeException(e);
         }
     }
 
