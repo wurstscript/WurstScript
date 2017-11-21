@@ -3,11 +3,11 @@ package tests.wurstscript.tests;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -175,12 +175,11 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
     private void testCompletions(CompletionTestData testData, List<String> expectedCompletions) {
-
         BufferManager bufferManager = new BufferManager();
         ModelManager modelManager = new ModelManagerImpl(new File("."), bufferManager);
-        String uri = "file:///tmp/test.wurst";
-        bufferManager.updateFile(WFile.create(uri), testData.buffer);
-        TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
+        File path = new File(getClass().getClassLoader().getResource("test.wurst").getFile());
+        bufferManager.updateFile(WFile.create(path), testData.buffer);
+        TextDocumentIdentifier textDocument = new TextDocumentIdentifier(path.getAbsolutePath());
         Position pos = new Position(testData.line, testData.column);
         TextDocumentPositionParams position = new TextDocumentPositionParams(textDocument, pos);
         GetCompletions getCompletions = new GetCompletions(position, bufferManager);
