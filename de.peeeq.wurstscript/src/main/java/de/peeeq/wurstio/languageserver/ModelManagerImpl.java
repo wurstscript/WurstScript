@@ -468,7 +468,7 @@ public class ModelManagerImpl implements ModelManager {
                     wFile = WFile.create(new File(projectPath, projectPath.toPath().relativize(wFile.getPath()).toString()));
                     contents = new String(Files.readAllBytes(wFile.getPath()));
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

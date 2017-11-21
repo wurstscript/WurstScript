@@ -26,7 +26,7 @@ public class ModelManagerTests {
 
     @Test
     public void test() throws IOException {
-        File projectFolder = new File("./temp/testProject/");
+        File projectFolder = new File("temp/testProject/").toPath().toAbsolutePath().toFile();
         File wurstFolder = new File(projectFolder, "wurst");
         wurstFolder.mkdirs();
 
