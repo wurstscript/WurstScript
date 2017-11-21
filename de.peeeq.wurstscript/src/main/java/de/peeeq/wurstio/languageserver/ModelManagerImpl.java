@@ -44,8 +44,6 @@ public class ModelManagerImpl implements ModelManager {
     // hashcode for each compilation unit content as string
     private Map<WFile, Integer> fileHashcodes = new HashMap<>();
 
-    private Map<WFile, Long> timeStamps = new HashMap<>();
-
     public ModelManagerImpl(String projectPath, BufferManager bufferManager) {
         this(new File(projectPath), bufferManager);
     }
@@ -86,7 +84,6 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void clean() {
-        timeStamps.clear();
         fileHashcodes.clear();
         parseErrors.clear();
         model = null;
@@ -272,7 +269,7 @@ public class ModelManagerImpl implements ModelManager {
                 return true;
             } else {
                 WPackage importedPackage = imp.attrImportedPackage();
-                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)){
+                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)) {
                     return true;
                 }
             }
@@ -431,7 +428,7 @@ public class ModelManagerImpl implements ModelManager {
             removeCompilationUnit(filename);
             return;
         }
-        replaceCompilationUnit(filename, true);
+        replaceCompilationUnit(filename, null, true);
         WLogger.info("replaceCompilationUnit 3 " + f);
     }
 
@@ -443,14 +440,14 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
-        replaceCompilationUnit(filename, true);
+        replaceCompilationUnit(filename, contents, true);
         WurstGui gui = new WurstGuiLogger();
         doTypeCheckPartial(gui, true, ImmutableList.of(filename));
     }
 
     @Override
-    public CompilationUnit replaceCompilationUnitContent(WFile filename, boolean reportErrors) {
-        return replaceCompilationUnit(filename, reportErrors);
+    public CompilationUnit replaceCompilationUnitContent(WFile filename, String contents, boolean reportErrors) {
+        return replaceCompilationUnit(filename, contents, reportErrors);
     }
 
 
@@ -463,43 +460,45 @@ public class ModelManagerImpl implements ModelManager {
         doTypeCheckPartial(gui, true, ImmutableList.of(f));
     }
 
-    private CompilationUnit replaceCompilationUnit(WFile wFile, boolean reportErrors) {
-        wFile = WFile.create(new File(projectPath, projectPath.toPath().relativize(wFile.getPath()).toString()));
+    private CompilationUnit replaceCompilationUnit(WFile wFile, String contents, boolean reportErrors) {
+        if (contents == null || contents.length() <= 0) {
+            try {
+                contents = bufferManager.getBuffer(wFile);
+                if(contents == null || contents.isEmpty()) {
+                    wFile = WFile.create(new File(projectPath, projectPath.toPath().relativize(wFile.getPath()).toString()));
+                    contents = new String(Files.readAllBytes(wFile.getPath()));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
-        long lastModified = wFile.getFile().lastModified();
-        if(timeStamps.containsKey(wFile)) {
+        int newHash = contents.hashCode();
+        if (fileHashcodes.containsKey(wFile)) {
             // File has been cached before
-            long lastParsed = timeStamps.get(wFile);
-            WLogger.info("lastModified = " + lastModified + ", lastParsed = " + lastParsed);
-            if(lastParsed == lastModified) {
+            int oldHash = fileHashcodes.get(wFile);
+            WLogger.info("newHash = " + newHash + ", oldHash = " + oldHash);
+            if (oldHash == newHash) {
                 // Cached version should be good
                 WLogger.info("CU " + wFile + " was unchanged.");
                 return getCompilationUnit(wFile);
             }
         }
         // File is new
-        try {
-            String contents = new String(Files.readAllBytes(wFile.getPath()));
-            bufferManager.updateFile(wFile, contents);
-            timeStamps.put(wFile, lastModified);
-            WLogger.info("adding CU " + wFile + " contents.length: " + contents.length());
-            WurstGui gui = new WurstGuiLogger();
-            WurstCompilerJassImpl c = getCompiler(gui);
-            CompilationUnit cu = c.parse(wFile.toString(), new StringReader(contents));
-            cu.setFile(wFile.toString());
-            updateModel(cu, gui);
+        bufferManager.updateFile(wFile, contents);
+        fileHashcodes.put(wFile, newHash);
+        WLogger.info("adding CU " + wFile + " contents.length: " + contents.length());
+        WurstGui gui = new WurstGuiLogger();
+        WurstCompilerJassImpl c = getCompiler(gui);
+        CompilationUnit cu = c.parse(wFile.toString(), new StringReader(contents));
+        cu.setFile(wFile.toString());
+        updateModel(cu, gui);
 
-            if (reportErrors) {
-                WLogger.info("found " + gui.getErrorCount() + " errors in file " + wFile);
-                reportErrors("sync cu " + wFile, wFile, gui.getErrorsAndWarnings());
-            }
-            return cu;
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (reportErrors) {
+            WLogger.info("found " + gui.getErrorCount() + " errors in file " + wFile);
+            reportErrors("sync cu " + wFile, wFile, gui.getErrorsAndWarnings());
         }
-
-
-        return null;
+        return cu;
     }
 
     @Override
@@ -547,7 +546,7 @@ public class ModelManagerImpl implements ModelManager {
 
     @Override
     public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        replaceCompilationUnit(filename, reportErrors);
+        replaceCompilationUnit(filename, contents, reportErrors);
     }
 
     @Override

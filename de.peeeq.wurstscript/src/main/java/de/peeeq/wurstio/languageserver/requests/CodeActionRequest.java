@@ -44,7 +44,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             // we don't have to compute possible code actions
             return Collections.emptyList();
         }
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         // get element under cursor
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
 

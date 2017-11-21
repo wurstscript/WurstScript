@@ -34,7 +34,7 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
     @Override
     public List<UsagesData> execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null, false);
         Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
         NameDef nameDef = astElem.tryGetNameDef();
         List<UsagesData> usages = new ArrayList<>();

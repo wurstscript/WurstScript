@@ -67,7 +67,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     @Override
     public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {

@@ -35,7 +35,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
     @Override
     public Hover execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("hovering over " + Utils.printElement(e));
         Hover res = new Hover(e.match(new Description()));

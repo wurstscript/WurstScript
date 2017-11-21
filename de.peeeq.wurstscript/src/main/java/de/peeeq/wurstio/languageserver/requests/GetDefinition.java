@@ -30,7 +30,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
 
     @Override
     public List<? extends Location> execute(ModelManager modelManager) {
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, false);
+        CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, null,false);
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
