@@ -432,7 +432,9 @@ public class Utils {
     }
 
     private static boolean elementContainsPos(Element e, int line, int column, boolean usesMouse) {
+        System.out.println("   Does " + Utils.printElement(e) + " contain pos " + line + ":" + column + "?");
         WPos pos = e.attrSource();
+        System.out.println("      " + pos.getLine() + ":" + pos.getStartColumn() + " - " + pos.getEndLine() + ":" + pos.getEndColumn());
         if (pos.getLine() > line) {
             return false;
         }

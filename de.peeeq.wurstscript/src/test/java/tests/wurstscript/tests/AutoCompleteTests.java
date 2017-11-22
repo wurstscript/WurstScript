@@ -156,6 +156,36 @@ public class AutoCompleteTests extends WurstScriptTest {
         testCompletions(testData, "fuu", "foo");
     }
 
+    @Test
+    public void completionAtEndOfFileWithNewline() { // see #584
+        CompletionTestData testData = input(false,
+                "package test",
+                "function int.foo() returns int",
+                "function int.fuu() returns bool",
+                "init",
+                "	int x = 5",
+                "",
+                "	x.f|"
+        );
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+    @Test
+    public void completionAtEndOfFileWithNewline2() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "function int.foo() returns int",
+                "function int.fuu() returns bool",
+                "init",
+                "	int x = 5",
+                "",
+                "	x.f|"
+        );
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
 
     static class CompletionTestData {
         String buffer;
@@ -206,6 +236,10 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
     private CompletionTestData input(String... lines) {
+        return input(true, lines);
+    }
+
+    private CompletionTestData input(boolean newLineAtEnd, String... lines) {
         StringBuilder buffer = new StringBuilder();
         int completionLine = -1;
         int completionColumn = -1;
@@ -220,7 +254,9 @@ public class AutoCompleteTests extends WurstScriptTest {
             } else {
                 buffer.append(line);
             }
-            buffer.append("\n");
+            if (newLineAtEnd || lineNr < lines.length) {
+                buffer.append("\n");
+            }
         }
 
         return new CompletionTestData(buffer.toString(), completionLine-1, completionColumn-1);

@@ -146,7 +146,14 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
             if (token.getType() == WurstParser.NL) {
-                lineOffsets.set(token.getLine(), token.getStopIndex());
+                int line = 0;
+                for (int i = 0; i < token.getText().length(); i++) {
+                    char c = token.getText().charAt(i);
+                    if (c == '\n') {
+                        lineOffsets.set(token.getLine() + line, token.getStartIndex()+i);
+                        line++;
+                    }
+                }
             }
 
             if (token.getType() == WurstParser.EOF) {
@@ -158,6 +165,8 @@ public class ExtendedWurstLexer implements TokenSource {
                     nextTokens.add(makeToken(WurstParser.ENDPACKAGE, "endpackage", token.getStartIndex(), token.getStopIndex()));
                     nextTokens.add(makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
                 }
+
+                lineOffsets.set(token.getLine(), token.getStopIndex()+1);
                 // add a single newline
                 return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
             }
