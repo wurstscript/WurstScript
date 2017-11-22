@@ -572,7 +572,7 @@ REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
 fragment HexInt: '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+;
 
 fragment CharIntPart: ('\\' [btrnf"\\]) | ~[\\'];
-fragment CharInt: '\'' CharIntPart+ '\'';
+fragment CharInt: '\'' CharIntPart+ '\'' | '\'' [\\'] '\'';
 
 INT: [0-9]+ | HexInt | CharInt;
 

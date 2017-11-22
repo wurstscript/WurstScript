@@ -94,6 +94,10 @@ public class Utils {
     }
 
     public static int parseAsciiInt(String yytext) throws NumberFormatException {
+        if (yytext.length() == 3) {
+            // 'x' can directly return
+            return yytext.charAt(1);
+        }
         int result = 0;
         int i = 1;
         int chars = 0;
