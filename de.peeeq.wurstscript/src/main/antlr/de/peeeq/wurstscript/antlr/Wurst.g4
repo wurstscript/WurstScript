@@ -568,7 +568,13 @@ ANNOTATION: '@' [a-zA-Z0-9_]+;
 
 STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') )* '"';
 REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
-INT: [0-9]+ | '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+ | '\'' . . . . '\'' | '\'' . '\'';
+
+fragment HexInt: '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+;
+
+fragment CharIntPart: ('\\' [btrnf"\\]) | ~[\\'];
+fragment CharInt: '\'' CharIntPart+ '\'';
+
+INT: [0-9]+ | HexInt | CharInt;
 
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 

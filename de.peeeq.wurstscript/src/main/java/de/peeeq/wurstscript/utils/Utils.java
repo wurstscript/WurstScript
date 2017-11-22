@@ -93,22 +93,23 @@ public class Utils {
         }
     }
 
-    public static int parseAsciiInt1(String yytext) {
-        return yytext.charAt(1);
-    }
-
-    /**
-     * parse an integer like 'Hfoo'
-     */
-    public static int parseAsciiInt4(String yytext) {
+    public static int parseAsciiInt(String yytext) throws NumberFormatException {
         int result = 0;
-        int power = 1;
-        for (int i = 4; i > 0; i--) {
-            result += yytext.charAt(i) * power;
-            power *= 256;
+        int i = 1;
+        int chars = 0;
+        for (; i < yytext.length() - 1; i++) {
+            if (yytext.charAt(i) == '\\') {
+                i++;
+            }
+            result = result * 256 + yytext.charAt(i);
+            chars++;
+        }
+        if (chars != 1 && chars != 4) {
+            throw new NumberFormatException("Ascii ints must have 4 or 1 characters but this one has " + chars + " characters.");
         }
         return result;
     }
+
 
     public static int parseHexInt(String yytext, int offset) {
         return (int) Long.parseLong(yytext.substring(offset), 16);
