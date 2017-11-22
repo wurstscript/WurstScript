@@ -58,7 +58,7 @@ public class CompiletimeFunctionRunner {
         Tests {
             @Override
             public boolean matches(ImFunction f) {
-                return f.hasFlag(FunctionFlagEnum.IS_TEST);
+                return f.hasFlag(FunctionFlagEnum.IS_TEST) || f.isCompiletime();
             }
         },
         CompiletimeFunctions {
