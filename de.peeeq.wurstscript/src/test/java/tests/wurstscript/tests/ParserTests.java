@@ -95,6 +95,17 @@ public class ParserTests extends WurstScriptTest {
     }
 
     @Test
+    public void charAndFourChar() {
+        testAssertOkLines(false,
+                "package Test",
+                "function bar(int a0,int a1)",
+                "",
+                "function foo()",
+                "    bar((']'),'hfoo')",
+                "");
+    }
+
+    @Test
     public void positionsNormalLineBreaks() {
         CompilationUnit cu = parse(
                 "package Test\n" +

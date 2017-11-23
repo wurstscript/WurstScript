@@ -2,6 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.utils.Utils;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -15,6 +16,76 @@ public class JurstTests extends WurstScriptTest {
                 "package test",
                 "let s = \"12345678",
                 "90\"",
+                ""));
+    }
+
+    @Test
+    public void hexInt1() {
+        testJurst(true, false, Utils.string(
+                "package test",
+                "native testSuccess()",
+                "int a = $10",
+                "init",
+                "  if a == 16 then",
+                "    testSuccess()",
+                "  end",
+                "end",
+                ""));
+    }
+
+    @Test
+    public void hexInt2() {
+        testJurst(true, false, Utils.string(
+                "package test",
+                "native testSuccess()",
+                "int a = 0x10",
+                "init",
+                "  if a == 16 then",
+                "    testSuccess()",
+                "  end",
+                "end",
+                ""));
+    }
+
+    @Test
+    public void asciiChars1() {
+        testJurst(true, false, Utils.string(
+                "package test",
+                "native testSuccess()",
+                "int a = 'b'- 'a'",
+                "init",
+                "  if a == 1 then",
+                "    testSuccess()",
+                "  end",
+                "end",
+                ""));
+    }
+
+    @Test
+    public void asciiChars2() {
+        testJurst(true, false, Utils.string(
+                "package test",
+                "native testSuccess()",
+                "int a = 'hfoo'",
+                "init",
+                "  if a == 1751543663 then",
+                "    testSuccess()",
+                "  end",
+                "end",
+                ""));
+    }
+
+    @Test
+    public void asciiChars3() {
+        testJurst(true, false, Utils.string(
+                "package test",
+                "native testSuccess()",
+                "int a = 'h\\\\oo'",
+                "init",
+                "  if a == 1750888303 then",
+                "    testSuccess()",
+                "  end",
+                "end",
                 ""));
     }
 
