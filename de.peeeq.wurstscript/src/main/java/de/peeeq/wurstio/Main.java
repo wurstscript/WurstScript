@@ -329,6 +329,12 @@ public class Main {
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+        gui.sendProgress("Check input map");
+        if(mpqEditor != null && !mpqEditor.canWrite()) {
+            WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
+                    "Please supply a valid .w3x input map that can be opened in the world editor.");
+        }
+
         for (String file : runArgs.getFiles()) {
             compiler.loadFiles(file);
         }

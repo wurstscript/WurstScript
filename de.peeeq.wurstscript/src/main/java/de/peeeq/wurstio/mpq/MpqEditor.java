@@ -4,6 +4,8 @@ import java.io.Closeable;
 
 public interface MpqEditor extends Closeable {
 
+    boolean canWrite();
+
     byte[] extractFile(String fileToExtract) throws Exception;
 
     void insertFile(String filenameInMpq, byte[] contents) throws Exception;

@@ -42,6 +42,11 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
+    public boolean canWrite() {
+        return editor.isCanWrite();
+    }
+
+    @Override
     public byte[] extractFile(String fileToExtract) throws Exception {
         return getEditor().extractFileAsBytes(fileToExtract);
     }
