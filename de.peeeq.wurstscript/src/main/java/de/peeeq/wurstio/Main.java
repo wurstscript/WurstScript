@@ -366,7 +366,7 @@ public class Main {
                     out.print(message);
                 }
             };
-            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null, null, null);
+            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null);
 
 
             for (RunTests.TestFailure e : runTests.getFailTests()) {

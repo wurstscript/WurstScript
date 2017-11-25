@@ -37,13 +37,13 @@ import java.util.stream.Collectors;
 public class CompiletimeFunctionRunner {
 
     private final ImProg imProg;
-    private ILInterpreter interpreter;
-    private WurstGui gui;
-    private FunctionFlagToRun functionFlag;
-    private List<ImFunction> successTests = Lists.newArrayList();
-    private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+    private final ILInterpreter interpreter;
+    private final WurstGui gui;
+    private final FunctionFlagToRun functionFlag;
+    private final List<ImFunction> successTests = Lists.newArrayList();
+    private final Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+    private final ProgramStateIO globalState;
     private boolean injectObjects;
-    private ProgramStateIO globalState;
 
     public ILInterpreter getInterpreter() {
         return interpreter;

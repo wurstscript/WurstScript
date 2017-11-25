@@ -101,11 +101,7 @@ public class RunTests extends UserRequest<Object> {
             return "Could not translate program";
         }
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
-        cfr.run();
-        WLogger.info("Ran compiletime functions");
-
-        runTests(imProg, funcToTest, cu, cfr.getInterpreter(), cfr.getGlobalState());
+        runTests(imProg, funcToTest, cu);
         return "ok";
     }
 
@@ -127,9 +123,12 @@ public class RunTests extends UserRequest<Object> {
         }
     }
 
-    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu, @Nullable ILInterpreter interpreter,
-                               @Nullable ProgramState globalState) {
+    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
         WurstGui gui = new TestGui();
+
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        ILInterpreter interpreter = cfr.getInterpreter();
+        ProgramState globalState = cfr.getGlobalState();
         if(globalState == null) {
             globalState = new ProgramState(gui, imProg, true);
         }
@@ -139,6 +138,10 @@ public class RunTests extends UserRequest<Object> {
         }
 
         redirectInterpreterOutput(globalState);
+
+        // first run compiletime functions
+        cfr.run();
+        WLogger.info("Ran compiletime functions");
 
 
         for (ImFunction f : imProg.getFunctions()) {

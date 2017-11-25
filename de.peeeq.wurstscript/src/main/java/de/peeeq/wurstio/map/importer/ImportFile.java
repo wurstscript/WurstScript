@@ -190,7 +190,7 @@ public class ImportFile {
                 insertImportedFiles(ed, importDirectory);
             } catch (Exception e) {
                 WLogger.severe(e);
-                JOptionPane.showMessageDialog(null, "Could import objects from " + importDirectory + ": " + e.getMessage());
+                JOptionPane.showMessageDialog(null, "Could not import objects from " + importDirectory + ": " + e.getMessage());
             }
         }
     }
