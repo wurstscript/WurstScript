@@ -46,7 +46,7 @@ repositories {
 dependencies {
 
 	// Antlr parsing library
-	antlr "org.antlr:antlr4:4.5.3"
+	antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
     compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.1.4'
@@ -79,7 +79,7 @@ dependencies {
     compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:37437f37a5'
+    compile 'com.github.inwc3:wc3libs:0fd8c9e711'
 }
 
 task genAst {

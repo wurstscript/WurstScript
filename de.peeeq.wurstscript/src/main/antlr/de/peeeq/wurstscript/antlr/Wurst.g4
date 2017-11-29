@@ -550,9 +550,9 @@ MULT_EQ: '*=';
 DIV_EQ: '/=';
 ARROW: '->';
 
-STARTBLOCK:[];
-ENDBLOCK:[];
-INVALID:[];
+STARTBLOCK:[()];
+ENDBLOCK:[()];
+INVALID:[()];
 
 
 JASS_GLOBALS: 'globals';

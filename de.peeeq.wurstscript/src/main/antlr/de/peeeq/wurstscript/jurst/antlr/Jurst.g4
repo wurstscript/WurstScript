@@ -602,7 +602,7 @@ MULT_EQ: '*=';
 DIV_EQ: '/=';
 ARROW: '->';
 
-INVALID:[];
+INVALID:[()];
 
 
 JASS_GLOBALS: 'globals';

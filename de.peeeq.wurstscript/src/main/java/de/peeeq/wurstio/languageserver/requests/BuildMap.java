@@ -25,7 +25,6 @@ import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 
 import java.beans.IntrospectionException;
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -174,7 +173,7 @@ public class BuildMap extends MapRequest {
 
         if (wurstProjectConfig.buildMapName != null && wurstProjectConfig.buildMapName.length() > 0) {
             try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-                W3I w3I = new W3I(new ByteArrayInputStream(mpq.extractFile("war3map.w3i")));
+                W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
                 w3I.setMapName(wurstProjectConfig.buildMapName);
                 w3I.setMapAuthor(wurstProjectConfig.buildMapAuthor);
                 File w3iFile = new File("w3iFile");
