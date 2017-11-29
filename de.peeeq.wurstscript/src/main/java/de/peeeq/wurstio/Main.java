@@ -14,10 +14,7 @@ import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3Utils;
-import de.peeeq.wurstscript.BackupController;
-import de.peeeq.wurstscript.ErrorReporting;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -66,6 +63,11 @@ public class Main {
         RunArgs runArgs = new RunArgs(args);
         try {
             if (runArgs.showHelp()) {
+                return;
+            }
+
+            if (runArgs.isShowVersion()) {
+                System.out.println(CompileTimeInfo.version);
                 return;
             }
 
