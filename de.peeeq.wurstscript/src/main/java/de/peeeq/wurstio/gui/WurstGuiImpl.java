@@ -169,7 +169,7 @@ public class WurstGuiImpl extends WurstGui {
     @Override
     public void showInfoMessage(final String message) {
         try {
-            SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, message));
+            SwingUtilities.invokeAndWait(() -> JOptionPane.showMessageDialog(null, message));
         } catch (Exception e) {
             throw new Error(e);
         }
