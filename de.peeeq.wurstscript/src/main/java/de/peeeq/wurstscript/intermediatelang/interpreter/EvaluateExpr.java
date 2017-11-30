@@ -85,6 +85,9 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
         ILconstTuple t = (ILconstTuple) e.getTupleExpr().evaluate(globalState, localState);
+        if (e.getTupleIndex() >= t.values().size()) {
+            throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+        }
         return t.getValue(e.getTupleIndex());
 
     }
