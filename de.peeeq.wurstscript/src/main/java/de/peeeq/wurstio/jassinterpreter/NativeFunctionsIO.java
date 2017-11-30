@@ -9,6 +9,9 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.MatchResult;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * provides native functions which are invoked via reflection a function should
@@ -54,6 +57,20 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
     @Native
     public ILconstString I2S(ILconstInt i) {
         return new ILconstString("" + i.getVal());
+    }
+
+    @Native
+    public ILconstInt S2I(ILconstString s) {
+        String str = s.getVal();
+        Pattern pattern = Pattern.compile("((\\+|-)?[0-9]+).*");
+        Matcher matcher = pattern.matcher(str);
+        if (matcher.matches()) {
+            MatchResult matchResult = matcher.toMatchResult();
+            str = matcher.group(1);
+            return new ILconstInt(Integer.parseInt(str));
+        } else {
+            return new ILconstInt(0);
+        }
     }
 
     @Native
@@ -175,6 +192,10 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
         return new ILconstReal(Math.sqrt(r.getVal()));
     }
 
+    public ILconstReal Pow(ILconstReal x, ILconstReal power) {
+        return new ILconstReal(Math.pow(x.getVal(), power.getVal()));
+    }
+
     public ILconstReal Sin(ILconstReal r) {
         return new ILconstReal(Math.sin(r.getVal()));
     }
@@ -214,8 +235,19 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
         return new ILconstInt(string.getVal().length());
     }
 
-    public ILconstString SubString(ILconstString string, ILconstInt start, ILconstInt end) {
-        return new ILconstString(string.getVal().substring(start.getVal(), end.getVal()));
+    @Native
+    public ILconstString SubString(ILconstString s, ILconstInt start, ILconstInt end) {
+        String str = s.getVal();
+        if (start.getVal() < 0) {
+            // I am not gonna emulate the WC3 bug for negative indexes here ...
+            throw new RuntimeException("SubString called with negative start index: " + start) ;
+        }
+        int e = end.getVal();
+        if (e >= str.length()) {
+            // Warcraft does no bound checking here:
+            e = str.length();
+        }
+        return new ILconstString(str.substring(start.getVal(), e));
     }
 
     public ILconstString StringCase(ILconstString string, ILconstBool upperCase) {
