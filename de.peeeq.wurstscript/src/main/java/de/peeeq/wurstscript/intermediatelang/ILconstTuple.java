@@ -6,13 +6,21 @@ import de.peeeq.wurstscript.types.WurstTypeString;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ILconstTuple extends ILconstAbstract {
 
-    private ILconst[] values;
+    private final ILconst[] values;
 
     public ILconstTuple(ILconst... values) {
-        this.values = values;
+        this.values = Arrays.stream(values)
+                .flatMap(c -> {
+                    if (c instanceof ILconstTuple) {
+                        return Arrays.stream(((ILconstTuple) c).values);
+                    } else {
+                        return Stream.of(c);
+                    }
+                }).toArray(ILconst[]::new);
     }
 
 
