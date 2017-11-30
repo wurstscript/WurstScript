@@ -74,6 +74,7 @@ public class ModelManagerImpl implements ModelManager {
         while (it.hasNext()) {
             CompilationUnit cu = it.next();
             if (wFile(cu).equals(resource)) {
+                clearAttributes(Collections.singletonList(cu));
                 it.remove();
                 return true;
             }
@@ -341,6 +342,7 @@ public class ModelManagerImpl implements ModelManager {
             while (it.hasNext()) {
                 CompilationUnit c = it.next();
                 if (wFile(c).equals(wFile(cu))) {
+                    clearAttributes(Collections.singletonList(cu));
                     // replace old compilationunit with new one:
                     it.set(cu);
                     updated = true;
@@ -395,6 +397,7 @@ public class ModelManagerImpl implements ModelManager {
             if (m == null) {
                 return;
             }
+            m.clearAttributes();
             comp.addImportedLibs(m);
         } catch (CompileError e) {
             gui.sendError(e);
