@@ -15,6 +15,7 @@ public class RunArgs {
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
+    private @Nullable String testDir = null;
     private List<RunOption> options = Lists.newArrayList();
     private List<File> libDirs = Lists.newArrayList();
     private RunOption optionHelp;
@@ -93,7 +94,7 @@ public class RunArgs {
         optionNoExtractMapScript = addOption("noExtractMapScript", "Do not extract the map script from the map and use the one from the Wurst folder instead.");
         optionGui = addOption("gui", "Show a graphical user interface (progress bar and error window).");
         addOptionWithArg("lib", "The next argument should be a library folder which is lazily added to the build.", arg -> libDirs.add(new File(arg)));
-
+        addOptionWithArg("runmapTarget", "Allows you to change the path where your map will be run from.", arg -> testDir = arg);
         addOptionWithArg("out", "Outputs the compiled script to this file.", arg -> outFile = arg);
 
         optionLanguageServer = addOption("languageServer", "Starts a language server which can be used by editors to get services "
@@ -115,6 +116,8 @@ public class RunArgs {
                         }
                         o.isSet = true;
                         continue nextArg;
+                    } else if ((o.argHandler != null && isDoubleArg(a, o))) {
+                        continue nextArg;
                     }
                 }
                 throw new RuntimeException("Unknown option: " + a);
@@ -129,6 +132,10 @@ public class RunArgs {
         if (optionHelp.isSet) {
             printHelpAndExit();
         }
+    }
+
+    private boolean isDoubleArg(String arg, RunOption option) {
+        return (arg.contains(" ") && ("-" + option.name).equals(arg.substring(0, arg.indexOf(" "))));
     }
 
     private RunOption addOption(String name, String descr) {
@@ -182,6 +189,11 @@ public class RunArgs {
     public @Nullable String getOutFile() {
         return outFile;
     }
+
+    public @Nullable String getTestDir() {
+        return testDir;
+    }
+
 
     public boolean showAbout() {
         return optionAbout.isSet;

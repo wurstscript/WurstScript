@@ -35,6 +35,7 @@ public class RunMap extends MapRequest {
      * The patch version as double, e.g. 1.27, 1.28
      */
     private double patchVersion;
+    private File customTarget = null;
 
     enum SafetyLevel {
         QuickAndDirty, KindOfSafe
@@ -98,8 +99,9 @@ public class RunMap extends MapRequest {
 
             WLogger.info("Starting wc3 ... ");
 
+            String path = customTarget != null ? new File(customTarget, testMapName2).getAbsolutePath(): "Maps\\Test\\" + testMapName2;
             // now start the map
-            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", "Maps\\Test\\" + testMapName2);
+            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
 
             if (!System.getProperty("os.name").startsWith("Windows")) {
                 // run with wine
@@ -141,6 +143,21 @@ public class RunMap extends MapRequest {
      * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
     private String copyToWarcraftMapDir(File testMap) throws IOException {
+        String testMapName = "WurstTestMap.w3x";
+        for (String arg : compileArgs) {
+            if (arg.startsWith("-runmapTarget")) {
+                String path = arg.substring(arg.indexOf(" ") + 1);
+                // copy the map to the specified directory
+                customTarget = new File(path);
+                if (customTarget.exists() && customTarget.isDirectory()) {
+                    File testMap2 = new File(customTarget, testMapName);
+                    Files.copy(testMap, testMap2);
+                } else {
+                    WLogger.severe("Directory specified via -runmapTarget does not exists or is not a directory");
+                }
+                return testMapName;
+            }
+        }
         String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
         if (!new File(documentPath).exists()) {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");
@@ -154,7 +171,7 @@ public class RunMap extends MapRequest {
 
         patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
 
-        String testMapName = "WurstTestMap.w3x";
+
         if (patchVersion <= 1.27) {
             // 1.27 and lower compat
             print("Version 1.27 or lower detected, changing file location");
@@ -179,7 +196,6 @@ public class RunMap extends MapRequest {
         }
         return testMapName;
     }
-
 
 
     private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {
