@@ -236,7 +236,7 @@ public class BuildMap extends MapRequest {
         if (safeCompilation != SafetyLevel.QuickAndDirty) {
             // compilation will alter the model (e.g. remove unused imports), 
             // so it is safer to create a copy
-            model = model.copy();
+            model = ModelManager.copy(model);
         }
 
         return compileMap(gui, mapCopy, origMap, runArgs, model);
