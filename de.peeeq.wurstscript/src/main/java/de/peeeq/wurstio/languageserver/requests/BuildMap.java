@@ -12,25 +12,17 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import file.WurstProjectConfig;
+import file.WurstProjectConfigData;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import org.eclipse.lsp4j.MessageType;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-import org.yaml.snakeyaml.introspector.BeanAccess;
-import org.yaml.snakeyaml.introspector.FieldProperty;
-import org.yaml.snakeyaml.introspector.Property;
-import org.yaml.snakeyaml.introspector.PropertyUtils;
-import org.yaml.snakeyaml.nodes.Tag;
-import org.yaml.snakeyaml.representer.Representer;
 
-import java.beans.IntrospectionException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.*;
+import java.util.List;
 
 /**
  * Created by peter on 16.05.16.
@@ -40,46 +32,7 @@ public class BuildMap extends MapRequest {
             .order(ByteOrder.LITTLE_ENDIAN);
     private static final ByteBuffer MAP_NAME_MAGIC_END = ByteBuffer.wrap(new byte[]{0x00, 'x', (byte) 0xE4, 0x01, 0x00, 0x08, 0x00, 0x00})
             .order(ByteOrder.LITTLE_ENDIAN);
-
-    static class WurstProjectConfig {
-        private static final String FILE_NAME = "wurst.build";
-
-        public String projectName = "DefaultName";
-        public List<String> dependencies = new ArrayList<>();
-
-        public String buildMapName = "DefaultName";
-        public String buildMapFileName = "DefaultFileName";
-        public String buildMapAuthor = "DefaultAuthor";
-
-        public WurstProjectConfig() {
-        }
-
-        private static final DumperOptions options = new DumperOptions();
-        public static final Yaml yaml;
-
-        private static class UnsortedPropertyUtils extends PropertyUtils {
-            @Override
-            protected Set<Property> createPropertySet(Class<? extends Object> type, BeanAccess bAccess) throws IntrospectionException {
-                Set<Property> properties = new LinkedHashSet<>();
-                Collection<Property> props = getPropertiesMap(type, bAccess).values();
-                for (Property property : props) {
-                    if ((property.isReadable() || property.isWritable()) && property instanceof FieldProperty) {
-                        properties.add(property);
-                    }
-                }
-                return properties;
-            }
-        }
-
-        static {
-            options.setTags(Collections.emptyMap());
-            Representer representer = new Representer();
-            representer.setPropertyUtils(new UnsortedPropertyUtils());
-            representer.getPropertyUtils().setSkipMissingProperties(true);
-            representer.addClassTag(WurstProjectConfig.class, Tag.MAP);
-            yaml = new Yaml(new Constructor(WurstProjectConfig.class), representer, options);
-        }
-    }
+    private static final String FILE_NAME = "wurst.build";
 
 
     /**
@@ -102,13 +55,11 @@ public class BuildMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before building a release.");
         }
 
-        File buildFile = new File(workspaceRoot.getFile(), WurstProjectConfig.FILE_NAME);
-        if (!buildFile.exists()) {
-            throw new RequestFailedException(MessageType.Error, WurstProjectConfig.FILE_NAME + " file doesn't exist");
+        WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
+        if(projectConfig == null) {
+            throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
+                    "Please refresh your project using an up to date wurst setup tool.");
         }
-        String input = new String(java.nio.file.Files.readAllBytes(buildFile.toPath()));
-
-        WurstProjectConfig wurstProjectConfig = WurstProjectConfig.yaml.loadAs(input, WurstProjectConfig.class);
 
         // TODO use normal compiler for this, avoid code duplication
         WLogger.info("buildMap " + map.getAbsolutePath() + " " + compileArgs);
@@ -122,7 +73,7 @@ public class BuildMap extends MapRequest {
 
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
-            File targetMap = new File(buildDir, wurstProjectConfig.buildMapFileName + ".w3x");
+            File targetMap = new File(buildDir, projectConfig.getBuildMapData().getFileName() + ".w3x");
             if (targetMap.exists()) {
                 boolean deleteOk = targetMap.delete();
                 if (!deleteOk) {
@@ -150,7 +101,7 @@ public class BuildMap extends MapRequest {
             }
 
             gui.sendProgress("Applying Map Config...");
-            applyProjectConfig(wurstProjectConfig, targetMap);
+            applyProjectConfig(projectConfig, targetMap);
             gui.sendProgress("Done.");
         } catch (CompileError e) {
             throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
@@ -166,16 +117,16 @@ public class BuildMap extends MapRequest {
         return "ok"; // TODO
     }
 
-    private void applyProjectConfig(WurstProjectConfig wurstProjectConfig, File targetMap) throws IOException {
-        if (wurstProjectConfig.buildMapFileName == null || wurstProjectConfig.buildMapFileName.isEmpty()) {
-            wurstProjectConfig.buildMapFileName = targetMap.getName();
+    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+        if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
+            throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
 
-        if (wurstProjectConfig.buildMapName != null && wurstProjectConfig.buildMapName.length() > 0) {
+        if (!projectConfig.getBuildMapData().getName().isEmpty()) {
             try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
                 W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
-                w3I.setMapName(wurstProjectConfig.buildMapName);
-                w3I.setMapAuthor(wurstProjectConfig.buildMapAuthor);
+                w3I.setMapName(projectConfig.getBuildMapData().getName());
+                w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
 
@@ -195,7 +146,7 @@ public class BuildMap extends MapRequest {
         byte[] mapBytes = java.nio.file.Files.readAllBytes(targetMap.toPath());
         ByteBuffer mapNameBuffer = ByteBuffer.allocate(512).order(ByteOrder.LITTLE_ENDIAN);
         mapNameBuffer.put(MAP_NAME_MAGIC_START);
-        mapNameBuffer.put(wurstProjectConfig.buildMapName.getBytes());
+        mapNameBuffer.put(projectConfig.getBuildMapData().getName().getBytes());
         mapNameBuffer.put(MAP_NAME_MAGIC_END);
 
         mapNameBuffer.rewind();
