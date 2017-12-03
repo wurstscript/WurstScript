@@ -138,6 +138,9 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
         return ILconstInt.create(0);
     }
 
+    public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        return haveSaved(ht, key1, key2);
+    }
 
     public void SaveStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2, ILconstString value) {
         @SuppressWarnings("unchecked")
@@ -171,13 +174,7 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
     }
 
     public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        @SuppressWarnings("unchecked")
-        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
-        Map<Integer, Object> map2 = map.get(key1.getVal());
-        if (map2 != null) {
-            return ILconstBool.instance(map2.containsKey(key2.getVal()));
-        }
-        return ILconstBool.FALSE;
+        return haveSaved(ht, key1, key2);
     }
 
 
@@ -268,5 +265,16 @@ public class NativeFunctionsIO extends ReflectionBasedNativeProvider implements 
 
     public ILconstInt GetRandomInt(ILconstInt a, ILconstInt b) {
         return new ILconstInt(a.getVal() + r.nextInt(1 + b.getVal() - a.getVal()));
+    }
+
+    private ILconstBool haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
+        Map<Integer, Object> map2 = map.get(key1.getVal());
+        if (map2 != null) {
+            WLogger.info("HaveSavedString of key1: " + key1.getVal() + ", key2: " + key2.getVal() + ", is: " + map2.containsKey(key2.getVal()));
+            return ILconstBool.instance(map2.containsKey(key2.getVal()));
+        }
+        WLogger.info("HaveSavedString false");
+        return ILconstBool.FALSE;
     }
 }
