@@ -136,5 +136,4 @@ public class ExtensionMethodsTests extends WurstScriptTest {
         );
     }
 
-
 }
