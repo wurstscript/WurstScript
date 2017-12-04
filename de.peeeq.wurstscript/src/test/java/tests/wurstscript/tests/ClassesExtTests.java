@@ -718,4 +718,35 @@ public class ClassesExtTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void testArrayInitInClass() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    int array[2] a = [1,2]",
+                "",
+                "init ",
+                "    let a = new A",
+                "    if a.a[0] == 1 and a.a[1] == 2",
+                "        testSuccess()",
+                ""
+        );
+    }
+
+    @Test
+    public void testArrayInitInClassStatic() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    static int array a = [1,2]",
+                "",
+                "init ",
+                "    if A.a[0] == 1 and A.a[1] == 2",
+                "        testSuccess()",
+                ""
+        );
+    }
 }
