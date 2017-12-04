@@ -90,6 +90,10 @@ public class AttrPos {
         return identifierPos(e, e.getNameId());
     }
 
+    public static WPos getErrorPos(NameDef e) {
+        return identifierPos(e, e.getNameId());
+    }
+
     public static WPos getErrorPos(FuncDef e) {
         return identifierPos(e, e.getNameId());
     }

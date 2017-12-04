@@ -24,6 +24,8 @@ public class LineOffsets {
     public int get(int line) {
         if (line >= offsets.length) {
             line = offsets.length - 1;
+        } else if (line <= 0) {
+            return -1;
         }
         while (line >= 0 && offsets[line] == 0) {
             line--;
