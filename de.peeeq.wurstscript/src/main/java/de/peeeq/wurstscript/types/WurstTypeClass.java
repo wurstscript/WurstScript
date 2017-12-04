@@ -1,14 +1,13 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.StructureDef;
-import de.peeeq.wurstscript.ast.TypeExpr;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {
@@ -42,6 +41,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         if (classDef.getExtendedClass() instanceof TypeExpr) {
             TypeExpr extendedClass = (TypeExpr) classDef.getExtendedClass();
             WurstType superType = extendedClass.attrTyp();
+            superType = superType.setTypeArgs(this.getTypeArgBinding());
             return superType.isSubtypeOf(obj, location);
         }
         return false;

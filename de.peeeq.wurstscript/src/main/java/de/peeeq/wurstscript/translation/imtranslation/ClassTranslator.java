@@ -399,7 +399,13 @@ public class ClassTranslator {
                 ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
-                throw new RuntimeException("TODO");
+                ArrayInitializer ai = (ArrayInitializer) i.getB();
+                int index = 0;
+                for (Expr e : ai.getValues()) {
+                    ImStmt s = ImSetArrayMulti(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index)), e.imTranslateExpr(translator, f));
+                    f.getBody().add(s);
+                    index++;
+                }
             }
         }
         // add initializers from modules

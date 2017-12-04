@@ -644,4 +644,109 @@ public class ClassesExtTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+
+    @Test
+    public void subTypeGeneric1() { // see #595
+        testAssertOkLines(true,
+                "package test",
+                "    native testSuccess()",
+                "    class A<X>",
+                "    class B<T> extends A<T>",
+                "    function A<int>.bla()",
+                "        testSuccess()",
+                "    init",
+                "        let b = new B<int>",
+                "        A<int> a = b",
+                "        b.bla()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void subTypeGeneric2() { // see #595
+        testAssertOkLines(false,
+                "package test",
+                "    class C",
+                "    class A<X, Y>",
+                "    class B<T> extends A<int, T>",
+                "    init",
+                "        let b = new B<C>",
+                "        A<int, C> a = b",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void subTypeGeneric3() {
+        testAssertErrorsLines(false, "Cannot assign B<C> to A<C, integer>",
+                "package test",
+                "    class C",
+                "    class A<X, Y>",
+                "    class B<T> extends A<int, T>",
+                "    init",
+                "        let b = new B<C>",
+                "        A<C, int> a = b",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void subTypeGenericInterface() {
+        testAssertOkLines(false,
+                "package test",
+                "    class C",
+                "    interface A<X, Y>",
+                "    class B<T> implements A<int, T>",
+                "    init",
+                "        let b = new B<C>",
+                "        A<int, C> a = b",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void subTypeGenericInterface2() {
+        testAssertOkLines(false, "Cannot assign B<C> to A<C, integer>",
+                "package test",
+                "    class C",
+                "    interface A<X, Y>",
+                "    class B<T> implements A<int, T>",
+                "    init",
+                "        let b = new B<C>",
+                "        A<C, int> a = b",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testArrayInitInClass() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    int array[2] a = [1,2]",
+                "",
+                "init ",
+                "    let a = new A",
+                "    if a.a[0] == 1 and a.a[1] == 2",
+                "        testSuccess()",
+                ""
+        );
+    }
+
+    @Test
+    public void testArrayInitInClassStatic() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    static int array a = [1,2]",
+                "",
+                "init ",
+                "    if A.a[0] == 1 and A.a[1] == 2",
+                "        testSuccess()",
+                ""
+        );
+    }
 }
