@@ -129,7 +129,7 @@ public class RunTests extends UserRequest<Object> {
         CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
-        if(globalState == null) {
+        if (globalState == null) {
             globalState = new ProgramState(gui, imProg, true);
         }
         if (interpreter == null) {
@@ -183,9 +183,10 @@ public class RunTests extends UserRequest<Object> {
                     successTests.add(f);
                     println("\tOK!");
                 } catch (TestFailException e) {
-
-                    failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("\tFAILED");
+                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                    failTests.add(failure);
+                    println("\tFAILED assertion:");
+                    println("\t" + failure.getMessageWithStackFrame());
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("\tFAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
@@ -200,10 +201,7 @@ public class RunTests extends UserRequest<Object> {
         if (failTests.size() == 0) {
             println(">> All tests have passed successfully!");
         } else {
-            println(">> The following tests failed:");
-            for (TestFailure e : failTests) {
-                println(e.getMessageWithStackFrame());
-            }
+            println(">> " + failTests.size() + " Tests have failed!");
         }
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
