@@ -156,13 +156,14 @@ public class RunTests extends UserRequest<Object> {
                 }
 
 
-                print("Running test <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + "." + f.getName() + "> .. ");
+                println("Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
+                        + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..");
                 try {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
                         finalInterpreter.runVoidFunc(f, null);
                         successTests.add(f);
-                        println("success!");
+                        println("\tOK!");
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
@@ -180,17 +181,17 @@ public class RunTests extends UserRequest<Object> {
 
                 } catch (TestSuccessException e) {
                     successTests.add(f);
-                    println("success!");
+                    println("\tOK!");
                 } catch (TestFailException e) {
 
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("FAILED");
+                    println("\tFAILED");
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("FAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
+                    println("\tFAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("FAILED with exception:");
+                    println("\tFAILED with exception:");
                     println("\t" + e.getMessage());
                 }
             }
