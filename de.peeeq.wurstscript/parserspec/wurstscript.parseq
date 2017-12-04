@@ -268,6 +268,18 @@ WScope =
 	| WEntities
 	| ExprClosure
 
+
+// a scope which can contain names that are usable from outside the scope
+ExportingScope =
+      ModuleDef
+    | ClassDef
+    | InterfaceDef
+    | TupleDef
+    | PackageOrGlobal
+
+
+
+
 PackageOrGlobal = WPackage | CompilationUnit
 
 TypeRef = TypeExpr | ExprNewObject
@@ -805,6 +817,25 @@ WScope.attrNameLinks "returns a map of all the names visible in this scope."
 WScope.attrTypeNameLinks "returns a map of all the names visible in this scope."
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
 	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate
+
+
+ExportingScope.attrLookupScope(String name)
+    returns java.util.Optional<ExportingScope>
+    implemented by de.peeeq.wurstscript.attributes.symbols.ExportingScopeLookup.attrLookupScope
+
+ExportingScope.attrLookupType(String name)
+    returns java.util.Optional<TypeDef>
+    implemented by de.peeeq.wurstscript.attributes.symbols.ExportingScopeLookup.attrLookupType
+
+ExportingScope.attrLookupVariable(String name)
+    returns java.util.Optional<VarDef>
+    implemented by de.peeeq.wurstscript.attributes.symbols.ExportingScopeLookup.attrLookupVariable
+
+ExportingScope.attrLookupFunction(de.peeeq.wurstscript.types.WurstType receiverType, String name, java.util.List<de.peeeq.wurstscript.types.WurstType> paramTypes)
+    returns java.util.Optional<FunctionImplementation>
+    implemented by de.peeeq.wurstscript.attributes.symbols.ExportingScopeLookup.attrLookupFunction
+
+
 
 WPackage.attrExportedNameLinks
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
