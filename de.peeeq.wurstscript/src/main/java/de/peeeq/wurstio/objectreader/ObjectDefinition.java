@@ -71,7 +71,7 @@ public class ObjectDefinition {
 
     public void exportToWurst(Appendable out) throws IOException {
         out.append("@compiletime function create_" + parent.getFileType().getExt() + "_" + ObjectHelper.objectIdIntToString(newObjectId) + "()\n");
-        out.append("	let u = createObjectDefinition(\"" + parent.getFileType().getExt() + "\", '");
+        out.append("	let def = createObjectDefinition(\"" + parent.getFileType().getExt() + "\", '");
         out.append(ObjectHelper.objectIdIntToString(newObjectId));
         out.append("', '");
         out.append(ObjectHelper.objectIdIntToString(origObjectId));

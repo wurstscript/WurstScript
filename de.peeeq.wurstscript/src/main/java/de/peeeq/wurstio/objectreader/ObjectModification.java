@@ -121,11 +121,11 @@ public abstract class ObjectModification<T> { // TODO split into appropiate subc
 
     public final void exportToWurst(Appendable out) throws IOException {
         if (parent.getFileType().usesLevels()) {
-            out.append("	u.setLvlData" + getFuncPostfix() + "(\"");
+            out.append("\t..setLvlData" + getFuncPostfix() + "(\"");
             out.append(modificationId);
             out.append("\", " + levelCount + ", " + dataPointer + ", " + escapedData() + ")\n");
         } else {
-            out.append("	u.set" + getFuncPostfix() + "(\"");
+            out.append("\t..set" + getFuncPostfix() + "(\"");
             out.append(modificationId);
             out.append("\", " + escapedData() + ")\n");
         }
