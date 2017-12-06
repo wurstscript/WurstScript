@@ -26,7 +26,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        System.err.println("initializing ");
+        System.err.println("initializing workspace");
         setupLogger();
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
@@ -50,6 +50,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
         InitializeResult res = new InitializeResult(capabilities);
         WLogger.info("initialization done: " + params.getRootUri());
+        System.err.println("initialization done!");
         return CompletableFuture.completedFuture(res);
     }
 
