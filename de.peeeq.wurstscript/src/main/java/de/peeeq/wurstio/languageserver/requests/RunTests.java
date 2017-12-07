@@ -3,7 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
-import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
@@ -134,7 +134,7 @@ public class RunTests extends UserRequest<Object> {
         }
         if (interpreter == null) {
             interpreter = new ILInterpreter(imProg, gui, null, globalState);
-            interpreter.addNativeProvider(new NativeFunctionsIO());
+            interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         }
 
         redirectInterpreterOutput(globalState);

@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
@@ -447,14 +446,9 @@ public class JassInterpreter {
     }
 
     private ExecutableJassFunction searchNativeJassFunction(String name) {
-        ReflectionBasedNativeProvider nf = new NativeFunctionsIO();
-        Class<NativeFunctionsIO> natives = NativeFunctionsIO.class;
-        for (Method method : natives.getMethods()) {
-            if (method.getName().equals(name)) {
-                return new NativeJassFunction(nf, method);
-            }
-        }
-        return new UnknownJassFunction(name);
+        ReflectionNativeProvider nf = new ReflectionNativeProvider(null);
+        ExecutableJassFunction functionPair = nf.getFunctionPair(name);
+        return functionPair != null ? functionPair : new UnknownJassFunction(name);
     }
 
     public void trace(boolean b) {

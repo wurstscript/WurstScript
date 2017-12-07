@@ -9,7 +9,7 @@ import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
-import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
@@ -27,7 +27,6 @@ import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
@@ -378,7 +377,7 @@ public class WurstScriptTest {
         try {
             // run the interpreter on the intermediate language
             ILInterpreter interpreter = new ILInterpreter(imProg, gui, null, false);
-            interpreter.addNativeProvider(new NativeFunctionsIO());
+            interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
 //				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
             interpreter.executeFunction("main", null);
         } catch (TestFailException e) {

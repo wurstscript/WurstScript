@@ -122,12 +122,12 @@ public class ILInterpreter {
     }
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        String errors = "";
+        StringBuilder errors = new StringBuilder();
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
                 return new LocalState(natives.invoke(f.getName(), args));
             } catch (NoSuchNativeException e) {
-                errors += "\n" + e.getMessage();
+                errors.append("\n").append(e.getMessage());
                 // ignore
             }
         }

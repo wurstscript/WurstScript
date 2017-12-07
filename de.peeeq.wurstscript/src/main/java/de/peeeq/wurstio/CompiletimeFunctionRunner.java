@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
@@ -78,8 +78,8 @@ public class CompiletimeFunctionRunner {
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
-        interpreter.addNativeProvider(new NativeFunctionsIO());
         interpreter.addNativeProvider(new CompiletimeNatives(globalState));
+        interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         this.gui = gui;
         this.functionFlag = flag;
     }

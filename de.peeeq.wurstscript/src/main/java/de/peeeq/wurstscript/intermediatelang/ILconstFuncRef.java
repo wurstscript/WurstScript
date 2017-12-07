@@ -28,6 +28,10 @@ public class ILconstFuncRef extends ILconstAbstract {
         return WurstTypeCode.instance();
     }
 
+    public String getFuncName() {
+        return funcName;
+    }
+
     @Override
     public boolean isEqualTo(ILconst other) {
         if (other instanceof ILconstFuncRef) {
