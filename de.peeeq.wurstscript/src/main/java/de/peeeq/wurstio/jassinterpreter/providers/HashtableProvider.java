@@ -77,7 +77,7 @@ public class HashtableProvider extends Provider {
     }
 
     @Implements(funcNames = {"HaveSavedInteger", "HaveSavedReal", "HaveSavedBoolean", "HaveSavedString", "HaveSavedHandle"})
-    private ILconstBool haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
+    public ILconstBool haveSaved(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
         Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
         Map<Integer, Object> map2 = map.get(key1.getVal());
         if (map2 != null) {
