@@ -16,10 +16,6 @@ public class OutputProvider extends Provider {
         super(interpreter);
     }
 
-    public void BJDebugMsg(ILconstString msg) {
-        outStream.println(msg.getVal());
-    }
-
     @Implements(funcNames = {"BJDebugMsg", "DisplayTimedTextToPlayer", "println"})
     public void println(ILconstString msg) {
         outStream.println(msg.getVal());
