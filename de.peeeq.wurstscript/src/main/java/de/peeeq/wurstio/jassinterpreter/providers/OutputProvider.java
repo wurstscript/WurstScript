@@ -2,7 +2,9 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.Implements;
+import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -16,7 +18,11 @@ public class OutputProvider extends Provider {
         super(interpreter);
     }
 
-    @Implements(funcNames = {"BJDebugMsg", "DisplayTimedTextToPlayer", "println"})
+    public void DisplayTimedTextToPlayer(IlConstHandle player, ILconstReal x, ILconstReal y, ILconstReal duration, ILconstString msg) {
+        outStream.println(msg.getVal());
+    }
+
+    @Implements(funcNames = {"BJDebugMsg", "println"})
     public void println(ILconstString msg) {
         outStream.println(msg.getVal());
     }
