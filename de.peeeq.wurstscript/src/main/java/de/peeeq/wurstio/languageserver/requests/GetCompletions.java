@@ -317,6 +317,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
 	*/
 
     private boolean isSuitableCompletion(String name) {
+        if(name.endsWith("Tests")) {
+            return false;
+        }
         if (searchMode == SearchMode.PREFIX) {
             return name.toLowerCase().startsWith(alreadyEnteredLower);
         } else if (searchMode == SearchMode.INFIX) {
