@@ -120,7 +120,7 @@ public class WurstValidator {
             }
             Set<WPackage> impContributions = contributions.get(imp);
             if (impContributions.isEmpty()) {
-                imp.addWarning("The import " + imp.getPackagename() + " is never used.");
+                imp.addWarning("The import " + imp.getPackagename() + " is never used");
             } else {
                 for (WImport imp2 : p.getImports()) {
                     if (imp == imp2) {
@@ -867,7 +867,7 @@ public class WurstValidator {
         }
         WScope f = s.attrNearestScope();
         if (f != null && !f.attrReadVariables().contains(s)) {
-            s.addWarning("The " + Utils.printElement(s) + " is never read.");
+            s.addWarning("The " + Utils.printElement(s) + " is never read. If intentional, prefix with \"_\" to suppress this warning.");
         }
     }
 
