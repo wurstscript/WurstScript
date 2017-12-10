@@ -61,10 +61,11 @@ public class ReflectionNativeProvider implements NativesProvider {
         if (candidate.getMethod().getParameterCount() == args.length) {
             String[] parameterTypes = new String[args.length];
             for (int i = 0; i < args.length; i++) {
-                if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
-                    throw new Error("The native <" + funcname + "> expects different parameters!");
-                }
                 parameterTypes[i] = "" + args[i];
+                if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
+                    throw new Error("The native <" + funcname + "> expects different parameters!" +
+                            "\n\tExpected: " + parameterTypes[i] + " Actual: " + candidate.getMethod().getParameterTypes()[i]);
+                }
             }
         }
         try {

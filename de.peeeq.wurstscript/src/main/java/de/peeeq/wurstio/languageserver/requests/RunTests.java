@@ -23,9 +23,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -156,8 +154,10 @@ public class RunTests extends UserRequest<Object> {
                 }
 
 
-                println("Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
-                        + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..");
+                String message = "Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
+                        + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..";
+                println(message);
+                WLogger.info(message);
                 try {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
@@ -193,7 +193,12 @@ public class RunTests extends UserRequest<Object> {
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
                     println("\tFAILED with exception:");
-                    println("\t" + e.getMessage());
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+                    String sStackTrace = sw.toString();
+                    println("\t" + e.getLocalizedMessage());
+                    println("\t" + sStackTrace);
                 }
             }
         }

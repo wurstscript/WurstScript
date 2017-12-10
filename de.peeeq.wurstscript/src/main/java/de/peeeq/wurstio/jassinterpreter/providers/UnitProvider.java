@@ -14,4 +14,8 @@ public class UnitProvider extends Provider {
     public IlConstHandle CreateUnit(IlConstHandle owner, ILconstInt unitid, ILconstReal x, ILconstReal y, ILconstReal face) {
         return new IlConstHandle(NameProvider.getRandomName("unit"), new UnitMock(owner, unitid, x, y, face));
     }
+
+    public ILconstInt GetUnitTypeId(IlConstHandle unit) {
+        return ((UnitMock)unit.getObj()).unitid;
+    }
 }
