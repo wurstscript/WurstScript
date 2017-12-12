@@ -5,7 +5,6 @@ import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
-import java.util.Map;
 import java.util.Objects;
 
 public class HashtableProvider extends Provider {
@@ -85,9 +84,16 @@ public class HashtableProvider extends Provider {
         return load(ht, key1, key2, IlConstHandle.class);
     }
 
+    public void FlushParentHashtable(IlConstHandle ht) {
+        @SuppressWarnings("unchecked")
+        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        map.clear();
+    }
+
     public void FlushChildHashtable(IlConstHandle ht, ILconstInt parentKey) {
-        Map<Integer, Map<Integer, Object>> map = (Map<Integer, Map<Integer, Object>>) ht.getObj();
-        map.remove(parentKey.getVal());
+        @SuppressWarnings("unchecked")
+        ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
+        map.entries().removeIf(entry -> entry.getKey().parentkey == parentKey.getVal());
     }
 
     public void RemoveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
