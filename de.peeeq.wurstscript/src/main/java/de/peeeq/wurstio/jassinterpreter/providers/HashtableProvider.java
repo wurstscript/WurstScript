@@ -140,7 +140,7 @@ public class HashtableProvider extends Provider {
         @SuppressWarnings("unchecked")
         ArrayListMultimap<KeyPair, Object> map = (ArrayListMultimap<KeyPair, Object>) ht.getObj();
         KeyPair keyPair = new KeyPair(key1.getVal(), key2.getVal());
-        if (hasValueOfType(map, keyPair, ILconstInt.class)) {
+        if (hasValueOfType(map, keyPair, clazz)) {
             return getValueOfType(map, keyPair, clazz);
         }
         return null;
@@ -181,13 +181,15 @@ public class HashtableProvider extends Provider {
     private static <T> void deleteIfPresent(ArrayListMultimap<KeyPair, Object> map, KeyPair key, T type) {
         Object toRemove = null;
         for (Object o : map.get(key)) {
-            if (o.getClass().isAssignableFrom(type.getClass())) {
+            if (o.getClass() == type) {
                 toRemove = o;
                 break;
             }
         }
         if (toRemove != null) {
-            map.remove(key, toRemove);
+            if(!map.remove(key, toRemove)) {
+                throw new Error("object was found but not deleted");
+            };
         }
     }
 }
