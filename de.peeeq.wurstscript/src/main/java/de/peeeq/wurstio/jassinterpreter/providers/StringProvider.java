@@ -22,13 +22,25 @@ public class StringProvider extends Provider {
 
     public ILconstInt S2I(ILconstString s) {
         String str = s.getVal();
-        Pattern pattern = Pattern.compile("((\\+|-)?[0-9]+).*");
+        Pattern pattern = Pattern.compile("([+\\-]?[0-9]+).*");
         Matcher matcher = pattern.matcher(str);
         if (matcher.matches()) {
             str = matcher.group(1);
             return new ILconstInt(Integer.parseInt(str));
         } else {
-            return new ILconstInt(-1);
+            return new ILconstInt(0);
+        }
+    }
+
+    public ILconstReal S2R(ILconstString s) {
+        String str = s.getVal();
+        Pattern pattern = Pattern.compile("([+\\-]?[0-9]+(\\.[0-9]*)?).*");
+        Matcher matcher = pattern.matcher(str);
+        if (matcher.matches()) {
+            str = matcher.group(1);
+            return new ILconstReal(Float.parseFloat(str));
+        } else {
+            return new ILconstReal(0);
         }
     }
 
@@ -43,6 +55,8 @@ public class StringProvider extends Provider {
     public ILconstReal I2R(ILconstInt i) {
         return new ILconstReal(i.getVal());
     }
+
+
 
     public ILconstInt StringHash(ILconstString s) {
         // TODO use wc3's hash func
