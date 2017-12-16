@@ -782,4 +782,34 @@ public class ClassesExtTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testOverrideInterfaceAbstractClass2() { // see #602
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "interface MyInterface",
+                "    function getStr() returns string",
+                "",
+                "abstract class MyInterfaceAbstract implements MyInterface",
+                "    protected function getSome() returns string",
+                "        return \"AAbstract\"",
+                "",
+                "    override abstract function getStr() returns string",
+                "",
+                "class MyInterfaceAbstractImpl extends MyInterfaceAbstract",
+                "    override function getStr() returns string",
+                "        return getSome()",
+                "",
+                "class MyInterfaceImpl implements MyInterface",
+                "    override function getStr() returns string",
+                "        return \"MyInterfaceImpl\"",
+                "",
+                "init",
+                "    MyInterface a = new MyInterfaceImpl",
+                "    MyInterface b = new MyInterfaceAbstractImpl",
+                "    if a.getStr() == \"MyInterfaceImpl\" and b.getStr() == \"AAbstract\"",
+                "        testSuccess()"
+        );
+    }
+
 }
