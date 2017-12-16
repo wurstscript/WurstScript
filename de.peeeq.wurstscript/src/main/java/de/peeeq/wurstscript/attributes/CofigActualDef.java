@@ -17,7 +17,7 @@ public class CofigActualDef {
     public static NameDef calculate(GlobalVarDef g) {
         WPackage p = getConfigPackage(g);
         if (p != null) {
-            NameDef v = p.getElements().lookupVar(g.getName(), false);
+            NameDef v = p.getElements().lookupVarNoConfig(g.getName(), false);
             if (v != null && hasConfigAnnotation(v)) {
                 return v;
             }
@@ -29,9 +29,9 @@ public class CofigActualDef {
     public static NameDef calculate(FuncDef f) {
         WPackage p = getConfigPackage(f);
         if (p != null) {
-            Collection<NameLink> links = p.getElements().lookupFuncs(f.getName(), false);
+            Collection<NameLink> links = p.getElements().lookupFuncsNoConfig(f.getName(), false);
             for (NameLink link : links) {
-                if (link.getNameDef().hasAnnotation("@config")) {
+                if (hasConfigAnnotation(link.getNameDef())) {
                     return link.getNameDef();
                 }
             }

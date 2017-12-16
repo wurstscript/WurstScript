@@ -66,5 +66,28 @@ public class ConfigPackageTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void configVarCyclic() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@configurable public var DEBUG_LEVEL = Loglevel.WARNING",
+                "public enum Loglevel",
+                "	WARNING",
+                "	ERROR",
+                "public function foo() returns Loglevel",
+                "	return DEBUG_LEVEL",
+                "init",
+                "	if foo() == Loglevel.ERROR",
+                "		testSuccess()",
+                "endpackage",
+                "package Test_config",
+                "import Test",
+                "@config public var DEBUG_LEVEL = Loglevel.ERROR",
+                "endpackage"
+        );
+    }
+
+
 
 }
