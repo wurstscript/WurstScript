@@ -170,7 +170,7 @@ public class RunTests extends UserRequest<Object> {
                     ExecutorService service = Executors.newSingleThreadExecutor();
                     service.execute(future);
                     try {
-                        future.get(10, TimeUnit.SECONDS); // Wait 10 seconds for test to complete
+                        future.get(20, TimeUnit.SECONDS); // Wait 10 seconds for test to complete
                     } catch (TimeoutException ex) {
                         future.cancel(true);
                         throw new TestTimeOutException();
@@ -189,7 +189,7 @@ public class RunTests extends UserRequest<Object> {
                     println("\t" + failure.getMessageWithStackFrame());
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("\tFAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
+                    println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
                     println("\tFAILED with exception:");
@@ -292,7 +292,7 @@ public class RunTests extends UserRequest<Object> {
 
         @Override
         public String getMessage() {
-            return "test failed with timeout (This test did not complete in 10 seconds, it might contain an endless loop)";
+            return "test failed with timeout (This test did not complete in 20 seconds, it might contain an endless loop)";
         }
 
         @Override
