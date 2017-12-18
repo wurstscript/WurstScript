@@ -315,7 +315,7 @@ public class SimpleRewrites {
             ImExpr expr = opc.getArguments().get(0);
             if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal) {
                 ImIntVal imIntVal = (ImIntVal) expr;
-                if(imIntVal.getValI() <= 0) {
+                if (imIntVal.getValI() <= 0) {
                     int inverseVal = imIntVal.getValI() * -1;
                     ImIntVal newVal = JassIm.ImIntVal(inverseVal);
                     opc.replaceBy(newVal);
@@ -429,6 +429,53 @@ public class SimpleRewrites {
         if (imIf.getThenBlock().isEmpty() && imIf.getElseBlock().isEmpty()) {
             totalRewrites++;
             imIf.replaceBy(imIf.getCondition().copy());
+        } else if (imIf.getThenBlock().size() == 1 && imIf.getElseBlock().isEmpty()) {
+            ImStmt thenStmt = imIf.getThenBlock().get(0);
+            if (thenStmt instanceof ImSet) {
+                ImSet setStmt = (ImSet) thenStmt;
+                WLogger.info("ImSet: " + setStmt);
+                ImVar left = setStmt.getLeft();
+                ImExpr right = setStmt.getRight();
+                if (left.getType() instanceof ImSimpleType) {
+                    ImSimpleType simpleType = (ImSimpleType) left.getType();
+                    if (simpleType.getTypename().equalsIgnoreCase("boolean")) {
+                        if (right instanceof ImBoolVal) {
+                            ImBoolVal rightBool = (ImBoolVal) right;
+                            boolean viable = true;
+                            for (ImVarRead read : left.attrReads()) {
+                                Element parent = read.getParent();
+                                while (viable && parent != null) {
+                                    if (parent instanceof ImIf) {
+                                        if (parent == imIf) {
+                                            WLogger.info("var self-access");
+                                            viable = false;
+                                            break;
+                                        }
+                                    } else if (parent instanceof ImFunction) {
+                                        break;
+                                    }
+                                    parent = parent.getParent();
+                                }
+                            }
+                            if(viable) {
+                                if (rightBool.getValB()) {
+                                    ImSet copy = setStmt.copy();
+                                    copy.setRight(imIf.getCondition().copy());
+                                    imIf.replaceBy(copy);
+                                    totalRewrites++;
+                                } else {
+                                    ImSet copy = setStmt.copy();
+                                    copy.setRight(JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(imIf.getCondition().copy())));
+                                    WLogger.info("Replace: " + imIf + " with " + copy);
+                                    imIf.replaceBy(copy);
+                                    totalRewrites++;
+                                }
+                            }
+
+                        }
+                    }
+                }
+            }
         } else if (imIf.getCondition() instanceof ImBoolVal) {
             ImBoolVal boolVal = (ImBoolVal) imIf.getCondition();
             if (boolVal.getValB()) {
