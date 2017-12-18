@@ -3,9 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImMethod;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 
@@ -57,6 +55,11 @@ public class InterfaceTranslator {
             ImMethod dm = translator.destroyMethod.getFor(sc);
             m.getSubMethods().add(dm);
         }
+
+        // deallocate
+        ImFunction f = translator.destroyFunc.getFor(interfaceDef);
+        ImVar thisVar = f.getParameters().get(0);
+        f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
     }
 
     private void translateInterfaceFuncDef(FuncDef f) {

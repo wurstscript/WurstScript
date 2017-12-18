@@ -488,4 +488,21 @@ public class InterfaceTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void testInterfaceDefaultImpl() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	interface I",
+                "		function foo(int x) returns int",
+                "			return x + 42",
+                "	class C implements I",
+                "	init",
+                "		I i = new C()",
+                "		if i.foo(1) == 43",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
 }

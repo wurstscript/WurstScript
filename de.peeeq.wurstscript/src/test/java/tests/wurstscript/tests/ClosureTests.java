@@ -506,5 +506,22 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testDispatch() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface B",
+                "       function foo() returns int",
+                "   function bar(B b)",
+                "       destroy b",
+                "   init",
+                "       bar(() -> 0)",
+                "       B b2 = () -> 0",
+                "       if (b2 castTo int) == 1",
+                "           testSuccess()");
+
+    }
+
 
 }
