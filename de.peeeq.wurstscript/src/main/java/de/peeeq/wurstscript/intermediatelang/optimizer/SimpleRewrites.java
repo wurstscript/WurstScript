@@ -359,6 +359,7 @@ public class SimpleRewrites {
 
                         ImOperatorCall opCall = JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), imExprs);
                         opc.replaceBy(opCall);
+                        break;
                     default:
                         wasViable = false;
                         break;
