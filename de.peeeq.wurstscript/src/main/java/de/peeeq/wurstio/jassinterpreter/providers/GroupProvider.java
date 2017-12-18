@@ -1,10 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
-import de.peeeq.wurstscript.intermediatelang.ILconstNull;
-import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.ArrayDeque;
@@ -50,10 +47,12 @@ public class GroupProvider extends Provider {
     }
 
     public void ForGroup(IlConstHandle group, ILconstFuncRef funcRef) {
+        WLogger.info("for group call");
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         groupList.forEach((IlConstHandle u) -> {
             enumUnitStack.push(u);
-            interpreter.executeFunction(funcRef.getFuncName(), null);
+            WLogger.info("for group call itr: " + funcRef.getFuncName());
+            interpreter.runVoidFunc(funcRef.getFunc(), null);
             enumUnitStack.pop();
         });
     }
@@ -66,6 +65,13 @@ public class GroupProvider extends Provider {
     }
 
     public void DestroyGroup(IlConstHandle group) {
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        groupList.clear();
+    }
+
+    public ILconstBool IsUnitInGroup(IlConstHandle unit, IlConstHandle group) {
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        return ILconstBool.instance(groupList.contains(unit));
     }
 
 }
