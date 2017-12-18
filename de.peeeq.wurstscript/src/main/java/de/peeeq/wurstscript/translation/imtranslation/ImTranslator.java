@@ -529,15 +529,8 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            boolean abstr;
-            if (classDef instanceof ClassDef) {
-                abstr = false; // all classes can have ondestroy, so this is not abstract
-            } else {
-                // interface destroy methods are abstract
-                abstr = true;
-            }
             ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(),
-                    impl, Lists.<ImMethod>newArrayList(), abstr);
+                    impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
     };
