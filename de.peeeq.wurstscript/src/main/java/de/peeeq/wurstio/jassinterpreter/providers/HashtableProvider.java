@@ -58,19 +58,19 @@ public class HashtableProvider extends Provider {
     }
 
     public ILconstInt LoadInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return load(ht, key1, key2, ILconstInt.class);
+        return haveSaved(ht, key1, key2, ILconstInt.class) ? load(ht, key1, key2, ILconstInt.class) : ILconstInt.create(0);
     }
 
     public ILconstReal LoadReal(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return load(ht, key1, key2, ILconstReal.class);
+        return haveSaved(ht, key1, key2, ILconstReal.class) ? load(ht, key1, key2, ILconstReal.class) : new ILconstReal(0);
     }
 
     public ILconstString LoadStr(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return load(ht, key1, key2, ILconstString.class);
+        return  haveSaved(ht, key1, key2, ILconstReal.class) ? load(ht, key1, key2, ILconstString.class) : new ILconstString("");
     }
 
     public ILconstBool LoadBoolean(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return load(ht, key1, key2, ILconstBool.class);
+        return haveSaved(ht, key1, key2, ILconstReal.class) ? load(ht, key1, key2, ILconstBool.class) : ILconstBool.FALSE;
     }
 
     @Implements(funcNames = {"LoadPlayerHandle", "LoadWidgetHandle", "LoadDestructableHandle", "LoadItemHandle", "LoadUnitHandle", "LoadAbilityHandle",
