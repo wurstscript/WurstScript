@@ -173,9 +173,9 @@ public class ImportFile {
             Path p = f.toPath();
             p = directory.toPath().relativize(p);
             writer.writeByte((byte) 13);
-            writer.writeString(p.toString().replaceAll("/", "\\\\"););
-            WLogger.info("importing file: " + p.toString().replaceAll("/", "\\\\"););
-            mpq.insertFile(p.toString().replaceAll("/", "\\\\");, Files.toByteArray(f));
+            writer.writeString(p.toString().replaceAll("/", "\\\\"));
+            WLogger.info("importing file: " + p.toString().replaceAll("/", "\\\\"));
+            mpq.insertFile(p.toString().replaceAll("/", "\\\\"), Files.toByteArray(f));
             
         }
         writer.close();
