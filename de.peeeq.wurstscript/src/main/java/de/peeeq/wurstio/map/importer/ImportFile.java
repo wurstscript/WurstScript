@@ -170,11 +170,13 @@ public class ImportFile {
         writer.writeInt(FILE_VERSION);
         writer.writeInt(files.size());
         for (File f : files) {
-            string s = directory.toPath().relativize(f.toPath()).toString().replaceAll("/", "\\\\");
+            Path p = f.toPath();
+            p = directory.toPath().relativize(p);
             writer.writeByte((byte) 13);
-            writer.writeString(s);
-            WLogger.info("importing file: " + s);
-            mpq.insertFile(s, Files.toByteArray(f));
+            writer.writeString(p.toString().replaceAll("/", "\\\\"););
+            WLogger.info("importing file: " + p.toString().replaceAll("/", "\\\\"););
+            mpq.insertFile(p.toString().replaceAll("/", "\\\\");, Files.toByteArray(f));
+            
         }
         writer.close();
         mpq.insertFile("war3map.imp", Files.toByteArray(temp));
