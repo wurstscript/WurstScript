@@ -174,8 +174,9 @@ public class ImportFile {
             p = directory.toPath().relativize(p);
             writer.writeByte((byte) 13);
             writer.writeString(p.toString().replaceAll("/", "\\\\"));
-            WLogger.info("importing file: " + p.toString());
-            mpq.insertFile(p.toString(), Files.toByteArray(f));
+            WLogger.info("importing file: " + p.toString().replaceAll("/", "\\\\"));
+            mpq.insertFile(p.toString().replaceAll("/", "\\\\"), Files.toByteArray(f));
+            
         }
         writer.close();
         mpq.insertFile("war3map.imp", Files.toByteArray(temp));
