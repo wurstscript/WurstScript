@@ -143,6 +143,9 @@ public class BuildMap extends MapRequest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        MAP_NAME_MAGIC_START.rewind();
+        MAP_NAME_MAGIC_END.rewind();
+
         byte[] mapBytes = java.nio.file.Files.readAllBytes(targetMap.toPath());
         ByteBuffer mapNameBuffer = ByteBuffer.allocate(512).order(ByteOrder.LITTLE_ENDIAN);
         mapNameBuffer.put(MAP_NAME_MAGIC_START);
