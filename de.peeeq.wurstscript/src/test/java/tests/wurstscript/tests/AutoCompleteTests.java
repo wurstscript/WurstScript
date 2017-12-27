@@ -186,6 +186,24 @@ public class AutoCompleteTests extends WurstScriptTest {
         testCompletions(testData, "foo", "fuu");
     }
 
+    @Test
+    public void testAfterDot() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "function A.foo() returns int",
+                "function A.fuu() returns bool",
+                "function test()",
+                "	new A()",
+                "		.|",
+                "",
+                "function a()"
+        );
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+
 
     static class CompletionTestData {
         String buffer;
@@ -223,7 +241,7 @@ public class AutoCompleteTests extends WurstScriptTest {
         CompletionList result = getCompletions.execute(modelManager);
 
         // debug output:
-        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
+//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
 
         List<String> completionLabels = result.getItems().stream()
                 .sorted(Comparator.comparing(i -> i.getSortText()))
