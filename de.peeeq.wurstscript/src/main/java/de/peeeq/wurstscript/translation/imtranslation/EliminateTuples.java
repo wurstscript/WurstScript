@@ -183,7 +183,10 @@ public class EliminateTuples {
         // TODO I think the whole thing can be made much simpler
         ImStmts statements = JassIm.ImStmts();
         ImmutableTree<ImVar> vars = translator.getVarsForTuple(e.getLeft());
-        if (vars.size() == 1) { // TODO do this only if it is a leaf
+        if (vars.size() == 0) {
+            // void expression, only keep right hand side
+            return copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
+        } if (vars.size() == 1) { // TODO do this only if it is a leaf
             ImExpr newExpr = copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
             newExpr = elimStatementExpr(statements, newExpr, translator, f);
             if (newExpr instanceof ImTupleExpr) {

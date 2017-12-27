@@ -562,7 +562,13 @@ public class AttrExprType {
             e.getCond().addError("Condition must be of type boolean, but found " + e.getCond().attrTyp());
         }
         WurstType tt = e.getIfTrue().attrTyp();
+        if (tt.isSubtypeOf(WurstTypeVoid.instance(), e)) {
+            e.getIfTrue().addError("Conditional expression must return a value, but result type of then-expression is void.");
+        }
         WurstType tf = e.getIfFalse().attrTyp();
+        if (tf.isSubtypeOf(WurstTypeVoid.instance(), e)) {
+            e.getIfTrue().addError("Conditional expression must return a value, but result type of else-expression is void.");
+        }
         WurstType resT = WurstTypeUnion.create(tt, tf, e);
         if (resT instanceof WurstTypeNull) {
             e.addError("Both branches of conditional expression have type null.");
