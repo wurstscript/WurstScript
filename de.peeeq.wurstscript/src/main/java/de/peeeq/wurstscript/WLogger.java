@@ -1,14 +1,12 @@
 package de.peeeq.wurstscript;
 
+import ch.qos.logback.classic.Level;
 import de.peeeq.wurstscript.utils.Utils;
-
-import java.util.logging.Handler;
-import java.util.logging.Level;
 
 
 public abstract class WLogger {
 
-    private static WLoggerI instance = new WLoggerDefault();
+    private static WLoggerI instance = new WLoggerDefault("default");
     private static Level level;
     private static StringBuilder logSb = null;
 
@@ -32,16 +30,15 @@ public abstract class WLogger {
         instance.info(e);
     }
 
+    public static void trace(String msg) {
+        instance.trace(msg);
+    }
 
     public static void info(String msg) {
 //        System.err.println("info: " + msg);
         keep("info", msg);
         instance.info(msg);
 
-    }
-
-    public static void setHandler(Handler handler) {
-        instance.setHandler(handler);
     }
 
     public static void setLevel(Level level) {
@@ -91,4 +88,7 @@ public abstract class WLogger {
     }
 
 
+    public static void setLogger(String loggerName) {
+        WLogger.instance = new WLoggerDefault(loggerName);
+    }
 }

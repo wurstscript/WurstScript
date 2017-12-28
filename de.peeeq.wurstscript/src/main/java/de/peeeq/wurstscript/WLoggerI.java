@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript;
 
-import java.util.logging.Handler;
-import java.util.logging.Level;
+
+import ch.qos.logback.classic.Level;
 
 public interface WLoggerI {
+
+    void trace(String msg);
 
     void info(String msg);
 
@@ -14,8 +16,6 @@ public interface WLoggerI {
     void severe(Throwable t);
 
     void info(Throwable e);
-
-    void setHandler(Handler handler);
 
     void setLevel(Level level);
 

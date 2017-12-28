@@ -3,13 +3,12 @@ package tests.wurstscript.tests;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
@@ -22,8 +21,6 @@ import org.junit.Test;
 
 import java.io.File;
 import java.util.*;
-import java.util.logging.ConsoleHandler;
-import java.util.logging.Handler;
 import java.util.stream.Collectors;
 
 /**
@@ -216,9 +213,6 @@ public class AutoCompleteTests extends WurstScriptTest {
         GetCompletions getCompletions = new GetCompletions(position, bufferManager);
 
                 //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
-
-        Handler h = new ConsoleHandler();
-        WLogger.setHandler(h);
 
         CompletionList result = getCompletions.execute(modelManager);
 
