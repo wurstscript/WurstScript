@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.languageserver;
 
-import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -9,12 +8,9 @@ import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.FileHandler;
-import java.util.logging.SimpleFormatter;
 
 /**
  *
@@ -57,16 +53,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
 
     private void setupLogger()  {
-        Main.setUpFileLogging("wurst_langserver");
-        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n");
-
-        try {
-            FileHandler handler = new FileHandler("%t/wurst/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
-            handler.setFormatter(new SimpleFormatter());
-            WLogger.setHandler(handler);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not setup logging!");
-        }
+        WLogger.setLogger("languageServer");
     }
 
 
