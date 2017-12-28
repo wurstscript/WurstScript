@@ -191,7 +191,7 @@ public class ExtendedWurstLexer implements TokenSource {
                 case NEWLINES:
                     if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
-                        lastCharWasWrap = true;
+                        lastCharWasWrap = isWrapChar(token.getType());
                         state(State.INIT);
                         return token;
                     } else if (token.getType() == WurstParser.NL) {
@@ -237,7 +237,7 @@ public class ExtendedWurstLexer implements TokenSource {
                         state(State.NEWLINES);
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
-                        lastCharWasWrap = true;
+                        lastCharWasWrap = isWrapChar(token.getType());
                         state(State.INIT);
                         return token;
                     } else {

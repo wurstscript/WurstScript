@@ -5,6 +5,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.WurstLanguageServer;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.lsp4j.*;
@@ -50,9 +51,13 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
 
         Position pos = new Position(0,0);
 
-        for (WPackage p : cu.getPackages()) {
-            WPos wpos = p.getImports().attrSource();
-            pos.setLine(wpos.getEndLine());
+        if (!cu.getPackages().isEmpty()) {
+            WPackage p = cu.getPackages().get(0);
+            int line = p.getNameId().getSource().getLine() + 1;
+            for (WImport imp : p.getImports()) {
+                line = Math.max(line, imp.getPackagenameId().getSource().getLine());
+            }
+            pos.setLine(line);
         }
 
         Range range = new Range(pos, pos);

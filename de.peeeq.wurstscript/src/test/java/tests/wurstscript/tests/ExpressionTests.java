@@ -268,6 +268,20 @@ public class ExpressionTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void conditionalExpr_voidFail() {
+        testAssertErrorsLines(false, "Conditional expression must return a value, but result type of then-expression is void.",
+                "type filter extends handle",
+                "package test",
+                "native Filter(code c) returns filter",
+                "function foo()",
+                "function bar() returns boolean",
+                "    return false",
+                "init",
+                "    let f = Filter(() -> true ? foo() : bar())"
+        );
+    }
+
 
 
     private String makeProg(String booleanExpr) {
