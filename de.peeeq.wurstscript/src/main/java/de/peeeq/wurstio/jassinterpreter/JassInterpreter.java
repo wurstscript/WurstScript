@@ -52,7 +52,7 @@ public class JassInterpreter {
 
     public ILconst executeFunction(String name, ILconst... arguments) {
         if (trace) {
-            WLogger.info("#trace: " + name + "( " + Utils.join(arguments, ", ") + ")");
+            WLogger.trace(name + "( " + Utils.join(arguments, ", ") + ")");
         }
 
         ExecutableJassFunction func = searchFunction(name);
@@ -91,13 +91,13 @@ public class JassInterpreter {
             this.executeStatements(localVarMap, body);
         } catch (ReturnException e) {
             if (trace) {
-                WLogger.info("#trace: end function " + func.getName() + " returns " + e.getVal());
+                WLogger.trace("end function " + func.getName() + " returns " + e.getVal());
             }
             return e.getVal();
         }
 
         if (trace) {
-            WLogger.info("#trace: end function " + func.getName());
+            WLogger.trace("end function " + func.getName());
         }
         return null;
     }
