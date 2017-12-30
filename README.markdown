@@ -30,16 +30,16 @@ For small changes you can also directly make a pull request, but bigger unannoun
 
 ## System Overview
 
-This project contains the following sub-projects:
+This repository contains the following sub-projects:
 
 - de.peeeq.wurstscript
-	- The core wurstscript compiler and related tools
+	- The core wurstscript compiler and directly related tools
 - Wurstpack
-	- Wurst integrated into the Warcraft III World Editor (similar to and based on JassNewGenPack)
-- WurstUpdater
-	- Automatic updater for the wurstpack
+	- (deprecated) Wurst integration for the Warcraft III World Editor
+- WurstWeb
+	- Attempt to provide Wurst capabilities in browsers
 
-IDE support is provided via a VSCode plugin: https://github.com/peq/wurst4vscode
+IDE support is provided via a VSCode plugin: https://github.com/wurstscript/wurst4vscode
 
 The source for the wurstscript website can be found here: https://github.com/wurstscript/wurstscript.github.io
 
