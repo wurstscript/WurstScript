@@ -52,11 +52,15 @@ public class Main {
         }
 
         WLogger.keepLogs(true);
-        logStartup(args);
 
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
+            if(!runArgs.isLanguageServer()) {
+                logStartup(args);
+                WLogger.setLogger("default");
+            }
+
             if (runArgs.showHelp()) {
                 return;
             }

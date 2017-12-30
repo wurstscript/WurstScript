@@ -43,8 +43,10 @@
     <logger name="languageServer" level="debug" additivity="false">
         <appender-ref ref="lang_server_log"/>
     </logger>
+    <logger name="default" level="info">
+        <appender-ref ref="console" />
+    </logger>
     <root level="debug">
         <appender-ref ref="compiler_log"/>
-        <appender-ref ref="console" />
     </root>
 </configuration>
