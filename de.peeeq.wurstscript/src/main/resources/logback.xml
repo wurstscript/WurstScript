@@ -44,7 +44,7 @@
         <appender-ref ref="lang_server_log"/>
     </logger>
     <logger name="default" level="info">
-        <appender-ref ref="console" />
+        <appender-ref ref="compiler_log" />
     </logger>
     <root level="debug">
         <appender-ref ref="compiler_log"/>
