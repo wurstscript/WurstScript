@@ -30,7 +30,7 @@ public class RunMap extends MapRequest {
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
-    private SafetyLevel safeCompilation = SafetyLevel.QuickAndDirty;
+    private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
     /**
      * The patch version as double, e.g. 1.27, 1.28
      */
