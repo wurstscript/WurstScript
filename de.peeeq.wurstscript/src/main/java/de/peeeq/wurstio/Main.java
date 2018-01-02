@@ -56,10 +56,12 @@ public class Main {
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
-            if(!runArgs.isLanguageServer()) {
-                logStartup(args);
+            if(runArgs.isLanguageServer()) {
+                WLogger.setLogger("languageServer");
+            } else {
                 WLogger.setLogger("default");
             }
+            logStartup(args);
 
             if (runArgs.showHelp()) {
                 return;
