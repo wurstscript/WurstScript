@@ -129,7 +129,7 @@ public class RunMap extends MapRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        return Stream.of("Frozen Throne.exe", "Warcraft III.exe")
+        return Stream.of("war3.exe", "Warcraft III.exe", "Frozen Throne.exe")
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
                 .findFirst()
