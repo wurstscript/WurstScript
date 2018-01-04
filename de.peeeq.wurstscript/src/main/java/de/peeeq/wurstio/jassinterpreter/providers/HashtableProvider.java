@@ -16,7 +16,7 @@ public class HashtableProvider extends Provider {
         int parentkey;
         int childkey;
 
-        public KeyPair(int parentkey, int childkey) {
+        KeyPair(int parentkey, int childkey) {
             this.parentkey = parentkey;
             this.childkey = childkey;
         }
