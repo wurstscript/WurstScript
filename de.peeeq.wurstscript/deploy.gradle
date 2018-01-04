@@ -11,6 +11,13 @@ jar {
     }
 }
 
+task make_for_userdir(type: Copy) {
+    from 'build/install/wurstscript/lib'
+    into "${System.properties['user.home']}/.wurst/"
+}
+
+make_for_userdir.dependsOn(installDist)
+
 task make_for_wurstpack(type: Copy) {
     from 'build/install/wurstscript/lib'
     into '../Wurstpack/wurstscript/'
