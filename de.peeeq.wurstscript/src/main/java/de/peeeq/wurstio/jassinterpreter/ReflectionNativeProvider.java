@@ -17,6 +17,7 @@ public class ReflectionNativeProvider implements NativesProvider {
     private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
 
     public ReflectionNativeProvider(ILInterpreter interpreter) {
+        addProvider(new ForceProvider(interpreter));
         addProvider(new HandleProvider(interpreter));
         addProvider(new GroupProvider(interpreter));
         addProvider(new HashtableProvider(interpreter));
