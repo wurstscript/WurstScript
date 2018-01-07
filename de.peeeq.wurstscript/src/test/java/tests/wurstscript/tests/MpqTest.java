@@ -65,8 +65,7 @@ public class MpqTest {
     @Test
     public void test_insert() throws Exception {
         try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
-            edit.insertFile("test.txt", Files.toByteArray(new File(
-                    "./testscripts/mpq/test.txt")));
+            edit.insertFile("test.txt", new File("./testscripts/mpq/test.txt"));
         }
         Assert.assertTrue(true);
 

@@ -290,9 +290,9 @@ public class Main {
         if (!rocHasKeys) {
             JOptionPane.showMessageDialog(null, "Now inserting ROC mpq.\n"
                     + "This might take a few minutes. Please be patient.");
-            roceditor.insertFile("font\\font.gid", java.nio.file.Files.readAllBytes(fontGID));
-            roceditor.insertFile("font\\font.clh", java.nio.file.Files.readAllBytes(fontCLH));
-            roceditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontROC));
+            roceditor.insertFile("font\\font.gid", fontGID.toFile());
+            roceditor.insertFile("font\\font.clh", fontCLH.toFile());
+            roceditor.insertFile("font\\font.ccd", fontROC.toFile());
             roceditor.close();
             WLogger.info("inserted roc keys");
         } else {
@@ -303,8 +303,8 @@ public class Main {
         if (!tftHasKeys) {
             JOptionPane.showMessageDialog(null, "Now inserting TFT mpq.\n"
                     + "This might take a few minutes. Please be patient.");
-            tfteditor.insertFile("font\\font.exp", java.nio.file.Files.readAllBytes(fontEXP));
-            tfteditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontTFT));
+            tfteditor.insertFile("font\\font.exp", fontEXP.toFile());
+            tfteditor.insertFile("font\\font.ccd", fontTFT.toFile());
             tfteditor.close();
             WLogger.info("inserted tft keys");
         } else {

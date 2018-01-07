@@ -97,7 +97,7 @@ public class BuildMap extends MapRequest {
             gui.sendProgress("Injecting mapscript");
             try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(targetMap)) {
                 mpqEditor.deleteFile("war3map.j");
-                mpqEditor.insertFile("war3map.j", Files.toByteArray(compiledScript));
+                mpqEditor.insertFile("war3map.j", compiledScript);
             }
 
             gui.sendProgress("Applying Map Config...");

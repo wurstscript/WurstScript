@@ -73,7 +73,7 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:jmpq3:1.5.7'
+    compile 'com.github.inwc3:jmpq3:1.5.8'
 
     // Water's wc3 libs
     compile 'com.github.inwc3:wc3libs:0fd8c9e711'
