@@ -234,7 +234,9 @@ public class ProgramStateIO extends ProgramState {
 
     private @Nullable File getObjectEditingOutputFolder() {
         if (mapFile == null) {
-            return null;
+            File folder = new File("_build", "objectEditingOutput");
+            folder.mkdirs();
+            return folder;
         }
         File folder = new File(mapFile.getParent(), "objectEditingOutput");
         if (!folder.exists() && !folder.mkdirs()) {
