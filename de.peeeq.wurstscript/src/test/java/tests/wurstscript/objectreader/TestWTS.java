@@ -1,13 +1,10 @@
 package tests.wurstscript.objectreader;
 
-import de.peeeq.wurstio.objectreader.WTSFile;
-import de.peeeq.wurstscript.WLogger;
+import net.moonlightflower.wc3libs.txt.WTS;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Map.Entry;
 
 import static org.junit.Assert.assertEquals;
 
@@ -17,13 +14,10 @@ public class TestWTS {
     @Test
     public void testWTS() throws IOException {
         File wts = new File("testscripts/mpq/war3map.wts");
-        Map<Integer, String> result = WTSFile.parse(wts);
-        for (Entry<Integer, String> e : result.entrySet()) {
-            WLogger.info(e.getKey() + " -> '" + e.getValue() + "'");
-            WLogger.info("");
-        }
-        assertEquals("Player 1", result.get(1));
-
+        WTS result = new WTS(wts);
+        assertEquals("Player 1", result.getEntry(1));
+        assertEquals("Force 1", result.getEntry(2));
+        assertEquals("BlubLol", result.getEntry(9));
     }
 
 
