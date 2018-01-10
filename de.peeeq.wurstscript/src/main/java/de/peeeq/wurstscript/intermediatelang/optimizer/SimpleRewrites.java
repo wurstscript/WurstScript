@@ -35,6 +35,7 @@ public class SimpleRewrites {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImStmts stmts) {
+                super.visit(stmts);
                 removeUnreachableCode(stmts);
             }
         });

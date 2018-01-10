@@ -161,6 +161,7 @@ public class CompiletimeFunctionRunner {
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
                 toExecute.add(Either.forLeft(e));
             }
         });

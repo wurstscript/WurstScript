@@ -10,12 +10,14 @@ public class GetByType {
 
             @Override
             public void visit(@SuppressWarnings("null") ClassDef classDef) {
+                super.visit(classDef);
                 result.classes.add(classDef);
             }
 
 
             @Override
             public void visit(@SuppressWarnings("null") WPackage wPackage) {
+                super.visit(wPackage);
                 result.packageDefs.add(wPackage);
             }
         });

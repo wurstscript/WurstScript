@@ -60,6 +60,7 @@ public interface ModelManager {
         m.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ModuleInstanciations mis) {
+                super.visit(mis);
                 mis.clear();
             }
         });

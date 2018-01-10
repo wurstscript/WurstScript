@@ -54,6 +54,7 @@ public class ImHelper {
 
             @Override
             ImVar getReplaceVar(ImVar v) {
+                super.visit(v);
                 return v == oldVar ? newVar : null;
             }
         });
@@ -64,6 +65,7 @@ public class ImHelper {
         s.accept(new VarReplaceVisitor() {
             @Override
             ImVar getReplaceVar(ImVar v) {
+                super.visit(v);
                 return substitutions.get(v);
             }
         });
@@ -75,6 +77,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetTuple e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -83,6 +86,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetArray e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -91,6 +95,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetArrayTuple e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -100,12 +105,14 @@ public class ImHelper {
 
         @Override
         public void visit(ImVars imVars) {
+            super.visit(imVars);
             // TODO ?
         }
 
 
         @Override
         public void visit(ImVarArrayAccess e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getVar());
             if (newVar != null) {
                 e.setVar(newVar);
@@ -116,6 +123,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImVarAccess e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getVar());
             if (newVar != null) {
                 e.setVar(newVar);
@@ -125,6 +133,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSet e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -134,12 +143,14 @@ public class ImHelper {
 
         @Override
         public void visit(ImStringVal imStringVal) {
+            super.visit(imStringVal);
             // TODO Auto-generated method stub
 
         }
 
         @Override
         public void visit(ImNoExpr imNoExpr) {
+            super.visit(imNoExpr);
             // TODO Auto-generated method stub
 
         }

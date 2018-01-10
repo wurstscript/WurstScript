@@ -80,6 +80,7 @@ public class LocalMerger {
         func.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
+                super.visit(va);
                 ImVar v = va.getVar();
                 if (merges.containsKey(v)) {
                     va.setVar(merges.get(v));
@@ -88,6 +89,7 @@ public class LocalMerger {
 
             @Override
             public void visit(ImSet set) {
+                super.visit(set);
                 ImVar v = set.getLeft();
                 if (merges.containsKey(v)) {
                     set.setLeft(merges.get(v));
@@ -265,6 +267,7 @@ public class LocalMerger {
                 stmt.accept(new ImStmt.DefaultVisitor() {
                     @Override
                     public void visit(ImVarAccess va) {
+                        super.visit(va);
                         if (!va.getVar().isGlobal()) {
                             result.put(node, va.getVar());
                         }

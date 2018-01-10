@@ -25,11 +25,13 @@ public class ValidateGlobalsUsage {
 
             @Override
             public void visit(GlobalVarDef g) {
+                super.visit(g);
                 definedVars.add(g);
             }
 
             @Override
             public void visit(ExprVarAccess e) {
+                super.visit(e);
                 NameDef nameDef = e.attrNameDef();
                 if (nameDef instanceof GlobalVarDef) {
                     GlobalVarDef g = (GlobalVarDef) nameDef;

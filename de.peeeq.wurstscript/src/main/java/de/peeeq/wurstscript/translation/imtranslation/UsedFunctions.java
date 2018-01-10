@@ -15,11 +15,13 @@ public class UsedFunctions {
         imFunction.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall e) {
+                super.visit(e);
                 result.add(e.getFunc());
             }
 
             @Override
             public void visit(ImFuncRef e) {
+                super.visit(e);
                 result.add(e.getFunc());
             }
         });

@@ -437,6 +437,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
                 throw new CompileError(e.attrTrace().attrSource(), "Compiletime expressions require compilation with '-runcompiletimefunctions' option.");
             }
         });
