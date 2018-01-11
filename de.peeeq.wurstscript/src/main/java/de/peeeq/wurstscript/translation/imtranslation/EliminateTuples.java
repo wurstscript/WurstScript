@@ -46,6 +46,7 @@ public class EliminateTuples {
         f.getBody().accept(new ImStmts.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall e) {
+                super.visit(e);
                 // use temp return valus instead of tuples
                 List<ImVar> tempVars = translator.getTupleTempReturnVarsFor(e.getFunc());
                 if (tempVars.size() > 1) {

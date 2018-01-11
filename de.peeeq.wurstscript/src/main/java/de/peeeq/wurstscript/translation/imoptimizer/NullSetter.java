@@ -138,6 +138,7 @@ public class NullSetter {
         returnExpr.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess e) {
+                super.visit(e);
                 if (handleVars.contains(e.getVar())) {
                     result[0] = true;
                 }

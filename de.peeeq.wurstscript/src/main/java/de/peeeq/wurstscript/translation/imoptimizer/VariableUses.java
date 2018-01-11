@@ -27,31 +27,37 @@ public class VariableUses {
         imProg.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImSet imSet) {
+                super.visit(imSet);
                 result.addWrite(imSet.getLeft(), imSet);
             }
 
             @Override
             public void visit(ImSetArray imSet) {
+                super.visit(imSet);
                 result.addWrite(imSet.getLeft(), imSet);
             }
 
             @Override
             public void visit(ImSetArrayTuple imSet) {
+                super.visit(imSet);
                 result.addWrite(imSet.getLeft(), imSet);
             }
 
             @Override
             public void visit(ImSetTuple imSet) {
+                super.visit(imSet);
                 result.addWrite(imSet.getLeft(), imSet);
             }
 
             @Override
             public void visit(ImVarAccess r) {
+                super.visit(r);
                 result.addRead(r.getVar(), r);
             }
 
             @Override
             public void visit(ImVarArrayAccess r) {
+                super.visit(r);
                 result.addRead(r.getVar(), r);
             }
         });

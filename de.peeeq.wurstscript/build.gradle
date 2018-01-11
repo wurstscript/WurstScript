@@ -49,7 +49,7 @@ dependencies {
 	antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.1.4'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.2.1'
 
     // JUnit for testing
     testCompile 'junit:junit:4.12'

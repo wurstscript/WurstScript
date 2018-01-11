@@ -77,6 +77,7 @@ public class EliminateCallFunctionsWithAnnotation {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall fc) {
+                super.visit(fc);
                 if (fc.getFunc().getName().equals(CALL_FUNCTIONS_WITH_ANNOTATION)) {
                     specialCalls.add(fc);
                 }

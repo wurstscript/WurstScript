@@ -166,6 +166,7 @@ public class ImTranslator {
         p.accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
             @Override
             public void visit(FuncDef funcDef) {
+                super.visit(funcDef);
                 if (funcDef.attrIsCompiletime()) {
                     compiletimeFlags.put(funcDef, new FunctionFlagCompiletime(compiletimeOrderCounter++));
                 }
@@ -173,6 +174,7 @@ public class ImTranslator {
 
             @Override
             public void visit(ExprFunctionCall fc) {
+                super.visit(fc);
                 if (fc.getFuncName().equals("compiletime")) {
                     compiletimeExpressionsOrder.put(fc, compiletimeOrderCounter++);
                 }
@@ -257,12 +259,14 @@ public class ImTranslator {
         // rewrite removed links
         imProg.accept(new ImProg.DefaultVisitor() {
             public void visit(ImFunctionCall e) {
+                super.visit(e);
                 if (removed.containsKey(e.getFunc())) {
                     e.setFunc(removed.get(e.getFunc()));
                 }
             }
 
             public void visit(ImFuncRef e) {
+                super.visit(e);
                 if (removed.containsKey(e.getFunc())) {
                     e.setFunc(removed.get(e.getFunc()));
                 }
@@ -389,6 +393,7 @@ public class ImTranslator {
         initFunc.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImReturn imReturn) {
+                super.visit(imReturn);
                 imReturn.setReturnValue(JassIm.ImBoolVal(true));
             }
         });

@@ -177,6 +177,7 @@ public class ClassTranslator {
         DefaultVisitor replacer = new DefaultVisitor() {
             @Override
             public void visit(ImVarAccess v) {
+                super.visit(v);
                 if (v.getVar() == oldThis) {
                     v.setVar(newThis);
                 }
@@ -184,6 +185,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSet v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -191,6 +193,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetArray v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -198,6 +201,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetTuple v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -205,6 +209,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetArrayTuple v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }

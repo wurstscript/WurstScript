@@ -59,6 +59,7 @@ public class SyntacticSugar {
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ExprMemberVarDot e) {
+                super.visit(e);
                 if (e.getVarName().equals("typeId")) {
                     replacements.put(e, Ast.ExprTypeId(e.getSource(), (Expr) e.getLeft().copy()));
                 }
@@ -73,6 +74,7 @@ public class SyntacticSugar {
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ExprUnary e) {
+                super.visit(e);
                 if (e.getOpU() == WurstOperator.UNARY_MINUS
                         && e.getRight() instanceof ExprIntVal) {
                     ExprIntVal iv = (ExprIntVal) e.getRight();
@@ -114,33 +116,39 @@ public class SyntacticSugar {
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ExtensionFuncDef f) {
+                super.visit(f);
                 addEnd(f);
             }
 
 
             @Override
             public void visit(FuncDef f) {
+                super.visit(f);
                 addEnd(f);
             }
 
             @Override
             public void visit(ConstructorDef f) {
+                super.visit(f);
                 addEnd(f);
             }
 
             @Override
             public void visit(InitBlock f) {
+                super.visit(f);
                 addEnd(f);
             }
 
 
             @Override
             public void visit(OnDestroyDef f) {
+                super.visit(f);
                 addEnd(f);
             }
 
             @Override
             public void visit(ExprStatementsBlock f) {
+                super.visit(f);
                 addEnd(f);
             }
 
@@ -183,11 +191,13 @@ public class SyntacticSugar {
         root.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(StmtForIn stmtForIn) {
+                super.visit(stmtForIn);
                 loops.add(stmtForIn);
             }
 
             @Override
             public void visit(StmtForFrom stmtForIn) {
+                super.visit(stmtForIn);
                 loops2.add(stmtForIn);
             }
         });

@@ -246,36 +246,43 @@ public class EliminateClasses {
         f.getBody().accept(new ImStmts.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
+                super.visit(e);
                 mas.add(e);
             }
 
             @Override
             public void visit(ImMethodCall e) {
+                super.visit(e);
                 mcs.add(e);
             }
 
             @Override
             public void visit(ImAlloc e) {
+                super.visit(e);
                 allocs.add(e);
             }
 
             @Override
             public void visit(ImDealloc e) {
+                super.visit(e);
                 deallocs.add(e);
             }
 
             @Override
             public void visit(ImInstanceof e) {
+                super.visit(e);
                 instaneofs.add(e);
             }
 
             @Override
             public void visit(ImTypeIdOfClass e) {
+                super.visit(e);
                 typeIdClasses.add(e);
             }
 
             @Override
             public void visit(ImTypeIdOfObj e) {
+                super.visit(e);
                 typeIdObjs.add(e);
             }
         });

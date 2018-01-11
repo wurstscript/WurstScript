@@ -829,6 +829,7 @@ public class BugTests extends WurstScriptTest {
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ClassDef c) {
+                super.visit(c);
                 Assert.assertEquals(2, c.getSource().getLine());
             }
         });
@@ -836,6 +837,7 @@ public class BugTests extends WurstScriptTest {
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(FuncDef funcDef) {
+                super.visit(funcDef);
                 Assert.assertEquals(3, funcDef.getSource().getLine());
             }
         });

@@ -645,6 +645,7 @@ public class WurstValidator {
 
             @Override
             public void visit(FuncDef f) {
+                super.visit(f);
                 functionCount[0]++;
             }
         });

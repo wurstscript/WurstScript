@@ -74,6 +74,7 @@ public class LuaTranslator {
         luaModel.accept(new LuaModel.DefaultVisitor() {
             @Override
             public void visit(LuaStatements stmts) {
+                super.visit(stmts);
                 cleanStatements(stmts);
             }
 

@@ -96,6 +96,7 @@ public class ConstantAndCopyPropagation {
             stmt.accept(new ImStmt.DefaultVisitor() {
                 @Override
                 public void visit(ImVarAccess va) {
+                    super.visit(va);
                     Value val = kn.varKnowledge.get(va.getVar());
                     if (val == null) {
                         return;
