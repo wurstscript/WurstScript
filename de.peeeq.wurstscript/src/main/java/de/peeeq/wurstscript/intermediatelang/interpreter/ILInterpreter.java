@@ -17,6 +17,8 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ILInterpreter {
     private ImProg prog;
@@ -45,7 +47,7 @@ public class ILInterpreter {
             }
 
             if (f.getParameters().size() != args.length) {
-                throw new Error("wrong number of parameters when calling func " + f.getName());
+                throw new Error("wrong number of parameters when calling func " + f.getName() + "(" + Arrays.asList(args).stream().map(Object::toString).collect(Collectors.joining(", "))  + ")");
             }
 
             for (int i = 0; i < f.getParameters().size(); i++) {

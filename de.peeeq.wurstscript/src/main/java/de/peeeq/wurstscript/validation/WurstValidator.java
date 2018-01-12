@@ -1294,8 +1294,16 @@ public class WurstValidator {
                 } else if (e.getParent() instanceof ExprMemberMethodDotDot) {
                     e.addError("Reference to " + e.getVarName()
                             + " cannot be used with the cascade operator. Only dynamic objects are allowed.");
+                } else if (e.getParent() instanceof ExprMemberMethod) {
+                    ExprMemberMethod em = (ExprMemberMethod) e.getParent();
+                    if (em.attrFuncDef() instanceof ExtensionFuncDef) {
+                        e.addError("Reference to " + e.getVarName()
+                                + " can only be used for calling static methods, but not for calling extension method method '" + em.getFuncName() + "'.");
+                    }
+
+
                 }
-            }
+             }
         }
 
     }

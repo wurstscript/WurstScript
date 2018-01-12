@@ -894,4 +894,21 @@ public class BugTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void extensionMethodStatic() { // See #614
+        testAssertErrorsLines(true, "Reference to A can only be used for calling static methods, but not for calling extension method method 'bar'.",
+                "package Test",
+                "native testSuccess()",
+                "abstract class A",
+                "    abstract function foo()",
+                "public function A.bar(A listener) returns A",
+                "    return listener",
+                "init",
+                "    let a = A.bar(() -> testSuccess())",
+                "    a.foo()",
+                ""
+        );
+
+    }
+
 }
