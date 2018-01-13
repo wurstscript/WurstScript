@@ -48,10 +48,6 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
                 return (ILconst) r;
             }
         }
-        String[] parameterTypes = new String[args.length];
-        for (int i = 0; i < args.length; i++) {
-            parameterTypes[i] = "" + args[i];
-        }
         String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
         if (candidate != null) {

@@ -54,7 +54,7 @@ public class ReflectionNativeProvider implements NativesProvider {
     public ILconst invoke(String funcname, ILconst[] args) {
         String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
-        WLogger.info(msg);
+        WLogger.trace(msg);
 
         NativeJassFunction candidate = methodMap.get(funcname);
         if (candidate == null) {

@@ -51,8 +51,6 @@ public class Main {
             return;
         }
 
-        WLogger.keepLogs(true);
-
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
