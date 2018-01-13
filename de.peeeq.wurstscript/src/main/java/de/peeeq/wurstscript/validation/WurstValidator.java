@@ -1403,11 +1403,12 @@ public class WurstValidator {
     }
 
     private void checkFuncDefDeprecated(FuncRef ref) {
-        if (ref.attrFuncDef().hasAnnotation("@deprecated")) {
-            Annotation annotation = ref.attrFuncDef().getAnnotation("@deprecated");
+        @Nullable FunctionDefinition def = ref.attrFuncDef();
+        if (def != null && def.hasAnnotation("@deprecated")) {
+            Annotation annotation = def.getAnnotation("@deprecated");
             String msg = annotation.getAnnotationMessage();
-            msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg;
-            ref.addWarning(ref.getFuncName() + " is deprecated. " + msg);
+            msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg.substring(1, msg.length() - 1);
+            ref.addWarning(def.getName() + " is deprecated. " + msg);
         }
     }
 
@@ -1825,8 +1826,15 @@ public class WurstValidator {
 
     private boolean isViableSwitchtype(Expr expr) {
         WurstType typ = expr.attrTyp();
-        return typ.equalsType(WurstTypeInt.instance(), null) || typ.equalsType(WurstTypeString.instance(), null)
-                || (typ instanceof WurstTypeEnum);
+        if (typ.equalsType(WurstTypeInt.instance(), null) || typ.equalsType(WurstTypeString.instance(), null)
+                || (typ instanceof WurstTypeEnum)) {
+            return true;
+        } else if (typ instanceof WurstTypeEnum) {
+            WurstTypeEnum wte = (WurstTypeEnum) typ;
+            return !wte.isStaticRef();
+        } else {
+            return false;
+        }
     }
 
     private void checkSwitch(SwitchStmt s) {
