@@ -1013,7 +1013,6 @@ public class WurstValidator {
         func.getErrorHandler().setProgress(null, ProgressHelper.getValidatorPercent(visitedFunctions, functionCount));
 
         checkFunctionName(func);
-
         if (func.attrIsAbstract()) {
             if (!func.attrHasEmptyBody()) {
                 func.addError("Abstract function " + func.getName() + " must not have a body.");
@@ -1061,6 +1060,8 @@ public class WurstValidator {
         String funcName = stmtCall.getFuncName();
         // calculating the exprType should reveal most errors:
         stmtCall.attrTyp();
+
+        checkFuncDefDeprecated(stmtCall);
 
         if (stmtCall.attrFuncDef() != null) {
             FunctionDefinition calledFunc = stmtCall.attrFuncDef();
@@ -1303,7 +1304,7 @@ public class WurstValidator {
 
 
                 }
-             }
+            }
         }
 
     }
@@ -1390,6 +1391,7 @@ public class WurstValidator {
         if (ref.getFuncName().isEmpty()) {
             ref.addError("Missing function name.");
         }
+        checkFuncDefDeprecated(ref);
         FunctionDefinition called = ref.attrFuncDef();
         WScope scope = ref.attrNearestFuncDef();
         if (scope == null) {
@@ -1397,6 +1399,16 @@ public class WurstValidator {
         }
         if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
             calledFunctions.put(scope, called);
+        }
+    }
+
+    private void checkFuncDefDeprecated(FuncRef ref) {
+        @Nullable FunctionDefinition def = ref.attrFuncDef();
+        if (def != null && def.hasAnnotation("@deprecated")) {
+            Annotation annotation = def.getAnnotation("@deprecated");
+            String msg = annotation.getAnnotationMessage();
+            msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg.substring(1, msg.length() - 1);
+            ref.addWarning(def.getName() + " is deprecated. " + msg);
         }
     }
 
@@ -1638,7 +1650,7 @@ public class WurstValidator {
                     if (c_nameDef instanceof FuncDef) {
                         FuncDef c_funcDef = (FuncDef) c_nameDef;
                         if (c_funcDef.attrIsAbstract()) {
-                            continue ;
+                            continue;
                         }
 
                         Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
@@ -1820,7 +1832,6 @@ public class WurstValidator {
         } else if (typ instanceof WurstTypeEnum) {
             WurstTypeEnum wte = (WurstTypeEnum) typ;
             return !wte.isStaticRef();
-
         } else {
             return false;
         }
@@ -1868,8 +1879,6 @@ public class WurstValidator {
         if (s.getCases().isEmpty()) {
             s.addError("Switch statement without any cases.");
         }
-        // TODO check if all cases for switch are covered
-
     }
 
     public static void computeFlowAttributes(Element node) {
@@ -2009,10 +2018,7 @@ public class WurstValidator {
             }
         }
         // covariant return types
-        if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getNameDef())) {
-            return false;
-        }
-        return true;
+        return func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getNameDef());
     }
 
     /**
@@ -2155,7 +2161,7 @@ public class WurstValidator {
     private void checkConstructorSuperCall(ConstructorDef c) {
         if (c.getIsExplicit()) {
             if (c.attrNearestClassDef() instanceof ClassDef) {
-                ClassDef classDef = (ClassDef) c.attrNearestClassDef();
+                ClassDef classDef = c.attrNearestClassDef();
                 if (classDef.getExtendedClass() instanceof NoTypeExpr) {
                     c.addError("Super call in a class which extends nothing.");
                 }

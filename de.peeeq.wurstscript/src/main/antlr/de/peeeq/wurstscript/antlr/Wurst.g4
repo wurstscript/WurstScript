@@ -198,7 +198,7 @@ modifier:
 		| annotation
 		;
 
-annotation: ANNOTATION;
+annotation: name=ANNOTATION (PAREN_LEFT message=STRING PAREN_RIGHT)?;
 
 hotdocComment: HOTDOC_COMMENT;
 

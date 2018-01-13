@@ -285,7 +285,7 @@ Modifiers * Modifier
 
 Modifier =
 	  VisibilityModifier
-	| Annotation(de.peeeq.wurstscript.parser.WPos source, String annotationType)
+	| Annotation(de.peeeq.wurstscript.parser.WPos source, String annotationType, String annotationMessage)
 	| ModStatic(de.peeeq.wurstscript.parser.WPos source)
 	| ModOverride(de.peeeq.wurstscript.parser.WPos source)
 	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
@@ -526,6 +526,10 @@ HasModifier.attrHasAnnotation(String name)
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.hasAnnotation
 
+HasModifier.attrGetAnnotation(String name)
+	returns Annotation
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.getAnnotation
+
 HasModifier.attrIsPublic()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isPublic
@@ -656,6 +660,9 @@ NameDef.hasAnnotation(String annotation)
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.HasAnnotation.hasAnnotation
 
+NameDef.getAnnotation(String annotation)
+	returns Annotation
+	implemented by de.peeeq.wurstscript.attributes.HasAnnotation.getAnnotation
 
 
 // Im translation

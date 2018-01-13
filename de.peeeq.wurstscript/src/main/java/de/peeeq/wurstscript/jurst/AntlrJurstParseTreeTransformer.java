@@ -316,7 +316,7 @@ public class AntlrJurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().getText());
+            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message.getText());
         }
         switch (m.modType.getType()) {
             case JurstParser.PUBLIC:
@@ -337,9 +337,9 @@ public class AntlrJurstParseTreeTransformer {
             case JurstParser.CONSTANT:
                 return Ast.ModConstant(src);
             case JurstParser.DELEGATE:
-                return Ast.Annotation(src, "delegate");
+                return Ast.Annotation(src, "delegate", "internal");
             case JurstParser.STUB:
-                return Ast.Annotation(src, "stub");
+                return Ast.Annotation(src, "stub", "internal");
         }
         throw error(m, "modifier not implemented");
     }

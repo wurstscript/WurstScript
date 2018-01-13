@@ -350,4 +350,16 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testAnnotationWithMessage() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@deprecated(\"yes\") function foo()",
+                "init",
+                "	foo()",
+                "	testSuccess()"
+        );
+    }
+
 }
