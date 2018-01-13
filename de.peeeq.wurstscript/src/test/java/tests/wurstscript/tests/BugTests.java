@@ -910,21 +910,5 @@ public class BugTests extends WurstScriptTest {
         );
 
     }
-
-    @Test
-    public void staticSwitch() { // See #614
-        testAssertErrorsLines(false, "not static",
-                "package Test",
-                "enum X",
-                "   A",
-                "init",
-                "X x = X.A",
-                "    switch x",
-                "       case X",
-                "",
-                ""
-        );
-
-    }
-
+    
 }
