@@ -588,7 +588,7 @@ public class ImTranslator {
             if (funcDef2.attrHasAnnotation("compiletimenative")) {
                 flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
             }
-            if (funcDef2.attrHasAnnotation("test") || funcDef2.attrHasAnnotation("Test")) {
+            if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
         }
