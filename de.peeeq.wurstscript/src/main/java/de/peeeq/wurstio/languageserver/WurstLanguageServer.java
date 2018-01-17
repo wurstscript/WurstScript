@@ -50,13 +50,9 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         return CompletableFuture.completedFuture(res);
     }
 
-
-
-    private void setupLogger()  {
+    private void setupLogger() {
         WLogger.setLogger("languageServer");
     }
-
-
 
     @Override
     public CompletableFuture<Object> shutdown() {

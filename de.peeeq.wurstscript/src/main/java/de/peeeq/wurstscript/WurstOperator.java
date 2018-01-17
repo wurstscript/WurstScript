@@ -38,6 +38,7 @@ public enum WurstOperator {
         this.numArgs = numArgs;
     }
 
+
     public boolean isBinaryOp() {
         return numArgs == 2;
     }

@@ -30,7 +30,6 @@ public abstract class WLogger {
 
     public static void info(String msg) {
         instance.info(msg);
-
     }
 
     public static void setLevel(Level level) {

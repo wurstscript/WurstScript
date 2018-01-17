@@ -56,8 +56,6 @@ public class Main {
         try {
             if(runArgs.isLanguageServer()) {
                 WLogger.setLogger("languageServer");
-            } else {
-                WLogger.setLogger("default");
             }
             logStartup(args);
 
