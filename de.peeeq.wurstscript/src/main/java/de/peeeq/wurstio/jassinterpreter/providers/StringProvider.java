@@ -6,7 +6,9 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
+import net.moonlightflower.wc3libs.misc.StringHash;
 
+import java.io.UnsupportedEncodingException;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -71,9 +73,12 @@ public class StringProvider extends Provider {
 
 
     public ILconstInt StringHash(ILconstString s) {
-        // TODO use wc3's hash func
-        WLogger.info("stringhash of <" + s.getVal() + "> = " + s.getVal().hashCode());
-        return new ILconstInt(s.getVal().hashCode());
+        try {
+            return new ILconstInt(StringHash.hash(s.getVal()));
+        } catch (UnsupportedEncodingException e) {
+            WLogger.severe(e);
+        }
+        return new ILconstInt(0);
     }
 
     public ILconstInt StringLength(ILconstString string) {
