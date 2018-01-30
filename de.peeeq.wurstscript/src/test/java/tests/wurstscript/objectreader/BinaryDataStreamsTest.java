@@ -4,13 +4,13 @@ import com.google.common.base.Charsets;
 import de.peeeq.wurstio.objectreader.BinaryDataInputStream;
 import de.peeeq.wurstio.objectreader.BinaryDataOutputStream;
 import de.peeeq.wurstscript.WLogger;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class BinaryDataStreamsTest {
 

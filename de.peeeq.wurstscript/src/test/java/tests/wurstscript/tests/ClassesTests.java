@@ -1,8 +1,8 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.testng.annotations.Ignore;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -541,7 +541,7 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
-    @Test(expected = DebugPrintError.class)
+    @Test(expectedExceptions = DebugPrintError.class)
     public void NPE() {
         testAssertOkLines(true,
                 "package test",
@@ -557,7 +557,7 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
-    @Test(expected = DebugPrintError.class)
+    @Test(expectedExceptions = DebugPrintError.class)
     public void destroyed() {
         testAssertOkLines(true,
                 "package test",

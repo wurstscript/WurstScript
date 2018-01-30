@@ -2,11 +2,11 @@ package tests.immutablecollections;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.translation.imtranslation.IntRange;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class IntRangeTests {
 

@@ -3,13 +3,14 @@ package tests.wurstscript.objectreader;
 import de.peeeq.wurstio.objectreader.ObjectFile;
 import de.peeeq.wurstio.objectreader.ObjectFileType;
 import de.peeeq.wurstscript.WLogger;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
+
 
 public class TestW3u {
 

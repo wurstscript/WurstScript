@@ -1,9 +1,9 @@
 package tests.immutablecollections;
 
 import de.peeeq.datastructures.Partitions;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class PartitionsTest {
 

@@ -3,8 +3,8 @@ package tests.wurstscript.utils;
 
 import de.peeeq.wurstscript.utils.TopsortCycleException;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -16,7 +16,7 @@ public class UtilsTest {
     public void array() {
         int[] ar1 = {1, 2, 3};
         int[] ar2 = {1, 2, 3};
-        Assert.assertArrayEquals(ar2, ar1);
+        Assert.assertEquals(ar2, ar1);
     }
 
 
@@ -34,7 +34,7 @@ public class UtilsTest {
         });
 
         Object[] ar = {3, 2, 1};
-        Assert.assertArrayEquals(ar, sorted.toArray());
+        Assert.assertEquals(ar, sorted.toArray());
     }
 
     @Test

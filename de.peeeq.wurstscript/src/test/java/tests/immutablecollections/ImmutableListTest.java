@@ -2,13 +2,14 @@ package tests.immutablecollections;
 
 import com.google.common.collect.Lists;
 import de.peeeq.immutablecollections.ImmutableList;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Collection;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+
 
 public class ImmutableListTest {
 

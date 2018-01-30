@@ -1,7 +1,7 @@
 package tests.wurstscript.tests;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.testng.annotations.Ignore;
+import org.testng.annotations.Test;
 
 public class GenericsTests extends WurstScriptTest {
 

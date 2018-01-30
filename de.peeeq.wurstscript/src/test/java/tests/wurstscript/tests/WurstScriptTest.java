@@ -30,7 +30,7 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Assert;
+import org.testng.Assert;
 
 import java.io.*;
 import java.util.Collections;
@@ -44,7 +44,7 @@ public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
     private static final boolean testLua = false;
-
+    private Map<String, String> inputs = Maps.newLinkedHashMap();
 
     protected boolean testOptimizer() {
         return true;
@@ -66,7 +66,7 @@ public class WurstScriptTest {
 
     public void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
         List<File> inputFiles = Collections.emptyList();
-        Map<String, String> inputs = Maps.newLinkedHashMap();
+        inputs.clear();
         for (CU cu : units) {
             inputs.put(cu.name, cu.content);
         }
@@ -76,16 +76,16 @@ public class WurstScriptTest {
 
     public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU... units) {
         List<File> inputFiles = Collections.emptyList();
-        Map<String, String> inputs = Maps.newLinkedHashMap();
+        inputs.clear();
         for (CU cu : units) {
             inputs.put(cu.name, cu.content);
         }
         String name = UtilsIO.getMethodName(2);
         try {
             testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
-            Assert.assertTrue("No errors were discovered", false);
+            Assert.assertTrue(false, "No errors were discovered");
         } catch (CompileError e) {
-            Assert.assertTrue(e.getMessage(), e.getMessage().contains(errorMessage));
+            Assert.assertTrue(e.getMessage().contains(errorMessage), e.getMessage());
         }
     }
 
@@ -129,7 +129,7 @@ public class WurstScriptTest {
             String input = Files.toString(file, Charsets.UTF_8);
             testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
         } catch (CompileError e) {
-            Assert.assertTrue(e.toString(), e.getMessage().contains(errorMessage));
+            Assert.assertTrue(e.getMessage().contains(errorMessage), e.toString());
         }
     }
 
@@ -137,7 +137,7 @@ public class WurstScriptTest {
         name = UtilsIO.getMethodName(2);
         try {
             testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
-            Assert.assertTrue("No errors were discovered", false);
+            Assert.assertTrue(false, "No errors were discovered");
         } catch (CompileError e) {
             if (!e.getMessage().toLowerCase().contains(errorMessage.toLowerCase())) {
                 throw e;
@@ -155,12 +155,13 @@ public class WurstScriptTest {
     }
 
     protected WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-        Map<String, String> inputs = Maps.newLinkedHashMap();
+        inputs.clear();
         inputs.put(inputName, input);
         return testScript(null, inputs, name, executeProg, withStdLib, false);
     }
 
-    protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
+    protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean
+            executeTests) {
         RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
@@ -360,8 +361,7 @@ public class WurstScriptTest {
         for (Entry<String, String> input : inputs.entrySet()) {
             compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
         }
-        WurstModel model = compiler.parseFiles();
-        return model;
+        return compiler.parseFiles();
     }
 
 
@@ -380,8 +380,6 @@ public class WurstScriptTest {
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
 //				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
             interpreter.executeFunction("main", null);
-        } catch (TestFailException e) {
-            throw e;
         } catch (TestSuccessException e) {
             return;
         }
@@ -396,8 +394,6 @@ public class WurstScriptTest {
             interpreter.trace(true);
             interpreter.loadProgram(prog);
             interpreter.executeFunction("main");
-        } catch (TestFailException e) {
-            throw e;
         } catch (TestSuccessException e) {
             return;
         }
@@ -414,8 +410,8 @@ public class WurstScriptTest {
             return;
         }
         for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
-            Assert.assertFalse(Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
-                    + "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()), true);
+            Assert.assertFalse(true, Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
+                    + "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()));
         }
         throw new Error("tests failed");
     }

@@ -2,7 +2,7 @@ package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class ArrayTests extends WurstScriptTest {
 
@@ -119,9 +119,6 @@ public class ArrayTests extends WurstScriptTest {
                 "string array blub = \"Hello\""
         );
     }
-
-
-
 
 
     public void assertOk(boolean executeProg, String... input) {

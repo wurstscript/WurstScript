@@ -3,7 +3,7 @@ package tests.prettyprint;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.prettyPrint.MaxOneSpacer;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
-import org.junit.Test;
+import org.testng.annotations.Test;
 import tests.wurstscript.tests.WurstScriptTest;
 
 public class PrettyPrintTest extends WurstScriptTest {

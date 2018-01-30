@@ -1,7 +1,6 @@
 package tests.wurstscript.tests;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.GsonBuilder;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -16,8 +15,8 @@ import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.util.*;
@@ -201,7 +200,6 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
 
-
     static class CompletionTestData {
         String buffer;
         int line;
@@ -230,7 +228,7 @@ public class AutoCompleteTests extends WurstScriptTest {
         TextDocumentPositionParams position = new TextDocumentPositionParams(textDocument, pos);
         GetCompletions getCompletions = new GetCompletions(position, bufferManager);
 
-                //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
+        //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
         CompletionList result = getCompletions.execute(modelManager);
 
@@ -241,7 +239,6 @@ public class AutoCompleteTests extends WurstScriptTest {
                 .sorted(Comparator.comparing(i -> i.getSortText()))
                 .map(completion -> completion.getLabel())
                 .collect(Collectors.toList());
-
 
 
         Assert.assertEquals(expectedCompletions, completionLabels);
@@ -271,7 +268,7 @@ public class AutoCompleteTests extends WurstScriptTest {
             }
         }
 
-        return new CompletionTestData(buffer.toString(), completionLine-1, completionColumn-1);
+        return new CompletionTestData(buffer.toString(), completionLine - 1, completionColumn - 1);
     }
 
     private WurstModel compile(String... lines) {

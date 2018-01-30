@@ -3,10 +3,10 @@ package tests.wurstscript.tests;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,14 +17,14 @@ public class MpqTest {
     private static final String TEST_W3X_ORIG = "./testscripts/mpq/test.w3x";
     private static final String TEST_OUTPUT_PATH = "./test-output/";
 
-    @Before
+    @BeforeClass
     public void before() throws IOException {
         File testMap = new File(TEST_W3X);
         Files.copy(new File(TEST_W3X_ORIG), testMap);
         Assert.assertTrue(testMap.exists());
     }
 
-    @After
+    @AfterClass
     public void after() {
         File f = new File(TEST_W3X);
         if (f.exists()) {
