@@ -203,7 +203,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         WurstModel merged = mergeCompilationUnits(compilationUnits);
         StringBuilder sb = new StringBuilder();
         for (CompilationUnit cu : merged) {
-            sb.append(cu.getFile() + ", ");
+            sb.append(cu.getFile()).append(", ");
         }
         WLogger.info("Compiling compilation units: " + sb);
 
@@ -643,14 +643,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         try {
             for (File f : parsedFiles) {
                 sb.append(" //######################################################\n");
-                sb.append(" // File " + f.getAbsolutePath() + "\n");
+                sb.append(" // File ").append(f.getAbsolutePath()).append("\n");
                 sb.append(" //######################################################\n");
                 sb.append(Files.toString(f, Charsets.UTF_8));
             }
 
             for (Entry<String, Reader> entry : otherInputs.entrySet()) {
                 sb.append(" //######################################################\n");
-                sb.append(" // Input " + entry.getKey() + "\n");
+                sb.append(" // Input ").append(entry.getKey()).append("\n");
                 sb.append(" //######################################################\n");
                 try (Reader reader = entry.getValue()) {
                     char[] buffer = new char[1024];

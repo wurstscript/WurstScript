@@ -63,15 +63,16 @@ public class ObjectDefinition {
 
 
         for (ObjectModification<?> m : modifications) {
-            sb.append("    " + m.toString() + ";\n");
+            sb.append("    ").append(m.toString()).append(";\n");
         }
 
         sb.append("]\n\n");
     }
 
     public void exportToWurst(Appendable out) throws IOException {
-        out.append("@compiletime function create_" + parent.getFileType().getExt() + "_" + ObjectHelper.objectIdIntToString(newObjectId) + "()\n");
-        out.append("	let def = createObjectDefinition(\"" + parent.getFileType().getExt() + "\", '");
+        out.append("@compiletime function create_").append(parent.getFileType().getExt()).append("_").append(ObjectHelper.objectIdIntToString(newObjectId))
+                .append("()\n");
+        out.append("	let def = createObjectDefinition(\"").append(parent.getFileType().getExt()).append("\", '");
         out.append(ObjectHelper.objectIdIntToString(newObjectId));
         out.append("', '");
         out.append(ObjectHelper.objectIdIntToString(origObjectId));

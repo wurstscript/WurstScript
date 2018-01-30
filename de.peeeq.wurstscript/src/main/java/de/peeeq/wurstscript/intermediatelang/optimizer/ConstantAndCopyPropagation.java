@@ -123,8 +123,7 @@ public class ConstantAndCopyPropagation {
             knowledge.put(n, new Knowledge());
         }
 
-        Deque<Node> todo = new ArrayDeque<>();
-        todo.addAll(cfg.getNodes());
+        Deque<Node> todo = new ArrayDeque<>(cfg.getNodes());
 
         while (!todo.isEmpty()) {
             Node n = todo.poll();

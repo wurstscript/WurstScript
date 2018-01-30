@@ -65,7 +65,7 @@ public class ExtendedJurstLexer implements TokenSource {
     public Token nextToken() {
         Token t = nextTokenIntern();
 
-        debugSb.append(t.getText() + " ");
+        debugSb.append(t.getText()).append(" ");
         if (debug) WLogger.info("		new token: " + t);
         return t;
     }

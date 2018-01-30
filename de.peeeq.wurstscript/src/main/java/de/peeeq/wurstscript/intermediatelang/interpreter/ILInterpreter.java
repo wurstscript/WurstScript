@@ -41,13 +41,9 @@ public class ILInterpreter {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
         try {
-            String[] parameterTypes = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                parameterTypes[i] = "" + args[i];
-            }
-
             if (f.getParameters().size() != args.length) {
-                throw new Error("wrong number of parameters when calling func " + f.getName() + "(" + Arrays.asList(args).stream().map(Object::toString).collect(Collectors.joining(", "))  + ")");
+                throw new Error("wrong number of parameters when calling func " + f.getName() + "(" +
+                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
             }
 
             for (int i = 0; i < f.getParameters().size(); i++) {
@@ -98,7 +94,7 @@ public class ILInterpreter {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
-            err.append("at : " + new File(src.getFile()).getName() + ", line " + src.getLine() + "\n");
+            err.append("at : ").append(new File(src.getFile()).getName()).append(", line ").append(src.getLine()).append("\n");
         } catch (Exception _e) {
             // ignore
         }

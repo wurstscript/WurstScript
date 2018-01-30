@@ -180,7 +180,6 @@ public class GamecacheProvider extends Provider {
             if (!map.remove(key, toRemove)) {
                 throw new Error("object was found but not deleted");
             }
-            ;
         }
     }
 }

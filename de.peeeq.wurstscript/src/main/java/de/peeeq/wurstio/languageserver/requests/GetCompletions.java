@@ -320,12 +320,13 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if(name.endsWith("Tests")) {
             return false;
         }
-        if (searchMode == SearchMode.PREFIX) {
-            return name.toLowerCase().startsWith(alreadyEnteredLower);
-        } else if (searchMode == SearchMode.INFIX) {
-            return name.toLowerCase().contains(alreadyEnteredLower);
-        } else {
-            return Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
+        switch (searchMode) {
+            case PREFIX:
+                return name.toLowerCase().startsWith(alreadyEnteredLower);
+            case INFIX:
+                return name.toLowerCase().contains(alreadyEnteredLower);
+            default:
+                return Utils.isSubsequenceIgnoreCase(alreadyEntered, name);
         }
     }
 

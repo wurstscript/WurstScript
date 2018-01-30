@@ -97,12 +97,12 @@ public abstract class WurstTypeNamedScope extends WurstType {
         if (typeParameters.size() == 0) {
             return "";
         }
-        String s = "<";
+        StringBuilder s = new StringBuilder("<");
         for (int i = 0; i < typeParameters.size(); i++) {
             if (i > 0) {
-                s += ", ";
+                s.append(", ");
             }
-            s += typeParameters.get(i).getName();
+            s.append(typeParameters.get(i).getName());
         }
         return s + ">";
     }
@@ -266,7 +266,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
                                 && receiverType != null
                                 && receiverType.isSupertypeOf(this, node);
                     })
-                    .map(n -> n.hidingPrivateAndProtected());
+                    .map(NameLink::hidingPrivateAndProtected);
         }
         return Stream.empty();
     }

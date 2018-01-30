@@ -359,7 +359,7 @@ public class TempMerger {
             StringBuilder sb = new StringBuilder();
             for (ImVar v : keys) {
                 ImSet s = currentValues.get(v);
-                sb.append(v.getName() + " -> " + s + ", ");
+                sb.append(v.getName()).append(" -> ").append(s).append(", ");
             }
             return sb.toString();
         }

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,7 +89,7 @@ public class InterfaceTranslator {
             Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding =
                     interfaces.stream()
                             .filter(t -> t.getDef() == interfaceDef)
-                            .map(t -> t.getTypeArgBinding())
+                            .map(WurstTypeNamedScope::getTypeArgBinding)
                             .findFirst()
                             .orElse(Collections.emptyMap());
 

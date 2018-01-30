@@ -67,18 +67,19 @@ public class ImToJassTranslator {
         if (translatingFunctions.contains(imFunc)) {
             // TODO extract method
             if (imFunc != translatingFunctions.peek()) {
-                String msg = "cyclic dependency between functions: ";
+                StringBuilder msg = new StringBuilder("cyclic dependency between functions: ");
                 boolean start = false;
                 for (ImFunction f : translatingFunctions) {
                     if (imFunc == f) {
                         start = true;
                     }
                     if (start) {
-                        msg += "\n - " + Utils.printElement(getTrace(f)) + "  ( " + f.attrTrace().attrSource().getFile() + " line  " + f.attrTrace().attrSource().getLine() + ")";
+                        msg.append("\n - ").append(Utils.printElement(getTrace(f))).append("  ( ").append(f.attrTrace().attrSource().getFile()).append(" line" +
+                                "  ").append(f.attrTrace().attrSource().getLine()).append(")");
                     }
                 }
                 WPos src = getTrace(imFunc).attrSource();
-                throw new CompileError(src, msg);
+                throw new CompileError(src, msg.toString());
             }
             // already translating, recursive function
             return;

@@ -34,7 +34,6 @@ import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -181,12 +180,9 @@ public abstract class MapRequest extends UserRequest<Object> {
      * - imported by a file in a wurst folder
      */
     private void purgeUnimportedFiles(WurstModel model) {
-        Set<CompilationUnit> inWurstFolder =
-                model.stream()
-                        .filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j"))
-                        .collect(Collectors.toSet());
 
-        Set<CompilationUnit> imported = new HashSet<>(inWurstFolder);
+        Set<CompilationUnit> imported = model.stream()
+                .filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j")).distinct().collect(Collectors.toSet());
         addImports(imported, imported);
 
         model.removeIf(cu -> !imported.contains(cu));

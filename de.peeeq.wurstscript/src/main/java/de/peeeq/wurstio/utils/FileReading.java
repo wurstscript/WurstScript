@@ -30,13 +30,9 @@ public class FileReading {
 
             nsDetector det = new nsDetector(nsPSMDetector.ALL);
 
-            final boolean[] found = new boolean[1];
             final String[] charset = new String[1];
 
-            det.Init(cs -> {
-                found[0] = true;
-                charset[0] = cs;
-            });
+            det.Init(cs -> charset[0] = cs);
 
             byte[] buf = new byte[1024];
             int len;
@@ -57,7 +53,6 @@ public class FileReading {
             det.DataEnd();
 
             if (isAscii) {
-                found[0] = true;
                 charset[0] = "ASCII";
             }
 

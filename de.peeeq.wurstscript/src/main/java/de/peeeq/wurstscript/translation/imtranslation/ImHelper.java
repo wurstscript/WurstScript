@@ -34,9 +34,8 @@ public class ImHelper {
         if (t instanceof ImArrayType) {
             return JassIm.ImArrayType(((ImArrayType) t).getTypename());
         } else if (t instanceof ImArrayTypeMulti) {
-            ArrayList<Integer> nsize = new ArrayList<>();
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
-            nsize.addAll(mat.getArraySize());
+            ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
             nsize.add(8192);
             return JassIm.ImArrayTypeMulti(mat.getTypename(), nsize);
         }

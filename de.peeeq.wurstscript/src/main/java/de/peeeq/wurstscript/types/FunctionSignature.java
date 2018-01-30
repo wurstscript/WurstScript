@@ -117,9 +117,9 @@ public class FunctionSignature {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        result.append(returnType + " ");
+        result.append(returnType).append(" ");
         if (receiverType != null) {
-            result.append(receiverType + ".");
+            result.append(receiverType).append(".");
         }
         result.append("(");
         result.append(getParameterDescription());

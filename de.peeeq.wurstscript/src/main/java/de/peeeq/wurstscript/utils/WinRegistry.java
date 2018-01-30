@@ -74,12 +74,13 @@ public class WinRegistry {
      * @throws InvocationTargetException
      */
     public static String readString(int hkey, String key, String valueName) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        if (hkey == HKEY_LOCAL_MACHINE) {
-            return readString(systemRoot, hkey, key, valueName);
-        } else if (hkey == HKEY_CURRENT_USER) {
-            return readString(userRoot, hkey, key, valueName);
-        } else {
-            throw new IllegalArgumentException("hkey=" + hkey);
+        switch (hkey) {
+            case HKEY_LOCAL_MACHINE:
+                return readString(systemRoot, hkey, key, valueName);
+            case HKEY_CURRENT_USER:
+                return readString(userRoot, hkey, key, valueName);
+            default:
+                throw new IllegalArgumentException("hkey=" + hkey);
         }
     }
 
@@ -95,12 +96,13 @@ public class WinRegistry {
      */
     public static Map<String, String> readStringValues(int hkey, String key)
             throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        if (hkey == HKEY_LOCAL_MACHINE) {
-            return readStringValues(systemRoot, hkey, key);
-        } else if (hkey == HKEY_CURRENT_USER) {
-            return readStringValues(userRoot, hkey, key);
-        } else {
-            throw new IllegalArgumentException("hkey=" + hkey);
+        switch (hkey) {
+            case HKEY_LOCAL_MACHINE:
+                return readStringValues(systemRoot, hkey, key);
+            case HKEY_CURRENT_USER:
+                return readStringValues(userRoot, hkey, key);
+            default:
+                throw new IllegalArgumentException("hkey=" + hkey);
         }
     }
 
@@ -115,12 +117,13 @@ public class WinRegistry {
      * @throws InvocationTargetException
      */
     public static List<String> readStringSubKeys(int hkey, String key) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        if (hkey == HKEY_LOCAL_MACHINE) {
-            return readStringSubKeys(systemRoot, hkey, key);
-        } else if (hkey == HKEY_CURRENT_USER) {
-            return readStringSubKeys(userRoot, hkey, key);
-        } else {
-            throw new IllegalArgumentException("hkey=" + hkey);
+        switch (hkey) {
+            case HKEY_LOCAL_MACHINE:
+                return readStringSubKeys(systemRoot, hkey, key);
+            case HKEY_CURRENT_USER:
+                return readStringSubKeys(userRoot, hkey, key);
+            default:
+                throw new IllegalArgumentException("hkey=" + hkey);
         }
     }
 
@@ -135,14 +138,17 @@ public class WinRegistry {
      */
     public static void createKey(int hkey, String key) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
         int[] ret;
-        if (hkey == HKEY_LOCAL_MACHINE) {
-            ret = createKey(systemRoot, hkey, key);
-            regCloseKey.invoke(systemRoot, ret[0]);
-        } else if (hkey == HKEY_CURRENT_USER) {
-            ret = createKey(userRoot, hkey, key);
-            regCloseKey.invoke(userRoot, ret[0]);
-        } else {
-            throw new IllegalArgumentException("hkey=" + hkey);
+        switch (hkey) {
+            case HKEY_LOCAL_MACHINE:
+                ret = createKey(systemRoot, hkey, key);
+                regCloseKey.invoke(systemRoot, ret[0]);
+                break;
+            case HKEY_CURRENT_USER:
+                ret = createKey(userRoot, hkey, key);
+                regCloseKey.invoke(userRoot, ret[0]);
+                break;
+            default:
+                throw new IllegalArgumentException("hkey=" + hkey);
         }
         if (ret[1] != REG_SUCCESS) {
             throw new IllegalArgumentException("rc=" + ret[1] + "  key=" + key);
@@ -162,12 +168,15 @@ public class WinRegistry {
      */
     public static void writeStringValue(int hkey, String key, String valueName, String value)
             throws IllegalArgumentException, IllegalAccessException, InvocationTargetException {
-        if (hkey == HKEY_LOCAL_MACHINE) {
-            writeStringValue(systemRoot, hkey, key, valueName, value);
-        } else if (hkey == HKEY_CURRENT_USER) {
-            writeStringValue(userRoot, hkey, key, valueName, value);
-        } else {
-            throw new IllegalArgumentException("hkey=" + hkey);
+        switch (hkey) {
+            case HKEY_LOCAL_MACHINE:
+                writeStringValue(systemRoot, hkey, key, valueName, value);
+                break;
+            case HKEY_CURRENT_USER:
+                writeStringValue(userRoot, hkey, key, valueName, value);
+                break;
+            default:
+                throw new IllegalArgumentException("hkey=" + hkey);
         }
     }
 
