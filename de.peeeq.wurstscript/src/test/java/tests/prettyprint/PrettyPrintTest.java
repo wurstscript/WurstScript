@@ -1,40 +1,85 @@
 package tests.prettyprint;
 
-import de.peeeq.wurstscript.ast.WurstModel;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.attributes.prettyPrint.MaxOneSpacer;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.junit.Test;
 import tests.wurstscript.tests.WurstScriptTest;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+
 public class PrettyPrintTest extends WurstScriptTest {
 
-    @Test
-    public void testPrettyPrint() {
-        String input = "package Test\n" +
-                "constant     int   i =  0\n" +
-                "int   i2=0\n" +
-                "int i3\n" +
-                "constant i4 = 5\n" +
-                "public constant r = 23.524362\n" +
-                "\n" +
-                "enum E\n" +
-                "\tSOME_VAL\n" +
-                "class Test\n" +
-                "\tprivate string s\n" +
-                "\tconstruct(string name)\n" +
-                "\t\tthis. s =name\n" +
-                "\tfunction foo(boolean bar) returns boolean\n" +
-                "\t\t\treturn not bar\n" +
-                "class Boo extends Test\n" +
-                "\tconstruct()\n" +
-                "\t\tsuper(\"boo\")\n" +
-                "\tfunction doIt()\n" +
-                "\t\tlet tst = new Test(\"fork\") castTo Boo";
-        WurstModel model = testScript("pretty", false, input);
-        StringBuilder stringBuilder = new StringBuilder();
-        PrettyPrinter.prettyPrint(model, new MaxOneSpacer(), stringBuilder, 0);
-        System.out.println("Pretty:\n\n" + stringBuilder.toString());
+    private CompilationUnit setUp(String filename) throws IOException {
+        File inFile = new File(filename);
+        String content = Files.toString(inFile, Charsets.UTF_8);
 
-        testAssertOk("prettyTest", false, stringBuilder.toString());
+        WurstGui gui = new WurstGuiCliImpl();
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+        return compiler.parse("test", new StringReader(content));
+    }
+
+    private void visitEvery(String rootPath) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        File root = new File(rootPath);
+        File[] list = root.listFiles();
+        if (list == null) {
+            return;
+        }
+
+        for (File f : list) {
+            if (f.isDirectory()) {
+                visitEvery(f.getAbsolutePath());
+            }
+            else {
+                String path = f.getAbsolutePath();
+
+                if (path.contains("later")) {
+                    continue;
+                }
+                // Prettify our wurst files.
+                if (extension(path).equals("wurst")) {
+                    CompilationUnit cu = setUp(path);
+                    PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
+                    System.out.println(sb.toString());
+
+                    System.out.println("Valid: " + path);
+                    testAssertOk("prettyTest", false, sb.toString());
+                }
+            }
+        }
+    }
+
+    // Note: only works with single extension files, i.e it doesn't work with:
+    // asdf.tar.gz
+    private static String extension(String filename) {
+        String extension = "";
+
+        int i = filename.lastIndexOf('.');
+        if (i > 0) {
+            extension = filename.substring(i+1);
+        }
+        return extension;
+    }
+
+    @Test
+    public void testPrettyIf() throws IOException {
+        StringBuilder sb = new StringBuilder();
+        CompilationUnit cu = setUp("testscripts/pretty/in/If.wurst");
+
+        testAssertOk("prettyTest", false, sb.toString());
+    }
+
+    @Test
+    public void testPrettyMany() throws IOException {
+        visitEvery("testscripts/valid");
     }
 }
