@@ -22,8 +22,7 @@ import java.io.Reader;
 import java.io.StringReader;
 
 public class WurstParser {
-
-    private static final int MAX_SYNTAX_ERRORS = 10;
+    private static final int MAX_SYNTAX_ERRORS = 15;
     private final ErrorHandler errorHandler;
     private final WurstGui gui;
 
@@ -36,15 +35,14 @@ public class WurstParser {
         try (java.util.Scanner s = new java.util.Scanner(reader)) {
             s.useDelimiter("\\A");
             String input = s.hasNext() ? s.next() : "";
-            CompilationUnit cu1 = parseWithAntlr(new StringReader(input), source, hasCommonJ);
-            return cu1;
+            return parseWithAntlr(new StringReader(input), source, hasCommonJ);
         }
     }
 
 
     private CompilationUnit parseWithAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
-            final ANTLRInputStream input = new ANTLRInputStream(reader);
+            CharStream input = CharStreams.fromReader(reader);
             // create a lexer that feeds off of input CharStream
             final ExtendedWurstLexer lexer = new ExtendedWurstLexer(input);
             // create a buffer of tokens pulled from the lexer
@@ -56,7 +54,8 @@ public class WurstParser {
                 int errorCount = 0;
 
                 @Override
-                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line, int charPositionInLine,
+                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
+                                        int charPositionInLine,
                                         @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
 
                     // try to improve error message
@@ -82,18 +81,6 @@ public class WurstParser {
                         posStop = pos + 1;
                     }
 
-
-
-
-//					msg = msg + " || " + input.getText(new Interval(pos, pos+10));
-//					
-//					msg = "line "+line+": "+ msg;
-//					
-//					if (recognizer instanceof Parser) {
-//						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
-//						Collections.reverse(stack);
-//						msg += "\nrule stack: "+stack;
-//					}
                     while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
                         pos--;
                     }
@@ -139,7 +126,7 @@ public class WurstParser {
 
     private CompilationUnit parseJurstWithAntlr(Reader reader, final String source, boolean hasCommonJ) {
         try {
-            final ANTLRInputStream input = new ANTLRInputStream(reader);
+            CharStream input = CharStreams.fromReader(reader);
             // create a lexer that feeds off of input CharStream
             final ExtendedJurstLexer lexer = new ExtendedJurstLexer(input);
             // create a buffer of tokens pulled from the lexer
@@ -151,7 +138,8 @@ public class WurstParser {
                 int errorCount = 0;
 
                 @Override
-                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line, int charPositionInLine,
+                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
+                                        int charPositionInLine,
                                         @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
 
                     LineOffsets offsets = lexer.getLineOffsets();
@@ -166,15 +154,8 @@ public class WurstParser {
                         posStop = pos + 1;
                     }
 
-                    //msg = msg + " || " + input.getText(new Interval(pos, pos+10));
-
                     msg = "line " + line + ": " + msg;
 
-//					if (recognizer instanceof Parser) {
-//						List<String> stack = ((Parser)recognizer).getRuleInvocationStack();
-//						Collections.reverse(stack);
-//						msg += "\nrule stack: "+stack;
-//					}
                     while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
                         pos--;
                     }

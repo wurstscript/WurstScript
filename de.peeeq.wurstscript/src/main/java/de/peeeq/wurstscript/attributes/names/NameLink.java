@@ -245,7 +245,7 @@ public class NameLink {
         if (getReceiverType() != null) {
             r += receiverType + ".";
         }
-        return r = r + Utils.printElementWithSource(nameDef);
+        return r + Utils.printElementWithSource(nameDef);
     }
 
     public NameLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {

@@ -1,7 +1,7 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.UtilsIO;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class ExpressionTests extends WurstScriptTest {
 

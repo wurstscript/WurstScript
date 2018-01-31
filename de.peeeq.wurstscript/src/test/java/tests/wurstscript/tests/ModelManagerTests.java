@@ -3,15 +3,14 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.core.IsNot;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,8 +18,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.testng.Assert.assertEquals;
 
 public class ModelManagerTests {
 
@@ -85,9 +85,9 @@ public class ModelManagerTests {
         WFile fileB = WFile.create(new File(wurstFolder, "B.wurst"));
         WFile fileC = WFile.create(new File(wurstFolder, "C.wurst"));
 
-        assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function b could not be resolved"));
-        assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function c could not be resolved"));
-        assertThat(results.get(fileB), CoreMatchers.containsString("Reference to function c could not be resolved"));
+        assertThat(results.get(fileA), containsString("Reference to function b could not be resolved"));
+        assertThat(results.get(fileA), containsString("Reference to function c could not be resolved"));
+        assertThat(results.get(fileB), containsString("Reference to function c could not be resolved"));
         assertEquals("", results.get(fileC));
 
         // no assume we fix package B
@@ -98,9 +98,9 @@ public class ModelManagerTests {
         assertEquals(ImmutableSet.of(fileA, fileB), results.keySet());
 
         // reference to function b should be found now, other errors still the same
-        assertThat(results.get(fileA), new IsNot<>(CoreMatchers.containsString("Reference to function b could not be resolved")));
-        assertThat(results.get(fileA), CoreMatchers.containsString("Reference to function c could not be resolved"));
-        assertThat(results.get(fileB), CoreMatchers.containsString("Reference to function c could not be resolved"));
+        assertThat(results.get(fileA), new IsNot<>(containsString("Reference to function b could not be resolved")));
+        assertThat(results.get(fileA), containsString("Reference to function c could not be resolved"));
+        assertThat(results.get(fileB), containsString("Reference to function c could not be resolved"));
 
         // no we fix package C:
         String packageC_v2 = packageC_v1.replace("c_old", "c");

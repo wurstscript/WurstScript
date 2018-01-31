@@ -3,8 +3,8 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WurstModel;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -910,5 +910,5 @@ public class BugTests extends WurstScriptTest {
         );
 
     }
-    
+
 }

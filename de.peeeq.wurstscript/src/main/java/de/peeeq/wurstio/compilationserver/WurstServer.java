@@ -68,7 +68,7 @@ public class WurstServer {
              BufferedReader in = new BufferedReader(new InputStreamReader(
                      s.getInputStream()))) {
             println("Server accepted compilation request");
-            String inputLine = null;
+            String inputLine;
             final List<String> args = new ArrayList<>();
             while ((inputLine = in.readLine()) != null) {
                 if (inputLine.equals("<<<<")) {

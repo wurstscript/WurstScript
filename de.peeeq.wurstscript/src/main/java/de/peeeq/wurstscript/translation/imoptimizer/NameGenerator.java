@@ -37,8 +37,6 @@ public class NameGenerator {
     /**
      * Creates a new NameGenerator
      *
-     * @param restricted Forbidden names
-     * @param charmap    The Charmap to use to generate names
      * @throws FileNotFoundException
      */
     public NameGenerator() {

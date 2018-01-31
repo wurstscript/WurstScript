@@ -284,13 +284,15 @@ public class Utils {
             if (t.getTypeArgs().size() > 0) {
                 name += "{";
                 boolean first = true;
+                StringBuilder nameBuilder = new StringBuilder(name);
                 for (TypeExpr ta : t.getTypeArgs()) {
                     if (!first) {
-                        name += ", ";
+                        nameBuilder.append(", ");
                     }
-                    name += printElement(ta);
+                    nameBuilder.append(printElement(ta));
                     first = false;
                 }
+                name = nameBuilder.toString();
                 name += "}";
             }
             type = "type";
@@ -334,7 +336,7 @@ public class Utils {
             if (t == null) {
                 break;
             }
-            sb.append("Caused by: " + t.toString() + "\n");
+            sb.append("Caused by: ").append(t.toString()).append("\n");
         }
         return sb.toString();
     }
@@ -708,7 +710,7 @@ public class Utils {
             if (descr.length() > 0) {
                 descr.append(", ");
             }
-            descr.append(p.attrTyp() + " " + p.getName());
+            descr.append(p.attrTyp()).append(" ").append(p.getName());
         }
         return descr.toString();
     }
@@ -796,7 +798,7 @@ public class Utils {
 
             @Override
             public BiConsumer<Builder<T>, T> accumulator() {
-                return (b, e) -> b.add(e);
+                return Builder::add;
             }
 
             @Override
@@ -806,7 +808,7 @@ public class Utils {
 
             @Override
             public java.util.function.Function<Builder<T>, ImmutableList<T>> finisher() {
-                return b -> b.build();
+                return Builder::build;
             }
 
             @Override
@@ -940,14 +942,14 @@ public class Utils {
     private static Map<String, File> resourceMap = new HashMap<>();
 
     public static String elementNameWithPath(AstElementWithNameId n) {
-        String result = n.getNameId().getName();
+        StringBuilder result = new StringBuilder(n.getNameId().getName());
         Element e = n.getParent();
         while (e != null) {
             if (e instanceof AstElementWithNameId) {
-                result = ((AstElementWithNameId) e).getNameId().getName() + "_" + result;
+                result.insert(0, ((AstElementWithNameId) e).getNameId().getName() + "_");
             }
             e = e.getParent();
         }
-        return result;
+        return result.toString();
     }
 }

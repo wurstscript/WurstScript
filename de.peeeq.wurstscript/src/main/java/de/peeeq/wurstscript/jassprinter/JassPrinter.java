@@ -82,17 +82,17 @@ public class JassPrinter {
 
             @Override
             public void case_JassSimpleVar(@SuppressWarnings("null") JassSimpleVar v) {
-                sb.append(v.getType() + " " + v.getName() + "\n");
+                sb.append(v.getType()).append(" ").append(v.getName()).append("\n");
             }
 
             @Override
             public void case_JassArrayVar(@SuppressWarnings("null") JassArrayVar v) {
-                sb.append(v.getType() + " array " + v.getName() + "\n");
+                sb.append(v.getType()).append(" array ").append(v.getName()).append("\n");
             }
 
             @Override
             public void case_JassInitializedVar(@SuppressWarnings("null") JassInitializedVar jassInitializedVar) {
-                sb.append(jassInitializedVar.getType() + " " + jassInitializedVar.getName() + "=");
+                sb.append(jassInitializedVar.getType()).append(" ").append(jassInitializedVar.getName()).append("=");
                 jassInitializedVar.getVal().print(sb, withSpace);
                 sb.append("\n");
                 // TODO check if right
@@ -100,7 +100,7 @@ public class JassPrinter {
 
             @Override
             public void case_JassConstantVar(@SuppressWarnings("null") JassConstantVar jassConstantVar) {
-                sb.append(jassConstantVar.getType() + " " + jassConstantVar.getName() + "=");
+                sb.append(jassConstantVar.getType()).append(" ").append(jassConstantVar.getName()).append("=");
                 jassConstantVar.getVal().print(sb, withSpace);
                 sb.append("\n");
                 // TODO check if right
@@ -199,7 +199,7 @@ public class JassPrinter {
             sb.append("\n");
         }
         printStatements(sb, 1, body, withSpace);
-        sb.append("endfunction\n" + additionalNewline());
+        sb.append("endfunction\n").append(additionalNewline());
     }
 
     private static String printParams(JassSimpleVars params, boolean withSpace) {
@@ -212,7 +212,7 @@ public class JassPrinter {
         if (withSpace) {
             if (prog.attrComments().containsKey(f)) {
                 printIndent(sb, indent, withSpace);
-                sb.append("// " + prog.attrComments().get(f) + "\n");
+                sb.append("// ").append(prog.attrComments().get(f)).append("\n");
             }
         }
     }

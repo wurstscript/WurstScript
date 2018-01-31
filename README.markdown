@@ -3,7 +3,7 @@
 Wurstscript is a programming language which can compile to Jass code which is used in WarCraft III.
 
 [![Build Status](http://peeeq.de/hudson/job/Wurst/badge/icon)](http://peeeq.de/hudson/job/Wurst/)
-[![Travis](https://img.shields.io/travis/wurstscript/WurstScript.svg)]()
+[![Travis](https://travis-ci.org/wurstscript/WurstScript.svg?branch=master)](https://travis-ci.org/wurstscript/WurstScript)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
 

@@ -3,11 +3,13 @@ package tests.utils;
 import com.google.common.collect.Lists;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import static org.testng.AssertJUnit.assertFalse;
 
 public class GraphInterpreterTests {
 

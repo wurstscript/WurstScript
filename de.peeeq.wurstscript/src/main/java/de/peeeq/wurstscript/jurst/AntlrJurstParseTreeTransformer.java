@@ -1094,26 +1094,27 @@ public class AntlrJurstParseTreeTransformer {
 
     private Expr transformAtom(Token a) {
         WPos source = source(a);
-        if (a.getType() == JurstParser.INT) {
-            return Ast.ExprIntVal(source, text(a));
-        } else if (a.getType() == JurstParser.REAL) {
-            return Ast.ExprRealVal(source, text(a));
-        } else if (a.getType() == JurstParser.STRING) {
-            return Ast.ExprStringVal(source, getStringVal(source, text(a)));
-        } else if (a.getType() == JurstParser.NULL) {
-            return Ast.ExprNull(source);
-        } else if (a.getType() == JurstParser.TRUE) {
-            return Ast.ExprBoolVal(source, true);
-        } else if (a.getType() == JurstParser.FALSE) {
-            return Ast.ExprBoolVal(source, false);
-        } else if (a.getType() == JurstParser.THIS) {
-            if (isJassCode) {
-                return Ast.ExprVarAccess(source, Ast.Identifier(source, "this"));
-            } else {
-                return Ast.ExprThis(source);
-            }
-        } else if (a.getType() == JurstParser.SUPER) {
-            return Ast.ExprSuper(source);
+        switch (a.getType()) {
+            case JurstParser.INT:
+                return Ast.ExprIntVal(source, text(a));
+            case JurstParser.REAL:
+                return Ast.ExprRealVal(source, text(a));
+            case JurstParser.STRING:
+                return Ast.ExprStringVal(source, getStringVal(source, text(a)));
+            case JurstParser.NULL:
+                return Ast.ExprNull(source);
+            case JurstParser.TRUE:
+                return Ast.ExprBoolVal(source, true);
+            case JurstParser.FALSE:
+                return Ast.ExprBoolVal(source, false);
+            case JurstParser.THIS:
+                if (isJassCode) {
+                    return Ast.ExprVarAccess(source, Ast.Identifier(source, "this"));
+                } else {
+                    return Ast.ExprThis(source);
+                }
+            case JurstParser.SUPER:
+                return Ast.ExprSuper(source);
         }
         // TODO Auto-generated method stub
         throw error(source(a), "atom not implemented: " + text(a));
@@ -1207,7 +1208,7 @@ public class AntlrJurstParseTreeTransformer {
             if (t.arraySizes != null && !t.arraySizes.isEmpty()) {
                 arrSize = t.arraySizes.get(0);
                 if (t.arraySizes.size() > 1) {
-                    error(t.arraySizes.get(1), "Currently only one dimension is allowed for arrays.");
+                    throw error(t.arraySizes.get(1), "Currently only one dimension is allowed for arrays.");
                 }
             }
 

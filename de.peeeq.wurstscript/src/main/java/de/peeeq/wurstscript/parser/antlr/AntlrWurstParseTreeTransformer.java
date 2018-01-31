@@ -1073,24 +1073,24 @@ public class AntlrWurstParseTreeTransformer {
 
     private Expr transformAtom(Token a) {
         WPos source = source(a);
-        if (a.getType() == WurstParser.INT) {
-            return Ast.ExprIntVal(source, rawText(a));
-        } else if (a.getType() == WurstParser.REAL) {
-            return Ast.ExprRealVal(source, rawText(a));
-        } else if (a.getType() == WurstParser.STRING) {
-            return Ast.ExprStringVal(source, getStringVal(source, rawText(a)));
-        } else if (a.getType() == WurstParser.NULL) {
-            return Ast.ExprNull(source);
-        } else if (a.getType() == WurstParser.TRUE) {
-            return Ast.ExprBoolVal(source, true);
-        } else if (a.getType() == WurstParser.FALSE) {
-            return Ast.ExprBoolVal(source, false);
-        } else if (a.getType() == WurstParser.THIS) {
-            return Ast.ExprThis(source);
-        } else if (a.getType() == WurstParser.SUPER) {
-            return Ast.ExprSuper(source);
+        switch (a.getType()) {
+            case WurstParser.INT:
+                return Ast.ExprIntVal(source, rawText(a));
+            case WurstParser.REAL:
+                return Ast.ExprRealVal(source, rawText(a));
+            case WurstParser.STRING:
+                return Ast.ExprStringVal(source, getStringVal(source, rawText(a)));
+            case WurstParser.NULL:
+                return Ast.ExprNull(source);
+            case WurstParser.TRUE:
+                return Ast.ExprBoolVal(source, true);
+            case WurstParser.FALSE:
+                return Ast.ExprBoolVal(source, false);
+            case WurstParser.THIS:
+                return Ast.ExprThis(source);
+            case WurstParser.SUPER:
+                return Ast.ExprSuper(source);
         }
-        // TODO Auto-generated method stub
         throw error(source(a), "not implemented: " + text(a));
     }
 

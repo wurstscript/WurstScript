@@ -225,47 +225,50 @@ public class Flatten {
     public static Result flatten(ImOperatorCall e, ImTranslator t, ImFunction f) {
         // TODO special case and, or
         de.peeeq.wurstscript.ast.Element trace = e.attrTrace();
-        if (e.getOp() == WurstOperator.AND) {
-            Result left = e.getArguments().get(0).flatten(t, f);
-            Result right = e.getArguments().get(1).flatten(t, f);
+        switch (e.getOp()) {
+            case AND: {
+                Result left = e.getArguments().get(0).flatten(t, f);
+                Result right = e.getArguments().get(1).flatten(t, f);
 
-            if (right.stmts.isEmpty()) {
-                return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
-            } else {
-                ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(), "andLeft", false);
-                f.getLocals().add(tempVar);
-                ImStmts thenBlock = JassIm.ImStmts();
-                // if left is true then check right
-                thenBlock.addAll(right.stmts);
-                thenBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
-                // else the result is false
-                ImStmts elseBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(false)));
-                stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
-                return new Result(stmts, JassIm.ImVarAccess(tempVar));
+                if (right.stmts.isEmpty()) {
+                    return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
+                } else {
+                    ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+                    f.getLocals().add(tempVar);
+                    ImStmts thenBlock = JassIm.ImStmts();
+                    // if left is true then check right
+                    thenBlock.addAll(right.stmts);
+                    thenBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+                    // else the result is false
+                    ImStmts elseBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(false)));
+                    stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
+                    return new Result(stmts, JassIm.ImVarAccess(tempVar));
+                }
             }
-        } else if (e.getOp() == WurstOperator.OR) {
-            Result left = e.getArguments().get(0).flatten(t, f);
-            Result right = e.getArguments().get(1).flatten(t, f);
+            case OR: {
+                Result left = e.getArguments().get(0).flatten(t, f);
+                Result right = e.getArguments().get(1).flatten(t, f);
 
-            if (right.stmts.isEmpty()) {
-                return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
-            } else {
-                ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
-                f.getLocals().add(tempVar);
-                // if left is true then result is ture
-                ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
-                // else check right
-                ImStmts elseBlock = JassIm.ImStmts();
-                elseBlock.addAll(right.stmts);
-                elseBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
-                stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
-                return new Result(stmts, JassIm.ImVarAccess(tempVar));
+                if (right.stmts.isEmpty()) {
+                    return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
+                } else {
+                    ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
+                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+                    f.getLocals().add(tempVar);
+                    // if left is true then result is ture
+                    ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
+                    // else check right
+                    ImStmts elseBlock = JassIm.ImStmts();
+                    elseBlock.addAll(right.stmts);
+                    elseBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+                    stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
+                    return new Result(stmts, JassIm.ImVarAccess(tempVar));
+                }
             }
-        } else {
-            MultiResult r = flattenExprs(t, f, e.getArguments());
-            return new Result(r.stmts, JassIm.ImOperatorCall(e.getOp(), ImExprs(r.exprs)));
+            default:
+                MultiResult r = flattenExprs(t, f, e.getArguments());
+                return new Result(r.stmts, JassIm.ImOperatorCall(e.getOp(), ImExprs(r.exprs)));
         }
     }
 

@@ -189,7 +189,7 @@ public class HashtableProvider extends Provider {
         if (toRemove != null) {
             if(!map.remove(key, toRemove)) {
                 throw new Error("object was found but not deleted");
-            };
+            }
         }
     }
 }

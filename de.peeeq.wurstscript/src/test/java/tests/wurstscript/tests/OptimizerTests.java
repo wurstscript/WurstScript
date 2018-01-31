@@ -4,13 +4,13 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.testng.AssertJUnit.assertFalse;
+import static org.testng.AssertJUnit.assertTrue;
 
 public class OptimizerTests extends WurstScriptTest {
 

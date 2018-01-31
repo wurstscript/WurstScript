@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class ClassesExtTests extends WurstScriptTest {
 

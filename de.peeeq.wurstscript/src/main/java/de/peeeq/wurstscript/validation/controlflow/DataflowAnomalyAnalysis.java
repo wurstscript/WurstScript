@@ -121,7 +121,7 @@ class VarStates {
         StringBuilder sb = new StringBuilder("VarStates [");
         for (Entry<LocalVarDef, VState> e : this.states.entrySet()) {
             sb.append("\n\t");
-            sb.append(e.getKey().getName() + " -> " + e.getValue());
+            sb.append(e.getKey().getName()).append(" -> ").append(e.getValue());
 
         }
         sb.append("]");
@@ -207,7 +207,7 @@ class VState {
         StringBuilder sb = new StringBuilder("VState [ " + this.mightBeUninitialized + ", ");
         for (Entry<WStatement, Element> e : this.writesAndReads.entries()) {
             sb.append("\n\t\t");
-            sb.append(e.getKey().attrSource().getLine() + " -> " + e.getValue().attrSource().getLine());
+            sb.append(e.getKey().attrSource().getLine()).append(" -> ").append(e.getValue().attrSource().getLine());
         }
         sb.append("]");
         return sb.toString();

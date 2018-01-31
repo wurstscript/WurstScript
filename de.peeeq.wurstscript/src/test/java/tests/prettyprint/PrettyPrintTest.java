@@ -9,7 +9,7 @@ import de.peeeq.wurstscript.attributes.prettyPrint.MaxOneSpacer;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import org.junit.Test;
+import org.testng.annotations.Test;
 import tests.wurstscript.tests.WurstScriptTest;
 
 import java.io.File;

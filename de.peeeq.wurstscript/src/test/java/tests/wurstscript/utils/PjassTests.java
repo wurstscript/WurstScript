@@ -4,7 +4,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.attributes.CompileError;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 

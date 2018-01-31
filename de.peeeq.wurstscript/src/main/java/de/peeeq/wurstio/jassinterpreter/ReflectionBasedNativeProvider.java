@@ -23,7 +23,7 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
             if (method.getName().equals(funcname)) {
                 // this is a candidate as it has the correct name
                 candidate = method;
-                Object r = null;
+                Object r;
                 try {
                     if (args.length != method.getParameterTypes().length) {
                         continue;

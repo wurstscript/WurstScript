@@ -6,7 +6,6 @@ public class NativeTypes {
     /**
      * returns the WurstScriptType for a given nativetype definition
      *
-     * @param b
      */
     public static @Nullable WurstType nativeType(String typeName, boolean isJassCode) {
         if (typeName.equals("int") || typeName.equals("integer")) {

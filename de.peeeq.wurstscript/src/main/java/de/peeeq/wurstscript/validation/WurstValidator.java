@@ -1466,8 +1466,8 @@ public class WurstValidator {
                         }
                     }
                     if (!isAllowed) {
-                        error.append("Modifier " + printMod(m) + " not allowed for " + Utils.printElement(e)
-                                + ".\n Allowed are the following modifiers: ");
+                        error.append("Modifier ").append(printMod(m)).append(" not allowed for ").append(Utils.printElement(e)).append(".\n Allowed are the " +
+                                "following modifiers: ");
                         boolean first = true;
                         for (Class<? extends Modifier> c : allowed) {
                             if (!first) {
@@ -1809,7 +1809,7 @@ public class WurstValidator {
                 if (funcs.size() > 1) {
                     StringBuilder alternatives = new StringBuilder();
                     for (NameLink nameLink : funcs) {
-                        alternatives.append("\n - " + Utils.printElementWithSource(nameLink.getNameDef()));
+                        alternatives.append("\n - ").append(Utils.printElementWithSource(nameLink.getNameDef()));
                     }
                     e.addError("Ambiguous function name: " + exFunc + ". Alternatives are: " + alternatives);
                     return;
@@ -2130,16 +2130,20 @@ public class WurstValidator {
 
         if (vtype instanceof WurstTypeArray) {
             WurstTypeArray wta = (WurstTypeArray) vtype;
-            if (wta.getDimensions() == 0) {
-                v.addError("0-dimensionals arrays are not possible");
-            } else if (wta.getDimensions() == 1) {
-                if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
-                    v.addError("Sized arrays are only supported as class members.");
-                } else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
-                    v.addError("Array members require a fixed size.");
-                }
-            } else {
-                v.addError("Multidimensional Arrays are not yet supported.");
+            switch (wta.getDimensions()) {
+                case 0:
+                    v.addError("0-dimensional arrays are not allowed");
+                    break;
+                case 1:
+                    if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
+                        v.addError("Sized arrays are only supported as class members.");
+                    } else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
+                        v.addError("Array members require a fixed size.");
+                    }
+                    break;
+                default:
+                    v.addError("Multidimensional Arrays are not yet supported.");
+                    break;
             }
         }
 

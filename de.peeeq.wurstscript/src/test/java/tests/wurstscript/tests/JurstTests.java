@@ -2,8 +2,7 @@ package tests.wurstscript.tests;
 
 import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.util.Collections;
 import java.util.Map;
