@@ -213,7 +213,7 @@ public class WurstParser {
     }
 
     private void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
-        new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
+        // new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
     }
 
     class TooManyErrorsException extends RuntimeException {
