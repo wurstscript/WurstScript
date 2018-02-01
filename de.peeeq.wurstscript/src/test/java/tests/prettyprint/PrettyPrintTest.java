@@ -16,15 +16,28 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 
+import static org.testng.AssertJUnit.assertEquals;
+
 public class PrettyPrintTest extends WurstScriptTest {
 
-    private CompilationUnit setUp(String filename) throws IOException {
+    private String setUp(String filename) throws IOException {
+        StringBuilder sb = new StringBuilder();
         File inFile = new File(filename);
         String content = Files.toString(inFile, Charsets.UTF_8);
 
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
-        return compiler.parse("test", new StringReader(content));
+
+        CompilationUnit cu = compiler.parse("test", new StringReader(content));
+        PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
+
+        return sb.toString();
+    }
+
+    private String expectedFile(String filename) throws IOException {
+        StringBuilder sb = new StringBuilder();
+        File inFile = new File(filename);
+        return Files.toString(inFile, Charsets.UTF_8);
     }
 
     private void visitEvery(String rootPath) throws IOException {
@@ -47,12 +60,11 @@ public class PrettyPrintTest extends WurstScriptTest {
                 }
                 // Prettify our wurst files.
                 if (extension(path).equals("wurst")) {
-                    CompilationUnit cu = setUp(path);
-                    PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
-                    System.out.println(sb.toString());
+                    String pretty = setUp(path);
+                    System.out.println(pretty);
 
                     System.out.println("Valid: " + path);
-                    testAssertOk("prettyTest", false, sb.toString());
+                    testAssertOk("prettyTest", false, pretty);
                 }
             }
         }
@@ -72,14 +84,36 @@ public class PrettyPrintTest extends WurstScriptTest {
 
     @Test
     public void testPrettyIf() throws IOException {
-        StringBuilder sb = new StringBuilder();
-        CompilationUnit cu = setUp("testscripts/pretty/in/If.wurst");
+        String testFilename = "testscripts/pretty/%s/If.wurst";
+        String pretty = setUp(String.format(testFilename, "in"));
+        String expected = expectedFile(String.format(testFilename, "out"));
 
-        testAssertOk("prettyTest", false, sb.toString());
+        testAssertOk("prettyTest", false, pretty);
+        assertEquals(expected, pretty);
+    }
+
+    @Test
+    public void testPrettyLoops() throws IOException {
+        String testFilename = "testscripts/pretty/%s/Loops.wurst";
+        String pretty = setUp(String.format(testFilename, "in"));
+        String expected = expectedFile(String.format(testFilename, "out"));
+
+        testAssertOk("prettyTest", false, pretty);
+        assertEquals(expected, pretty);
+    }
+
+    @Test
+    public void testPrettyAssignments() throws IOException {
+        String testFilename = "testscripts/pretty/%s/Assignment_shorthand.wurst";
+        String pretty = setUp(String.format(testFilename, "in"));
+        String expected = expectedFile(String.format(testFilename, "out"));
+
+        testAssertOk("prettyTest", false, pretty);
+        assertEquals(expected, pretty);
     }
 
     @Test
     public void testPrettyMany() throws IOException {
-        visitEvery("testscripts/valid");
+        visitEvery("testscripts/pretty");
     }
 }
