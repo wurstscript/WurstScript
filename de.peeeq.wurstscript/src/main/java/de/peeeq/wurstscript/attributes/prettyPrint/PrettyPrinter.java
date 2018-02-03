@@ -241,7 +241,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprIntVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append(e.getValI());
+        sb.append(e.getValIraw());
     }
 
     public static void prettyPrint(ExprMemberArrayVarDot e, Spacer spacer, StringBuilder sb, int indent) {
