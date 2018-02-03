@@ -515,8 +515,11 @@ public class PrettyPrinter {
 
     public static void prettyPrint(Modifiers e, Spacer spacer, StringBuilder sb, int indent) {
         for (Modifier modifier : e) {
-            modifier.prettyPrint(spacer, sb, indent);
-            sb.append(" ");
+            // We handle WurstDoc separately.
+            if (!(modifier instanceof WurstDoc)) {
+                modifier.prettyPrint(spacer, sb, indent);
+                spacer.addSpace(sb);
+            }
         }
     }
 
