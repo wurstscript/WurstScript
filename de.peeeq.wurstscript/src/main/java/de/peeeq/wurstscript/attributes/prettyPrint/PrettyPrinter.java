@@ -332,10 +332,12 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprSuper e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
         sb.append("super");
     }
 
     public static void prettyPrint(ExprThis e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
         sb.append("this");
     }
 
@@ -351,6 +353,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprVarAccess e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
         sb.append(e.getVarName());
     }
 
