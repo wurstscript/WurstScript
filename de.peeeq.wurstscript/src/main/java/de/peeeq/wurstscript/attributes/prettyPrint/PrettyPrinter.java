@@ -369,28 +369,21 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExtensionFuncDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
+        printStuff(e, spacer, sb, indent);
         sb.append("function");
         spacer.addSpace(sb);
         e.getExtendedType().prettyPrint(spacer, sb, indent);
         sb.append(".");
-        sb.append(e.getName());
-        sb.append("(");
-        e.getParameters().prettyPrint(spacer, sb, indent);
-        sb.append(")");
+        printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
-    public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\n");
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
-        sb.append("function");
-        spacer.addSpace(sb);
-        e.getTypeParameters().prettyPrint(spacer, sb, indent);
+
+    private static void printFunctionSignature(FunctionImplementation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getName());
+        e.getTypeParameters().prettyPrint(spacer, sb, indent);
         e.getParameters().prettyPrint(spacer, sb, indent);
         if (!(e.getReturnTyp() instanceof NoTypeExpr)) {
             spacer.addSpace(sb);
@@ -398,6 +391,13 @@ public class PrettyPrinter {
             spacer.addSpace(sb);
             e.getReturnTyp().prettyPrint(spacer, sb, indent);
         }
+    }
+
+    public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printStuff(e, spacer, sb, indent);
+        sb.append("function");
+        spacer.addSpace(sb);
+        printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
         sb.append("\n");
