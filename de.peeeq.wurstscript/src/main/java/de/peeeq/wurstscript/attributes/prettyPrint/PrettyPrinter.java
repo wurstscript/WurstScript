@@ -122,9 +122,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ConstructorDef e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\n");
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
+        printStuff(e, spacer, sb, indent);
         sb.append("construct");
         e.getParameters().prettyPrint(spacer, sb, indent);
         sb.append("\n");
@@ -135,13 +133,16 @@ public class PrettyPrinter {
             sb.append(")\n");
         }
         e.getBody().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (ConstructorDef constructorDef : e) {
-            if (!constructorDef.getParameters().isEmpty() || !constructorDef.getSuperArgs().isEmpty() || constructorDef.getBody().size() > 2) {
-                constructorDef.prettyPrint(spacer, sb, indent);
+            // Remove empty constructors.
+            if (constructorDef.getBody().size() < 1) {
+                continue;
             }
+            constructorDef.prettyPrint(spacer, sb, indent);
         }
     }
 
