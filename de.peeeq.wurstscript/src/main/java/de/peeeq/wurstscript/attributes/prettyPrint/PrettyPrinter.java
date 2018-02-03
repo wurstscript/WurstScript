@@ -851,9 +851,16 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeParamDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printComment(sb, e, indent);
+        e.getNameId().prettyPrint(spacer, sb, indent);
     }
 
     public static void prettyPrint(TypeParamDefs e, Spacer spacer, StringBuilder sb, int indent) {
+        if (e.size() >= 1) {
+            sb.append("<");
+            commaSeparatedList(e, spacer, sb, indent);
+            sb.append(">");
+        }
     }
 
     public static void prettyPrint(VisibilityDefault e, Spacer spacer, StringBuilder sb, int indent) {
