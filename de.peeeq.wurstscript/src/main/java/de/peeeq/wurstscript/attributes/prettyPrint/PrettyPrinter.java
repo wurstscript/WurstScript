@@ -302,9 +302,12 @@ public class PrettyPrinter {
         spacer.addSpace(sb);
         sb.append(e.getTypeName());
         e.getTypeArgs().prettyPrint(spacer, sb, indent);
-        sb.append("(");
-        e.getArgs().prettyPrint(spacer, sb, indent);
-        sb.append(")");
+        if (e.getArgs().size() > 0) {
+            sb.append("(");
+            e.getArgs().prettyPrint(spacer, sb, indent);
+            sb.append(")");
+        }
+        printNewline(e, sb, indent);
     }
 
     public static void prettyPrint(ExprNull e, Spacer spacer, StringBuilder sb, int indent) {
