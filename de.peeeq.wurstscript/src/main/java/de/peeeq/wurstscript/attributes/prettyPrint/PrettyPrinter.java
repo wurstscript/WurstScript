@@ -18,6 +18,60 @@ public class PrettyPrinter {
         }
     }
 
+    private static void printClassOrModuleDeclaration(ClassOrModule e, Spacer spacer, StringBuilder sb, int indent) {
+        e.getModuleUses().prettyPrint(spacer, sb, indent);
+        e.getVars().prettyPrint(spacer, sb, indent);
+        e.getConstructors().prettyPrint(spacer, sb, indent);
+        e.getMethods().prettyPrint(spacer, sb, indent);
+        e.getOnDestroy().prettyPrint(spacer, sb, indent);
+        e.getInnerClasses().prettyPrint(spacer, sb, indent);
+    }
+
+    private static void printNewline(Element e, StringBuilder sb, int indent) {
+        // Don't add a newline unless we are directly under statements.
+        // Otherwise we would add newlines inside function calls, etc.
+        if (!(e.getParent() instanceof WStatements)) {
+            return;
+        }
+        sb.append("\n");
+    }
+
+    private static void printStuff(Documentable e, Spacer spacer, StringBuilder sb, int indent) {
+        printComment(sb, e, indent);
+        printComment(e.getModifiers(), spacer, sb, indent);
+        printIndent(sb, indent);
+        e.getModifiers().prettyPrint(spacer, sb, indent);
+    }
+
+    // For some reason comments are a kind of modifier.
+    private static void printComment(Modifiers e, Spacer spacer, StringBuilder sb, int indent) {
+        for (Modifier modifier : e) {
+            if (modifier instanceof WurstDoc) {
+                modifier.prettyPrint(spacer, sb, indent);
+            }
+        }
+    }
+
+    private static void printComment(StringBuilder sb, Documentable d, int indent) {
+        // Comments doesn't exist in the wurst parser atm.
+    }
+
+    private static void printIndent(StringBuilder sb, int indent) {
+        if (sb.toString().substring(sb.length() - 1).equals("\n")) {
+            for (int i = 0; i < indent; i++) {
+                sb.append("\t");
+            }
+        }
+    }
+
+    private static String calculateIndent(int indent) {
+        String s = "";
+        for (int i = 0; i < indent; i++) {
+            s += "\t";
+        }
+        return s;
+    }
+
     public static void prettyPrint(Annotation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getAnnotationType());
     }
