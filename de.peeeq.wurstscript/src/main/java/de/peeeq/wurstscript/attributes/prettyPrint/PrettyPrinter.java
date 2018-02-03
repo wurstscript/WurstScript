@@ -150,26 +150,24 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(EnumDef e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\n");
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
+        printStuff(e, spacer, sb, indent);
         sb.append("enum");
         spacer.addSpace(sb);
         sb.append(e.getName());
         sb.append("\n");
         e.getMembers().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
     public static void prettyPrint(EnumMember e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
+        printStuff(e, spacer, sb, indent);
         sb.append(e.getName());
+        sb.append("\n");
     }
 
     public static void prettyPrint(EnumMembers e, Spacer spacer, StringBuilder sb, int indent) {
         for (EnumMember enumMember : e) {
             enumMember.prettyPrint(spacer, sb, indent);
-            sb.append("\n");
         }
     }
 
