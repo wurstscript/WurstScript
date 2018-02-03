@@ -683,11 +683,16 @@ public class PrettyPrinter {
         e.getCond().prettyPrint(spacer, sb, indent);
         sb.append("\n");
         e.getThenBlock().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
         if (e.getElseBlock().size() > 0) {
             printIndent(sb, indent);
-            sb.append("else\n");
-            e.getElseBlock().prettyPrint(spacer, sb, indent + 1);
+            sb.append("else");
+            if (e.getElseBlock().size() > 0 && e.getElseBlock().get(0) instanceof StmtIf) {
+                spacer.addSpace(sb);
+                e.getElseBlock().get(0).prettyPrint(spacer, sb, indent);
+            } else {
+                sb.append("\n");
+                e.getElseBlock().prettyPrint(spacer, sb, indent + 1);
+            }
         }
     }
 
