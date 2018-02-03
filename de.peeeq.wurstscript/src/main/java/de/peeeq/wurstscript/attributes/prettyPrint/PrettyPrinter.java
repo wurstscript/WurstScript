@@ -319,6 +319,12 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprStatementsBlock e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("begin");
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
+        printIndent(sb, indent);
+        sb.append("end");
     }
 
     public static void prettyPrint(ExprStringVal e, Spacer spacer, StringBuilder sb, int indent) {
