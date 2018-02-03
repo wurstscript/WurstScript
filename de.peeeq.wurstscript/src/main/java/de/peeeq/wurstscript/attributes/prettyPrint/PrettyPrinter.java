@@ -768,6 +768,9 @@ public class PrettyPrinter {
         printIndent(sb, indent);
         sb.append("while");
         spacer.addSpace(sb);
+        e.getCond().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(SwitchCase e, Spacer spacer, StringBuilder sb, int indent) {
