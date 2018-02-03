@@ -617,15 +617,63 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StmtForFrom e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("for");
+        spacer.addSpace(sb);
+        e.getLoopVar().getNameId().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("from");
+        spacer.addSpace(sb);
+        e.getIn().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(StmtForIn e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("for");
+        spacer.addSpace(sb);
+        e.getLoopVar().getNameId().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("in");
+        spacer.addSpace(sb);
+        e.getIn().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(StmtForRangeDown e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("for");
+        spacer.addSpace(sb);
+        e.getLoopVar().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("downto");
+        spacer.addSpace(sb);
+        e.getTo().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("step");
+        spacer.addSpace(sb);
+        e.getStep().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(StmtForRangeUp e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("for");
+        spacer.addSpace(sb);
+        e.getLoopVar().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("to");
+        spacer.addSpace(sb);
+        e.getTo().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("step");
+        spacer.addSpace(sb);
+        e.getStep().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(StmtIf e, Spacer spacer, StringBuilder sb, int indent) {
