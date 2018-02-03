@@ -5,11 +5,12 @@ jdk:
   - oraclejdk8
   
 before_install:
-  - chmod +x gradlew
   - sudo apt-get -qq update
   - sudo apt-get install -y wine
   
-before_script: cd de.peeeq.wurstscript
+before_script: 
+  - cd de.peeeq.wurstscript
+  - chmod +x gradlew
 
 script:
   - ./gradlew assemble test --info
