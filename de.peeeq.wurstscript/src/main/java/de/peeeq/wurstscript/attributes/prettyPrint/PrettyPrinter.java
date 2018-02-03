@@ -204,6 +204,7 @@ public class PrettyPrinter {
         sb.append("destroy");
         spacer.addSpace(sb);
         e.getDestroyedObj().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
     }
 
     public static void prettyPrint(ExprEmpty e, Spacer spacer, StringBuilder sb, int indent) {
