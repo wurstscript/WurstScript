@@ -910,9 +910,22 @@ public class PrettyPrinter {
         }
     }
 
+    private static String spaces(int indentation) {
+        return " "+"{"+indentation+"}";
+    }
+
     public static void prettyPrint(WurstDoc wurstDoc, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
-        sb.append(wurstDoc.getRawComment());
+        String[] lines = wurstDoc.getRawComment().split("\n");
+        if (lines.length > 1) {
+            String last = lines[lines.length-1];
+            int before = last.length();
+            int after = last.replaceAll("^\\s+", "").length();
+            int indentation = before - after;
+            sb.append(wurstDoc.getRawComment().replaceAll(spaces(indentation), calculateIndent(indent)));
+        } else {
+            sb.append(wurstDoc.getRawComment());
+        }
         sb.append("\n");
     }
 
