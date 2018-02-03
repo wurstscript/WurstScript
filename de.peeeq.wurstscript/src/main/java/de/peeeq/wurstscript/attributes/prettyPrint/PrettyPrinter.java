@@ -483,19 +483,26 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(LocalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printComment(sb, e, indent);
         printIndent(sb, indent);
         if ((e.getOptTyp() instanceof NoTypeExpr)) {
-            sb.append("var");
+            if (e.attrIsConstant()) {
+                sb.append("let");
+            } else if (!(e.getParent() instanceof StmtForRange)) {
+                sb.append("var");
+            }
         } else {
             e.getOptTyp().prettyPrint(spacer, sb, indent);
         }
         spacer.addSpace(sb);
         sb.append(e.getName());
         if (!(e.getInitialExpr() instanceof NoExpr)) {
-            sb.append(" = ");
+            spacer.addSpace(sb);
+            sb.append("=");
+            spacer.addSpace(sb);
             e.getInitialExpr().prettyPrint(spacer, sb, indent);
         }
-        sb.append("\n");
+        printNewline(e, sb, indent);
     }
 
     public static void prettyPrint(ModAbstract e, Spacer spacer, StringBuilder sb, int indent) {
