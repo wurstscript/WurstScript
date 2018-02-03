@@ -3,7 +3,20 @@ package de.peeeq.wurstscript.attributes.prettyPrint;
 import de.peeeq.wurstscript.ast.*;
 import org.apache.commons.lang.StringUtils;
 
+import static de.peeeq.wurstscript.utils.Utils.escapeString;
+import static java.lang.Math.min;
+
 public class PrettyPrinter {
+
+    private static void commaSeparatedList(Element e, Spacer spacer, StringBuilder sb, int indent) {
+        for (int i = 0; i < e.size(); i++) {
+            if (i > 0) {
+                sb.append(",");
+                spacer.addSpace(sb);
+            }
+            e.get(i).prettyPrint(spacer, sb, indent);
+        }
+    }
 
     public static void prettyPrint(Annotation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getAnnotationType());
@@ -15,16 +28,6 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprList e, Spacer spacer, StringBuilder sb, int indent) {
         commaSeparatedList(e, spacer, sb, indent);
-    }
-
-    private static void commaSeparatedList(Element e, Spacer spacer, StringBuilder sb, int indent) {
-        for (int i = 0; i < e.size(); i++) {
-            if (i > 0) {
-                sb.append(",");
-                spacer.addSpace(sb);
-            }
-            e.get(i).prettyPrint(spacer, sb, indent);
-        }
     }
 
     public static void prettyPrint(ArraySizes e, Spacer spacer, StringBuilder sb, int indent) {
