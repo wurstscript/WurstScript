@@ -532,15 +532,17 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ModuleDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        sb.append("modules");
+        printStuff(e, spacer, sb, indent);
+        sb.append("module");
         spacer.addSpace(sb);
-        e.getVars().prettyPrint(spacer, sb, indent);
-        e.getConstructors().prettyPrint(spacer, sb, indent);
-        e.getMethods().prettyPrint(spacer, sb, indent);
+        e.getNameId().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
     public static void prettyPrint(ModuleInstanciation e, Spacer spacer, StringBuilder sb, int indent) {
+        printComment(sb, e, indent);
     }
 
     public static void prettyPrint(ModuleInstanciations e, Spacer spacer, StringBuilder sb, int indent) {
