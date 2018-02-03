@@ -226,6 +226,7 @@ public class PrettyPrinter {
         sb.append("(");
         e.getArgs().prettyPrint(spacer, sb, indent);
         sb.append(")");
+        printNewline(e, sb, indent);
     }
 
     public static void prettyPrint(ExprIncomplete e, Spacer spacer, StringBuilder sb, int indent) {
