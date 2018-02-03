@@ -774,15 +774,36 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(SwitchCase e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("case");
+        spacer.addSpace(sb);
+        e.getExpr().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getStmts().prettyPrint(spacer, sb, indent + 1);
     }
 
-    public static void prettyPrint(SwitchCases e, Spacer spacer, StringBuilder sb, int indent) {
+    public static void prettyPrint(SwitchCases sw, Spacer spacer, StringBuilder sb, int indent) {
+        for (SwitchCase c : sw) {
+            c.prettyPrint(spacer, sb, indent);
+        }
     }
 
     public static void prettyPrint(SwitchDefaultCaseStatements e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("default");
+        sb.append("\n");
+        e.getStmts().prettyPrint(spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
-    public static void prettyPrint(SwitchStmt e, Spacer spacer, StringBuilder sb, int indent) {
+    public static void prettyPrint(SwitchStmt sw, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("switch");
+        spacer.addSpace(sb);
+        sw.getExpr().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        sw.getCases().prettyPrint(spacer, sb, indent + 1);
+        sw.getSwitchDefault().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(TopLevelDeclarations e, Spacer spacer, StringBuilder sb, int indent) {
