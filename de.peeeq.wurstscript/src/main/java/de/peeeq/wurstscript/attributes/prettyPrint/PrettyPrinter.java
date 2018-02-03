@@ -192,9 +192,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprClosure e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("(");
         e.getParameters().prettyPrint(spacer, sb, indent);
-        sb.append(")");
         spacer.addSpace(sb);
         sb.append("->");
         spacer.addSpace(sb);
