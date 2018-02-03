@@ -611,6 +611,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StmtExitwhen e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("break");
+        sb.append("\n");
     }
 
     public static void prettyPrint(StmtForFrom e, Spacer spacer, StringBuilder sb, int indent) {
