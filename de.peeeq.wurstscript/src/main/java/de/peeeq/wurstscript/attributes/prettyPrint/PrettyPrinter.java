@@ -810,6 +810,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TupleDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printStuff(e, spacer, sb, indent);
+        spacer.addSpace(sb);
+        sb.append("tuple");
+        spacer.addSpace(sb);
+        e.getNameId().prettyPrint(spacer, sb, indent);
+        e.getParameters().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
     }
 
     public static void prettyPrint(TypeExprArray e, Spacer spacer, StringBuilder sb, int indent) {
