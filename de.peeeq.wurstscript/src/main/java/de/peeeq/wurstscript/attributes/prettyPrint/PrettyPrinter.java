@@ -409,16 +409,21 @@ public class PrettyPrinter {
         }
     }
 
-
     public static void prettyPrint(GlobalVarDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
-        e.getOptTyp().prettyPrint(spacer, sb, indent);
+        printStuff(e, spacer, sb, indent);
+        if ((e.getOptTyp() instanceof NoTypeExpr)) {
+            if (!e.attrIsConstant()) {
+                sb.append("var");
+            }
+        } else {
+            e.getOptTyp().prettyPrint(spacer, sb, indent);
+        }
         spacer.addSpace(sb);
         sb.append(e.getName());
-
         if (!(e.getInitialExpr() instanceof NoExpr)) {
-            sb.append(" = ");
+            spacer.addSpace(sb);
+            sb.append("=");
+            spacer.addSpace(sb);
             e.getInitialExpr().prettyPrint(spacer, sb, indent);
         }
         sb.append("\n");
@@ -426,8 +431,9 @@ public class PrettyPrinter {
 
     public static void prettyPrint(GlobalVarDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (GlobalVarDef varDef : e) {
-            prettyPrint(varDef, spacer, sb, indent);
+            varDef.prettyPrint(spacer, sb, indent);
         }
+        sb.append("\n");
     }
 
     public static void prettyPrint(IdentifierWithTypeArgs e, Spacer spacer, StringBuilder sb, int indent) {
