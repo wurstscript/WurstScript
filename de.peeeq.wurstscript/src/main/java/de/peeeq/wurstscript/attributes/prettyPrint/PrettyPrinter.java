@@ -595,6 +595,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(OnDestroyDef e, Spacer spacer, StringBuilder sb, int indent) {
+        if (e.getBody().size() <= 0) {
+            return;
+        }
+        printIndent(sb, indent);
+        sb.append("ondestroy");
+        sb.append("\n");
+        e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(StartFunctionStatement e, Spacer spacer, StringBuilder sb, int indent) {
