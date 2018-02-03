@@ -549,9 +549,17 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ModuleUse e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("use");
+        spacer.addSpace(sb);
+        sb.append(e.getModuleName());
+        sb.append("\n");
     }
 
     public static void prettyPrint(ModuleUses e, Spacer spacer, StringBuilder sb, int indent) {
+        for (ModuleUse moduleUse : e) {
+            moduleUse.prettyPrint(spacer, sb, indent);
+        }
     }
 
     public static void prettyPrint(NativeFunc e, Spacer spacer, StringBuilder sb, int indent) {
