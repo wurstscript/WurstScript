@@ -328,7 +328,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprStringVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\"" + e.getValS() + "\"");
+        sb.append(escapeString(e.getValS()));
     }
 
     public static void prettyPrint(ExprSuper e, Spacer spacer, StringBuilder sb, int indent) {
