@@ -94,34 +94,27 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ClassDef e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\n");
-        printIndent(sb, indent);
-        e.getModifiers().prettyPrint(spacer, sb, indent);
-        sb.append("class ");
+        printStuff(e, spacer, sb, indent);
+        sb.append("class");
+        spacer.addSpace(sb);
         sb.append(e.getName());
+        e.getTypeParameters().prettyPrint(spacer, sb, indent);
         if (e.getExtendedClass() instanceof TypeExpr) {
             TypeExpr te = (TypeExpr) e.getExtendedClass();
-            sb.append(" extends ");
+            spacer.addSpace(sb);
+            sb.append("extends");
+            spacer.addSpace(sb);
             te.prettyPrint(spacer, sb, indent);
         }
         if (!e.getImplementsList().isEmpty()) {
-            sb.append(" implements ");
+            spacer.addSpace(sb);
+            sb.append("implements");
+            spacer.addSpace(sb);
             commaSeparatedList(e.getImplementsList(), spacer, sb, indent);
         }
         sb.append("\n");
-
-        e.getModuleUses().prettyPrint(spacer, sb, indent + 1);
-        e.getVars().prettyPrint(spacer, sb, indent + 1);
-        e.getConstructors().prettyPrint(spacer, sb, indent + 1);
-        e.getMethods().prettyPrint(spacer, sb, indent + 1);
-    }
-
-    private static void printIndent(StringBuilder sb, int indent) {
-        if (sb.toString().substring(sb.length() - 1).equals("\n")) {
-            for (int i = 0; i < indent; i++) {
-                sb.append("\t");
-            }
-        }
+        printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
+        sb.append("\n");
     }
 
     public static void prettyPrint(CompilationUnit e, Spacer spacer, StringBuilder sb, int indent) {
