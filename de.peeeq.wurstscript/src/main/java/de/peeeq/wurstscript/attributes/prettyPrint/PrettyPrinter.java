@@ -563,9 +563,26 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(NativeFunc e, Spacer spacer, StringBuilder sb, int indent) {
+        printStuff(e, spacer, sb, indent);
+        sb.append("native");
+        spacer.addSpace(sb);
+        e.getNameId().prettyPrint(spacer, sb, indent);
+        e.getParameters().prettyPrint(spacer, sb, indent);
+        if (!(e.getReturnTyp() instanceof NoTypeExpr)) {
+            spacer.addSpace(sb);
+            sb.append("returns");
+            spacer.addSpace(sb);
+            e.getReturnTyp().prettyPrint(spacer, sb, indent);
+        }
+        sb.append("\n");
     }
 
     public static void prettyPrint(NativeType e, Spacer spacer, StringBuilder sb, int indent) {
+        printStuff(e, spacer, sb, indent);
+        sb.append("nativetype");
+        spacer.addSpace(sb);
+        e.getNameId().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
     }
 
     public static void prettyPrint(NoDefaultCase e, Spacer spacer, StringBuilder sb, int indent) {
