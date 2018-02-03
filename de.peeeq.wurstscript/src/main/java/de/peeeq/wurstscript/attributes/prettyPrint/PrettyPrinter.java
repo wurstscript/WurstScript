@@ -74,6 +74,11 @@ public class PrettyPrinter {
 
     public static void prettyPrint(Annotation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getAnnotationType());
+        if (e.getAnnotationMessage().length() >= 1) {
+            sb.append("(");
+            sb.append(e.getAnnotationMessage());
+            sb.append(")");
+        }
     }
 
     public static void prettyPrint(Arguments e, Spacer spacer, StringBuilder sb, int indent) {
