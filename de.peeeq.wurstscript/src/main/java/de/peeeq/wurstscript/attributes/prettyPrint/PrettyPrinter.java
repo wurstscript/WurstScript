@@ -707,13 +707,54 @@ public class PrettyPrinter {
         sb.append("\n");
     }
 
+    private static boolean printAssignmentShorthands(Expr e, String varName, Spacer spacer, StringBuilder sb, int indent) {
+        if (!(e instanceof ExprBinary)) {
+            return false;
+        }
+
+        Expr left = ((ExprBinary) e).getLeft();
+        if (!(left instanceof ExprVarAccess)) {
+            return false;
+        }
+
+        if (((ExprVarAccess) left).getVarName() != varName) {
+            return false;
+        }
+
+        String operator = ((ExprBinary) e).getOp().toString();
+        Expr val = ((ExprBinary) e).getRight();
+
+        // i++ and i--
+        if (val instanceof ExprIntVal
+                && ((ExprIntVal) val).getValI() == 1
+                && (operator.equals("+") || operator.equals("-"))) {
+            sb.append(operator);
+            sb.append(operator);
+            return true;
+        }
+
+        // i +=, ...
+        spacer.addSpace(sb);
+        sb.append(operator);
+        sb.append("=");
+        spacer.addSpace(sb);
+        val.prettyPrint(spacer, sb, indent);
+        return true;
+    }
+
     public static void prettyPrint(StmtSet e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         e.getUpdatedExpr().prettyPrint(spacer, sb, indent);
-        spacer.addSpace(sb);
-        sb.append("=");
-        spacer.addSpace(sb);
-        e.getRight().prettyPrint(spacer, sb, indent);
+
+        // Special cases for assignment shorthands i++ and i += variants.
+        boolean shortened = printAssignmentShorthands(e.getRight(), e.getUpdatedExpr().getVarName(), spacer, sb, indent);
+
+        if (!shortened) {
+            spacer.addSpace(sb);
+            sb.append("=");
+            spacer.addSpace(sb);
+            e.getRight().prettyPrint(spacer, sb, indent);
+        }
         sb.append("\n");
     }
 
