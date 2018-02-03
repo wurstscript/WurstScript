@@ -843,6 +843,10 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeExprThis e, Spacer spacer, StringBuilder sb, int indent) {
+        if (!(e.getScopeType() instanceof NoTypeExpr)) {
+            e.getScopeType().prettyPrint(spacer, sb, indent);
+            sb.append(".");
+        }
         sb.append("thistype");
     }
 
