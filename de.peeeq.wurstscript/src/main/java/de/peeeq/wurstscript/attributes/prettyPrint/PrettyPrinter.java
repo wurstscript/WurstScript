@@ -457,14 +457,23 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
+        printStuff(e, spacer, sb, indent);
         sb.append("interface");
         spacer.addSpace(sb);
         sb.append(e.getName());
+        e.getTypeParameters().prettyPrint(spacer, sb, indent);
+        if (e.getExtendsList().size() >= 1) {
+            spacer.addSpace(sb);
+            sb.append("extends");
+            spacer.addSpace(sb);
+            e.getExtendsList().prettyPrint(spacer, sb, indent);
+        }
         sb.append("\n");
-        e.getVars().prettyPrint(spacer, sb, indent);
-        e.getConstructors().prettyPrint(spacer, sb, indent);
-        e.getMethods().prettyPrint(spacer, sb, indent);
+        e.getModuleUses().prettyPrint(spacer, sb, indent + 1);
+        e.getVars().prettyPrint(spacer, sb, indent + 1);
+        e.getConstructors().prettyPrint(spacer, sb, indent + 1);
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
+        e.getOnDestroy().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
