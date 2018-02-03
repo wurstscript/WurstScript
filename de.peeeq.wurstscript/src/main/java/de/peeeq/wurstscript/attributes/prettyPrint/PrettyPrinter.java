@@ -348,7 +348,10 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprUnary e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getOpU().toString());
-        spacer.addSpace(sb);
+        // Don't add space for unary minus, e.g -1.
+        if (e.getOpU().toString() == "not") {
+            spacer.addSpace(sb);
+        }
         e.getRight().prettyPrint(spacer, sb, indent);
     }
 
