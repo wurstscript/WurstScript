@@ -650,10 +650,12 @@ public class PrettyPrinter {
         sb.append("downto");
         spacer.addSpace(sb);
         e.getTo().prettyPrint(spacer, sb, indent);
-        spacer.addSpace(sb);
-        sb.append("step");
-        spacer.addSpace(sb);
-        e.getStep().prettyPrint(spacer, sb, indent);
+        if (e.getStep() instanceof ExprIntVal && ((ExprIntVal) e.getStep()).getValI() != 1) {
+            spacer.addSpace(sb);
+            sb.append("step");
+            spacer.addSpace(sb);
+            e.getStep().prettyPrint(spacer, sb, indent);
+        }
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
@@ -667,10 +669,12 @@ public class PrettyPrinter {
         sb.append("to");
         spacer.addSpace(sb);
         e.getTo().prettyPrint(spacer, sb, indent);
-        spacer.addSpace(sb);
-        sb.append("step");
-        spacer.addSpace(sb);
-        e.getStep().prettyPrint(spacer, sb, indent);
+        if (e.getStep() instanceof ExprIntVal && ((ExprIntVal) e.getStep()).getValI() != 1) {
+            spacer.addSpace(sb);
+            sb.append("step");
+            spacer.addSpace(sb);
+            e.getStep().prettyPrint(spacer, sb, indent);
+        }
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
