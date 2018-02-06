@@ -88,7 +88,6 @@ public class PrettyPrintTest extends WurstScriptTest {
         String pretty = setUp(String.format(testFilename, "in"));
         String expected = expectedFile(String.format(testFilename, "out"));
 
-        testAssertOk("prettyTest", false, pretty);
         assertEquals(expected, pretty);
     }
 
@@ -98,7 +97,6 @@ public class PrettyPrintTest extends WurstScriptTest {
         String pretty = setUp(String.format(testFilename, "in"));
         String expected = expectedFile(String.format(testFilename, "out"));
 
-        testAssertOk("prettyTest", false, pretty);
         assertEquals(expected, pretty);
     }
 
@@ -108,7 +106,6 @@ public class PrettyPrintTest extends WurstScriptTest {
         String pretty = setUp(String.format(testFilename, "in"));
         String expected = expectedFile(String.format(testFilename, "out"));
 
-        testAssertOk("prettyTest", false, pretty);
         assertEquals(expected, pretty);
     }
 
