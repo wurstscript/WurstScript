@@ -453,7 +453,6 @@ public class PrettyPrinter {
         sb.append("init");
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
@@ -970,6 +969,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(WImports wImports, Spacer spacer, StringBuilder sb, int indent) {
+        if (wImports.size() <= 0) {
+            return;
+        }
         for (WImport wImport : wImports) {
             if (!wImport.getPackagename().equals("Wurst")) {
                 wImport.prettyPrint(spacer, sb, indent);
