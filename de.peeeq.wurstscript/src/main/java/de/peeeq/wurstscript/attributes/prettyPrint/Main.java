@@ -6,16 +6,14 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 
 import org.eclipse.jdt.annotation.Nullable;
-import java.nio.charset.StandardCharsets;
-import java.io.StringReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
+
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.utils.Utils.printElement;
@@ -26,13 +24,15 @@ public class Main {
     /**
      * @param args
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length == 0) {
             return;
         }
         String arg = args[0];
         if (arg.equals("...")) {
-            prettyWalk(".");
+            Files.walk(Paths.get("."))
+                    .filter(p -> p.toString().endsWith(".wurst"))
+                    .forEach(p -> pretty(p.toString()));
             return;
         } 
         if (arg.equals("tree")) {
@@ -65,46 +65,10 @@ public class Main {
         }
     }
 
-
-    private static void prettyWalk(String rootPath) {
-        File root = new File(rootPath);
-        File[] list = root.listFiles();
-        if (list == null) {
-            return;
-        }
-
-        for (File f : list) {
-            if (f.isDirectory()) {
-                prettyWalk(f.getAbsolutePath());
-            }
-            else {
-                String path = f.getAbsolutePath();
-
-                // Prettify our wurst files.
-                if (extension(path).equals("wurst")) {
-                    pretty(path);
-                }
-            }
-        }
-    }
-
-    // Note: only works with single extension files, i.e it doesn't work with:
-    // asdf.tar.gz
-    private static String extension(String filename) {
-        String extension = "";
-
-        int i = filename.lastIndexOf('.');
-        if (i > 0) {
-            extension = filename.substring(i+1);
-        }
-        return extension;
-    }
-
     private static void pretty(String filename) {
         String contents = readFile(filename);
         CompilationUnit cu = parse(contents);
 
-        // Spacer spacer = new DefaultSpacer();
         Spacer spacer = new MaxOneSpacer();
         StringBuilder sb = new StringBuilder();
         cu.prettyPrint(spacer, sb, 0);
@@ -114,8 +78,7 @@ public class Main {
 
     private static String readFile(String filename) {
         String everything = "";
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(filename));
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
             StringBuilder sb = new StringBuilder();
             String line = br.readLine();
             while (line != null) {
@@ -136,4 +99,3 @@ public class Main {
         return compiler.parse("test", new StringReader(input));
     }
 }
-
