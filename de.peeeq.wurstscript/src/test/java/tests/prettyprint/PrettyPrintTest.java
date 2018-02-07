@@ -26,7 +26,7 @@ public class PrettyPrintTest extends WurstScriptTest {
         String content = Files.toString(inFile, Charsets.UTF_8);
 
         WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs("-keepSyntacticSugar"));
 
         CompilationUnit cu = compiler.parse("test", new StringReader(content));
         PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);

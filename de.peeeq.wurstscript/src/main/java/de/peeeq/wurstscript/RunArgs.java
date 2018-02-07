@@ -40,6 +40,7 @@ public class RunArgs {
     private RunOption optionCopyMap;
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
+    private RunOption optionKeepSyntacticSugar;
 
     private class RunOption {
         final String name;
@@ -102,6 +103,8 @@ public class RunArgs {
 
         optionHelp = addOption("help", "Prints this help message.");
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
+
+        optionKeepSyntacticSugar = addOption("keepSyntacticSugar", "Don't remove syntactic sugar.");
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -290,5 +293,8 @@ public class RunArgs {
         return optionRuntests.isSet;
     }
 
+    public boolean isKeepSyntacticSugar() {
+        return optionKeepSyntacticSugar.isSet;
+    }
 
 }

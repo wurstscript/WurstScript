@@ -95,7 +95,7 @@ public class Main {
 
     private static CompilationUnit parse(String input) {
         WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs("-keepSyntacticSugar"));
         return compiler.parse("test", new StringReader(input));
     }
 }
