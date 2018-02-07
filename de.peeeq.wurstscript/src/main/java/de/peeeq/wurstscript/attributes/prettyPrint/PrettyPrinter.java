@@ -726,7 +726,7 @@ public class PrettyPrinter {
             return false;
         }
 
-        if (((ExprVarAccess) left).getVarName() != varName) {
+        if (!(((ExprVarAccess) left).getVarName().equals(varName))) {
             return false;
         }
 
