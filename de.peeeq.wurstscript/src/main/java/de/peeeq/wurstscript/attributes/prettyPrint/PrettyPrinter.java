@@ -163,7 +163,6 @@ public class PrettyPrinter {
         sb.append(e.getName());
         sb.append("\n");
         e.getMembers().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(EnumMember e, Spacer spacer, StringBuilder sb, int indent) {
