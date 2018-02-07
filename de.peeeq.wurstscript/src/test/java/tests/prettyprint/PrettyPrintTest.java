@@ -82,35 +82,61 @@ public class PrettyPrintTest extends WurstScriptTest {
         return extension;
     }
 
-    @Test
-    public void testPrettyIf() throws IOException {
-        String testFilename = "testscripts/pretty/%s/If.wurst";
-        String pretty = setUp(String.format(testFilename, "in"));
-        String expected = expectedFile(String.format(testFilename, "out"));
+    private void test(String filename) throws IOException {
+        String testFilenameFormat = "testscripts/pretty/%s";
+        String pretty = setUp(String.format(testFilenameFormat, filename));
+        String expected = expectedFile(String.format(testFilenameFormat, filename));
 
         assertEquals(expected, pretty);
+    }
+
+    @Test
+    public void testPrettyIf() throws IOException {
+        test("If.wurst");
     }
 
     @Test
     public void testPrettyLoops() throws IOException {
-        String testFilename = "testscripts/pretty/%s/Loops.wurst";
-        String pretty = setUp(String.format(testFilename, "in"));
-        String expected = expectedFile(String.format(testFilename, "out"));
-
-        assertEquals(expected, pretty);
+        test("Loops.wurst");
     }
 
     @Test
     public void testPrettyAssignments() throws IOException {
-        String testFilename = "testscripts/pretty/%s/Assignment_shorthand.wurst";
-        String pretty = setUp(String.format(testFilename, "in"));
-        String expected = expectedFile(String.format(testFilename, "out"));
-
-        assertEquals(expected, pretty);
+        test("Assignment_shorthand.wurst");
     }
 
     @Test
-    public void testPrettyMany() throws IOException {
-        visitEvery("testscripts/pretty");
+    public void testCascade() throws IOException {
+        test("Cascade.wurst");
+    }
+
+    @Test
+    public void testSwitch() throws IOException {
+        test("Switch.wurst");
+    }
+
+    @Test
+    public void testAnnotations() throws IOException {
+        test("Annotations.wurst");
+    }
+
+    @Test
+    public void testClosures() throws IOException {
+        test("Closures.wurst");
+    }
+
+    @Test
+    public void testEnum() throws IOException {
+        test("Enum.wurst");
+    }
+
+    @Test
+    public void testFunctionDefinitions() throws IOException {
+        test("FunctionDefinitions.wurst");
+    }
+
+    @Test
+    public void testTernary() throws IOException {
+        test("Ternary.wurst");
     }
 }
