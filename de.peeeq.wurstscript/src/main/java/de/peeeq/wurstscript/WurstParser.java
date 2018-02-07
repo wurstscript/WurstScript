@@ -25,7 +25,7 @@ public class WurstParser {
     private static final int MAX_SYNTAX_ERRORS = 15;
     private final ErrorHandler errorHandler;
     private final WurstGui gui;
-    private boolean removeSugar;
+    private boolean removeSugar = false;
 
     public WurstParser(ErrorHandler errorHandler, WurstGui gui) {
         this.errorHandler = errorHandler;
