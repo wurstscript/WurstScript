@@ -802,7 +802,6 @@ public class PrettyPrinter {
         sb.append("default");
         sb.append("\n");
         e.getStmts().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(SwitchStmt sw, Spacer spacer, StringBuilder sb, int indent) {
