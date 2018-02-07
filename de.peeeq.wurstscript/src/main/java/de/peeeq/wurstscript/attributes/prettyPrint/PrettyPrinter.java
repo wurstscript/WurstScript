@@ -647,13 +647,13 @@ public class PrettyPrinter {
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
-    public static void prettyPrint(StmtForRangeDown e, Spacer spacer, StringBuilder sb, int indent) {
+    private static void forLoop(String direction, StmtForRange e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("for");
         spacer.addSpace(sb);
         e.getLoopVar().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
-        sb.append("downto");
+        sb.append(direction);
         spacer.addSpace(sb);
         e.getTo().prettyPrint(spacer, sb, indent);
         if (e.getStep() instanceof ExprIntVal && ((ExprIntVal) e.getStep()).getValI() != 1) {
@@ -666,23 +666,12 @@ public class PrettyPrinter {
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
+    public static void prettyPrint(StmtForRangeDown e, Spacer spacer, StringBuilder sb, int indent) {
+        forLoop("downto", e, spacer, sb, indent);
+    }
+
     public static void prettyPrint(StmtForRangeUp e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        sb.append("for");
-        spacer.addSpace(sb);
-        e.getLoopVar().prettyPrint(spacer, sb, indent);
-        spacer.addSpace(sb);
-        sb.append("to");
-        spacer.addSpace(sb);
-        e.getTo().prettyPrint(spacer, sb, indent);
-        if (e.getStep() instanceof ExprIntVal && ((ExprIntVal) e.getStep()).getValI() != 1) {
-            spacer.addSpace(sb);
-            sb.append("step");
-            spacer.addSpace(sb);
-            e.getStep().prettyPrint(spacer, sb, indent);
-        }
-        sb.append("\n");
-        e.getBody().prettyPrint(spacer, sb, indent + 1);
+        forLoop("to", e, spacer, sb, indent);
     }
 
     public static void prettyPrint(StmtIf e, Spacer spacer, StringBuilder sb, int indent) {
