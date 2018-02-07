@@ -622,32 +622,27 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StmtForFrom e, Spacer spacer, StringBuilder sb, int indent) {
-        printIndent(sb, indent);
-        sb.append("for");
-        spacer.addSpace(sb);
-        e.getLoopVar().getNameId().prettyPrint(spacer, sb, indent);
-        spacer.addSpace(sb);
-        sb.append("from");
-        spacer.addSpace(sb);
-        e.getIn().prettyPrint(spacer, sb, indent);
-        sb.append("\n");
-        e.getBody().prettyPrint(spacer, sb, indent + 1);
+        forIteratorLoop("from", e, e.getIn(), spacer, sb, indent);
     }
 
     public static void prettyPrint(StmtForIn e, Spacer spacer, StringBuilder sb, int indent) {
+        forIteratorLoop("in", e, e.getIn(), spacer, sb, indent);
+    }
+
+    private static void forIteratorLoop(String method, LoopStatementWithVarDef e, Expr target, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("for");
         spacer.addSpace(sb);
         e.getLoopVar().getNameId().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
-        sb.append("in");
+        sb.append(method);
         spacer.addSpace(sb);
-        e.getIn().prettyPrint(spacer, sb, indent);
+        target.prettyPrint(spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
     }
 
-    private static void forLoop(String direction, StmtForRange e, Spacer spacer, StringBuilder sb, int indent) {
+    private static void forRangeLoop(String direction, StmtForRange e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("for");
         spacer.addSpace(sb);
@@ -667,11 +662,11 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(StmtForRangeDown e, Spacer spacer, StringBuilder sb, int indent) {
-        forLoop("downto", e, spacer, sb, indent);
+        forRangeLoop("downto", e, spacer, sb, indent);
     }
 
     public static void prettyPrint(StmtForRangeUp e, Spacer spacer, StringBuilder sb, int indent) {
-        forLoop("to", e, spacer, sb, indent);
+        forRangeLoop("to", e, spacer, sb, indent);
     }
 
     public static void prettyPrint(StmtIf e, Spacer spacer, StringBuilder sb, int indent) {
