@@ -329,7 +329,6 @@ public class PrettyPrinter {
         sb.append("begin");
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
         printIndent(sb, indent);
         sb.append("end");
     }
