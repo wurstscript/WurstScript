@@ -280,13 +280,14 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprMemberMethodDotDot e, Spacer spacer, StringBuilder sb, int indent) {
         e.getLeft().prettyPrint(spacer, sb, indent);
-        printIndent(sb, indent);
+        sb.append("\n");
+        printIndent(sb, indent+1);
         sb.append("..");
         sb.append(e.getFuncName());
         sb.append("(");
         e.getArgs().prettyPrint(spacer, sb, indent);
         sb.append(")");
-        sb.append("\n");
+        printNewline(e, sb, indent);
     }
 
     public static void prettyPrint(ExprMemberVarDot e, Spacer spacer, StringBuilder sb, int indent) {
