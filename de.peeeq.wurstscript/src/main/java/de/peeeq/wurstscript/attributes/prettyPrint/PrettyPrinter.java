@@ -4,7 +4,6 @@ import de.peeeq.wurstscript.ast.*;
 import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.utils.Utils.escapeString;
-import static java.lang.Math.min;
 
 public class PrettyPrinter {
 
@@ -25,6 +24,14 @@ public class PrettyPrinter {
         e.getMethods().prettyPrint(spacer, sb, indent);
         e.getOnDestroy().prettyPrint(spacer, sb, indent);
         e.getInnerClasses().prettyPrint(spacer, sb, indent);
+    }
+
+    private static void printFirstNewline(Element e, StringBuilder sb, int indent) {
+        // Don't add first new line.
+        if (e.getParent().get(0).equals(e)) {
+            return;
+        }
+        sb.append("\n");
     }
 
     private static void printNewline(Element e, StringBuilder sb, int indent) {
@@ -369,6 +376,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExtensionFuncDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("function");
         spacer.addSpace(sb);
@@ -377,7 +385,6 @@ public class PrettyPrinter {
         printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
 
@@ -394,13 +401,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(FuncDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("function");
         spacer.addSpace(sb);
         printFunctionSignature(e, spacer, sb, indent);
         sb.append("\n");
         e.getBody().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(FuncDefs e, Spacer spacer, StringBuilder sb, int indent) {
