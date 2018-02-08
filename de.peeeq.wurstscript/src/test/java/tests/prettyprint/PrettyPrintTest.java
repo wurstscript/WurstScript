@@ -139,4 +139,19 @@ public class PrettyPrintTest extends WurstScriptTest {
     public void testTernary() throws IOException {
         test("Ternary.wurst");
     }
+
+    @Test
+    public void testReal1() throws IOException {
+        test("Real1.wurst");
+    }
+
+    @Test
+    public void testReal2() throws IOException {
+        test("Real2.wurst");
+    }
+
+    @Test
+    public void testReal3() throws IOException {
+        test("Real3.wurst");
+    }
 }
