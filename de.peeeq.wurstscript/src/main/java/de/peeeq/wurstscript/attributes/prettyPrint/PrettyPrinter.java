@@ -31,6 +31,9 @@ public class PrettyPrinter {
         if (e.getParent().get(0).equals(e)) {
             return;
         }
+        if (sb.charAt(sb.length()-1) == '\n' && sb.charAt(sb.length()-2) == '\n') {
+            return;
+        }
         sb.append("\n");
     }
 
