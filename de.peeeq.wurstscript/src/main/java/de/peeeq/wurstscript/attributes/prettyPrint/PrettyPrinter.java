@@ -713,22 +713,17 @@ public class PrettyPrinter {
         sb.append("\n");
     }
 
-    private static boolean printAssignmentShorthands(Expr e, String varName, Spacer spacer, StringBuilder sb, int indent) {
-        if (!(e instanceof ExprBinary)) {
+    private static boolean printAssignmentShorthands(Expr left, Expr right, Spacer spacer, StringBuilder sb, int indent) {
+        if (!(right instanceof ExprBinary)) {
             return false;
         }
 
-        Expr left = ((ExprBinary) e).getLeft();
-        if (!(left instanceof ExprVarAccess)) {
+        if (!(left.toString().equals(((ExprBinary) right).getLeft().toString()))) {
             return false;
         }
 
-        if (!(((ExprVarAccess) left).getVarName().equals(varName))) {
-            return false;
-        }
-
-        String operator = ((ExprBinary) e).getOp().toString();
-        Expr val = ((ExprBinary) e).getRight();
+        String operator = ((ExprBinary) right).getOp().toString();
+        Expr val = ((ExprBinary) right).getRight();
 
         // i++ and i--
         if (val instanceof ExprIntVal
@@ -753,7 +748,7 @@ public class PrettyPrinter {
         e.getUpdatedExpr().prettyPrint(spacer, sb, indent);
 
         // Special cases for assignment shorthands i++ and i += variants.
-        boolean shortened = printAssignmentShorthands(e.getRight(), e.getUpdatedExpr().getVarName(), spacer, sb, indent);
+        boolean shortened = printAssignmentShorthands(e.getUpdatedExpr(), e.getRight(), spacer, sb, indent);
 
         if (!shortened) {
             spacer.addSpace(sb);
