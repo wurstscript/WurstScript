@@ -444,6 +444,9 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(GlobalVarDefs e, Spacer spacer, StringBuilder sb, int indent) {
+        if (e.size() <= 0) {
+            return;
+        }
         for (GlobalVarDef varDef : e) {
             varDef.prettyPrint(spacer, sb, indent);
         }
