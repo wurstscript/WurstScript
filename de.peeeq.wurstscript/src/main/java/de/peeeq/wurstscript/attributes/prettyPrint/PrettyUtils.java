@@ -13,6 +13,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -24,16 +25,16 @@ public class PrettyUtils {
     /**
      * @param args
      */
-    public static void pretty(String[] args) throws IOException {
-        if (args.length == 0) {
+    public static void pretty(List<String> args) throws IOException {
+        if (args.size() == 0) {
             return;
         }
-        String arg = args[0];
+        String arg = args.get(0);
         if (args.equals("...")) {
             prettyAll(".");
         }
-        if (arg.equals("tree")) {
-            debug(args[1]);
+        if (arg.equals("tree") && args.size() >= 2) {
+            debug(args.get(1));
             return;
         }
 

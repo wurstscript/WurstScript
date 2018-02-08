@@ -96,7 +96,7 @@ public class Main {
             }
 
             if (runArgs.isPrettyPrint()) {
-                PrettyUtils.pretty(runArgs.getFiles().toArray(new String[0]));
+                PrettyUtils.pretty(runArgs.getFiles());
                 return;
             }
 
