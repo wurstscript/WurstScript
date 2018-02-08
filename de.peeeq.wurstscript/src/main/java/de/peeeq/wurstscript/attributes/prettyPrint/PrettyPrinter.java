@@ -104,6 +104,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ClassDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("class");
         spacer.addSpace(sb);
@@ -124,7 +125,6 @@ public class PrettyPrinter {
         }
         sb.append("\n");
         printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(CompilationUnit e, Spacer spacer, StringBuilder sb, int indent) {
@@ -132,6 +132,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ConstructorDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("construct");
         e.getParameters().prettyPrint(spacer, sb, indent);
@@ -160,6 +161,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(EnumDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("enum");
         spacer.addSpace(sb);
@@ -209,6 +211,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprDestroy e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printIndent(sb, indent);
         sb.append("destroy");
         spacer.addSpace(sb);
@@ -413,6 +416,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(FuncDefs e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         for (FuncDef funcDef : e) {
             funcDef.prettyPrint(spacer, sb, indent);
         }
@@ -458,6 +462,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(InitBlock e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printIndent(sb, indent);
         sb.append("init");
         sb.append("\n");
@@ -465,6 +470,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(InterfaceDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("interface");
         spacer.addSpace(sb);
@@ -476,7 +482,6 @@ public class PrettyPrinter {
             spacer.addSpace(sb);
             e.getExtendsList().prettyPrint(spacer, sb, indent);
         }
-        sb.append("\n");
         e.getModuleUses().prettyPrint(spacer, sb, indent + 1);
         e.getVars().prettyPrint(spacer, sb, indent + 1);
         e.getConstructors().prettyPrint(spacer, sb, indent + 1);
@@ -540,13 +545,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ModuleDef e, Spacer spacer, StringBuilder sb, int indent) {
+        printFirstNewline(e, sb, indent);
         printStuff(e, spacer, sb, indent);
         sb.append("module");
         spacer.addSpace(sb);
         e.getNameId().prettyPrint(spacer, sb, indent);
         sb.append("\n");
         printClassOrModuleDeclaration(e, spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(ModuleInstanciation e, Spacer spacer, StringBuilder sb, int indent) {
@@ -606,6 +611,7 @@ public class PrettyPrinter {
         if (e.getBody().size() <= 0) {
             return;
         }
+        printFirstNewline(e, sb, indent);
         printIndent(sb, indent);
         sb.append("ondestroy");
         sb.append("\n");
