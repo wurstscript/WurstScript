@@ -40,36 +40,6 @@ public class PrettyPrintTest extends WurstScriptTest {
         return Files.toString(inFile, Charsets.UTF_8);
     }
 
-    private void visitEvery(String rootPath) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        File root = new File(rootPath);
-        File[] list = root.listFiles();
-        if (list == null) {
-            return;
-        }
-
-        for (File f : list) {
-            if (f.isDirectory()) {
-                visitEvery(f.getAbsolutePath());
-            }
-            else {
-                String path = f.getAbsolutePath();
-
-                if (path.contains("later")) {
-                    continue;
-                }
-                // Prettify our wurst files.
-                if (extension(path).equals("wurst")) {
-                    String pretty = setUp(path);
-                    System.out.println(pretty);
-
-                    System.out.println("Valid: " + path);
-                    testAssertOk("prettyTest", false, pretty);
-                }
-            }
-        }
-    }
-
     // Note: only works with single extension files, i.e it doesn't work with:
     // asdf.tar.gz
     private static String extension(String filename) {
