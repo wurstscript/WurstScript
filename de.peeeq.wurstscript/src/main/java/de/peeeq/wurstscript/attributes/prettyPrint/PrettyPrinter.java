@@ -141,16 +141,16 @@ public class PrettyPrinter {
             printIndent(sb, indent + 1);
             sb.append("super(");
             e.getSuperArgs().prettyPrint(spacer, sb, indent);
-            sb.append(")\n");
+            sb.append(")");
+            sb.append("\n");
         }
         e.getBody().prettyPrint(spacer, sb, indent + 1);
-        sb.append("\n");
     }
 
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (ConstructorDef constructorDef : e) {
             // Remove empty constructors.
-            if (constructorDef.getBody().size() < 1) {
+            if (constructorDef.getBody().size() < 1 && constructorDef.getSuperArgs().size() <= 0) {
                 continue;
             }
             constructorDef.prettyPrint(spacer, sb, indent);
@@ -275,6 +275,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprMemberMethodDot e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
         e.getLeft().prettyPrint(spacer, sb, indent);
         sb.append(".");
         sb.append(e.getFuncName());
