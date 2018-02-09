@@ -1,21 +1,21 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-
-import org.apache.commons.lang.StringUtils;
 
 import static de.peeeq.wurstscript.utils.Utils.printElement;
 
@@ -39,6 +39,14 @@ public class PrettyUtils {
         }
 
         prettify(arg);
+    }
+
+    public static void pretty(CompilationUnit cu) {
+        Spacer spacer = new MaxOneSpacer();
+        StringBuilder sb = new StringBuilder();
+        cu.prettyPrint(spacer, sb, 0);
+
+        System.out.println(sb.toString());
     }
 
     private static void debug(String filename) {
@@ -78,7 +86,6 @@ public class PrettyUtils {
 
         System.out.println(sb.toString());
     }
-
     private static String readFile(String filename) {
         String everything = "";
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
