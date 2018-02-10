@@ -111,6 +111,11 @@ public class PrettyPrintTest extends WurstScriptTest {
     }
 
     @Test
+    public void testBinaryExprAndMethod() throws IOException {
+        test("BinaryExprAndMethod.wurst");
+    }
+
+    @Test
     public void testReal1() throws IOException {
         test("Real1.wurst");
     }

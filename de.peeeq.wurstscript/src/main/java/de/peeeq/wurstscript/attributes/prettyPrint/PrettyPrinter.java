@@ -276,7 +276,13 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprMemberMethodDot e, Spacer spacer, StringBuilder sb, int indent) {
         printIndent(sb, indent);
-        e.getLeft().prettyPrint(spacer, sb, indent);
+        if (e.getLeft() instanceof ExprBinary) {
+            sb.append("(");
+            e.getLeft().prettyPrint(spacer, sb, indent);
+            sb.append(")");
+        } else {
+            e.getLeft().prettyPrint(spacer, sb, indent);
+        }
         sb.append(".");
         sb.append(e.getFuncName());
         sb.append("(");
@@ -286,7 +292,13 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprMemberMethodDotDot e, Spacer spacer, StringBuilder sb, int indent) {
-        e.getLeft().prettyPrint(spacer, sb, indent);
+        if (e.getLeft() instanceof ExprBinary) {
+            sb.append("(");
+            e.getLeft().prettyPrint(spacer, sb, indent);
+            sb.append(")");
+        } else {
+            e.getLeft().prettyPrint(spacer, sb, indent);
+        }
         sb.append("\n");
         printIndent(sb, indent+1);
         sb.append("..");
