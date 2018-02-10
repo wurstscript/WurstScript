@@ -206,7 +206,7 @@ buildscript {
 apply plugin: 'de.undercouch.download'
 
 task downloadZipFile(type: Download) {
-    src 'https://github.com/Frotty/wurstStdlib2/archive/master.zip'
+    src 'https://github.com/wurstscript/wurstStdlib2/archive/master.zip'
     dest new File(buildDir, 'stdlib2.zip')
 }
 
