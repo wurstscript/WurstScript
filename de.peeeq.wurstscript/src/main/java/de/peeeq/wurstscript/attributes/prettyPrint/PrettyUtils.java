@@ -38,7 +38,13 @@ public class PrettyUtils {
             return;
         }
 
-        prettify(arg);
+        String clean = pretty(arg);
+        System.out.println(clean);
+    }
+
+    private static void prettyPrint(String filename) {
+        String clean = pretty(filename);
+        System.out.println(clean);
     }
 
     public static void pretty(CompilationUnit cu) {
@@ -73,10 +79,10 @@ public class PrettyUtils {
     private static void prettyAll(String root) throws IOException {
         Files.walk(Paths.get(root))
                 .filter(p -> p.toString().endsWith(".wurst"))
-                .forEach(p -> prettify(p.toString()));
+                .forEach(p -> prettyPrint(p.toString()));
     }
 
-    private static void prettify(String filename) {
+    public static String pretty(String filename) {
         String contents = readFile(filename);
         CompilationUnit cu = parse(contents);
 
@@ -84,8 +90,9 @@ public class PrettyUtils {
         StringBuilder sb = new StringBuilder();
         cu.prettyPrint(spacer, sb, 0);
 
-        System.out.println(sb.toString());
+        return sb.toString();
     }
+
     private static String readFile(String filename) {
         String everything = "";
         try (BufferedReader br = new BufferedReader(new FileReader(filename))) {

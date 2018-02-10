@@ -2,10 +2,14 @@ package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyUtils;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.TextDocumentService;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -93,10 +97,38 @@ public class WurstTextDocumentService implements TextDocumentService {
         return null;
     }
 
+    private static String readFile(String filename) {
+        String everything = "";
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            StringBuilder sb = new StringBuilder();
+            String line = br.readLine();
+            while (line != null) {
+                sb.append(line);
+                sb.append(System.lineSeparator());
+                line = br.readLine();
+            }
+            everything = sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return everything;
+    }
+
     @Override
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         WLogger.info("formatting");
-        return null;
+        String path = params.getTextDocument().getUri().replaceFirst("file:/", "");
+        WLogger.info("path:" + path);
+        String before = readFile(path);
+        String clean = PrettyUtils.pretty(path);
+
+        String[] lines = before.split("\n");
+        Range range = new Range(new Position(0, 0), new Position(lines.length, lines[lines.length-1].length()));
+        TextEdit textEdit = new TextEdit(range, clean);
+
+        List<TextEdit> edits = new ArrayList<>();
+        edits.add(textEdit);
+        return CompletableFuture.completedFuture(edits);
     }
 
     @Override
