@@ -9,10 +9,7 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringReader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -38,8 +35,18 @@ public class PrettyUtils {
             return;
         }
 
-        String clean = pretty(arg);
+        String clean = pretty(new File(arg));
         System.out.println(clean);
+    }
+
+    public static String pretty(String source) {
+        CompilationUnit cu = parse(source);
+
+        Spacer spacer = new MaxOneSpacer();
+        StringBuilder sb = new StringBuilder();
+        cu.prettyPrint(spacer, sb, 0);
+
+        return sb.toString();
     }
 
     private static void prettyPrint(String filename) {
@@ -82,8 +89,8 @@ public class PrettyUtils {
                 .forEach(p -> prettyPrint(p.toString()));
     }
 
-    public static String pretty(String filename) {
-        String contents = readFile(filename);
+    private static String pretty(File f) {
+        String contents = readFile(f.toString());
         CompilationUnit cu = parse(contents);
 
         Spacer spacer = new MaxOneSpacer();

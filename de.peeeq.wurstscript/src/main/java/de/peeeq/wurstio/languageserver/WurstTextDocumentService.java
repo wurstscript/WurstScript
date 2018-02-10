@@ -97,32 +97,15 @@ public class WurstTextDocumentService implements TextDocumentService {
         return null;
     }
 
-    private static String readFile(String filename) {
-        String everything = "";
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
-            while (line != null) {
-                sb.append(line);
-                sb.append(System.lineSeparator());
-                line = br.readLine();
-            }
-            everything = sb.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return everything;
-    }
-
     @Override
     public CompletableFuture<List<? extends TextEdit>> formatting(DocumentFormattingParams params) {
         WLogger.info("formatting");
-        String path = params.getTextDocument().getUri().replaceFirst("file:/", "");
-        WLogger.info("path:" + path);
-        String before = readFile(path);
-        String clean = PrettyUtils.pretty(path);
+        TextDocumentIdentifier doc = params.getTextDocument();
+        String buffer = worker.getBufferManager().getBuffer(doc);
 
-        String[] lines = before.split("\n");
+        String clean = PrettyUtils.pretty(buffer);
+
+        String[] lines = buffer.split("\n");
         Range range = new Range(new Position(0, 0), new Position(lines.length, lines[lines.length-1].length()));
         TextEdit textEdit = new TextEdit(range, clean);
 
