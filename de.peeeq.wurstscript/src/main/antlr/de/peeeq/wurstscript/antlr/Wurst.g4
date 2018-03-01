@@ -583,5 +583,5 @@ TAB: [\t];
 SPACETAB:'    ';
 WS : (' '|'  '|'   ') -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
-ML_COMMENT: '/*' .*? '*/' -> skip;
-LINE_COMMENT: '//' ~[\r\n]* -> skip;
+ML_COMMENT: '/*' .*? '*/' -> channel(2);
+LINE_COMMENT: '//' ~[\r\n]* -> channel(2);

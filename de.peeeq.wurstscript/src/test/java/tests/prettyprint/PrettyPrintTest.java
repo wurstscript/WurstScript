@@ -5,7 +5,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.attributes.prettyPrint.MaxOneSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.MaxOnePrinter;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
@@ -21,7 +21,6 @@ import static org.testng.AssertJUnit.assertEquals;
 public class PrettyPrintTest extends WurstScriptTest {
 
     private String setUp(String filename) throws IOException {
-        StringBuilder sb = new StringBuilder();
         File inFile = new File(filename);
         String content = Files.toString(inFile, Charsets.UTF_8);
 
@@ -29,9 +28,10 @@ public class PrettyPrintTest extends WurstScriptTest {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs("-prettyPrint"));
 
         CompilationUnit cu = compiler.parse("test", new StringReader(content));
-        PrettyPrinter.prettyPrint(cu, new MaxOneSpacer(), sb, 0);
+        MaxOnePrinter printer = new MaxOnePrinter();
+        PrettyPrinter.prettyPrint(cu, printer);
 
-        return sb.toString();
+        return printer.toString();
     }
 
     private String expectedFile(String filename) throws IOException {

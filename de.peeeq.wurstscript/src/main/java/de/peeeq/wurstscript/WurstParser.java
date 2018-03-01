@@ -20,6 +20,7 @@ import org.antlr.v4.runtime.misc.Interval;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.Collections;
 
 public class WurstParser {
     private static final int MAX_SYNTAX_ERRORS = 15;
@@ -114,6 +115,7 @@ public class WurstParser {
             if (this.removeSugar) {
                 removeSyntacticSugar(root, hasCommonJ);
             }
+            root.setCommentTokens(lexer.getCommentTokens());
             return root;
 
         } catch (IOException e) {
@@ -198,7 +200,7 @@ public class WurstParser {
 
 
     public CompilationUnit emptyCompilationUnit() {
-        return Ast.CompilationUnit("<empty compilation unit>", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
+        return Ast.CompilationUnit("<empty compilation unit>", errorHandler, Collections.emptyList(), Ast.JassToplevelDeclarations(), Ast.WPackages());
     }
 
     private void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {

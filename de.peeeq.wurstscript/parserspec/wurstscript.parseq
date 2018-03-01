@@ -7,7 +7,8 @@ Identifier(de.peeeq.wurstscript.parser.WPos source, String name)
 
 WurstModel * CompilationUnit
 
-CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
+CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler,
+    List<de.peeeq.wurstscript.parser.antlr.CommentToken> commentTokens,
 	JassToplevelDeclarations jassDecls, WPackages packages)
 
 
@@ -953,7 +954,7 @@ TypeParamDef.isStructureDefTypeParam()
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.isStructureDefTypeParam
 
 	
-Element.prettyPrint(de.peeeq.wurstscript.attributes.prettyPrint.Spacer spacer, StringBuilder sb, int indent)
+Element.prettyPrint(de.peeeq.wurstscript.attributes.prettyPrint.Printer printer)
 	returns void
 	implemented by de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter.prettyPrint
 

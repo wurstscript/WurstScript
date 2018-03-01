@@ -42,24 +42,22 @@ public class PrettyUtils {
     public static String pretty(String source) {
         CompilationUnit cu = parse(source);
 
-        Spacer spacer = new MaxOneSpacer();
-        StringBuilder sb = new StringBuilder();
-        cu.prettyPrint(spacer, sb, 0);
+        Printer printer = new MaxOnePrinter();
+        cu.prettyPrint(printer);
 
-        return sb.toString();
+        return printer.toString();
     }
 
-    private static void prettyPrint(String filename) {
+    private static String prettyPrint(String filename) {
         String clean = pretty(filename);
         System.out.println(clean);
+        return clean;
     }
 
-    public static void pretty(CompilationUnit cu) {
-        Spacer spacer = new MaxOneSpacer();
-        StringBuilder sb = new StringBuilder();
-        cu.prettyPrint(spacer, sb, 0);
-
-        System.out.println(sb.toString());
+    public static String pretty(CompilationUnit cu) {
+        Printer printer = new MaxOnePrinter();
+        cu.prettyPrint(printer);
+        return printer.toString();
     }
 
     private static void debug(String filename) {
@@ -93,11 +91,10 @@ public class PrettyUtils {
         String contents = readFile(f.toString());
         CompilationUnit cu = parse(contents);
 
-        Spacer spacer = new MaxOneSpacer();
-        StringBuilder sb = new StringBuilder();
-        cu.prettyPrint(spacer, sb, 0);
+        Printer printer = new MaxOnePrinter();
+        cu.prettyPrint(printer);
 
-        return sb.toString();
+        return printer.toString();
     }
 
     private static String readFile(String filename) {

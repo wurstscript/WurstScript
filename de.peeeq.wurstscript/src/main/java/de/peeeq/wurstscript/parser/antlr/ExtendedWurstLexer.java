@@ -10,9 +10,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 
 public class ExtendedWurstLexer implements TokenSource {
 
@@ -32,6 +30,7 @@ public class ExtendedWurstLexer implements TokenSource {
     // which character is used for indentation
     private TabChoice tabChoice = TabChoice.Unknown;
     private CompileError tabWarning = null;
+    private List<CommentToken> commentTokens = new ArrayList<>();
 
     enum State {
         INIT, NEWLINES, BEGIN_LINE
@@ -123,6 +122,11 @@ public class ExtendedWurstLexer implements TokenSource {
 
             if (token == null) {
                 continue;
+            }
+
+            if (token.getChannel() == 2) {
+                // this is a comment-token; safe and ignore
+                commentTokens.add(new CommentToken(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), token.getText()));
             }
 
             if (isWurst) {
@@ -407,5 +411,10 @@ public class ExtendedWurstLexer implements TokenSource {
 
     public CompileError getTabWarning() {
         return tabWarning;
+    }
+
+
+    public List<CommentToken> getCommentTokens() {
+        return commentTokens;
     }
 }

@@ -14,6 +14,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 
 public class AntlrJurstParseTreeTransformer {
@@ -53,7 +54,7 @@ public class AntlrJurstParseTreeTransformer {
         }
 
         return Ast
-                .CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+                .CompilationUnit("", this.cuErrorHandler, Collections.emptyList(), jassDecls, packages);
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(
