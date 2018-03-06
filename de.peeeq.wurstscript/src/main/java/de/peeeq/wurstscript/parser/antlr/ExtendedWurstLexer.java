@@ -127,6 +127,7 @@ public class ExtendedWurstLexer implements TokenSource {
             if (token.getChannel() == 2) {
                 // this is a comment-token; safe and ignore
                 commentTokens.add(new CommentToken(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), token.getText()));
+                continue;
             }
 
             if (isWurst) {
