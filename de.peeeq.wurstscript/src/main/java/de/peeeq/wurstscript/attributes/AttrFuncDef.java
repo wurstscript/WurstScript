@@ -126,18 +126,24 @@ public class AttrFuncDef {
     public static List<WurstType> argumentTypes(FunctionCall node) {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
+            WurstType argType;
             if (arg instanceof ExprClosure) {
-                // for closures, we do not calculate the type yet:
+                // for closures, we only calculate the type, if all argument types are specified:
                 ExprClosure closure = (ExprClosure) arg;
-                List<WurstType> paramTypes = new ArrayList<>();
-                for (WShortParameter p : closure.getShortParameters()) {
-                    paramTypes.add(p.getTypOpt().attrTyp());
+                if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
+                    argType = arg.attrTyp();
+                } else {
+                    List<WurstType> paramTypes = new ArrayList<>();
+                    for (WShortParameter p : closure.getShortParameters()) {
+                        paramTypes.add(p.getTypOpt().attrTyp());
+                    }
+                    WurstType resultType = WurstTypeInfer.instance();
+                    argType = new WurstTypeClosure(paramTypes, resultType);
                 }
-                WurstType resultType = WurstTypeInfer.instance();
-                result.add(new WurstTypeClosure(paramTypes, resultType));
             } else {
-                result.add(arg.attrTyp());
+                argType = arg.attrTyp();
             }
+            result.add(argType);
         }
         return result;
     }
