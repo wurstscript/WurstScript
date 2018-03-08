@@ -15,6 +15,9 @@ public class WurstKeywords {
             "globals", "endglobals", "initializer", "elseif"
     };
 
+    public static final String[] JASS_PRIMITIVE_TYPES = new String[]{
+            "int", "integer", "real", "code", "boolean", "string", "bool", "handle"};
+
     public static final String[] JASSTYPES = new String[]{
             "int", "integer", "real", "code", "boolean", "string", "bool",
             "agent", "event", "player", "widget", "unit", "destructable",
