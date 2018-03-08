@@ -393,8 +393,15 @@ exprFunctionCall:
 	  
 exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
 
-exprClosure: formalParameters '->' (skip='skip'|expr);
-		  
+exprClosure: shortFormalParameters '->' (skip='skip'|expr);
+
+shortFormalParameters:
+      singleParam=shortFormalParameter
+    | '(' (params+=shortFormalParameter (',' params+=shortFormalParameter)*)? ')'
+    ;
+
+shortFormalParameter: typeExpr? name=ID;
+
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
 typeParam: name=ID;

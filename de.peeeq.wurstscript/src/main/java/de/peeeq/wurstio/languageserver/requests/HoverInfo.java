@@ -388,6 +388,8 @@ public class HoverInfo extends UserRequest<Hover> {
             return description(moduleUse.attrModuleDef());
         }
 
+
+
         @Override
         public List<Either<String, MarkedString>> case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
             return description(exprFunctionCall);
@@ -445,6 +447,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ModuleInstanciations(ModuleInstanciations moduleInstanciations) {
             return string("List of module instantiations.");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_WShortParameters(WShortParameters wShortParameters) {
+            return string("Parameters of anonymous function.");
         }
 
         @Override
@@ -769,6 +776,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_WParameter(WParameter wParameter) {
             return description(wParameter);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_WShortParameter(WShortParameter wShortParameter) {
+            return description(wShortParameter);
         }
 
         @Override

@@ -1081,7 +1081,16 @@ public class AntlrJurstParseTreeTransformer {
         WParameters parameters = transformFormalParameters(
                 e.formalParameters(), true);
         Expr implementation = transformExpr(e.expr());
-        return Ast.ExprClosure(source(e), parameters, implementation);
+        WShortParameters sparameters = Ast.WShortParameters();
+        for (WParameter p : parameters) {
+            sparameters.add(Ast.WShortParameter(
+                    p.getSource(),
+                    p.getModifiers().copy(),
+                    p.getTyp().copy(),
+                    p.getNameId().copy()
+            ));
+        }
+        return Ast.ExprClosure(source(e), sparameters, implementation);
     }
 
     private Indexes transformIndexes(List<IndexesContext> indexList) {

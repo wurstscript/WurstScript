@@ -1050,8 +1050,8 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private ExprClosure transformClosure(ExprClosureContext e) {
-        WParameters parameters = transformFormalParameters(
-                e.formalParameters(), true);
+        WShortParameters parameters = transformShortFormalParameters(
+                e.shortFormalParameters());
         Expr implementation;
         if (e.expr() != null) {
             implementation = transformExpr(e.expr());
@@ -1211,6 +1211,23 @@ public class AntlrWurstParseTreeTransformer {
         return result;
     }
 
+    private WShortParameters transformShortFormalParameters(ShortFormalParametersContext ps) {
+        if (ps.singleParam != null) {
+            return Ast.WShortParameters(
+                    Ast.WShortParameter(source(ps.singleParam).artificial(),
+                            Ast.Modifiers(Ast.ModConstant(source(ps.singleParam).artificial())),
+                            Ast.NoTypeExpr(),
+                            text(ps.singleParam)
+                            )
+            );
+        }
+        WShortParameters result = Ast.WShortParameters();
+        for (ShortFormalParameterContext p : ps.params) {
+            result.add(transformShortFormalParameter(p));
+        }
+        return result;
+    }
+
     private WParameter transformFormalParameter(FormalParameterContext p,
                                                 boolean makeConstant) {
         Modifiers modifiers = Ast.Modifiers();
@@ -1219,6 +1236,12 @@ public class AntlrWurstParseTreeTransformer {
         }
         return Ast.WParameter(source(p), modifiers,
                 transformTypeExpr(p.typeExpr()), text(p.name));
+    }
+
+    private WShortParameter transformShortFormalParameter(ShortFormalParameterContext p) {
+        Modifiers modifiers = Ast.Modifiers(Ast.ModConstant(source(p).artificial()));
+        return Ast.WShortParameter(source(p), modifiers,
+                transformOptionalType(p.typeExpr()), text(p.name));
     }
 
     private TypeParamDefs transformTypeParams(TypeParamsContext typeParams) {

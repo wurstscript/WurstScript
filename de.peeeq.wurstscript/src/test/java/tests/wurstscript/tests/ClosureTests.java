@@ -2,6 +2,8 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
+import java.util.function.Function;
+
 public class ClosureTests extends WurstScriptTest {
 
 
@@ -519,6 +521,60 @@ public class ClosureTests extends WurstScriptTest {
                 "       bar(() -> 0)",
                 "       B b2 = () -> 0",
                 "       if (b2 castTo int) == 1",
+                "           testSuccess()");
+
+    }
+
+
+    @Test
+    public void withoutParameterType() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface Func",
+                "       function apply(int x) returns int",
+                "   function bar(Func f) returns int",
+                "       return f.apply(5)",
+                "   init",
+                "       if bar(x -> x + 1) == 6",
+                "           testSuccess()");
+
+    }
+
+    @Test
+    public void overload1() {
+        testAssertErrorsLines(true, "Could not infer type for parameter x. The target type could not be uniquely determined.",
+                "package A",
+                "   native testSuccess()",
+                "   interface Func",
+                "       function apply(int x) returns int",
+                "   interface Func2",
+                "       function apply(string s) returns int",
+                "   function bar(Func f) returns int",
+                "       return f.apply(1)",
+                "   function bar(Func2 f) returns int",
+                "       return f.apply(\"a\")",
+                "   init",
+                "       if bar(x -> x + 1) == 2",
+                "           testSuccess()");
+
+    }
+
+    @Test
+    public void overload2() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface Func",
+                "       function apply(int x) returns int",
+                "   interface Func2",
+                "       function apply(int x, int y) returns int",
+                "   function bar(Func f) returns int",
+                "       return f.apply(1)",
+                "   function bar(Func2 f) returns int",
+                "       return f.apply(1,2)",
+                "   init",
+                "       if bar((int x) -> x + 1) == 2",
                 "           testSuccess()");
 
     }

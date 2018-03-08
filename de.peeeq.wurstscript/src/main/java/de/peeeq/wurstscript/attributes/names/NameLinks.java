@@ -236,7 +236,9 @@ public class NameLinks {
 
     public static ImmutableMultimap<String, NameLink> calculate(ExprClosure e) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
-        addParametersIfAny(result, e);
+        for (WShortParameter p : e.getShortParameters()) {
+            result.put(p.getName(), p.createNameLink(e));
+        }
         return result.build();
     }
 

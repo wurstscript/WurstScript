@@ -59,7 +59,7 @@ public class FuncSkeleton {
         }
         f.setName(name);
         f.getParameters().add(tr.getThisVar(e));
-        for (WParameter p : e.getParameters()) {
+        for (WShortParameter p : e.getShortParameters()) {
             f.getParameters().add(tr.getVarFor(p));
         }
         f.setReturnType(e.getImplementation().attrTyp().imTranslateType());
