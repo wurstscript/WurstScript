@@ -55,7 +55,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (line <= lines.length) {
             WLogger.info("Get completions in line " + line + ": \n" +
                     "" + currentLine().replace('\t', ' ') + "\n" +
-                    "" + Utils.repeat(' ', column > 0 ? column - 1 : 0) + "^\n" +
+                    "" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
                     " at column " + column);
         }
     }
@@ -350,7 +350,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
      */
     private boolean isBeforeParenthesis() {
         try {
-            return currentLine().charAt(column + 1) == '(';
+            return currentLine().charAt(column) == '(';
         } catch (IndexOutOfBoundsException e) {
             return false;
         }
