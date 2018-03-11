@@ -579,9 +579,73 @@ public class ClosureTests extends WurstScriptTest {
 
     }
 
+
+    @Test
+    public void generic1() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface Func<S,T>",
+                "       function apply(S x) returns T",
+                "   class C<T>",
+                "       constant T x",
+                "       construct(T x)",
+                "           this.x = x",
+                "       function map<X>(Func<T,X> f) returns C<X>",
+                "           return new C(f.apply(x))",
+                "   init",
+                "       let a = new C(5)",
+                "       let b = a.map<int>((int x) -> 2*x)",
+                "       if b.x == 10",
+                "           testSuccess()");
+
+    }
+
+    @Test
+    public void generic2() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface Func<S,T>",
+                "       function apply(S x) returns T",
+                "   class C<T>",
+                "       constant T x",
+                "       construct(T x)",
+                "           this.x = x",
+                "       function map<X>(Func<T,X> f) returns C<X>",
+                "           return new C(f.apply(x))",
+                "   init",
+                "       let a = new C(5)",
+                "       let b = a.map<int>(x -> 2*x)",
+                "       if b.x == 10",
+                "           testSuccess()");
+
+    }
+
+    @Test
+    public void generic3() {
+        testAssertOkLines(true,
+                "package A",
+                "   native testSuccess()",
+                "   interface Func<S,T>",
+                "       function apply(S x) returns T",
+                "   class C<T>",
+                "       constant T x",
+                "       construct(T x)",
+                "           this.x = x",
+                "       function map<X>(Func<T,X> f) returns C<X>",
+                "           return new C(f.apply(x))",
+                "   init",
+                "       let a = new C(5)",
+                "       let b = a.map(x -> 2*x)",
+                "       if b.x == 10",
+                "           testSuccess()");
+
+    }
+
     @Test
     public void overload1() {
-        testAssertErrorsLines(true, "Could not infer type for parameter x. The target type could not be uniquely determined.",
+        testAssertErrorsLines(true, "Could not infer type for parameter x. The target type could not be uniquely determined",
                 "package A",
                 "   native testSuccess()",
                 "   interface Func",

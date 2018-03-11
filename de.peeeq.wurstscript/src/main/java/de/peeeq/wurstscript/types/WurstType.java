@@ -33,6 +33,9 @@ public abstract class WurstType {
             // everything is a subtype of unknown (stops error cascades)
             return true;
         }
+        if (other instanceof WurstTypeDeferred) {
+            return isSubtypeOf(((WurstTypeDeferred) other).force(), location);
+        }
         return this.isSubtypeOfIntern(other, location);
     }
 
