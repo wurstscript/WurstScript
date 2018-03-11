@@ -1090,7 +1090,7 @@ public class AntlrJurstParseTreeTransformer {
                     p.getNameId().copy()
             ));
         }
-        return Ast.ExprClosure(source(e), sparameters, implementation);
+        return Ast.ExprClosure(source(e), source(e.arrow), sparameters, implementation);
     }
 
     private Indexes transformIndexes(List<IndexesContext> indexList) {

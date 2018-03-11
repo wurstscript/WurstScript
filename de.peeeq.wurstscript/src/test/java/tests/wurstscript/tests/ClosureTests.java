@@ -90,6 +90,44 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void closure_begin_end2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface SimpleFunc",
+                "	function apply(int x) returns int",
+                "init",
+                "	int y = 4",
+                "	SimpleFunc f = (int x) ->",
+                "	begin",
+                "		let a = y",
+                "		let b = a+x",
+                "		return b",
+                "	end",
+                "	if f.apply(3) == 7",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void closure_begin_end3() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface SimpleFunc",
+                "	function apply(int x) returns int",
+                "init",
+                "	int y = 4",
+                "	SimpleFunc f = (int x) ->",
+                "		let a = y",
+                "		let b = a+x",
+                "		return b",
+                "	if f.apply(3) == 7",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void captureParam() {
         testAssertOkLines(true,
                 "package test",
@@ -578,6 +616,43 @@ public class ClosureTests extends WurstScriptTest {
                 "           testSuccess()");
 
     }
+
+    @Test
+    public void blockSyntax() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface Runnable",
+                "        function run()",
+                "    function twice(Runnable r)",
+                "        r.run()",
+                "        r.run()",
+                "    int x = 0",
+                "    init",
+                "        twice() ->",
+                "            x = x + 1",
+                "        if x == 2",
+                "            testSuccess()");
+
+    }
+
+    @Test
+    public void blockSyntax2() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface F",
+                "        function apply(int x) returns int",
+                "    function blub(int x, F f) returns int",
+                "        return f.apply(x)",
+                "    init",
+                "        int x = blub(5) x ->",
+                "            return x + 1",
+                "        if x == 6",
+                "            testSuccess()");
+
+    }
+
 
 
 }

@@ -240,19 +240,20 @@ statementsBlock:
 			   (STARTBLOCK statement* ENDBLOCK)?;
 
 
-statement: (
-		   localVarDef
-		 | stmtSet
-		 | stmtReturn
-		 | stmtBreak
-		 | stmtSkip
-		 | expr
-		 ) NL
+statement:
+		   localVarDef (externalLambda|NL)
+		 | stmtSet (externalLambda|NL)
+		 | stmtReturn (externalLambda|NL)
+		 | stmtBreak NL
+		 | stmtSkip NL
+		 | expr (externalLambda|NL)
 		 | stmtIf
 		 | stmtWhile
 		 | stmtForLoop
 		 | stmtSwitch
 		 ;
+
+externalLambda: shortFormalParameters arrow='->' NL statementsBlock;
 
 exprDestroy:
 			   'destroy' expr
@@ -331,21 +332,12 @@ indexes:
 		   '[' expr ']'
 	   ;
 
-stmtCall:
-			exprMemberMethod
-		| exprFunctionCall
-		| exprNewObject
-		;
-
-exprMemberMethod:
-					receiver=expr dots=('.'|'..') funcName=ID? typeArgs ('(' exprList ')')?
-				;
 
 expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs '(' exprList ')'
+	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
 	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
@@ -386,18 +378,22 @@ exprStatementsBlock:
 					   'begin' NL statementsBlock 'end'
 				   ;
 
+argumentList:
+    '(' exprList ')'
+    ;
 
 exprFunctionCall:
-					funcName=ID typeArgs '(' exprList ')'
+					funcName=ID typeArgs argumentList
 				;
 	  
-exprNewObject:'new' className=ID typeArgs ('(' exprList ')')?;
+exprNewObject:'new' className=ID typeArgs argumentList?;
 
-exprClosure: shortFormalParameters '->' (skip='skip'|expr);
+exprClosure: shortFormalParameters arrow='->' (skip='skip'|expr);
 
 shortFormalParameters:
       singleParam=shortFormalParameter
     | '(' (params+=shortFormalParameter (',' params+=shortFormalParameter)*)? ')'
+    | /* empty */
     ;
 
 shortFormalParameter: typeExpr? name=ID;

@@ -42,7 +42,7 @@ public class AttrVarDefType {
             return WurstTypeInfer.instance();
         }
 
-        if (nl.getParameterTypes().size() < paramIndex) {
+        if (nl.getParameterTypes().size() <= paramIndex) {
             p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "Function " + nl.getName() + " does not take so many parameters.");
             return WurstTypeInfer.instance();
