@@ -22,6 +22,9 @@ public class WurstChecker {
     public void checkProg(WurstModel root, List<CompilationUnit> toCheck) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
+        if (root.isEmpty()) {
+            return;
+        }
         gui.sendProgress("Checking Files");
 
         if (errorHandler.getErrorCount() > 0) return;
