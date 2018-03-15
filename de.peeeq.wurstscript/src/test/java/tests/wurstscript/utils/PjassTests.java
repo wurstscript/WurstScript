@@ -4,6 +4,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstscript.attributes.CompileError;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -11,6 +12,7 @@ import java.io.File;
 public class PjassTests {
 
     @Test
+    @Ignore
     public void test() {
         Result result = Pjass.runPjass(new File("./testscripts/invalid/fail.j"));
         System.out.println(result.getMessage());

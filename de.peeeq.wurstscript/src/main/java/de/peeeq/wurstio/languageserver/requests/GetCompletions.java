@@ -7,6 +7,7 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -55,7 +56,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (line <= lines.length) {
             WLogger.info("Get completions in line " + line + ": \n" +
                     "" + currentLine().replace('\t', ' ') + "\n" +
-                    "" + Utils.repeat(' ', column > 0 ? column - 1 : 0) + "^\n" +
+                    "" + Utils.repeat(' ', column > 0 ? column : 0) + "^\n" +
                     " at column " + column);
         }
     }
@@ -215,6 +216,22 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 addDefaultCompletions(completions, elem, isMemberAccess);
             }
         }
+        if (!isMemberAccess) {
+            addKeywordCompletions(completions);
+        }
+    }
+
+    private void addKeywordCompletions(List<CompletionItem> completions) {
+        for (String keyword : WurstKeywords.KEYWORDS) {
+            if (keyword.startsWith(alreadyEntered)) {
+                completions.add(makeSimpleNameCompletion(keyword));
+            }
+        }
+        for (String keyword : WurstKeywords.JASS_PRIMITIVE_TYPES) {
+            if (keyword.startsWith(alreadyEntered)) {
+                completions.add(makeSimpleNameCompletion(keyword));
+            }
+        }
     }
 
     private void completeImport(List<CompletionItem> completions) {
@@ -350,7 +367,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
      */
     private boolean isBeforeParenthesis() {
         try {
-            return currentLine().charAt(column + 1) == '(';
+            return currentLine().charAt(column) == '(';
         } catch (IndexOutOfBoundsException e) {
             return false;
         }

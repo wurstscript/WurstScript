@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -122,10 +123,27 @@ public class AttrFuncDef {
     }
 
 
-    private static List<WurstType> argumentTypes(FunctionCall node) {
+    public static List<WurstType> argumentTypes(FunctionCall node) {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
-            result.add(arg.attrTyp());
+            WurstType argType;
+            if (arg instanceof ExprClosure) {
+                // for closures, we only calculate the type, if all argument types are specified:
+                ExprClosure closure = (ExprClosure) arg;
+                if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
+                    argType = arg.attrTyp();
+                } else {
+                    List<WurstType> paramTypes = new ArrayList<>();
+                    for (WShortParameter p : closure.getShortParameters()) {
+                        paramTypes.add(p.getTypOpt().attrTyp());
+                    }
+                    WurstType resultType = WurstTypeInfer.instance();
+                    argType = new WurstTypeClosure(paramTypes, resultType);
+                }
+            } else {
+                argType = arg.attrTyp();
+            }
+            result.add(argType);
         }
         return result;
     }

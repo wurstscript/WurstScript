@@ -139,7 +139,7 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprClosure e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append("(");
-        e.getParameters().prettyPrint(spacer, sb, indent);
+        e.getShortParameters().prettyPrint(spacer, sb, indent);
         sb.append(")");
         spacer.addSpace(sb);
         sb.append("->");
@@ -659,9 +659,30 @@ public class PrettyPrinter {
         sb.append(")");
     }
 
+    public static void prettyPrint(WShortParameters wParameters, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("(");
+        String prefix = "";
+        for (WShortParameter wParameter : wParameters) {
+            sb.append(prefix);
+            prefix = ",";
+            spacer.addSpace(sb);
+            wParameter.prettyPrint(spacer, sb, indent);
+        }
+        sb.append(")");
+    }
+
     public static void prettyPrint(WParameter wParameter, Spacer spacer, StringBuilder sb, int indent) {
         wParameter.getTyp().prettyPrint(spacer, sb, indent);
         spacer.addSpace(sb);
+        sb.append(wParameter.getName());
+    }
+
+    public static void prettyPrint(WShortParameter wParameter, Spacer spacer, StringBuilder sb, int indent) {
+        OptTypeExpr t = wParameter.getTypOpt();
+        if (t instanceof TypeExpr) {
+            t.prettyPrint(spacer, sb, indent);
+            spacer.addSpace(sb);
+        }
         sb.append(wParameter.getName());
     }
 

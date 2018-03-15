@@ -511,7 +511,7 @@ public class AttrExprType {
     public static WurstType calculate(ExprClosure e) {
         WurstType returnType = e.getImplementation().attrTyp();
         List<WurstType> paramTypes = Lists.newArrayList();
-        for (WParameter p : e.getParameters()) {
+        for (WShortParameter p : e.getShortParameters()) {
             paramTypes.add(p.attrTyp());
         }
         return new WurstTypeClosure(paramTypes, returnType);

@@ -117,6 +117,8 @@ TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Ident
 WParameters * WParameter
 WParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeExpr typ, Identifier nameId)
 
+WShortParameters * WShortParameter
+WShortParameter(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr typOpt, Identifier nameId)
 
 WStatements * WStatement
 
@@ -170,7 +172,7 @@ Expr =
 	| ExprNewObject(de.peeeq.wurstscript.parser.WPos source, Identifier typeNameId, TypeExprList typeArgs, Arguments args)
 	| ExprCast(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
 	| ExprInstanceOf(de.peeeq.wurstscript.parser.WPos source, TypeExpr typ, Expr expr)
-	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, WParameters parameters, Expr implementation)
+	| ExprClosure(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.parser.WPos arrowSource, WShortParameters shortParameters, Expr implementation)
 	| ExprAtomic
 	| ExprIncomplete(de.peeeq.wurstscript.parser.WPos source, String errorMessage)
 	| ExprStatementsBlock(de.peeeq.wurstscript.parser.WPos source, WStatements body)
@@ -230,6 +232,7 @@ NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVa
 VarDef =
 	  GlobalOrLocalVarDef
 	| WParameter
+	| WShortParameter
 
 GlobalOrLocalVarDef =
 	  GlobalVarDef
@@ -302,9 +305,9 @@ AstElementWithBody = ExtensionFuncDef | InitBlock | ConstructorDef | OnDestroyDe
 	| LoopStatement | ExprStatementsBlock | FunctionLike
 
 AstElementWithNameId = WPackage | NativeFunc | ModuleDef | TypeDef | ModuleInstanciation
-    | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs
+    | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WShortParameter | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs
 
-AstElementWithParameters = FunctionDefinition | ExtensionFuncDef | NativeFunc | TupleDef | ConstructorDef | FuncDef | ExprClosure
+AstElementWithParameters = FunctionDefinition | ExtensionFuncDef | NativeFunc | TupleDef | ConstructorDef | FuncDef
 
 AstElementWithTypeParameters = ExtensionFuncDef | ModuleDef | ClassDef | InterfaceDef | FuncDef
 
@@ -318,7 +321,7 @@ AstElementWithTypeArgs = IdentifierWithTypeArgs | TypeExprSimple | ModuleUse
 HasReceiver = ExprMemberVar | ExprMemberArrayVar | ExprMemberMethod
 
 AstElementWithSource = Identifier | WPackage | WImport | WEntity | TypeExpr | TypeDef | SwitchCase 
-  | ClassSlot | ClassMember | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WStatement | Expr
+  | ClassSlot | ClassMember | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WShortParameter | WStatement | Expr
   | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs | NameRef | VarDef | FunctionDefinition | NameRef | NameDef
   | Modifier
 

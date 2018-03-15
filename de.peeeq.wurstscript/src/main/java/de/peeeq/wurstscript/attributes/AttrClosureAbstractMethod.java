@@ -15,7 +15,7 @@ public class AttrClosureAbstractMethod {
         WurstType expected = e.attrExpectedTyp();
         if (expected instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) expected;
-            return findAbstractMethod(ct.getDef().attrNameLinks());
+            return ct.findSingleAbstractMethod();
         }
         return null;
     }
@@ -24,7 +24,7 @@ public class AttrClosureAbstractMethod {
     public static @Nullable FunctionSignature getAbstractMethodSignature(WurstType type) {
         if (type instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
-            NameLink abstractMethod = findAbstractMethod(ct.getDef().attrNameLinks());
+            NameLink abstractMethod = ct.findSingleAbstractMethod();
             if (abstractMethod == null) {
                 return null;
             }
@@ -35,20 +35,6 @@ public class AttrClosureAbstractMethod {
         return null;
     }
 
-    private static @Nullable NameLink findAbstractMethod(Multimap<String, NameLink> nameLinks) {
-        NameLink abstractMethod = null;
-        for (NameLink nl : nameLinks.values()) {
-            if (nl.getType() == NameLinkType.FUNCTION
-                    && nl.getNameDef().attrIsAbstract()) {
-                if (abstractMethod != null) {
-                    // there is more than one abstract function
-                    // --> closure cannot implement this
-                    return null;
-                }
-                abstractMethod = nl;
-            }
-        }
-        return abstractMethod;
-    }
+
 
 }

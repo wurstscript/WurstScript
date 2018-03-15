@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +30,7 @@ public class AttrPossibleFunctionSignatures {
         ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
         ImmutableCollection<FunctionSignature> res = resultBuilder.build();
         for (FunctionSignature sig : res) {
-            if (paramTypesCanMatch(sig.getParamTypes(), partialArgTypes(fc), fc)) {
+            if (paramTypesCanMatch(sig.getParamTypes(), AttrFuncDef.argumentTypes(fc), fc)) {
                 resultBuilder2.add(sig);
             }
         }
@@ -55,14 +54,6 @@ public class AttrPossibleFunctionSignatures {
             }
         }
         return true;
-    }
-
-    private static List<WurstType> partialArgTypes(FunctionCall fc) {
-        List<WurstType> result = new ArrayList<>();
-        for (Expr arg : fc.getArgs()) {
-            result.add(arg.attrTyp());
-        }
-        return result;
     }
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {

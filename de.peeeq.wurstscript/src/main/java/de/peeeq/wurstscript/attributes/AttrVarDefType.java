@@ -2,7 +2,9 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -22,6 +24,32 @@ public class AttrVarDefType {
 
     public static WurstType calculate(WParameter node) {
         return node.getTyp().attrTyp().dynamic();
+    }
+
+    public static WurstType calculate(WShortParameter p) {
+        if (p.getTypOpt() instanceof TypeExpr) {
+            return p.getTypOpt().attrTyp().dynamic();
+        }
+        // if the type of the lambda parameter is not specified,
+        // we have to look up the expected type of the lambda
+        ExprClosure parentClosure = (ExprClosure) p.getParent().getParent();
+        int paramIndex = parentClosure.getShortParameters().indexOf(p);
+//        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
+//        return WurstTypeInfer.instance();
+        WurstType expectedTyp = parentClosure.attrExpectedTyp();
+        FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
+        if (sig == null) {
+            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+                    "The target type could not be uniquely determined for expected type "+expectedTyp+".");
+            return WurstTypeInfer.instance();
+        }
+
+        if (sig.getParamTypes().size() <= paramIndex) {
+            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+                    "Closure type " + expectedTyp + " does not take so many parameters.");
+            return WurstTypeInfer.instance();
+        }
+        return sig.getParamTypes().get(paramIndex);
     }
 
     public static WurstType calculate(ClassDef c) {
@@ -131,6 +159,7 @@ public class AttrVarDefType {
     public static WurstType calculate(OnDestroyDef constructorDef) {
         return WurstTypeVoid.instance();
     }
+
 
 
 }

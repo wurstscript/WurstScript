@@ -1441,6 +1441,11 @@ public class WurstValidator {
                 }
 
                 @Override
+                public void case_WShortParameter(WShortParameter wShortParameter) {
+                    check(ModConstant.class);
+                }
+
+                @Override
                 public void case_TypeParamDef(TypeParamDef typeParamDef) {
                     error.append("Type Parameters must not have modifiers");
                 }
