@@ -36,7 +36,7 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 
         BufferedImage image = null;
         try {
-            image = ImageIO.read(getClass().getClassLoader().getResource("wurst.png"));
+            image = ImageIO.read(getClass().getClassLoader().getResource("icon.png"));
         } catch (IOException e) {
             WLogger.severe(e);
         }
