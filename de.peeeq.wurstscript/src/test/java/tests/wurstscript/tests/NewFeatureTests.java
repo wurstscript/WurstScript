@@ -362,4 +362,74 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testVarargSyntax() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)"
+        );
+    }
+
+    @Test
+    public void testVarargAccess() {
+        testAssertOkLines(false,
+                "package Test",
+                "function bar(int i)",
+                "function foo(vararg int ints)",
+                "   bar(ints[0])"
+        );
+    }
+
+    @Test
+    public void testVarargInput() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "   foo(1,2,3)"
+        );
+    }
+
+    @Test
+    public void testVarargValidation() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "   if ints[0] == 1 and ints[1] == 2 and ints[2] == 3",
+                "       testSuccess()",
+                "init",
+                "   foo(1,2,3)"
+        );
+    }
+
+    @Test
+    public void testVarargLength() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "   if ints.length == 4",
+                "       testSuccess()",
+                "init",
+                "   foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void testVarargForeach() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "   var sum = 0",
+                "   for i in ints",
+                "       sum += i",
+                "   if sum == 10",
+                "       testSuccess()",
+                "init",
+                "   foo(1,2,3,4)"
+        );
+    }
+
 }
