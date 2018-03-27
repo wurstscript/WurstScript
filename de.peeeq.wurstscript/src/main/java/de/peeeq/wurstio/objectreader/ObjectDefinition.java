@@ -70,12 +70,17 @@ public class ObjectDefinition {
     }
 
     public void exportToWurst(Appendable out) throws IOException {
-        out.append("@compiletime function create_").append(parent.getFileType().getExt()).append("_").append(ObjectHelper.objectIdIntToString(newObjectId))
+        String oldId = ObjectHelper.objectIdIntToString(origObjectId);
+        String newId = ObjectHelper.objectIdIntToString(newObjectId);
+        if(oldId.equals(newId)) {
+            newId = "xxxx";
+        }
+        out.append("@compiletime function create_").append(parent.getFileType().getExt()).append("_").append(newId)
                 .append("()\n");
         out.append("	let def = createObjectDefinition(\"").append(parent.getFileType().getExt()).append("\", '");
-        out.append(ObjectHelper.objectIdIntToString(newObjectId));
+        out.append(newId);
         out.append("', '");
-        out.append(ObjectHelper.objectIdIntToString(origObjectId));
+        out.append(oldId);
         out.append("')\n");
         for (ObjectModification<?> m : modifications) {
             m.exportToWurst(out);
