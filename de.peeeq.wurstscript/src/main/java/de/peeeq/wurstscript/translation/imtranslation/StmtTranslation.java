@@ -1,13 +1,16 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImIf;
+import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
@@ -17,6 +20,8 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeVararg;
 
 import java.util.List;
 
@@ -60,12 +65,112 @@ public class StmtTranslation {
 
 
     public static ImStmt translate(StmtForFrom s, ImTranslator t, ImFunction f) {
-        throw new CompileError(s.getSource(), "syntactic sugar");
+//        Expr iterationTarget = s.getIn();
+//        // find 'iterator' function:
+//        WurstType iteratorType = iteratorFunc.getReturnType();
+//        // Type of loop Variable:
+//        WurstType loopVarType = s.getLoopVar().attrTyp();
+//
+//        // find 'next' function:
+//        ImmutableCollection<NameLink> next = iterationTarget.lookupMemberFuncs(iterationTarget.attrTyp(), "next", false);
+//        // find the 'next' function without parameters
+//        NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+//
+//        // find 'hasNext' function:
+//        ImmutableCollection<NameLink> hasNext = iterationTarget.lookupMemberFuncs(WurstTypeBool.instance(), "hasNext", false);
+//        // find the 'next' function without parameters
+//        NameLink hasNextFunc = hasNext.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+//
+//        // get the iterator function in the intermediate language
+//        ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getNameDef());
+//        ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
+//        ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+//
+//        // create IM-variable for iterator
+//        ImVar iteratorVar = JassIm.ImVar(s.getLoopVar(), iteratorType.imTranslateType(), "iterator", false);
+//
+//        // create IM-variable for next
+//        ImVar nextVar = JassIm.ImVar(s.getLoopVar(), loopVarType.imTranslateType(), "next", false);
+//
+//        // translate target:
+//        ImExpr iterationTargetIm = s.getIn().imTranslateExpr(t, f);
+//
+//        List<ImStmt> result = Lists.newArrayList();
+//        // create code for initializing iterator:
+//        ImSet setIterator = JassIm.ImSet(s, iteratorVar, JassIm.ImFunctionCall(s, iteratorFuncIm, JassIm.ImExprs(iterationTargetIm), false, CallType.NORMAL));
+//
+//        result.add(setIterator);
+//
+//        ImStmts imBody = ImStmts();
+//        // exitwhen not #hasNext()
+//        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs(), false, CallType.NORMAL)))));
+//        // elem = next()
+//        imBody.add(JassIm.ImSet(s, nextVar, JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(), false, CallType.NORMAL)));
+//
+//        imBody.addAll(t.translateStatements(f, s.getBody()));
+//
+//        result.add(ImLoop(s, imBody));
+
+        return ImStatementExpr(null, ImNull());
     }
 
 
     public static ImStmt translate(StmtForIn s, ImTranslator t, ImFunction f) {
-        throw new CompileError(s.getSource(), "syntactic sugar");
+        Expr iterationTarget = s.getIn();
+        WurstType itrType = iterationTarget.attrTyp();
+        if (itrType instanceof WurstTypeVararg) {
+//            return specialCase();
+        }
+        // find 'iterator' function:
+        ImmutableCollection<NameLink> iterator = iterationTarget.lookupMemberFuncs(itrType, "iterator", false);
+        // find the 'iterator' function without parameters:
+        // must exist, because this is after type check
+        NameLink iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+        // Type of iterator variable:
+        WurstType iteratorType = iteratorFunc.getReturnType();
+        // Type of loop Variable:
+        WurstType loopVarType = s.getLoopVar().attrTyp();
+
+        // find 'next' function:
+        ImmutableCollection<NameLink> next = iterationTarget.lookupMemberFuncs(iteratorType, "next", false);
+        // find the 'next' function without parameters
+        NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+
+        // find 'hasNext' function:
+        ImmutableCollection<NameLink> hasNext = iterationTarget.lookupMemberFuncs(iteratorType, "hasNext", false);
+        // find the 'next' function without parameters
+        NameLink hasNextFunc = hasNext.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+
+        // get the iterator function in the intermediate language
+        ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getNameDef());
+        ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
+        ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+
+        // create IM-variable for iterator
+        ImVar iteratorVar = JassIm.ImVar(s.getLoopVar(), iteratorType.imTranslateType(), "iterator", false);
+
+        f.getLocals().add(iteratorVar);
+        f.getLocals().add(t.getVarFor(s.getLoopVar()));
+        // translate target:
+        ImExpr iterationTargetIm = s.getIn().imTranslateExpr(t, f);
+
+        List<ImStmt> result = Lists.newArrayList();
+        // create code for initializing iterator:
+        ImSet setIterator = JassIm.ImSet(s, iteratorVar, JassIm.ImFunctionCall(s, iteratorFuncIm, JassIm.ImExprs(iterationTargetIm), false, CallType.NORMAL));
+
+        result.add(setIterator);
+
+        ImStmts imBody = ImStmts();
+        // exitwhen not #hasNext()
+        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
+        // elem = next()
+        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
+
+        imBody.addAll(t.translateStatements(f, s.getBody()));
+
+        result.add(ImLoop(s, imBody));
+
+        return ImStatementExpr(ImStmts(result), ImNull());
     }
 
 
@@ -103,6 +208,7 @@ public class StmtTranslation {
         result.add(ImLoop(trace, imBody));
         return ImStatementExpr(ImStmts(result), ImNull());
     }
+
 
 
     private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache, ImType type) {

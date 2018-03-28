@@ -1299,6 +1299,9 @@ public class AntlrWurstParseTreeTransformer {
     private WParameter transformFormalParameter(FormalParameterContext p,
                                                 boolean makeConstant) {
         Modifiers modifiers = Ast.Modifiers();
+        if(p.vararg != null) {
+            modifiers.add(Ast.ModVararg(source(p).artificial()));
+        }
         if (makeConstant) {
             modifiers.add(Ast.ModConstant(source(p).artificial()));
         }

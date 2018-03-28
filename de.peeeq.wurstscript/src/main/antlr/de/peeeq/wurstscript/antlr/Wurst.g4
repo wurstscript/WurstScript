@@ -209,7 +209,7 @@ funcSignature:
 formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				 VARARG? typeExpr name=ID
+				 vararg=VARARG? typeExpr name=ID
 			   ;
 
 typeExpr:
