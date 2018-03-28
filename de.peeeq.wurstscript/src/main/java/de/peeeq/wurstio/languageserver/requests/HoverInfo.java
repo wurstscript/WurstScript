@@ -699,6 +699,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ModVararg(ModVararg modVararg) {
+            return string("Declares the parameter to be a array of variable length");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_TypeExprResolved(TypeExprResolved typeExprResolved) {
             return typeExpr(typeExprResolved);
         }

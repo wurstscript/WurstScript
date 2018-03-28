@@ -375,8 +375,11 @@ public class NewFeatureTests extends WurstScriptTest {
         testAssertOkLines(false,
                 "package Test",
                 "function bar(int i)",
+                "",
                 "function foo(vararg int ints)",
-                "   bar(ints[0])"
+                "    for i in ints",
+                "        bar(i)",
+                ""
         );
     }
 

@@ -294,6 +294,7 @@ Modifier =
 	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
 	| ModConstant(de.peeeq.wurstscript.parser.WPos source)
 	| WurstDoc(de.peeeq.wurstscript.parser.WPos source, String rawComment)
+	| ModVararg(de.peeeq.wurstscript.parser.WPos source)
 
 // ElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //ElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
@@ -565,7 +566,9 @@ HasModifier.attrIsConstant()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isConstant
 
-
+HasModifier.attrIsVararg()
+	returns boolean
+	implemented by de.peeeq.wurstscript.attributes.ModifiersHelper.isVararg
 
 ClassOrModuleOrModuleInstanciation.getModuleInstanciations
 	returns ModuleInstanciations

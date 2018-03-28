@@ -403,4 +403,8 @@ public class DescriptionHtml {
     public static String description(ArrayInitializer arrayInitializer) {
         return "An array initializer";
     }
+
+    public static String description(ModVararg modVararg) {
+        return "A varargs modifier";
+    }
 }

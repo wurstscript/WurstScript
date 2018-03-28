@@ -2,9 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -23,6 +21,9 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(WParameter node) {
+        if(node.attrIsVararg()) {
+            return new WurstTypeVararg(node.getTyp().attrTyp().dynamic());
+        }
         return node.getTyp().attrTyp().dynamic();
     }
 

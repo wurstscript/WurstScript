@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser.antlr;
 
-import asg.grammars.ast.AstElement;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
@@ -344,6 +343,8 @@ public class AntlrWurstParseTreeTransformer {
                 return Ast.ModAbstract(src);
             case WurstParser.CONSTANT:
                 return Ast.ModConstant(src);
+            case WurstParser.VARARG:
+                return Ast.ModVararg(src);
         }
         throw error(m, "not implemented");
     }
