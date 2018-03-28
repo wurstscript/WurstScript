@@ -13,7 +13,6 @@ public class NewFeatureTests extends WurstScriptTest {
         try {
             testAssertOkFileWithStdLib(new File(TEST_DIR + "enums.wurst"), false);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -23,7 +22,6 @@ public class NewFeatureTests extends WurstScriptTest {
         try {
             testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -33,7 +31,6 @@ public class NewFeatureTests extends WurstScriptTest {
         try {
             testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }

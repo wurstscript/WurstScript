@@ -1461,6 +1461,9 @@ public class WurstValidator {
                         // wurstdoc always allowed
                         return;
                     }
+                    if (m instanceof ModVararg && e.getParent() instanceof WParameters) {
+                        return;
+                    }
                     boolean isAllowed = false;
                     for (Class<? extends Modifier> a : allowed) {
                         String modName = m.getClass().getName();

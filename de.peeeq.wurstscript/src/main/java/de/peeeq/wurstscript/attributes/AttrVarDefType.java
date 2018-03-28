@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -21,7 +24,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(WParameter node) {
-        if(node.attrIsVararg()) {
+        if (node.attrIsVararg()) {
             return new WurstTypeVararg(node.getTyp().attrTyp().dynamic());
         }
         return node.getTyp().attrTyp().dynamic();
@@ -41,7 +44,7 @@ public class AttrVarDefType {
         FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
         if (sig == null) {
             p.addError("Could not infer type for parameter " + p.getName() + ". " +
-                    "The target type could not be uniquely determined for expected type "+expectedTyp+".");
+                    "The target type could not be uniquely determined for expected type " + expectedTyp + ".");
             return WurstTypeInfer.instance();
         }
 
@@ -95,6 +98,29 @@ public class AttrVarDefType {
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
                 return new WurstTypeArray(valueType);
+            } else if (v.getParent() instanceof StmtForIn) {
+                StmtForIn forIn = (StmtForIn) v.getParent();
+                @Nullable NameDef nameDef = forIn.lookupVar(forIn.getIn().tryGetNameDef().getName());
+                if(nameDef.attrIsVararg()) {
+                    return ((WurstTypeVararg)nameDef.attrTyp()).getBaseType();
+                }
+
+                // find 'iterator' function:
+                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forIn.getIn().attrTyp(), "iterator", false);
+                // find the 'iterator' function without parameters:
+                // must exist, because this is after type check
+                NameLink iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+                // Type of iterator variable:
+                WurstType iteratorType = iteratorFunc.getReturnType();
+                // Type of loop Variable:
+                WurstType loopVarType = forIn.getLoopVar().attrTyp();
+
+                // find 'next' function:
+                ImmutableCollection<NameLink> next = forIn.getIn().lookupMemberFuncs(iteratorType, "next", false);
+                // find the 'next' function without parameters
+                NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+
+                return nextFunc.getReturnType();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");
@@ -160,7 +186,6 @@ public class AttrVarDefType {
     public static WurstType calculate(OnDestroyDef constructorDef) {
         return WurstTypeVoid.instance();
     }
-
 
 
 }
