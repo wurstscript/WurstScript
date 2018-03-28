@@ -161,7 +161,26 @@ public class StmtTranslation {
     }
 
     private static ImStmt case_StmtForVararg(StmtForIn s, ImTranslator t, ImFunction f) {
-        return null;
+        WurstTypeVararg wurstTypeVararg = (WurstTypeVararg) s.getIn().attrTyp();
+
+        ImVars imVars = JassIm.ImVars();
+        for (int i = 0; i < 10; i++) {
+            imVars.add(JassIm.ImVar(f.getTrace(), wurstTypeVararg.getBaseType().imTranslateType(), "vararg_" + i, false));
+            t.getImProg().getFunctions().add(JassIm.ImFunction(f.getTrace(), f.getName(), imVars.copy(), f.getReturnType(), f.getLocals().copy(), unrollBody(f, s.getLoopVar(), i), f.getFlags()));
+        }
+
+        List<ImStmt> result = Lists.newArrayList();
+
+        return ImStatementExpr(ImStmts(result), ImNull());
+    }
+
+    private static ImStmts unrollBody(ImFunction imFunction, LocalVarDef loopVar, int i) {
+        ImStmts imStmts = JassIm.ImStmts();
+        for (int j = 0; j < i; j++) {
+            ImVar imVar1 = imFunction.getParameters().stream().filter(imVar -> imVar.getName().equals(loopVar.getName())).findFirst().get();
+            imVar1.attrWrites().stream().forEach(write -> write.);
+        }
+        return imStmts;
     }
 
 

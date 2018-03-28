@@ -7,28 +7,14 @@ import de.peeeq.wurstscript.jassIm.*;
 public class WurstTypeVararg extends WurstType {
 
     private WurstType baseType;
-    private int size;
-
-    public WurstTypeVararg(WurstType baseType, int size) {
-        if (baseType instanceof WurstTypeVararg) {
-            throw new Error("cannot have array of varargs...");
-        }
-        this.baseType = baseType;
-        this.size = size;
-    }
-
 
     public WurstTypeVararg(WurstType baseType) {
         this.baseType = baseType;
-        this.size = 0;
     }
-
 
     public WurstType getBaseType() {
         return baseType;
     }
-
-
 
     @Override
     public boolean isSubtypeOfIntern(WurstType other, Element location) {
@@ -41,7 +27,7 @@ public class WurstTypeVararg extends WurstType {
 
     @Override
     public String getName() {
-        return baseType.getName() + " vararg(size = " + size + ")";
+        return baseType.getName() + " vararg";
     }
 
     @Override
