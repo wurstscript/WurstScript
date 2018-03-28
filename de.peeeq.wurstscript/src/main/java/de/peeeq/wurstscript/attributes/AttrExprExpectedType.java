@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.funcs.FuncSig;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.Collection;
@@ -126,13 +127,13 @@ public class AttrExprExpectedType {
     }
 
     private static WurstType expectedType(Expr expr, Arguments args, StmtCall stmtCall) {
-        Collection<FunctionSignature> sigs = stmtCall.attrPossibleFunctionSignatures();
+        Collection<FuncSig> sigs = stmtCall.attrPossibleFunctionSignatures();
 
         int index = args.indexOf(expr);
 
         WurstType res = WurstTypeUnknown.instance();
 
-        for (FunctionSignature sig : sigs) {
+        for (FuncSig sig : sigs) {
             if (index < sig.getParamTypes().size()) {
                 res = res.typeUnion(sig.getParamTypes().get(index), expr);
             }

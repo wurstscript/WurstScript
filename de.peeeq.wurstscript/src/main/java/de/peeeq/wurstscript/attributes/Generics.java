@@ -178,9 +178,6 @@ public class Generics {
         if (typeParams.size() == fc.getTypeArgs().size()) {
             return true;
         }
-        if (fc.getTypeArgs().size() > 0) {
-            fc.addError("Wrong number of type arguments. Expected " + typeParams.size());
-        }
         return false;
     }
 

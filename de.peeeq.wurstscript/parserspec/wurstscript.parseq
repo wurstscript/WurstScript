@@ -255,6 +255,8 @@ FunctionImplementation = FuncDef | ExtensionFuncDef
 
 FunctionLike = FunctionImplementation | ConstructorDef | InitBlock | OnDestroyDef
 
+ElementWithSignature = FunctionDefinition | FunctionImplementation | ConstructorDef | InitBlock | OnDestroyDef
+
 Documentable = NameDef | ConstructorDef
 
 
@@ -585,12 +587,14 @@ ModuleInstanciation.attrModuleOrigin
 	returns ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleInstanciations.getModuleOrigin
 
-StmtCall.attrPossibleFunctionSignatures
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.FunctionSignature>
+// TODO rename, function
+StmtCall.attrPossibleFunctionSignatures()
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.funcs.FuncSig>
 	implemented by de.peeeq.wurstscript.attributes.AttrPossibleFunctionSignatures.calculate
 
-StmtCall.attrFunctionSignature
-	returns de.peeeq.wurstscript.types.FunctionSignature
+// TODO rename, function
+StmtCall.attrFunctionSignature()
+	returns java.util.Optional<de.peeeq.wurstscript.attributes.funcs.FuncSig>
 	implemented by de.peeeq.wurstscript.attributes.AttrFunctionSignature.calculate
 
 StmtCall.attrCallSignature
@@ -749,8 +753,12 @@ NameRef.attrNameDef
 	returns @Nullable NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
-FuncRef.attrPossibleFuncDefs
-	returns com.google.common.collect.ImmutableCollection<FunctionDefinition>
+// TODO rename
+FuncRef.attrPossibleFuncDefs()
+    "finds functions to call based on receiver-type and name and visibility.
+    Does not consider parameter types -- this is before overloading resolution.
+    already filters out invisible functions (unless there are only invisible functions)"
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.funcs.FuncSig>
 	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
 
 

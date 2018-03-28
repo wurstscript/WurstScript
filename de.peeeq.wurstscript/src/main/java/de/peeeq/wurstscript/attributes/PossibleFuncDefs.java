@@ -3,8 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.funcs.FuncSig;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
@@ -17,10 +17,16 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
+
+/**
+ * finds functions to call (before overloading resolution)
+ * <p>
+ * already filters out invisible functions
+ */
 public class PossibleFuncDefs {
 
 
-    public static ImmutableCollection<FunctionDefinition> calculate(final ExprFuncRef node) {
+    public static ImmutableCollection<FuncSig> calculate(final ExprFuncRef node) {
 
         ImmutableCollection<NameLink> funcs;
         if (node.getScopeName().length() > 0) {
@@ -34,20 +40,16 @@ public class PossibleFuncDefs {
         } else {
             funcs = node.lookupFuncs(node.getFuncName());
         }
-        try {
-            funcs = filterInvisible(node.getFuncName(), node, funcs);
-        } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
-        }
-        ImmutableList.Builder<FunctionDefinition> result = ImmutableList.builder();
+        funcs = filterInvisible(node.getFuncName(), node, funcs);
+        ImmutableList.Builder<FuncSig> result = ImmutableList.builder();
         for (NameLink nameLink : funcs) {
-            result.add((FunctionDefinition) nameLink.getNameDef());
+            result.add(FuncSig.fromFunc((FunctionDefinition) nameLink.getNameDef()));
         }
         return result.build();
     }
 
 
-    public static ImmutableCollection<FunctionDefinition> calculate(final ExprMemberMethod node) {
+    public static ImmutableCollection<FuncSig> calculate(final ExprMemberMethod node) {
 
         Expr left = node.getLeft();
         WurstType leftType = left.attrTyp();
@@ -56,36 +58,12 @@ public class PossibleFuncDefs {
         return searchMemberFunc(node, leftType, funcName);
     }
 
-    public static ImmutableCollection<FunctionDefinition> calculate(final ExprFunctionCall node) {
+    public static ImmutableCollection<FuncSig> calculate(final ExprFunctionCall node) {
         return searchFunction(node.getFuncName(), node);
     }
 
-    private static ImmutableCollection<FunctionDefinition> getExtensionFunction(Expr left, Expr right, WurstOperator op) {
-        String funcName = op.getOverloadingFuncName();
-        if (funcName == null || nativeOperator(left.attrTyp(), right.attrTyp(), left)) {
-            return Utils.emptyList();
-        }
-        return searchMemberFunc(left, left.attrTyp(), funcName);
-    }
 
-
-    /**
-     * checks if operator is a native operator like for 1+2
-     * TODO also check which operator is used?
-     *
-     * @param term
-     */
-    private static boolean nativeOperator(WurstType leftType, WurstType rightType, Element term) {
-        return
-                // numeric
-                ((leftType.isSubtypeOf(WurstTypeInt.instance(), term) || leftType.isSubtypeOf(WurstTypeReal.instance(), term))
-                        && (rightType.isSubtypeOf(WurstTypeInt.instance(), term) || rightType.isSubtypeOf(WurstTypeReal.instance(), term)))
-                        // strings
-                        || (leftType instanceof WurstTypeString && rightType instanceof WurstTypeString);
-    }
-
-
-    private static ImmutableCollection<FunctionDefinition> searchFunction(String funcName, @Nullable FuncRef node) {
+    private static ImmutableCollection<FuncSig> searchFunction(String funcName, @Nullable FuncRef node) {
         if (node == null) {
             return ImmutableList.of();
         }
@@ -106,12 +84,12 @@ public class PossibleFuncDefs {
 
             return nameLinksToFunctionDefinition(funcs);
         } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
+            return ImmutableList.of(FuncSig.fromFunc(e.getFunc()));
         }
     }
 
 
-    private static ImmutableCollection<FunctionDefinition> searchMemberFunc(Expr node, WurstType leftType, String funcName) {
+    private static ImmutableCollection<FuncSig> searchMemberFunc(Expr node, WurstType leftType, String funcName) {
         ImmutableCollection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
         if (funcs1.size() == 0) {
             return ImmutableList.of();
@@ -124,20 +102,20 @@ public class PossibleFuncDefs {
             funcs = filterByReceiverType(node, funcName, funcs);
             return nameLinksToFunctionDefinition(funcs);
         } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
+            return ImmutableList.of(FuncSig.fromFunc(e.getFunc())); // TODO Bind type parameters from receiver
         }
     }
 
 
-    private static ImmutableCollection<FunctionDefinition> nameLinksToFunctionDefinition(
+    private static ImmutableCollection<FuncSig> nameLinksToFunctionDefinition(
             ImmutableCollection<NameLink> funcs) {
         return funcs.stream()
-                .map(nl -> (FunctionDefinition) nl.getNameDef())
+                .map(nl -> FuncSig.fromFunc((FunctionDefinition) nl.getNameDef()))
                 .collect(Utils.toImmutableList());
     }
 
 
-    private static ImmutableCollection<NameLink> filterInvisible(String funcName, Element node, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
+    private static ImmutableCollection<NameLink> filterInvisible(String funcName, Element node, ImmutableCollection<NameLink> funcs) {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return funcs;
@@ -151,15 +129,12 @@ public class PossibleFuncDefs {
             }
         }
 
-        funcs2 = Utils.removedDuplicates(funcs2);
-
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw new EarlyReturn(firstFunc(funcs));
-        } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs2));
+            return funcs;
         }
-        return ImmutableList.copyOf(funcs2);
+
+        return ImmutableList.copyOf(Utils.removedDuplicates(funcs2));
     }
 
 

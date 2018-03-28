@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
+import de.peeeq.wurstscript.attributes.funcs.FuncSig;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import de.peeeq.wurstscript.attributes.names.Visibility;
@@ -1102,8 +1103,8 @@ public class WurstValidator {
     // }
 
     @Deprecated
-    private void checkParams(Element where, String preMsg, List<Expr> args, FunctionSignature sig) {
-        checkParams(where, preMsg, args, sig.getParamTypes());
+    private void checkParams(Element where, String preMsg, List<Expr> args, Optional<FuncSig> sig) {
+        sig.ifPresent(funcSig -> checkParams(where, preMsg, args, funcSig.getParamTypes()));
     }
 
     @Deprecated
@@ -1130,9 +1131,9 @@ public class WurstValidator {
     private void visit(ExprBinary expr) {
         FunctionDefinition def = expr.attrFuncDef();
         if (def != null) {
-            FunctionSignature sig = FunctionSignature.forFunctionDefinition(def);
+            FuncSig sig = FuncSig.fromFunc(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
-            callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
+            callSig.checkSignatureCompatibility(Optional.of(sig), "" + expr.getOp(), expr);
         }
     }
 

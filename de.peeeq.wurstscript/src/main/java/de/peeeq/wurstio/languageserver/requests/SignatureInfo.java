@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.funcs.FuncSig;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
@@ -14,6 +15,7 @@ import org.eclipse.lsp4j.TextDocumentPositionParams;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 
@@ -62,7 +64,13 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 
 	private SignatureHelp forCall(StmtCall call) {
 		// TODO provide different alternatives
-		FunctionSignature sig = call.attrFunctionSignature();
+		Optional<FuncSig> sigOpt = call.attrFunctionSignature();
+		if (!sigOpt.isPresent()) {
+			return new SignatureHelp();
+		}
+
+		FuncSig sig = sigOpt.get();
+
 		SignatureHelp help = new SignatureHelp();
 		SignatureInformation info = new SignatureInformation();
 		info.setDocumentation("(" + sig.getParameterDescription() + ")");

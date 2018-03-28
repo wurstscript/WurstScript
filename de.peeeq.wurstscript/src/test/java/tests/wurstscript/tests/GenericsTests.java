@@ -671,5 +671,25 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void overloadingDifferent() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class LinkedList<T>",
+                "interface ToStringClosure<T>",
+                "	function toString(T t) returns string",
+                "public function LinkedList<int>.foo(string separator) returns string",
+                "	return this.foo<int>((int s) -> s, separator) // Doesn't work",
+//                "	this.foo2<string>(s -> s, separator) // Works",
+                "public function LinkedList<T>.foo<T>(ToStringClosure<T> cls, string separator)",
+                "	return separator",
+//                "public function LinkedList<T>.foo2<T>(ToStringClosure<T> cls, string separator)",
+                "init",
+                "	if 2 == 2",
+                "		testSuccess()"
+        );
+    }
+
 
 }

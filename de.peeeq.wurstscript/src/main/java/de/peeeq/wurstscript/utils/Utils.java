@@ -233,6 +233,12 @@ public class Utils {
         throw new Error("collection has no first element");
     }
 
+    public static <T> Optional<T> getFirstOption(Iterable<T> ts) {
+        for (T t : ts) {
+            return Optional.of(t);
+        }
+        return Optional.empty();
+    }
 
     private static <T> void topSortHelperIgnoreCycles(List<T> result,
                                                       Set<T> visitedItems,
@@ -952,4 +958,5 @@ public class Utils {
         }
         return result.toString();
     }
+
 }

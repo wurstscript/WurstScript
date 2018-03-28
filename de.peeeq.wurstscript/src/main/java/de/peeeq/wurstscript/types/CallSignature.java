@@ -3,9 +3,11 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.OptExpr;
+import de.peeeq.wurstscript.attributes.funcs.FuncSig;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 public class CallSignature {
     private final @Nullable Expr receiver;
@@ -28,19 +30,20 @@ public class CallSignature {
         return receiver;
     }
 
-    public void checkSignatureCompatibility(FunctionSignature sig, String funcName, Element pos) {
-        if (sig.isEmpty()) {
+    public void checkSignatureCompatibility(Optional<FuncSig> sigOpt, String funcName, Element pos) {
+        if (!sigOpt.isPresent()) {
             return;
         }
-        Expr l_receiver = receiver;
-        if (l_receiver != null) {
-            if (sig.getReceiverType() == null) {
-                l_receiver.addError("No receiver expected for function " + funcName + ".");
-            } else if (!l_receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), l_receiver)) {
-                l_receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
-                        "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
-            }
-        }
+        FuncSig sig = sigOpt.get();
+//        Expr l_receiver = receiver;
+//        if (l_receiver != null) {
+//            if (sig.getReceiverType() == null) {
+//                l_receiver.addError("No receiver expected for function " + funcName + ".");
+//            } else if (!l_receiver.attrTyp().isSubtypeOf(sig.getReceiverType(), l_receiver)) {
+//                l_receiver.addError("Incompatible receiver type at call to function " + funcName + ".\n" +
+//                        "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
+//            }
+//        }
         if (getArguments().size() > sig.getParamTypes().size()) {
             if (sig.getParamTypes().size() == 0) {
                 pos.addError("Too many arguments. Function " + funcName + " takes no parameter.");

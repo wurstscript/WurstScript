@@ -410,7 +410,9 @@ public class AttrExprType {
 
 
     public static WurstType calculate(StmtCall term) {
-        return term.attrFunctionSignature().getReturnType();
+        return term.attrFunctionSignature()
+                .map(sig -> sig.getReturnType())
+                .orElse(WurstTypeUnknown.instance());
     }
 
 
