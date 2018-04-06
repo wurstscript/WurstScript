@@ -33,6 +33,10 @@ public class AttrFunctionSignature {
                 candidates.add(sig);
             }
         }
+        if (candidates.isEmpty()) {
+            // return first match from original
+            return Utils.getFirstOption(sigs);
+        }
         if (candidates.size() > 1) {
             if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
                 // only show overloading error, if type for all arguments could be determined
@@ -47,6 +51,7 @@ public class AttrFunctionSignature {
             }
         }
         return Utils.getFirstOption(candidates);
+
     }
 
     private static boolean isInitTrigFunc(StmtCall e) {

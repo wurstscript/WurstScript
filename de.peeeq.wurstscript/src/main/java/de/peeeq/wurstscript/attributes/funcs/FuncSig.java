@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes.funcs;
 import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 

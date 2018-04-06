@@ -15,72 +15,27 @@ import java.util.Map;
 
 public class NameLink {
     private final Visibility visibility;
-    private int level = -1;
     private final NameLinkType type;
     private final WScope definedIn;
-    private boolean receiverTypeCalculted = false;
-    private @Nullable WurstType receiverType = null;
+    private final @Nullable WurstType receiverType;
     private final NameDef nameDef;
-    private @Nullable WurstType returnType;
-    private @Nullable List<WurstType> parameterTypes;
+    private final @Nullable WurstType returnType;
+    private final @Nullable List<WurstType> parameterTypes;
 
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((definedIn == null) ? 0 : definedIn.hashCode());
-        result = prime * result + ((nameDef == null) ? 0 : nameDef.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
-        result = prime * result + ((visibility == null) ? 0 : visibility.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        NameLink other = (NameLink) obj;
-        if (definedIn != other.definedIn)
-            return false;
-        if (nameDef != other.nameDef)
-            return false;
-        if (type != other.type)
-            return false;
-        if (visibility != other.visibility)
-            return false;
-        return true;
-    }
-
-    private NameLink(Visibility visibility, NameLinkType type,
-                     WScope definedIn, NameDef nameDef) {
-        super();
+    public NameLink(Visibility visibility, NameLinkType type, WScope definedIn, @Nullable WurstType receiverType, NameDef nameDef, @Nullable WurstType returnType, @Nullable List<WurstType> parameterTypes) {
         this.visibility = visibility;
         this.type = type;
         this.definedIn = definedIn;
-        this.nameDef = nameDef;
-    }
-
-    private NameLink(Visibility visibility, NameLinkType type,
-                     WScope definedIn, NameDef nameDef, @Nullable WurstType returnType, @Nullable List<WurstType> parameterTypes) {
-        super();
-        this.visibility = visibility;
-        this.type = type;
-        this.definedIn = definedIn;
+        this.receiverType = receiverType;
         this.nameDef = nameDef;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
     }
 
-    public static NameLink create(NameDef nameDef, WScope definedIn) {
-        Visibility visibiliy = calcVisibility(definedIn, nameDef);
-        NameLinkType type = calcNameLinkType(nameDef);
-        return new NameLink(visibiliy, type, definedIn, nameDef);
-    }
+
+
+
 
     private static @Nullable WurstType calcReceiverType(WScope definedIn, NameDef nameDef, NameLinkType type) {
         if (type == NameLinkType.FUNCTION) {
@@ -214,15 +169,12 @@ public class NameLink {
         if (newVis == visibility) {
             return this;
         }
-        return new NameLink(newVis, type, definedIn, nameDef);
+        return new NameLink(newVis, type, definedIn, receiverType, nameDef, returnType, parameterTypes);
     }
 
 
     public int getLevel() {
-        if (level < 0) {
-            level = calcLevel(definedIn);
-        }
-        return level;
+        return calcLevel(definedIn);
     }
 
 
@@ -232,10 +184,6 @@ public class NameLink {
 
 
     public @Nullable WurstType getReceiverType() {
-        if (!receiverTypeCalculted) {
-            receiverType = calcReceiverType(definedIn, nameDef, type);
-            receiverTypeCalculted = true;
-        }
         return receiverType;
     }
 
@@ -254,6 +202,8 @@ public class NameLink {
         }
         WurstType newReturnType = adjustType(context, getReturnType(), binding);
         boolean changed = newReturnType != returnType;
+        WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
+
         List<WurstType> newParamTypes;
         if (getParameterTypes().isEmpty()) {
             newParamTypes = getParameterTypes();
@@ -268,7 +218,7 @@ public class NameLink {
             }
         }
         if (changed) {
-            return new NameLink(visibility, type, definedIn, nameDef, newReturnType, newParamTypes);
+            return new NameLink(visibility, type, definedIn, newReceiverType, nameDef, newReturnType, newParamTypes);
         } else {
             return this;
         }
@@ -280,31 +230,16 @@ public class NameLink {
 
 
     public WurstType getReturnType() {
-        WurstType r = returnType;
-        if (r == null) {
-            r = nameDef.attrTyp();
-            returnType = r;
-        }
-        return r;
+        return returnType;
     }
 
     public List<WurstType> getParameterTypes() {
-        List<WurstType> pts = parameterTypes;
-        if (pts == null) {
-            if (nameDef instanceof FunctionDefinition) {
-                FunctionDefinition f = (FunctionDefinition) nameDef;
-                pts = f.attrParameterTypes();
-            } else {
-                pts = Collections.emptyList();
-            }
-            parameterTypes = pts;
-        }
-        return pts;
+        return parameterTypes;
     }
 
     public NameLink withConfigDef() {
-        NameDef def = (NameDef) nameDef.attrConfigActualNameDef();
-        return new NameLink(visibility, type, definedIn, def, returnType, parameterTypes);
+        NameDef def = nameDef.attrConfigActualNameDef();
+        return new NameLink(visibility, type, definedIn, receiverType, def, returnType, parameterTypes);
     }
 
 
