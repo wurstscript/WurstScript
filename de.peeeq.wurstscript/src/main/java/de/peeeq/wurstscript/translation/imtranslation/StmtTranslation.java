@@ -177,8 +177,8 @@ public class StmtTranslation {
     private static ImStmts unrollBody(ImFunction imFunction, LocalVarDef loopVar, int i) {
         ImStmts imStmts = JassIm.ImStmts();
         for (int j = 0; j < i; j++) {
-            ImVar imVar1 = imFunction.getParameters().stream().filter(imVar -> imVar.getName().equals(loopVar.getName())).findFirst().get();
-            imVar1.attrWrites().stream().forEach(write -> write.);
+//            ImVar imVar1 = imFunction.getParameters().stream().filter(imVar -> imVar.getName().equals(loopVar.getName())).findFirst().get();
+//            imVar1.attrWrites().stream().forEach(write -> write.);
         }
         return imStmts;
     }
