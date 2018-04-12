@@ -1114,5 +1114,24 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testOver9000() {
+        testAssertOkLines(true,
+                "package Vegeta",
+                "   native testSuccess()",
+                "   class Scouter",
+                "       static int size = 0",
+                "       construct()",
+                "           size++",
+                "",
+                "   init",
+                "       for i = 0 to 20000",
+                "           new Scouter()",
+                "       if Scouter.size == 20001",
+                "	        testSuccess()",
+                "endpackage"
+        );
+    }
+
 
 }
