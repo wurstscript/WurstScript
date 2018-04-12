@@ -21,4 +21,8 @@ public class PlayerProvider extends Provider {
     public IlConstHandle GetLocalPlayer() {
         return new IlConstHandle("Local Player", "local player");
     }
+
+    public ILconstInt GetBJMaxPlayerSlots() {
+        return new ILconstInt(24);
+    }
 }
