@@ -15,7 +15,7 @@ apply plugin: 'idea'
 
 apply plugin: 'application'
 mainClassName = "de.peeeq.wurstio.Main"
-version = "1.7.0.0"
+version = "1.7.1.0"
 
 
 String genDir = "$projectDir/src-gen"
