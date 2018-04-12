@@ -21,6 +21,14 @@ public class W3Utils {
         WLogger.info("Parsing Patch Version");
         File patchTxt = new File(wc3Path, "Patch.txt");
         File releaseNotes = new File(wc3Path, "Release Notes.txt");
+        File gamedll = new File(wc3Path, "game.dll");
+
+        if (!patchTxt.exists() && !releaseNotes.exists() && !gamedll.exists()) {
+            // If neither of the patch logs exist and the gamedll is gone as well,
+            // we likely are dealing with a 1.29 install or higher
+            WLogger.info("Assumed Version: 1.29");
+            return 1.29;
+        }
 
         try {
             final List<String> matches = new ArrayList<>();
@@ -55,6 +63,7 @@ public class W3Utils {
 
     /**
      * Reads the installation path from windows registry
+     *
      * @return The wc3 installation path, or null if no registry entry exists
      * @throws InvocationTargetException
      * @throws IllegalAccessException

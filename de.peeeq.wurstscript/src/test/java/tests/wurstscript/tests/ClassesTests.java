@@ -1114,5 +1114,24 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testOver9000() {
+        testAssertOkLines(true,
+                "package Vegeta",
+                "   native testSuccess()",
+                "   class PowerLevel",
+                "       static int amount = 0",
+                "       construct()",
+                "           amount++",
+                "",
+                "   init",
+                "       for i = 0 to 20000",
+                "           new PowerLevel()",
+                "       if PowerLevel.amount > 9000 and PowerLevel.amount == 20001",
+                "	        testSuccess()",
+                "endpackage"
+        );
+    }
+
 
 }

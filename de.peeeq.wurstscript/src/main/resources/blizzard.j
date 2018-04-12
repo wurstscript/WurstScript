@@ -39,11 +39,11 @@ globals
     constant real      bj_POLLED_WAIT_SKIP_THRESHOLD    =  2.00
 
     // Game constants
-    constant integer   bj_MAX_INVENTORY                 =   6
-    constant integer   bj_MAX_PLAYERS                   =  12
-    constant integer   bj_PLAYER_NEUTRAL_VICTIM         =  13
-    constant integer   bj_PLAYER_NEUTRAL_EXTRA          =  14
-    constant integer   bj_MAX_PLAYER_SLOTS              =  16
+    constant integer   bj_MAX_INVENTORY                 =  6
+    constant integer   bj_MAX_PLAYERS                   =  GetBJMaxPlayers()
+    constant integer   bj_PLAYER_NEUTRAL_VICTIM         =  GetBJPlayerNeutralVictim()
+    constant integer   bj_PLAYER_NEUTRAL_EXTRA          =  GetBJPlayerNeutralExtra()
+    constant integer   bj_MAX_PLAYER_SLOTS              =  GetBJMaxPlayerSlots()
     constant integer   bj_MAX_SKELETONS                 =  25
     constant integer   bj_MAX_STOCK_ITEM_SLOTS          =  11
     constant integer   bj_MAX_STOCK_UNIT_SLOTS          =  11
@@ -289,6 +289,11 @@ globals
     constant integer   bj_KEYEVENTKEY_RIGHT        = 1
     constant integer   bj_KEYEVENTKEY_DOWN         = 2
     constant integer   bj_KEYEVENTKEY_UP           = 3
+
+    // Mouse Event Types
+    constant integer   bj_MOUSEEVENTTYPE_DOWN     = 0
+    constant integer   bj_MOUSEEVENTTYPE_UP       = 1
+    constant integer   bj_MOUSEEVENTTYPE_MOVE     = 2
 
     // Transmission timing methods
     constant integer   bj_TIMETYPE_ADD             = 0
@@ -1725,6 +1730,23 @@ function TriggerRegisterPlayerKeyEventBJ takes trigger trig, player whichPlayer,
     else
         // Unrecognized type - ignore the request and return failure.
         return null
+    endif
+endfunction
+
+//===========================================================================
+function TriggerRegisterPlayerMouseEventBJ takes trigger trig, player whichPlayer, integer meType returns event
+     if (meType == bj_MOUSEEVENTTYPE_DOWN) then
+        // Mouse down event
+        return TriggerRegisterPlayerEvent(trig, whichPlayer, EVENT_PLAYER_MOUSE_DOWN)
+    elseif (meType == bj_MOUSEEVENTTYPE_UP) then
+        // Mouse up event
+        return TriggerRegisterPlayerEvent(trig, whichPlayer, EVENT_PLAYER_MOUSE_UP)
+    elseif (meType == bj_MOUSEEVENTTYPE_MOVE) then
+        // Mouse move event
+        return TriggerRegisterPlayerEvent(trig, whichPlayer, EVENT_PLAYER_MOUSE_MOVE)
+    else
+        // Unrecognized type - ignore the request and return failure.
+         return null
     endif
 endfunction
 
