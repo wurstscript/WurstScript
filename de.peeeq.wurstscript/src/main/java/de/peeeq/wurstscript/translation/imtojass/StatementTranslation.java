@@ -95,4 +95,7 @@ public class StatementTranslation {
     }
 
 
+    public static void translate(ImVarargLoop imVarargLoop, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
+        throw new Error("not implemented");
+    }
 }

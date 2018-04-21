@@ -413,4 +413,9 @@ public class ImPrinter {
         e.getExpr().print(sb, indent);
         sb.append(">>");
     }
+
+    public static void print(ImVarargLoop imVarargLoop, StringBuilder sb, int indent) {
+        sb.append("varargLoop: ");
+        // TODO
+    }
 }

@@ -386,7 +386,7 @@ public class NewFeatureTests extends WurstScriptTest {
                 "package Test",
                 "function foo(vararg int ints)",
                 "init",
-                "   foo(1,2,3)"
+                "    foo(1,2,3)"
         );
     }
 

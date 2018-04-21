@@ -56,12 +56,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
-
-
     public static class Result {
+
         final List<ImStmt> stmts;
         final ImExpr expr;
-
 
         public Result(List<ImStmt> stmts, ImExpr epxr) {
             this.stmts = stmts;
@@ -82,12 +80,12 @@ public class Flatten {
             result.addAll(stmts);
             exprToStatements(result, expr, t, f);
         }
-    }
 
+    }
     public static class MultiResult {
+
         final List<ImStmt> stmts;
         final List<ImExpr> exprs;
-
 
         public MultiResult(List<ImStmt> stmts, List<ImExpr> exprs) {
             this.stmts = stmts;
@@ -100,8 +98,8 @@ public class Flatten {
         }
 
 
-    }
 
+    }
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
         if (e instanceof ImFunctionCall) {
             result.add((ImStmt) ((ImStmt) e).copy());
@@ -390,4 +388,7 @@ public class Flatten {
     }
 
 
+    public static Result flatten(ImVarargLoop imVarargLoop, ImTranslator translator, ImFunction f) {
+        throw new Error("not implemented");
+    }
 }
