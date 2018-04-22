@@ -391,44 +391,18 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
-    public void testVarargValidation() {
-        testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "function foo(vararg int ints)",
-                "   if ints[0] == 1 and ints[1] == 2 and ints[2] == 3",
-                "       testSuccess()",
-                "init",
-                "   foo(1,2,3)"
-        );
-    }
-
-    @Test
-    public void testVarargLength() {
-        testAssertOkLines(true,
-                "package Test",
-                "native testSuccess()",
-                "function foo(vararg int ints)",
-                "   if ints.length == 4",
-                "       testSuccess()",
-                "init",
-                "   foo(1,2,3,4)"
-        );
-    }
-
-    @Test
     public void testVarargForeach() {
         testAssertOkLines(true,
                 "package Test",
                 "native testSuccess()",
                 "function foo(vararg int ints)",
-                "   var sum = 0",
-                "   for i in ints",
-                "       sum += i",
-                "   if sum == 10",
-                "       testSuccess()",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 10",
+                "        testSuccess()",
                 "init",
-                "   foo(1,2,3,4)"
+                "    foo(1,2,3,4)"
         );
     }
 

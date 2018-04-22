@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -119,13 +120,14 @@ public class ImToJassTranslator {
     }
 
     private void translateFunction(ImFunction imFunc) {
-        if (imFunc.isBj()) {
+        if (imFunc.isBj() || imFunc.hasFlag(FunctionFlagEnum.IS_VARARG)) {
             return;
         }
         // not a native
         JassFunctionOrNative f = getJassFuncFor(imFunc);
 
         f.setReturnType(imFunc.getReturnType().translateType());
+
         // translate parameters
         for (ImVar v : imFunc.getParameters()) {
             f.getParams().add((JassSimpleVar) getJassVarFor(v));

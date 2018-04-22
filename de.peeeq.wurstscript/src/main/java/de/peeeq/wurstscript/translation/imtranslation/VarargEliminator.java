@@ -3,15 +3,12 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
@@ -32,33 +29,27 @@ public class VarargEliminator {
     }
 
     public void run() {
-
-
-        final Multimap<ImFunction, ImGetStackTrace> stackTraceGets = LinkedListMultimap.create();
         final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
-        final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
-        final List<ImFuncRef> funcRefs = Lists.newArrayList();
+        final List<ImFunction> varargFuncs = Lists.newArrayList();
+        final List<Integer> generatedSizes = Lists.newArrayList();
         prog.accept(new ImProg.DefaultVisitor() {
-
-            @Override
-            public void visit(ImGetStackTrace e) {
-                super.visit(e);
-                stackTraceGets.put(e.getNearestFunc(), e);
-            }
 
             @Override
             public void visit(ImFunctionCall c) {
                 super.visit(c);
                 // Collect all calls to vararg functions
-                if(c.getFunc().hasFlag(IS_VARARG)) {
+                if (c.getFunc().hasFlag(IS_VARARG)) {
                     calls.put(c.getFunc(), c);
                 }
             }
 
-            @Override
-            public void visit(ImFuncRef imFuncRef) {
-                super.visit(imFuncRef);
-                funcRefs.add(imFuncRef);
+        });
+
+        calls.forEach((func, call) -> {
+            // Generate functions with appropriate parameters
+            if (!generatedSizes.contains(call.getArguments().size())) {
+                generateVarargFunc(func, call);
+                generatedSizes.add(call.getArguments().size());
             }
         });
 
@@ -69,19 +60,28 @@ public class VarargEliminator {
         prog.getGlobals().add(stack);
         prog.getGlobalInits().put(stackSize, JassIm.ImIntVal(0));
 
-        Multimap<ImFunction, ImFunction> callRelationTr = Utils.transientClosure(callRelation);
-
-        // find affected functions
-        Set<ImFunction> affectedFuncs = Sets.newHashSet(stackTraceGets.keySet());
-        for (Entry<ImFunction, ImFunction> e : callRelationTr.entries()) {
-            if (stackTraceGets.containsKey(e.getValue())) {
-                affectedFuncs.add(e.getKey());
-            }
-        }
 
         for (Entry<Element, Element> e : replacements.entrySet()) {
             e.getKey().replaceBy(e.getValue());
         }
+    }
+
+    private void generateVarargFunc(ImFunction func, ImFunctionCall call) {
+        int argumentSize = call.getArguments().size();
+        ImVar vararg = func.getParameters().get(0);
+        ImVars params = JassIm.ImVars();
+        for (int i = 0; i < argumentSize; i++) {
+            params.add(JassIm.ImVar(func.getTrace(), vararg.getType(), vararg.getName() + "_" + i, false));
+        }
+        ImFunction newFunc = JassIm.ImFunction(func.getTrace(), func.getName() + "_" + argumentSize, params, func.getReturnType(), func.getLocals().copy()
+                , func.getBody().copy(), func.getFlags());
+
+        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace().copy(), newFunc, call.getArguments().copy(), call.getTuplesEliminated(),
+                call.getCallType());
+
+        call.replaceBy(newCall);
+        prog.getFunctions().add(newFunc);
+
     }
 
 
