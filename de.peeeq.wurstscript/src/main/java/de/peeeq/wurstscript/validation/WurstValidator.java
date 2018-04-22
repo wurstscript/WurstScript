@@ -1053,7 +1053,26 @@ public class WurstValidator {
             throw new Error("unhandled case: " + Utils.printElement(call));
         }
 
-        call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+        if (call.attrFunctionSignature().isVararg()) {
+            // For now only singular vararg parameter is allowed
+            List<WurstType> parameterTypes = call.attrFunctionSignature().getParamTypes();
+            if (parameterTypes.size() != 1) {
+                throw new Error("A vararg function may only have one parameter");
+            } else {
+                WurstType wurstType = parameterTypes.get(0);
+                if (wurstType instanceof WurstTypeArray) {
+                    WurstType baseType = ((WurstTypeArray) wurstType).getBaseType();
+                    call.attrCallSignature().getArguments().forEach(arg -> {
+                        if (!arg.attrTyp().isSubtypeOf(baseType, null)) {
+                            throw new Error("Argument " + Utils.printElement(arg) + "is not of type " + baseType);
+                        }
+                    });
+                }
+
+            }
+        } else {
+            call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+        }
     }
 
     private void visit(ExprFunctionCall stmtCall) {
