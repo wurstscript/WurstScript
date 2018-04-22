@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
@@ -53,17 +52,6 @@ public class VarargEliminator {
             }
         });
 
-        de.peeeq.wurstscript.ast.Element trace = prog.attrTrace();
-        stackSize = JassIm.ImVar(trace, JassIm.ImSimpleType("integer"), "wurst_stack_depth", false);
-        prog.getGlobals().add(stackSize);
-        stack = JassIm.ImVar(trace, JassIm.ImArrayType("string"), "wurst_stack", false);
-        prog.getGlobals().add(stack);
-        prog.getGlobalInits().put(stackSize, JassIm.ImIntVal(0));
-
-
-        for (Entry<Element, Element> e : replacements.entrySet()) {
-            e.getKey().replaceBy(e.getValue());
-        }
     }
 
     private void generateVarargFunc(ImFunction func, ImFunctionCall call) {
@@ -75,6 +63,7 @@ public class VarargEliminator {
         }
         ImFunction newFunc = JassIm.ImFunction(func.getTrace(), func.getName() + "_" + argumentSize, params, func.getReturnType(), func.getLocals().copy()
                 , func.getBody().copy(), func.getFlags());
+
 
         ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace().copy(), newFunc, call.getArguments().copy(), call.getTuplesEliminated(),
                 call.getCallType());
