@@ -100,13 +100,16 @@ public class AttrVarDefType {
                 return new WurstTypeArray(valueType);
             } else if (v.getParent() instanceof StmtForIn) {
                 StmtForIn forIn = (StmtForIn) v.getParent();
-                @Nullable NameDef nameDef = forIn.lookupVar(forIn.getIn().tryGetNameDef().getName());
-                if(nameDef.attrIsVararg()) {
-                    return ((WurstTypeVararg)nameDef.attrTyp()).getBaseType();
+                @Nullable NameDef nameDef1 = forIn.getIn().tryGetNameDef();
+                if (nameDef1 != null) {
+                    @Nullable NameDef nameDef = forIn.lookupVar(nameDef1.getName());
+                    if (nameDef.attrIsVararg()) {
+                        return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
+                    }
                 }
 
                 // find 'iterator' function:
-                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forIn.getIn().attrTyp(), "iterator", false);
+                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forIn.getIn().attrTyp().dynamic(), "iterator", false);
                 // find the 'iterator' function without parameters:
                 // must exist, because this is after type check
                 NameLink iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
@@ -121,6 +124,14 @@ public class AttrVarDefType {
                 NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
 
                 return nextFunc.getReturnType();
+            } else if (v.getParent() instanceof StmtForFrom) {
+                StmtForFrom forFrom = (StmtForFrom) v.getParent();
+                // find 'next' function:
+                ImmutableCollection<NameLink> next = forFrom.getIn().lookupMemberFuncs(forFrom.getIn().attrTyp().dynamic(), "next", false);
+                // find the 'next' function without parameters
+                NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+
+                return nextFunc.getReturnType().normalize();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");

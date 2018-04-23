@@ -164,22 +164,18 @@ public class StmtTranslation {
         return ImStatementExpr(ImStmts(result), ImNull());
     }
 
+    /**
+     * Translate a for in vararg loop. Unlike the other for loops we don't need
+     * an iterator etc. because the loop is unrolled in the VarargEliminator
+     */
     private static ImStmt case_StmtForVararg(StmtForIn s, ImTranslator t, ImFunction f) {
         List<ImStmt> result = Lists.newArrayList();
-        result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody()))));
+        ImVar loopVar = t.getVarFor(s.getLoopVar());
 
-        f.getLocals().add(t.getVarFor(s.getLoopVar()));
+        result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody())), loopVar));
 
+        f.getLocals().add(loopVar);
         return ImStatementExpr(ImStmts(result), ImNull());
-    }
-
-    private static ImStmts unrollBody(ImFunction imFunction, LocalVarDef loopVar, int i) {
-        ImStmts imStmts = JassIm.ImStmts();
-        for (int j = 0; j < i; j++) {
-//            ImVar imVar1 = imFunction.getParameters().stream().filter(imVar -> imVar.getName().equals(loopVar.getName())).findFirst().get();
-//            imVar1.attrWrites().stream().forEach(write -> write.);
-        }
-        return imStmts;
     }
 
 

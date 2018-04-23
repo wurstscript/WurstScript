@@ -758,6 +758,6 @@ public class EliminateTuples {
     }
 
     public static ImStmt eliminateTuples(ImVarargLoop imVarargLoop, ImTranslator translator, ImFunction f) {
-        throw new Error("not implemented");
+        return imVarargLoop;
     }
 }

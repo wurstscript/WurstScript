@@ -1,7 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImExprOpt;
+import de.peeeq.wurstscript.jassIm.ImType;
 
 
 public class WurstTypeVararg extends WurstType {
@@ -38,17 +39,7 @@ public class WurstTypeVararg extends WurstType {
 
     @Override
     public ImType imTranslateType() {
-        ImType bt = baseType.imTranslateType();
-
-        if (bt instanceof ImSimpleType) {
-            String typename = ((ImSimpleType) bt).getTypename();
-            return JassIm.ImArrayType(typename);
-        } else if (bt instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) bt;
-            return JassIm.ImTupleArrayType(tt.getTypes(), tt.getNames());
-        } else {
-            throw new Error("cannot translate vararg type " + getName() + "  " + bt);
-        }
+        return baseType.imTranslateType();
     }
 
 

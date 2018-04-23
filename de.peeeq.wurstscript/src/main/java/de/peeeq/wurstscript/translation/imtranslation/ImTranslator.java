@@ -597,7 +597,7 @@ public class ImTranslator {
                 flags.add(IS_TEST);
             }
             // Check if last parameter is vararg
-            if (funcDef2.getParameters().get(funcDef2.getParameters().size() - 1).attrIsVararg()) {
+            if (funcDef2.getParameters().size() == 1 && funcDef2.getParameters().get(funcDef2.getParameters().size() - 1).attrIsVararg()) {
                 flags.add(IS_VARARG);
             }
         }

@@ -102,7 +102,6 @@ public class AttrExprType {
             return typ;
         } else if (varDef.attrIsVararg()) {
             // TODO
-
         } else {
             term.addError("Variable " + varDef.getName() + " is no array variable.");
         }
