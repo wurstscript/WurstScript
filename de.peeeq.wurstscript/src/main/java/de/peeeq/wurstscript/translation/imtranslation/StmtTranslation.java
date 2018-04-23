@@ -90,9 +90,11 @@ public class StmtTranslation {
 
         ImStmts imBody = ImStmts();
         // exitwhen not #hasNext()
-        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs(iterationTarget.imTranslateExpr(t,f)), false, CallType.NORMAL)))));
+        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs
+                (iterationTarget.imTranslateExpr(t, f)), false, CallType.NORMAL)))));
         // elem = next()
-        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(iterationTarget.imTranslateExpr(t,f)), false, CallType.NORMAL)));
+        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(iterationTarget.imTranslateExpr(t, f)),
+                false, CallType.NORMAL)));
 
         imBody.addAll(t.translateStatements(f, s.getBody()));
 
@@ -106,7 +108,7 @@ public class StmtTranslation {
         Expr iterationTarget = s.getIn();
         WurstType itrType = iterationTarget.attrTyp();
         if (itrType instanceof WurstTypeVararg) {
-            return case_StmtForVararg(s,t,f);
+            return case_StmtForVararg(s, t, f);
         }
         // find 'iterator' function:
         ImmutableCollection<NameLink> iterator = iterationTarget.lookupMemberFuncs(itrType, "iterator", false);
@@ -149,9 +151,11 @@ public class StmtTranslation {
 
         ImStmts imBody = ImStmts();
         // exitwhen not #hasNext()
-        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
+        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs(JassIm
+                .ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
         // elem = next()
-        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
+        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false,
+                CallType.NORMAL)));
 
         imBody.addAll(t.translateStatements(f, s.getBody()));
 
@@ -161,15 +165,10 @@ public class StmtTranslation {
     }
 
     private static ImStmt case_StmtForVararg(StmtForIn s, ImTranslator t, ImFunction f) {
-        WurstTypeVararg wurstTypeVararg = (WurstTypeVararg) s.getIn().attrTyp();
-
-        ImVars imVars = JassIm.ImVars();
-        for (int i = 0; i < 10; i++) {
-            imVars.add(JassIm.ImVar(f.getTrace(), wurstTypeVararg.getBaseType().imTranslateType(), "vararg_" + i, false));
-            t.getImProg().getFunctions().add(JassIm.ImFunction(f.getTrace(), f.getName(), imVars.copy(), f.getReturnType(), f.getLocals().copy(), unrollBody(f, s.getLoopVar(), i), f.getFlags()));
-        }
-
         List<ImStmt> result = Lists.newArrayList();
+        result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody()))));
+
+        f.getLocals().add(t.getVarFor(s.getLoopVar()));
 
         return ImStatementExpr(ImStmts(result), ImNull());
     }
@@ -220,7 +219,6 @@ public class StmtTranslation {
     }
 
 
-
     private static ImExpr addCacheVariableSmart(ImTranslator t, ImFunction f, List<ImStmt> result, Expr toCache, ImType type) {
         ImExpr r = toCache.imTranslateExpr(t, f);
         if (r instanceof ImConst) {
@@ -233,7 +231,8 @@ public class StmtTranslation {
     }
 
     public static ImStmt translate(StmtIf s, ImTranslator t, ImFunction f) {
-        return ImIf(s, s.getCond().imTranslateExpr(t, f), ImStmts(t.translateStatements(f, s.getThenBlock())), ImStmts(t.translateStatements(f, s.getElseBlock())));
+        return ImIf(s, s.getCond().imTranslateExpr(t, f), ImStmts(t.translateStatements(f, s.getThenBlock())), ImStmts(t.translateStatements(f, s
+                .getElseBlock())));
     }
 
 
@@ -349,10 +348,12 @@ public class StmtTranslation {
         for (int i = 0; i < switchStmt.getCases().size(); i++) {
             cse = switchStmt.getCases().get(i);
             if (lastIf == null) {
-                lastIf = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr) tempVar.copy(), cse.getExpr().imTranslateExpr(t, f))), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts());
+                lastIf = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr) tempVar.copy(), cse.getExpr().imTranslateExpr(t, f))), ImStmts(t
+                        .translateStatements(f, cse.getStmts())), ImStmts());
                 result.add(lastIf);
             } else {
-                ImIf tmp = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr) tempVar.copy(), cse.getExpr().imTranslateExpr(t, f))), ImStmts(t.translateStatements(f, cse.getStmts())), ImStmts());
+                ImIf tmp = ImIf(switchStmt, ImOperatorCall(WurstOperator.EQ, ImExprs((ImExpr) tempVar.copy(), cse.getExpr().imTranslateExpr(t, f))), ImStmts
+                        (t.translateStatements(f, cse.getStmts())), ImStmts());
                 lastIf.setElseBlock(ImStmts(tmp));
                 lastIf = tmp;
             }

@@ -12,7 +12,8 @@ import java.util.Map;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
 /**
- * Takes a program and inserts stack traces at error messages
+ * Takes a program and eliminates vararg functions, replacing them with
+ * generated functions with the appropriate amount of parameters.
  */
 public class VarargEliminator {
 
