@@ -895,6 +895,11 @@ public class WurstValidator {
 
     private void visit(WParameter p) {
         checkVarName(p, false);
+        if (p.attrIsVararg()) {
+            if (p.attrNearestFuncDef().getParameters().size() != 1) {
+                p.addError("Vararg functions may only have one parameter");
+            }
+        }
         checkIfParameterIsRead(p);
     }
 
@@ -1056,20 +1061,17 @@ public class WurstValidator {
         if (call.attrFunctionSignature().isVararg()) {
             // For now only singular vararg parameter is allowed
             List<WurstType> parameterTypes = call.attrFunctionSignature().getParamTypes();
-            if (parameterTypes.size() != 1) {
-                throw new Error("A vararg function may only have one parameter");
-            } else {
-                WurstType wurstType = parameterTypes.get(0);
-                if (wurstType instanceof WurstTypeArray) {
-                    WurstType baseType = ((WurstTypeArray) wurstType).getBaseType();
-                    call.attrCallSignature().getArguments().forEach(arg -> {
-                        if (!arg.attrTyp().isSubtypeOf(baseType, null)) {
-                            throw new Error("Argument " + Utils.printElement(arg) + "is not of type " + baseType);
-                        }
-                    });
-                }
 
+            WurstType wurstType = parameterTypes.get(0);
+            if (wurstType instanceof WurstTypeArray) {
+                WurstType baseType = ((WurstTypeArray) wurstType).getBaseType();
+                call.attrCallSignature().getArguments().forEach(arg -> {
+                    if (!arg.attrTyp().isSubtypeOf(baseType, null)) {
+                        throw new Error("Argument " + Utils.printElement(arg) + "is not of type " + baseType);
+                    }
+                });
             }
+
         } else {
             call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
         }

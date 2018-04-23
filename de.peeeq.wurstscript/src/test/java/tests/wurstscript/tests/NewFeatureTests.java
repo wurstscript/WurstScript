@@ -368,6 +368,15 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testInvalidVarargFunc() {
+        testAssertErrorsLines(false, "may only have one parameter",
+                "package Test",
+                "function foo(int x, vararg int ints)",
+                ""
+        );
+    }
+
+    @Test
     public void testVarargAccess() {
         testAssertOkLines(false,
                 "package Test",
