@@ -81,7 +81,11 @@ public class WurstParser {
                         posStop = pos + 1;
                     }
 
-                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
+                    if (posStop >= input.size()) {
+                        posStop = input.size() - 1;
+                    }
+
+                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")){
                         pos--;
                     }
                     CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
