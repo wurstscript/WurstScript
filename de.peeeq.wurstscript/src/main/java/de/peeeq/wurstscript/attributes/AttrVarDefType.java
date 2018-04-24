@@ -126,11 +126,13 @@ public class AttrVarDefType {
                 // find 'next' function:
                 ImmutableCollection<NameLink> next = forIn.getIn().lookupMemberFuncs(iteratorType, "next", false);
                 // find the 'next' function without parameters
-                Optional<NameLink> nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+                Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+                if (!nextFuncOpt.isPresent()) {
+                    return WurstTypeUnknown.instance();
+                }
+                NameLink nextFunc = nextFuncOpt.get();
 
-                return nextFunc
-                        .map(nl -> nl.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding()))
-                        .orElse(WurstTypeUnknown.instance());
+                return nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding()).normalize();
             } else if (v.getParent() instanceof StmtForFrom) {
                 StmtForFrom forFrom = (StmtForFrom) v.getParent();
                 WurstType forFromType = forFrom.getIn().attrTyp();

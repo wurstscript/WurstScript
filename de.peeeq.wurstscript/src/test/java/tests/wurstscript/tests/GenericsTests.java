@@ -263,6 +263,20 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void implicitConversionFail2() { // same as implicitConversionFail, but with for-from
+        testAssertOkLinesWithStdLib(false,
+                "package Test",
+                "import LinkedList",
+                "Table data",
+
+                "init",
+                "	LinkedList<effect> fxs = new LinkedList<effect>()",
+                "	for f from fxs.iterator()",
+                "		f.destr()",
+                "endpackage");
+    }
+
+    @Test
     public void implicitConversionFailSimple() { // see bug #121
         testAssertOkLines(false,
                 "type effect extends handle",
