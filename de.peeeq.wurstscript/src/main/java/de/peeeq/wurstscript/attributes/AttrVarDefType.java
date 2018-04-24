@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -108,30 +109,41 @@ public class AttrVarDefType {
                     }
                 }
 
+                WurstType forInType = forIn.getIn().attrTyp();
                 // find 'iterator' function:
-                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forIn.getIn().attrTyp().dynamic(), "iterator", false);
+                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forInType.dynamic(), "iterator", false);
                 // find the 'iterator' function without parameters:
-                // must exist, because this is after type check
-                NameLink iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+                Optional<NameLink> iteratorFuncOpt = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+                if (!iteratorFuncOpt.isPresent()) {
+                    return WurstTypeUnknown.instance();
+                }
+                NameLink iteratorFunc = iteratorFuncOpt.get();
                 // Type of iterator variable:
-                WurstType iteratorType = iteratorFunc.getReturnType();
+                WurstType iteratorType = iteratorFunc.getReturnType().setTypeArgs(forInType.getTypeArgBinding());
                 // Type of loop Variable:
-                WurstType loopVarType = forIn.getLoopVar().attrTyp();
+//                WurstType loopVarType = forIn.getLoopVar().attrTyp();
 
                 // find 'next' function:
                 ImmutableCollection<NameLink> next = forIn.getIn().lookupMemberFuncs(iteratorType, "next", false);
                 // find the 'next' function without parameters
-                NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+                Optional<NameLink> nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
 
-                return nextFunc.getReturnType();
+                return nextFunc
+                        .map(nl -> nl.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding()))
+                        .orElse(WurstTypeUnknown.instance());
             } else if (v.getParent() instanceof StmtForFrom) {
                 StmtForFrom forFrom = (StmtForFrom) v.getParent();
+                WurstType forFromType = forFrom.getIn().attrTyp();
                 // find 'next' function:
-                ImmutableCollection<NameLink> next = forFrom.getIn().lookupMemberFuncs(forFrom.getIn().attrTyp().dynamic(), "next", false);
+                ImmutableCollection<NameLink> next = forFrom.getIn().lookupMemberFuncs(forFromType.dynamic(), "next", false);
                 // find the 'next' function without parameters
-                NameLink nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst().get();
+                Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+                if (!nextFuncOpt.isPresent()) {
+                    return WurstTypeUnknown.instance();
+                }
+                NameLink nextFunc = nextFuncOpt.get();
 
-                return nextFunc.getReturnType().normalize();
+                return nextFunc.getReturnType().setTypeArgs(forFromType.getTypeArgBinding()).normalize();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");
