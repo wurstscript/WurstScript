@@ -115,6 +115,7 @@ public class AttrVarDefType {
                 // find the 'iterator' function without parameters:
                 Optional<NameLink> iteratorFuncOpt = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
                 if (!iteratorFuncOpt.isPresent()) {
+                    forIn.getIn().addError("Target of for-in loop must have an 'iterator' method.");
                     return WurstTypeUnknown.instance();
                 }
                 NameLink iteratorFunc = iteratorFuncOpt.get();
@@ -128,8 +129,10 @@ public class AttrVarDefType {
                 // find the 'next' function without parameters
                 Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
                 if (!nextFuncOpt.isPresent()) {
+                    forIn.getIn().addError("Target of for-in returns type " + iteratorType + ", which does not have a 'next' method.");
                     return WurstTypeUnknown.instance();
                 }
+                // TODO check for hasNext method
                 NameLink nextFunc = nextFuncOpt.get();
 
                 return nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding()).normalize();
@@ -141,8 +144,10 @@ public class AttrVarDefType {
                 // find the 'next' function without parameters
                 Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
                 if (!nextFuncOpt.isPresent()) {
+                    forFrom.getIn().addError("Target of for-from loop must have a 'next' method.");
                     return WurstTypeUnknown.instance();
                 }
+                // TODO check for hasNext method
                 NameLink nextFunc = nextFuncOpt.get();
 
                 return nextFunc.getReturnType().setTypeArgs(forFromType.getTypeArgBinding()).normalize();

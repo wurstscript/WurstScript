@@ -559,5 +559,35 @@ public class SimpleStatementTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void test_stupid_for_in() {
+        testAssertErrorsLines(false, "Target of for-in loop must have an 'iterator' method",
+                "package test",
+                "init",
+                "	for i in 42"
+        );
+    }
+
+    @Test
+    public void test_stupid_for_in2() {
+        testAssertErrorsLines(false, "Target of for-in returns type integer, which does not have a 'next' method.",
+                "package test",
+                "class C",
+                "	function iterator() returns int",
+                "		return 42",
+                "init",
+                "	for i in new C"
+        );
+    }
+
+    @Test
+    public void test_stupid_for_from() {
+        testAssertErrorsLines(false, "Target of for-from loop must have a 'next' method.",
+                "package test",
+                "init",
+                "	for i from 42"
+        );
+    }
+
 
 }
