@@ -1331,14 +1331,18 @@ public class WurstValidator {
     }
 
     private boolean isUsedAsReceiverInExprMember(Expr e) {
-        boolean result = false;
         if (e.getParent() instanceof ExprMember) {
             ExprMember em = (ExprMember) e.getParent();
-            if (em.getLeft() == e) {
-                result = true;
-            }
+            return em.getLeft() == e;
+        } else if (e.getParent() instanceof StmtForIn) {
+            // if we write for x in E, then it actually calls E.iterator(), so it is used in an ExprMember
+            StmtForIn parent = (StmtForIn) e.getParent();
+            return parent.getIn() == e;
+        } else if (e.getParent() instanceof StmtForFrom) {
+            StmtForFrom parent = (StmtForFrom) e.getParent();
+            return parent.getIn() == e;
         }
-        return result;
+        return false;
     }
 
     private void checkTypeBinding(HasTypeArgs e) {

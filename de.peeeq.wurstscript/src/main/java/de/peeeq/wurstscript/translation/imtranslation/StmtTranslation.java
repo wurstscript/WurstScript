@@ -88,12 +88,22 @@ public class StmtTranslation {
 
         List<ImStmt> result = Lists.newArrayList();
 
+        ImExprs fromTarget;
+        if (iterationTarget.attrTyp().isStaticRef()) {
+            fromTarget = ImExprs();
+        } else {
+            // store from-expression in variable, so that it is only evaluated once
+            ImVar fromVar = ImVar(s, iterationTarget.attrTyp().imTranslateType(), "from", false);
+            f.getLocals().add(fromVar);
+            result.add(ImSet(s, fromVar, iterationTarget.imTranslateExpr(t, f)));
+            fromTarget = JassIm.ImExprs(ImVarAccess(fromVar));
+        }
+
         ImStmts imBody = ImStmts();
         // exitwhen not #hasNext()
-        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, JassIm.ImExprs
-                (iterationTarget.imTranslateExpr(t, f)), false, CallType.NORMAL)))));
+        imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, fromTarget, false, CallType.NORMAL)))));
         // elem = next()
-        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(iterationTarget.imTranslateExpr(t, f)),
+        imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), JassIm.ImFunctionCall(s, nextFuncIm, fromTarget.copy(),
                 false, CallType.NORMAL)));
 
         imBody.addAll(t.translateStatements(f, s.getBody()));
@@ -141,11 +151,17 @@ public class StmtTranslation {
         f.getLocals().add(iteratorVar);
         f.getLocals().add(t.getVarFor(s.getLoopVar()));
         // translate target:
-        ImExpr iterationTargetIm = s.getIn().imTranslateExpr(t, f);
+        ImExprs iterationTargetList;
+        if (s.getIn().attrTyp().isStaticRef()) {
+            iterationTargetList = ImExprs();
+        } else {
+            ImExpr iterationTargetIm = s.getIn().imTranslateExpr(t, f);
+            iterationTargetList = JassIm.ImExprs(iterationTargetIm);
+        }
 
         List<ImStmt> result = Lists.newArrayList();
         // create code for initializing iterator:
-        ImSet setIterator = JassIm.ImSet(s, iteratorVar, JassIm.ImFunctionCall(s, iteratorFuncIm, JassIm.ImExprs(iterationTargetIm), false, CallType.NORMAL));
+        ImSet setIterator = JassIm.ImSet(s, iteratorVar, JassIm.ImFunctionCall(s, iteratorFuncIm, iterationTargetList, false, CallType.NORMAL));
 
         result.add(setIterator);
 

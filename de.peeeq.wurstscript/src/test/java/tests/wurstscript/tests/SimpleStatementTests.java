@@ -275,6 +275,30 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
     @Test
+    public void testForFrom_once() {
+        // for-from expression should be evaluated only once
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "	int x = 0",
+                "	static int count = 0",
+                "	construct()",
+                "		count = count + 1",
+                "	function next() returns int",
+                "		x = x + 1",
+                "		return x",
+                "	function hasNext() returns boolean",
+                "		return x < 10",
+                "init",
+                "	for i from new C()",
+                "	if C.count == 1",
+                "		testSuccess()"
+        );
+
+    }
+
+    @Test
     public void test_inc() {
         assertOk(true,
                 "int x = 5",
