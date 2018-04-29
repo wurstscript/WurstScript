@@ -361,7 +361,7 @@ public class WurstValidator {
             }
             parent = parent.getParent();
         }
-        exitwhen.addError("Break outside of loop statement.");
+        exitwhen.addError("Break is not allowed outside of loop statements.");
     }
 
     private void checkTupleDef(TupleDef e) {
