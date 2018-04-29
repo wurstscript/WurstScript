@@ -2,10 +2,12 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -105,7 +107,11 @@ public class AttrVarDefType {
                         return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
                     }
                 }
-                return forEach.attrItrType();
+                Optional<NameLink> nameLink = forEach.attrGetNextFunc();
+                if (nameLink.isPresent()) {
+                    return nameLink.get().getReturnType().setTypeArgs(forEach.attrItrType().getTypeArgBinding()).normalize();
+                }
+                return WurstTypeUnknown.instance();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");
