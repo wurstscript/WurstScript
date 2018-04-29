@@ -336,6 +336,8 @@ public class WurstValidator {
                 checkForDuplicatePackages((WurstModel) e);
             if (e instanceof WStatements)
                 checkForInvalidStmts((WStatements) e);
+            if (e instanceof StmtExitwhen)
+                visit((StmtExitwhen) e);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -343,6 +345,23 @@ public class WurstValidator {
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
         }
+    }
+
+    private void visit(StmtExitwhen exitwhen) {
+        Element parent = exitwhen.getParent();
+        while (!(parent instanceof FunctionDefinition)) {
+            if (parent instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) parent;
+                if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
+                    exitwhen.addError("Cannot use break in vararg for each loops.");
+                }
+                return;
+            } else if (parent instanceof StmtForRange) {
+                return;
+            }
+            parent = parent.getParent();
+        }
+        exitwhen.addError("Break outside of loop statement.");
     }
 
     private void checkTupleDef(TupleDef e) {

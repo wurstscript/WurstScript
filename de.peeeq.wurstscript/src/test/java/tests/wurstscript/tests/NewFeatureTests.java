@@ -451,7 +451,7 @@ public class NewFeatureTests extends WurstScriptTest {
 
     @Test
     public void varargWithBreak() {
-        testAssertErrorsLines(true, "Cannot use break in varargs-loop",
+        testAssertErrorsLines(true, "Cannot use break in vararg for each loops",
                 "package Test",
                 "native testSuccess()",
                 "function foo(vararg int ints)",
@@ -461,6 +461,26 @@ public class NewFeatureTests extends WurstScriptTest {
                 "        if i > 2",
                 "            break",
                 "    if sum == 3",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void legitNestedBreak() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "        for j = 1 to 4",
+                "            sum += j",
+                "            if j > 2",
+                "                break",
+                "    if sum == 34",
                 "        testSuccess()",
                 "init",
                 "    foo(1,2,3,4)"
