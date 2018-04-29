@@ -1,14 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
-import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Optional;
 
 
 /**
@@ -99,58 +96,16 @@ public class AttrVarDefType {
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
                 return new WurstTypeArray(valueType);
-            } else if (v.getParent() instanceof StmtForIn) {
-                StmtForIn forIn = (StmtForIn) v.getParent();
-                @Nullable NameDef nameDef1 = forIn.getIn().tryGetNameDef();
+            } else if (v.getParent() instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) v.getParent();
+                @Nullable NameDef nameDef1 = forEach.getIn().tryGetNameDef();
                 if (nameDef1 != null) {
-                    @Nullable NameDef nameDef = forIn.lookupVar(nameDef1.getName());
+                    @Nullable NameDef nameDef = forEach.lookupVar(nameDef1.getName());
                     if (nameDef.attrIsVararg()) {
                         return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
                     }
                 }
-
-                WurstType forInType = forIn.getIn().attrTyp();
-                // find 'iterator' function:
-                ImmutableCollection<NameLink> iterator = forIn.getIn().lookupMemberFuncs(forInType.dynamic(), "iterator", false);
-                // find the 'iterator' function without parameters:
-                Optional<NameLink> iteratorFuncOpt = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
-                if (!iteratorFuncOpt.isPresent()) {
-                    forIn.getIn().addError("Target of for-in loop must have an 'iterator' method.");
-                    return WurstTypeUnknown.instance();
-                }
-                NameLink iteratorFunc = iteratorFuncOpt.get();
-                // Type of iterator variable:
-                WurstType iteratorType = iteratorFunc.getReturnType().setTypeArgs(forInType.getTypeArgBinding());
-                // Type of loop Variable:
-//                WurstType loopVarType = forIn.getLoopVar().attrTyp();
-
-                // find 'next' function:
-                ImmutableCollection<NameLink> next = forIn.getIn().lookupMemberFuncs(iteratorType, "next", false);
-                // find the 'next' function without parameters
-                Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
-                if (!nextFuncOpt.isPresent()) {
-                    forIn.getIn().addError("Target of for-in returns type " + iteratorType + ", which does not have a 'next' method.");
-                    return WurstTypeUnknown.instance();
-                }
-                // TODO check for hasNext method
-                NameLink nextFunc = nextFuncOpt.get();
-
-                return nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding()).normalize();
-            } else if (v.getParent() instanceof StmtForFrom) {
-                StmtForFrom forFrom = (StmtForFrom) v.getParent();
-                WurstType forFromType = forFrom.getIn().attrTyp();
-                // find 'next' function:
-                ImmutableCollection<NameLink> next = forFrom.getIn().lookupMemberFuncs(forFromType.dynamic(), "next", false);
-                // find the 'next' function without parameters
-                Optional<NameLink> nextFuncOpt = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
-                if (!nextFuncOpt.isPresent()) {
-                    forFrom.getIn().addError("Target of for-from loop must have a 'next' method.");
-                    return WurstTypeUnknown.instance();
-                }
-                // TODO check for hasNext method
-                NameLink nextFunc = nextFuncOpt.get();
-
-                return nextFunc.getReturnType().setTypeArgs(forFromType.getTypeArgBinding()).normalize();
+                return forEach.attrItrType();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");

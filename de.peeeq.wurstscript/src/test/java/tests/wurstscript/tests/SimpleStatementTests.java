@@ -561,7 +561,7 @@ public class SimpleStatementTests extends WurstScriptTest {
 
     @Test
     public void test_stupid_for_in() {
-        testAssertErrorsLines(false, "Target of for-in loop must have an 'iterator' method",
+        testAssertErrorsLines(false, "doesn't provide a iterator() function",
                 "package test",
                 "init",
                 "	for i in 42"
@@ -570,7 +570,7 @@ public class SimpleStatementTests extends WurstScriptTest {
 
     @Test
     public void test_stupid_for_in2() {
-        testAssertErrorsLines(false, "Target of for-in returns type integer, which does not have a 'next' method.",
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
                 "package test",
                 "class C",
                 "	function iterator() returns int",
@@ -582,12 +582,39 @@ public class SimpleStatementTests extends WurstScriptTest {
 
     @Test
     public void test_stupid_for_from() {
-        testAssertErrorsLines(false, "Target of for-from loop must have a 'next' method.",
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
                 "package test",
                 "init",
                 "	for i from 42"
         );
     }
 
+    @Test
+    public void test_no_hasNext() {
+        testAssertErrorsLines(false, "doesn't provide a hasNext() function that returns boolean",
+                "package test",
+                "class C",
+                "	function iterator() returns C",
+                "		return new C",
+                "	function next() returns int",
+                "		return 1",
+                "init",
+                "	for i in new C"
+        );
+    }
+
+    @Test
+    public void test_no_Next() {
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
+                "package test",
+                "class C",
+                "	function iterator() returns C",
+                "		return new C",
+                "	function hasNext() returns boolean",
+                "		return true",
+                "init",
+                "	for i in new C"
+        );
+    }
 
 }

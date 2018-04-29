@@ -155,8 +155,11 @@ LoopStatement =
 
 LoopStatementWithVarDef =
 	  StmtForRange
-	| StmtForIn(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
-	| StmtForFrom(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
+    | StmtForEach
+
+StmtForEach =
+    StmtForIn(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
+    | StmtForFrom(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr in, WStatements body)
 
 StmtForRange =
 	  StmtForRangeUp(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
@@ -669,6 +672,22 @@ NameDef.hasAnnotation(String annotation)
 NameDef.getAnnotation(String annotation)
 	returns Annotation
 	implemented by de.peeeq.wurstscript.attributes.HasAnnotation.getAnnotation
+
+StmtForIn.attrIteratorFunc
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcIterator
+
+StmtForEach.attrItrType
+    returns de.peeeq.wurstscript.types.WurstType
+    implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcItrType
+
+StmtForEach.attrHasNextFunc
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcHasNext
+
+StmtForEach.attrGetNextFunc
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcGetNext
 
 
 // Im translation
