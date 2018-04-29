@@ -101,7 +101,7 @@ public class AttrVarDefType {
             } else if (v.getParent() instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) v.getParent();
                 @Nullable NameDef nameDef = forEach.getIn().tryGetNameDef();
-                if (nameDef != null && nameDef instanceof WParameter && nameDef.attrTyp() instanceof WurstTypeVararg) {
+                if (nameDef instanceof WParameter && nameDef.attrTyp() instanceof WurstTypeVararg) {
                     return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
                 }
                 Optional<NameLink> nameLink = forEach.attrGetNextFunc();
