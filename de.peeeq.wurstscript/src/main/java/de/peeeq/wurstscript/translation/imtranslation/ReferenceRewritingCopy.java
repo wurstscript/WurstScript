@@ -15,10 +15,6 @@ public class ReferenceRewritingCopy {
         @SuppressWarnings("unchecked")
         T copy = (T) elem.copy();
         Map<Element, Element> oldToNew = calcOldToNew(elem, copy);
-        for (Map.Entry<Element, Element> entry : oldToNew.entrySet()) {
-            if (entry.getValue() instanceof ImVar)
-                System.out.println(entry.getKey() + "\t--->\t" + entry.getValue());
-        }
         rewriteReferences(copy, oldToNew);
         return copy;
     }
