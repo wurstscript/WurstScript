@@ -414,8 +414,12 @@ public class ImPrinter {
         sb.append(">>");
     }
 
-    public static void print(ImVarargLoop imVarargLoop, StringBuilder sb, int indent) {
-        sb.append("varargLoop: ");
-        // TODO
+    public static void print(ImVarargLoop e, StringBuilder sb, int indent) {
+        sb.append("foreach vararg ");
+        e.getLoopVar().print(sb, indent);
+        sb.append(" {\n");
+        e.getBody().print(sb, indent + 1);
+        indent(sb, indent);
+        sb.append("}");
     }
 }

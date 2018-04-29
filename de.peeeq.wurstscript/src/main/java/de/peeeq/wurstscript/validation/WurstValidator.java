@@ -1066,7 +1066,7 @@ public class WurstValidator {
             if (wurstType instanceof WurstTypeArray) {
                 WurstType baseType = ((WurstTypeArray) wurstType).getBaseType();
                 call.attrCallSignature().getArguments().forEach(arg -> {
-                    if (!arg.attrTyp().isSubtypeOf(baseType, null)) {
+                    if (!arg.attrTyp().isSubtypeOf(baseType, call)) {
                         throw new Error("Argument " + Utils.printElement(arg) + "is not of type " + baseType);
                     }
                 });

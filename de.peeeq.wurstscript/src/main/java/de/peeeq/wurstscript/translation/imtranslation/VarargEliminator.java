@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -61,47 +62,29 @@ public class VarargEliminator {
         int argumentSize = call.getArguments().size();
         ImVar vararg = func.getParameters().get(0);
         ImType type = vararg.getType();
-        // Generate parameters
-        ImVars params = JassIm.ImVars();
-        for (int i = 0; i < argumentSize; i++) {
-            params.add(JassIm.ImVar(func.getTrace(), type, vararg.getName() + "_" + i, false));
-        }
+
         // Create new function
-        ImFunction newFunc = JassIm.ImFunction(func.getTrace(), func.getName() + "_" + argumentSize, params, func.getReturnType(), func.getLocals().copy()
-                , func.getBody().copy(), func.getFlags());
+        ImFunction newFunc = ReferenceRewritingCopy.copy(func);
+        newFunc.setName(func.getName() + "_" + argumentSize);
+        // replace vararg with special parameters:
+        ImVar varargParam = newFunc.getParameters().remove(newFunc.getParameters().size() - 1);
+        List<ImVar> newParams = new ArrayList<>();
+        for (int i = 0; i < argumentSize; i++) {
+            ImVar param = JassIm.ImVar(func.getTrace(), type, vararg.getName() + "_" + i, false);
+            newParams.add(param);
+            newFunc.getParameters().add(param);
+        }
+
+
 
         // Visit all vararg loop statements inside the new function
         newFunc.getBody().accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImVarargLoop imLoop) {
                 super.visit(imLoop);
-                System.out.println("visit vararg loop");
-                unrollVarargLoop(func, newFunc, imLoop, params);
+                unrollVarargLoop(func, newFunc, imLoop, newParams);
             }
 
-            @Override
-            public void visit(ImVarAccess access) {
-                super.visit(access);
-                AtomicInteger i = new AtomicInteger();
-                func.getLocals().forEach(local -> {
-                    if (access.getVar().getName().equals(local.getName())) {
-                        access.setVar(newFunc.getLocals().get(i.get()));
-                    }
-                    i.getAndIncrement();
-                });
-            }
-
-            @Override
-            public void visit(ImSet set) {
-                super.visit(set);
-                AtomicInteger i = new AtomicInteger();
-                func.getLocals().forEach(local -> {
-                    if (set.getLeft().getName().equals(local.getName())) {
-                        set.setLeft(newFunc.getLocals().get(i.get()));
-                    }
-                    i.getAndIncrement();
-                });
-            }
         });
 
         // Remove vararg flag
@@ -115,25 +98,23 @@ public class VarargEliminator {
         call.replaceBy(newCall);
     }
 
-    private void unrollVarargLoop(ImFunction func, ImFunction newFunc, ImVarargLoop imLoop, ImVars params) {
+    private void unrollVarargLoop(ImFunction func, ImFunction newFunc, ImVarargLoop imLoop, List<ImVar> newParams) {
         ImStatementExpr stmtExpr = JassIm.ImStatementExpr(JassIm.ImStmts(), JassIm.ImNull());
 
-        for (int i = 0; i < params.size(); i++) {
+        for (int i = 0; i < newParams.size(); i++) {
             ImStmts bodyCopy = imLoop.getBody().copy();
-            bodyCopy.forEach(elem -> elem.setParent(null));
             int finalI = i;
             bodyCopy.accept(new Element.DefaultVisitor() {
                 @Override
                 public void visit(ImVarAccess access) {
                     super.visit(access);
-                    if (access.getVar().getName().equals(imLoop.getLoopVar().getName())) {
-                        access.setVar(params.get(finalI));
+                    if (access.getVar() == imLoop.getLoopVar()) {
+                        access.setVar(newParams.get(finalI));
                     }
                 }
 
             });
-            bodyCopy.setParent(null);
-            stmtExpr.getStatements().addAll(bodyCopy);
+            stmtExpr.getStatements().addAll(bodyCopy.removeAll());
         }
 
         imLoop.replaceBy(stmtExpr);
