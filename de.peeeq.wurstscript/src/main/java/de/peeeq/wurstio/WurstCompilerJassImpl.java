@@ -348,7 +348,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         new VarargEliminator(imProg2, imTranslator2).run();
         imTranslator2.assertProperties();
-
+        printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
         if (runArgs.isNoDebugMessages()) {
             beginPhase(3, "remove debug messages");
             DebugMessageRemover.removeDebugMessages(imProg2);
