@@ -356,7 +356,7 @@ public class WurstValidator {
                     exitwhen.addError("Cannot use break in vararg for each loops.");
                 }
                 return;
-            } else if (parent instanceof StmtForRange) {
+            } else if (parent instanceof LoopStatement) {
                 return;
             }
             parent = parent.getParent();
