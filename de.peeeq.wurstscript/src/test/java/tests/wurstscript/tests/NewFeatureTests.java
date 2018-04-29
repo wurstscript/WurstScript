@@ -415,4 +415,57 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void varargsWithOverloading() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(string s)",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 10",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void varargWithGenerics() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo<T>(vararg T ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i castTo int",
+                "    if sum == 10",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+
+    @Test
+    public void varargWithBreak() {
+        testAssertErrorsLines(true, "Cannot use break in varargs-loop",
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "        if i > 2",
+                "            break",
+                "    if sum == 3",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+
 }
