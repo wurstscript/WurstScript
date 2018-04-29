@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -100,13 +99,6 @@ public class AttrVarDefType {
                 return new WurstTypeArray(valueType);
             } else if (v.getParent() instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) v.getParent();
-                @Nullable NameDef nameDef1 = forEach.getIn().tryGetNameDef();
-                if (nameDef1 != null) {
-                    @Nullable NameDef nameDef = forEach.lookupVar(nameDef1.getName());
-                    if (nameDef.attrIsVararg()) {
-                        return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
-                    }
-                }
                 Optional<NameLink> nameLink = forEach.attrGetNextFunc();
                 if (nameLink.isPresent()) {
                     return nameLink.get().getReturnType().setTypeArgs(forEach.attrItrType().getTypeArgBinding()).normalize();
