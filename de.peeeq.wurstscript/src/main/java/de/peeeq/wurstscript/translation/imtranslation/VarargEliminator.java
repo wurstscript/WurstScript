@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.*;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Table;
 import de.peeeq.wurstscript.jassIm.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
@@ -19,7 +22,7 @@ public class VarargEliminator {
     // original + number of args --> new function
     private Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
 
-    public VarargEliminator(ImProg prog, ImTranslator trans) {
+    public VarargEliminator(ImProg prog) {
         this.prog = prog;
     }
 
@@ -92,10 +95,27 @@ public class VarargEliminator {
             @Override
             public void visit(ImVarargLoop imLoop) {
                 super.visit(imLoop);
-                unrollVarargLoop(func, newFunc, imLoop, newParams);
+                unrollVarargLoop(imLoop, newParams);
             }
 
+
         });
+
+        // Visit all remaining uses of the vararg-parameter
+        // this must be calls to other vararg functions, so unfold the parameters
+        List<ImVarAccess> varargParamUses = collectUsesOfVar(newFunc, varargParam);
+
+        for (ImVarAccess va : varargParamUses) {
+            ImExprs params = (ImExprs) va.getParent();
+            ImFunctionCall call = (ImFunctionCall) params.getParent();
+
+            params.remove(va);
+            params.addAll(newParams.stream().map(JassIm::ImVarAccess).collect(Collectors.toList()));
+
+            // generate function for this new call
+            generateVarargFunc(call.getFunc(), call.getArguments().size());
+        }
+
 
         // Remove vararg flag
         newFunc.setFlags(newFunc.getFlags().stream().filter(flag -> flag != IS_VARARG).collect(Collectors.toList()));
@@ -104,14 +124,30 @@ public class VarargEliminator {
         varargFuncs.put(func, numberOfParams, newFunc);
     }
 
-    void redirectCall(ImFunctionCall call, ImFunction newFunc) {
+    @NotNull
+    private List<ImVarAccess> collectUsesOfVar(ImFunction newFunc, ImVar varargParam) {
+        List<ImVarAccess> varargParamUses = new ArrayList<>();
+        newFunc.getBody().accept(new Element.DefaultVisitor() {
+
+            @Override
+            public void visit(ImVarAccess va) {
+                super.visit(va);
+                if (va.getVar() == varargParam) {
+                    varargParamUses.add(va);
+                }
+            }
+        });
+        return varargParamUses;
+    }
+
+    private void redirectCall(ImFunctionCall call, ImFunction newFunc) {
         // Redirect call to new function
         ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(),
                 call.getCallType());
         call.replaceBy(newCall);
     }
 
-    private void unrollVarargLoop(ImFunction func, ImFunction newFunc, ImVarargLoop imLoop, List<ImVar> newParams) {
+    private void unrollVarargLoop(ImVarargLoop imLoop, List<ImVar> newParams) {
         ImStatementExpr stmtExpr = JassIm.ImStatementExpr(JassIm.ImStmts(), JassIm.ImNull());
 
         for (int i = 0; i < newParams.size(); i++) {
