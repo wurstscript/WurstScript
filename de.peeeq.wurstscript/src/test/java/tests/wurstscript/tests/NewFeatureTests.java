@@ -404,6 +404,23 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testVarargForeach2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints) returns int",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    return sum",
+                "init",
+                "    if foo(1,2) + foo(3,4) == 10",
+                "        testSuccess()"
+                );
+    }
+
+
+    @Test
     public void varargsWithOverloading() {
         testAssertOkLines(true,
                 "package Test",
@@ -492,6 +509,27 @@ public class NewFeatureTests extends WurstScriptTest {
                 "        testSuccess()",
                 "init",
                 "    3 .foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void varargMethod() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "class C",
+                "    function foo(vararg int ints)",
+                "        var sum = 3",
+                "        for i in ints",
+                "            sum += i",
+                "            for j = 1 to 4",
+                "                sum += j",
+                "                if j > 2",
+                "                    break",
+                "        if sum == 37",
+                "            testSuccess()",
+                "init",
+                "    new C.foo(1,2,3,4)"
         );
     }
 

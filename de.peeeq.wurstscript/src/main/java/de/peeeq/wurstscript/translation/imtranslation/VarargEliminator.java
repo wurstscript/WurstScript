@@ -1,13 +1,11 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.*;
 import de.peeeq.wurstscript.jassIm.*;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_VARARG;
 
@@ -18,50 +16,62 @@ import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS
 public class VarargEliminator {
 
     private ImProg prog;
+    // original + number of args --> new function
+    private Table<ImFunction, Integer, ImFunction> varargFuncs = HashBasedTable.create();
 
     public VarargEliminator(ImProg prog, ImTranslator trans) {
         this.prog = prog;
     }
 
     public void run() {
-        final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
-        final List<Integer> generatedSizes = Lists.newArrayList();
+        // create new vararg functions
+        for (ImFunctionCall c : collectVarargCalls()) {
+            if (c.getFunc().hasFlag(IS_VARARG)) {
+                generateVarargFunc(c.getFunc(), c.getArguments().size());
+            }
+        }
+
+        // remove original vararg functions:
+        prog.getFunctions().removeIf(f -> f.hasFlag(IS_VARARG));
+
+        // rewrite calls to use new functions:
+        // (need to collect vararg calls again, because first phase can create copies of calls)
+        for (ImFunctionCall call : collectVarargCalls()) {
+            redirectCall(call, varargFuncs.get(call.getFunc(), call.getArguments().size()));
+        }
+    }
+
+    @NotNull
+    private Collection<ImFunctionCall> collectVarargCalls() {
+        // Collect all calls to vararg functions
+        final Collection<ImFunctionCall> calls = new ArrayList<>();
         prog.accept(new ImProg.DefaultVisitor() {
 
             @Override
             public void visit(ImFunctionCall c) {
                 super.visit(c);
-                // Collect all calls to vararg functions
                 if (c.getFunc().hasFlag(IS_VARARG)) {
-                    calls.put(c.getFunc(), c);
+                    calls.add(c);
                 }
             }
 
         });
-
-        calls.forEach((func, call) -> {
-            // Generate functions with appropriate parameters
-            if (!generatedSizes.contains(call.getArguments().size())) {
-                generateVarargFunc(func, call);
-                generatedSizes.add(call.getArguments().size());
-            }
-        });
-
-        calls.forEach((func, call) -> {
-            func.setParent(null);
-            prog.getFunctions().remove(func);
-        });
-
+        return calls;
     }
 
     /**
      * Generates a function based on the vararg function with the appropriate amount of parameters
      * for the function call.
      */
-    private void generateVarargFunc(ImFunction func, ImFunctionCall call) {
+    private void generateVarargFunc(ImFunction func, int numberOfParams) {
+        if (varargFuncs.contains(func, numberOfParams)) {
+            // already generated
+            return;
+        }
+
         // how many vararg-parameters should we generate?
         // ==> number of parameters in call minus non-vararg parameters in the definition
-        int argumentSize = 1 + call.getArguments().size() - func.getParameters().size();
+        int argumentSize = 1 + numberOfParams - func.getParameters().size();
 
         // Create new function
         ImFunction newFunc = ReferenceRewritingCopy.copy(func);
@@ -77,7 +87,6 @@ public class VarargEliminator {
         }
 
 
-
         // Visit all vararg loop statements inside the new function
         newFunc.getBody().accept(new Element.DefaultVisitor() {
             @Override
@@ -89,12 +98,15 @@ public class VarargEliminator {
         });
 
         // Remove vararg flag
-        newFunc.getFlags().remove(IS_VARARG);
+        newFunc.setFlags(newFunc.getFlags().stream().filter(flag -> flag != IS_VARARG).collect(Collectors.toList()));
         // Add new function to prog
         prog.getFunctions().add(newFunc);
+        varargFuncs.put(func, numberOfParams, newFunc);
+    }
 
+    void redirectCall(ImFunctionCall call, ImFunction newFunc) {
         // Redirect call to new function
-        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace().copy(), newFunc, call.getArguments().copy(), call.getTuplesEliminated(),
+        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(),
                 call.getCallType());
         call.replaceBy(newCall);
     }

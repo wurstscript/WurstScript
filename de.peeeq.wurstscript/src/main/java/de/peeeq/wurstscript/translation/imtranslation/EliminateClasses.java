@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,12 @@ public class EliminateClasses {
                 methods);
 
 
-        List<FunctionFlag> flags = Collections.emptyList();
+        List<FunctionFlag> flags = new ArrayList<>();
+        if (m.getImplementation().hasFlag(FunctionFlagEnum.IS_VARARG)) {
+            // if implementation has varargs, dispatch also needs varargs
+            flags.add(FunctionFlagEnum.IS_VARARG);
+        }
+
         ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), m
                 .getImplementation().getParameters().copy(), m
                 .getImplementation().getReturnType(), JassIm.ImVars(), JassIm
