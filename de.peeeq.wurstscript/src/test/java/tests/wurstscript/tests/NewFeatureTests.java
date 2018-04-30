@@ -475,5 +475,24 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void varargExtFunc() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function int.foo(vararg int ints)",
+                "    var sum = this",
+                "    for i in ints",
+                "        sum += i",
+                "        for j = 1 to 4",
+                "            sum += j",
+                "            if j > 2",
+                "                break",
+                "    if sum == 37",
+                "        testSuccess()",
+                "init",
+                "    3 .foo(1,2,3,4)"
+        );
+    }
 
 }
