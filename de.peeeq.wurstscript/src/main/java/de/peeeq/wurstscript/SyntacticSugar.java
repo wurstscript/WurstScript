@@ -1,28 +1,7 @@
 package de.peeeq.wurstscript;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.ExprIntVal;
-import de.peeeq.wurstscript.ast.ExprMemberVarDot;
-import de.peeeq.wurstscript.ast.ExprStatementsBlock;
-import de.peeeq.wurstscript.ast.ExprUnary;
-import de.peeeq.wurstscript.ast.ExprVarAccess;
-import de.peeeq.wurstscript.ast.ExtensionFuncDef;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.InitBlock;
-import de.peeeq.wurstscript.ast.OnDestroyDef;
-import de.peeeq.wurstscript.ast.StmtForFrom;
-import de.peeeq.wurstscript.ast.StmtForIn;
-import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.ast.StmtReturn;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WStatements;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 
 import java.util.List;
@@ -30,7 +9,8 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static de.peeeq.wurstscript.ast.Ast.*;
+import static de.peeeq.wurstscript.ast.Ast.Arguments;
+import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
 /**
  * general rules for syntactic sugar:
  * <p>
@@ -49,7 +29,7 @@ public class SyntacticSugar {
         rewriteNegatedInts(root);
         addDefaultConstructors(root);
         addEndFunctionStatements(root);
-        expandForInLoops(root);
+//        expandForInLoops(root);
         replaceTypeIdUse(root);
     }
 
@@ -184,106 +164,106 @@ public class SyntacticSugar {
         }
     }
 
-    private void expandForInLoops(CompilationUnit root) {
-        // collect loops
-        final List<StmtForIn> loops = Lists.newArrayList();
-        final List<StmtForFrom> loops2 = Lists.newArrayList();
-        root.accept(new WurstModel.DefaultVisitor() {
-            @Override
-            public void visit(StmtForIn stmtForIn) {
-                super.visit(stmtForIn);
-                loops.add(stmtForIn);
-            }
-
-            @Override
-            public void visit(StmtForFrom stmtForIn) {
-                super.visit(stmtForIn);
-                loops2.add(stmtForIn);
-            }
-        });
-
-        // exand for ... in ... loops
-        for (StmtForIn loop : loops) {
-            if (loop.getParent() instanceof WStatements) {
-                WStatements parent = (WStatements) loop.getParent();
-
-                int position = parent.indexOf(loop);
-                parent.remove(position);
-
-                String iteratorName = "wurst__iterator" + wurstIteratorCounter++;
-                WPos loopVarPos = loop.getLoopVar().getSource().artificial();
-                WPos loopInPos = loop.getIn().getSource().artificial();
-
-                parent.add(position,
-                        Ast.LocalVarDef(
-                                loopInPos,
-                                Ast.Modifiers(),
-                                NoTypeExpr(), Ast.Identifier(loopInPos, iteratorName),
-                                Ast.ExprMemberMethodDot(loopInPos, (Expr) loop.getIn().copy(), Ast.Identifier(loopInPos, "iterator"), Ast.TypeExprList(), Arguments())));
-                WStatements body = WStatements(
-                        Ast.LocalVarDef(loopVarPos,
-                                Ast.Modifiers(),
-                                (OptTypeExpr) loop.getLoopVar().getOptTyp().copy(),
-                                Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()),
-                                Ast.ExprMemberMethodDot(loopInPos,
-                                        ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)),
-                                        Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
-                );
-                body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
-                parent.add(position + 1, Ast.StmtWhile(
-                        loop.getSource(),
-                        Ast.ExprMemberMethodDot(loopInPos,
-                                ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "hasNext"), Ast.TypeExprList(), Arguments()),
-                        body));
-                parent.add(position + 2,
-                        closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
-            } else {
-                throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
-            }
-        }
-
-        // exand for .. from ... loops
-        for (StmtForFrom loop : loops2) {
-            if (loop.getParent() instanceof WStatements) {
-                WStatements parent = (WStatements) loop.getParent();
-
-                int position = parent.indexOf(loop);
-                parent.remove(position);
-
-                String iteratorName = "wurst__iterator" + wurstIteratorCounter++;
-                WPos loopVarPos = loop.getLoopVar().getSource().artificial();
-                WPos loopInPos = loop.getIn().getSource().artificial();
-                if (loop.getIn() instanceof ExprVarAccess) {
-                    ExprVarAccess exprVarAccess = (ExprVarAccess) loop.getIn();
-                    iteratorName = exprVarAccess.getVarName();
-                } else {
-                    parent.add(position,
-                            Ast.LocalVarDef(
-                                    loopInPos,
-                                    Ast.Modifiers(),
-                                    NoTypeExpr(), Ast.Identifier(loopInPos, iteratorName),
-                                    (Expr) loop.getIn().copy()));
-                    position++;
-                }
-                WStatements body = WStatements(
-                        Ast.LocalVarDef(loopVarPos,
-                                Ast.Modifiers(),
-                                (OptTypeExpr) loop.getLoopVar().getOptTyp().copy(),
-                                Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()),
-                                Ast.ExprMemberMethodDot(loopInPos,
-                                        ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
-                );
-                body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
-                parent.add(position, Ast.StmtWhile(
-                        loop.getSource(),
-                        Ast.ExprMemberMethodDot(loopInPos,
-                                ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "hasNext"), Ast.TypeExprList(), Arguments()),
-                        body));
-            } else {
-                throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
-            }
-        }
-    }
+//    private void expandForInLoops(CompilationUnit root) {
+//        // collect loops
+//        final List<StmtForIn> loops = Lists.newArrayList();
+//        final List<StmtForFrom> loops2 = Lists.newArrayList();
+//        root.accept(new WurstModel.DefaultVisitor() {
+//            @Override
+//            public void visit(StmtForIn stmtForIn) {
+//                super.visit(stmtForIn);
+//                loops.add(stmtForIn);
+//            }
+//
+//            @Override
+//            public void visit(StmtForFrom stmtForIn) {
+//                super.visit(stmtForIn);
+//                loops2.add(stmtForIn);
+//            }
+//        });
+//
+//        // exand for ... in ... loops
+//        for (StmtForIn loop : loops) {
+//            if (loop.getParent() instanceof WStatements) {
+//                WStatements parent = (WStatements) loop.getParent();
+//
+//                int position = parent.indexOf(loop);
+//                parent.remove(position);
+//
+//                String iteratorName = "wurst__iterator" + wurstIteratorCounter++;
+//                WPos loopVarPos = loop.getLoopVar().getSource().artificial();
+//                WPos loopInPos = loop.getIn().getSource().artificial();
+//
+//                parent.add(position,
+//                        Ast.LocalVarDef(
+//                                loopInPos,
+//                                Ast.Modifiers(),
+//                                NoTypeExpr(), Ast.Identifier(loopInPos, iteratorName),
+//                                Ast.ExprMemberMethodDot(loopInPos, (Expr) loop.getIn().copy(), Ast.Identifier(loopInPos, "iterator"), Ast.TypeExprList(), Arguments())));
+//                WStatements body = WStatements(
+//                        Ast.LocalVarDef(loopVarPos,
+//                                Ast.Modifiers(),
+//                                (OptTypeExpr) loop.getLoopVar().getOptTyp().copy(),
+//                                Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()),
+//                                Ast.ExprMemberMethodDot(loopInPos,
+//                                        ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)),
+//                                        Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
+//                );
+//                body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
+//                parent.add(position + 1, Ast.StmtWhile(
+//                        loop.getSource(),
+//                        Ast.ExprMemberMethodDot(loopInPos,
+//                                ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "hasNext"), Ast.TypeExprList(), Arguments()),
+//                        body));
+//                parent.add(position + 2,
+//                        closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
+//            } else {
+//                throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
+//            }
+//        }
+//
+//        // exand for .. from ... loops
+//        for (StmtForFrom loop : loops2) {
+//            if (loop.getParent() instanceof WStatements) {
+//                WStatements parent = (WStatements) loop.getParent();
+//
+//                int position = parent.indexOf(loop);
+//                parent.remove(position);
+//
+//                String iteratorName = "wurst__iterator" + wurstIteratorCounter++;
+//                WPos loopVarPos = loop.getLoopVar().getSource().artificial();
+//                WPos loopInPos = loop.getIn().getSource().artificial();
+//                if (loop.getIn() instanceof ExprVarAccess) {
+//                    ExprVarAccess exprVarAccess = (ExprVarAccess) loop.getIn();
+//                    iteratorName = exprVarAccess.getVarName();
+//                } else {
+//                    parent.add(position,
+//                            Ast.LocalVarDef(
+//                                    loopInPos,
+//                                    Ast.Modifiers(),
+//                                    NoTypeExpr(), Ast.Identifier(loopInPos, iteratorName),
+//                                    (Expr) loop.getIn().copy()));
+//                    position++;
+//                }
+//                WStatements body = WStatements(
+//                        Ast.LocalVarDef(loopVarPos,
+//                                Ast.Modifiers(),
+//                                (OptTypeExpr) loop.getLoopVar().getOptTyp().copy(),
+//                                Ast.Identifier(loop.getLoopVar().getSource(), loop.getLoopVar().getName()),
+//                                Ast.ExprMemberMethodDot(loopInPos,
+//                                        ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "next"), Ast.TypeExprList(), Arguments()))
+//                );
+//                body.addAll(addIteratorCloseStatemenst(loop.getBody().removeAll(), iteratorName, loopVarPos, loopInPos));
+//                parent.add(position, Ast.StmtWhile(
+//                        loop.getSource(),
+//                        Ast.ExprMemberMethodDot(loopInPos,
+//                                ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "hasNext"), Ast.TypeExprList(), Arguments()),
+//                        body));
+//            } else {
+//                throw new CompileError(loop.getSource(), "Loop not in statements - " + loop.getParent().getClass().getName());
+//            }
+//        }
+//    }
 
 
     private ExprMemberMethod closeIteratorStatement(String iteratorName, WPos loopVarPos, WPos loopInPos) {

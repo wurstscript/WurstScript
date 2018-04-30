@@ -336,6 +336,8 @@ public class WurstValidator {
                 checkForDuplicatePackages((WurstModel) e);
             if (e instanceof WStatements)
                 checkForInvalidStmts((WStatements) e);
+            if (e instanceof StmtExitwhen)
+                visit((StmtExitwhen) e);
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -343,6 +345,23 @@ public class WurstValidator {
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
         }
+    }
+
+    private void visit(StmtExitwhen exitwhen) {
+        Element parent = exitwhen.getParent();
+        while (!(parent instanceof FunctionDefinition)) {
+            if (parent instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) parent;
+                if (forEach.getIn().tryGetNameDef().attrIsVararg()) {
+                    exitwhen.addError("Cannot use break in vararg for each loops.");
+                }
+                return;
+            } else if (parent instanceof LoopStatement) {
+                return;
+            }
+            parent = parent.getParent();
+        }
+        exitwhen.addError("Break is not allowed outside of loop statements.");
     }
 
     private void checkTupleDef(TupleDef e) {
@@ -895,6 +914,11 @@ public class WurstValidator {
 
     private void visit(WParameter p) {
         checkVarName(p, false);
+        if (p.attrIsVararg()) {
+            if (p.attrNearestFuncDef().getParameters().size() != 1) {
+                p.addError("Vararg functions may only have one parameter");
+            }
+        }
         checkIfParameterIsRead(p);
     }
 
@@ -1053,7 +1077,23 @@ public class WurstValidator {
             throw new Error("unhandled case: " + Utils.printElement(call));
         }
 
-        call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+        if (call.attrFunctionSignature().isVararg()) {
+            // For now only singular vararg parameter is allowed
+            List<WurstType> parameterTypes = call.attrFunctionSignature().getParamTypes();
+
+            WurstType wurstType = parameterTypes.get(0);
+            if (wurstType instanceof WurstTypeArray) {
+                WurstType baseType = ((WurstTypeArray) wurstType).getBaseType();
+                call.attrCallSignature().getArguments().forEach(arg -> {
+                    if (!arg.attrTyp().isSubtypeOf(baseType, call)) {
+                        throw new Error("Argument " + Utils.printElement(arg) + "is not of type " + baseType);
+                    }
+                });
+            }
+
+        } else {
+            call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
+        }
     }
 
     private void visit(ExprFunctionCall stmtCall) {
@@ -1310,14 +1350,18 @@ public class WurstValidator {
     }
 
     private boolean isUsedAsReceiverInExprMember(Expr e) {
-        boolean result = false;
         if (e.getParent() instanceof ExprMember) {
             ExprMember em = (ExprMember) e.getParent();
-            if (em.getLeft() == e) {
-                result = true;
-            }
+            return em.getLeft() == e;
+        } else if (e.getParent() instanceof StmtForIn) {
+            // if we write for x in E, then it actually calls E.iterator(), so it is used in an ExprMember
+            StmtForIn parent = (StmtForIn) e.getParent();
+            return parent.getIn() == e;
+        } else if (e.getParent() instanceof StmtForFrom) {
+            StmtForFrom parent = (StmtForFrom) e.getParent();
+            return parent.getIn() == e;
         }
-        return result;
+        return false;
     }
 
     private void checkTypeBinding(HasTypeArgs e) {
@@ -1459,6 +1503,9 @@ public class WurstValidator {
                 private final void check(Class<? extends Modifier>... allowed) {
                     if (m instanceof WurstDoc) {
                         // wurstdoc always allowed
+                        return;
+                    }
+                    if (m instanceof ModVararg && e.getParent() instanceof WParameters) {
                         return;
                     }
                     boolean isAllowed = false;

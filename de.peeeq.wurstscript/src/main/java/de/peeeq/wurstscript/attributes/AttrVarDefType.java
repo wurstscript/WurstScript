@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -23,6 +24,9 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(WParameter node) {
+        if (node.attrIsVararg()) {
+            return new WurstTypeVararg(node.getTyp().attrTyp().dynamic());
+        }
         return node.getTyp().attrTyp().dynamic();
     }
 
@@ -40,7 +44,7 @@ public class AttrVarDefType {
         FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
         if (sig == null) {
             p.addError("Could not infer type for parameter " + p.getName() + ". " +
-                    "The target type could not be uniquely determined for expected type "+expectedTyp+".");
+                    "The target type could not be uniquely determined for expected type " + expectedTyp + ".");
             return WurstTypeInfer.instance();
         }
 
@@ -94,6 +98,17 @@ public class AttrVarDefType {
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
                 return new WurstTypeArray(valueType);
+            } else if (v.getParent() instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) v.getParent();
+                @Nullable NameDef nameDef = forEach.getIn().tryGetNameDef();
+                if (nameDef instanceof WParameter && nameDef.attrTyp() instanceof WurstTypeVararg) {
+                    return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
+                }
+                Optional<NameLink> nameLink = forEach.attrGetNextFunc();
+                if (nameLink.isPresent()) {
+                    return nameLink.get().getReturnType().setTypeArgs(forEach.attrItrType().getTypeArgBinding()).normalize();
+                }
+                return WurstTypeUnknown.instance();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");
@@ -159,7 +174,6 @@ public class AttrVarDefType {
     public static WurstType calculate(OnDestroyDef constructorDef) {
         return WurstTypeVoid.instance();
     }
-
 
 
 }

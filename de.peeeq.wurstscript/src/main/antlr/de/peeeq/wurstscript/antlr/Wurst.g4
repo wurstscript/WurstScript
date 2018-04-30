@@ -209,7 +209,7 @@ funcSignature:
 formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				   typeExpr name=ID
+				 vararg=VARARG? typeExpr name=ID
 			   ;
 
 typeExpr:
@@ -434,7 +434,7 @@ tupleDef: modifiersWithDoc 'tuple' name=ID formalParameters NL;
 extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL statementsBlock;
 
 // Lexer:
-
+VARARG: 'vararg';
 CLASS: 'class';
 RETURN: 'return';
 IF: 'if';

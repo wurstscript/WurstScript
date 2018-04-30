@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.FunctionSignature;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
@@ -33,7 +30,13 @@ public class AttrFunctionSignature {
         List<FunctionSignature> candidates = new ArrayList<>();
         for (FunctionSignature sig : sigs) {
             sig = sig.setTypeArgs(location, typeParameterBindings);
-            if (paramTypesMatch(sig, argTypes, location)) {
+            FunctionSignature finalSig = sig;
+            if (sig.isVararg()) {
+                WurstType varargType = ((WurstTypeVararg)finalSig.getParamTypes().get(0)).getBaseType();
+                if (argTypes.stream().filter(type -> type.isSubtypeOf(varargType, location)).count() == argTypes.size()) {
+                    candidates.add(sig);
+                }
+            } else if (paramTypesMatch(sig, argTypes, location)) {
                 candidates.add(sig);
             }
         }

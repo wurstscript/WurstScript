@@ -268,7 +268,8 @@ public class AttrFuncDef {
     private static List<NameLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<NameLink> funcs2) throws EarlyReturn {
         List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
         for (NameLink f : funcs2) {
-            if (f.getParameterTypes().size() == argumentTypes.size()) {
+            if (f.getParameterTypes().size() == argumentTypes.size()
+                    || (f.getParameterTypes().size() == 1 && f.getParameterTypes().get(0) instanceof WurstTypeVararg)) {
                 funcs3.add(f);
             }
         }

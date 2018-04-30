@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.parser.antlr;
 
-import asg.grammars.ast.AstElement;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
@@ -344,6 +343,8 @@ public class AntlrWurstParseTreeTransformer {
                 return Ast.ModAbstract(src);
             case WurstParser.CONSTANT:
                 return Ast.ModConstant(src);
+            case WurstParser.VARARG:
+                return Ast.ModVararg(src);
         }
         throw error(m, "not implemented");
     }
@@ -1298,6 +1299,9 @@ public class AntlrWurstParseTreeTransformer {
     private WParameter transformFormalParameter(FormalParameterContext p,
                                                 boolean makeConstant) {
         Modifiers modifiers = Ast.Modifiers();
+        if(p.vararg != null) {
+            modifiers.add(Ast.ModVararg(source(p).artificial()));
+        }
         if (makeConstant) {
             modifiers.add(Ast.ModConstant(source(p).artificial()));
         }

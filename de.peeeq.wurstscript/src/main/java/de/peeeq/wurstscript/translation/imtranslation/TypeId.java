@@ -3,20 +3,43 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClasses;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class TypeId {
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();
         Map<ImClass, Integer> result = Maps.newLinkedHashMap();
-        assignIds(count, result, prog.getClasses());
+        // sort classes by name to get deterministic order
+        Comparator<ImClass> cmp = Comparator.comparing(ImClass::getName).thenComparing(TypeId::packageName);
+        List<ImClass> classes = prog.getClasses().stream()
+                .sorted(cmp)
+                .collect(Collectors.toList());
+        assignIds(count, result, classes);
         return result;
+    }
+
+    private static String packageName(ImClass ic) {
+        Element c = ic.attrTrace();
+        @Nullable PackageOrGlobal nearestPackage = c.attrNearestPackage();
+        if (nearestPackage instanceof WPackage) {
+            return ((WPackage) nearestPackage).getName();
+        }
+        return "global";
     }
 
     private static void assignIds(AtomicInteger count, Map<ImClass, Integer> result,

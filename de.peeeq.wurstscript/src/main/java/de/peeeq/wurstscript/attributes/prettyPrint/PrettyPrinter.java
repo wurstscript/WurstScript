@@ -420,6 +420,10 @@ public class PrettyPrinter {
         sb.append("constant");
     }
 
+    public static void prettyPrint(ModVararg e, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("vararg");
+    }
+
     public static void prettyPrint(Modifiers e, Spacer spacer, StringBuilder sb, int indent) {
         for (Modifier modifier : e) {
             modifier.prettyPrint(spacer, sb, indent);
