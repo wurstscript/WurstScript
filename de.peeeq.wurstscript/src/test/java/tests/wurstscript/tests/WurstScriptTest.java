@@ -30,6 +30,7 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
 import org.testng.Assert;
 
 import java.io.*;
@@ -303,14 +304,14 @@ public class WurstScriptTest {
     private void translateAndTest(String name, boolean executeProg,
                                   boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
                                   WurstModel model) throws Error {
-        compiler.translateProg(model);
+        ImProg imProg = compiler.translateProgToIm(model);
+
 
         if (gui.getErrorCount() > 0) {
             throw gui.getErrorList().get(0);
         }
 
 
-        ImProg imProg = compiler.getImProg();
         writeJassImProg(name, gui, imProg);
         if (executeTests) {
             executeTests(gui, imProg);
@@ -320,7 +321,10 @@ public class WurstScriptTest {
         }
 
 
-        JassProg prog = compiler.getProg();
+        JassProg prog = compiler.transformProgToJass();
+        if (gui.getErrorCount() > 0) {
+            throw gui.getErrorList().get(0);
+        }
 
 
         if (gui.getErrorCount() > 0) {
