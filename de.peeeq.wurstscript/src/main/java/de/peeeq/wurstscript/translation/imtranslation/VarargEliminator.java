@@ -59,18 +59,19 @@ public class VarargEliminator {
      * for the function call.
      */
     private void generateVarargFunc(ImFunction func, ImFunctionCall call) {
-        int argumentSize = call.getArguments().size();
-        ImVar vararg = func.getParameters().get(0);
-        ImType type = vararg.getType();
+        // how many vararg-parameters should we generate?
+        // ==> number of parameters in call minus non-vararg parameters in the definition
+        int argumentSize = 1 + call.getArguments().size() - func.getParameters().size();
 
         // Create new function
         ImFunction newFunc = ReferenceRewritingCopy.copy(func);
         newFunc.setName(func.getName() + "_" + argumentSize);
         // replace vararg with special parameters:
         ImVar varargParam = newFunc.getParameters().remove(newFunc.getParameters().size() - 1);
+        ImType type = varargParam.getType();
         List<ImVar> newParams = new ArrayList<>();
         for (int i = 0; i < argumentSize; i++) {
-            ImVar param = JassIm.ImVar(func.getTrace(), type, vararg.getName() + "_" + i, false);
+            ImVar param = JassIm.ImVar(func.getTrace(), type, varargParam.getName() + "_" + i, false);
             newParams.add(param);
             newFunc.getParameters().add(param);
         }

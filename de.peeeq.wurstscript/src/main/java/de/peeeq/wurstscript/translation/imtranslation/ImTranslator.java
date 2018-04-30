@@ -596,11 +596,16 @@ public class ImTranslator {
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
-            // Check if last parameter is vararg
-            if (funcDef2.getParameters().size() == 1 && funcDef2.getParameters().get(funcDef2.getParameters().size() - 1).attrIsVararg()) {
+        }
+
+        // Check if last parameter is vararg
+        if (funcDef instanceof AstElementWithParameters) {
+            WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+            if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
                 flags.add(IS_VARARG);
             }
         }
+
 
         if (funcDef instanceof HasModifier) {
             HasModifier awm = (HasModifier) funcDef;

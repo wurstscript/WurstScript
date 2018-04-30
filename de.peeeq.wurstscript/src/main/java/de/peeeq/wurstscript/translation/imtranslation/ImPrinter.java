@@ -83,6 +83,10 @@ public class ImPrinter {
     }
 
     public static void print(ImFunction p, StringBuilder sb, int indent) {
+        for (FunctionFlag flag : p.getFlags()) {
+            sb.append(flag);
+            sb.append(" ");
+        }
         sb.append("function ").append(p.getName()).append("(");
         boolean first = true;
         for (ImVar p1 : p.getParameters()) {
