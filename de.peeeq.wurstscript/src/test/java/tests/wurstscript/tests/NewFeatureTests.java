@@ -9,33 +9,18 @@ public class NewFeatureTests extends WurstScriptTest {
     private static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
-    public void testEnums() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "enums.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testEnums() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "enums.wurst"), false);
     }
 
     @Test
-    public void testGenericUnit() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testGenericUnit() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
     }
 
     @Test
-    public void testMinusOne() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testMinusOne() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);
     }
 
 
@@ -361,5 +346,134 @@ public class NewFeatureTests extends WurstScriptTest {
                 "	testSuccess()"
         );
     }
+
+    @Test
+    public void testVarargSyntax() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)"
+        );
+    }
+
+    @Test
+    public void testInvalidVarargFunc() {
+        testAssertErrorsLines(false, "may only have one parameter",
+                "package Test",
+                "function foo(int x, vararg int ints)",
+                ""
+        );
+    }
+
+    @Test
+    public void testVarargAccess() {
+        testAssertOkLines(false,
+                "package Test",
+                "function bar(int i)",
+                "",
+                "function foo(vararg int ints)",
+                "    for i in ints",
+                "        bar(i)",
+                ""
+        );
+    }
+
+    @Test
+    public void testVarargInput() {
+        testAssertOkLines(false,
+                "package Test",
+                "function foo(vararg int ints)",
+                "init",
+                "    foo(1,2,3)"
+        );
+    }
+
+    @Test
+    public void testVarargForeach() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 10",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void varargsWithOverloading() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(string s)",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    if sum == 10",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void varargWithGenerics() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo<T>(vararg T ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i castTo int",
+                "    if sum == 10",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+
+    @Test
+    public void varargWithBreak() {
+        testAssertErrorsLines(true, "Cannot use break in vararg for each loops",
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "        if i > 2",
+                "            break",
+                "    if sum == 3",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void legitNestedBreak() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(vararg int ints)",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "        for j = 1 to 4",
+                "            sum += j",
+                "            if j > 2",
+                "                break",
+                "    if sum == 34",
+                "        testSuccess()",
+                "init",
+                "    foo(1,2,3,4)"
+        );
+    }
+
 
 }

@@ -168,9 +168,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
             return outFile;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**

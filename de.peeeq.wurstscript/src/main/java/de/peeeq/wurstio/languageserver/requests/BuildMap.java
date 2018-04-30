@@ -134,14 +134,14 @@ public class BuildMap extends MapRequest {
                 mpq.insertFile("war3map.w3i", java.nio.file.Files.readAllBytes(w3iFile.toPath()));
                 w3iFile.delete();
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
             mpq.setKeepHeaderOffset(false);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         MAP_NAME_MAGIC_START.rewind();
         MAP_NAME_MAGIC_END.rewind();

@@ -123,8 +123,7 @@ public class HotdocGenerator {
         try {
             Files.write(render(t, context), new File(outputfolder + "/index.html"), Charsets.UTF_8);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
     }
@@ -143,8 +142,7 @@ public class HotdocGenerator {
         try {
             Files.write(render(t, context), new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
     }
