@@ -282,7 +282,7 @@ public class NameLink {
     public WurstType getReturnType() {
         WurstType r = returnType;
         if (r == null) {
-            r = nameDef.attrTyp();
+            r = nameDef.attrTyp().dynamic();
             returnType = r;
         }
         return r;

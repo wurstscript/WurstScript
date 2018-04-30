@@ -58,6 +58,7 @@ ImStmt =
 	| ImSetArrayMulti(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExprs indices, ImExpr right)
 	| ImSetArrayTuple(de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, int tupleIndex, ImExpr right)
 	| ImExpr
+	| ImVarargLoop(de.peeeq.wurstscript.ast.Element trace, ImStmts body, ref ImVar loopVar)
 	
 	
 ImExprOpt = 

@@ -275,6 +275,30 @@ public class SimpleStatementTests extends WurstScriptTest {
     }
 
     @Test
+    public void testForFrom_once() {
+        // for-from expression should be evaluated only once
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "	int x = 0",
+                "	static int count = 0",
+                "	construct()",
+                "		count = count + 1",
+                "	function next() returns int",
+                "		x = x + 1",
+                "		return x",
+                "	function hasNext() returns boolean",
+                "		return x < 10",
+                "init",
+                "	for i from new C()",
+                "	if C.count == 1",
+                "		testSuccess()"
+        );
+
+    }
+
+    @Test
     public void test_inc() {
         assertOk(true,
                 "int x = 5",
@@ -535,5 +559,62 @@ public class SimpleStatementTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void test_stupid_for_in() {
+        testAssertErrorsLines(false, "doesn't provide a iterator() function",
+                "package test",
+                "init",
+                "	for i in 42"
+        );
+    }
+
+    @Test
+    public void test_stupid_for_in2() {
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
+                "package test",
+                "class C",
+                "	function iterator() returns int",
+                "		return 42",
+                "init",
+                "	for i in new C"
+        );
+    }
+
+    @Test
+    public void test_stupid_for_from() {
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
+                "package test",
+                "init",
+                "	for i from 42"
+        );
+    }
+
+    @Test
+    public void test_no_hasNext() {
+        testAssertErrorsLines(false, "doesn't provide a hasNext() function that returns boolean",
+                "package test",
+                "class C",
+                "	function iterator() returns C",
+                "		return new C",
+                "	function next() returns int",
+                "		return 1",
+                "init",
+                "	for i in new C"
+        );
+    }
+
+    @Test
+    public void test_no_Next() {
+        testAssertErrorsLines(false, "doesn't provide a proper next()",
+                "package test",
+                "class C",
+                "	function iterator() returns C",
+                "		return new C",
+                "	function hasNext() returns boolean",
+                "		return true",
+                "init",
+                "	for i in new C"
+        );
+    }
 
 }

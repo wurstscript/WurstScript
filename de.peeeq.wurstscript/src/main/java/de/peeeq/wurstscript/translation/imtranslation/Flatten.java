@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
@@ -25,6 +26,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
+import de.peeeq.wurstscript.jassIm.ImVarargLoop;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
 
@@ -32,7 +34,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 /**
  * flattening expressions and statements
  * after flattening there will be no more StatementExprs
@@ -56,12 +60,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
-
-
     public static class Result {
+
         final List<ImStmt> stmts;
         final ImExpr expr;
-
 
         public Result(List<ImStmt> stmts, ImExpr epxr) {
             this.stmts = stmts;
@@ -82,12 +84,13 @@ public class Flatten {
             result.addAll(stmts);
             exprToStatements(result, expr, t, f);
         }
+
     }
 
     public static class MultiResult {
+
         final List<ImStmt> stmts;
         final List<ImExpr> exprs;
-
 
         public MultiResult(List<ImStmt> stmts, List<ImExpr> exprs) {
             this.stmts = stmts;
@@ -104,7 +107,7 @@ public class Flatten {
 
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
         if (e instanceof ImFunctionCall) {
-            result.add((ImStmt) ((ImStmt) e).copy());
+            result.add(((ImStmt) e).copy());
         } else if (e instanceof ImStatementExpr) {
             ImStatementExpr e2 = (ImStatementExpr) e;
             flattenStatementsInto(result, e2.getStatements(), t, f);
@@ -125,9 +128,9 @@ public class Flatten {
             } else {
                 // if righthandside contains some statements, transform the whole thing to an if statement:
                 if (oc.getOp() == WurstOperator.AND) {
-                    result.add(JassIm.ImIf(e.attrTrace(), (ImExpr) left.copy(), rightStmts, JassIm.ImStmts()));
+                    result.add(JassIm.ImIf(e.attrTrace(), left.copy(), rightStmts, JassIm.ImStmts()));
                 } else { // WurstOperator.OR
-                    result.add(JassIm.ImIf(e.attrTrace(), (ImExpr) left.copy(), JassIm.ImStmts(), rightStmts));
+                    result.add(JassIm.ImIf(e.attrTrace(), left.copy(), JassIm.ImStmts(), rightStmts));
                 }
             }
         } else {
@@ -171,7 +174,7 @@ public class Flatten {
 
 
     public static Result flatten(ImLoop s, ImTranslator t, ImFunction f) {
-        return new Result(Collections.<ImStmt>singletonList(
+        return new Result(Collections.singletonList(
                 JassIm.ImLoop(s.getTrace(), flattenStatements(s.getBody(), t, f))));
     }
 
@@ -184,7 +187,7 @@ public class Flatten {
             return new Result(stmts);
         } else {
             s.setParent(null);
-            return new Result(Collections.<ImStmt>singletonList(s));
+            return new Result(Collections.singletonList(s));
         }
     }
 
@@ -390,4 +393,8 @@ public class Flatten {
     }
 
 
+    public static Result flatten(ImVarargLoop s, ImTranslator translator, ImFunction f) {
+        return new Result(Collections.singletonList(
+                JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
+    }
 }

@@ -72,7 +72,7 @@ public class AttrPossibleFunctionSignatures {
         }
         returnType = returnType.setTypeArgs(binding2);
         List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
-        return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType));
+        return ImmutableList.of(new FunctionSignature(null, paramTypes, pNames, returnType, f.attrIsVararg()));
     }
 
 }

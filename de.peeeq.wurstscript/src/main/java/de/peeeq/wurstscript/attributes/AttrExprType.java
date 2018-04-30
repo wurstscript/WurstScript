@@ -100,6 +100,8 @@ public class AttrExprType {
         if (varDefType instanceof WurstTypeArray) {
             WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
             return typ;
+        } else if (varDef.attrIsVararg()) {
+            // TODO
         } else {
             term.addError("Variable " + varDef.getName() + " is no array variable.");
         }
@@ -327,7 +329,8 @@ public class AttrExprType {
         FunctionDefinition def = term.attrFuncDef();
         if (def == null) {
             term.addError("No operator overloading function for operator " + term.getOp() +
-                    " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp().getOverloadingFuncName());
+                    " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp()
+                    .getOverloadingFuncName());
             return WurstTypeUnknown.instance();
         }
         return def.getReturnTyp().attrTyp().dynamic();

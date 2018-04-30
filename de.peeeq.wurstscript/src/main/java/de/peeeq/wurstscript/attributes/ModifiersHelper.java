@@ -30,6 +30,10 @@ public class ModifiersHelper {
         return containsType(e.getModifiers(), ModOverride.class);
     }
 
+    public static boolean isVararg(HasModifier e) {
+        return containsType(e.getModifiers(), ModVararg.class);
+    }
+
     public static boolean isAbstract(HasModifier e) {
         if (e instanceof FuncDef
                 && e.attrNearestStructureDef() instanceof InterfaceDef) {

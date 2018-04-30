@@ -110,7 +110,8 @@ public class ImTranslator {
         try {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
-            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg",
+                    false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             calculateCompiletimeOrder();
 
@@ -135,7 +136,8 @@ public class ImTranslator {
             throw t;
         } catch (Throwable t) {
             WLogger.severe(t);
-            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t.getMessage() +
+            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t
+                    .getMessage() +
                     "\nPlease open a ticket with source code and the error log.", t);
         }
     }
@@ -247,7 +249,8 @@ public class ImTranslator {
             if (f.isNative() && natives.containsKey(f.getName())) {
                 ImFunction existing = natives.get(f.getName());
                 if (!compatibleTypes(f, existing)) {
-                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " + existing.attrTrace().attrErrorPos());
+                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " +
+                            existing.attrTrace().attrErrorPos());
                 }
                 // remove duplicate
                 it.remove();
@@ -523,7 +526,8 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(StructureDef classDef) {
             ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
-            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(),
+                    flags());
             addFunction(f);
             return f;
         }
@@ -554,7 +558,8 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(ImClass c) {
-            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(),
+            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)),
+                    TypesHelper.imVoid(),
                     JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
         }
 
@@ -591,6 +596,10 @@ public class ImTranslator {
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
+            // Check if last parameter is vararg
+            if (funcDef2.getParameters().size() == 1 && funcDef2.getParameters().get(funcDef2.getParameters().size() - 1).attrIsVararg()) {
+                flags.add(IS_VARARG);
+            }
         }
 
         if (funcDef instanceof HasModifier) {
@@ -605,6 +614,7 @@ public class ImTranslator {
 
         ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
+
         addFunction(f);
         functionMap.put(funcDef, f);
         return f;
@@ -634,7 +644,7 @@ public class ImTranslator {
 
     public ImFunction getInitFuncFor(WPackage p) {
         // TODO more precise trace
-        return  initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
+        return initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
     }
 
     /**

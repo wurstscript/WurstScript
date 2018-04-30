@@ -6,12 +6,10 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class Generics {
 
@@ -82,6 +80,11 @@ public class Generics {
 
     private static void inferTypeParameters(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Element pos, WurstType argType, WurstType paramTyp,
                                             TypeParamDefs typeParams) {
+        if(paramTyp instanceof WurstTypeVararg) {
+            WurstTypeVararg bt = (WurstTypeVararg) paramTyp;
+            inferTypeParameters(result, pos, argType, bt.getBaseType(), typeParams);
+            return;
+        }
         if (paramTyp instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) paramTyp;
             inferTypeParameters(result, pos, argType, bt.getBaseType(), typeParams);
