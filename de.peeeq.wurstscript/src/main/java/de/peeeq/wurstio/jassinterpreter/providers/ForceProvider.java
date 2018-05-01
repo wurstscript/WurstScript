@@ -31,6 +31,11 @@ public class ForceProvider extends Provider {
         forceList.clear();
     }
 
+    public boolean IsPlayerInForce(IlConstHandle force, IlConstHandle player) {
+        LinkedHashSet<IlConstHandle> forceList = (LinkedHashSet<IlConstHandle>) force.getObj();
+        return forceList.contains(player);
+    }
+
     public void DestroyForce(IlConstHandle force) {
         ForceClear(force);
     }
