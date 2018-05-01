@@ -30,7 +30,6 @@ import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
 import org.testng.Assert;
 
 import java.io.*;
@@ -313,17 +312,26 @@ public class WurstScriptTest {
 
 
         writeJassImProg(name, gui, imProg);
-        if (executeTests) {
-            executeTests(gui, imProg);
-        }
-        if (executeProg) {
-            executeImProg(gui, imProg);
-        }
+        // TODO enable tests below:
+        // we want to test that the interpreter works correctly before transforming the program in the translation step
+//        if (executeTests) {
+//            executeTests(gui, imProg);
+//        }
+//        if (executeProg) {
+//            executeImProg(gui, imProg);
+//        }
 
 
         JassProg prog = compiler.transformProgToJass();
         if (gui.getErrorCount() > 0) {
             throw gui.getErrorList().get(0);
+        }
+
+        if (executeTests) {
+            executeTests(gui, imProg);
+        }
+        if (executeProg) {
+            executeImProg(gui, imProg);
         }
 
 
