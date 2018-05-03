@@ -184,7 +184,7 @@ public class Main {
         WLogger.info("### Started wurst version: (" + AboutDialog.version + ")");
         WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
         if (arguments != null && arguments.size() > 0) {
-            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+            WLogger.info("### With vm-args " + Utils.printSep(", ", arguments.toArray(new String[0])));
         }
         try {
             WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
