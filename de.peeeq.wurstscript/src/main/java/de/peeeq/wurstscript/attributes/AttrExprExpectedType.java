@@ -133,7 +133,9 @@ public class AttrExprExpectedType {
         WurstType res = WurstTypeUnknown.instance();
 
         for (FunctionSignature sig : sigs) {
-            if (index < sig.getParamTypes().size()) {
+            if (index >= sig.getParamTypes().size() - 1 &&  sig.isVararg()) {
+                res = res.typeUnion(sig.getVarargType(), expr);
+            } else if (index < sig.getParamTypes().size()) {
                 res = res.typeUnion(sig.getParamTypes().get(index), expr);
             }
         }

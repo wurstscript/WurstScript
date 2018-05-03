@@ -584,4 +584,30 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericToIndexVarargs() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "    T x",
+                "    function setX(vararg T xs)",
+                "        for x in xs",
+                "            this.x = x",
+                "    function getX() returns T",
+                "        return x",
+                "function stringToIndex(string s) returns int",
+                "    return 42",
+                "function stringFromIndex(int i) returns string",
+                "    return \"42\"",
+                "init",
+                "    let c = new C<string>",
+                "    c.setX(\"42\")",
+                "    string s = c.getX()",
+                "    if s == \"42\"",
+                "        testSuccess()");
+
+    }
+
+
 }

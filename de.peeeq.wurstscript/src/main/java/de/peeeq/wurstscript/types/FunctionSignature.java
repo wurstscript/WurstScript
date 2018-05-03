@@ -134,4 +134,9 @@ public class FunctionSignature {
     public boolean isVararg() {
         return isVararg;
     }
+
+    public WurstType getVarargType() {
+        Preconditions.checkArgument(isVararg);
+        return ((WurstTypeVararg) paramTypes.get(paramTypes.size() - 1)).getBaseType();
+    }
 }

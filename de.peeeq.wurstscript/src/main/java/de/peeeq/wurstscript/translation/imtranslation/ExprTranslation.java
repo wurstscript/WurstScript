@@ -114,6 +114,11 @@ public class ExprTranslation {
             }
         }
 
+        System.out.println("Translating " + trace);
+        System.out.println("   in " + trace.getParent());
+        System.out.println("   expected " + expectedTypRaw.getFullName());
+        System.out.println("   actualType " + actualType.getFullName());
+
         if (toIndex != null && fromIndex != null) {
             // the two conversions cancel each other out
             return translated;

@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+
+import java.util.Map;
 
 
 public class WurstTypeVararg extends WurstType {
@@ -48,4 +51,13 @@ public class WurstTypeVararg extends WurstType {
         throw new Error();
     }
 
+
+    @Override
+    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> t) {
+        WurstType b = this.baseType.setTypeArgs(t);
+        if (b == baseType) {
+            return this;
+        }
+        return new WurstTypeVararg(b);
+    }
 }
