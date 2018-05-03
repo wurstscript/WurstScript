@@ -170,6 +170,13 @@ public class ProgramState extends State {
             }
         }
 
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            appendTo(sb);
+            return sb.toString();
+        }
+
         public List<ILStackFrame> getStackFrames() {
             return stackFrames;
         }

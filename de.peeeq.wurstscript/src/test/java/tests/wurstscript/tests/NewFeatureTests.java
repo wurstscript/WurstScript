@@ -533,4 +533,55 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void varargOverload() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(int x, string y)",
+                "function foo(vararg int x)",
+                "    testSuccess()",
+                "init",
+                "    foo(1,2)"
+        );
+    }
+
+    @Test
+    public void varargGenericMethodOverload() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "class A<Q>",
+                "class C<T>",
+                "    function foo(A<T> s)",
+                "    function foo(vararg T ints)",
+                "        var sum = 3",
+                "        for i in ints",
+                "            sum++",
+                "        if sum == 7",
+                "            testSuccess()",
+                "init",
+                "    new C<int>.foo(new A<int>)",
+                "    new C<int>.foo(1,2,3,4)"
+        );
+    }
+
+    @Test
+    public void testVarargInvalidOverload() {
+        testAssertErrorsLines(true, "dsfdsfsadfds",
+                "package Test",
+                "native testSuccess()",
+                "function foo(int i) returns int",
+                "    return i",
+                "function foo(vararg int ints) returns int",
+                "    var sum = 0",
+                "    for i in ints",
+                "        sum += i",
+                "    return sum",
+                "init",
+                "    if foo(0) + foo(1,2) + foo(3,4) == 10",
+                "        testSuccess()"
+        );
+    }
+
 }

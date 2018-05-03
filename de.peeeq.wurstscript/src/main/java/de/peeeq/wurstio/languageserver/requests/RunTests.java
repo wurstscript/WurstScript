@@ -190,9 +190,12 @@ public class RunTests extends UserRequest<Object> {
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
+                    println(interpreter.getStackFrames().toString());
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("\tFAILED with exception:");
+                    println("\tFAILED with exception: " + e.getLocalizedMessage());
+                    println(interpreter.getStackFrames().toString());
+                    println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
                     e.printStackTrace(pw);
