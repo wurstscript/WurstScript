@@ -1327,6 +1327,7 @@ public class WurstValidator {
                 e.addError("Cannot reference dynamic variable " + e.getVarName() + " from static context.");
             }
         }
+        checkNameRefDeprecated(e, def);
         if (e.attrTyp() instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope wtns = (WurstTypeNamedScope) e.attrTyp();
             if (wtns.isStaticRef()) {
@@ -1446,14 +1447,17 @@ public class WurstValidator {
         }
     }
 
-    private void checkFuncDefDeprecated(FuncRef ref) {
-        @Nullable FunctionDefinition def = ref.attrFuncDef();
+    private void checkNameRefDeprecated(Element trace, NameDef def) {
         if (def != null && def.hasAnnotation("@deprecated")) {
             Annotation annotation = def.getAnnotation("@deprecated");
             String msg = annotation.getAnnotationMessage();
             msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg.substring(1, msg.length() - 1);
-            ref.addWarning(def.getName() + " is deprecated. " + msg);
+            trace.addWarning(def.getName() + " is deprecated. " + msg);
         }
+    }
+
+    private void checkFuncDefDeprecated(FuncRef ref) {
+        checkNameRefDeprecated(ref, ref.attrFuncDef());
     }
 
     private void checkFuncRef(ExprFuncRef ref) {
@@ -1759,6 +1763,7 @@ public class WurstValidator {
     }
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
+        checkNameRefDeprecated(ea, ea.tryGetNameDef());
         for (Expr index : ea.getIndexes()) {
             if (!(index.attrTyp().isSubtypeOf(WurstTypeInt.instance(), ea))) {
                 index.addError("Arrayindices have to be of type int");
@@ -2216,7 +2221,7 @@ public class WurstValidator {
 
     private void checkConstructorSuperCall(ConstructorDef c) {
         if (c.getIsExplicit()) {
-            if (c.attrNearestClassDef() instanceof ClassDef) {
+            if (c.attrNearestClassDef() != null) {
                 ClassDef classDef = c.attrNearestClassDef();
                 if (classDef.getExtendedClass() instanceof NoTypeExpr) {
                     c.addError("Super call in a class which extends nothing.");
