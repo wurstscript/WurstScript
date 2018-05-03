@@ -911,4 +911,20 @@ public class BugTests extends WurstScriptTest {
 
     }
 
+    @Test
+    public void testCyclicDependencyError() {
+        testAssertErrorsLines(true, "type may not depend on each other",
+                "package Test",
+                "native testSuccess()",
+                "function foo() returns bool",
+                "    var x = 0",
+                "    for x in x",
+                "        sum += i",
+                "    return true",
+                "init",
+                "    if foo()",
+                "        testSuccess()"
+        );
+    }
+
 }
