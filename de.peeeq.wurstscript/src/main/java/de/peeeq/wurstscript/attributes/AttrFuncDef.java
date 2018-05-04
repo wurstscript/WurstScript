@@ -247,7 +247,7 @@ public class AttrFuncDef {
         nextFunc:
         for (NameLink f : funcs3) {
             for (int i = 0; i < argumentTypes.size(); i++) {
-                if (!argumentTypes.get(i).isSubtypeOf(f.getParameterTypes().get(i), node)) {
+                if (!argumentTypes.get(i).isSubtypeOf(f.getParameterType(i), node)) {
                     continue nextFunc;
                 }
             }

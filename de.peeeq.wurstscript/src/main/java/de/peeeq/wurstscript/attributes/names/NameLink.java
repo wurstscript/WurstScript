@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -302,6 +303,22 @@ public class NameLink {
         return pts;
     }
 
+    public WurstType getParameterType(int i) {
+        List<WurstType> parameterTypes = getParameterTypes();
+        if (isVarargMethod() && i >= parameterTypes.size() - 1) {
+            return ((WurstTypeVararg) parameterTypes.get(parameterTypes.size() - 1)).getBaseType();
+        }
+        return parameterTypes.get(i);
+    }
+
+    private boolean isVarargMethod() {
+        List<WurstType> parameterTypes = getParameterTypes();
+        if (parameterTypes.size() > 0) {
+            return parameterTypes.get(parameterTypes.size() - 1) instanceof WurstTypeVararg;
+        }
+        return false;
+    }
+
     public NameLink withConfigDef() {
         NameDef def = (NameDef) nameDef.attrConfigActualNameDef();
         return new NameLink(visibility, type, definedIn, def, returnType, parameterTypes);
@@ -314,4 +331,6 @@ public class NameLink {
         }
         return this.receiverType.isSubtypeOf(receiverType, location);
     }
+
+
 }
