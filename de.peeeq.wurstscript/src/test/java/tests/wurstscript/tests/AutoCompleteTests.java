@@ -273,7 +273,7 @@ public class AutoCompleteTests extends WurstScriptTest {
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);
-        TextDocumentPositionParams position = new TextDocumentPositionParams(textDocument, pos);
+        CompletionParams position = new CompletionParams(textDocument, pos);
         GetCompletions getCompletions = new GetCompletions(position, bufferManager);
 
         //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
