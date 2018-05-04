@@ -47,7 +47,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private boolean isIncomplete = false;
 
 
-    public GetCompletions(TextDocumentPositionParams position, BufferManager bufferManager) {
+    public GetCompletions(CompletionParams position, BufferManager bufferManager) {
         this.filename = WFile.create(position.getTextDocument().getUri());
         this.buffer = bufferManager.getBuffer(position.getTextDocument());
         this.line = position.getPosition().getLine() + 1;
