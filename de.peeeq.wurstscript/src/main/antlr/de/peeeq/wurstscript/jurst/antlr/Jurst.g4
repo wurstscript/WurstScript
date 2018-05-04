@@ -379,8 +379,10 @@ expr:
 	  | left=expr op=('<='|'<'|'>'|'>=') right=expr
 	  | left=expr op=('=='|'!=') right=expr
 	  | op='not' right=expr
-	  | left=expr op='and' right=expr
+	  // The order here is intentional, Jass is maybe the only language where 'or' has higher precedence than 'and'
+	  // We inherit it for Jurst, because we use the Jurst parser for parsing Jass code and we want Jurst to be close to Jass
 	  | left=expr op='or' right=expr
+	  | left=expr op='and' right=expr
 	  |
 	;
 
