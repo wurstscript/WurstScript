@@ -36,6 +36,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setReferencesProvider(true);
         capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(WurstCommands.providedCommands()));
+        capabilities.setRenameProvider(true);
 
 
         capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));

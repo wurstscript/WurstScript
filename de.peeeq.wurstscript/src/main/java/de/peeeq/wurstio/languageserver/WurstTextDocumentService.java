@@ -115,7 +115,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
         WLogger.info("rename");
-        return null;
+        return worker.handle(new RenameRequest(params, worker.getBufferManager()));
     }
 
     @Override
