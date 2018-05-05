@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonObject;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ExecuteCommandParams;
@@ -13,8 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -63,11 +62,13 @@ public class WurstCommands {
 
 
     private static CompletableFuture<Object> testMap(WurstLanguageServer server, ExecuteCommandParams params) {
-        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
-        String filename = (String) options.get("filename");
-        int line = Optional.ofNullable(options.get("line")).map(l -> (Double) l).orElse(-1.).intValue();
-        int column = Optional.ofNullable(options.get("column")).map(l -> (Double) l).orElse(-1.).intValue();
-        return server.worker().handle(new RunTests(filename, line, column));
+        JsonObject options = (JsonObject) params.getArguments().get(0);
+        // TODO fix caret position arguments
+//        System.out.println("options: " + options.toString());
+//        String filename = options.has("filename") ? options.get("filename").getAsString() : "";
+//        int line = Optional.ofNullable(options.get("line")).map(JsonElement::getAsDouble).orElse(-1.).intValue();
+//        int column = Optional.ofNullable(options.get("column")).map(JsonElement::getAsDouble).orElse(-1.).intValue();
+        return server.worker().handle(new RunTests(null, -1, -1));
     }
 
     private static CompletableFuture<Object> buildmap(WurstLanguageServer server, ExecuteCommandParams params) {
@@ -75,8 +76,8 @@ public class WurstCommands {
         if (params.getArguments().isEmpty()) {
             throw new RuntimeException("Missing arguments");
         }
-        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
-        String mapPath = (String) options.get("mappath");
+        JsonObject options = (JsonObject) params.getArguments().get(0);
+        String mapPath = options.get("mappath").getAsString();
         if (mapPath == null) {
             throw new RuntimeException("No mappath given");
         }
@@ -91,9 +92,9 @@ public class WurstCommands {
         if (params.getArguments().isEmpty()) {
             throw new RuntimeException("Missing arguments");
         }
-        Map<?, ?> options = (Map<?, ?>) params.getArguments().get(0);
-        String mapPath = (String) options.get("mappath");
-        String wc3Path = (String) options.get("wc3path");
+        JsonObject options = (JsonObject) params.getArguments().get(0);
+        String mapPath = options.get("mappath").getAsString();
+        String wc3Path = options.get("wc3path").getAsString();
         if (mapPath == null) {
             throw new RuntimeException("No mappath given");
         }
