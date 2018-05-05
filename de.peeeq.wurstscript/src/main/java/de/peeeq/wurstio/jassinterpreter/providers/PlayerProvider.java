@@ -27,6 +27,10 @@ public class PlayerProvider extends Provider {
     }
 
     public ILconstInt GetBJMaxPlayerSlots() {
+        return new ILconstInt(28);
+    }
+
+    public ILconstInt GetBJMaxPlayers() {
         return new ILconstInt(24);
     }
 }
