@@ -60,15 +60,12 @@ public class WurstCommands {
     }
 
 
-
     private static CompletableFuture<Object> testMap(WurstLanguageServer server, ExecuteCommandParams params) {
         JsonObject options = (JsonObject) params.getArguments().get(0);
-        // TODO fix caret position arguments
-//        System.out.println("options: " + options.toString());
-//        String filename = options.has("filename") ? options.get("filename").getAsString() : "";
-//        int line = Optional.ofNullable(options.get("line")).map(JsonElement::getAsDouble).orElse(-1.).intValue();
-//        int column = Optional.ofNullable(options.get("column")).map(JsonElement::getAsDouble).orElse(-1.).intValue();
-        return server.worker().handle(new RunTests(null, -1, -1));
+        String filename = options.has("filename") ? options.get("filename").getAsString() : null;
+        int line = options.has("line") ? options.get("line").getAsInt() : -1;
+        int column = options.has("column") ? options.get("column").getAsInt() : -1;
+        return server.worker().handle(new RunTests(filename, line, column));
     }
 
     private static CompletableFuture<Object> buildmap(WurstLanguageServer server, ExecuteCommandParams params) {
@@ -107,7 +104,8 @@ public class WurstCommands {
         return server.worker().handle(new RunMap(workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
-    private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects","-stacktraces");
+    private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects", "-stacktraces");
+
     private static List<String> getCompileArgs(WFile rootPath) {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
