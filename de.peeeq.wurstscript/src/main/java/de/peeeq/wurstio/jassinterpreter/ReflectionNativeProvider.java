@@ -34,6 +34,8 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new ItemProvider(interpreter));
         addProvider(new ConversionProvider(interpreter));
         addProvider(new DestructableProvider(interpreter));
+        addProvider(new DialogProvider(interpreter));
+        addProvider(new EffectProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {

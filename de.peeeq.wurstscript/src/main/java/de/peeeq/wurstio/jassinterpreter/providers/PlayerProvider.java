@@ -33,4 +33,12 @@ public class PlayerProvider extends Provider {
     public ILconstInt GetBJMaxPlayers() {
         return new ILconstInt(24);
     }
+
+    public void SetPlayerColor(IlConstHandle player, IlConstHandle playercolor) {
+        ((PlayerMock) player.getObj()).playerColor = playercolor;
+    }
+
+    public IlConstHandle GetPlayerColor(IlConstHandle player) {
+        return ((PlayerMock) player.getObj()).playerColor;
+    }
 }
