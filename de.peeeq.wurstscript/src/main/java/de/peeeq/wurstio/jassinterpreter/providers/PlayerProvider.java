@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.PlayerMock;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
@@ -38,7 +39,7 @@ public class PlayerProvider extends Provider {
         ((PlayerMock) player.getObj()).playerColor = playercolor;
     }
 
-    public IlConstHandle GetPlayerColor(IlConstHandle player) {
+    public ILconst GetPlayerColor(IlConstHandle player) {
         return ((PlayerMock) player.getObj()).playerColor;
     }
 }

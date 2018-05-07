@@ -7,6 +7,7 @@ public class EffectMock {
     public ILconstString modelPath;
     public ILconstReal x;
     public ILconstReal y;
+    public ILconstReal z = new ILconstReal(0.);
 
     public EffectMock(ILconstString modelPath, ILconstReal x, ILconstReal y) {
         this.modelPath = modelPath;

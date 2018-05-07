@@ -1,11 +1,12 @@
 package de.peeeq.wurstio.jassinterpreter.mocks;
 
+import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
-import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 
 public class PlayerMock {
     public final ILconstInt id;
-    public IlConstHandle playerColor;
+    public ILconst playerColor = ILconstNull.instance();
 
     public PlayerMock(ILconstInt p) {
         this.id = p;
