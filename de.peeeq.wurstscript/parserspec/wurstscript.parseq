@@ -413,7 +413,7 @@ Expr.attrExpectedTyp "try to guess what type is expected here"
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
 ExprClosure.attrClosureAbstractMethod
-	returns de.peeeq.wurstscript.attributes.names.NameLink
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
 
 ExprClosure.attrCapturedVariables
@@ -674,7 +674,7 @@ NameDef.getAnnotation(String annotation)
 	implemented by de.peeeq.wurstscript.attributes.HasAnnotation.getAnnotation
 
 StmtForIn.attrIteratorFunc
-    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.FuncLink>
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcIterator
 
 StmtForEach.attrItrType
@@ -682,11 +682,11 @@ StmtForEach.attrItrType
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcItrType
 
 StmtForEach.attrHasNextFunc
-    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.FuncLink>
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcHasNext
 
 StmtForEach.attrGetNextFunc
-    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+    returns java.util.Optional<de.peeeq.wurstscript.attributes.names.FuncLink>
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcGetNext
 
 
@@ -797,9 +797,18 @@ StructureDef.attrLevel "returns the level in the hierarchy. no supertype -> leve
 	returns int
 	implemented by de.peeeq.wurstscript.attributes.Level.get
 
-NameDef.createNameLink(WScope definedIn) "returns a namelink pointing to this NameDef"
-	returns de.peeeq.wurstscript.attributes.names.NameLink
-	implemented by de.peeeq.wurstscript.attributes.names.NameLink.create
+
+TypeDef.createTypeLink(WScope definedIn) "returns a TypeLink pointing to this NameDef"
+	returns de.peeeq.wurstscript.attributes.names.TypeLink
+	implemented by de.peeeq.wurstscript.attributes.names.TypeLink.create
+
+FunctionDefinition.createFuncLink(WScope definedIn) "returns a FuncLink pointing to this NameDef"
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
+	implemented by de.peeeq.wurstscript.attributes.names.FuncLink.create
+
+VarDef.createVarLink(WScope definedIn) "returns a VarLink pointing to this NameDef"
+	returns de.peeeq.wurstscript.attributes.names.VarLink
+	implemented by de.peeeq.wurstscript.attributes.names.VarLink.create
 
 ModuleUse.attrModuleDef
 	returns @Nullable ModuleDef
@@ -831,19 +840,19 @@ TypeRef.attrTypeDef
 //	implemented by de.peeeq.wurstscript.attributes.Scopes.getVisibleNamesPublic
 
 WScope.attrNameLinks "returns a map of all the names visible in this scope."
-	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.DefLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameLinks.calculate
 
 WScope.attrTypeNameLinks "returns a map of all the names visible in this scope."
-	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.TypeLink>
 	implemented by de.peeeq.wurstscript.attributes.names.TypeNameLinks.calculate
 
 WPackage.attrExportedNameLinks
-	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.DefLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedNameLinks
 
 WPackage.attrExportedTypeNameLinks
-	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.TypeLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedTypeNameLinks
 
 
@@ -868,15 +877,15 @@ Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, Strin
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
 
 Element.lookupFuncs(String name, boolean showErrors)
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncs
 
 Element.lookupFuncsNoConfig(String name, boolean showErrors)
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsNoConfig
 
 Element.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncs
 
 
@@ -897,11 +906,11 @@ Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, Strin
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
 
 Element.lookupFuncs(String name)
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupFuncsShort
 
 Element.lookupMemberFuncs(de.peeeq.wurstscript.types.WurstType receiverType, String name)
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.NameLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberFuncsShort
 	
 TypeParamDefs.attrTypes()

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -78,7 +79,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     public void addMemberMethods(Element node, String name,
-                                 List<NameLink> result) {
+                                 List<FuncLink> result) {
         baseType.addMemberMethods(node, name, result);
     }
 

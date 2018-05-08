@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -72,15 +73,15 @@ public class StmtTranslation {
         // Type of loop Variable:
         WurstType loopVarType = s.getLoopVar().attrTyp();
         List<ImStmt> result = Lists.newArrayList();
-        Optional<NameLink> nextFuncOpt = s.attrGetNextFunc();
-        Optional<NameLink> hasNextFuncOpt = s.attrHasNextFunc();
+        Optional<FuncLink> nextFuncOpt = s.attrGetNextFunc();
+        Optional<FuncLink> hasNextFuncOpt = s.attrHasNextFunc();
         if (nextFuncOpt.isPresent() && hasNextFuncOpt.isPresent()) {
-            NameLink nextFunc = nextFuncOpt.get();
-            NameLink hasNextFunc = hasNextFuncOpt.get();
+            FuncLink nextFunc = nextFuncOpt.get();
+            FuncLink hasNextFunc = hasNextFuncOpt.get();
 
             // get the iterator function in the intermediate language
-            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
-            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getDef());
+            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getDef());
 
             f.getLocals().add(t.getVarFor(s.getLoopVar()));
 
@@ -126,13 +127,13 @@ public class StmtTranslation {
         }
         List<ImStmt> result = Lists.newArrayList();
 
-        Optional<NameLink> iteratorFuncOpt = s.attrIteratorFunc();
-        Optional<NameLink> nextFuncOpt = s.attrGetNextFunc();
-        Optional<NameLink> hasNextFuncOpt = s.attrHasNextFunc();
+        Optional<FuncLink> iteratorFuncOpt = s.attrIteratorFunc();
+        Optional<FuncLink> nextFuncOpt = s.attrGetNextFunc();
+        Optional<FuncLink> hasNextFuncOpt = s.attrHasNextFunc();
         if (iteratorFuncOpt.isPresent() && nextFuncOpt.isPresent() && hasNextFuncOpt.isPresent()) {
-            NameLink iteratorFunc = iteratorFuncOpt.get();
-            NameLink nextFunc = nextFuncOpt.get();
-            NameLink hasNextFunc = hasNextFuncOpt.get();
+            FuncLink iteratorFunc = iteratorFuncOpt.get();
+            FuncLink nextFunc = nextFuncOpt.get();
+            FuncLink hasNextFunc = hasNextFuncOpt.get();
 
             // Type of iterator variable:
             WurstType iteratorType = iteratorFunc.getReturnType().setTypeArgs(iterationTarget.attrTyp().getTypeArgBinding());
@@ -140,9 +141,9 @@ public class StmtTranslation {
             WurstType loopVarType = s.getLoopVar().attrTyp();
 
             // get the iterator function in the intermediate language
-            ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getNameDef());
-            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
-            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+            ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getDef());
+            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getDef());
+            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getDef());
 
             // translate target:
             ImExprs iterationTargetList;

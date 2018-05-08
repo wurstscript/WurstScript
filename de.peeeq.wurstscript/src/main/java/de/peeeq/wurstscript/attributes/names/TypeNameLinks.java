@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 
 public class TypeNameLinks {
 
-    public static ImmutableMultimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
+    public static ImmutableMultimap<String, TypeLink> calculate(ClassOrModuleOrModuleInstanciation c) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addTypeParametersIfAny(result, c);
         for (ClassDef innerClass : c.getInnerClasses()) {
@@ -19,14 +19,14 @@ public class TypeNameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(CompilationUnit cu) {
+    public static ImmutableMultimap<String, TypeLink> calculate(CompilationUnit cu) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addJassTypes(result, cu);
         addPackages(result, cu);
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(AstElementWithBody c) {
+    public static ImmutableMultimap<String, TypeLink> calculate(AstElementWithBody c) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         WScope s = (WScope) c;
         addTypeParametersIfAny(result, s);
@@ -34,25 +34,25 @@ public class TypeNameLinks {
     }
 
 
-    public static ImmutableMultimap<String, NameLink> calculate(EnumDef e) {
+    public static ImmutableMultimap<String, TypeLink> calculate(EnumDef e) {
         return ImmutableMultimap.of();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(InterfaceDef i) {
+    public static ImmutableMultimap<String, TypeLink> calculate(InterfaceDef i) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addTypeParametersIfAny(result, i);
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(NativeFunc nativeFunc) {
+    public static ImmutableMultimap<String, TypeLink> calculate(NativeFunc nativeFunc) {
         return ImmutableMultimap.of();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(TupleDef t) {
+    public static ImmutableMultimap<String, TypeLink> calculate(TupleDef t) {
         return ImmutableMultimap.of();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WPackage p) {
+    public static ImmutableMultimap<String, TypeLink> calculate(WPackage p) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (WImport imp : p.getImports()) {
             WPackage importedPackage = imp.attrImportedPackage();
@@ -64,7 +64,7 @@ public class TypeNameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WEntities wEntities) {
+    public static ImmutableMultimap<String, TypeLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
             if (e instanceof TypeDef) {
@@ -75,7 +75,7 @@ public class TypeNameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WurstModel model) {
+    public static ImmutableMultimap<String, TypeLink> calculate(WurstModel model) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (CompilationUnit cu : model) {
             result.putAll(cu.attrTypeNameLinks());
@@ -83,7 +83,7 @@ public class TypeNameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WStatements statements) {
+    public static ImmutableMultimap<String, TypeLink> calculate(WStatements statements) {
         return ImmutableMultimap.of();
     }
 
@@ -112,7 +112,7 @@ public class TypeNameLinks {
         }
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(ExprClosure exprClosure) {
+    public static ImmutableMultimap<String, TypeLink> calculate(ExprClosure exprClosure) {
         return ImmutableMultimap.of();
     }
 }

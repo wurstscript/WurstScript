@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -80,13 +81,13 @@ public class FunctionSignature {
     }
 
 
-    public static FunctionSignature fromNameLink(NameLink f) {
+    public static FunctionSignature fromNameLink(FuncLink f) {
         List<String> pNames = Collections.emptyList();
-        if (f.getNameDef() instanceof AstElementWithParameters) {
-            AstElementWithParameters n = (AstElementWithParameters) f.getNameDef();
+        if (f.getDef() instanceof AstElementWithParameters) {
+            AstElementWithParameters n = (AstElementWithParameters) f.getDef();
             pNames = getParamNames(n.getParameters());
         }
-        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getNameDef().attrIsVararg());
+        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getDef().attrIsVararg());
     }
 
 

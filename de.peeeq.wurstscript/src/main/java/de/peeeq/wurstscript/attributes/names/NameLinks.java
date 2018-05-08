@@ -17,8 +17,8 @@ import java.util.Map.Entry;
 
 public class NameLinks {
 
-    public static ImmutableMultimap<String, NameLink> calculate(ClassOrModuleOrModuleInstanciation c) {
-        ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
+    public static ImmutableMultimap<String, DefLink> calculate(ClassOrModuleOrModuleInstanciation c) {
+        ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         addNamesFromUsedModuleInstantiations(c, result);
         addDefinedNames(result, c);
         if (c instanceof ClassDef) {
@@ -29,14 +29,14 @@ public class NameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(CompilationUnit cu) {
+    public static ImmutableMultimap<String, DefLink> calculate(CompilationUnit cu) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addJassNames(result, cu);
         addPackages(result, cu);
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(AstElementWithBody c) {
+    public static ImmutableMultimap<String, DefLink> calculate(AstElementWithBody c) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         WScope s = (WScope) c;
         addVarDefIfAny(result, s);
@@ -52,30 +52,30 @@ public class NameLinks {
         }
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(EnumDef e) {
+    public static ImmutableMultimap<String, DefLink> calculate(EnumDef e) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addDefinedNames(result, e, e.getMembers());
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(InterfaceDef i) {
+    public static ImmutableMultimap<String, DefLink> calculate(InterfaceDef i) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addDefinedNames(result, i, i.getMethods());
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(NativeFunc nativeFunc) {
+    public static ImmutableMultimap<String, DefLink> calculate(NativeFunc nativeFunc) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(TupleDef t) {
+    public static ImmutableMultimap<String, DefLink> calculate(TupleDef t) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         addDefinedNames(result, t, t.getParameters());
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WPackage p) {
+    public static ImmutableMultimap<String, DefLink> calculate(WPackage p) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (WImport imp : p.getImports()) {
             if (imp.getPackagename().equals("NoWurst")) {
@@ -100,7 +100,7 @@ public class NameLinks {
     }
 
 
-    public static ImmutableMultimap<String, NameLink> calculate(WEntities wEntities) {
+    public static ImmutableMultimap<String, DefLink> calculate(WEntities wEntities) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (WEntity e : wEntities) {
             if (e instanceof NameDef) {
@@ -115,7 +115,7 @@ public class NameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WurstModel model) {
+    public static ImmutableMultimap<String, DefLink> calculate(WurstModel model) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (CompilationUnit cu : model) {
             result.putAll(cu.attrNameLinks());
@@ -123,7 +123,7 @@ public class NameLinks {
         return result.build();
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(WStatements statements) {
+    public static ImmutableMultimap<String, DefLink> calculate(WStatements statements) {
         ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
         for (WStatement s : statements) {
             if (s instanceof LocalVarDef) {
@@ -166,13 +166,13 @@ public class NameLinks {
         for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
             Map<TypeParamDef, WurstTypeBoundTypeParam> binding = interfaceType.getTypeArgBinding();
             InterfaceDef i = interfaceType.getInterfaceDef();
-            for (Entry<String, NameLink> e : i.attrNameLinks().entries()) {
+            for (Entry<String, DefLink> e : i.attrNameLinks().entries()) {
                 result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef, binding));
             }
         }
     }
 
-    private static void addNamesFormSuperClass(Builder<String, NameLink> result, ClassDef classDef) {
+    private static void addNamesFormSuperClass(Builder<String, DefLink> result, ClassDef classDef) {
         if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
             WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
             ClassDef extendedClass = wurstTypeClass.getClassDef();
@@ -183,40 +183,40 @@ public class NameLinks {
 
 
     private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
-                                                             Builder<String, NameLink> result) {
+                                                             Builder<String, DefLink> result) {
         for (ModuleInstanciation m : c.getModuleInstanciations()) {
             addHidingPrivate(result, m.attrNameLinks());
         }
     }
 
-    private static void addDefinedNames(Builder<String, NameLink> result, ClassOrModuleOrModuleInstanciation c) {
+    private static void addDefinedNames(Builder<String, DefLink> result, ClassOrModuleOrModuleInstanciation c) {
         addDefinedNames(result, c, c.getMethods());
         addDefinedNames(result, c, c.getVars());
         addDefinedNames(result, c, c.getModuleInstanciations());
     }
 
-    private static void addDefinedNames(Builder<String, NameLink> result, WScope definedIn, List<? extends NameDef> slots) {
+    private static void addDefinedNames(Builder<String, DefLink> result, WScope definedIn, List<? extends NameDef> slots) {
         for (NameDef n : slots) {
-            result.put(n.getName(), n.createNameLink(definedIn));
+            result.put(n.getName(), DefLink.create(n, definedIn));
         }
     }
 
 
-    public static void addHidingPrivate(Builder<String, NameLink> result, Multimap<String, NameLink> adding) {
-        for (Entry<String, NameLink> e : adding.entries()) {
+    public static <T extends NameLink> void addHidingPrivate(Builder<String, T> result, Multimap<String, T> adding) {
+        for (Entry<String, T> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {
                 continue;
             }
-            result.put(e.getKey(), e.getValue().hidingPrivate());
+            result.put(e.getKey(), (T) e.getValue().hidingPrivate());
         }
 
     }
 
     private static void addHidingPrivate(Builder<String, NameLink> result,
-                                         Multimap<String, NameLink> adding,
+                                         Multimap<String, ? extends NameLink> adding,
                                          Map<TypeParamDef, WurstTypeBoundTypeParam> binding,
                                          Element context) {
-        for (Entry<String, NameLink> e : adding.entries()) {
+        for (Entry<String, ? extends NameLink> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {
                 continue;
             }
@@ -225,8 +225,8 @@ public class NameLinks {
 
     }
 
-    public static void addHidingPrivateAndProtected(ImmutableMultimap.Builder<String, NameLink> r, Multimap<String, NameLink> adding) {
-        for (Entry<String, NameLink> e : adding.entries()) {
+    public static <T extends NameLink> void addHidingPrivateAndProtected(ImmutableMultimap.Builder<String, DefLink> r, Multimap<String, T> adding) {
+        for (Entry<String, T> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {
                 continue;
             }
@@ -234,10 +234,10 @@ public class NameLinks {
         }
     }
 
-    public static ImmutableMultimap<String, NameLink> calculate(ExprClosure e) {
-        ImmutableMultimap.Builder<String, NameLink> result = ImmutableSetMultimap.builder();
+    public static ImmutableMultimap<String, DefLink> calculate(ExprClosure e) {
+        ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         for (WShortParameter p : e.getShortParameters()) {
-            result.put(p.getName(), p.createNameLink(e));
+            result.put(p.getName(), VarLink.create(p, e));
         }
         return result.build();
     }

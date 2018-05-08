@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 
@@ -12,8 +13,8 @@ public class ImplicitFuncs {
     public static FuncDef findToIndexFunc(WurstType typ, Element e) {
         typ = typ.normalize();
         for (NameLink nl : findToIndexFuncs(typ, e)) {
-            if (nl.getNameDef() instanceof FuncDef) {
-                return (FuncDef) nl.getNameDef();
+            if (nl.getDef() instanceof FuncDef) {
+                return (FuncDef) nl.getDef();
             }
         }
         e.addError("Could not find function " + toIndexFuncName(typ));
@@ -23,8 +24,8 @@ public class ImplicitFuncs {
     public static FuncDef findFromIndexFunc(WurstType typ, Element e) {
         typ = typ.normalize();
         for (NameLink nl : findFromIndexFuncs(typ, e)) {
-            if (nl.getNameDef() instanceof FuncDef) {
-                return (FuncDef) nl.getNameDef();
+            if (nl.getDef() instanceof FuncDef) {
+                return (FuncDef) nl.getDef();
             }
         }
         e.addError("Could not find function " + fromIndexFuncName(typ));
@@ -40,20 +41,19 @@ public class ImplicitFuncs {
         return typ + "FromIndex";
     }
 
-    public static Collection<NameLink> findToIndexFuncs(WurstType typ, Element e) {
+    public static Collection<FuncLink> findToIndexFuncs(WurstType typ, Element e) {
         String funcName = toIndexFuncName(typ);
         return findFunc(e, funcName);
     }
 
 
-    public static Collection<NameLink> findFromIndexFuncs(WurstType typ, Element e) {
+    public static Collection<FuncLink> findFromIndexFuncs(WurstType typ, Element e) {
         String funcName = fromIndexFuncName(typ);
-        Collection<NameLink> res = findFunc(e, funcName);
-        return res;
+        return findFunc(e, funcName);
     }
 
 
-    private static Collection<NameLink> findFunc(Element e, String funcName) {
+    private static Collection<FuncLink> findFunc(Element e, String funcName) {
         return e.lookupFuncs(funcName, false);
     }
 
