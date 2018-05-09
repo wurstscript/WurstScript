@@ -689,6 +689,10 @@ StmtForEach.attrGetNextFunc
     returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcGetNext
 
+StmtForEach.attrCloseFunc
+   returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+   implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcClose
+
 
 // Im translation
 

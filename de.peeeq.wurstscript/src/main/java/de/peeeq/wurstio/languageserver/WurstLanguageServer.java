@@ -8,6 +8,10 @@ import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +28,11 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         System.err.println("initializing workspace");
         setupLogger();
+        try {
+            System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            System.err.println("Your JVM doesn't support UTF-8 encoding. Output defaults to system encoding.");
+        }
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
         languageWorker.setRootPath(rootUri);

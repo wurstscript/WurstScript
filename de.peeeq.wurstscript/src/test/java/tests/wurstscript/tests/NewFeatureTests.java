@@ -347,6 +347,27 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
-
+    @Test
+    public void testForInClose() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "int i = 0",
+                "function int.iterator() returns int",
+                "    return i",
+                "",
+                "function int.next() returns int",
+                "    i++",
+                "    return i",
+                "",
+                "function int.hasNext() returns boolean",
+                "    return i < 3",
+                "",
+                "function int.close()",
+                "    testSuccess()",
+                "init",
+                "    for x in i"
+        );
+    }
 
 }
