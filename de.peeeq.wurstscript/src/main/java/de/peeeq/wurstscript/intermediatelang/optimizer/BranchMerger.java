@@ -45,12 +45,14 @@ public class BranchMerger {
                 if (n.getPredecessors().size() <= 1 && n.getSuccessors().size() == 2) {
                     Node leftStmt = n.getSuccessors().get(0);
                     Node rightStmt = n.getSuccessors().get(1);
-                    if (leftStmt.toString().equals(rightStmt.toString())) {
+                    if (leftStmt.getStmt().structuralEquals(rightStmt.getStmt())) {
                         if (n.getPredecessors().size() == 1) {
                             // Possible match. At last check if condition causes sideeffects.
                             if (hasNoSideEffects(n, leftStmt)) {
 
-                                ImStmt mergedStmt = leftStmt.getStmt().copy();
+                                ImStmt mergedStmt = leftStmt.getStmt();
+                                mergedStmt.setParent(null);
+
                                 ImIf oldIf = imIf.copy();
                                 oldIf.getThenBlock().get(0).replaceBy(JassIm.ImNull());
                                 oldIf.getElseBlock().get(0).replaceBy(JassIm.ImNull());
@@ -89,10 +91,41 @@ public class BranchMerger {
                 }
 
                 @Override
+                public void visit(ImVarArrayMultiAccess va) {
+                    super.visit(va);
+                    result.add(va.getVar());
+                }
+
+                @Override
+                public void visit(ImMemberAccess va) {
+                    super.visit(va);
+                    result.add(va.getVar());
+                }
+
+                @Override
                 public void visit(ImSet va) {
                     super.visit(va);
                     result.add(va.getLeft());
                 }
+
+                @Override
+                public void visit(ImSetTuple va) {
+                    super.visit(va);
+                    result.add(va.getLeft());
+                }
+
+                @Override
+                public void visit(ImSetArrayTuple va) {
+                    super.visit(va);
+                    result.add(va.getLeft());
+                }
+
+                @Override
+                public void visit(ImVarargLoop va) {
+                    super.visit(va);
+                    result.add(va.getLoopVar());
+                }
+
             });
         }
         return result;
