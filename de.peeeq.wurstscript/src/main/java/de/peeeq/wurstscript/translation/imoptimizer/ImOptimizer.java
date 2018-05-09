@@ -2,10 +2,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
-import de.peeeq.wurstscript.intermediatelang.optimizer.TempMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
@@ -45,6 +42,7 @@ public class ImOptimizer {
         ConstantAndCopyPropagation cpOpt = new ConstantAndCopyPropagation(trans);
         SimpleRewrites simpleRewrites = new SimpleRewrites(trans);
         LocalMerger localMerger = new LocalMerger(trans);
+        BranchMerger branchMerger = new BranchMerger(trans);
         UselessFunctionCallsRemover functionCallsRemover = new UselessFunctionCallsRemover(trans);
         GlobalsInliner globalsInliner = new GlobalsInliner(trans);
         removeGarbage();
@@ -67,6 +65,7 @@ public class ImOptimizer {
             WLogger.info("optimized: " + (endV - startV));
             startV = localMerger.totalLocalsMerged;
             localMerger.optimize();
+            branchMerger.optimize();
             endV = localMerger.totalLocalsMerged;
             deltaV += (endV - startV);
             startV = functionCallsRemover.totalCallsRemoved;

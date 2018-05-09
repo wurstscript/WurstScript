@@ -519,8 +519,29 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse("testSuccess should be removed", compiledAndOptimized.contains("testSuccess"));
     }
 
-	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
-	DestroyEffect(blablub)
-		*/
+    @Test
+    public void controlFlowMergeSideEffect() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+    }
 
 }
