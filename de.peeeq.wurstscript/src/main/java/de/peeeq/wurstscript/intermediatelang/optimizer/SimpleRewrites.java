@@ -74,6 +74,12 @@ public class SimpleRewrites {
         // optimize children:
         for (int i = 0; i < elem.size(); i++) {
             optimizeElement(elem.get(i));
+            if (i > 0) {
+                Element lookback = elem.get(i-1);
+                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen) {
+                    optimizeConsecutiveExitWhen((ImExitwhen) lookback, (ImExitwhen) elem.get(i));
+                }
+            }
         }
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opc = (ImOperatorCall) elem;
@@ -86,6 +92,11 @@ public class SimpleRewrites {
             optimizeExitwhen(imExitwhen);
         }
 
+    }
+
+    private void optimizeConsecutiveExitWhen(ImExitwhen lookback, ImExitwhen element) {
+        lookback.getCondition().replaceBy(JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lookback.getCondition().copy(), element.getCondition().copy())));
+        element.replaceBy(JassIm.ImNull());
     }
 
     private void optimizeExitwhen(ImExitwhen imExitwhen) {
