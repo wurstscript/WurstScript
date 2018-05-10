@@ -5,11 +5,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class NameResolution {
 
@@ -80,6 +82,7 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
+        Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
@@ -87,7 +90,8 @@ public class NameResolution {
                 if (n instanceof FuncLink
                         && n_receiverType != null
                         && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    result.add((FuncLink) n);
+                    FuncLink f = (FuncLink) n;
+                    result.add(f.withTypeArgBinding(node, typeArgBinding));
                 }
             }
             scope = nextScope(scope);

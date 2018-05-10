@@ -105,7 +105,7 @@ public class StmtTranslation {
             ImFunctionCall nextCall = JassIm.ImFunctionCall(s, nextFuncIm, fromTarget.copy(),
                     false, CallType.NORMAL);
 
-            WurstType nextReturn = nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding());
+            WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
 
             imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), nextCallWrapped));
@@ -136,7 +136,7 @@ public class StmtTranslation {
             FuncLink hasNextFunc = hasNextFuncOpt.get();
 
             // Type of iterator variable:
-            WurstType iteratorType = iteratorFunc.getReturnType().setTypeArgs(iterationTarget.attrTyp().getTypeArgBinding());
+            WurstType iteratorType = iteratorFunc.getReturnType();
             // Type of loop Variable:
             WurstType loopVarType = s.getLoopVar().attrTyp();
 
@@ -174,7 +174,7 @@ public class StmtTranslation {
             // elem = next()
             ImFunctionCall nextCall = JassIm.ImFunctionCall(s, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false,
                     CallType.NORMAL);
-            WurstType nextReturn = nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding());
+            WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
 
             imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), nextCallWrapped));

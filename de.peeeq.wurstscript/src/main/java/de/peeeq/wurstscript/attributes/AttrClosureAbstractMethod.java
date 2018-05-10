@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.ExprClosure;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.FunctionSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
@@ -14,7 +13,7 @@ public class AttrClosureAbstractMethod {
         WurstType expected = e.attrExpectedTyp();
         if (expected instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) expected;
-            return ct.findSingleAbstractMethod();
+            return ct.findSingleAbstractMethod(e);
         }
         return null;
     }
@@ -23,13 +22,11 @@ public class AttrClosureAbstractMethod {
     public static @Nullable FunctionSignature getAbstractMethodSignature(WurstType type) {
         if (type instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
-            FuncLink abstractMethod = ct.findSingleAbstractMethod();
+            FuncLink abstractMethod = ct.findSingleAbstractMethod(ct.getDef());
             if (abstractMethod == null) {
                 return null;
             }
-            FunctionSignature sig = FunctionSignature.fromNameLink(abstractMethod);
-            sig = sig.setTypeArgs(abstractMethod.getDef(), ct.getTypeArgBinding());
-            return sig;
+            return FunctionSignature.fromNameLink(abstractMethod);
         }
         return null;
     }

@@ -77,9 +77,7 @@ public class AttrForEachStatement {
                 Optional<FuncLink> nameLink = calcIterator((StmtForIn) forEach);
                 if (nameLink.isPresent()) {
                     FuncLink iteratorFunc = nameLink.get();
-                    Expr iterationTarget = forEach.getIn();
-
-                    iteratorType = iteratorFunc.getReturnType().setTypeArgs(iterationTarget.attrTyp().getTypeArgBinding()).normalize();
+                    iteratorType = iteratorFunc.getReturnType().normalize();
                 }
             }
             return iteratorType;

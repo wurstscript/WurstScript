@@ -242,12 +242,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
         if (scope instanceof ModuleDef) {
             // cannot access functions from outside of module
         } else if (scope != null) {
+            Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
             for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType receiverType = n.getReceiverType();
                 if (n instanceof FuncLink
                         && receiverType != null
                         && receiverType.isSupertypeOf(this, node)) {
-                    result.add(((FuncLink) n).hidingPrivateAndProtected());
+                    FuncLink f = (FuncLink) n;
+                    result.add(f.hidingPrivateAndProtected().withTypeArgBinding(node, typeArgBinding));
                 }
             }
         }

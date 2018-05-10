@@ -107,7 +107,7 @@ public class AttrVarDefType {
                 }
                 Optional<FuncLink> nameLink = forEach.attrGetNextFunc();
                 if (nameLink.isPresent()) {
-                    return nameLink.get().getReturnType().setTypeArgs(forEach.attrItrType().getTypeArgBinding()).normalize();
+                    return nameLink.get().getReturnType().normalize();
                 }
                 return WurstTypeUnknown.instance();
             } else {
