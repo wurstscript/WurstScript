@@ -701,6 +701,8 @@ public class GenericsTests extends WurstScriptTest {
                 "		return i castTo T",
                 "	function hasNext() returns boolean",
                 "		return i < 10",
+                "	function close()",
+                "		destroy this",
                 "init",
                 "	let c = new C<int>",
                 "	for i in c",

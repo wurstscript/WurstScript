@@ -182,6 +182,12 @@ public class StmtTranslation {
             imBody.addAll(t.translateStatements(f, s.getBody()));
 
             result.add(ImLoop(s, imBody));
+
+            // close iterator
+            Optional<NameLink> closeFunc = s.attrCloseFunc();
+            closeFunc.ifPresent(nameLink -> result.add(JassIm.ImFunctionCall(s, t.getFuncFor((TranslatedToImFunction) nameLink.getNameDef()), JassIm.ImExprs(JassIm
+                    .ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
+
         }
 
 
