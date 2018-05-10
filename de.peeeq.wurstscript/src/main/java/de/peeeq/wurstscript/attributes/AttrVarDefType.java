@@ -132,7 +132,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(FunctionDefinition f) {
-        return f.getReturnTyp().attrTyp();
+        return f.attrReturnTyp();
     }
 
     public static WurstType calculate(TypeParamDef t) {

@@ -382,6 +382,10 @@ HasReadVariables.attrReadVariables
 	implemented by de.peeeq.wurstscript.attributes.ReadVariables.calculate
 
 
+FunctionDefinition.attrReturnTyp()
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrReturnTyp.calculate
+
 OptTypeExpr.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrTypeExprType.normalizedType
@@ -690,7 +694,7 @@ StmtForEach.attrGetNextFunc
     implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcGetNext
 
 StmtForEach.attrCloseFunc
-   returns java.util.Optional<de.peeeq.wurstscript.attributes.names.NameLink>
+   returns java.util.Optional<de.peeeq.wurstscript.attributes.names.FuncLink>
    implemented by de.peeeq.wurstscript.attributes.AttrForEachStatement.calcClose
 
 

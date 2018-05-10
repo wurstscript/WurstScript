@@ -52,16 +52,16 @@ public class AttrForEachStatement {
         return nextFunc;
     }
 
-    public static Optional<NameLink> calcClose(StmtForEach forEach) {
+    public static Optional<FuncLink> calcClose(StmtForEach forEach) {
         if(forEach instanceof StmtForFrom) {
             return Optional.empty();
         }
         WurstType iteratorType = calcItrType(forEach);
 
         // find 'close' function:
-        ImmutableCollection<NameLink> close = forEach.getIn().lookupMemberFuncs(iteratorType, "close", false);
+        ImmutableCollection<FuncLink> close = forEach.getIn().lookupMemberFuncs(iteratorType, "close", false);
         // find the 'close' function without parameters
-        Optional<NameLink> closeFunc = close.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
+        Optional<FuncLink> closeFunc = close.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
         if (!closeFunc.isPresent()) {
             forEach.getIn().addError("Target of for-loop <" + forEach.getIn().attrTyp().getName() + " doesn't provide a proper close() function");
         }

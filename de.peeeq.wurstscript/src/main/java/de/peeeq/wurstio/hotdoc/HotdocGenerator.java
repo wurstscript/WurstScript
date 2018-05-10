@@ -211,11 +211,11 @@ public class HotdocGenerator {
                 first = false;
             }
             descr.append(")");
-            if (f.getReturnTyp().attrTyp().isVoid()) {
+            if (f.attrReturnTyp().isVoid()) {
 
             } else {
                 descr.append(" returns ");
-                descr.append(f.getReturnTyp().attrTyp());
+                descr.append(f.attrReturnTyp());
             }
 
             context.put("name", descr);

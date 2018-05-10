@@ -574,7 +574,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setDetail(getFunctionDescriptionShort(f));
         completion.setDocumentation(HoverInfo.descriptionString(f));
         completion.setInsertText(replacementString);
-        completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic())));
+        completion.setSortText(ratingToString(calculateRating(f.getName(), f.attrReturnTyp())));
         // TODO use call signature instead for generics
 //        completion.set
 
@@ -598,7 +598,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private String getFunctionDescriptionShort(FunctionDefinition f) {
         String displayString = "(" + Utils.getParameterListText(f) + ")";
-        WurstType returnType = f.getReturnTyp().attrTyp();
+        WurstType returnType = f.attrReturnTyp();
         if (!(returnType instanceof WurstTypeVoid)) {
             displayString += " returns " + returnType;
         }

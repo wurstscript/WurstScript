@@ -56,11 +56,11 @@ public class FunctionSignature {
 
 
     public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.attrReturnTyp());
         if (f == null) {
             return FunctionSignature.empty;
         }
-        WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
+        WurstType returnType = f.attrReturnTyp();
         if (f instanceof TupleDef) {
             TupleDef tupleDef = (TupleDef) f;
             returnType = tupleDef.attrTyp().dynamic();

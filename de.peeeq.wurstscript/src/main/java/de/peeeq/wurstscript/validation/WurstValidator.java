@@ -490,7 +490,7 @@ public class WurstValidator {
         if (f.getParameters().size() != g.getParameters().size()) {
             return false;
         }
-        if (!f.getReturnTyp().attrTyp().equalsType(g.getReturnTyp().attrTyp(), f)) {
+        if (!f.attrReturnTyp().equalsType(g.attrReturnTyp(), f)) {
             return false;
         }
         for (int i = 0; i < f.getParameters().size(); i++) {
@@ -1119,7 +1119,7 @@ public class WurstValidator {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
                 FunctionDefinition f = exprFuncRef.attrFuncDef();
                 if (f != null) {
-                    if (!(f.getReturnTyp().attrTyp() instanceof WurstTypeBool) && !(f.getReturnTyp().attrTyp() instanceof WurstTypeVoid)) {
+                    if (!(f.attrReturnTyp() instanceof WurstTypeBool) && !(f.attrReturnTyp() instanceof WurstTypeVoid)) {
                         firstArg.addError("Functions passed to Filter or Condition must return boolean or nothing.");
                     }
                 }
@@ -1226,7 +1226,7 @@ public class WurstValidator {
     }
 
     private void checkReturnInFunc(StmtReturn s, FunctionImplementation func) {
-        WurstType returnType = func.getReturnTyp().attrTyp().dynamic();
+        WurstType returnType = func.attrReturnTyp();
         if (s.getReturnedObj() instanceof Expr) {
             Expr returned = (Expr) s.getReturnedObj();
             if (returnType.isSubtypeOf(WurstTypeVoid.instance(), s)) {
@@ -1391,11 +1391,11 @@ public class WurstValidator {
                         if (toIndexF.getParameters().size() != 1) {
                             toIndexF.addError("Must have exactly one parameter");
 
-                        } else if (!toIndexF.getParameters().get(0).attrTyp().dynamic().equalsType(typ, e)) {
+                        } else if (!toIndexF.getParameters().get(0).attrTyp().equalsType(typ, e)) {
                             toIndexF.addError("Parameter must be of type " + typ);
                         }
 
-                        WurstType returnType = toIndexF.getReturnTyp().attrTyp().dynamic();
+                        WurstType returnType = toIndexF.attrReturnTyp();
                         if (!returnType.equalsType(WurstTypeInt.instance(), e)) {
                             toIndexF.addError("Return type must be of type int " + " but was " + returnType);
                         }
@@ -1410,12 +1410,12 @@ public class WurstValidator {
                         if (fromIndexF.getParameters().size() != 1) {
                             fromIndexF.addError("Must have exactly one parameter");
 
-                        } else if (!fromIndexF.getParameters().get(0).attrTyp().dynamic()
+                        } else if (!fromIndexF.getParameters().get(0).attrTyp()
                                 .equalsType(WurstTypeInt.instance(), e)) {
                             fromIndexF.addError("Parameter must be of type int");
                         }
 
-                        WurstType returnType = fromIndexF.getReturnTyp().attrTyp().dynamic();
+                        WurstType returnType = fromIndexF.attrReturnTyp();
                         if (!returnType.equalsType(typ, e)) {
                             fromIndexF.addError("Return type must be of type " + typ + " but was " + returnType);
                         }

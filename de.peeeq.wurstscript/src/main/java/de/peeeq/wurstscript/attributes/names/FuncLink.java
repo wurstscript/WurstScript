@@ -33,7 +33,7 @@ public class FuncLink extends DefLink {
         List<WurstType> lparameterTypes = func.getParameters().stream()
                 .map(WParameter::attrTyp)
                 .collect(Collectors.toList());
-        WurstType lreturnType = func.getReturnTyp().attrTyp().dynamic();
+        WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
         return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lparameterTypes, lreturnType);
     }
