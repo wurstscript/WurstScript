@@ -61,7 +61,7 @@ public class Exports {
         alreadyImported.add(p);
 
         // add elements:
-        NameLinks.addHidingPrivateAndProtected(result, p.getElements().attrTypeNameLinks());
+        NameLinks.addTypesHidingPrivateAndProtected(result, p.getElements().attrTypeNameLinks());
         // import public imports
         for (WImport imp2 : p.getImports()) {
             if (imp2.getIsPublic()) {

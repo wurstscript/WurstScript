@@ -23,7 +23,7 @@ public class AttrClosureAbstractMethod {
     public static @Nullable FunctionSignature getAbstractMethodSignature(WurstType type) {
         if (type instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) type;
-            NameLink abstractMethod = ct.findSingleAbstractMethod();
+            FuncLink abstractMethod = ct.findSingleAbstractMethod();
             if (abstractMethod == null) {
                 return null;
             }
