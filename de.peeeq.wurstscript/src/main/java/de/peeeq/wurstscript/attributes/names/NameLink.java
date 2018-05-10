@@ -10,13 +10,11 @@ import java.util.stream.Stream;
 
 public abstract class NameLink {
     private final Visibility visibility;
-    private final int level;
     private final WScope definedIn;
 
     public NameLink(Visibility visibility, WScope definedIn) {
         this.visibility = visibility;
         this.definedIn = definedIn;
-        this.level = calcLevel(definedIn);
     }
 
 
@@ -118,7 +116,7 @@ public abstract class NameLink {
 
 
     public int getLevel() {
-        return level;
+        return calcLevel(definedIn);
     }
 
 

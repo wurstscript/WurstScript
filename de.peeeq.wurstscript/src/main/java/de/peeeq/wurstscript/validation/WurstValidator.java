@@ -2101,13 +2101,13 @@ public class WurstValidator {
                 continue;
             }
             List<FuncLink> funcs = Lists.newArrayList();
-            List<VarLink> other = Lists.newArrayList();
+            List<NameLink> other = Lists.newArrayList();
             for (NameLink nl : nameLinks) {
                 if (nl.getDefinedIn() == scope) {
                     if (nl instanceof FuncLink) {
                         funcs.add(((FuncLink) nl));
                     } else {
-                        other.add(((VarLink) nl));
+                        other.add(nl);
                     }
                 }
             }

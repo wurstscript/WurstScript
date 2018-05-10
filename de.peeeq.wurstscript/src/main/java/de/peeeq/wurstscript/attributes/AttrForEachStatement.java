@@ -47,7 +47,7 @@ public class AttrForEachStatement {
         // find the 'next' function without parameters
         Optional<FuncLink> nextFunc = next.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
         if (!nextFunc.isPresent()) {
-            forEach.getIn().addError("Target of for-loop <" + forEach.getIn().attrTyp().getName() + " doesn't provide a proper next() function");
+            forEach.getIn().addError("Target of for-loop '" + forEach.getIn().attrTyp().getName() + "' doesn't provide a proper next() function");
         }
         return nextFunc;
     }

@@ -169,6 +169,10 @@ public class NameLinks {
             result.put(def.getName(), FuncLink.create(((FunctionDefinition) def), scope));
         } else if (def instanceof WPackage) {
             result.put(def.getName(), PackageLink.create(((WPackage) def), scope));
+        } else if (def instanceof TypeDef) {
+            result.put(def.getName(), VarLink.create(((TypeDef) def), scope));
+        } else if (def instanceof EnumMember) {
+            result.put(def.getName(), VarLink.create(((EnumMember) def), scope));
         }
     }
 
@@ -207,7 +211,7 @@ public class NameLinks {
 
     private static void addDefinedNames(Builder<String, DefLink> result, WScope definedIn, List<? extends NameDef> slots) {
         for (NameDef n : slots) {
-            result.put(n.getName(), DefLink.create(n, definedIn));
+            addNameDefDefLink(result, n, definedIn);
         }
     }
 

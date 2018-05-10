@@ -5,6 +5,7 @@ import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeDeferred;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -14,21 +15,44 @@ import java.util.stream.Collectors;
 
 
 public class VarLink extends DefLink {
-    private final VarDef def;
+    private final NameDef def;
     private final WurstType type;
 
-    public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, VarDef def, WurstType type) {
+    public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, NameDef def, WurstType type) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.type = type;
     }
 
-    public static VarLink create(VarDef def, WScope definedIn) {
-        Visibility visibiliy = calcVisibility(definedIn, def);
+    public static VarLink create(TypeDef def, WScope definedIn) {
+        Visibility visibility = calcVisibility(definedIn, def);
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
         WurstType lreceiverType = calcReceiverType(definedIn, def);
         WurstType type = def.attrTyp();
-        return new VarLink(visibiliy, definedIn, typeParams, lreceiverType, def, type);
+        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
+    }
+
+    public static VarLink create(EnumMember def, WScope definedIn) {
+        Visibility visibility = calcVisibility(definedIn, def);
+        List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
+        WurstType lreceiverType = calcReceiverType(definedIn, def);
+        WurstType type = def.attrTyp();
+        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
+    }
+
+    public static VarLink create(VarDef def, WScope definedIn) {
+        Visibility visibility = calcVisibility(definedIn, def);
+        List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
+        WurstType lreceiverType = calcReceiverType(definedIn, def);
+        WurstType type;
+        if (def.attrOptTypeExpr() instanceof TypeExpr) {
+            TypeExpr typeExpr = (TypeExpr) def.attrOptTypeExpr();
+            type = typeExpr.attrTyp().dynamic();
+        } else {
+            // if type has to be inferred, we have to do it deferred to avoid cyclic dependencies
+            type = new WurstTypeDeferred(def::attrTyp);
+        }
+        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
     }
 
 
@@ -55,13 +79,29 @@ public class VarLink extends DefLink {
         return null;
     }
 
+    public static OptTypeExpr getTypeExpr(WParameter p) {
+        return p.getTyp();
+    }
+
+    public static OptTypeExpr getTypeExpr(WShortParameter p) {
+        return p.getTypOpt();
+    }
+
+    public static OptTypeExpr getTypeExpr(GlobalVarDef p) {
+        return p.getOptTyp();
+    }
+
+    public static OptTypeExpr getTypeExpr(LocalVarDef p) {
+        return p.getOptTyp();
+    }
+
 
     public String getName() {
         return def.getName();
     }
 
 
-    public VarDef getDef() {
+    public NameDef getDef() {
         return def;
     }
 

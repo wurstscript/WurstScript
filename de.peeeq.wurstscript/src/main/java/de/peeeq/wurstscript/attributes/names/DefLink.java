@@ -35,19 +35,6 @@ public abstract class DefLink extends NameLink {
     public abstract NameLinkType getType();
 
 
-    /** replace with individual methods */
-    @Deprecated
-    public static DefLink create(NameDef nameDef, WScope definedIn) {
-        if (nameDef instanceof VarDef) {
-            return VarLink.create(((VarDef) nameDef), definedIn);
-        } else if (nameDef instanceof FunctionDefinition) {
-            return FuncLink.create(((FunctionDefinition) nameDef), definedIn);
-        } else if (nameDef instanceof WPackage) {
-            return PackageLink.create(((WPackage) nameDef), definedIn);
-        }
-        throw new RuntimeException("Unhandled case: " + nameDef.getClass() + " -- " + Utils.printElement(nameDef));
-    }
-
     protected static @Nullable WurstType getReceiverType(WScope definedIn) {
         if (definedIn instanceof ClassDef) {
             ClassDef classDef = (ClassDef) definedIn;

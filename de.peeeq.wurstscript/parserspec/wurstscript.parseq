@@ -810,6 +810,10 @@ VarDef.createVarLink(WScope definedIn) "returns a VarLink pointing to this NameD
 	returns de.peeeq.wurstscript.attributes.names.VarLink
 	implemented by de.peeeq.wurstscript.attributes.names.VarLink.create
 
+VarDef.attrOptTypeExpr()
+    returns OptTypeExpr
+    implemented by de.peeeq.wurstscript.attributes.names.VarLink.getTypeExpr
+
 ModuleUse.attrModuleDef
 	returns @Nullable ModuleDef
 	implemented by de.peeeq.wurstscript.attributes.AttrModuleDef.calculate

@@ -30,12 +30,10 @@ public class FuncLink extends DefLink {
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
         Visibility visibiliy = calcVisibility(definedIn, func);
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(func)).collect(Collectors.toList());
-        WurstType lreturnType = null;
-        List<WurstType> lparameterTypes = null;
-        lparameterTypes = func.getParameters().stream()
+        List<WurstType> lparameterTypes = func.getParameters().stream()
                 .map(WParameter::attrTyp)
                 .collect(Collectors.toList());
-        lreturnType = func.attrTyp();
+        WurstType lreturnType = func.getReturnTyp().attrTyp().dynamic();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
         return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lparameterTypes, lreturnType);
     }
