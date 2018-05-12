@@ -1,13 +1,15 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {
@@ -22,13 +24,17 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType obj, Element location) {
-        if (super.isSubtypeOfIntern(obj, location)) {
-            return true;
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        if (superMapping != null) {
+            return superMapping;
         }
         if (obj instanceof WurstTypeInterface) {
+            // TODO probably not a good idea to get type arg binding after the fact, implemented interfaces should return List<WurstTypeInterface> with typeArgs already set
+
             WurstTypeInterface pti = (WurstTypeInterface) obj;
-            for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
+            for (TypeLink implementedInterface : classDef.attrImplementedInterfaces()) {
+
                 if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
                     return true;
                 }

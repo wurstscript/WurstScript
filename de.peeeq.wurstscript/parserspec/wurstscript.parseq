@@ -616,25 +616,13 @@ Element.attrErrorPos() "returns the position where errors are marked"
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos
 
 
-HasTypeArgs.attrTypeParameterBindings
-	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstTypeBoundTypeParam>
-	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
-
-
-
-
-
 InterfaceDef.attrExtendedInterfaces
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.TypeLink>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
 
 ClassDef.attrExtendedClass
-	returns ClassDef
+	returns de.peeeq.wurstscript.attributes.names.TypeLink
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
-
-ClassDef.attrExtendedClassType
-	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClassType
 
 ClassDef.isInnerClass()
 	returns boolean
@@ -750,7 +738,7 @@ StmtForEach.attrCloseFunc
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
 
 	ClassDef.attrImplementedInterfaces
-		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
+		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.TypeLink>
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 
 
@@ -776,7 +764,7 @@ FunctionLike.attrHasEmptyBody()
 // Naming:
 
 NameRef.attrNameDef
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
 FuncRef.attrPossibleFuncDefs
@@ -785,7 +773,7 @@ FuncRef.attrPossibleFuncDefs
 
 
 FuncRef.attrFuncDef
-	returns @Nullable FunctionDefinition
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 ExprNewObject.attrConstructorDef
@@ -793,7 +781,7 @@ ExprNewObject.attrConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
 
 ExprBinary.attrFuncDef
-	returns @Nullable FunctionDefinition
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
 
 

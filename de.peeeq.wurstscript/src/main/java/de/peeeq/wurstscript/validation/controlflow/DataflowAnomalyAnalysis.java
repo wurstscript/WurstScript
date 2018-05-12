@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Sets;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -285,7 +286,10 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
         NameDef n = null;
         if (s instanceof StmtSet) {
             StmtSet s2 = (StmtSet) s;
-            n = s2.getUpdatedExpr().attrNameDef();
+            NameLink link = s2.getUpdatedExpr().attrNameDef();
+            if (link != null) {
+                n = link.getDef();
+            }
 
         } else if (s instanceof LocalVarDef) {
             LocalVarDef l = (LocalVarDef) s;

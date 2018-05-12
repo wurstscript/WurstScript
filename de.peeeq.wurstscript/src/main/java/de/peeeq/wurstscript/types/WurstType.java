@@ -6,8 +6,12 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import fj.data.Option;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -21,31 +25,61 @@ public abstract class WurstType {
      * @return is this type a subtype (or equal) to other type?
      */
     public final boolean isSubtypeOf(WurstType other, @Nullable Element location) {
+        return matchAgainstSupertype(other, location, Collections.emptySet(), emptyMapping()) != null;
+    }
+
+    @NotNull
+    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> emptyMapping() {
+        return TreeMap.empty(TypeParamOrd.instance());
+    }
+
+//    public final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location) {
+//        return this.matchAgainstSupertype(other, location, TreeMap.empty(TypeParamOrd.instance()));
+//    }
+
+    /**
+     * Matches this type against another type.
+     * <p>
+     * Will try to instantiate type variables from the set typeParams
+     */
+    final @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
-            return isSubtypeOf(btp.getBaseType(), location);
-        }
-        if (other instanceof WurstTypeUnion) {
+            return matchAgainstSupertype(btp.getBaseType(), location, typeParams, mapping);
+        } else if (other instanceof WurstTypeUnion) {
             WurstTypeUnion wtu = (WurstTypeUnion) other;
-            return this.isSubtypeOf(wtu.getTypeA(), location)
-                    && this.isSubtypeOf(wtu.getTypeB(), location);
-        }
-        if (other instanceof WurstTypeUnknown) {
+            mapping = matchAgainstSupertype(wtu.getTypeA(), location, typeParams, mapping);
+            if (mapping == null) {
+                return null;
+            }
+            return matchAgainstSupertype(wtu.getTypeB(), location, typeParams, mapping);
+        } else if (other instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
-            return true;
+            return mapping;
+        } else if (other instanceof WurstTypeDeferred) {
+            return matchAgainstSupertype(((WurstTypeDeferred) other).force(), location, typeParams, mapping);
+        } else if (other instanceof WurstTypeTypeParam) {
+            WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
+            Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
+            if (bound.isSome()) {
+                // already bound, use current bound
+                return matchAgainstSupertypeIntern(bound.some(), location, typeParams, mapping);
+            } else if (typeParams.contains(tp.getDef())) {
+                // match this type parameter
+                return mapping.set(tp.getDef(), new WurstTypeBoundTypeParam(tp.getDef(), this, location));
+            }
+
         }
-        if (other instanceof WurstTypeDeferred) {
-            return isSubtypeOf(((WurstTypeDeferred) other).force(), location);
-        }
-        return this.isSubtypeOfIntern(other, location);
+        return this.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
     }
+
 
     /**
      * @param other
      * @param location
      * @return is this type a subtype (or equal) to other type?
      */
-    public abstract boolean isSubtypeOfIntern(WurstType other, @Nullable Element location);
+    abstract @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping);
 
 
     /**
@@ -68,8 +102,20 @@ public abstract class WurstType {
 
 
     public boolean equalsType(WurstType otherType, @Nullable Element location) {
-        return otherType.isSubtypeOf(this, location) && this.isSubtypeOf(otherType, location);
+        return matchTypes(otherType, location, Collections.emptySet(), emptyMapping()) != null;
     }
+
+    /**
+     * Bidirectional matching of types
+     */
+    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchTypes(WurstType otherType, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        mapping = this.matchAgainstSupertype(otherType, location, typeParams, mapping);
+        if (mapping == null) {
+            return null;
+        }
+        return otherType.matchAgainstSupertype(this, location, typeParams, mapping);
+    }
+
 
     @Override
     public String toString() {
@@ -102,6 +148,7 @@ public abstract class WurstType {
     }
 
 
+    @Deprecated // should not be necessary to do after the fact, type arg binding should be set when matching types
     public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
         return Collections.emptyMap();
     }

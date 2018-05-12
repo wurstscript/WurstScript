@@ -29,7 +29,7 @@ public class AttrFuncDef {
     public final static String overloadingMult = "op_mult";
     public final static String overloadingDiv = "op_divReal";
 
-    public static @Nullable FunctionDefinition calculate(final ExprFuncRef node) {
+    public static FuncLink calculate(final ExprFuncRef node) {
 
         Collection<FuncLink> funcs;
         if (node.getScopeName().length() > 0) {

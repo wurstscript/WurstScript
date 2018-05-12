@@ -161,16 +161,16 @@ public class WurstValidator {
 
         if (e instanceof FuncRef) {
             FuncRef fr = (FuncRef) e;
-            FunctionDefinition def = fr.attrFuncDef();
-            if (def != null) {
-                used.add(def.attrNearestPackage());
+            FuncLink link = fr.attrFuncDef();
+            if (link != null) {
+                used.add(link.getDef().attrNearestPackage());
             }
         }
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameDef def = nr.attrNameDef();
+            NameLink def = nr.attrNameDef();
             if (def != null) {
-                used.add(def.attrNearestPackage());
+                used.add(def.getDef().attrNearestPackage());
             }
         }
         if (e instanceof TypeRef) {
@@ -182,9 +182,9 @@ public class WurstValidator {
         }
         if (e instanceof ExprBinary) {
             ExprBinary binop = (ExprBinary) e;
-            FunctionDefinition def = binop.attrFuncDef();
+            FuncLink def = binop.attrFuncDef();
             if (def != null) {
-                used.add(def.attrNearestPackage());
+                used.add(def.getDef().attrNearestPackage());
             }
         }
         if (e instanceof Expr) {
@@ -669,13 +669,15 @@ public class WurstValidator {
 
     private void checkStmtSet(StmtSet s) {
 
-        NameDef nameDef = s.getUpdatedExpr().attrNameDef();
-        if (!(nameDef instanceof VarDef)) {
-            if (nameDef == null) {
-                s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
-            }
+        NameLink nameLink = s.getUpdatedExpr().attrNameDef();
+        if (nameLink == null) {
+            s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
+            return;
+        }
+
+        if (!(nameLink instanceof VarLink)) {
             s.getUpdatedExpr()
-                    .addError("Invalid assignment. This is not a variable, this is a " + Utils.printElement(nameDef));
+                    .addError("Invalid assignment. This is not a variable, this is a " + nameLink);
             return;
         }
 
@@ -691,7 +693,7 @@ public class WurstValidator {
 
     private void checkIfNoEffectAssignment(StmtSet s) {
         if (refersToSameVar(s.getUpdatedExpr(), s.getRight())) {
-            s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef())
+            s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef().getDef())
                     + "  probably has no effect.");
         }
 

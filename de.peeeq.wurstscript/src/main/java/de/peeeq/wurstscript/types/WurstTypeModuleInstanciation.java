@@ -3,10 +3,14 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -27,15 +31,18 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType obj, Element location) {
-        if (super.isSubtypeOfIntern(obj, location)) {
-            return true;
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        if (superMapping != null) {
+            return superMapping;
         }
         if (obj instanceof WurstTypeModuleInstanciation) {
             WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
-            return n.isParent(this);
+            if (n.isParent(this)) {
+                return mapping;
+            }
         }
-        return false;
+        return null;
     }
 
     /**

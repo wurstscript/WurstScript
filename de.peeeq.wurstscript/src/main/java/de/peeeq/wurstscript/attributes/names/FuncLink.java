@@ -11,31 +11,37 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 public class FuncLink extends DefLink {
     private final FunctionDefinition def;
     private final WurstType returnType;
+    private final List<String> parameterNames;
     private final List<WurstType> parameterTypes;
 
     public FuncLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams,
-                    @Nullable WurstType receiverType, FunctionDefinition def, List<WurstType> parameterTypes, WurstType returnType) {
+                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
+        this.parameterNames = parameterNames;
     }
 
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
         Visibility visibiliy = calcVisibility(definedIn, func);
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(func)).collect(Collectors.toList());
-        List<WurstType> lparameterTypes = func.getParameters().stream()
+        List<String> lParameterNames = func.getParameters().stream()
+                .map(WParameter::getName)
+                .collect(Collectors.toList());
+        List<WurstType> lParameterTypes = func.getParameters().stream()
                 .map(WParameter::attrTyp)
                 .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lparameterTypes, lreturnType);
+        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType);
     }
 
 
@@ -67,7 +73,7 @@ public class FuncLink extends DefLink {
         if (newVis == getVisibility()) {
             return this;
         }
-        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterTypes, returnType);
+        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType);
     }
 
 
@@ -108,10 +114,15 @@ public class FuncLink extends DefLink {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
                     .filter(binding::containsKey)
                     .collect(Collectors.toList());
-            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, newParamTypes, newReturnType);
+            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, newParamTypes, newReturnType);
         } else {
             return this;
         }
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return getReturnType();
     }
 
     private WurstType adjustType(Element context, WurstType t, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
@@ -145,7 +156,7 @@ public class FuncLink extends DefLink {
 
     public FuncLink withConfigDef() {
         FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterTypes, returnType);
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType);
     }
 
     public FuncLink hidingPrivate() {
@@ -156,5 +167,13 @@ public class FuncLink extends DefLink {
         return (FuncLink) super.hidingPrivateAndProtected();
     }
 
+
+    public List<String> getParameterNames() {
+        return parameterNames;
+    }
+
+    public Optional<FuncLink> adaptToReceiverType(WurstType receiverType) {
+        return ((Optional<FuncLink>) super.adaptToReceiverType(receiverType));
+    }
 
 }

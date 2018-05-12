@@ -6,6 +6,7 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.WurstType;
@@ -62,14 +63,14 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             }
         } else if (e instanceof FuncRef) {
             FuncRef fr = (FuncRef) e;
-            FunctionDefinition fd = fr.attrFuncDef();
+            FuncLink fd = fr.attrFuncDef();
             if (fd == null) {
                 return handleMissingFunction(modelManager, fr);
             }
 
         } else if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameDef nd = nr.attrNameDef();
+            NameLink nd = nr.attrNameDef();
             if (nd == null) {
                 return handleMissingName(modelManager, nr);
             }

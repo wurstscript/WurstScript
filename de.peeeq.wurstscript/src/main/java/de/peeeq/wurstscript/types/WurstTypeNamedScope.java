@@ -7,12 +7,10 @@ import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Stream;
 
 public abstract class WurstTypeNamedScope extends WurstType {
@@ -59,17 +57,14 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType obj, @Nullable Element location) {
-        if (obj instanceof WurstTypeTypeParam) {
-            return false;
-        }
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (obj instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
             if (other.getDef() == this.getDef()) {
-                return checkTypeParametersEqual(getTypeParameters(), other.getTypeParameters(), location);
+                return matchTypeParams(getTypeParameters(), other.getTypeParameters(), location, typeParams, mapping);
             }
         }
-        return false;
+        return null;
     }
 
     public List<WurstTypeBoundTypeParam> getTypeParameters() {
@@ -126,6 +121,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 
     @Override
+    @Deprecated
     public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
 
         NamedScope def2 = getDef();
@@ -211,22 +207,19 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
 
-    protected boolean checkTypeParametersEqual(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location) {
+    protected @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (list.size() != list2.size()) {
-            return false;
+            return null;
         }
         for (int i = 0; i < list.size(); i++) {
             WurstType thisTp = list.get(i).normalize();
             WurstType otherTp = list2.get(i).normalize();
-            if (otherTp instanceof WurstTypeTypeParam) {
-                // free type params can later be bound to the right type
-                continue;
-            }
-            if (!thisTp.equalsType(otherTp, location)) {
-                return false;
+            mapping = thisTp.matchTypes(otherTp, location, typeParams, mapping);
+            if (mapping == null) {
+                return null;
             }
         }
-        return true;
+        return mapping;
     }
 
     @Override

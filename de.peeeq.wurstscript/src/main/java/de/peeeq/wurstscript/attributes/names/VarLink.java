@@ -11,6 +11,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -166,6 +167,9 @@ public class VarLink extends DefLink {
         return (VarLink) super.hidingPrivateAndProtected();
     }
 
+    public Optional<VarLink> adaptToReceiverType(WurstType receiverType) {
+        return ((Optional<VarLink>) super.adaptToReceiverType(receiverType));
+    }
 
 
 }

@@ -12,18 +12,17 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 public abstract class DefLink extends NameLink {
-    private final List<TypeParamDef> typeParams;
     private final @Nullable WurstType receiverType;
 
 
     public DefLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType) {
-        super(visibility, definedIn);
-        this.typeParams = typeParams;
+        super(visibility, definedIn, typeParams);
         this.receiverType = receiverType;
     }
 
@@ -68,14 +67,6 @@ public abstract class DefLink extends NameLink {
     }
 
 
-    @Override
-    public abstract DefLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding);
-
-
-    public List<TypeParamDef> getTypeParams() {
-        return typeParams;
-    }
-
     public DefLink hidingPrivate() {
         return (DefLink) super.hidingPrivate();
     }
@@ -90,6 +81,23 @@ public abstract class DefLink extends NameLink {
             return receiverType == null;
         }
         return this.receiverType.isSubtypeOf(receiverType, location);
+    }
+
+    /**
+     * Tries to adapt this function to the given receiver
+     * Setting type arguments appropriately
+     */
+    public @Nullable DefLink adaptToReceiverType(WurstType receiverType) {
+        if (this.receiverType == null) {
+            if (receiverType == null) {
+                return this;
+            } else {
+                return null;
+            }
+        }
+        fj.data.TreeMap<TypeParamDef, WurstTypeBoundTypeParam> match = this.receiverType.matchAgainstSupertype(receiverType, getDef());
+
+            return null;
     }
 
 

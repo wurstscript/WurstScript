@@ -2,9 +2,12 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -60,8 +63,8 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        if (super.isSubtypeOfIntern(other, location)) {
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        if (super.matchAgainstSupertypeIntern(other, location)) {
             return true;
         }
 
@@ -69,7 +72,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
             WurstTypeInterface other2 = (WurstTypeInterface) other;
             if (interfaceDef == other2.interfaceDef) {
                 // same interface -> check if type params are equal
-                return checkTypeParametersEqual(getTypeParameters(), other2.getTypeParameters(), location);
+                return matchTypeParams(getTypeParameters(), other2.getTypeParameters(), location, typeParams, mapping);
             } else {
                 // test super interfaces:
                 for (WurstTypeInterface extended : interfaceDef.attrExtendedInterfaces()) {

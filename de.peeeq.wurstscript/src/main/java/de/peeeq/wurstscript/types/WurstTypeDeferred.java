@@ -1,14 +1,15 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.Expr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -26,8 +27,8 @@ public class WurstTypeDeferred extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, @Nullable Element location) {
-        return force().isSubtypeOf(other, location);
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        return force().matchAgainstSupertype(other, location, typeParams, mapping);
     }
 
     @Override
@@ -60,7 +61,8 @@ public class WurstTypeDeferred extends WurstType {
         if (ty != null) {
             return ty;
         }
-        return t.get();
+        ty = t.get();
+        return ty;
     }
 
 

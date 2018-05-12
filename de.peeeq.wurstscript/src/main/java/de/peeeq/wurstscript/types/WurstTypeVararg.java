@@ -4,7 +4,10 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.Map;
 
 
@@ -21,12 +24,12 @@ public class WurstTypeVararg extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeVararg) {
             WurstTypeVararg otherArray = (WurstTypeVararg) other;
-            return baseType.equalsType(otherArray.baseType, location);
+            return baseType.matchTypes(otherArray.baseType, location, typeParams, mapping);
         }
-        return false;
+        return null;
     }
 
     @Override
