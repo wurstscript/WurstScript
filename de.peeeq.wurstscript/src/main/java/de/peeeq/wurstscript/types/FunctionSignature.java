@@ -4,7 +4,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -115,8 +114,20 @@ public class FunctionSignature {
     public String getParamName(int i) {
         if (i >= 0 && i < paramNames.size()) {
             return paramNames.get(i);
+        } else if (isVararg) {
+            return paramNames.get(paramNames.size() - 1);
         }
         return "";
+    }
+
+    public WurstType getParamType(int i) {
+        if (isVararg && i >= paramTypes.size() - 1) {
+            return getVarargType();
+        }
+        if (i >= 0 && i < paramTypes.size()) {
+            return paramTypes.get(i);
+        }
+        throw new RuntimeException("Parameter index out of bounds: " + i);
     }
 
     @Override

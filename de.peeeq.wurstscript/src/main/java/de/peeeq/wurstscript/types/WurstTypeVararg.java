@@ -31,7 +31,7 @@ public class WurstTypeVararg extends WurstType {
 
     @Override
     public String getName() {
-        return baseType.getName() + " vararg";
+        return "vararg " + baseType.getName();
     }
 
     @Override
