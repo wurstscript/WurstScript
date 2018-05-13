@@ -191,7 +191,7 @@ public class StmtTranslation {
                     public void visit(ImReturn imReturn) {
                         super.visit(imReturn);
                         imReturn.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), JassIm
-                                .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn), ImNull()));
+                                .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn.copy()), ImNull()));
                     }
 
                 });
