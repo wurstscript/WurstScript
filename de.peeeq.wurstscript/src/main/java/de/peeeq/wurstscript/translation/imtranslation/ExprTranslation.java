@@ -373,7 +373,7 @@ public class ExprTranslation {
             ExprStringVal s = (ExprStringVal) e.getArgs().get(0);
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
-            ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getNameDef());
+            ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
             return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 

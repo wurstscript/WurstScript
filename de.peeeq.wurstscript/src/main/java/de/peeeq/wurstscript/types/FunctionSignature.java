@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -55,11 +55,11 @@ public class FunctionSignature {
 
 
     public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.attrReturnTyp());
         if (f == null) {
             return FunctionSignature.empty;
         }
-        WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
+        WurstType returnType = f.attrReturnTyp();
         if (f instanceof TupleDef) {
             TupleDef tupleDef = (TupleDef) f;
             returnType = tupleDef.attrTyp().dynamic();
@@ -80,13 +80,13 @@ public class FunctionSignature {
     }
 
 
-    public static FunctionSignature fromNameLink(NameLink f) {
+    public static FunctionSignature fromNameLink(FuncLink f) {
         List<String> pNames = Collections.emptyList();
-        if (f.getNameDef() instanceof AstElementWithParameters) {
-            AstElementWithParameters n = (AstElementWithParameters) f.getNameDef();
+        if (f.getDef() instanceof AstElementWithParameters) {
+            AstElementWithParameters n = (AstElementWithParameters) f.getDef();
             pNames = getParamNames(n.getParameters());
         }
-        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getNameDef().attrIsVararg());
+        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getDef().attrIsVararg());
     }
 
 
@@ -114,8 +114,20 @@ public class FunctionSignature {
     public String getParamName(int i) {
         if (i >= 0 && i < paramNames.size()) {
             return paramNames.get(i);
+        } else if (isVararg) {
+            return paramNames.get(paramNames.size() - 1);
         }
         return "";
+    }
+
+    public WurstType getParamType(int i) {
+        if (isVararg && i >= paramTypes.size() - 1) {
+            return getVarargType();
+        }
+        if (i >= 0 && i < paramTypes.size()) {
+            return paramTypes.get(i);
+        }
+        throw new RuntimeException("Parameter index out of bounds: " + i);
     }
 
     @Override

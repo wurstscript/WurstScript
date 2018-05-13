@@ -270,5 +270,16 @@ public class VarargTests extends WurstScriptTest {
 
     }
 
+    @Test
+    public void testInvalidArgs() {
+        testAssertErrorsLines(false, "Wrong parameter type when calling format",
+                "package Test",
+                "function string.format(vararg string replacements) returns string",
+                "    return this",
+                "init",
+                "    \"toto\".format(\"test\", 1, 2)"
+        );
+    }
+
 
 }

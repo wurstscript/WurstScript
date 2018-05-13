@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
 public class OverriddenFunctions {
@@ -36,16 +39,16 @@ public class OverriddenFunctions {
         if (scope instanceof StructureDef) {
             StructureDef c = (StructureDef) scope;
 
-            NameLink fNameLink = NameLink.create(f, f.attrNearestScope());
+            FuncLink fNameLink = FuncLink.create(f, f.attrNearestScope());
 
             if (c.attrNameLinks().containsKey(f.getName())) {
-                for (NameLink nl : c.attrNameLinks().get(f.getName())) {
-                    NameDef n = nl.getNameDef();
+                for (DefLink nl : c.attrNameLinks().get(f.getName())) {
                     if (nl.getLevel() == c.attrLevel()
-                            && n instanceof FunctionDefinition
-                            && WurstValidator.canOverride(nl, fNameLink)
+                            && nl.getDef() instanceof FunctionDefinition
+                            && nl instanceof FuncLink
+                            && WurstValidator.canOverride((FuncLink) nl, fNameLink)
                             ) {
-                        return ((FunctionDefinition) n).attrRealFuncDef();
+                        return ((FuncLink) nl).getDef().attrRealFuncDef();
                     }
                 }
             }

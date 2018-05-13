@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.NameLinkType;
 import org.eclipse.jdt.annotation.Nullable;
@@ -235,17 +237,19 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     public void addMemberMethods(Element node, String name,
-                                 List<NameLink> result) {
+                                 List<FuncLink> result) {
         NamedScope scope = getDef();
         if (scope instanceof ModuleDef) {
             // cannot access functions from outside of module
         } else if (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
+            for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType receiverType = n.getReceiverType();
-                if (n.getType() == NameLinkType.FUNCTION
+                if (n instanceof FuncLink
                         && receiverType != null
                         && receiverType.isSupertypeOf(this, node)) {
-                    result.add(n.hidingPrivateAndProtected());
+                    FuncLink f = (FuncLink) n;
+                    result.add(f.hidingPrivateAndProtected().withTypeArgBinding(node, typeArgBinding));
                 }
             }
         }

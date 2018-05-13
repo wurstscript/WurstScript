@@ -22,7 +22,7 @@ public class DescriptionHtml {
         String comment = f.attrComment();
         comment = comment.replaceAll("\n", "<br />");
         String params = getParameterString(f);
-        String returnTypeHtml = htmlType(f.getReturnTyp().attrTyp());
+        String returnTypeHtml = htmlType(f.attrReturnTyp());
         String functionDescription;
         if (f.attrComment().length() > 1) {
             functionDescription = comment;

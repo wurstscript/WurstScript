@@ -497,11 +497,11 @@ public class Utils {
     }
 
 
-    public static String printAlternatives(Collection<NameLink> alternatives) {
+    public static String printAlternatives(Collection<? extends NameLink> alternatives) {
         List<String> result = Lists.newArrayList();
         for (NameLink a : alternatives) {
-            WPos source = a.getNameDef().attrSource();
-            String s = Utils.printElement(a.getNameDef()) + " defined in line "
+            WPos source = a.getDef().attrSource();
+            String s = Utils.printElement(a.getDef()) + " defined in line "
                     + source.getLine() + " (" + source.getFile() + ")";
             result.add(s);
         }

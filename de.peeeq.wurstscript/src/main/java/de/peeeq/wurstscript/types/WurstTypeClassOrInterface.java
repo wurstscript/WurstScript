@@ -1,10 +1,11 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.NameLinkType;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -39,20 +40,23 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
      * if this type has a single abstract method, return it.
      * Otherwise return null;
      */
-    public @Nullable NameLink findSingleAbstractMethod() {
-        Multimap<String, NameLink> nameLinks = getDef().attrNameLinks();
-        NameLink abstractMethod = null;
+    public FuncLink findSingleAbstractMethod(Element context) {
+        Multimap<String, DefLink> nameLinks = getDef().attrNameLinks();
+        FuncLink abstractMethod = null;
         for (NameLink nl : nameLinks.values()) {
-            if (nl.getType() == NameLinkType.FUNCTION
-                    && nl.getNameDef().attrIsAbstract()) {
+            if (nl instanceof FuncLink
+                    && nl.getDef().attrIsAbstract()) {
                 if (abstractMethod != null) {
                     // there is more than one abstract function
                     // --> closure cannot implement this
                     return null;
                 }
-                abstractMethod = nl;
+                abstractMethod = ((FuncLink) nl);
             }
         }
-        return abstractMethod;
+        if (abstractMethod != null) {
+            return abstractMethod.withTypeArgBinding(context, getTypeArgBinding());
+        }
+        return null;
     }
 }

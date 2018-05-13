@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -114,7 +114,7 @@ public class Generics {
         if (paramTyp instanceof WurstTypeClassOrInterface && argType instanceof WurstTypeClosure) {
             WurstTypeClassOrInterface paramTyp2 = (WurstTypeClassOrInterface) paramTyp;
             WurstTypeClosure argTyp2 = (WurstTypeClosure) argType;
-            NameLink sa = paramTyp2.findSingleAbstractMethod().withTypeArgBinding(pos, paramTyp2.getTypeArgBinding());
+            FuncLink sa = paramTyp2.findSingleAbstractMethod(pos).withTypeArgBinding(pos, paramTyp2.getTypeArgBinding());
             if (sa != null) {
                 for (int i = 0; i < sa.getParameterTypes().size() && i < argTyp2.getParamTypes().size(); i++) {
                     inferTypeParameters(result, pos, argTyp2.getParamTypes().get(i), sa.getParameterTypes().get(i), typeParams);

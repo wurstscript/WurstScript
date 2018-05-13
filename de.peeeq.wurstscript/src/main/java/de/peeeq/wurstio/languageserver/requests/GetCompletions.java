@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -10,6 +11,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
+import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
@@ -145,7 +147,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             leftType.getMemberMethods(elem).forEach(nameLink -> {
                 if (isSuitableCompletion(nameLink.getName())) {
-                    CompletionItem completion = makeNameDefCompletion(nameLink.getNameDef());
+                    CompletionItem completion = makeNameDefCompletion(nameLink.getDef());
                     completions.add(completion);
                 }
             });
@@ -154,7 +156,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             WScope scope = elem.attrNearestScope();
             // add member vars
             while (scope != null) {
-                Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+                ImmutableMultimap<String, DefLink> visibleNames = scope.attrNameLinks();
                 completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
                 completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
                 scope = scope.attrNextScope();
@@ -175,10 +177,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
             WScope scope = elem.attrNearestScope();
             while (scope != null) {
-                Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+                Multimap<String, DefLink> visibleNames = scope.attrNameLinks();
                 for (NameLink n : visibleNames.values()) {
-                    if (n.getNameDef() instanceof ClassDef && isSuitableCompletion(n.getName())) {
-                        ClassDef c = (ClassDef) n.getNameDef();
+                    if (n.getDef() instanceof ClassDef && isSuitableCompletion(n.getName())) {
+                        ClassDef c = (ClassDef) n.getDef();
                         for (ConstructorDef constr : c.getConstructors()) {
                             completions.add(makeConstructorCompletion(c, constr));
                         }
@@ -286,7 +288,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
         WScope scope = elem.attrNearestScope();
         while (scope != null) {
-            Multimap<String, NameLink> visibleNames = scope.attrNameLinks();
+            Multimap<String, DefLink> visibleNames = scope.attrNameLinks();
             completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
             scope = scope.attrNextScope();
         }
@@ -413,10 +415,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private void completionsAddVisibleNames(String alreadyEntered, List<CompletionItem> completions, Multimap<String, NameLink> visibleNames,
+    private void completionsAddVisibleNames(String alreadyEntered, List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
                                             @Nullable WurstType leftType, boolean isMemberAccess, Element pos) {
-        Collection<Entry<String, NameLink>> entries = visibleNames.entries();
-        for (Entry<String, NameLink> e : entries) {
+        Collection<Entry<String, DefLink>> entries = visibleNames.entries();
+        for (Entry<String, DefLink> e : entries) {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
@@ -446,13 +448,13 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 }
             }
 
-            if (e.getValue().getNameDef() instanceof FunctionDefinition) {
-                FunctionDefinition f = (FunctionDefinition) e.getValue().getNameDef();
+            if (e.getValue().getDef() instanceof FunctionDefinition) {
+                FunctionDefinition f = (FunctionDefinition) e.getValue().getDef();
 
                 CompletionItem completion = makeFunctionCompletion(f);
                 completions.add(completion);
             } else {
-                completions.add(makeNameDefCompletion(e.getValue().getNameDef()));
+                completions.add(makeNameDefCompletion(e.getValue().getDef()));
             }
             if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
                 // got enough completions
@@ -572,7 +574,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setDetail(getFunctionDescriptionShort(f));
         completion.setDocumentation(HoverInfo.descriptionString(f));
         completion.setInsertText(replacementString);
-        completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnTyp().attrTyp().dynamic())));
+        completion.setSortText(ratingToString(calculateRating(f.getName(), f.attrReturnTyp())));
         // TODO use call signature instead for generics
 //        completion.set
 
@@ -596,7 +598,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private String getFunctionDescriptionShort(FunctionDefinition f) {
         String displayString = "(" + Utils.getParameterListText(f) + ")";
-        WurstType returnType = f.getReturnTyp().attrTyp();
+        WurstType returnType = f.attrReturnTyp();
         if (!(returnType instanceof WurstTypeVoid)) {
             displayString += " returns " + returnType;
         }
@@ -625,14 +627,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
         return completion;
     }
 
-    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, NameLink> visibleNames,
+    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
                                                          WurstType leftType) {
-        for (Entry<String, NameLink> e : visibleNames.entries()) {
+        for (Entry<String, DefLink> e : visibleNames.entries()) {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
-            if (e.getValue().getNameDef() instanceof ExtensionFuncDef) {
-                ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getNameDef();
+            if (e.getValue().getDef() instanceof ExtensionFuncDef) {
+                ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getDef();
                 if (ef.getExtendedType().attrTyp().dynamic().isSupertypeOf(leftType, ef)) {
                     completions.add(makeFunctionCompletion(ef));
                 }

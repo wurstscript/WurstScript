@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -73,15 +74,15 @@ public class StmtTranslation {
         // Type of loop Variable:
         WurstType loopVarType = s.getLoopVar().attrTyp();
         List<ImStmt> result = Lists.newArrayList();
-        Optional<NameLink> nextFuncOpt = s.attrGetNextFunc();
-        Optional<NameLink> hasNextFuncOpt = s.attrHasNextFunc();
+        Optional<FuncLink> nextFuncOpt = s.attrGetNextFunc();
+        Optional<FuncLink> hasNextFuncOpt = s.attrHasNextFunc();
         if (nextFuncOpt.isPresent() && hasNextFuncOpt.isPresent()) {
-            NameLink nextFunc = nextFuncOpt.get();
-            NameLink hasNextFunc = hasNextFuncOpt.get();
+            FuncLink nextFunc = nextFuncOpt.get();
+            FuncLink hasNextFunc = hasNextFuncOpt.get();
 
             // get the iterator function in the intermediate language
-            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
-            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getDef());
+            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getDef());
 
             f.getLocals().add(t.getVarFor(s.getLoopVar()));
 
@@ -105,7 +106,7 @@ public class StmtTranslation {
             ImFunctionCall nextCall = JassIm.ImFunctionCall(s, nextFuncIm, fromTarget.copy(),
                     false, CallType.NORMAL);
 
-            WurstType nextReturn = nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding());
+            WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
 
             imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), nextCallWrapped));
@@ -127,23 +128,23 @@ public class StmtTranslation {
         }
         List<ImStmt> result = Lists.newArrayList();
 
-        Optional<NameLink> iteratorFuncOpt = forIn.attrIteratorFunc();
-        Optional<NameLink> nextFuncOpt = forIn.attrGetNextFunc();
-        Optional<NameLink> hasNextFuncOpt = forIn.attrHasNextFunc();
+        Optional<FuncLink> iteratorFuncOpt = forIn.attrIteratorFunc();
+        Optional<FuncLink> nextFuncOpt = forIn.attrGetNextFunc();
+        Optional<FuncLink> hasNextFuncOpt = forIn.attrHasNextFunc();
         if (iteratorFuncOpt.isPresent() && nextFuncOpt.isPresent() && hasNextFuncOpt.isPresent()) {
-            NameLink iteratorFunc = iteratorFuncOpt.get();
-            NameLink nextFunc = nextFuncOpt.get();
-            NameLink hasNextFunc = hasNextFuncOpt.get();
+            FuncLink iteratorFunc = iteratorFuncOpt.get();
+            FuncLink nextFunc = nextFuncOpt.get();
+            FuncLink hasNextFunc = hasNextFuncOpt.get();
 
             // Type of iterator variable:
-            WurstType iteratorType = iteratorFunc.getReturnType().setTypeArgs(iterationTarget.attrTyp().getTypeArgBinding());
+            WurstType iteratorType = iteratorFunc.getReturnType();
             // Type of loop Variable:
             WurstType loopVarType = forIn.getLoopVar().attrTyp();
 
             // get the iterator function in the intermediate language
-            ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getNameDef());
-            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getNameDef());
-            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getNameDef());
+            ImFunction iteratorFuncIm = t.getFuncFor((TranslatedToImFunction) iteratorFunc.getDef());
+            ImFunction nextFuncIm = t.getFuncFor((TranslatedToImFunction) nextFunc.getDef());
+            ImFunction hasNextFuncIm = t.getFuncFor((TranslatedToImFunction) hasNextFunc.getDef());
 
             // translate target:
             ImExprs iterationTargetList;
@@ -169,41 +170,41 @@ public class StmtTranslation {
 
             ImStmts imBody = ImStmts();
             // exitwhen not #hasNext()
-            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(forIn, hasNextFuncIm, JassIm.ImExprs(JassIm
+            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(forIn, hasNextFuncIm, JassIm.ImExprs
+                    (JassIm
                     .ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
             // elem = next()
             ImFunctionCall nextCall = JassIm.ImFunctionCall(forIn, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false,
                     CallType.NORMAL);
-            WurstType nextReturn = nextFunc.getReturnType().setTypeArgs(iteratorType.getTypeArgBinding());
+            WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(forIn, t, nextCall, nextReturn, loopVarType);
 
             imBody.add(JassIm.ImSet(forIn, t.getVarFor(forIn.getLoopVar()), nextCallWrapped));
 
             imBody.addAll(t.translateStatements(f, forIn.getBody()));
 
-            // close iterator after loop
-            Optional<NameLink> closeFunc = forIn.attrCloseFunc();
-            if (closeFunc.isPresent()) {
-                NameLink nameLink;
-                nameLink = closeFunc.get();
-                result.add(JassIm.ImFunctionCall(forIn, t.getFuncFor((TranslatedToImFunction) nameLink.getNameDef()), JassIm.ImExprs(JassIm
-                        .ImVarAccess(iteratorVar)), false, CallType.NORMAL));
+
+            Optional<FuncLink> closeFunc = forIn.attrCloseFunc();
+            closeFunc.ifPresent(funcLink -> {
 
                 // close iterator before each return
-
                 imBody.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
                     @Override
                     public void visit(ImReturn imReturn) {
                         super.visit(imReturn);
                         imReturn.setParent(null);
-                        imReturn.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor((TranslatedToImFunction) nameLink
-                                .getNameDef()), JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn), ImNull()));
+                        imReturn.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor((TranslatedToImFunction) (
+                                (NameLink) funcLink)
+                                .getDef()), JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn), ImNull()));
                     }
                 });
 
-            }
+            });
 
             result.add(ImLoop(forIn, imBody));
+            // close iterator after loop
+            closeFunc.ifPresent(nameLink -> result.add(JassIm.ImFunctionCall(forIn, t.getFuncFor(nameLink.getDef()), JassIm.ImExprs(JassIm
+                    .ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
 
         }
 

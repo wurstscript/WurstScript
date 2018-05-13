@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.attributes;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.*;
@@ -29,7 +31,7 @@ public class AttrFuncDef {
 
     public static @Nullable FunctionDefinition calculate(final ExprFuncRef node) {
 
-        Collection<NameLink> funcs;
+        Collection<FuncLink> funcs;
         if (node.getScopeName().length() > 0) {
             TypeDef typeDef = node.lookupType(node.getScopeName());
             if (typeDef == null) {
@@ -54,8 +56,8 @@ public class AttrFuncDef {
             node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
         }
         NameLink nameLink = Utils.getFirst(funcs);
-        if (nameLink.getNameDef() instanceof FunctionDefinition) {
-            return (FunctionDefinition) nameLink.getNameDef();
+        if (nameLink.getDef() instanceof FunctionDefinition) {
+            return (FunctionDefinition) nameLink.getDef();
         } else {
             // should never happen
             node.addError("impossibru");
@@ -153,7 +155,7 @@ public class AttrFuncDef {
         if (node == null) {
             return null;
         }
-        Collection<NameLink> funcs1 = node.lookupFuncs(funcName);
+        ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
         if (funcs1.size() == 0) {
             if (funcName.startsWith("InitTrig_")) {
                 // ignore error
@@ -164,7 +166,7 @@ public class AttrFuncDef {
         }
         try {
             // filter out the methods which are private somewhere else
-            List<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+            List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
 
             funcs = filterByReceiverType(node, funcName, funcs);
 
@@ -181,13 +183,13 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> useLocalPackageIfPossible(FuncRef node,
-                                                            List<NameLink> funcs) throws EarlyReturn {
+    private static List<FuncLink> useLocalPackageIfPossible(FuncRef node,
+                                                            List<FuncLink> funcs) throws EarlyReturn {
         int localCount = 0;
         NameLink local = null;
         PackageOrGlobal myPackage = node.attrNearestPackage();
         for (NameLink n : funcs) {
-            if (n.getNameDef().attrNearestPackage() == myPackage) {
+            if (n.getDef().attrNearestPackage() == myPackage) {
                 local = n;
                 localCount++;
             }
@@ -196,11 +198,11 @@ public class AttrFuncDef {
             return funcs;
         } else if (localCount == 1) {
             if (local == null) throw new Error("impossible");
-            throw new EarlyReturn((FunctionDefinition) local.getNameDef());
+            throw new EarlyReturn((FunctionDefinition) local.getDef());
         }
-        List<NameLink> result = Lists.newArrayList();
-        for (NameLink n : funcs) {
-            if (n.getNameDef().attrNearestPackage() == myPackage) {
+        List<FuncLink> result = Lists.newArrayList();
+        for (FuncLink n : funcs) {
+            if (n.getDef().attrNearestPackage() == myPackage) {
                 result.add(n);
             }
         }
@@ -209,13 +211,13 @@ public class AttrFuncDef {
 
 
     private static @Nullable FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
-        Collection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
+        Collection<FuncLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
         if (funcs1.size() == 0) {
             return null;
         }
         try {
             // filter out the methods which are private somewhere else
-            List<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+            List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
 
             // chose method with most specific receiver type
             funcs = filterByReceiverType(node, funcName, funcs);
@@ -229,8 +231,8 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterByParameters(Element node,
-                                                     List<WurstType> argumentTypes, List<NameLink> funcs)
+    private static List<FuncLink> filterByParameters(Element node,
+                                                     List<WurstType> argumentTypes, List<FuncLink> funcs)
             throws EarlyReturn {
         // filter out methods with wrong number of params
         funcs = filterByParamaeterNumber(argumentTypes, funcs);
@@ -241,11 +243,11 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterByParameterTypes(
-            Element node, List<WurstType> argumentTypes, List<NameLink> funcs3) throws EarlyReturn {
-        List<NameLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
+    private static List<FuncLink> filterByParameterTypes(
+            Element node, List<WurstType> argumentTypes, List<FuncLink> funcs3) throws EarlyReturn {
+        List<FuncLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
         nextFunc:
-        for (NameLink f : funcs3) {
+        for (FuncLink f : funcs3) {
             for (int i = 0; i < argumentTypes.size(); i++) {
                 if (!argumentTypes.get(i).isSubtypeOf(f.getParameterType(i), node)) {
                     continue nextFunc;
@@ -265,9 +267,9 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<NameLink> funcs2) throws EarlyReturn {
-        List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
-        for (NameLink f : funcs2) {
+    private static List<FuncLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<FuncLink> funcs2) throws EarlyReturn {
+        List<FuncLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+        for (FuncLink f : funcs2) {
             if (f.getParameterTypes().size() == argumentTypes.size()
                     || (f.getParameterTypes().size() == 1 && f.getParameterTypes().get(0) instanceof WurstTypeVararg)) {
                 funcs3.add(f);
@@ -282,16 +284,16 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterInvisible(String funcName, Element node, Collection<NameLink> funcs1) throws EarlyReturn {
+    private static <T extends NameLink> List<T> filterInvisible(String funcName, Element node, Collection<T> funcs1) throws EarlyReturn {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return Lists.newArrayList(funcs1);
         }
-        List<NameLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
-        for (NameLink nl : funcs1) {
+        List<T> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
+        for (T nl : funcs1) {
             if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
                     || nl.getVisibility() == Visibility.PROTECTED_OTHER)
-                    && nl.getNameDef() instanceof FunctionDefinition) {
+                    && nl.getDef() instanceof FunctionDefinition) {
                 funcs2.add(nl);
             }
         }
@@ -308,14 +310,14 @@ public class AttrFuncDef {
     }
 
 
-    private static List<NameLink> filterByReceiverType(Element node,
-                                                       String funcName, List<NameLink> funcs2) throws EarlyReturn {
-        List<NameLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
-        for (NameLink f : funcs2) {
+    private static List<FuncLink> filterByReceiverType(Element node,
+                                                       String funcName, List<FuncLink> funcs2) throws EarlyReturn {
+        List<FuncLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
+        for (FuncLink f : funcs2) {
             boolean existsMoreSpecific = false;
             WurstType f_receiverType = f.getReceiverType();
             if (f_receiverType != null) {
-                for (NameLink g : funcs2) {
+                for (FuncLink g : funcs2) {
                     if (f != g) {
                         WurstType g_receiverType = g.getReceiverType();
                         if (g_receiverType != null
@@ -341,10 +343,10 @@ public class AttrFuncDef {
         return funcs3;
     }
 
-    private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
+    private static <T extends NameLink> FunctionDefinition firstFunc(Collection<T> funcs1) {
         NameLink nl = Utils.getFirst(funcs1);
-        if (nl.getNameDef() instanceof FunctionDefinition) {
-            return (FunctionDefinition) nl.getNameDef();
+        if (nl.getDef() instanceof FunctionDefinition) {
+            return (FunctionDefinition) nl.getDef();
         }
         throw new Error("Collection of funcs was empty");
     }

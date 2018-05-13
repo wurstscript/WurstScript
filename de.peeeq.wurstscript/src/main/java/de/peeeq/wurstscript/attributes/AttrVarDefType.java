@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
@@ -104,9 +105,9 @@ public class AttrVarDefType {
                 if (nameDef instanceof WParameter && nameDef.attrTyp() instanceof WurstTypeVararg) {
                     return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
                 }
-                Optional<NameLink> nameLink = forEach.attrGetNextFunc();
+                Optional<FuncLink> nameLink = forEach.attrGetNextFunc();
                 if (nameLink.isPresent()) {
-                    return nameLink.get().getReturnType().setTypeArgs(forEach.attrItrType().getTypeArgBinding()).normalize();
+                    return nameLink.get().getReturnType().normalize();
                 }
                 return WurstTypeUnknown.instance();
             } else {
@@ -131,7 +132,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(FunctionDefinition f) {
-        return f.getReturnTyp().attrTyp();
+        return f.attrReturnTyp();
     }
 
     public static WurstType calculate(TypeParamDef t) {

@@ -74,7 +74,7 @@ public class HoverInfo extends UserRequest<Hover> {
             }
 
             String params = getParameterString(f);
-            String returnTypeHtml = type(f.getReturnTyp().attrTyp());
+            String returnTypeHtml = type(f.attrReturnTyp());
             String functionDescription = "";
 
             String funcName = f.getName();
