@@ -405,7 +405,7 @@ public class WurstScriptTest {
             JassInterpreter interpreter = new JassInterpreter();
             interpreter.trace(true);
             interpreter.loadProgram(prog);
-            interpreter.executeFunction("main");
+            interpreter.runProgram();
         } catch (TestSuccessException e) {
             return;
         }

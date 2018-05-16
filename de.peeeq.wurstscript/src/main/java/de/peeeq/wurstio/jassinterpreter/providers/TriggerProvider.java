@@ -5,12 +5,13 @@ import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class TriggerProvider extends Provider {
 
 
-    public TriggerProvider(ILInterpreter interpreter) {
+    public TriggerProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

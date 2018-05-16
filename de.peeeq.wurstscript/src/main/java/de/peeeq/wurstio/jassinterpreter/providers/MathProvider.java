@@ -2,6 +2,7 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.Random;
@@ -9,7 +10,7 @@ import java.util.Random;
 public class MathProvider extends Provider {
     private Random r = new Random();
 
-    public MathProvider(ILInterpreter interpreter) {
+    public MathProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

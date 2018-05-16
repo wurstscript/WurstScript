@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.*;
@@ -23,7 +24,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-public class ILInterpreter {
+public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
     private final ProgramState globalState;
 
@@ -220,4 +221,8 @@ public class ILInterpreter {
 
     }
 
+    @Override
+    public void runFuncRef(ILconstFuncRef obj, @Nullable Element trace) {
+        runVoidFunc(obj.getFunc(), trace);
+    }
 }

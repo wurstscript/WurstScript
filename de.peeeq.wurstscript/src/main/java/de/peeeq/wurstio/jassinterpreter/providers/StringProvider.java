@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import net.moonlightflower.wc3libs.misc.StringHash;
 
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
 
 public class StringProvider extends Provider {
 
-    public StringProvider(ILInterpreter interpreter) {
+    public StringProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

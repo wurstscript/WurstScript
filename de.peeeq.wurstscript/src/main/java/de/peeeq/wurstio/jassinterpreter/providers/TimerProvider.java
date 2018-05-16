@@ -2,12 +2,13 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.TimerMock;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class TimerProvider extends Provider {
     private static IlConstHandle lastExpiredMock = null;
 
-    public TimerProvider(ILInterpreter interpreter) {
+    public TimerProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

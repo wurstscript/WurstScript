@@ -3,12 +3,13 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstio.jassinterpreter.mocks.RectMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class RectProvider extends Provider {
 
 
-    public RectProvider(ILInterpreter interpreter) {
+    public RectProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

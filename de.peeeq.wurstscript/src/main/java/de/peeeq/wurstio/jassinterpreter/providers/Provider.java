@@ -1,11 +1,13 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
+import com.google.common.base.Preconditions;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public abstract class Provider {
-    protected ILInterpreter interpreter;
+    protected AbstractInterpreter interpreter;
 
-    public Provider(ILInterpreter interpreter) {
+    public Provider(AbstractInterpreter interpreter) {
+        Preconditions.checkNotNull(interpreter);
         this.interpreter = interpreter;
     }
 }
