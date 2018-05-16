@@ -4,12 +4,13 @@ import de.peeeq.wurstio.jassinterpreter.mocks.RectMock;
 import de.peeeq.wurstio.jassinterpreter.mocks.RegionMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class RegionProvider extends Provider {
 
 
-    public RegionProvider(ILInterpreter interpreter) {
+    public RegionProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
