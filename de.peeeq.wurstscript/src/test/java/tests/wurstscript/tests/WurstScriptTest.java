@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
+import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
 
@@ -128,6 +129,7 @@ public class WurstScriptTest {
         try {
             String input = Files.toString(file, Charsets.UTF_8);
             testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
+            fail("No errors were discovered");
         } catch (CompileError e) {
             Assert.assertTrue(e.getMessage().contains(errorMessage), e.toString());
         }
