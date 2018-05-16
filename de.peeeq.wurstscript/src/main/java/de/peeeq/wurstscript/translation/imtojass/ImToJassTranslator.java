@@ -206,7 +206,7 @@ public class ImToJassTranslator {
                     result = JassAst.JassSimpleVar(type, name);
                 }
             }
-            if (isGlobal(v)) {
+            if (isGlobal(v) && (!v.getIsBJ() || result instanceof JassInitializedVar)) {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);
