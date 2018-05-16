@@ -774,7 +774,11 @@ public class WurstValidator {
         });
     }
 
-    private void checkVarNotConstant(NameRef left, @Nullable NameDef var) {
+    private void checkVarNotConstant(NameRef left, @Nullable NameLink link) {
+        if (link == null) {
+            return;
+        }
+        NameDef var = link.getDef();
         if (var != null && var.attrIsConstant()) {
             if (var instanceof GlobalVarDef) {
                 GlobalVarDef glob = (GlobalVarDef) var;
@@ -1119,9 +1123,9 @@ public class WurstValidator {
             Expr firstArg = stmtCall.getArgs().get(0);
             if (firstArg instanceof ExprFuncRef) {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
-                FunctionDefinition f = exprFuncRef.attrFuncDef();
+                FuncLink f = exprFuncRef.attrFuncDef();
                 if (f != null) {
-                    if (!(f.attrReturnTyp() instanceof WurstTypeBool) && !(f.attrReturnTyp() instanceof WurstTypeVoid)) {
+                    if (!(f.getReturnType() instanceof WurstTypeBool) && !(f.getReturnType() instanceof WurstTypeVoid)) {
                         firstArg.addError("Functions passed to Filter or Condition must return boolean or nothing.");
                     }
                 }
@@ -1318,7 +1322,11 @@ public class WurstValidator {
      * @param dynamicContext
      */
     private void checkVarRef(NameRef e, boolean dynamicContext) {
-        NameDef def = e.attrNameDef();
+        NameLink link = e.attrNameDef();
+        if (link == null) {
+            return;
+        }
+        NameDef def = link.getDef();
         if (def instanceof GlobalVarDef) {
             GlobalVarDef g = (GlobalVarDef) def;
             if (g.attrIsDynamicClassMember() && !dynamicContext) {
