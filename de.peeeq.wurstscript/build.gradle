@@ -12,11 +12,19 @@ apply plugin: 'antlr'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 
-
 apply plugin: 'application'
 mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.0.0"
 
+// Test Report Generator
+apply plugin: 'jacoco'
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+}
+
+apply plugin: 'com.github.kt3k.coveralls'
 
 String genDir = "$projectDir/src-gen"
 
@@ -40,6 +48,7 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    jcenter()
 }
 
 // In this section you declare the dependencies for your production and test code
@@ -200,6 +209,7 @@ buildscript {
     }
     dependencies {
         classpath 'de.undercouch:gradle-download-task:3.2.0'
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:1.0.2'
     }
 }
 
