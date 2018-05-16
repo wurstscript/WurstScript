@@ -16,15 +16,15 @@ apply plugin: 'application'
 mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.0.0"
 
-// Test Report Generator
-apply plugin: 'jacoco'
+plugins {
+    id "jacoco"
+    id 'com.github.kt3k.coveralls' version '2.8.2'
+}
 jacocoTestReport {
     reports {
         xml.enabled true
     }
 }
-
-apply plugin: 'com.github.kt3k.coveralls'
 
 String genDir = "$projectDir/src-gen"
 
