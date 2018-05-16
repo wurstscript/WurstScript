@@ -536,4 +536,23 @@ public class ModuleTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void testModuleMemberInit2() { // see #656
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "import LinkedListModule",
+                "native testSuccess()",
+                "public class TestClass",
+                "    use LinkedListModule",
+                "    static TestClass a = new TestClass",
+                "    construct()",
+                "        print(\"constructed\")",
+                "init",
+                "    print(\"size test2:\" + TestClass.size.toString())",
+                "    if TestClass.size == 1",
+                "        testSuccess()",
+                "endpackage"
+        );
+    }
 }
