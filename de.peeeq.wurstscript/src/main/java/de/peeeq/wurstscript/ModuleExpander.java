@@ -74,8 +74,10 @@ public class ModuleExpander {
                 typeReplacements.add(Pair.create(usedModule.getTypeParameters().get(i).attrTyp(), moduleUse.getTypeArgs().get(i).attrTyp()));
             }
 
-            ModuleInstanciation mi = Ast.ModuleInstanciation(moduleUse.getSource(), Ast.Modifiers(),
-                    Ast.Identifier(moduleUse.getModuleNameId().getSource(), usedModule.getName()),
+            WPos source = moduleUse.getSource().artificial();
+            WPos idSource = moduleUse.getModuleNameId().getSource().artificial();
+            ModuleInstanciation mi = Ast.ModuleInstanciation(source, Ast.Modifiers(),
+                    Ast.Identifier(idSource, usedModule.getName()),
                     smartCopy(usedModule.getInnerClasses(), typeReplacements),
                     smartCopy(usedModule.getMethods(), typeReplacements),
                     smartCopy(usedModule.getVars(), typeReplacements),
@@ -86,7 +88,6 @@ public class ModuleExpander {
 
             if (mi.getConstructors().isEmpty()) {
                 // add default constructor:
-                WPos source = moduleUse.getSource().artificial();
                 mi.getConstructors().add(Ast.ConstructorDef(
                         source,
                         Ast.Modifiers(),
