@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
+
 public class WurstTypeStaticTypeRef extends WurstType {
 
     private final WurstType base;
@@ -18,9 +20,9 @@ public class WurstTypeStaticTypeRef extends WurstType {
     @Override
     @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeStaticTypeRef) {
-            return base.isSubtypeOf(((WurstTypeStaticTypeRef) other).base, location);
+            return base.matchAgainstSupertype(((WurstTypeStaticTypeRef) other).base, location, typeParams, mapping);
         }
-        return false;
+        return null;
     }
 
     @Override

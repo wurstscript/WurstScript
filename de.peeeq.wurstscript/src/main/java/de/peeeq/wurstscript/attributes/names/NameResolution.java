@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -82,7 +83,7 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
-        Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {

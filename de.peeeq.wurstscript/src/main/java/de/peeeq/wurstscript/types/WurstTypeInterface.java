@@ -3,12 +3,14 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -64,8 +66,9 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 
     @Override
     @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        if (super.matchAgainstSupertypeIntern(other, location)) {
-            return true;
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMatch = super.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
+        if (superMatch != null) {
+            return superMatch;
         }
 
         if (other instanceof WurstTypeInterface) {
@@ -75,14 +78,16 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
                 return matchTypeParams(getTypeParameters(), other2.getTypeParameters(), location, typeParams, mapping);
             } else {
                 // test super interfaces:
-                for (WurstTypeInterface extended : interfaceDef.attrExtendedInterfaces()) {
-                    if (extended.isSubtypeOf(other, location)) {
-                        return true;
+                for (TypeLink extended : interfaceDef.attrExtendedInterfaces()) {
+                    WurstType extendedType = extended.getTyp(mapping);
+                    TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = extendedType.matchAgainstSupertype(other, location, typeParams, mapping);
+                    if (res != null) {
+                        return res;
                     }
                 }
             }
         }
-        return false;
+        return null;
     }
 
 

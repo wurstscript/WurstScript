@@ -11,7 +11,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -72,12 +71,12 @@ public class WurstTypeDeferred extends WurstType {
     }
 
     @Override
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
         return new WurstTypeDeferred(() -> force().setTypeArgs(typeParamMapping));
     }
 
     @Override
-    public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
+    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
         return force().getTypeArgBinding();
     }
 

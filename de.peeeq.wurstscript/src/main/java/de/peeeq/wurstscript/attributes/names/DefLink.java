@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -95,10 +96,16 @@ public abstract class DefLink extends NameLink {
                 return null;
             }
         }
-        fj.data.TreeMap<TypeParamDef, WurstTypeBoundTypeParam> match = this.receiverType.matchAgainstSupertype(receiverType, getDef());
-
+        NameDef def = getDef();
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> match = this.receiverType.matchAgainstSupertype(receiverType, def, typeParams, WurstType.emptyMapping());
+        if (match == null) {
             return null;
+        }
+        return withTypeArgBinding(def, match);
     }
 
+
+    @Override
+    public abstract DefLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding);
 
 }

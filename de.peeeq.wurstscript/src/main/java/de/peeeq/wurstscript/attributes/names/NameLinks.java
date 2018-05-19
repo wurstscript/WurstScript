@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 
 import java.util.List;
 import java.util.Map;
@@ -177,8 +178,9 @@ public class NameLinks {
     }
 
     private static void addNamesFromImplementedInterfaces(Builder<String, DefLink> result, ClassDef classDef) {
-        for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
-            Map<TypeParamDef, WurstTypeBoundTypeParam> binding = interfaceType.getTypeArgBinding();
+        for (TypeLink implementedInterface : classDef.attrImplementedInterfaces()) {
+            WurstTypeInterface interfaceType = (WurstTypeInterface) implementedInterface.getTyp();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = interfaceType.getTypeArgBinding();
             InterfaceDef i = interfaceType.getInterfaceDef();
             for (Entry<String, DefLink> e : i.attrNameLinks().entries()) {
                 result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef, binding));
@@ -190,7 +192,7 @@ public class NameLinks {
         if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
             WurstTypeClass wurstTypeClass = (WurstTypeClass) classDef.getExtendedClass().attrTyp();
             ClassDef extendedClass = wurstTypeClass.getClassDef();
-            Map<TypeParamDef, WurstTypeBoundTypeParam> binding = wurstTypeClass.getTypeArgBinding();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = wurstTypeClass.getTypeArgBinding();
             addHidingPrivate(result, extendedClass.attrNameLinks(), binding, classDef);
         }
     }
@@ -228,7 +230,7 @@ public class NameLinks {
 
     private static void addHidingPrivate(Builder<String, DefLink> result,
                                          Multimap<String, ? extends DefLink> adding,
-                                         Map<TypeParamDef, WurstTypeBoundTypeParam> binding,
+                                         TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding,
                                          Element context) {
         for (Entry<String, ? extends DefLink> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {

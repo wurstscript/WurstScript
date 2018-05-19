@@ -6,6 +6,8 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
@@ -37,12 +39,12 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
-            FunctionDefinition decl = funcRef.attrFuncDef();
-            return linkTo(decl);
+            FuncLink decl = funcRef.attrFuncDef();
+            return linkTo(decl.getDef());
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
-            NameDef decl = nameRef.attrNameDef();
-            return linkTo(decl);
+            NameLink decl = nameRef.attrNameDef();
+            return linkTo(decl.getDef());
         } else if (e instanceof TypeExpr) {
             TypeExpr typeExpr = (TypeExpr) e;
             TypeDef decl = typeExpr.attrTypeDef();
@@ -64,9 +66,9 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
             return linkTo(def);
         } else if (e instanceof ExprBinary) {
             ExprBinary eb = (ExprBinary) e;
-            FunctionDefinition def = eb.attrFuncDef();
+            FuncLink def = eb.attrFuncDef();
             if (def != null) {
-                return linkTo(def);
+                return linkTo(def.getDef());
             }
         }
         return Collections.emptyList();

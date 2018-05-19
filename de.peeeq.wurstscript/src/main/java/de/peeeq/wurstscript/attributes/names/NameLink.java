@@ -3,9 +3,9 @@ package de.peeeq.wurstscript.attributes.names;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import fj.data.TreeMap;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 
@@ -129,7 +129,8 @@ public abstract class NameLink {
 
     public abstract boolean receiverCompatibleWith(WurstType receiverType, Element location);
 
-    public abstract NameLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding);
+    public abstract NameLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding);
 
+    // TODO should it be possible to get the type without providing a mapping for the type-arguments?
     public abstract WurstType getTyp();
 }

@@ -5,6 +5,8 @@ import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
@@ -147,19 +149,19 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         public  List<Either<String, MarkedString>> description(NameRef nr) {
-            NameDef nameDef = nr.attrNameDef();
+            NameLink nameDef = nr.attrNameDef();
             if (nameDef == null) {
                 return string(nr.getVarName() + " is not defined yet.");
             }
-            return nameDef.match(this);
+            return nameDef.getDef().match(this);
         }
 
         public  List<Either<String, MarkedString>> description(FuncRef fr) {
-            FunctionDefinition def = fr.attrFuncDef();
+            FuncLink def = fr.attrFuncDef();
             if (def == null) {
                 return string(fr.getFuncName() + " is not defined yet.");
             }
-            return def.match(this);
+            return def.getDef().match(this);
         }
 
         @Override
@@ -371,9 +373,9 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ExprBinary(ExprBinary exprBinary) {
-            FunctionDefinition funcDef = exprBinary.attrFuncDef();
+            FuncLink funcDef = exprBinary.attrFuncDef();
             if (funcDef != null) {
-                return description(funcDef);
+                return description(funcDef.getDef());
             }
             return string("A binary operation");
         }

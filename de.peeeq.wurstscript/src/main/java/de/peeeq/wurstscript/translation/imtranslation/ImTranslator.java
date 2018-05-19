@@ -984,8 +984,8 @@ public class ImTranslator {
         interfaceInstances = HashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
-                for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-                    interfaceInstances.put(i.getInterfaceDef(), c);
+                for (TypeLink i : c.attrImplementedInterfaces()) {
+                    interfaceInstances.put((InterfaceDef) i.getDef(), c);
                 }
             }
         }
@@ -1017,8 +1017,9 @@ public class ImTranslator {
         }
         directSubclasses = HashMultimap.create();
         for (ClassDef c : classes()) {
-            if (c.attrExtendedClass() != null) {
-                directSubclasses.put(c.attrExtendedClass(), c);
+            TypeLink extendedClass = c.attrExtendedClass();
+            if (extendedClass != null) {
+                directSubclasses.put(((ClassDef) extendedClass.getDef()), c);
             }
         }
     }

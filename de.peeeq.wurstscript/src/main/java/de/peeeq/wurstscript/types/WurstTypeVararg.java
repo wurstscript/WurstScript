@@ -8,7 +8,6 @@ import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
-import java.util.Map;
 
 
 public class WurstTypeVararg extends WurstType {
@@ -56,7 +55,7 @@ public class WurstTypeVararg extends WurstType {
 
 
     @Override
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> t) {
+    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> t) {
         WurstType b = this.baseType.setTypeArgs(t);
         if (b == baseType) {
             return this;

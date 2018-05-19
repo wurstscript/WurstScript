@@ -14,7 +14,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 
@@ -29,7 +28,7 @@ public abstract class WurstType {
     }
 
     @NotNull
-    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> emptyMapping() {
+    public static TreeMap<TypeParamDef, WurstTypeBoundTypeParam> emptyMapping() {
         return TreeMap.empty(TypeParamOrd.instance());
     }
 
@@ -42,7 +41,7 @@ public abstract class WurstType {
      * <p>
      * Will try to instantiate type variables from the set typeParams
      */
-    final @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    public final @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
             return matchAgainstSupertype(btp.getBaseType(), location, typeParams, mapping);
@@ -143,14 +142,13 @@ public abstract class WurstType {
     }
 
 
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
         return this;
     }
 
 
-    @Deprecated // should not be necessary to do after the fact, type arg binding should be set when matching types
-    public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        return Collections.emptyMap();
+    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
+        return WurstType.emptyMapping();
     }
 
 

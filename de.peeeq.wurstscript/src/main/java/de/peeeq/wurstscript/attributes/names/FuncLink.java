@@ -7,10 +7,10 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -91,7 +91,7 @@ public class FuncLink extends DefLink {
         return NameLinkType.FUNCTION;
     }
 
-    public FuncLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public FuncLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         if (binding.isEmpty()) {
             return this;
         }
@@ -112,7 +112,7 @@ public class FuncLink extends DefLink {
         }
         if (changed) {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(binding::containsKey)
+                    .filter(binding::contains)
                     .collect(Collectors.toList());
             return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, newParamTypes, newReturnType);
         } else {
@@ -125,7 +125,7 @@ public class FuncLink extends DefLink {
         return getReturnType();
     }
 
-    private WurstType adjustType(Element context, WurstType t, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    private WurstType adjustType(Element context, WurstType t, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         return t.setTypeArgs(binding);
     }
 
@@ -172,8 +172,8 @@ public class FuncLink extends DefLink {
         return parameterNames;
     }
 
-    public Optional<FuncLink> adaptToReceiverType(WurstType receiverType) {
-        return ((Optional<FuncLink>) super.adaptToReceiverType(receiverType));
+    public FuncLink adaptToReceiverType(WurstType receiverType) {
+        return (FuncLink) super.adaptToReceiverType(receiverType);
     }
 
 }

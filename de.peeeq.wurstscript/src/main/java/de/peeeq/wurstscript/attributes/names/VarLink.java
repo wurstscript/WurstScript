@@ -7,10 +7,10 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeDeferred;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -131,7 +131,7 @@ public class VarLink extends DefLink {
         return r + Utils.printElementWithSource(def);
     }
 
-    public VarLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public VarLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         if (binding.isEmpty()) {
             return this;
         }
@@ -143,12 +143,17 @@ public class VarLink extends DefLink {
 
         if (changed) {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(binding::containsKey)
+                    .filter(binding::contains)
                     .collect(Collectors.toList());
             return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, newType);
         } else {
             return this;
         }
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return type;
     }
 
 
@@ -167,8 +172,8 @@ public class VarLink extends DefLink {
         return (VarLink) super.hidingPrivateAndProtected();
     }
 
-    public Optional<VarLink> adaptToReceiverType(WurstType receiverType) {
-        return ((Optional<VarLink>) super.adaptToReceiverType(receiverType));
+    public VarLink adaptToReceiverType(WurstType receiverType) {
+        return (VarLink) super.adaptToReceiverType(receiverType);
     }
 
 

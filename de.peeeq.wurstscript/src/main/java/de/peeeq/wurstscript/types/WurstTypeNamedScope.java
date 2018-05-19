@@ -3,10 +3,7 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.NameLinkType;
+import de.peeeq.wurstscript.attributes.names.*;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -121,56 +118,53 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 
     @Override
-    @Deprecated
-    public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
+    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
 
         NamedScope def2 = getDef();
         if (def2 instanceof AstElementWithTypeParameters) {
             AstElementWithTypeParameters def = (AstElementWithTypeParameters) def2;
-            Map<TypeParamDef, WurstTypeBoundTypeParam> result = Maps.newLinkedHashMap();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> result = WurstType.emptyMapping();
             for (int i = 0; i < typeParameters.size(); i++) {
                 WurstType t = typeParameters.get(i);
                 TypeParamDef tDef = def.getTypeParameters().get(i);
-                result.put(tDef, new WurstTypeBoundTypeParam(tDef, t, def2));
+                result = result.set(tDef, new WurstTypeBoundTypeParam(tDef, t, def2));
             }
             if (def instanceof ClassDef) {
                 ClassDef c = (ClassDef) def;
                 c.attrExtendedClass(); // to protect against the case where interface extends itself
 
                 // type binding for extended class
-                result.putAll(c.getExtendedClass().attrTyp()
+                result = result.union(c.getExtendedClass().attrTyp()
                         .getTypeArgBinding());
                 // type binding for implemented interfaces:
-                for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-                    result.putAll(i.getTypeArgBinding());
-                }
+                // TODO do we need this transitive mappings?
+//                for (TypeLink i : c.attrImplementedInterfaces()) {
+//                    result.putAll(i.getTypeArgBinding());
+//                }
             } else if (def instanceof InterfaceDef) {
                 InterfaceDef i = (InterfaceDef) def;
                 // type binding for implemented interfaces:
-                for (WurstTypeInterface ii : i.attrExtendedInterfaces()) {
-                    result.putAll(ii.getTypeArgBinding());
-                }
+                // TODO do we need this transitive mappings?
+//                for (WurstTypeInterface ii : i.attrExtendedInterfaces()) {
+//                    result.putAll(ii.getTypeArgBinding());
+//                }
             }
-            normalizeTypeArgsBinding(result);
+            result = normalizeTypeArgsBinding(result);
             return result;
         }
         return super.getTypeArgBinding();
     }
 
-    private void normalizeTypeArgsBinding(Map<TypeParamDef, WurstTypeBoundTypeParam> b) {
-        List<TypeParamDef> keys = Lists.newArrayList(b.keySet());
-        for (TypeParamDef p : keys) {
-            WurstTypeBoundTypeParam t = b.get(p);
-            b.put(p, normalizeType(t, b));
-        }
+    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> normalizeTypeArgsBinding(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
+        return b.map(t -> normalizeType(t, b));
     }
 
-    private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, Map<TypeParamDef, WurstTypeBoundTypeParam> b) {
+    private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
         return bt.setTypeArgs(b);
     }
 
     @Override
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
+    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
         List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();
         for (WurstTypeBoundTypeParam t : typeParameters) {
             newTypes.add(t.setTypeArgs(typeParamBounds));

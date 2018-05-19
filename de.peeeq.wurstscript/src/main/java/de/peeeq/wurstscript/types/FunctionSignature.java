@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -44,7 +45,7 @@ public class FunctionSignature {
         return receiverType;
     }
 
-    public FunctionSignature setTypeArgs(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
+    public FunctionSignature setTypeArgs(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
         WurstType r2 = returnType.setTypeArgs(typeArgBinding);
         List<WurstType> pt2 = Lists.newArrayList();
         for (WurstType p : paramTypes) {

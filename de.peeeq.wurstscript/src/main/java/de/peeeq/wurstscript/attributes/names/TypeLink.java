@@ -5,10 +5,10 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeDeferred;
+import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 
 public class TypeLink extends NameLink {
@@ -52,15 +52,19 @@ public class TypeLink extends NameLink {
     }
 
     @Override
-    public TypeLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public TypeLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         // TODO
         return this;
     }
 
     @Override
     public WurstType getTyp() {
-        // TODO add as attribute / handle type args
         return def.attrTyp();
+    }
+
+    public WurstType getTyp(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        // TODO only set the type parameters bound here
+        return def.attrTyp().setTypeArgs(mapping);
     }
 
 

@@ -6,9 +6,10 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.ast.WScope;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypePackage;
+import fj.data.TreeMap;
 
 import java.util.Collections;
-import java.util.Map;
 
 
 public class PackageLink extends DefLink {
@@ -49,9 +50,14 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public PackageLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public PackageLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         // packages do not have type paramaters
         return this;
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return new WurstTypePackage(def);
     }
 
 

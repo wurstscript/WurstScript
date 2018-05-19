@@ -11,7 +11,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 public class WurstTypeTypeParam extends WurstType {
 
@@ -55,12 +54,12 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    public Map<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
+    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
         return Collections.emptyMap();
     }
 
     @Override
-    public WurstType setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
+    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
         if (typeParamBounds.containsKey(def)) {
             return typeParamBounds.get(def);
         }

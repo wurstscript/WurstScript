@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.Collection;
@@ -104,12 +105,13 @@ public class AttrExprExpectedType {
         if (c == null) {
             return null;
         }
-        ClassDef superClass = c.attrExtendedClass();
+        TypeLink superClass = c.attrExtendedClass();
         if (superClass == null) {
             return null;
         }
         // call super constructor
-        ConstructorDefs constructors = superClass.getConstructors();
+        ClassDef superClassDef = (ClassDef) superClass.getDef();
+        ConstructorDefs constructors = superClassDef.getConstructors();
 
 
         WurstType res = WurstTypeUnknown.instance();
