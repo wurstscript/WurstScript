@@ -23,10 +23,9 @@ JassNative(String name, JassSimpleVars params, String returnType )
 JassVar = 
 	  JassSimpleVar(String type, String name)
 	| JassArrayVar(String type, String name)
-	| JassInitializedVar(String type, String name, JassExpr val )
-	| JassConstantVar(String type, String name, JassExpr val )
-	
-JassFunction(String name, JassSimpleVars params, String returnType, JassVars locals, JassStatements body)
+	| JassInitializedVar(String type, String name, JassExpr val, boolean isBj)
+
+JassFunction(String name, JassSimpleVars params, String returnType, JassVars locals, JassStatements body, boolean isCompiletimeNative)
 
 JassStatements * JassStatement  
 

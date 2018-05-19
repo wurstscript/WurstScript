@@ -4,10 +4,11 @@ import de.peeeq.wurstio.jassinterpreter.mocks.UnitMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class UnitProvider extends Provider {
-    public UnitProvider(ILInterpreter interpreter) {
+    public UnitProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

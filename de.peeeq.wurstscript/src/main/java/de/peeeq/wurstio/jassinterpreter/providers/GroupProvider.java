@@ -2,6 +2,7 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.ArrayDeque;
@@ -12,7 +13,7 @@ public class GroupProvider extends Provider {
 
     private ArrayDeque<IlConstHandle> enumUnitStack = new ArrayDeque<>();
 
-    public GroupProvider(ILInterpreter interpreter) {
+    public GroupProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
@@ -52,7 +53,7 @@ public class GroupProvider extends Provider {
         groupList.forEach((IlConstHandle u) -> {
             enumUnitStack.push(u);
             WLogger.trace("for group call itr: " + funcRef.getFuncName());
-            interpreter.runVoidFunc(funcRef.getFunc(), null);
+            interpreter.runFuncRef(funcRef, null);
             enumUnitStack.pop();
         });
     }

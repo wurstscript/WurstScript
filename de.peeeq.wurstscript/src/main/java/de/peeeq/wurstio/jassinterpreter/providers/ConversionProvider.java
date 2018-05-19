@@ -2,12 +2,13 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.LinkedHashSet;
 
 public class ConversionProvider extends Provider {
-    public ConversionProvider(ILInterpreter interpreter) {
+    public ConversionProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

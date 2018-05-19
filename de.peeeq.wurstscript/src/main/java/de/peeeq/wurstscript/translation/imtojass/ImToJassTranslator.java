@@ -201,12 +201,12 @@ public class ImToJassTranslator {
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
                     JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
-                    result = JassAst.JassInitializedVar(type, name, initialVal);
+                    result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
                 }
             }
-            if (isGlobal(v) && !v.getIsBJ()) {
+            if (isGlobal(v) && (!v.getIsBJ() || result instanceof JassInitializedVar)) {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);
@@ -244,7 +244,8 @@ public class ImToJassTranslator {
                 }
             } else {
                 String name = getUniqueGlobalName(func.getName());
-                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements());
+                boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
+                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
                 if (!func.isBj() && !func.isExtern()) {
                     prog.getFunctions().add((JassFunction) f);
                 }

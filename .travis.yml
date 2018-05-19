@@ -17,3 +17,6 @@ before_script:
 
 script:
   - ./gradlew assemble test --info
+  
+after_success:
+  - ./gradlew jacocoTestReport coveralls

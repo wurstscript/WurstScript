@@ -10,7 +10,6 @@ import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
-import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -33,12 +32,13 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.testng.Assert;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
+import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
 
@@ -50,118 +50,179 @@ public class WurstScriptTest {
         return true;
     }
 
-    static class CU {
-        final public String content;
-        final public String name;
+    class TestConfig {
+        private String name;
+        private boolean withStdLib;
+        private boolean executeProg;
+        private boolean executeTests;
+        private boolean executeProgOnlyAfterTransforms;
+        private String expectedError;
+        private List<File> inputFiles = new ArrayList<>();
+        private List<CU> additionalCompilationUnits = new ArrayList<>();
 
-        public CU(String name, String content) {
+        TestConfig(String name) {
+            this.name = name;
+        }
+
+        TestConfig withStdLib() {
+            this.withStdLib = true;
+            return this;
+        }
+
+        TestConfig withStdLib(boolean b) {
+            this.withStdLib = b;
+            return this;
+        }
+
+        public TestConfig executeProg() {
+            this.executeProg = true;
+            return this;
+        }
+
+        public TestConfig executeTests() {
+            this.executeTests = true;
+            return this;
+        }
+
+        TestConfig executeProg(boolean b) {
+            this.executeProg = b;
+            return this;
+        }
+
+        public TestConfig executeProgOnlyAfterTransforms() {
+            this.executeProgOnlyAfterTransforms = true;
+            return this;
+        }
+
+        TestConfig expectError(String expectedError) {
+            this.expectedError = expectedError;
+            return this;
+        }
+
+        CompilationResult lines(String... lines) {
+            additionalCompilationUnits.add(new CU("lines", Utils.join(lines, "\n") + "\n"));
+            return run();
+        }
+
+        CompilationResult compilationUnits(CU... units) {
+            additionalCompilationUnits.addAll(Arrays.asList(units));
+            return run();
+        }
+
+        CompilationResult run() {
+            Map<String, String> inputs = additionalCompilationUnits.stream()
+                    .collect(Collectors.toMap(cu -> cu.name, cu -> cu.content));
+
+            try {
+                WurstModel model = testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, executeProgOnlyAfterTransforms);
+                if (expectedError != null) {
+                    fail("No errors were discovered");
+                }
+                return new CompilationResult(model);
+            } catch (CompileError e) {
+                if (expectedError != null) {
+                    Assert.assertTrue(e.getMessage().toLowerCase().contains(expectedError.toLowerCase()), e.toString());
+                    return null;
+                }
+                throw e;
+            }
+
+        }
+
+        public void file(File file) throws IOException {
+            String content = Files.toString(file, StandardCharsets.UTF_8);
+            additionalCompilationUnits.add(new CU(file.getName(), content));
+            run();
+        }
+
+        public TestConfig withCu(CU cu) {
+            additionalCompilationUnits.add(cu);
+            return this;
+        }
+    }
+
+    static class CompilationResult {
+        private final WurstModel model;
+
+        public CompilationResult(WurstModel model) {
+
+            this.model = model;
+        }
+
+        public WurstModel getModel() {
+            return model;
+        }
+    }
+
+    static class CU {
+        final String content;
+        final String name;
+
+        CU(String name, String content) {
             this.name = name;
             this.content = content;
         }
     }
 
-    public CU compilationUnit(String name, String... input) {
+    CU compilationUnit(String name, String... input) {
         return new CU(name, Utils.join(input, "\n"));
     }
 
-    public void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
-        List<File> inputFiles = Collections.emptyList();
-        inputs.clear();
-        for (CU cu : units) {
-            inputs.put(cu.name, cu.content);
-        }
-        String name = UtilsIO.getMethodName(2);
-        testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
+    public TestConfig test() {
+        String name = UtilsIO.getMethodName(WurstScriptTest.class.getName());
+        name = this.getClass().getSimpleName() + "_" + name;
+        return new TestConfig(name);
     }
 
-    public void testAssertErrors(String errorMessage, boolean excuteProg, boolean withStdLib, CU... units) {
-        List<File> inputFiles = Collections.emptyList();
-        inputs.clear();
-        for (CU cu : units) {
-            inputs.put(cu.name, cu.content);
-        }
-        String name = UtilsIO.getMethodName(2);
-        try {
-            testScript(inputFiles, inputs, name, excuteProg, withStdLib, false);
-            Assert.assertTrue(false, "No errors were discovered");
-        } catch (CompileError e) {
-            Assert.assertTrue(e.getMessage().contains(errorMessage), e.getMessage());
-        }
+    void testAssertOk(boolean excuteProg, boolean withStdLib, CU... units) {
+        test().executeProg(excuteProg).withStdLib(withStdLib).compilationUnits(units);
     }
 
 
     public void testAssertOkLines(boolean executeProg, String... input) {
-        String prog = Utils.join(input, "\n") + "\n";
-        testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
+        test().executeProg(executeProg).lines(input);
     }
 
     public void testAssertErrorsLines(boolean executeProg, String errorMessage, String... input) {
-        String prog = Utils.join(input, "\n") + "\n";
-        testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, errorMessage);
+        test().executeProg(executeProg).expectError(errorMessage).lines(input);
     }
 
-    public void testAssertOk(String name, boolean executeProg, String prog) {
-        if (name.length() == 0) {
-            name = UtilsIO.getMethodName(1);
-        }
-        testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
+    protected void testAssertOk(String name, boolean executeProg, String prog) {
+        testAssertOkLines(executeProg, prog);
     }
 
-    public void testAssertOkFile(File file, boolean executeProg) throws IOException {
-        Reader reader = FileReading.getFileReader(file);
-        testScript(Collections.singleton(file), null, file.getName(), executeProg, false, false);
-        reader.close();
-    }
-
-    public void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
-        String input = Files.toString(file, Charsets.UTF_8);
-        testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
-    }
-
-    public void testAssertOkLinesWithStdLib(boolean executeProg, String... input) {
-        String prog = Utils.join(input, "\n") + "\n";
-        String name = UtilsIO.getMethodName(1);
-        testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, true);
-    }
-
-    public void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
-        try {
-            String input = Files.toString(file, Charsets.UTF_8);
-            testScript(file.getAbsolutePath(), input, file.getName(), executeProg, true);
-        } catch (CompileError e) {
-            Assert.assertTrue(e.getMessage().contains(errorMessage), e.toString());
-        }
-    }
-
-    public void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
-        name = UtilsIO.getMethodName(2);
-        try {
-            testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
-            Assert.assertTrue(false, "No errors were discovered");
-        } catch (CompileError e) {
-            if (!e.getMessage().toLowerCase().contains(errorMessage.toLowerCase())) {
-                throw e;
-            }
-        }
-
+    void testAssertOkFile(File file, boolean executeProg) throws IOException {
+        test().executeProg(executeProg).file(file);
 
     }
 
-    public WurstModel testScript(String name, boolean executeProg, String prog) {
-        if (name.length() == 0) {
-            name = UtilsIO.getMethodName(1);
-        }
-        return testScript(name, prog, this.getClass().getSimpleName() + "_" + name, executeProg, false);
+    void testAssertOkFileWithStdLib(File file, boolean executeProg) throws IOException {
+        test().withStdLib().executeProg(executeProg).file(file);
     }
 
-    protected WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-        inputs.clear();
-        inputs.put(inputName, input);
-        return testScript(null, inputs, name, executeProg, withStdLib, false);
+    void testAssertOkLinesWithStdLib(boolean executeProg, String... input) {
+        test().withStdLib().executeProg(executeProg).lines(input);
     }
 
-    protected WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean
-            executeTests) {
+    void testAssertErrorFileWithStdLib(File file, String errorMessage, boolean executeProg) throws IOException {
+        test().withStdLib().executeProg(executeProg).expectError(errorMessage).file(file);
+    }
+
+    void testAssertErrors(String name, boolean executeProg, String prog, String errorMessage) {
+        test().executeProg(executeProg).expectError(errorMessage).lines(prog);
+    }
+
+    protected WurstModel testScript(String name, boolean executeProg, String prog) {
+        return test().executeProg(executeProg).lines(prog).getModel();
+    }
+
+    WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
+        return test().executeProg(executeProg).withStdLib(withStdLib).withCu(compilationUnit(inputName, name)).run().getModel();
+    }
+
+
+    WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean
+            executeTests, boolean executeProgOnlyAfterTransforms) {
         RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
         WurstGui gui = new WurstGuiCliImpl();
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
@@ -188,13 +249,13 @@ public class WurstScriptTest {
 
         // translate with different options:
 
-        testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model);
+        testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
 
-        testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model);
+        testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
 
-        testWithInlining(name, executeProg, executeTests, gui, compiler, model);
+        testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
 
-        testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model);
+        testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
 
         if (testLua && !withStdLib) {
             // test lua translation
@@ -206,31 +267,31 @@ public class WurstScriptTest {
     }
 
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model) throws Error {
+                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
         // test with inlining and local optimization
         compiler.setRunArgs(new RunArgs("-inline", "-localOptimizations"));
-        translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model);
+        translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                  WurstCompilerJassImpl compiler, WurstModel model) throws Error {
+                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
         // test with inlining
         compiler.setRunArgs(new RunArgs("-inline"));
-        translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model);
+        translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                            WurstCompilerJassImpl compiler, WurstModel model) throws Error {
+                                            WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
         // test with local optimization
         compiler.setRunArgs(new RunArgs("-localOptimizations"));
-        translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model);
+        translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
-                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model)
+                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms)
             throws Error {
         // test without inlining and optimization
-        translateAndTest(name, executeProg, executeTests, gui, compiler, model);
+        translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model) {
@@ -302,7 +363,7 @@ public class WurstScriptTest {
 
     private void translateAndTest(String name, boolean executeProg,
                                   boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
-                                  WurstModel model) throws Error {
+                                  WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
         ImProg imProg = compiler.translateProgToIm(model);
 
 
@@ -312,14 +373,15 @@ public class WurstScriptTest {
 
 
         writeJassImProg(name, gui, imProg);
-        // TODO enable tests below:
-        // we want to test that the interpreter works correctly before transforming the program in the translation step
-//        if (executeTests) {
-//            executeTests(gui, imProg);
-//        }
-//        if (executeProg) {
-//            executeImProg(gui, imProg);
-//        }
+        if (!executeProgOnlyAfterTransforms) {
+            // we want to test that the interpreter works correctly before transforming the program in the translation step
+            if (executeTests) {
+                executeTests(gui, imProg);
+            }
+            if (executeProg) {
+                executeImProg(gui, imProg);
+            }
+        }
 
 
         JassProg prog = compiler.transformProgToJass();
@@ -354,9 +416,9 @@ public class WurstScriptTest {
         return new File(WurstScriptTest.class.getClassLoader().getResource(name).getFile());
     }
 
-    protected WurstModel parseFiles(Iterable<File> inputFiles,
-                                    Map<String, String> inputs, boolean withStdLib,
-                                    WurstCompilerJassImpl compiler) {
+    WurstModel parseFiles(Iterable<File> inputFiles,
+                          Map<String, String> inputs, boolean withStdLib,
+                          WurstCompilerJassImpl compiler) {
         if (inputFiles == null) {
             inputFiles = Collections.emptyList();
         }
@@ -405,7 +467,7 @@ public class WurstScriptTest {
             JassInterpreter interpreter = new JassInterpreter();
             interpreter.trace(true);
             interpreter.loadProgram(prog);
-            interpreter.executeFunction("main");
+            interpreter.runProgram();
         } catch (TestSuccessException e) {
             return;
         }

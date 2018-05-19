@@ -4,6 +4,7 @@ import de.peeeq.wurstio.jassinterpreter.mocks.PlayerMock;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.HashMap;
@@ -11,7 +12,7 @@ import java.util.HashMap;
 public class PlayerProvider extends Provider {
     HashMap<Integer, IlConstHandle> playerMap = new HashMap<>();
 
-    public PlayerProvider(ILInterpreter interpreter) {
+    public PlayerProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

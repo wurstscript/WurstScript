@@ -3,12 +3,13 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import com.google.common.collect.ArrayListMultimap;
 import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.Objects;
 
 public class HashtableProvider extends Provider {
-    public HashtableProvider(ILInterpreter interpreter) {
+    public HashtableProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

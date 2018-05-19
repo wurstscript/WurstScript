@@ -4,10 +4,11 @@ import de.peeeq.wurstio.jassinterpreter.mocks.DestructableMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class DestructableProvider extends Provider {
-    public DestructableProvider(ILInterpreter interpreter) {
+    public DestructableProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
