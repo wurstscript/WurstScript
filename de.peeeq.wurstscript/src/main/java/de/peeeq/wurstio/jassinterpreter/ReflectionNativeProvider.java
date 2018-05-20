@@ -4,7 +4,6 @@ import de.peeeq.wurstio.jassinterpreter.providers.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 
 import java.io.PrintStream;

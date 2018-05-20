@@ -28,10 +28,11 @@ public class TimerMock {
                 TimerProvider.setLastExpiredMock(timerHandle);
             }
         };
+        long val = ((long) timeout.getVal() * 1000) + 1;
         if (periodic.getVal()) {
-            thread = RunTests.getService().scheduleAtFixedRate(runnable, (long) timeout.getVal(), (long) timeout.getVal(), TimeUnit.SECONDS);
+            thread = RunTests.getService().scheduleAtFixedRate(runnable, val, val, TimeUnit.MILLISECONDS);
         } else {
-            thread = RunTests.getService().schedule(runnable, (long) timeout.getVal(), TimeUnit.SECONDS);
+            thread = RunTests.getService().schedule(runnable, val, TimeUnit.MILLISECONDS);
         }
     }
 

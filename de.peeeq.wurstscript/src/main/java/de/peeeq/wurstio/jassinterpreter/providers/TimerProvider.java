@@ -1,10 +1,7 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.TimerMock;
-import de.peeeq.wurstscript.intermediatelang.ILconstBool;
-import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
-import de.peeeq.wurstscript.intermediatelang.ILconstReal;
-import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 public class TimerProvider extends Provider {
@@ -30,9 +27,11 @@ public class TimerProvider extends Provider {
         return lastExpiredMock;
     }
 
-    public void TimerStart(IlConstHandle whichTimer, ILconstReal timeout, ILconstBool periodic, ILconstFuncRef handlerFunc) {
+    public void TimerStart(IlConstHandle whichTimer, ILconstReal timeout, ILconstBool periodic, ILconstAbstract handlerFunc) {
         TimerMock timerMock = (TimerMock) whichTimer.getObj();
-        timerMock.start(timeout, periodic, handlerFunc);
+        if (handlerFunc instanceof ILconstFuncRef) {
+            timerMock.start(timeout, periodic, (ILconstFuncRef) handlerFunc);
+        }
     }
 
     public static void setLastExpiredMock(IlConstHandle lastExpiredMock) {
