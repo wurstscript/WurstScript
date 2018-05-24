@@ -544,6 +544,31 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void test_controlFlowMergeSideEffect() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
     public void controlFlowMergeSideEffect() throws IOException {
         test().lines(
                 "package Test",
