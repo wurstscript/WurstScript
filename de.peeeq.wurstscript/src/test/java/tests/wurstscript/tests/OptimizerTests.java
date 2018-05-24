@@ -567,4 +567,19 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void optimizeSet() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var ghs = 12",
+                "init",
+                "	var x = 6 + 3",
+                "	ghs += 2",
+                "	ghs -= 2",
+                "	if ghs == 12 and x == 9",
+                "		testSuccess()"
+        );
+    }
+
 }

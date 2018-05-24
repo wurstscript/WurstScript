@@ -75,14 +75,19 @@ public class SimpleRewrites {
         for (int i = 0; i < elem.size(); i++) {
             optimizeElement(elem.get(i));
             if (i > 0) {
-                Element lookback = elem.get(i-1);
+                Element lookback = elem.get(i - 1);
                 if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen) {
                     optimizeConsecutiveExitWhen((ImExitwhen) lookback, (ImExitwhen) elem.get(i));
+                }
+
+                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet) {
+                    optimizeConsecutiveSet((ImSet) lookback, (ImSet) elem.get(i));
                 }
             }
         }
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opc = (ImOperatorCall) elem;
+            optimizeElement(opc.getArguments());
             optimizeOpCall(opc);
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
@@ -98,6 +103,7 @@ public class SimpleRewrites {
         lookback.getCondition().setParent(null);
         lookback.getCondition().replaceBy(JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lookback.getCondition(), element.getCondition())));
         element.replaceBy(JassIm.ImNull());
+        totalRewrites++;
     }
 
     private void optimizeExitwhen(ImExitwhen imExitwhen) {
@@ -477,6 +483,42 @@ public class SimpleRewrites {
                 } else {
                     imIf.replaceBy(JassIm.ImNull());
                     totalRewrites++;
+                }
+            }
+        }
+    }
+
+    /**
+     * Optimizes
+     * set We=We-1
+     * set We=We-1
+     * like code that is created by the branch merger
+     */
+    private void optimizeConsecutiveSet(ImSet imSet, ImSet imSet2) {
+        ImVar leftVar1 = imSet.getLeft();
+        ImVar leftVar2 = imSet2.getLeft();
+
+        ImExpr rightExpr1 = imSet.getRight();
+        ImExpr rightExpr2 = imSet2.getRight();
+
+        if (leftVar1.structuralEquals(leftVar2)) {
+            if (rightExpr1 instanceof ImOperatorCall && rightExpr2 instanceof ImOperatorCall) {
+                ImOperatorCall rightOpCall1 = (ImOperatorCall) rightExpr1;
+                ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
+                if (rightOpCall1.getArguments().size() == 2 && rightOpCall2.getArguments().size() == 2) {
+                    if (rightOpCall1.getArguments().get(0) instanceof ImVarAccess && rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
+                        ImVarAccess imVarAccess1 = (ImVarAccess) rightOpCall1.getArguments().get(0);
+                        ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
+                        if (imVarAccess1.getVar().structuralEquals(leftVar1) && imVarAccess2.getVar().structuralEquals(leftVar2)) {
+                            if (rightOpCall1.getArguments().get(1) instanceof ImConst && rightOpCall2.getArguments().get(1) instanceof ImConst) {
+                                rightOpCall1.setParent(null);
+                                imVarAccess2.replaceBy(rightOpCall1);
+                                imSet.replaceBy(JassIm.ImNull());
+                                totalRewrites++;
+                            }
+                        }
+
+                    }
                 }
             }
         }
