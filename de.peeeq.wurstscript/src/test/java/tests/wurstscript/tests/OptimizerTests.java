@@ -9,8 +9,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
+import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
@@ -519,8 +518,8 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
-    public void controlFlowMergeNoSideEffect() {
-        testAssertOkLines(true,
+    public void controlFlowMergeNoSideEffect() throws IOException {
+        test().lines(
                 "package Test",
                 "native testSuccess()",
                 "native testFail(string msg)",
@@ -540,11 +539,13 @@ public class OptimizerTests extends WurstScriptTest {
                 "		if ghs == 0",
                 "			testSuccess()"
         );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
+        assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
     }
 
     @Test
-    public void controlFlowMergeSideEffect() {
-        testAssertOkLines(true,
+    public void controlFlowMergeSideEffect() throws IOException {
+        test().lines(
                 "package Test",
                 "native testSuccess()",
                 "native testFail(string msg)",
@@ -565,6 +566,8 @@ public class OptimizerTests extends WurstScriptTest {
                 "		if ghs == 0",
                 "			testSuccess()"
         );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
     }
 
     @Test
