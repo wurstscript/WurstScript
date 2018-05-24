@@ -78,8 +78,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
                 return matchTypeParams(getTypeParameters(), other2.getTypeParameters(), location, typeParams, mapping);
             } else {
                 // test super interfaces:
-                for (TypeLink extended : interfaceDef.attrExtendedInterfaces()) {
-                    WurstType extendedType = extended.getTyp(mapping);
+                for (WurstTypeInterface extendedType : interfaceDef.attrExtendedInterfaces()) {
                     TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = extendedType.matchAgainstSupertype(other, location, typeParams, mapping);
                     if (res != null) {
                         return res;

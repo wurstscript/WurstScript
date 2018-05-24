@@ -34,10 +34,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.types.WurstTypeBool;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -984,8 +981,8 @@ public class ImTranslator {
         interfaceInstances = HashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
-                for (TypeLink i : c.attrImplementedInterfaces()) {
-                    interfaceInstances.put((InterfaceDef) i.getDef(), c);
+                for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
+                    interfaceInstances.put(i.getDef(), c);
                 }
             }
         }
@@ -1017,7 +1014,7 @@ public class ImTranslator {
         }
         directSubclasses = HashMultimap.create();
         for (ClassDef c : classes()) {
-            TypeLink extendedClass = c.attrExtendedClass();
+            WurstTypeClass extendedClass = c.attrExtendedClass();
             if (extendedClass != null) {
                 directSubclasses.put(((ClassDef) extendedClass.getDef()), c);
             }

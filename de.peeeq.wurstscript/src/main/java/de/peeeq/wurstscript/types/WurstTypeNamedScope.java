@@ -13,23 +13,29 @@ import java.util.stream.Stream;
 public abstract class WurstTypeNamedScope extends WurstType {
 
     private final boolean isStaticRef;
+    // TODO change this to a list of TypeParamDef and add typeMapping?
     private final List<WurstTypeBoundTypeParam> typeParameters;
+    private final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeMapping;
+
 
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = typeParameters;
+        this.typeMapping = emptyMapping();
     }
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters) {
         this.isStaticRef = false;
         this.typeParameters = typeParameters;
+        this.typeMapping = emptyMapping();
     }
 
 
     public WurstTypeNamedScope(boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = Collections.emptyList();
+        this.typeMapping = emptyMapping();
     }
 
     @Override
@@ -69,24 +75,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
 
-    @Nullable Map<TypeParamDef, WurstType> cache_typeParamBounds;
-
-    private Map<TypeParamDef, WurstType> getTypeParamBounds() {
-        Map<TypeParamDef, WurstType> cache = cache_typeParamBounds;
-        if (cache == null) {
-            cache_typeParamBounds = cache = Maps.newLinkedHashMap();
-            NamedScope def = getDef();
-            if (def instanceof AstElementWithTypeParameters) {
-                AstElementWithTypeParameters wtp = (AstElementWithTypeParameters) def;
-                TypeParamDefs tps = wtp.getTypeParameters();
-                for (int index = 0; index < typeParameters.size(); index++) {
-                    cache.put(tps.get(index), typeParameters.get(index));
-                }
-            }
-        }
-        return cache;
-    }
-
     protected String printTypeParams() {
         if (typeParameters.size() == 0) {
             return "";
@@ -101,62 +89,11 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return s + ">";
     }
 
-//	@Override
-//	public  PscriptType replaceBoundTypeVars(PscriptType t) {
-//		if (t instanceof PscriptTypeTypeParam) {
-//			PscriptTypeTypeParam tpt = (PscriptTypeTypeParam) t;
-//			PscriptType s = getTypeParamBounds().get(tpt.getDef());
-//			if (s != null) {
-//				return s;
-//			}
-//		} else if (t instanceof PscriptTypeNamedScope) {
-//			PscriptTypeNamedScope ns = (PscriptTypeNamedScope) t;
-//			return ns.replaceTypeVars(getTypeParamBounds());
-//		}
-//		return t;
-//	}
 
 
     @Override
     public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-
-        NamedScope def2 = getDef();
-        if (def2 instanceof AstElementWithTypeParameters) {
-            AstElementWithTypeParameters def = (AstElementWithTypeParameters) def2;
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> result = WurstType.emptyMapping();
-            for (int i = 0; i < typeParameters.size(); i++) {
-                WurstType t = typeParameters.get(i);
-                TypeParamDef tDef = def.getTypeParameters().get(i);
-                result = result.set(tDef, new WurstTypeBoundTypeParam(tDef, t, def2));
-            }
-            if (def instanceof ClassDef) {
-                ClassDef c = (ClassDef) def;
-                c.attrExtendedClass(); // to protect against the case where interface extends itself
-
-                // type binding for extended class
-                result = result.union(c.getExtendedClass().attrTyp()
-                        .getTypeArgBinding());
-                // type binding for implemented interfaces:
-                // TODO do we need this transitive mappings?
-//                for (TypeLink i : c.attrImplementedInterfaces()) {
-//                    result.putAll(i.getTypeArgBinding());
-//                }
-            } else if (def instanceof InterfaceDef) {
-                InterfaceDef i = (InterfaceDef) def;
-                // type binding for implemented interfaces:
-                // TODO do we need this transitive mappings?
-//                for (WurstTypeInterface ii : i.attrExtendedInterfaces()) {
-//                    result.putAll(ii.getTypeArgBinding());
-//                }
-            }
-            result = normalizeTypeArgsBinding(result);
-            return result;
-        }
-        return super.getTypeArgBinding();
-    }
-
-    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> normalizeTypeArgsBinding(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
-        return b.map(t -> normalizeType(t, b));
+        return typeMapping;
     }
 
     private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
@@ -229,7 +166,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
         if (scope instanceof ModuleDef) {
             // cannot access functions from outside of module
         } else if (scope != null) {
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
             for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType receiverType = n.getReceiverType();
                 if (n instanceof FuncLink

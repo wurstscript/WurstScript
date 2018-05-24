@@ -55,36 +55,29 @@ public class AttrFuncDef {
         if (funcs.size() > 1) {
             node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
         }
-        NameLink nameLink = Utils.getFirst(funcs);
-        if (nameLink.getDef() instanceof FunctionDefinition) {
-            return (FunctionDefinition) nameLink.getDef();
-        } else {
-            // should never happen
-            node.addError("impossibru");
-            return null;
-        }
+        return Utils.getFirst(funcs);
     }
 
 
-    public static @Nullable FunctionDefinition calculate(ExprBinary node) {
+    public static @Nullable FuncLink calculate(ExprBinary node) {
         return getExtensionFunction(node.getLeft(), node.getRight(), node.getOp());
     }
 
-    public static @Nullable FunctionDefinition calculate(final ExprMemberMethod node) {
+    public static @Nullable FuncLink calculate(final ExprMemberMethod node) {
 
         Expr left = node.getLeft();
         WurstType leftType = left.attrTyp();
         String funcName = node.getFuncName();
 
-        FunctionDefinition result = searchMemberFunc(node, leftType, funcName, argumentTypes(node));
+        @Nullable FuncLink result = searchMemberFunc(node, leftType, funcName, argumentTypes(node));
         if (result == null) {
             node.addError("The method " + funcName + " is undefined for receiver of type " + leftType);
         }
         return result;
     }
 
-    public static @Nullable FunctionDefinition calculate(final ExprFunctionCall node) {
-        FunctionDefinition result = searchFunction(node.getFuncName(), node, argumentTypes(node));
+    public static @Nullable FuncLink calculate(final ExprFunctionCall node) {
+        FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes(node));
 
         if (result == null) {
             String funcName = node.getFuncName();
@@ -99,7 +92,7 @@ public class AttrFuncDef {
         return result;
     }
 
-    private static @Nullable FunctionDefinition getExtensionFunction(Expr left, Expr right, WurstOperator op) {
+    private static @Nullable FuncLink getExtensionFunction(Expr left, Expr right, WurstOperator op) {
         String funcName = op.getOverloadingFuncName();
         if (funcName == null || nativeOperator(op, left.attrTyp(), right.attrTyp(), left)) {
             return null;
@@ -151,7 +144,7 @@ public class AttrFuncDef {
     }
 
 
-    private static @Nullable FunctionDefinition searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
+    private static FuncLink searchFunction(String funcName, @Nullable FuncRef node, List<WurstType> argumentTypes) {
         if (node == null) {
             return null;
         }
@@ -176,7 +169,7 @@ public class AttrFuncDef {
 
             node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
                     + Utils.printAlternatives(funcs));
-            return firstFunc(funcs);
+            return Utils.getFirst(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
         }
@@ -186,9 +179,9 @@ public class AttrFuncDef {
     private static List<FuncLink> useLocalPackageIfPossible(FuncRef node,
                                                             List<FuncLink> funcs) throws EarlyReturn {
         int localCount = 0;
-        NameLink local = null;
+        FuncLink local = null;
         PackageOrGlobal myPackage = node.attrNearestPackage();
-        for (NameLink n : funcs) {
+        for (FuncLink n : funcs) {
             if (n.getDef().attrNearestPackage() == myPackage) {
                 local = n;
                 localCount++;
@@ -197,8 +190,7 @@ public class AttrFuncDef {
         if (localCount == 0) {
             return funcs;
         } else if (localCount == 1) {
-            if (local == null) throw new Error("impossible");
-            throw new EarlyReturn((FunctionDefinition) local.getDef());
+            throw new EarlyReturn(local);
         }
         List<FuncLink> result = Lists.newArrayList();
         for (FuncLink n : funcs) {
@@ -210,7 +202,7 @@ public class AttrFuncDef {
     }
 
 
-    private static @Nullable FunctionDefinition searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
+    private static @Nullable FuncLink searchMemberFunc(Expr node, WurstType leftType, String funcName, List<WurstType> argumentTypes) {
         Collection<FuncLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
         if (funcs1.size() == 0) {
             return null;
@@ -224,7 +216,7 @@ public class AttrFuncDef {
             funcs = filterByParameters(node, argumentTypes, funcs);
 
             node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
-            return firstFunc(funcs);
+            return Utils.getFirst(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
         }
@@ -256,12 +248,12 @@ public class AttrFuncDef {
             funcs4.add(f);
         }
         if (funcs4.size() == 0) {
-            throw new EarlyReturn(firstFunc(funcs3));
+            throw new EarlyReturn(Utils.getFirst(funcs3));
         } else if (funcs4.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs4));
+            throw new EarlyReturn(Utils.getFirst(funcs4));
         } else if (argumentTypes.stream().anyMatch(t -> t instanceof WurstTypeUnknown)) {
             // if some argument type could not be determined, we don't want errors here, just take the first one
-            throw new EarlyReturn(firstFunc(funcs4));
+            throw new EarlyReturn(Utils.getFirst(funcs4));
         }
         return funcs4;
     }
@@ -276,24 +268,23 @@ public class AttrFuncDef {
             }
         }
         if (funcs3.size() == 0) {
-            throw new EarlyReturn(firstFunc(funcs2));
+            throw new EarlyReturn(Utils.getFirst(funcs2));
         } else if (funcs3.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs3));
+            throw new EarlyReturn(Utils.getFirst(funcs3));
         }
         return funcs3;
     }
 
 
-    private static <T extends NameLink> List<T> filterInvisible(String funcName, Element node, Collection<T> funcs1) throws EarlyReturn {
+    private static List<FuncLink> filterInvisible(String funcName, Element node, Collection<FuncLink> funcs1) throws EarlyReturn {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return Lists.newArrayList(funcs1);
         }
-        List<T> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
-        for (T nl : funcs1) {
+        List<FuncLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
+        for (FuncLink nl : funcs1) {
             if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
-                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)
-                    && nl.getDef() instanceof FunctionDefinition) {
+                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)) {
                 funcs2.add(nl);
             }
         }
@@ -302,9 +293,9 @@ public class AttrFuncDef {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw new EarlyReturn(firstFunc(funcs1));
+            throw new EarlyReturn(Utils.getFirst(funcs1));
         } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs2));
+            throw new EarlyReturn(Utils.getFirst(funcs2));
         }
         return funcs2;
     }
@@ -336,19 +327,11 @@ public class AttrFuncDef {
 
         if (funcs3.size() == 0) {
             node.addError("Function " + funcName + " dfopsdfmpso.");
-            throw new EarlyReturn(firstFunc(funcs2));
+            throw new EarlyReturn(Utils.getFirst(funcs2));
         } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(firstFunc(funcs3));
+            throw new EarlyReturn(Utils.getFirst(funcs3));
         }
         return funcs3;
-    }
-
-    private static <T extends NameLink> FunctionDefinition firstFunc(Collection<T> funcs1) {
-        NameLink nl = Utils.getFirst(funcs1);
-        if (nl.getDef() instanceof FunctionDefinition) {
-            return (FunctionDefinition) nl.getDef();
-        }
-        throw new Error("Collection of funcs was empty");
     }
 
 

@@ -617,11 +617,11 @@ Element.attrErrorPos() "returns the position where errors are marked"
 
 
 InterfaceDef.attrExtendedInterfaces
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.TypeLink>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
 
 ClassDef.attrExtendedClass
-	returns de.peeeq.wurstscript.attributes.names.TypeLink
+	returns de.peeeq.wurstscript.types.WurstTypeClass
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
 
 ClassDef.isInnerClass()
@@ -738,7 +738,7 @@ StmtForEach.attrCloseFunc
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
 
 	ClassDef.attrImplementedInterfaces
-		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.TypeLink>
+		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
 		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
 
 
@@ -768,7 +768,7 @@ NameRef.attrNameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
 FuncRef.attrPossibleFuncDefs
-	returns com.google.common.collect.ImmutableCollection<FunctionDefinition>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
 
 

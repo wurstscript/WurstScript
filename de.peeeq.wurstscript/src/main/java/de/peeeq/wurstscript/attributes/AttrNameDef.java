@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
@@ -102,7 +104,11 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameDef tryGetNameDef(NameRef e) {
-        return e.attrNameDef();
+        NameLink link = e.attrNameDef();
+        if (link == null) {
+            return null;
+        }
+        return link.getDef();
     }
 
     public static @Nullable NameDef tryGetNameDef(NameDef e) {
@@ -110,7 +116,11 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameDef tryGetNameDef(FuncRef e) {
-        return e.attrFuncDef();
+        FuncLink link = e.attrFuncDef();
+        if (link == null) {
+            return null;
+        }
+        return link.getDef();
     }
 
     public static @Nullable NameDef tryGetNameDef(TypeRef e) {

@@ -634,8 +634,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
             }
             if (e.getValue() instanceof FuncLink) {
                 FuncLink ef = (FuncLink) e.getValue();
-                Optional<FuncLink> ef2 = ef.adaptToReceiverType(leftType);
-                ef2.ifPresent(fl -> completions.add(makeFunctionCompletion(fl)));
+                FuncLink ef2 = ef.adaptToReceiverType(leftType);
+                if (ef2 != null) {
+                    completions.add(makeFunctionCompletion(ef2));
+                }
             }
         }
 

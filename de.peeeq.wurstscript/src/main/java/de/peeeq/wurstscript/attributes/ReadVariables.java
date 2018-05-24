@@ -34,7 +34,7 @@ public class ReadVariables {
 
     public static ImmutableList<NameDef> calculate(ExprVarAccess e) {
         if (e.attrNameDef() != null) {
-            return ImmutableList.of(e.attrNameDef());
+            return ImmutableList.of(e.attrNameDef().getDef());
         } else {
             return ImmutableList.emptyList();
         }
@@ -43,7 +43,7 @@ public class ReadVariables {
     public static ImmutableList<NameDef> calculate(ExprVarArrayAccess e) {
         ImmutableList<NameDef> r = ImmutableList.emptyList();
         if (e.attrNameDef() != null) {
-            r = ImmutableList.of(e.attrNameDef());
+            r = ImmutableList.of(e.attrNameDef().getDef());
         }
         r = r.cons(generic(e.getIndexes()));
         return r;
@@ -52,7 +52,7 @@ public class ReadVariables {
     public static ImmutableList<NameDef> calculate(ExprMemberArrayVar e) {
         ImmutableList<NameDef> r = ImmutableList.emptyList();
         if (e.attrNameDef() != null) {
-            r = ImmutableList.of(e.attrNameDef());
+            r = ImmutableList.of(e.attrNameDef().getDef());
         }
         r = r.cons(e.getLeft().attrReadVariables());
         r = r.cons(generic(e.getIndexes()));

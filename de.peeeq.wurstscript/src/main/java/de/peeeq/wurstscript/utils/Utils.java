@@ -788,7 +788,6 @@ public class Utils {
 
     public static <T>
     Collector<T, ?, ImmutableList<T>> toImmutableList() {
-        Collectors.toList();
         return new Collector<T, Builder<T>, ImmutableList<T>>() {
 
             @Override

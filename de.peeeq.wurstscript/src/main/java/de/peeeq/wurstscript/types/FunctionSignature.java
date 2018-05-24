@@ -4,25 +4,28 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance(),
+    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance(),
             false);
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
     private final WurstType returnType;
-    private boolean isVararg;
+    private final Collection<TypeParamDef> typeParams;
+    private final boolean isVararg;
 
 
-    public FunctionSignature(@Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType, boolean isVararg) {
+    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType, boolean isVararg) {
+        this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
         this.isVararg = isVararg;
@@ -51,7 +54,10 @@ public class FunctionSignature {
         for (WurstType p : paramTypes) {
             pt2.add(p.setTypeArgs(typeArgBinding));
         }
-        return new FunctionSignature(receiverType, pt2, paramNames, r2, isVararg);
+        Collection<TypeParamDef> typeParams2 = typeParams.stream()
+                .filter(typeArgBinding::contains)
+                .collect(Utils.toImmutableList());
+        return new FunctionSignature(typeParams2, receiverType, pt2, paramNames, r2, isVararg);
     }
 
 
@@ -69,7 +75,11 @@ public class FunctionSignature {
 
         List<WurstType> paramTypes = f.attrParameterTypes();
         List<String> paramNames = getParamNames(f.getParameters());
-        return new FunctionSignature(f.attrReceiverType(), paramTypes, paramNames, returnType,
+        Collection<TypeParamDef> typeParams = Collections.emptyList();
+        if (f instanceof AstElementWithTypeParameters) {
+            typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
+        }
+        return new FunctionSignature(typeParams, f.attrReceiverType(), paramTypes, paramNames, returnType,
                 f.getParameters().size() == 1 && f.getParameters().get(0).attrIsVararg());
     }
 
@@ -82,12 +92,7 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        List<String> pNames = Collections.emptyList();
-        if (f.getDef() instanceof AstElementWithParameters) {
-            AstElementWithParameters n = (AstElementWithParameters) f.getDef();
-            pNames = getParamNames(n.getParameters());
-        }
-        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getDef().attrIsVararg());
+        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType(), f.getDef().attrIsVararg());
     }
 
 
@@ -121,6 +126,30 @@ public class FunctionSignature {
         return "";
     }
 
+    public boolean isValidParameterNumber(int numParams) {
+        if (isVararg) {
+            return numParams >= paramTypes.size() - 1;
+        } else {
+            return numParams == paramTypes.size();
+        }
+    }
+
+    public int getMinNumParams() {
+        if (isVararg) {
+            return paramTypes.size() - 1;
+        } else {
+            return paramTypes.size();
+        }
+    }
+
+    public int getMaxNumParams() {
+        if (isVararg) {
+            return Integer.MAX_VALUE;
+        } else {
+            return paramTypes.size();
+        }
+    }
+
     public WurstType getParamType(int i) {
         if (isVararg && i >= paramTypes.size() - 1) {
             return getVarargType();
@@ -130,6 +159,7 @@ public class FunctionSignature {
         }
         throw new RuntimeException("Parameter index out of bounds: " + i);
     }
+
 
     @Override
     public String toString() {
@@ -151,5 +181,23 @@ public class FunctionSignature {
     public WurstType getVarargType() {
         Preconditions.checkArgument(isVararg);
         return ((WurstTypeVararg) paramTypes.get(paramTypes.size() - 1)).getBaseType();
+    }
+
+    public FunctionSignature matchAgainstArgs(List<WurstType> argTypes, Element location) {
+        if (!isValidParameterNumber(argTypes.size())) {
+            return null;
+        }
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        for (int i = 0; i < argTypes.size(); i++) {
+            WurstType pt = getParamType(i);
+            WurstType at = argTypes.get(i);
+            mapping = at.matchAgainstSupertype(pt, location, typeParams, mapping);
+            if (mapping == null) {
+                return null;
+            }
+
+        }
+
+        return null;
     }
 }

@@ -7,18 +7,16 @@ import de.peeeq.wurstscript.utils.Utils;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public class AttrFunctionSignature {
 
     public static FunctionSignature calculate(StmtCall fc) {
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
-        return filterSigs(sigs, fc.attrTypeParameterBindings(), argTypes(fc), fc);
+        return filterSigs(sigs, argTypes(fc), fc);
     }
 
     private static FunctionSignature filterSigs(
             Collection<FunctionSignature> sigs,
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeParameterBindings,
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
             if (!isInitTrigFunc(location)) {
@@ -29,14 +27,8 @@ public class AttrFunctionSignature {
 
         List<FunctionSignature> candidates = new ArrayList<>();
         for (FunctionSignature sig : sigs) {
-            sig = sig.setTypeArgs(location, typeParameterBindings);
-            FunctionSignature finalSig = sig;
-            if (sig.isVararg()) {
-                WurstType varargType = ((WurstTypeVararg)finalSig.getParamTypes().get(0)).getBaseType();
-                if (argTypes.stream().filter(type -> type.isSubtypeOf(varargType, location)).count() == argTypes.size()) {
-                    candidates.add(sig);
-                }
-            } else if (paramTypesMatch(sig, argTypes, location)) {
+            sig = sig.matchAgainstArgs(argTypes, location);
+            if (sig != null) {
                 candidates.add(sig);
             }
         }

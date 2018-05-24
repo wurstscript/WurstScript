@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
@@ -51,20 +52,21 @@ public class SubClasses {
         if (c == null) {
             return null;
         }
-        ClassDef superClass = c.attrExtendedClass();
+        TypeLink superClass = c.attrExtendedClass();
         if (superClass == null) {
             return null;
         }
         // call super constructor
-        ConstructorDefs constructors = superClass.getConstructors();
+        ClassDef superClassDef = (ClassDef) superClass.getDef();
+        ConstructorDefs constructors = superClassDef.getConstructors();
         ConstructorDef superConstr = OverloadingResolver.resolveSuperCall(constructors, constr);
         return superConstr;
     }
 
     public static WurstType getExtendedClassType(ClassDef c) {
-        ClassDef ec = c.attrExtendedClass();
+        TypeLink ec = c.attrExtendedClass();
         if (ec != null) {
-            return ec.attrTyp().dynamic();
+            return ec.getTyp();
         }
         return WurstTypeUnknown.instance();
     }

@@ -33,7 +33,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
             // TODO probably not a good idea to get type arg binding after the fact, implemented interfaces should return List<WurstTypeInterface> with typeArgs already set
 
             WurstTypeInterface pti = (WurstTypeInterface) obj;
-            for (TypeLink implementedInterface : classDef.attrImplementedInterfaces()) {
+            for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
 
                 if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
                     return true;
@@ -54,7 +54,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public StructureDef getDef() {
+    public ClassDef getDef() {
         return classDef;
     }
 
