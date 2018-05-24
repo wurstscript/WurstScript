@@ -5,7 +5,6 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -196,6 +195,9 @@ public class SideEffectAnalyzer {
      * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
      */
     public boolean mightAffect(ImStmt stmt1, ImStmt stmt2) {
+        System.out.println("might Affect ");
+        System.out.println("  " + stmt1);
+        System.out.println("  " + stmt2);
         if (!calledNatives(stmt1).isEmpty() || !calledNatives(stmt2).isEmpty()) {
             // there are natives that can affect other natives
             // be safe
@@ -205,6 +207,6 @@ public class SideEffectAnalyzer {
         Set<ImVar> used2 = usedVariables(stmt2);
 
         // check that there are no variables, that both use
-        return used1.stream().noneMatch(used2::contains);
+        return used1.stream().anyMatch(used2::contains);
     }
 }
