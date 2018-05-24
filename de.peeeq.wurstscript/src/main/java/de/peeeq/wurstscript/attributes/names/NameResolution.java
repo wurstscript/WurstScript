@@ -5,35 +5,36 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class NameResolution {
 
-    public static ImmutableCollection<NameLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
+    public static ImmutableCollection<FuncLink> lookupFuncsNoConfig(Element node, String name, boolean showErrors) {
         StructureDef nearestStructureDef = node.attrNearestStructureDef();
         if (nearestStructureDef != null) {
             // inside a class one can write foo instead of this.foo()
             // so the receiver type is implicitly given by the enclosing class
             WurstType receiverType = nearestStructureDef.attrTyp();
-            ImmutableCollection<NameLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
+            ImmutableCollection<FuncLink> funcs = node.lookupMemberFuncs(receiverType, name, showErrors);
             if (!funcs.isEmpty()) {
                 return funcs;
             }
         }
 
 
-        List<NameLink> result = Lists.newArrayList();
+        List<FuncLink> result = Lists.newArrayList();
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
-                if (n.getType() == NameLinkType.FUNCTION
-                        && n.getReceiverType() == null) {
+            for (DefLink n : scope.attrNameLinks().get(name)) {
+                if (n instanceof FuncLink && n.getReceiverType() == null) {
                     if (!result.contains(n)) {
-                        result.add(n);
+                        result.add((FuncLink) n);
                     }
                 }
             }
@@ -42,20 +43,20 @@ public class NameResolution {
         return removeDuplicates(result);
     }
 
-    public static ImmutableCollection<NameLink> lookupFuncs(Element e, String name, boolean showErrors) {
-        ArrayList<NameLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
+    public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
+        ArrayList<FuncLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
         for (int i = 0; i < result.size(); i++) {
             result.set(i, result.get(i).withConfigDef());
         }
         return ImmutableList.copyOf(result);
     }
 
-    private static ImmutableCollection<NameLink> removeDuplicates(List<NameLink> nameLinks) {
-        List<NameLink> result = Lists.newArrayList();
+    private static <T extends NameLink> ImmutableCollection<T> removeDuplicates(List<T> nameLinks) {
+        List<T> result = Lists.newArrayList();
         nextLink:
-        for (NameLink nl : nameLinks) {
-            for (NameLink other : result) {
-                if (other.getNameDef() == nl.getNameDef()) {
+        for (T nl : nameLinks) {
+            for (T other : result) {
+                if (other.getDef() == nl.getDef()) {
                     continue nextLink;
                 }
             }
@@ -79,16 +80,18 @@ public class NameResolution {
         return parent.attrNearestScope();
     }
 
-    public static ImmutableCollection<NameLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
-        List<NameLink> result = Lists.newArrayList();
+    public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
+        List<FuncLink> result = Lists.newArrayList();
+        Map<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType n_receiverType = n.getReceiverType();
-                if (n.getType() == NameLinkType.FUNCTION
+                if (n instanceof FuncLink
                         && n_receiverType != null
                         && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    result.add(n);
+                    FuncLink f = (FuncLink) n;
+                    result.add(f.withTypeArgBinding(node, typeArgBinding));
                 }
             }
             scope = nextScope(scope);
@@ -98,7 +101,7 @@ public class NameResolution {
     }
 
     public static void addMemberMethods(Element node,
-                                        WurstType receiverType, String name, List<NameLink> result) {
+                                        WurstType receiverType, String name, List<FuncLink> result) {
         receiverType.addMemberMethods(node, name, result);
     }
 
@@ -123,9 +126,9 @@ public class NameResolution {
 //			WLogger.info("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
 //			WLogger.info("		" + scope.attrNameLinks());
 
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType n_receiverType = n.getReceiverType();
-                if (n.getType() == NameLinkType.VAR) {
+                if (n instanceof VarLink) {
 
                     if (n_receiverType != null) {
                         // when we have a receiver type we have to check that it matches with the receiver type of the variable
@@ -156,7 +159,7 @@ public class NameResolution {
                     node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n"
                             + Utils.printAlternatives(candidates));
                 }
-                return (NameDef) candidates.get(0).getNameDef();
+                return (NameDef) candidates.get(0).getDef();
             }
             scope = nextScope(scope);
         }
@@ -164,9 +167,9 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible inside this package." +
+                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
                         " If you want to access it, declare it public.");
-                return privateCandidate.getNameDef();
+                return privateCandidate.getDef();
             }
         }
         return null;
@@ -176,22 +179,22 @@ public class NameResolution {
 //		WLogger.info("lookupMemberVar " + receiverType+"."+name);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrNameLinks().get(name)) {
+            for (DefLink n : scope.attrNameLinks().get(name)) {
 //				WLogger.info("	- " + n);
                 WurstType n_receiverType = n.getReceiverType();
-                if (n.getType() == NameLinkType.VAR
+                if (n instanceof VarLink
                         && n_receiverType != null
                         && n_receiverType.isSupertypeOf(receiverType, node)) {
                     if (showErrors) {
                         if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
-                            node.addError(Utils.printElement(n.getNameDef()) + " is private and cannot be used here.");
+                            node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
                         }
                         if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
-                            node.addError(Utils.printElement(n.getNameDef()) + " is protected and cannot be used here.");
+                            node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
                         }
                     }
 
-                    return n.getNameDef();
+                    return n.getDef();
                 }
             }
             scope = nextScope(scope);
@@ -207,7 +210,7 @@ public class NameResolution {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getNameDef() instanceof TypeDef) {
+                if (n.getDef() instanceof TypeDef) {
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
@@ -221,7 +224,7 @@ public class NameResolution {
                     node.addError("Reference to type " + name + " is ambiguous. Alternatives are:\n"
                             + Utils.printAlternatives(candidates));
                 }
-                return (TypeDef) candidates.get(0).getNameDef();
+                return (TypeDef) candidates.get(0).getDef();
             }
             scope = nextScope(scope);
         }
@@ -229,9 +232,9 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find type " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getNameDef()) + " is not visible inside this package." +
+                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
                         " If you want to access it, declare it public.");
-                return (TypeDef) privateCandidate.getNameDef();
+                return (TypeDef) privateCandidate.getDef();
             }
         }
         return null;
@@ -241,8 +244,8 @@ public class NameResolution {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getNameDef() instanceof WPackage) {
-                    return (WPackage) n.getNameDef();
+                if (n.getDef() instanceof WPackage) {
+                    return (WPackage) n.getDef();
                 }
             }
             scope = nextScope(scope);
@@ -250,11 +253,11 @@ public class NameResolution {
         return null;
     }
 
-    public static ImmutableCollection<NameLink> lookupFuncsShort(Element elem, String name) {
+    public static ImmutableCollection<FuncLink> lookupFuncsShort(Element elem, String name) {
         return lookupFuncs(elem, name, true);
     }
 
-    public static ImmutableCollection<NameLink> lookupMemberFuncsShort(Element elem, WurstType receiverType, String name) {
+    public static ImmutableCollection<FuncLink> lookupMemberFuncsShort(Element elem, WurstType receiverType, String name) {
         return lookupMemberFuncs(elem, receiverType, name, true);
     }
 

@@ -3,21 +3,27 @@ package de.peeeq.wurstio.jassinterpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JassInterpreter {
+public class JassInterpreter implements AbstractInterpreter {
 
     private JassProg prog;
     private static ReturnException staticReturnException = new ReturnException(null);
     private Map<String, ILconst> globalVarMap;
     private boolean trace = false;
+    private Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
 
     public void loadProgram(JassProg prog) {
         this.prog = prog;
@@ -436,17 +442,21 @@ public class JassInterpreter {
         return value;
     }
 
-    private ExecutableJassFunction searchFunction(String name) {
-        for (JassFunction f : prog.getFunctions()) {
-            if (f.getName().equals(name)) {
-                return new UserDefinedJassFunction(f);
+    private ExecutableJassFunction searchFunction(String fname) {
+        return functionCache.computeIfAbsent(fname, name -> {
+            for (JassFunction f : prog.getFunctions()) {
+                if (f.getName().equals(name)) {
+                    if (!f.getIsCompiletimeNative()) {
+                        return new UserDefinedJassFunction(f);
+                    }
+                }
             }
-        }
-        return searchNativeJassFunction(name);
+            return searchNativeJassFunction(name);
+        });
     }
 
     private ExecutableJassFunction searchNativeJassFunction(String name) {
-        ReflectionNativeProvider nf = new ReflectionNativeProvider(null);
+        ReflectionNativeProvider nf = new ReflectionNativeProvider(this);
         ExecutableJassFunction functionPair = nf.getFunctionPair(name);
         return functionPair != null ? functionPair : new UnknownJassFunction(name);
     }
@@ -455,4 +465,22 @@ public class JassInterpreter {
         trace = b;
     }
 
+    @Override
+    public void runFuncRef(ILconstFuncRef f, @Nullable Element trace) {
+        if (f == null) {
+            throw new RuntimeException("Function was null in " + trace);
+        }
+        ExecutableJassFunction func = searchFunction(f.getFuncName());
+        func.execute(this);
+    }
+
+    public void runProgram() {
+        for (JassVar var : prog.getGlobals()) {
+            if (var instanceof JassInitializedVar) {
+                JassInitializedVar iVar = (JassInitializedVar) var;
+                globalVarMap.put(iVar.getName(), executeExpr(Collections.emptyMap(), iVar.getVal()));
+            }
+        }
+        executeFunction("main");
+    }
 }

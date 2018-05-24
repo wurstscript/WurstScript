@@ -333,7 +333,7 @@ public class AttrExprType {
                     .getOverloadingFuncName());
             return WurstTypeUnknown.instance();
         }
-        return def.getReturnTyp().attrTyp().dynamic();
+        return def.attrReturnTyp();
     }
 
     private static WurstType requireEqualTypes(ExprBinary term,

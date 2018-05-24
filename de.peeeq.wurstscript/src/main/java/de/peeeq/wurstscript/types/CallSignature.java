@@ -41,7 +41,7 @@ public class CallSignature {
                         "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
             }
         }
-        if (getArguments().size() > sig.getParamTypes().size()) {
+        if (getArguments().size() > sig.getParamTypes().size() && !sig.isVararg()) {
             if (sig.getParamTypes().size() == 0) {
                 pos.addError("Too many arguments. Function " + funcName + " takes no parameter.");
             } else if (sig.getParamTypes().size() < 2) {
@@ -55,9 +55,9 @@ public class CallSignature {
             pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
         } else {
             for (int i = 0; i < getArguments().size(); i++) {
-                if (!getArguments().get(i).attrTyp().isSubtypeOf(sig.getParamTypes().get(i), pos)) {
+                if (!getArguments().get(i).attrTyp().isSubtypeOf(sig.getParamType(i), pos)) {
                     getArguments().get(i).addError("Wrong parameter type when calling " + funcName + ".\n"
-                            + "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamTypes().get(i) + " " + sig.getParamName(i));
+                            + "Found " + getArguments().get(i).attrTyp() + " but expected " + sig.getParamType(i) + " " + sig.getParamName(i));
                 }
             }
         }

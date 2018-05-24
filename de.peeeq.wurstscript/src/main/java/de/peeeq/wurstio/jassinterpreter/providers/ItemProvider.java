@@ -5,10 +5,11 @@ import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class ItemProvider extends Provider {
-    public ItemProvider(ILInterpreter interpreter) {
+    public ItemProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

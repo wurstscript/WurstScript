@@ -4,12 +4,13 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.LinkedHashSet;
 
 public class ForceProvider extends Provider {
-    public ForceProvider(ILInterpreter interpreter) {
+    public ForceProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
@@ -45,6 +46,6 @@ public class ForceProvider extends Provider {
         // TODO take force param into account
         // For now this simply executes the supplied function.
         WLogger.trace("for force call");
-        interpreter.runVoidFunc(funcRef.getFunc(), null);
+        interpreter.runFuncRef(funcRef, null);
     }
 }

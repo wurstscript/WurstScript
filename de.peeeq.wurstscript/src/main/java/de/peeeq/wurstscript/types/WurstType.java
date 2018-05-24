@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -124,7 +125,7 @@ public abstract class WurstType {
     }
 
     public void addMemberMethods(Element node, String name,
-                                 List<NameLink> result) {
+                                 List<FuncLink> result) {
     }
 
     public Stream<NameLink> getMemberMethods(Element node) {

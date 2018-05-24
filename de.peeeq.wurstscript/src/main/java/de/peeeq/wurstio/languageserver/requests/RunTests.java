@@ -41,7 +41,10 @@ public class RunTests extends UserRequest<Object> {
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
 
+    private static final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+
     static public class TestFailure {
+
         private ImFunction function;
         private final StackTrace stackTrace;
         private final String message;
@@ -73,6 +76,7 @@ public class RunTests extends UserRequest<Object> {
             stackTrace.appendTo(s);
             return s.toString();
         }
+
     }
 
     public RunTests(String filename, int line, int column) {
@@ -104,6 +108,7 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public static class TestResult {
+
         private final int passedTests;
         private final int totalTests;
 
@@ -119,6 +124,7 @@ public class RunTests extends UserRequest<Object> {
         public int getTotalTests() {
             return totalTests;
         }
+
     }
 
     public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
@@ -162,15 +168,12 @@ public class RunTests extends UserRequest<Object> {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
                         finalInterpreter.runVoidFunc(f, null);
-                        successTests.add(f);
-                        println("\tOK!");
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
-                    ExecutorService service = Executors.newSingleThreadExecutor();
                     service.execute(future);
                     try {
-                        future.get(20, TimeUnit.SECONDS); // Wait 10 seconds for test to complete
+                        future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
                     } catch (TimeoutException ex) {
                         future.cancel(true);
                         throw new TestTimeOutException();
@@ -178,7 +181,9 @@ public class RunTests extends UserRequest<Object> {
                         throw e.getCause();
                     }
                     service.shutdown();
-
+                    service.awaitTermination(10, TimeUnit.SECONDS);
+                    successTests.add(f);
+                    println("\tOK!");
                 } catch (TestSuccessException e) {
                     successTests.add(f);
                     println("\tOK!");
@@ -288,6 +293,7 @@ public class RunTests extends UserRequest<Object> {
             println(message + "\n");
         }
 
+
     }
 
     private class TestTimeOutException extends Throwable {
@@ -302,7 +308,11 @@ public class RunTests extends UserRequest<Object> {
         public String toString() {
             return super.toString();
         }
+
     }
 
 
+    public static ScheduledExecutorService getService() {
+        return service;
+    }
 }

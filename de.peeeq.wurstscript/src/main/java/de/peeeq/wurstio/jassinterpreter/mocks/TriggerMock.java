@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.ArrayList;
@@ -20,13 +21,13 @@ public class TriggerMock {
         conditions.add(boolexpr);
     }
 
-    public ILconstBool evaluate(ILInterpreter interpreter) {
+    public ILconstBool evaluate(AbstractInterpreter interpreter) {
         if (interpreter != null) {
             conditions.forEach(cond -> {
-                interpreter.runVoidFunc(((ILconstFuncRef) cond.getObj()).getFunc(), null);
+                interpreter.runFuncRef(((ILconstFuncRef) cond.getObj()), null);
             });
             actions.forEach(funcRef -> {
-                interpreter.runVoidFunc(funcRef.getFunc(), null);
+                interpreter.runFuncRef(funcRef, null);
             });
         }
 

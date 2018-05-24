@@ -139,11 +139,15 @@ public class JurstTests extends WurstScriptTest {
                 "example.j", jass,
                 "test.jurst", jurst
         );
-        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false);
+        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false, false);
     }
 
     private void testJurst(boolean executeProg, boolean withStdLib, String jurst) {
-        testScript("test.jurst", jurst, "JurstTest", executeProg, withStdLib);
+        test().executeProg(executeProg)
+                .executeProgOnlyAfterTransforms()
+                .withStdLib(withStdLib)
+                .withCu(compilationUnit("test.jurst", jurst))
+                .run();
     }
 
 }

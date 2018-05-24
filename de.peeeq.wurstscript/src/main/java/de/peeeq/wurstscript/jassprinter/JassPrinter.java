@@ -92,16 +92,15 @@ public class JassPrinter {
 
             @Override
             public void case_JassInitializedVar(@SuppressWarnings("null") JassInitializedVar jassInitializedVar) {
+                if (jassInitializedVar.getIsBj()) {
+                    // already defined in blizzard.j --> just put as comment
+                    if (!withSpace) {
+                        return;
+                    }
+                    sb.append("// ");
+                }
                 sb.append(jassInitializedVar.getType()).append(" ").append(jassInitializedVar.getName()).append("=");
                 jassInitializedVar.getVal().print(sb, withSpace);
-                sb.append("\n");
-                // TODO check if right
-            }
-
-            @Override
-            public void case_JassConstantVar(@SuppressWarnings("null") JassConstantVar jassConstantVar) {
-                sb.append(jassConstantVar.getType()).append(" ").append(jassConstantVar.getName()).append("=");
-                jassConstantVar.getVal().print(sb, withSpace);
                 sb.append("\n");
                 // TODO check if right
             }

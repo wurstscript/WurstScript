@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 
 public interface ExecutableJassFunction {
 
-    ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments);
+    ILconst execute(JassInterpreter jassInterpreter, ILconst... arguments);
 
 
 }

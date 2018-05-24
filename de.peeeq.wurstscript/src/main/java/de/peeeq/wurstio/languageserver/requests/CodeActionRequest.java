@@ -5,7 +5,9 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.CodeActionParams;
@@ -90,13 +92,13 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         for (CompilationUnit cu : model) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
-                for (NameLink nameLink :  wPackage.attrExportedNameLinks().get(funcName)) {
+                for (DefLink nameLink :  wPackage.attrExportedNameLinks().get(funcName)) {
                     if (nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }
                 }
-                for (NameLink nameLink :  wPackage.attrExportedTypeNameLinks().get(funcName)) {
+                for (TypeLink nameLink :  wPackage.attrExportedTypeNameLinks().get(funcName)) {
                     if (nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
@@ -122,7 +124,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
-                    if (nameLink.getNameDef() instanceof FunctionDefinition) {
+                    if (nameLink.getDef() instanceof FunctionDefinition) {
                         if (nameLink.receiverCompatibleWith(receiverType, fr)) {
                             possibleImports.add(wPackage.getName());
                             continue withNextPackage;
@@ -147,7 +149,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedTypeNameLinks().get(typeName)) {
-                    if (nameLink.getNameDef() instanceof ClassDef) {
+                    if (nameLink.getDef() instanceof ClassDef) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }

@@ -2,8 +2,6 @@ package tests.wurstscript.tests;
 
 import org.testng.annotations.Test;
 
-import java.util.function.Function;
-
 public class ClosureTests extends WurstScriptTest {
 
 
@@ -548,7 +546,9 @@ public class ClosureTests extends WurstScriptTest {
 
     @Test
     public void testDispatch() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+                .executeProgOnlyAfterTransforms()
+                .lines(
                 "package A",
                 "   native testSuccess()",
                 "   interface B",
@@ -559,7 +559,8 @@ public class ClosureTests extends WurstScriptTest {
                 "       bar(() -> 0)",
                 "       B b2 = () -> 0",
                 "       if (b2 castTo int) == 1",
-                "           testSuccess()");
+                "           testSuccess()"
+        );
 
     }
 

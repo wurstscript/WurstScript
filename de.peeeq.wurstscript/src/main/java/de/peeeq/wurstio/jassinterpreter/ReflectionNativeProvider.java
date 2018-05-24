@@ -3,7 +3,7 @@ package de.peeeq.wurstio.jassinterpreter;
 import de.peeeq.wurstio.jassinterpreter.providers.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 
 import java.io.PrintStream;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class ReflectionNativeProvider implements NativesProvider {
     private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();
 
-    public ReflectionNativeProvider(ILInterpreter interpreter) {
+    public ReflectionNativeProvider(AbstractInterpreter interpreter) {
         addProvider(new GamecacheProvider(interpreter));
         addProvider(new ForceProvider(interpreter));
         addProvider(new HandleProvider(interpreter));
@@ -36,6 +36,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new DestructableProvider(interpreter));
         addProvider(new DialogProvider(interpreter));
         addProvider(new EffectProvider(interpreter));
+        addProvider(new RegionProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {

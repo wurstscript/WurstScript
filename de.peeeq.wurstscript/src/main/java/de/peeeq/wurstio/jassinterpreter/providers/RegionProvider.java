@@ -1,28 +1,28 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstio.jassinterpreter.mocks.RectMock;
+import de.peeeq.wurstio.jassinterpreter.mocks.RegionMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
-public class RectProvider extends Provider {
+public class RegionProvider extends Provider {
 
 
-    public RectProvider(AbstractInterpreter interpreter) {
+    public RegionProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
-    public IlConstHandle Rect(ILconstReal minx, ILconstReal miny, ILconstReal maxx, ILconstReal maxy) {
-        return new IlConstHandle(NameProvider.getRandomName("rect"), new RectMock(minx, miny, maxx, maxy));
+    public IlConstHandle CreateRegion() {
+        return new IlConstHandle(NameProvider.getRandomName("region"), new RegionMock());
     }
 
-    public void RemoveRect(IlConstHandle rect) {
+    public void RemoveRegion(IlConstHandle region) {
     }
 
-    public ILconstReal GetRectCenterX(IlConstHandle rect) {
-        RectMock rectMock = (RectMock) rect.getObj();
-        return new ILconstReal((rectMock.minx.getVal() + rectMock.maxx.getVal() / 2.0));
+    public void RegionAddRect(IlConstHandle region, IlConstHandle rect) {
+        // TODO
     }
 
     public ILconstReal GetRectCenterY(IlConstHandle rect) {
