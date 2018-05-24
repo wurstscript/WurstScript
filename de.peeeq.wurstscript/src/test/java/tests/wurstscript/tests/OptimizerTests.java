@@ -519,6 +519,30 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void controlFlowMergeNoSideEffect() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
     public void controlFlowMergeSideEffect() {
         testAssertOkLines(true,
                 "package Test",

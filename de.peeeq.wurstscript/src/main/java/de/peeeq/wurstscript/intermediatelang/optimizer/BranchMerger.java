@@ -1,9 +1,13 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -45,10 +49,10 @@ public class BranchMerger {
                 if (n.getPredecessors().size() <= 1 && n.getSuccessors().size() == 2) {
                     Node leftStmt = n.getSuccessors().get(0);
                     Node rightStmt = n.getSuccessors().get(1);
-                    if (leftStmt.getStmt().structuralEquals(rightStmt.getStmt())) {
+                    if (leftStmt.getStmt() != null && rightStmt.getStmt() != null && leftStmt.getStmt().toString().equals(rightStmt.getStmt().toString())) {
                         if (n.getPredecessors().size() == 1) {
                             // Possible match. At last check if condition causes sideeffects.
-                            if (hasNoSideEffects(n, leftStmt)) {
+                            if (sideEffectsCanAffectNode(n, leftStmt)) {
 
                                 ImStmt mergedStmt = leftStmt.getStmt();
                                 mergedStmt.setParent(null);
@@ -67,76 +71,102 @@ public class BranchMerger {
     }
 
 
-    private List<ImVar> calculateVarUses(Node node) {
-        List<ImVar> result = Lists.newArrayList();
+    private Pair<List<ImVar>, List<ImFunction>> calculateVarUses(Node node) {
+        final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
+        final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
+        final List<ImFuncRef> funcRefs = Lists.newArrayList();
+        prog.accept(new ImProg.DefaultVisitor() {
+
+            @Override
+            public void visit(ImFunctionCall c) {
+                super.visit(c);
+                calls.put(c.getFunc(), c);
+                ImFunction caller = c.getNearestFunc();
+                callRelation.put(caller, c.getFunc());
+            }
+
+            @Override
+            public void visit(ImFuncRef imFuncRef) {
+                super.visit(imFuncRef);
+                funcRefs.add(imFuncRef);
+            }
+        });
+
+        Multimap<ImFunction, ImFunction> callRelationTr = Utils.transientClosure(callRelation);
+        List<ImVar> imVars = Lists.newArrayList();
+        List<ImFunction> imFunctions = Lists.newArrayList();
         ImStmt stmt = node.getStmt();
         if (stmt != null) {
             stmt.accept(new ImStmt.DefaultVisitor() {
                 @Override
                 public void visit(ImFunctionCall call) {
                     super.visit(call);
-                    visit(call.getFunc());
+                    callRelationTr.get(call.getFunc()).forEach(this::visit);
+                    if (call.getFunc().isNative()) {
+                        imFunctions.add(call.getFunc());
+                    }
                 }
 
                 @Override
                 public void visit(ImVarAccess va) {
                     super.visit(va);
-                    result.add(va.getVar());
+                    imVars.add(va.getVar());
                 }
 
                 @Override
                 public void visit(ImVarArrayAccess va) {
                     super.visit(va);
-                    result.add(va.getVar());
+                    imVars.add(va.getVar());
                 }
 
                 @Override
                 public void visit(ImVarArrayMultiAccess va) {
                     super.visit(va);
-                    result.add(va.getVar());
+                    imVars.add(va.getVar());
                 }
 
                 @Override
                 public void visit(ImMemberAccess va) {
                     super.visit(va);
-                    result.add(va.getVar());
+                    imVars.add(va.getVar());
                 }
 
                 @Override
                 public void visit(ImSet va) {
                     super.visit(va);
-                    result.add(va.getLeft());
+                    imVars.add(va.getLeft());
                 }
 
                 @Override
                 public void visit(ImSetTuple va) {
                     super.visit(va);
-                    result.add(va.getLeft());
+                    imVars.add(va.getLeft());
                 }
 
                 @Override
                 public void visit(ImSetArrayTuple va) {
                     super.visit(va);
-                    result.add(va.getLeft());
+                    imVars.add(va.getLeft());
                 }
 
                 @Override
                 public void visit(ImVarargLoop va) {
                     super.visit(va);
-                    result.add(va.getLoopVar());
+                    imVars.add(va.getLoopVar());
                 }
 
             });
         }
-        return result;
+        return Pair.create(imVars, imFunctions);
     }
 
-    private boolean hasNoSideEffects(Node ifNode, Node stmtNode) {
-        List<ImVar> usesIf = calculateVarUses(ifNode);
-        List<ImVar> usesStmt = calculateVarUses(stmtNode);
+    /** Checking if executing stmtNode could affect the condition of the ifNode. */
+    private boolean sideEffectsCanAffectNode(Node ifNode, Node stmtNode) {
+        Pair<List<ImVar>, List<ImFunction>> usesIf = calculateVarUses(ifNode);
+        Pair<List<ImVar>, List<ImFunction>> usesStmt = calculateVarUses(stmtNode);
 
-        usesIf.retainAll(usesStmt);
-        return usesIf.size() == 0;
+        usesIf.getA().retainAll(usesStmt.getA());
+        return usesIf.getA().size() == 0 && usesStmt.getB().size() == 0;
     }
 
 }
