@@ -195,9 +195,6 @@ public class SideEffectAnalyzer {
      * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
      */
     public boolean mightAffect(ImStmt stmt1, ImStmt stmt2) {
-        System.out.println("might Affect ");
-        System.out.println("  " + stmt1);
-        System.out.println("  " + stmt2);
         if (!calledNatives(stmt1).isEmpty() || !calledNatives(stmt2).isEmpty()) {
             // there are natives that can affect other natives
             // be safe

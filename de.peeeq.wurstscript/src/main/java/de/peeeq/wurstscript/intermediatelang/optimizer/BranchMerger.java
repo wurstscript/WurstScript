@@ -54,7 +54,7 @@ public class BranchMerger {
                     if (leftStmt.getStmt() != null && rightStmt.getStmt() != null && leftStmt.getStmt().toString().equals(rightStmt.getStmt().toString())) {
                         if (n.getPredecessors().size() == 1) {
                             // Possible match. At last check if condition causes sideeffects.
-                            if (sideEffectsCanAffectNode(n, leftStmt)) {
+                            if (!sideEffectsCanAffectNode(n, leftStmt)) {
 
                                 ImStmt mergedStmt = leftStmt.getStmt();
                                 mergedStmt.setParent(null);
