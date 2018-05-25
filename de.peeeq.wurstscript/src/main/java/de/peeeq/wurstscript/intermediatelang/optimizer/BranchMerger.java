@@ -1,16 +1,9 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import com.google.common.collect.LinkedListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.utils.Pair;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.List;
 
 /**
  * merges identical nodes in branches if possible without side effects
@@ -19,13 +12,11 @@ import java.util.List;
  */
 public class BranchMerger {
     private final SideEffectAnalyzer sideEffectAnalyzer;
-    public int totalLocalsMerged = 0;
+    public int branchesMerged = 0;
     private final ImProg prog;
-    private final ImTranslator trans;
 
     public BranchMerger(ImTranslator trans) {
         this.prog = trans.getImProg();
-        this.trans = trans;
         this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
     }
 
@@ -63,6 +54,7 @@ public class BranchMerger {
                                 oldIf.getThenBlock().get(0).replaceBy(JassIm.ImNull());
                                 oldIf.getElseBlock().get(0).replaceBy(JassIm.ImNull());
                                 imIf.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(mergedStmt, oldIf), JassIm.ImNull()));
+                                branchesMerged++;
                             }
                         }
                     }

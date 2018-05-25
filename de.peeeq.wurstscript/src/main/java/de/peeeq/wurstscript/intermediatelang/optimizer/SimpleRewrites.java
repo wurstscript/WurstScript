@@ -139,6 +139,7 @@ public class SimpleRewrites {
         imStmt.setCondition((JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(imIf.getCondition(), imStmt.getCondition()))));
         imStmt.setParent(null);
         imIf.replaceBy(imStmt);
+        totalRewrites++;
     }
 
     private void optimizeOpCall(ImOperatorCall opc) {

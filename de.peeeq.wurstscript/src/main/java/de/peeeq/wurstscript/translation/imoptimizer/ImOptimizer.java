@@ -65,8 +65,11 @@ public class ImOptimizer {
             WLogger.info("optimized: " + (endV - startV));
             startV = localMerger.totalLocalsMerged;
             localMerger.optimize();
-            branchMerger.optimize();
             endV = localMerger.totalLocalsMerged;
+            deltaV += (endV - startV);
+            startV = branchMerger.branchesMerged;
+            branchMerger.optimize();
+            endV = branchMerger.branchesMerged;
             deltaV += (endV - startV);
             startV = functionCallsRemover.totalCallsRemoved;
             functionCallsRemover.optimize();
@@ -89,6 +92,7 @@ public class ImOptimizer {
         WLogger.info("== Globals Inlined:    " + globalsInliner.obsoleteCount);
         WLogger.info("== Globals removed:    " + totalGlobalsRemoved);
         WLogger.info("== Functions removed:  " + totalFunctionsRemoved);
+        WLogger.info("== Branches merged:    " + branchMerger.branchesMerged);
     }
 
     public void doNullsetting() {
