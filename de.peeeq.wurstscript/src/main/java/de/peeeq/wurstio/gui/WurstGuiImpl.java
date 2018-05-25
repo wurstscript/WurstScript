@@ -58,20 +58,17 @@ public class WurstGuiImpl extends WurstGui {
         public void run() {
             try {
                 // init the windows:
-                SwingUtilities.invokeAndWait(new Runnable() {
-                    @Override
-                    public void run() {
-                        statusWindow = new WurstStatusWindow();
-                        errorWindow = new WurstErrorWindow(workspaceRoot);
-                        errorWindow.repaint();
-                        statusWindow.repaint();
-                        errorWindow.toFront();
-                        statusWindow.toFront();
-                        errorWindow.setAlwaysOnTop(true);
-                        statusWindow.setAlwaysOnTop(true);
-                        statusWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-                        errorWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-                    }
+                SwingUtilities.invokeAndWait(() -> {
+                    statusWindow = new WurstStatusWindow();
+                    errorWindow = new WurstErrorWindow(workspaceRoot);
+                    errorWindow.repaint();
+                    statusWindow.repaint();
+                    errorWindow.toFront();
+                    statusWindow.toFront();
+                    errorWindow.setAlwaysOnTop(true);
+                    statusWindow.setAlwaysOnTop(true);
+                    statusWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                    errorWindow.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
                 });
 
                 WurstStatusWindow statusWindow = this.statusWindow;
@@ -100,12 +97,9 @@ public class WurstGuiImpl extends WurstGui {
                         progressLock.wait(300);
                     }
                 }
-                SwingUtilities.invokeAndWait(new Runnable() {
-                    @Override
-                    public void run() {
-                        errorWindow.sendFinished();
-                        statusWindow.sendFinished();
-                    }
+                SwingUtilities.invokeAndWait(() -> {
+                    errorWindow.sendFinished();
+                    statusWindow.sendFinished();
                 });
             } catch (Throwable e) {
                 WLogger.severe(e);
@@ -175,12 +169,7 @@ public class WurstGuiImpl extends WurstGui {
     @Override
     public void showInfoMessage(final String message) {
         try {
-            SwingUtilities.invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    JOptionPane.showMessageDialog(null, message);
-                }
-            });
+            SwingUtilities.invokeAndWait(() -> JOptionPane.showMessageDialog(null, message));
         } catch (Exception e) {
             throw new Error(e);
         }

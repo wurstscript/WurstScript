@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstio.jassinterpreter.JassArray;
+import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
@@ -151,4 +153,13 @@ public class RunStatement {
     }
 
 
+    public static void run(ImVarargLoop loop, ProgramState globalState, LocalState localState) {
+        ImFunction func = loop.getNearestFunc();
+        ImVar varargParam = func.getParameters().get(func.getParameters().size() - 1);
+        VarargArray val = (VarargArray) localState.getVal(varargParam);
+        for (int i = 0; i < val.size(); i++) {
+            localState.setVal(loop.getLoopVar(), val.get(i));
+            loop.getBody().runStatements(globalState, localState);
+        }
+    }
 }

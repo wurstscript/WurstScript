@@ -96,6 +96,7 @@ public class ConstantAndCopyPropagation {
             stmt.accept(new ImStmt.DefaultVisitor() {
                 @Override
                 public void visit(ImVarAccess va) {
+                    super.visit(va);
                     Value val = kn.varKnowledge.get(va.getVar());
                     if (val == null) {
                         return;
@@ -122,8 +123,7 @@ public class ConstantAndCopyPropagation {
             knowledge.put(n, new Knowledge());
         }
 
-        Deque<Node> todo = new ArrayDeque<>();
-        todo.addAll(cfg.getNodes());
+        Deque<Node> todo = new ArrayDeque<>(cfg.getNodes());
 
         while (!todo.isEmpty()) {
             Node n = todo.poll();
@@ -182,13 +182,7 @@ public class ConstantAndCopyPropagation {
                     // x = a; [x->a]
                     // y = b; [x->a, y->b]
                     // a = 5; [y->b, a->5] // here [x->a] has been invalidated
-                    Iterator<Entry<ImVar, Value>> it = newOut.entrySet().iterator();
-                    while (it.hasNext()) {
-                        Entry<ImVar, Value> entry = it.next();
-                        if (entry.getValue().equalValue(new Value(var))) {
-                            it.remove();
-                        }
-                    }
+                    newOut.entrySet().removeIf(entry -> entry.getValue().equalValue(new Value(var)));
                 }
             }
 

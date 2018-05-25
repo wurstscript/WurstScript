@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -32,6 +33,9 @@ public abstract class WurstType {
         if (other instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return true;
+        }
+        if (other instanceof WurstTypeDeferred) {
+            return isSubtypeOf(((WurstTypeDeferred) other).force(), location);
         }
         return this.isSubtypeOfIntern(other, location);
     }
@@ -121,7 +125,7 @@ public abstract class WurstType {
     }
 
     public void addMemberMethods(Element node, String name,
-                                 List<NameLink> result) {
+                                 List<FuncLink> result) {
     }
 
     public Stream<NameLink> getMemberMethods(Element node) {

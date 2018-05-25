@@ -3,22 +3,27 @@ package de.peeeq.wurstio.jassinterpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.jassAst.*;
+import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JassInterpreter {
+public class JassInterpreter implements AbstractInterpreter {
 
     private JassProg prog;
     private static ReturnException staticReturnException = new ReturnException(null);
     private Map<String, ILconst> globalVarMap;
     private boolean trace = false;
+    private Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
 
     public void loadProgram(JassProg prog) {
         this.prog = prog;
@@ -39,20 +44,21 @@ public class JassInterpreter {
     }
 
     public static ILconst getDefaultValue(String type) {
-        if (type.equals("integer")) {
-            return new ILconstInt(0);
-        } else if (type.equals("boolean")) {
-            return ILconstBool.FALSE;
-        } else if (type.equals("real")) {
-            return new ILconstReal(0.0f);
-        } else {
-            return ILconstNull.instance();
+        switch (type) {
+            case "integer":
+                return new ILconstInt(0);
+            case "boolean":
+                return ILconstBool.FALSE;
+            case "real":
+                return new ILconstReal(0.0f);
+            default:
+                return ILconstNull.instance();
         }
     }
 
     public ILconst executeFunction(String name, ILconst... arguments) {
         if (trace) {
-            WLogger.info("#trace: " + name + "( " + Utils.join(arguments, ", ") + ")");
+            WLogger.trace(name + "( " + Utils.join(arguments, ", ") + ")");
         }
 
         ExecutableJassFunction func = searchFunction(name);
@@ -91,13 +97,13 @@ public class JassInterpreter {
             this.executeStatements(localVarMap, body);
         } catch (ReturnException e) {
             if (trace) {
-                WLogger.info("#trace: end function " + func.getName() + " returns " + e.getVal());
+                WLogger.trace("end function " + func.getName() + " returns " + e.getVal());
             }
             return e.getVal();
         }
 
         if (trace) {
-            WLogger.info("#trace: end function " + func.getName());
+            WLogger.trace("end function " + func.getName());
         }
         return null;
     }
@@ -436,28 +442,45 @@ public class JassInterpreter {
         return value;
     }
 
-    private ExecutableJassFunction searchFunction(String name) {
-        for (JassFunction f : prog.getFunctions()) {
-            if (f.getName().equals(name)) {
-                return new UserDefinedJassFunction(f);
+    private ExecutableJassFunction searchFunction(String fname) {
+        return functionCache.computeIfAbsent(fname, name -> {
+            for (JassFunction f : prog.getFunctions()) {
+                if (f.getName().equals(name)) {
+                    if (!f.getIsCompiletimeNative()) {
+                        return new UserDefinedJassFunction(f);
+                    }
+                }
             }
-        }
-        return searchNativeJassFunction(name);
+            return searchNativeJassFunction(name);
+        });
     }
 
     private ExecutableJassFunction searchNativeJassFunction(String name) {
-        ReflectionBasedNativeProvider nf = new NativeFunctionsIO();
-        Class<NativeFunctionsIO> natives = NativeFunctionsIO.class;
-        for (Method method : natives.getMethods()) {
-            if (method.getName().equals(name)) {
-                return new NativeJassFunction(nf, method);
-            }
-        }
-        return new UnknownJassFunction(name);
+        ReflectionNativeProvider nf = new ReflectionNativeProvider(this);
+        ExecutableJassFunction functionPair = nf.getFunctionPair(name);
+        return functionPair != null ? functionPair : new UnknownJassFunction(name);
     }
 
     public void trace(boolean b) {
         trace = b;
     }
 
+    @Override
+    public void runFuncRef(ILconstFuncRef f, @Nullable Element trace) {
+        if (f == null) {
+            throw new RuntimeException("Function was null in " + trace);
+        }
+        ExecutableJassFunction func = searchFunction(f.getFuncName());
+        func.execute(this);
+    }
+
+    public void runProgram() {
+        for (JassVar var : prog.getGlobals()) {
+            if (var instanceof JassInitializedVar) {
+                JassInitializedVar iVar = (JassInitializedVar) var;
+                globalVarMap.put(iVar.getName(), executeExpr(Collections.emptyMap(), iVar.getVal()));
+            }
+        }
+        executeFunction("main");
+    }
 }

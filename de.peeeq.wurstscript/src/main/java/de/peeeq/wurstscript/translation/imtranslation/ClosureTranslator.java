@@ -102,6 +102,7 @@ public class ClosureTranslator {
         translated.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
+                super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
                     throw new CompileError(va.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + va.getVar().getName());
                 }
@@ -109,6 +110,7 @@ public class ClosureTranslator {
 
             @Override
             public void visit(ImSet s) {
+                super.visit(s);
                 if (isLocalToOtherFunc(s.getLeft())) {
                     throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft().getName());
                 }
@@ -169,6 +171,7 @@ public class ClosureTranslator {
         t.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
+                super.visit(va);
                 if (isLocalToOtherFunc(va.getVar())) {
                     vas.add(va);
                 }
@@ -176,6 +179,7 @@ public class ClosureTranslator {
 
             @Override
             public void visit(ImSet s) {
+                super.visit(s);
                 if (isLocalToOtherFunc(s.getLeft())) {
                     sets.add(s);
                 }
@@ -183,6 +187,7 @@ public class ClosureTranslator {
 
             @Override
             public void visit(ImSetTuple s) {
+                super.visit(s);
                 if (isLocalToOtherFunc(s.getLeft())) {
                     tupleSets.add(s);
                 }
@@ -250,7 +255,7 @@ public class ClosureTranslator {
 
     private FuncDef getSuperMethod() {
         NameLink nl = e.attrClosureAbstractMethod();
-        return (FuncDef) nl.getNameDef();
+        return (FuncDef) nl.getDef();
     }
 
 

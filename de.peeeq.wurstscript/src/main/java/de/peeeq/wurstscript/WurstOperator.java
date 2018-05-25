@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript;
 
-import com.google.common.base.Supplier;
 import de.peeeq.wurstscript.attributes.AttrFuncDef;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassAst.JassAst;
@@ -9,6 +8,8 @@ import de.peeeq.wurstscript.jassAst.JassOpUnary;
 import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaOpBinary;
 import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.function.Supplier;
 
 public enum WurstOperator {
     OR("or", 2),
@@ -36,6 +37,7 @@ public enum WurstOperator {
         this.rep = rep;
         this.numArgs = numArgs;
     }
+
 
     public boolean isBinaryOp() {
         return numArgs == 2;

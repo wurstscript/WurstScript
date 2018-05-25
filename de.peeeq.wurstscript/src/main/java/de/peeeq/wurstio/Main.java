@@ -14,10 +14,7 @@ import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3Utils;
-import de.peeeq.wurstscript.BackupController;
-import de.peeeq.wurstscript.ErrorReporting;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -25,7 +22,6 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -39,10 +35,6 @@ import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.SimpleFormatter;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static javax.swing.SwingConstants.CENTER;
@@ -59,14 +51,20 @@ public class Main {
             return;
         }
 
-        setUpFileLogging();
-        WLogger.keepLogs(true);
-        logStartup(args);
-
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
+            if(runArgs.isLanguageServer()) {
+                WLogger.setLogger("languageServer");
+            }
+            logStartup(args);
+
             if (runArgs.showHelp()) {
+                return;
+            }
+
+            if (runArgs.isShowVersion()) {
+                System.out.println(CompileTimeInfo.version);
                 return;
             }
 
@@ -186,7 +184,7 @@ public class Main {
         WLogger.info("### Started wurst version: (" + AboutDialog.version + ")");
         WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
         if (arguments != null && arguments.size() > 0) {
-            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+            WLogger.info("### With vm-args " + Utils.printSep(", ", arguments.toArray(new String[0])));
         }
         try {
             WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
@@ -288,9 +286,9 @@ public class Main {
         if (!rocHasKeys) {
             JOptionPane.showMessageDialog(null, "Now inserting ROC mpq.\n"
                     + "This might take a few minutes. Please be patient.");
-            roceditor.insertFile("font\\font.gid", java.nio.file.Files.readAllBytes(fontGID));
-            roceditor.insertFile("font\\font.clh", java.nio.file.Files.readAllBytes(fontCLH));
-            roceditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontROC));
+            roceditor.insertFile("font\\font.gid", fontGID.toFile());
+            roceditor.insertFile("font\\font.clh", fontCLH.toFile());
+            roceditor.insertFile("font\\font.ccd", fontROC.toFile());
             roceditor.close();
             WLogger.info("inserted roc keys");
         } else {
@@ -301,8 +299,8 @@ public class Main {
         if (!tftHasKeys) {
             JOptionPane.showMessageDialog(null, "Now inserting TFT mpq.\n"
                     + "This might take a few minutes. Please be patient.");
-            tfteditor.insertFile("font\\font.exp", java.nio.file.Files.readAllBytes(fontEXP));
-            tfteditor.insertFile("font\\font.ccd", java.nio.file.Files.readAllBytes(fontTFT));
+            tfteditor.insertFile("font\\font.exp", fontEXP.toFile());
+            tfteditor.insertFile("font\\font.ccd", fontTFT.toFile());
             tfteditor.close();
             WLogger.info("inserted tft keys");
         } else {
@@ -330,6 +328,12 @@ public class Main {
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+        gui.sendProgress("Check input map");
+        if(mpqEditor != null && !mpqEditor.canWrite()) {
+            WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
+                    "Please supply a valid .w3x input map that can be opened in the world editor.");
+        }
+
         for (String file : runArgs.getFiles()) {
             compiler.loadFiles(file);
         }
@@ -434,27 +438,6 @@ public class Main {
             }
         }
         return mapScript;
-    }
-
-    public static void setUpFileLogging() {
-        setUpFileLogging("wurst");
-    }
-
-    public static void setUpFileLogging(String folderName) {
-        try {
-            // Set up logfiles inside os temp dir
-            String tempDir = System.getProperty("java.io.tmpdir");
-            File folder = new File(tempDir, folderName);
-            if (folder.exists() || folder.mkdirs()) {
-                System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %5$s%6$s%n");
-                Handler handler = new FileHandler(folder.getAbsolutePath() + "/wurst%g-%u.log", Integer.MAX_VALUE, 5);
-                handler.setFormatter(new SimpleFormatter());
-                WLogger.setHandler(handler);
-                WLogger.setLevel(Level.INFO);
-            }
-        } catch (SecurityException | IOException e) {
-            e.printStackTrace();
-        }
     }
 
 }

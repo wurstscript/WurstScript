@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -25,7 +26,7 @@ public class ImToJassTranslator {
     private ImFunction mainFunc;
     private ImFunction confFunction;
     private @Nullable JassProg prog;
-    private Stack<ImFunction> translatingFunctions = new Stack<ImFunction>();
+    private Stack<ImFunction> translatingFunctions = new Stack<>();
     private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
     private Set<String> usedNames = Sets.newLinkedHashSet();
     private static ImmutableSet<String> restrictedNames = ImmutableSet.of("loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call");
@@ -67,18 +68,19 @@ public class ImToJassTranslator {
         if (translatingFunctions.contains(imFunc)) {
             // TODO extract method
             if (imFunc != translatingFunctions.peek()) {
-                String msg = "cyclic dependency between functions: ";
+                StringBuilder msg = new StringBuilder("cyclic dependency between functions: ");
                 boolean start = false;
                 for (ImFunction f : translatingFunctions) {
                     if (imFunc == f) {
                         start = true;
                     }
                     if (start) {
-                        msg += "\n - " + Utils.printElement(getTrace(f)) + "  ( " + f.attrTrace().attrSource().getFile() + " line  " + f.attrTrace().attrSource().getLine() + ")";
+                        msg.append("\n - ").append(Utils.printElement(getTrace(f))).append("  ( ").append(f.attrTrace().attrSource().getFile()).append(" line" +
+                                "  ").append(f.attrTrace().attrSource().getLine()).append(")");
                     }
                 }
                 WPos src = getTrace(imFunc).attrSource();
-                throw new CompileError(src, msg);
+                throw new CompileError(src, msg.toString());
             }
             // already translating, recursive function
             return;
@@ -99,13 +101,7 @@ public class ImToJassTranslator {
 
     private List<ImFunction> sorted(Collection<ImFunction> collection) {
         List<ImFunction> r = Lists.newArrayList(collection);
-        Collections.sort(r, new Comparator<ImFunction>() {
-
-            @Override
-            public int compare(ImFunction f, ImFunction g) {
-                return f.getName().compareTo(g.getName());
-            }
-        });
+        r.sort(Comparator.comparing(ImFunction::getName));
         return r;
     }
 
@@ -124,13 +120,14 @@ public class ImToJassTranslator {
     }
 
     private void translateFunction(ImFunction imFunc) {
-        if (imFunc.isBj()) {
+        if (imFunc.isBj() || imFunc.hasFlag(FunctionFlagEnum.IS_VARARG)) {
             return;
         }
         // not a native
         JassFunctionOrNative f = getJassFuncFor(imFunc);
 
         f.setReturnType(imFunc.getReturnType().translateType());
+
         // translate parameters
         for (ImVar v : imFunc.getParameters()) {
             f.getParams().add((JassSimpleVar) getJassVarFor(v));
@@ -204,12 +201,12 @@ public class ImToJassTranslator {
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
                     JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
-                    result = JassAst.JassInitializedVar(type, name, initialVal);
+                    result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
                 }
             }
-            if (isGlobal(v) && !v.getIsBJ()) {
+            if (isGlobal(v) && (!v.getIsBJ() || result instanceof JassInitializedVar)) {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);
@@ -247,7 +244,8 @@ public class ImToJassTranslator {
                 }
             } else {
                 String name = getUniqueGlobalName(func.getName());
-                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements());
+                boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
+                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
                 if (!func.isBj() && !func.isExtern()) {
                     prog.getFunctions().add((JassFunction) f);
                 }

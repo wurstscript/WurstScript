@@ -90,6 +90,10 @@ public class AttrPos {
         return identifierPos(e, e.getNameId());
     }
 
+    public static WPos getErrorPos(NameDef e) {
+        return identifierPos(e, e.getNameId());
+    }
+
     public static WPos getErrorPos(FuncDef e) {
         return identifierPos(e, e.getNameId());
     }
@@ -208,14 +212,7 @@ public class AttrPos {
     }
 
     public static WPos getErrorPos(ExprClosure e) {
-        int right = e.getImplementation().getSource().getLeftPos();
-        int left;
-        if (e.getParameters().isEmpty()) {
-            left = right - 4;
-        } else {
-            left = e.getParameters().attrSource().getRightPos() + 1;
-        }
-        return e.getSource().withLeftPos(left).withRightPos(right);
+        return e.getArrowSource();
     }
 
 

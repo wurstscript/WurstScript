@@ -20,8 +20,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.MutableAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -73,7 +71,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         this.workspaceRoot = workspaceRoot;
         BufferedImage image = null;
         try {
-            image = ImageIO.read(getClass().getClassLoader().getResource("wurst.png"));
+            image = ImageIO.read(getClass().getClassLoader().getResource("icon.png"));
         } catch (IOException e) {
             WLogger.severe(e);
         }
@@ -121,25 +119,19 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         errorDetailsPanel = new javax.swing.JTextArea();
         aboutButton = new javax.swing.JButton();
 
-        errorList.addListSelectionListener(new ListSelectionListener() {
-
-            @Override
-            public void valueChanged(@Nullable ListSelectionEvent e) {
-                int index = errorList.getSelectedIndex();
-                if (index >= 0) {
-                    CompileError err = (CompileError) errorListModel.get(index);
-                    viewErrorDetail(err);
-                }
+        errorList.addListSelectionListener(e -> {
+            int index = errorList.getSelectedIndex();
+            if (index >= 0) {
+                CompileError err = errorListModel.get(index);
+                viewErrorDetail(err);
             }
-
-
         });
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
         codeArea.setEditable(false);
 
-        currentStatus.setFont(new java.awt.Font("Tahoma", 1, 12));
+        currentStatus.setFont(new java.awt.Font("Tahoma", Font.BOLD, 12));
         currentStatus.setText("Status");
 
         jScrollPane1.setViewportView(errorList);
@@ -166,7 +158,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         });
 
 
-        errorDetailsPanel.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        errorDetailsPanel.setFont(new java.awt.Font("Tahoma", Font.PLAIN, 12)); // NOI18N
         errorDetailsPanel.setLineWrap(true);
         errorDetailsPanel.setWrapStyleWord(true);
         errorDetailsPanel.setEditable(false);

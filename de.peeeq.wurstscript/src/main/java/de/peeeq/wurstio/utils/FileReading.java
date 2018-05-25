@@ -3,7 +3,6 @@ package de.peeeq.wurstio.utils;
 import com.google.common.base.Charsets;
 import de.peeeq.wurstscript.WLogger;
 import org.mozilla.intl.chardet.nsDetector;
-import org.mozilla.intl.chardet.nsICharsetDetectionObserver;
 import org.mozilla.intl.chardet.nsPSMDetector;
 
 import java.io.*;
@@ -31,16 +30,9 @@ public class FileReading {
 
             nsDetector det = new nsDetector(nsPSMDetector.ALL);
 
-            final boolean[] found = new boolean[1];
             final String[] charset = new String[1];
 
-            det.Init(new nsICharsetDetectionObserver() {
-                @Override
-                public void Notify(String cs) {
-                    found[0] = true;
-                    charset[0] = cs;
-                }
-            });
+            det.Init(cs -> charset[0] = cs);
 
             byte[] buf = new byte[1024];
             int len;
@@ -61,7 +53,6 @@ public class FileReading {
             det.DataEnd();
 
             if (isAscii) {
-                found[0] = true;
                 charset[0] = "ASCII";
             }
 

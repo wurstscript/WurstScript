@@ -93,22 +93,27 @@ public class Utils {
         }
     }
 
-    public static int parseAsciiInt1(String yytext) {
-        return yytext.charAt(1);
-    }
-
-    /**
-     * parse an integer like 'Hfoo'
-     */
-    public static int parseAsciiInt4(String yytext) {
+    public static int parseAsciiInt(String yytext) throws NumberFormatException {
+        if (yytext.length() == 3) {
+            // 'x' can directly return
+            return yytext.charAt(1);
+        }
         int result = 0;
-        int power = 1;
-        for (int i = 4; i > 0; i--) {
-            result += yytext.charAt(i) * power;
-            power *= 256;
+        int i = 1;
+        int chars = 0;
+        for (; i < yytext.length() - 1; i++) {
+            if (yytext.charAt(i) == '\\') {
+                i++;
+            }
+            result = result * 256 + yytext.charAt(i);
+            chars++;
+        }
+        if (chars != 1 && chars != 4) {
+            throw new NumberFormatException("Ascii ints must have 4 or 1 characters but this one has " + chars + " characters.");
         }
         return result;
     }
+
 
     public static int parseHexInt(String yytext, int offset) {
         return (int) Long.parseLong(yytext.substring(offset), 16);
@@ -171,7 +176,7 @@ public class Utils {
      * @throws TopsortCycleException if there exist items a,b so that a > b and b > a
      */
     public static <T> List<T> topSort(Collection<T> items,
-                                      Function<T, ? extends Collection<T>> biggerItems)
+                                      java.util.function.Function<T, ? extends Collection<T>> biggerItems)
             throws TopsortCycleException {
         Set<T> visitedItems = new HashSet<>();
         List<T> result = new ArrayList<>(items.size());
@@ -179,7 +184,7 @@ public class Utils {
         for (T t : items) {
             if (t == null)
                 throw new IllegalArgumentException();
-            topSortHelper(result, visitedItems, activeItems, biggerItems, t);
+            topSortHelper(result, visitedItems, activeItems, biggerItems::apply, t);
         }
         return result;
     }
@@ -231,7 +236,7 @@ public class Utils {
 
     private static <T> void topSortHelperIgnoreCycles(List<T> result,
                                                       Set<T> visitedItems,
-                                                      Function<T, ? extends Collection<T>> biggerItems, T item) {
+                                                      java.util.function.Function<T, ? extends Collection<T>> biggerItems, T item) {
         if (visitedItems.contains(item)) {
             return;
         }
@@ -279,13 +284,15 @@ public class Utils {
             if (t.getTypeArgs().size() > 0) {
                 name += "{";
                 boolean first = true;
+                StringBuilder nameBuilder = new StringBuilder(name);
                 for (TypeExpr ta : t.getTypeArgs()) {
                     if (!first) {
-                        name += ", ";
+                        nameBuilder.append(", ");
                     }
-                    name += printElement(ta);
+                    nameBuilder.append(printElement(ta));
                     first = false;
                 }
+                name = nameBuilder.toString();
                 name += "}";
             }
             type = "type";
@@ -329,7 +336,7 @@ public class Utils {
             if (t == null) {
                 break;
             }
-            sb.append("Caused by: " + t.toString() + "\n");
+            sb.append("Caused by: ").append(t.toString()).append("\n");
         }
         return sb.toString();
     }
@@ -447,7 +454,7 @@ public class Utils {
     public static <T extends NameDef> List<T> sortByName(
             Collection<T> c) {
         List<T> r = Lists.newArrayList(c);
-        Collections.sort(r, Comparator.comparing(NameDef::getName));
+        r.sort(Comparator.comparing(NameDef::getName));
         return r;
     }
 
@@ -490,11 +497,11 @@ public class Utils {
     }
 
 
-    public static String printAlternatives(Collection<NameLink> alternatives) {
+    public static String printAlternatives(Collection<? extends NameLink> alternatives) {
         List<String> result = Lists.newArrayList();
         for (NameLink a : alternatives) {
-            WPos source = a.getNameDef().attrSource();
-            String s = Utils.printElement(a.getNameDef()) + " defined in line "
+            WPos source = a.getDef().attrSource();
+            String s = Utils.printElement(a.getDef()) + " defined in line "
                     + source.getLine() + " (" + source.getFile() + ")";
             result.add(s);
         }
@@ -694,13 +701,7 @@ public class Utils {
 
 
     public static <T extends JassImElementWithName> Comparator<T> compareByNameIm() {
-        return new Comparator<T>() {
-
-            @Override
-            public int compare(T a, T b) {
-                return a.getName().compareTo(b.getName());
-            }
-        };
+        return Comparator.comparing(JassImElementWithName::getName);
     }
 
     public static String getParameterListText(AstElementWithParameters f) {
@@ -709,7 +710,7 @@ public class Utils {
             if (descr.length() > 0) {
                 descr.append(", ");
             }
-            descr.append(p.attrTyp() + " " + p.getName());
+            descr.append(p.attrTyp()).append(" ").append(p.getName());
         }
         return descr.toString();
     }
@@ -778,13 +779,7 @@ public class Utils {
     }
 
     public static <K, V> void removeValuesFromMap(Map<K, V> map, Collection<V> removed) {
-        Iterator<Entry<K, V>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<K, V> e = it.next();
-            if (removed.contains(e.getValue())) {
-                it.remove();
-            }
-        }
+        map.entrySet().removeIf(e -> removed.contains(e.getValue()));
     }
 
     public static <T> ImmutableList<T> emptyList() {
@@ -794,7 +789,7 @@ public class Utils {
     public static <T>
     Collector<T, ?, ImmutableList<T>> toImmutableList() {
         Collectors.toList();
-        return new Collector<T, ImmutableList.Builder<T>, ImmutableList<T>>() {
+        return new Collector<T, Builder<T>, ImmutableList<T>>() {
 
             @Override
             public Supplier<Builder<T>> supplier() {
@@ -803,7 +798,7 @@ public class Utils {
 
             @Override
             public BiConsumer<Builder<T>, T> accumulator() {
-                return (b, e) -> b.add(e);
+                return Builder::add;
             }
 
             @Override
@@ -813,11 +808,11 @@ public class Utils {
 
             @Override
             public java.util.function.Function<Builder<T>, ImmutableList<T>> finisher() {
-                return b -> b.build();
+                return Builder::build;
             }
 
             @Override
-            public Set<java.util.stream.Collector.Characteristics> characteristics() {
+            public Set<Characteristics> characteristics() {
                 return Collections.emptySet();
             }
         };
@@ -891,8 +886,8 @@ public class Utils {
      * <p>
      * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
      */
-    public static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+    public static String convertStreamToString(InputStream is) {
+        Scanner s = new Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
 
@@ -947,14 +942,14 @@ public class Utils {
     private static Map<String, File> resourceMap = new HashMap<>();
 
     public static String elementNameWithPath(AstElementWithNameId n) {
-        String result = n.getNameId().getName();
+        StringBuilder result = new StringBuilder(n.getNameId().getName());
         Element e = n.getParent();
         while (e != null) {
             if (e instanceof AstElementWithNameId) {
-                result = ((AstElementWithNameId) e).getNameId().getName() + "_" + result;
+                result.insert(0, ((AstElementWithNameId) e).getNameId().getName() + "_");
             }
             e = e.getParent();
         }
-        return result;
+        return result.toString();
     }
 }

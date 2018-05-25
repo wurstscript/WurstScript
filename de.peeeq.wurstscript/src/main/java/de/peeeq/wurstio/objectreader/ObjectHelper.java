@@ -18,16 +18,16 @@ public class ObjectHelper {
     }
 
     public static String objectIdIntToString(int value) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         int remainingValue = value;
         int charValue;
 
         for (int byteno = 0; byteno <= 3; byteno++) {
             charValue = remainingValue % 256;
             remainingValue = remainingValue / 256;
-            result = ((char) charValue) + result;
+            result.insert(0, ((char) charValue));
         }
-        return result;
+        return result.toString();
     }
 
 

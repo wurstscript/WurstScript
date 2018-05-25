@@ -46,6 +46,7 @@ public class EliminateTuples {
         f.getBody().accept(new ImStmts.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall e) {
+                super.visit(e);
                 // use temp return valus instead of tuples
                 List<ImVar> tempVars = translator.getTupleTempReturnVarsFor(e.getFunc());
                 if (tempVars.size() > 1) {
@@ -183,7 +184,10 @@ public class EliminateTuples {
         // TODO I think the whole thing can be made much simpler
         ImStmts statements = JassIm.ImStmts();
         ImmutableTree<ImVar> vars = translator.getVarsForTuple(e.getLeft());
-        if (vars.size() == 1) { // TODO do this only if it is a leaf
+        if (vars.size() == 0) {
+            // void expression, only keep right hand side
+            return copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
+        } if (vars.size() == 1) { // TODO do this only if it is a leaf
             ImExpr newExpr = copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
             newExpr = elimStatementExpr(statements, newExpr, translator, f);
             if (newExpr instanceof ImTupleExpr) {
@@ -751,5 +755,9 @@ public class EliminateTuples {
 
     public static ImExpr eliminateTuplesExpr(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
         return eliminateTuples2(e, translator, f);
+    }
+
+    public static ImStmt eliminateTuples(ImVarargLoop imVarargLoop, ImTranslator translator, ImFunction f) {
+        return imVarargLoop;
     }
 }

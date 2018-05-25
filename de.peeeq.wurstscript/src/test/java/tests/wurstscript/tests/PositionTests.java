@@ -4,7 +4,7 @@ import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class PositionTests extends WurstScriptTest {
 

@@ -355,11 +355,11 @@ public class TempMerger {
         @Override
         public String toString() {
             ArrayList<ImVar> keys = Lists.newArrayList(currentValues.keySet());
-            Collections.sort(keys, Utils.<ImVar>compareByNameIm());
+            keys.sort(Utils.<ImVar>compareByNameIm());
             StringBuilder sb = new StringBuilder();
             for (ImVar v : keys) {
                 ImSet s = currentValues.get(v);
-                sb.append(v.getName() + " -> " + s + ", ");
+                sb.append(v.getName()).append(" -> ").append(s).append(", ");
             }
             return sb.toString();
         }

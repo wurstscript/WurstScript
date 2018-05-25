@@ -6,17 +6,21 @@ import de.peeeq.wurstscript.types.WurstTypeCode;
 
 public class ILconstFuncRef extends ILconstAbstract {
 
-    private String funcName;
+    private ImFunction func = null;
 
+    private String funcName;
     public ILconstFuncRef(String funcName) {
         this.funcName = funcName;
     }
 
-
     public ILconstFuncRef(ImFunction func) {
+        this.func = func;
         this.funcName = func.getName();
     }
 
+    public ImFunction getFunc() {
+        return func;
+    }
 
     @Override
     public String print() {
@@ -26,6 +30,10 @@ public class ILconstFuncRef extends ILconstAbstract {
 
     public WurstType getType() {
         return WurstTypeCode.instance();
+    }
+
+    public String getFuncName() {
+        return funcName;
     }
 
     @Override

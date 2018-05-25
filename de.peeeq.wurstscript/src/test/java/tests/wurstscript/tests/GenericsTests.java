@@ -1,7 +1,7 @@
 package tests.wurstscript.tests;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.testng.annotations.Ignore;
+import org.testng.annotations.Test;
 
 public class GenericsTests extends WurstScriptTest {
 
@@ -258,6 +258,20 @@ public class GenericsTests extends WurstScriptTest {
                 "init",
                 "	LinkedList<effect> fxs = new LinkedList<effect>()",
                 "	for f in fxs",
+                "		f.destr()",
+                "endpackage");
+    }
+
+    @Test
+    public void implicitConversionFail2() { // same as implicitConversionFail, but with for-from
+        testAssertOkLinesWithStdLib(false,
+                "package Test",
+                "import LinkedList",
+                "Table data",
+
+                "init",
+                "	LinkedList<effect> fxs = new LinkedList<effect>()",
+                "	for f from fxs.iterator()",
                 "		f.destr()",
                 "endpackage");
     }
@@ -671,5 +685,54 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void genericForIn() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	function iterator() returns Iterator<T>",
+                "		return new Iterator<T>()",
+                "class Iterator<T>",
+                "	private int i = 0",
+                "	function next() returns T",
+                "		i = i + 1",
+                "		return i castTo T",
+                "	function hasNext() returns boolean",
+                "		return i < 10",
+                "	function close()",
+                "		destroy this",
+                "init",
+                "	let c = new C<int>",
+                "	for i in c",
+                "		if i == 5",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericForFrom() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	function iterator() returns Iterator<T>",
+                "		return new Iterator<T>()",
+                "class Iterator<T>",
+                "	private int i = 0",
+                "	function next() returns T",
+                "		i = i + 1",
+                "		return i castTo T",
+                "	function hasNext() returns boolean",
+                "		return i < 10",
+                "init",
+                "	let c = new C<int>",
+                "	let iter = c.iterator()",
+                "	for i from iter",
+                "		if i == 5",
+                "			testSuccess()"
+        );
+    }
 
 }

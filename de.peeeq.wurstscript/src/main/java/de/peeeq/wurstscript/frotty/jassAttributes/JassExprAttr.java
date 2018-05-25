@@ -6,15 +6,18 @@ import de.peeeq.wurstscript.jassAst.*;
 public class JassExprAttr {
 
     public static String getType(JassExprBinary e) {
-        if (e.getLeftExpr().getType().equals(JassConstants.TYPE_INTEGER)) {
-            return JassConstants.TYPE_INTEGER;
-        } else if (e.getLeftExpr().getType().equals(JassConstants.TYPE_REAL)) {
-            return JassConstants.TYPE_REAL;
-        } else if (e.getLeftExpr().getType().equals(JassConstants.TYPE_STRING)) {
-            return JassConstants.TYPE_STRING;
-        } else
-            JassErrors.addError("Binary Operator " + e.getOp() + " is not defined for " +
-                    "operands " + e.getLeftExpr() + " and " + e.getRight(), e.getLine());
+        switch (e.getLeftExpr().getType()) {
+            case JassConstants.TYPE_INTEGER:
+                return JassConstants.TYPE_INTEGER;
+            case JassConstants.TYPE_REAL:
+                return JassConstants.TYPE_REAL;
+            case JassConstants.TYPE_STRING:
+                return JassConstants.TYPE_STRING;
+            default:
+                JassErrors.addError("Binary Operator " + e.getOp() + " is not defined for " +
+                        "operands " + e.getLeftExpr() + " and " + e.getRight(), e.getLine());
+                break;
+        }
         return "<unknown>";
     }
 

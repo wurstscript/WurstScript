@@ -100,6 +100,8 @@ public class AttrExprType {
         if (varDefType instanceof WurstTypeArray) {
             WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
             return typ;
+        } else if (varDef.attrIsVararg()) {
+            // TODO
         } else {
             term.addError("Variable " + varDef.getName() + " is no array variable.");
         }
@@ -327,10 +329,11 @@ public class AttrExprType {
         FunctionDefinition def = term.attrFuncDef();
         if (def == null) {
             term.addError("No operator overloading function for operator " + term.getOp() +
-                    " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp().getOverloadingFuncName());
+                    " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp()
+                    .getOverloadingFuncName());
             return WurstTypeUnknown.instance();
         }
-        return def.getReturnTyp().attrTyp().dynamic();
+        return def.attrReturnTyp();
     }
 
     private static WurstType requireEqualTypes(ExprBinary term,
@@ -511,7 +514,7 @@ public class AttrExprType {
     public static WurstType calculate(ExprClosure e) {
         WurstType returnType = e.getImplementation().attrTyp();
         List<WurstType> paramTypes = Lists.newArrayList();
-        for (WParameter p : e.getParameters()) {
+        for (WShortParameter p : e.getShortParameters()) {
             paramTypes.add(p.attrTyp());
         }
         return new WurstTypeClosure(paramTypes, returnType);
@@ -562,7 +565,13 @@ public class AttrExprType {
             e.getCond().addError("Condition must be of type boolean, but found " + e.getCond().attrTyp());
         }
         WurstType tt = e.getIfTrue().attrTyp();
+        if (tt.isSubtypeOf(WurstTypeVoid.instance(), e)) {
+            e.getIfTrue().addError("Conditional expression must return a value, but result type of then-expression is void.");
+        }
         WurstType tf = e.getIfFalse().attrTyp();
+        if (tf.isSubtypeOf(WurstTypeVoid.instance(), e)) {
+            e.getIfTrue().addError("Conditional expression must return a value, but result type of else-expression is void.");
+        }
         WurstType resT = WurstTypeUnion.create(tt, tf, e);
         if (resT instanceof WurstTypeNull) {
             e.addError("Both branches of conditional expression have type null.");

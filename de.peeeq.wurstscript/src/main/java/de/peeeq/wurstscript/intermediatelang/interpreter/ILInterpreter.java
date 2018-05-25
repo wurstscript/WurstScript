@@ -1,24 +1,30 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
+import de.peeeq.wurstio.jassinterpreter.JassArray;
+import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
-public class ILInterpreter {
+public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
     private final ProgramState globalState;
 
@@ -39,13 +45,24 @@ public class ILInterpreter {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
         try {
-            String[] parameterTypes = new String[args.length];
-            for (int i = 0; i < args.length; i++) {
-                parameterTypes[i] = "" + args[i];
+            if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+                // for vararg functions, rewrite args and put last argument
+                ILconst[] newArgs = new ILconst[f.getParameters().size()];
+                for (int i = 0; i < newArgs.length - 1; i++) {
+                    newArgs[i] = args[i];
+                }
+
+                ILconst[] varargArray = new ILconst[1 + args.length - newArgs.length];
+                for (int i = newArgs.length - 1, j = 0; i < args.length; i++, j++) {
+                    varargArray[j] = args[i];
+                }
+                newArgs[newArgs.length - 1] = new VarargArray(varargArray);
+                args = newArgs;
             }
 
             if (f.getParameters().size() != args.length) {
-                throw new Error("wrong number of parameters when calling func " + f.getName());
+                throw new Error("wrong number of parameters when calling func " + f.getName() + "(" +
+                        Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")");
             }
 
             for (int i = 0; i < f.getParameters().size(); i++) {
@@ -96,7 +113,7 @@ public class ILInterpreter {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
-            err.append("at : " + new File(src.getFile()).getName() + ", line " + src.getLine() + "\n");
+            err.append("at : ").append(new File(src.getFile()).getName()).append(", line ").append(src.getLine()).append("\n");
         } catch (Exception _e) {
             // ignore
         }
@@ -122,12 +139,12 @@ public class ILInterpreter {
     }
 
     private static LocalState runBuiltinFunction(ProgramState globalState, ImFunction f, ILconst... args) {
-        String errors = "";
+        StringBuilder errors = new StringBuilder();
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
                 return new LocalState(natives.invoke(f.getName(), args));
             } catch (NoSuchNativeException e) {
-                errors += "\n" + e.getMessage();
+                errors.append("\n").append(e.getMessage());
                 // ignore
             }
         }
@@ -204,4 +221,8 @@ public class ILInterpreter {
 
     }
 
+    @Override
+    public void runFuncRef(ILconstFuncRef obj, @Nullable Element trace) {
+        runVoidFunc(obj.getFunc(), trace);
+    }
 }

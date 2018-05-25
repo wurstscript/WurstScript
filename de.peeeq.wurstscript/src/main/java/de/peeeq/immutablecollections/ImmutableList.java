@@ -124,7 +124,7 @@ public abstract class ImmutableList<T> implements Iterable<T> {
 
 class ImmutableListEmpty<T> extends ImmutableList<T> {
 
-    private final static ImmutableList<Object> instance = new ImmutableListEmpty<Object>();
+    private final static ImmutableList<Object> instance = new ImmutableListEmpty<>();
 
     @SuppressWarnings("unchecked")
     static <T> ImmutableList<T> instance() {
@@ -156,13 +156,13 @@ class ImmutableListEmpty<T> extends ImmutableList<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return new ImmutableListEmpty.MyIterator<T>();
+        return new ImmutableListEmpty.MyIterator<>();
     }
 
     @Override
     public ImmutableList<T> appFront(T elem) {
         Preconditions.checkNotNull(elem);
-        return new ImmutableListImpl<T>(elem);
+        return new ImmutableListImpl<>(elem);
     }
 
     @Override
@@ -252,13 +252,13 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
 
     @Override
     public Iterator<T> iterator() {
-        return new ImmutableListIterator<T>(this);
+        return new ImmutableListIterator<>(this);
     }
 
     @Override
     public ImmutableList<T> appFront(T elem) {
         Preconditions.checkNotNull(elem);
-        return new ImmutableListImpl<T>(elem, this);
+        return new ImmutableListImpl<>(elem, this);
     }
 
     @Override
@@ -281,7 +281,7 @@ class ImmutableListImpl<T> extends ImmutableList<T> {
         if (other.isEmpty()) {
             return this;
         } else {
-            return new ImmutableListImplCons<T, T, R>(this, other);
+            return new ImmutableListImplCons<>(this, other);
         }
     }
 
@@ -315,13 +315,13 @@ class ImmutableListImplCons<T, L extends T, R extends T> extends ImmutableList<T
 
     @Override
     public Iterator<T> iterator() {
-        return new ImmutableListIterator<T>(this);
+        return new ImmutableListIterator<>(this);
     }
 
     @Override
     public ImmutableList<T> appFront(T elem) {
         Preconditions.checkNotNull(elem);
-        return new ImmutableListImpl<T>(elem, this);
+        return new ImmutableListImpl<>(elem, this);
     }
 
     @Override
@@ -329,7 +329,7 @@ class ImmutableListImplCons<T, L extends T, R extends T> extends ImmutableList<T
         if (other.isEmpty()) {
             return this;
         } else {
-            return new ImmutableListImplCons<T, T, R2>(this, other);
+            return new ImmutableListImplCons<>(this, other);
         }
     }
 
@@ -345,7 +345,7 @@ class ImmutableListImplCons<T, L extends T, R extends T> extends ImmutableList<T
         if (leftTail.isEmpty()) {
             return (ImmutableList<T>) right;
         }
-        return new ImmutableListImplCons<T, T, R>(leftTail, right);
+        return new ImmutableListImplCons<>(leftTail, right);
     }
 
     @Override

@@ -64,4 +64,7 @@ public class StmtTranslation {
                 s.getRight().translateToLua(tr)));
     }
 
+    public static void translate(ImVarargLoop imVarargLoop, List<LuaStatement> res, LuaTranslator tr) {
+        throw new Error("not implemented");
+    }
 }

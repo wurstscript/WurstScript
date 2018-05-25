@@ -82,12 +82,10 @@ public class GenerateBotData {
 
         model.accept(new WurstModel.DefaultVisitor() {
 
-            @Override
-            public void visit(ClassDef classDef) {
-            }
 
             @Override
             public void visit(ConstructorDef f) {
+                super.visit(f);
                 StructureDef struct = f.attrNearestStructureDef();
                 assert struct != null; // because constructors can only appear
                 // inside a StructureDef
@@ -106,21 +104,25 @@ public class GenerateBotData {
 
             @Override
             public void visit(ExtensionFuncDef f) {
+                super.visit(f);
                 sigs.add(new Sig(f.getName(), FunctionSignature.forFunctionDefinition(f)));
             }
 
             @Override
             public void visit(FuncDef f) {
+                super.visit(f);
                 sigs.add(new Sig(f.getName(), FunctionSignature.forFunctionDefinition(f)));
             }
 
             @Override
             public void visit(TupleDef f) {
+                super.visit(f);
                 sigs.add(new Sig(f.getName(), FunctionSignature.forFunctionDefinition(f)));
             }
 
             @Override
             public void visit(NativeFunc f) {
+                super.visit(f);
                 sigs.add(new Sig(f.getName(), FunctionSignature.forFunctionDefinition(f)));
             }
 

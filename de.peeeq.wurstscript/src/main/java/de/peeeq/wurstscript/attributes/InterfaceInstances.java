@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -22,6 +23,11 @@ public class InterfaceInstances {
         for (TypeExpr t : c.getImplementsList()) {
             addInterface(result, t, null);
         }
+
+        if (c.getExtendedClass() instanceof TypeExpr) {
+            addInterfacesFromExtends(result, ((TypeExpr) c.getExtendedClass()));
+        }
+
         return result.build();
     }
 
@@ -50,5 +56,18 @@ public class InterfaceInstances {
             t.addError(Utils.printElement(t) + " is not an interface.");
         }
     }
+
+    private static void addInterfacesFromExtends(Builder<WurstTypeInterface> result, TypeExpr t) {
+        if (t.attrTyp() instanceof WurstTypeClass) {
+            WurstTypeClass wtc = (WurstTypeClass) t.attrTyp();
+            ClassDef c = wtc.getClassDef();
+            Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds = wtc.getTypeArgBinding();
+            for (WurstTypeInterface i2 : c.attrImplementedInterfaces()) {
+                result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
+            }
+        }
+    }
+
+
 
 }

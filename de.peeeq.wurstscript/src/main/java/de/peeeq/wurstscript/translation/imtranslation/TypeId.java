@@ -1,22 +1,46 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.ImProg;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class TypeId {
+
+    // sort classes by name to get deterministic order
+    private static final Comparator<ImClass> class_comparator =
+            Comparator.comparing(ImClass::getName)
+                    .thenComparing(TypeId::packageName);
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();
         Map<ImClass, Integer> result = Maps.newLinkedHashMap();
-        assignIds(count, result, prog.getClasses());
+
+        List<ImClass> classes = prog.getClasses().stream()
+                .sorted(class_comparator)
+                .collect(Collectors.toList());
+        assignIds(count, result, classes);
         return result;
+    }
+
+    private static String packageName(ImClass ic) {
+        Element c = ic.attrTrace();
+        @Nullable PackageOrGlobal nearestPackage = c.attrNearestPackage();
+        if (nearestPackage instanceof WPackage) {
+            return ((WPackage) nearestPackage).getName();
+        }
+        return "global";
     }
 
     private static void assignIds(AtomicInteger count, Map<ImClass, Integer> result,
@@ -32,11 +56,11 @@ public class TypeId {
     }
 
     private static Multimap<ImClass, ImClass> calculateSubclasses(List<ImClass> classes) {
-        Multimap<ImClass, ImClass> subClasses = HashMultimap.create();
+        Multimap<ImClass, ImClass> subClasses = LinkedHashMultimap.create();
         for (ImClass c : classes) {
-            for (ImClass superClass : c.getSuperClasses()) {
-                subClasses.put(superClass, c);
-            }
+            c.getSuperClasses().stream().sorted(class_comparator).forEach(superClass ->
+                    subClasses.put(superClass, c)
+            );
         }
         return subClasses;
     }

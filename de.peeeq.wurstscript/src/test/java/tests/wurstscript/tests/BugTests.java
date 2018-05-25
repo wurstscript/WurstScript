@@ -3,8 +3,8 @@ package tests.wurstscript.tests;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WurstModel;
-import org.junit.Assert;
-import org.junit.Test;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -829,6 +829,7 @@ public class BugTests extends WurstScriptTest {
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(ClassDef c) {
+                super.visit(c);
                 Assert.assertEquals(2, c.getSource().getLine());
             }
         });
@@ -836,6 +837,7 @@ public class BugTests extends WurstScriptTest {
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
             public void visit(FuncDef funcDef) {
+                super.visit(funcDef);
                 Assert.assertEquals(3, funcDef.getSource().getLine());
             }
         });
@@ -892,5 +894,37 @@ public class BugTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void extensionMethodStatic() { // See #614
+        testAssertErrorsLines(true, "Reference to A can only be used for calling static methods, but not for calling extension method method 'bar'.",
+                "package Test",
+                "native testSuccess()",
+                "abstract class A",
+                "    abstract function foo()",
+                "public function A.bar(A listener) returns A",
+                "    return listener",
+                "init",
+                "    let a = A.bar(() -> testSuccess())",
+                "    a.foo()",
+                ""
+        );
+
+    }
+
+    @Test
+    public void testCyclicDependencyError() {
+        testAssertErrorsLines(true, "type may not depend on each other",
+                "package Test",
+                "native testSuccess()",
+                "function foo() returns bool",
+                "    var x = 0",
+                "    for x in x",
+                "        sum += i",
+                "    return true",
+                "init",
+                "    if foo()",
+                "        testSuccess()"
+        );
+    }
 
 }

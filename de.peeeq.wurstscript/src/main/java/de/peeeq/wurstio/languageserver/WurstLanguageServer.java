@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.languageserver;
 
-import de.peeeq.wurstio.Main;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -9,12 +8,13 @@ import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
-import java.io.IOException;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.FileHandler;
-import java.util.logging.SimpleFormatter;
 
 /**
  *
@@ -26,8 +26,13 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        System.err.println("initializing ");
+        System.err.println("initializing workspace");
         setupLogger();
+        try {
+            System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            System.err.println("Your JVM doesn't support UTF-8 encoding. Output defaults to system encoding.");
+        }
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
         languageWorker.setRootPath(rootUri);
@@ -40,6 +45,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setReferencesProvider(true);
         capabilities.setExecuteCommandProvider(new ExecuteCommandOptions(WurstCommands.providedCommands()));
+        capabilities.setRenameProvider(true);
 
 
         capabilities.setTextDocumentSync(Either.forLeft(TextDocumentSyncKind.Full));
@@ -50,25 +56,13 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
         InitializeResult res = new InitializeResult(capabilities);
         WLogger.info("initialization done: " + params.getRootUri());
+        System.err.println("initialization done!");
         return CompletableFuture.completedFuture(res);
     }
 
-
-
-    private void setupLogger()  {
-        Main.setUpFileLogging("wurst_langserver");
-        System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tY-%1$tm-%1$td %1$tH:%1$tM:%1$tS %4$-6s %2$s %5$s%6$s%n");
-
-        try {
-            FileHandler handler = new FileHandler("%t/wurst/wurst_langserver%g.log", Integer.MAX_VALUE, 20);
-            handler.setFormatter(new SimpleFormatter());
-            WLogger.setHandler(handler);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not setup logging!");
-        }
+    private void setupLogger() {
+        WLogger.setLogger("languageServer");
     }
-
-
 
     @Override
     public CompletableFuture<Object> shutdown() {

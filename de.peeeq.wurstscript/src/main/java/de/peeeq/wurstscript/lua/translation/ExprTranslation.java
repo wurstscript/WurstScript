@@ -89,12 +89,15 @@ public class ExprTranslation {
             ImExpr arg = e.getArguments().get(0);
             LuaExpr argT = arg.translateToLua(tr);
             LuaOpUnary op;
-            if (e.getOp() == WurstOperator.NOT) {
-                op = LuaAst.LuaOpNot();
-            } else if (e.getOp() == WurstOperator.UNARY_MINUS) {
-                op = LuaAst.LuaOpMinus();
-            } else {
-                throw new Error("not implemented: unary operator " + e.getOp());
+            switch (e.getOp()) {
+                case NOT:
+                    op = LuaAst.LuaOpNot();
+                    break;
+                case UNARY_MINUS:
+                    op = LuaAst.LuaOpMinus();
+                    break;
+                default:
+                    throw new Error("not implemented: unary operator " + e.getOp());
             }
             return LuaAst.LuaExprUnary(op, argT);
 

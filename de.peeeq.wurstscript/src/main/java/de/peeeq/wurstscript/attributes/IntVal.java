@@ -15,12 +15,11 @@ public class IntVal {
             } else if (raw.startsWith("$")) {
                 return Utils.parseHexInt(raw, 1);
             } else if (raw.startsWith("'")) {
-                if (raw.length() == 1 + 2) {
-                    return Utils.parseAsciiInt1(raw);
-                } else if (raw.length() == 4 + 2) {
-                    return Utils.parseAsciiInt4(raw);
-                } else {
-                    i.addError("Asii ints must have 4 or 1 characters but fount " + (raw.length() - 2) + " characters.");
+                try {
+                    return Utils.parseAsciiInt(raw);
+                } catch (NumberFormatException e) {
+                    i.addError(e.getMessage());
+                    return 0;
                 }
             }
         } catch (NumberFormatException e) {

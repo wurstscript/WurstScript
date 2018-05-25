@@ -54,36 +54,22 @@ public class ErrorReportingIO extends ErrorReporting {
             final boolean results[] = new boolean[3];
             Thread threads[] = new Thread[4];
 
-            threads[0] = new Thread() {
-                public void run() {
-                    results[0] = sendErrorReport(t, "");
+            threads[0] = new Thread(() -> results[0] = sendErrorReport(t, ""));
+
+            threads[1] = new Thread(() -> results[1] = sendErrorReport(t, "\n\nLog: \n\n" + WLogger.getLog()));
+
+            threads[2] = new Thread(() -> {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
                 }
-            };
+                results[1] = sendErrorReport(t, "\n\nSource Code: \n\n" + sourcecode);
+            });
 
-            threads[1] = new Thread() {
-                public void run() {
-                    results[1] = sendErrorReport(t, "\n\nLog: \n\n" + WLogger.getLog());
-                }
-            };
-
-            threads[2] = new Thread() {
-                public void run() {
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException e) {
-                    }
-                    results[1] = sendErrorReport(t, "\n\nSource Code: \n\n" + sourcecode);
-                }
-            };
-
-            threads[3] = new Thread() {
-                public void run() {
-                    String customMessage = showMultilineMessageDialog();
-                    results[2] = sendErrorReport(t, "Custom message:\n\n" + customMessage);
-                }
-
-
-            };
+            threads[3] = new Thread(() -> {
+                String customMessage = showMultilineMessageDialog();
+                results[2] = sendErrorReport(t, "Custom message:\n\n" + customMessage);
+            });
 
             for (Thread tr : threads) {
                 tr.start();

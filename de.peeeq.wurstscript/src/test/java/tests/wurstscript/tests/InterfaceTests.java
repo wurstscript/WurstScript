@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class InterfaceTests extends WurstScriptTest {
 
@@ -485,6 +485,23 @@ public class InterfaceTests extends WurstScriptTest {
                 "	class C implements I",
                 "		function foo(string x)",
                 "		function foo(int x, int y)",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testInterfaceDefaultImpl() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	interface I",
+                "		function foo(int x) returns int",
+                "			return x + 42",
+                "	class C implements I",
+                "	init",
+                "		I i = new C()",
+                "		if i.foo(1) == 43",
+                "			testSuccess()",
                 "endpackage"
         );
     }

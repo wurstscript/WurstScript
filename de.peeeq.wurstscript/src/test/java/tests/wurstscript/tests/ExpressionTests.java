@@ -1,7 +1,7 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.UtilsIO;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 public class ExpressionTests extends WurstScriptTest {
 
@@ -265,6 +265,20 @@ public class ExpressionTests extends WurstScriptTest {
                 "class A",
                 "init",
                 "	let a = 1<3 ? null : null"
+        );
+    }
+
+    @Test
+    public void conditionalExpr_voidFail() {
+        testAssertErrorsLines(false, "Conditional expression must return a value, but result type of then-expression is void.",
+                "type filter extends handle",
+                "package test",
+                "native Filter(code c) returns filter",
+                "function foo()",
+                "function bar() returns boolean",
+                "    return false",
+                "init",
+                "    let f = Filter(() -> true ? foo() : bar())"
         );
     }
 

@@ -73,21 +73,12 @@ public class GlobalsInliner {
         obsoleteCount += obsoleteVars.size();
         for (ImVar i : obsoleteVars) {
             // remove the write
-            ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
-//			WLogger.info("obsolete var: " + i + " written in " + write);
-//			WLogger.info("parent" + write.getParent());
-            if (write.getParent() != null) {
-                write.replaceBy(write.getRight().copy());
+            if(i.attrWrites().size() > 0) {
+                ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
+                if (write.getParent() != null) {
+                    write.replaceBy(write.getRight().copy());
+                }
             }
-//			if (write.getParent() instanceof ImStmts) {
-//				ImStmts stmts = (ImStmts) write.getParent();
-//				WLogger.info("removing write " + write);
-//				stmts.remove(write);
-//			} else {
-//				if (write.getParent() != null) {
-//					throw new Error("unexpected parent: " + write.getParent());
-//				}
-//			}
         }
         prog.getGlobals().removeAll(obsoleteVars);
     }

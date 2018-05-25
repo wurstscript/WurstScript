@@ -15,6 +15,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 
@@ -35,7 +36,7 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 
         BufferedImage image = null;
         try {
-            image = ImageIO.read(getClass().getClassLoader().getResource("wurst.png"));
+            image = ImageIO.read(getClass().getClassLoader().getResource("icon.png"));
         } catch (IOException e) {
             WLogger.severe(e);
         }
@@ -57,7 +58,7 @@ public class WurstStatusWindow extends javax.swing.JFrame {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-        title.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        title.setFont(new java.awt.Font("Tahoma", Font.BOLD, 12)); // NOI18N
         title.setText("WurstScript");
 
         currentStatus.setDoubleBuffered(true);

@@ -1,6 +1,8 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.ModuleInstanciations;
+import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -51,4 +53,17 @@ public interface ModelManager {
     WurstModel getModel();
 
     boolean hasErrors();
+
+    static WurstModel copy(WurstModel model) {
+        WurstModel m = model.copy();
+        // clear all module instantiations, since they might include old stuff
+        m.accept(new WurstModel.DefaultVisitor() {
+            @Override
+            public void visit(ModuleInstanciations mis) {
+                super.visit(mis);
+                mis.clear();
+            }
+        });
+        return m;
+    }
 }

@@ -121,6 +121,7 @@ public class ImInliner {
             s.accept(new ImStmt.DefaultVisitor() {
                 @Override
                 public void visit(ImFunctionCall called) {
+                    super.visit(called);
                     // we have another call to this function, so increment the count
                     incCallCount(called.getFunc());
                 }
@@ -287,6 +288,7 @@ public class ImInliner {
         s.accept(new ImStmt.DefaultVisitor() {
             @Override
             public void visit(ImReturn rs) {
+                super.visit(rs);
                 r[0] = true;
             }
         });

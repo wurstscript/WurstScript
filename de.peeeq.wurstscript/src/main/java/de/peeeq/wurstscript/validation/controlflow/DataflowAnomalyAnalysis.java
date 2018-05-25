@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstTypeArray;
-import de.peeeq.wurstscript.utils.Function2;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -27,12 +26,7 @@ class VarStates {
     }
 
     VarStates merge(VarStates other) {
-        ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, new Function2<VState, VState, VState>() {
-            @Override
-            public VState apply(VState a1, VState a2) {
-                return a1.merge(a2);
-            }
-        });
+        ImmutableMap<LocalVarDef, VState> merged = Utils.mergeMaps(states, other.states, VState::merge);
         return new VarStates(merged);
     }
 
@@ -127,7 +121,7 @@ class VarStates {
         StringBuilder sb = new StringBuilder("VarStates [");
         for (Entry<LocalVarDef, VState> e : this.states.entrySet()) {
             sb.append("\n\t");
-            sb.append(e.getKey().getName() + " -> " + e.getValue());
+            sb.append(e.getKey().getName()).append(" -> ").append(e.getValue());
 
         }
         sb.append("]");
@@ -213,7 +207,7 @@ class VState {
         StringBuilder sb = new StringBuilder("VState [ " + this.mightBeUninitialized + ", ");
         for (Entry<WStatement, Element> e : this.writesAndReads.entries()) {
             sb.append("\n\t\t");
-            sb.append(e.getKey().attrSource().getLine() + " -> " + e.getValue().attrSource().getLine());
+            sb.append(e.getKey().attrSource().getLine()).append(" -> ").append(e.getValue().attrSource().getLine());
         }
         sb.append("]");
         return sb.toString();

@@ -34,9 +34,8 @@ public class ImHelper {
         if (t instanceof ImArrayType) {
             return JassIm.ImArrayType(((ImArrayType) t).getTypename());
         } else if (t instanceof ImArrayTypeMulti) {
-            ArrayList<Integer> nsize = new ArrayList<>();
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
-            nsize.addAll(mat.getArraySize());
+            ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
             nsize.add(8192);
             return JassIm.ImArrayTypeMulti(mat.getTypename(), nsize);
         }
@@ -54,6 +53,7 @@ public class ImHelper {
 
             @Override
             ImVar getReplaceVar(ImVar v) {
+                super.visit(v);
                 return v == oldVar ? newVar : null;
             }
         });
@@ -64,6 +64,7 @@ public class ImHelper {
         s.accept(new VarReplaceVisitor() {
             @Override
             ImVar getReplaceVar(ImVar v) {
+                super.visit(v);
                 return substitutions.get(v);
             }
         });
@@ -75,6 +76,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetTuple e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -83,6 +85,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetArray e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -91,6 +94,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSetArrayTuple e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -100,12 +104,14 @@ public class ImHelper {
 
         @Override
         public void visit(ImVars imVars) {
+            super.visit(imVars);
             // TODO ?
         }
 
 
         @Override
         public void visit(ImVarArrayAccess e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getVar());
             if (newVar != null) {
                 e.setVar(newVar);
@@ -116,6 +122,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImVarAccess e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getVar());
             if (newVar != null) {
                 e.setVar(newVar);
@@ -125,6 +132,7 @@ public class ImHelper {
 
         @Override
         public void visit(ImSet e) {
+            super.visit(e);
             ImVar newVar = getReplaceVar(e.getLeft());
             if (newVar != null) {
                 e.setLeft(newVar);
@@ -134,12 +142,14 @@ public class ImHelper {
 
         @Override
         public void visit(ImStringVal imStringVal) {
+            super.visit(imStringVal);
             // TODO Auto-generated method stub
 
         }
 
         @Override
         public void visit(ImNoExpr imNoExpr) {
+            super.visit(imNoExpr);
             // TODO Auto-generated method stub
 
         }
@@ -161,14 +171,15 @@ public class ImHelper {
 
     public static ImExpr defaultValueForType(ImSimpleType t) {
         String type = t.getTypename();
-        if (type.equals("integer")) {
-            return JassIm.ImIntVal(0);
-        } else if (type.equals("boolean")) {
-            return JassIm.ImBoolVal(false);
-        } else if (type.equals("real")) {
-            return JassIm.ImRealVal("0.");
-        } else {
-            return JassIm.ImNull();
+        switch (type) {
+            case "integer":
+                return JassIm.ImIntVal(0);
+            case "boolean":
+                return JassIm.ImBoolVal(false);
+            case "real":
+                return JassIm.ImRealVal("0.");
+            default:
+                return JassIm.ImNull();
         }
     }
 

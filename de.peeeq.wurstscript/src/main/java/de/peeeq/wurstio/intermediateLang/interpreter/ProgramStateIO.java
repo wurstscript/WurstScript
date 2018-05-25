@@ -10,13 +10,14 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImStmt;
+import net.moonlightflower.wc3libs.txt.WTS;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ProgramStateIO extends ProgramState {
@@ -28,7 +29,7 @@ public class ProgramStateIO extends ProgramState {
     private int id = 0;
     private final Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
     private PrintStream outStream = System.err;
-    private @Nullable Map<Integer, String> trigStrings = null;
+    private @Nullable WTS trigStrings = null;
     private final @Nullable File mapFile;
 
     public ProgramStateIO(@Nullable File mapFile, @Nullable MpqEditor mpqEditor, WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -53,20 +54,20 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private String getTrigString(int id) {
-        return loadTrigStrings().getOrDefault(id, "");
+        return loadTrigStrings().getEntry(id);
     }
 
-    private Map<Integer, String> loadTrigStrings() {
-        Map<Integer, String> res = trigStrings;
+    private WTS loadTrigStrings() {
+        WTS res = trigStrings;
         if (res != null) {
             return res;
         }
         try {
             byte[] wts = mpqEditor.extractFile("war3map.wts");
-            res = WTSFile.parse(wts);
+            res = new WTS(new ByteArrayInputStream(wts));
         } catch (Exception e) {
             // dummy result
-            res = new LinkedHashMap<>();
+            res = new WTS();
             WLogger.warning("Could not load trigger strings");
             WLogger.info(e);
         }
@@ -234,7 +235,9 @@ public class ProgramStateIO extends ProgramState {
 
     private @Nullable File getObjectEditingOutputFolder() {
         if (mapFile == null) {
-            return null;
+            File folder = new File("_build", "objectEditingOutput");
+            folder.mkdirs();
+            return folder;
         }
         File folder = new File(mapFile.getParent(), "objectEditingOutput");
         if (!folder.exists() && !folder.mkdirs()) {

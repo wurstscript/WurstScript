@@ -23,14 +23,10 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
             if (method.getName().equals(funcname)) {
                 // this is a candidate as it has the correct name
                 candidate = method;
-                Object r = null;
+                Object r;
                 try {
                     if (args.length != method.getParameterTypes().length) {
-                        continue nextMethod;
-//						throw new Error("Wrong number of parameters when calling " +funcname+
-//								" . Expected " +
-//								method.getParameterTypes().length + " but found " +
-//								args.length);
+                        continue;
                     }
                     int i = 0;
                     for (Class<?> paramType : method.getParameterTypes()) {
@@ -51,10 +47,6 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
                 }
                 return (ILconst) r;
             }
-        }
-        String[] parameterTypes = new String[args.length];
-        for (int i = 0; i < args.length; i++) {
-            parameterTypes[i] = "" + args[i];
         }
         String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";

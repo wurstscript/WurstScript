@@ -68,7 +68,7 @@ public class OverrideUtils {
             argFromIndexFuncs.add(null);
         }
 
-        WurstType retType = superMethod.getReturnTyp().attrTyp();
+        WurstType retType = superMethod.attrReturnTyp();
         if (retType instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam bt = (WurstTypeTypeParam) retType;
             TypeParamDef tpDef = bt.getDef();

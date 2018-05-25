@@ -9,10 +9,9 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.TempDir;
 
 import javax.swing.*;
-import java.io.ByteArrayInputStream;
-import java.io.EOFException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.LinkedList;
 
@@ -158,27 +157,23 @@ public class ImportFile {
     private static void insertImportedFiles(MpqEditor mpq, File directory) throws Exception {
         LinkedList<File> files = new LinkedList<>();
         getFilesOfDirectory(directory, files);
-        File temp = null;
-        try {
-            temp = File.createTempFile("import", "imp", TempDir.get());
-            temp.deleteOnExit();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // TODO directly write to byte array instead of temp file 
-        BinFileWriter writer = new BinFileWriter(temp);
-        writer.writeInt(FILE_VERSION);
-        writer.writeInt(files.size());
+
+        ByteArrayOutputStream byteOut = new ByteArrayOutputStream();
+        DataOutputStream dataOut = new DataOutputStream(byteOut);
+        dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(FILE_VERSION).array());
+        dataOut.write(ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(files.size()).array());
         for (File f : files) {
             Path p = f.toPath();
             p = directory.toPath().relativize(p);
-            writer.writeByte((byte) 13);
-            writer.writeString(p.toString());
-            WLogger.info("importing file: " + p.toString());
-            mpq.insertFile(p.toString(), Files.toByteArray(f));
+            String normalizedWc3Path = p.toString().replaceAll("/", "\\\\");
+            dataOut.writeByte((byte) 13);
+            dataOut.write(normalizedWc3Path.getBytes("UTF-8"));
+            dataOut.write((byte) 0);
+            WLogger.info("importing file: " + normalizedWc3Path);
+            mpq.insertFile(normalizedWc3Path, f);
         }
-        writer.close();
-        mpq.insertFile("war3map.imp", Files.toByteArray(temp));
+        dataOut.flush();
+        mpq.insertFile("war3map.imp", byteOut.toByteArray());
     }
 
     public static void importFilesFromImportDirectory(File mapFile, MpqEditor ed) {
@@ -190,7 +185,7 @@ public class ImportFile {
                 insertImportedFiles(ed, importDirectory);
             } catch (Exception e) {
                 WLogger.severe(e);
-                JOptionPane.showMessageDialog(null, "Could import objects from " + importDirectory + ": " + e.getMessage());
+                JOptionPane.showMessageDialog(null, "Couldn't import resources from " + importDirectory + ": " + e.getMessage());
             }
         }
     }

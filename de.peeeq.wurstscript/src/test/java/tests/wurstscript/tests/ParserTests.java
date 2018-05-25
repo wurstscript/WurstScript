@@ -5,11 +5,11 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.StringReader;
 
-import static org.junit.Assert.assertEquals;
+import static org.testng.Assert.assertEquals;
 
 public class ParserTests extends WurstScriptTest {
 
@@ -92,6 +92,17 @@ public class ParserTests extends WurstScriptTest {
                 "        x -= 1",
                 "        y += 1",
                 "	 x += 1");
+    }
+
+    @Test
+    public void charAndFourChar() {
+        testAssertOkLines(false,
+                "package Test",
+                "function bar(int a0,int a1)",
+                "",
+                "function foo()",
+                "    bar((']'),'hfoo')",
+                "");
     }
 
     @Test

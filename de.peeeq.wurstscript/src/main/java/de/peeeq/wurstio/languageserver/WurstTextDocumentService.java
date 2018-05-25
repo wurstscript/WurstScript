@@ -20,8 +20,9 @@ public class WurstTextDocumentService implements TextDocumentService {
         this.worker = worker;
     }
 
+
     @Override
-    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(TextDocumentPositionParams position) {
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams position) {
         WLogger.info("completion");
         return worker.handle(new GetCompletions(position, worker.getBufferManager())).thenApply(Either::forRight);
     }
@@ -114,7 +115,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
         WLogger.info("rename");
-        return null;
+        return worker.handle(new RenameRequest(params, worker.getBufferManager()));
     }
 
     @Override

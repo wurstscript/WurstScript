@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.antlr.v4.runtime.*;
-import org.antlr.v4.runtime.misc.NotNull;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -66,7 +65,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
     public ExtendedWurstLexer(CharStream input) {
         orig = new WurstLexer(input);
-        sourcePair = new Pair<TokenSource, CharStream>(orig, input);
+        sourcePair = new Pair<>(orig, input);
         indentationLevels.push(0);
     }
 
@@ -101,7 +100,7 @@ public class ExtendedWurstLexer implements TokenSource {
         Token t = nextTokenIntern();
         lastToken = t;
 
-        if (debug) WLogger.info("		new token: " + t);
+        if (debug) WLogger.trace("		new token: " + t);
         return t;
     }
 
@@ -147,7 +146,14 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
             if (token.getType() == WurstParser.NL) {
-                lineOffsets.set(token.getLine(), token.getStopIndex());
+                int line = 0;
+                for (int i = 0; i < token.getText().length(); i++) {
+                    char c = token.getText().charAt(i);
+                    if (c == '\n') {
+                        lineOffsets.set(token.getLine() + line, token.getStartIndex()+i);
+                        line++;
+                    }
+                }
             }
 
             if (token.getType() == WurstParser.EOF) {
@@ -159,6 +165,8 @@ public class ExtendedWurstLexer implements TokenSource {
                     nextTokens.add(makeToken(WurstParser.ENDPACKAGE, "endpackage", token.getStartIndex(), token.getStopIndex()));
                     nextTokens.add(makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
                 }
+
+                lineOffsets.set(token.getLine(), token.getStopIndex()+1);
                 // add a single newline
                 return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
             }
@@ -183,7 +191,7 @@ public class ExtendedWurstLexer implements TokenSource {
                 case NEWLINES:
                     if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
-                        lastCharWasWrap = true;
+                        lastCharWasWrap = isWrapChar(token.getType());
                         state(State.INIT);
                         return token;
                     } else if (token.getType() == WurstParser.NL) {
@@ -229,7 +237,7 @@ public class ExtendedWurstLexer implements TokenSource {
                         state(State.NEWLINES);
                     } else if (isWrapCharBeginLine(token.getType())) {
                         // ignore all the newlines when a wrap char comes after newlines
-                        lastCharWasWrap = true;
+                        lastCharWasWrap = isWrapChar(token.getType());
                         state(State.INIT);
                         return token;
                     } else {
@@ -341,7 +349,7 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.MOD_REAL:
             case WurstParser.AND:
             case WurstParser.OR:
-            case WurstParser.ARROW:
+//            case WurstParser.ARROW:
             case WurstParser.QUESTION:
             case WurstParser.COLON:
                 return true;
@@ -367,6 +375,7 @@ public class ExtendedWurstLexer implements TokenSource {
             case WurstParser.BRACKET_RIGHT:
             case WurstParser.DOT:
             case WurstParser.DOTDOT:
+            case WurstParser.BEGIN:
                 return true;
             default:
                 return isWrapChar(type);
@@ -374,8 +383,7 @@ public class ExtendedWurstLexer implements TokenSource {
     }
 
 
-    private @NotNull
-    Token makeToken(int type, String text, int start, int stop) {
+    private Token makeToken(int type, String text, int start, int stop) {
         Pair<TokenSource, CharStream> source = sourcePair;
         int channel = 0;
         CommonToken t = new CommonToken(source, type, channel, start, stop);

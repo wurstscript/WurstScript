@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,12 @@ public class EliminateClasses {
                 methods);
 
 
-        List<FunctionFlag> flags = Collections.emptyList();
+        List<FunctionFlag> flags = new ArrayList<>();
+        if (m.getImplementation().hasFlag(FunctionFlagEnum.IS_VARARG)) {
+            // if implementation has varargs, dispatch also needs varargs
+            flags.add(FunctionFlagEnum.IS_VARARG);
+        }
+
         ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), m
                 .getImplementation().getParameters().copy(), m
                 .getImplementation().getReturnType(), JassIm.ImVars(), JassIm
@@ -246,36 +252,43 @@ public class EliminateClasses {
         f.getBody().accept(new ImStmts.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
+                super.visit(e);
                 mas.add(e);
             }
 
             @Override
             public void visit(ImMethodCall e) {
+                super.visit(e);
                 mcs.add(e);
             }
 
             @Override
             public void visit(ImAlloc e) {
+                super.visit(e);
                 allocs.add(e);
             }
 
             @Override
             public void visit(ImDealloc e) {
+                super.visit(e);
                 deallocs.add(e);
             }
 
             @Override
             public void visit(ImInstanceof e) {
+                super.visit(e);
                 instaneofs.add(e);
             }
 
             @Override
             public void visit(ImTypeIdOfClass e) {
+                super.visit(e);
                 typeIdClasses.add(e);
             }
 
             @Override
             public void visit(ImTypeIdOfObj e) {
+                super.visit(e);
                 typeIdObjs.add(e);
             }
         });

@@ -21,7 +21,7 @@ public class ILStackFrame {
 
     public String getMessage() {
         StringBuilder sb = new StringBuilder();
-        sb.append("... when calling " + f.getName() + "(");
+        sb.append("... when calling ").append(f.getName()).append("(");
         boolean first = true;
         for (ILconst arg : args) {
             if (!first) {
@@ -34,7 +34,7 @@ public class ILStackFrame {
 
         if (trace != null) {
             String file = new File(trace.getFile()).getName();
-            sb.append(" in " + file + ":" + trace.getLine());
+            sb.append(" in ").append(file).append(":").append(trace.getLine());
         }
 
         return sb.toString();

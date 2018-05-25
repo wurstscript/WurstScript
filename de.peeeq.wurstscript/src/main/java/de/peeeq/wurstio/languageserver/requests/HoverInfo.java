@@ -74,7 +74,7 @@ public class HoverInfo extends UserRequest<Hover> {
             }
 
             String params = getParameterString(f);
-            String returnTypeHtml = type(f.getReturnTyp().attrTyp());
+            String returnTypeHtml = type(f.attrReturnTyp());
             String functionDescription = "";
 
             String funcName = f.getName();
@@ -388,6 +388,8 @@ public class HoverInfo extends UserRequest<Hover> {
             return description(moduleUse.attrModuleDef());
         }
 
+
+
         @Override
         public List<Either<String, MarkedString>> case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
             return description(exprFunctionCall);
@@ -445,6 +447,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ModuleInstanciations(ModuleInstanciations moduleInstanciations) {
             return string("List of module instantiations.");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_WShortParameters(WShortParameters wShortParameters) {
+            return string("Parameters of anonymous function.");
         }
 
         @Override
@@ -692,6 +699,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ModVararg(ModVararg modVararg) {
+            return string("Declares the parameter to be a array of variable length");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_TypeExprResolved(TypeExprResolved typeExprResolved) {
             return typeExpr(typeExprResolved);
         }
@@ -769,6 +781,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_WParameter(WParameter wParameter) {
             return description(wParameter);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_WShortParameter(WShortParameter wShortParameter) {
+            return description(wShortParameter);
         }
 
         @Override

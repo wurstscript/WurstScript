@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -135,6 +135,5 @@ public class ExtensionMethodsTests extends WurstScriptTest {
                 "endpackage"
         );
     }
-
 
 }

@@ -36,11 +36,13 @@ public class StackTraceInjector {
 
             @Override
             public void visit(ImGetStackTrace e) {
+                super.visit(e);
                 stackTraceGets.put(e.getNearestFunc(), e);
             }
 
             @Override
             public void visit(ImFunctionCall c) {
+                super.visit(c);
                 calls.put(c.getFunc(), c);
                 ImFunction caller = c.getNearestFunc();
                 callRelation.put(caller, c.getFunc());
@@ -48,6 +50,7 @@ public class StackTraceInjector {
 
             @Override
             public void visit(ImFuncRef imFuncRef) {
+                super.visit(imFuncRef);
                 funcRefs.add(imFuncRef);
             }
         });

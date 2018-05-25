@@ -2,14 +2,12 @@ package de.peeeq.wurstio.mpq;
 
 import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.TempDir;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.JMpqException;
 import systems.crigges.jmpq3.MPQOpenOption;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 class Jmpq3BasedEditor implements MpqEditor {
@@ -33,12 +31,17 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
-        File temp = File.createTempFile("peq", "wurst", TempDir.get());
-        temp.deleteOnExit();
-        FileOutputStream fos = new FileOutputStream(temp);
-        fos.write(contents);
-        fos.close();
-        getEditor().insertFile(filenameInMpq, temp, false);
+        getEditor().insertByteArray(filenameInMpq, contents);
+    }
+
+    @Override
+    public void insertFile(String filenameInMpq, File contents) throws Exception {
+        getEditor().insertFile(filenameInMpq, contents, false);
+    }
+
+    @Override
+    public boolean canWrite() {
+        return editor.isCanWrite();
     }
 
     @Override

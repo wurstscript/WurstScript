@@ -13,7 +13,7 @@ final public class Pair<A, B> {
     }
 
     static public <A, B> Pair<A, B> create(A a, B b) {
-        return new Pair<A, B>(a, b);
+        return new Pair<>(a, b);
     }
 
     public A getA() {

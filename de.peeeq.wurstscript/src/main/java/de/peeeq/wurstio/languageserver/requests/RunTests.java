@@ -2,7 +2,8 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.CompiletimeFunctionRunner;
+import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
@@ -22,11 +23,11 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.List;
 import java.util.concurrent.*;
+
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 /**
  * Created by peter on 05.05.16.
@@ -40,7 +41,10 @@ public class RunTests extends UserRequest<Object> {
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
 
+    private static final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+
     static public class TestFailure {
+
         private ImFunction function;
         private final StackTrace stackTrace;
         private final String message;
@@ -72,6 +76,7 @@ public class RunTests extends UserRequest<Object> {
             stackTrace.appendTo(s);
             return s.toString();
         }
+
     }
 
     public RunTests(String filename, int line, int column) {
@@ -103,6 +108,7 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public static class TestResult {
+
         private final int passedTests;
         private final int totalTests;
 
@@ -118,15 +124,28 @@ public class RunTests extends UserRequest<Object> {
         public int getTotalTests() {
             return totalTests;
         }
+
     }
 
     public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
         WurstGui gui = new TestGui();
-        ProgramState globalState = new ProgramState(gui, imProg, true);
-        ILInterpreter interpreter = new ILInterpreter(null, gui, null, globalState);
-        interpreter.addNativeProvider(new NativeFunctionsIO());
+
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        ILInterpreter interpreter = cfr.getInterpreter();
+        ProgramState globalState = cfr.getGlobalState();
+        if (globalState == null) {
+            globalState = new ProgramState(gui, imProg, true);
+        }
+        if (interpreter == null) {
+            interpreter = new ILInterpreter(imProg, gui, null, globalState);
+            interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
+        }
 
         redirectInterpreterOutput(globalState);
+
+        // first run compiletime functions
+        cfr.run();
+        WLogger.info("Ran compiletime functions");
 
 
         for (ImFunction f : imProg.getFunctions()) {
@@ -141,19 +160,20 @@ public class RunTests extends UserRequest<Object> {
                 }
 
 
-                print("Running test <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + "." + f.getName() + "> .. ");
+                String message = "Running <" + f.attrTrace().attrNearestPackage().tryGetNameDef().getName() + ":"
+                        + f.attrTrace().attrErrorPos().getLine() + " - " + f.getName() + ">..";
+                println(message);
+                WLogger.info(message);
                 try {
+                    @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
-                        interpreter.runVoidFunc(f, null);
-                        successTests.add(f);
-                        println("success!");
+                        finalInterpreter.runVoidFunc(f, null);
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
-                    ExecutorService service = Executors.newSingleThreadExecutor();
                     service.execute(future);
                     try {
-                        future.get(10, TimeUnit.SECONDS); // Wait 10 seconds for test to complete
+                        future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
                     } catch (TimeoutException ex) {
                         future.cancel(true);
                         throw new TestTimeOutException();
@@ -161,35 +181,43 @@ public class RunTests extends UserRequest<Object> {
                         throw e.getCause();
                     }
                     service.shutdown();
-
+                    service.awaitTermination(10, TimeUnit.SECONDS);
+                    successTests.add(f);
+                    println("\tOK!");
                 } catch (TestSuccessException e) {
                     successTests.add(f);
-                    println("success!");
+                    println("\tOK!");
                 } catch (TestFailException e) {
-
-                    failTests.add( new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("FAILED");
+                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                    failTests.add(failure);
+                    println("\tFAILED assertion:");
+                    println("\t" + failure.getMessageWithStackFrame());
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("FAILED - TIMEOUT (This test did not complete in 10 seconds, it might contain an endless loop)");
+                    println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
+                    println(interpreter.getStackFrames().toString());
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("FAILED with exception:");
-                    println("\t" + e.getMessage());
+                    println("\tFAILED with exception: " + e.getLocalizedMessage());
+                    println(interpreter.getStackFrames().toString());
+                    println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+                    String sStackTrace = sw.toString();
+                    println("\t" + e.getLocalizedMessage());
+                    println("\t" + sStackTrace);
                 }
             }
         }
-        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size()+failTests.size()));
-        if(failTests.size() == 0) {
+        println("Tests succeeded: " + successTests.size() + "/" + (successTests.size() + failTests.size()));
+        if (failTests.size() == 0) {
             println(">> All tests have passed successfully!");
         } else {
-            println(">> The following tests failed:");
-            for (TestFailure e : failTests) {
-                println(e.getMessageWithStackFrame());
-            }
+            println(">> " + failTests.size() + " Tests have failed!");
         }
         WLogger.info("finished tests");
-        return new TestResult(successTests.size(), successTests.size()+failTests.size());
+        return new TestResult(successTests.size(), successTests.size() + failTests.size());
     }
 
 
@@ -265,6 +293,7 @@ public class RunTests extends UserRequest<Object> {
             println(message + "\n");
         }
 
+
     }
 
     private class TestTimeOutException extends Throwable {
@@ -272,14 +301,18 @@ public class RunTests extends UserRequest<Object> {
 
         @Override
         public String getMessage() {
-            return "test failed with timeout (This test did not complete in 10 seconds, it might contain an endless loop)";
+            return "test failed with timeout (This test did not complete in 20 seconds, it might contain an endless loop)";
         }
 
         @Override
         public String toString() {
             return super.toString();
         }
+
     }
 
 
+    public static ScheduledExecutorService getService() {
+        return service;
+    }
 }

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 
 public class SimpleRewrites {
@@ -34,6 +35,7 @@ public class SimpleRewrites {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImStmts stmts) {
+                super.visit(stmts);
                 removeUnreachableCode(stmts);
             }
         });
@@ -315,7 +317,7 @@ public class SimpleRewrites {
             ImExpr expr = opc.getArguments().get(0);
             if (opc.getOp() == WurstOperator.UNARY_MINUS && expr instanceof ImIntVal) {
                 ImIntVal imIntVal = (ImIntVal) expr;
-                if(imIntVal.getValI() <= 0) {
+                if (imIntVal.getValI() <= 0) {
                     int inverseVal = imIntVal.getValI() * -1;
                     ImIntVal newVal = JassIm.ImIntVal(inverseVal);
                     opc.replaceBy(newVal);
@@ -347,6 +349,17 @@ public class SimpleRewrites {
                     case GREATER:
                     case GREATER_EQ:
                         opc.replaceBy(JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), JassIm.ImExprs(inner.getArguments().removeAll())));
+                        break;
+                    case OR:
+                    case AND:
+                        // DeMorgan not(a and b) => not a or not b; not(a or b) => not a and not b
+                        List<ImExpr> args = inner.getArguments().removeAll();
+                        ImExprs imExprs = JassIm.ImExprs();
+                        args.forEach((e) ->
+                                imExprs.add(JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(e.copy()))));
+
+                        ImOperatorCall opCall = JassIm.ImOperatorCall(oppositeOperator(inner.getOp()), imExprs);
+                        opc.replaceBy(opCall);
                         break;
                     default:
                         wasViable = false;
@@ -406,6 +419,10 @@ public class SimpleRewrites {
                 return WurstOperator.GREATER;
             case NOTEQ:
                 return WurstOperator.EQ;
+            case AND:
+                return WurstOperator.OR;
+            case OR:
+                return WurstOperator.AND;
             default:
                 throw new Error("operator " + op + " does not have an opposite.");
         }

@@ -20,11 +20,11 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
-import java.lang.reflect.Array;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class ClassTranslator {
 
@@ -177,6 +177,7 @@ public class ClassTranslator {
         DefaultVisitor replacer = new DefaultVisitor() {
             @Override
             public void visit(ImVarAccess v) {
+                super.visit(v);
                 if (v.getVar() == oldThis) {
                     v.setVar(newThis);
                 }
@@ -184,6 +185,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSet v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -191,6 +193,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetArray v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -198,6 +201,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetTuple v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -205,6 +209,7 @@ public class ClassTranslator {
 
             @Override
             public void visit(ImSetArrayTuple v) {
+                super.visit(v);
                 if (v.getLeft() == oldThis) {
                     v.setLeft(newThis);
                 }
@@ -241,11 +246,11 @@ public class ClassTranslator {
 
 
     private void translateVars(ClassOrModuleInstanciation c) {
-        for (GlobalVarDef v : c.getVars()) {
-            translateVar(v);
-        }
         for (ModuleInstanciation mi : c.getModuleInstanciations()) {
             translateVars(mi);
+        }
+        for (GlobalVarDef v : c.getVars()) {
+            translateVar(v);
         }
     }
 
@@ -399,7 +404,13 @@ public class ClassTranslator {
                 ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
-                throw new RuntimeException("TODO");
+                ArrayInitializer ai = (ArrayInitializer) i.getB();
+                int index = 0;
+                for (Expr e : ai.getValues()) {
+                    ImStmt s = ImSetArrayMulti(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index)), e.imTranslateExpr(translator, f));
+                    f.getBody().add(s);
+                    index++;
+                }
             }
         }
         // add initializers from modules

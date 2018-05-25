@@ -19,9 +19,9 @@ public class ImPrinter {
         }
         sb.append("\n\n");
         for (ImClass c : p.getClasses()) {
-            sb.append("class " + c.getName() + smallHash(c) + " extends ");
+            sb.append("class ").append(c.getName()).append(smallHash(c)).append(" extends ");
             for (ImClass sc : c.getSuperClasses()) {
-                sb.append(sc.getName() + smallHash(sc) + " ");
+                sb.append(sc.getName()).append(smallHash(sc)).append(" ");
             }
             sb.append("{\n");
             for (ImVar f : c.getFields()) {
@@ -33,10 +33,10 @@ public class ImPrinter {
                 if (m.getIsAbstract()) {
                     sb.append("	abstract");
                 }
-                sb.append("	method " + m.getName() + smallHash(m) + " implemented by " + m.getImplementation().getName());
+                sb.append("	method ").append(m.getName()).append(smallHash(m)).append(" implemented by ").append(m.getImplementation().getName());
                 sb.append("\n");
                 for (ImMethod sm : m.getSubMethods()) {
-                    sb.append("		sub: " + sm.getName() + smallHash(sm));
+                    sb.append("		sub: ").append(sm.getName()).append(smallHash(sm));
                     sb.append("\n");
                 }
                 sb.append("\n");
@@ -53,7 +53,7 @@ public class ImPrinter {
     }
 
     public static void print(ImArrayType t, StringBuilder sb, int indent) {
-        sb.append("array " + t.getTypename());
+        sb.append("array ").append(t.getTypename());
     }
 
     public static void print(ImTupleArrayType p, StringBuilder sb, int indent) {
@@ -83,7 +83,11 @@ public class ImPrinter {
     }
 
     public static void print(ImFunction p, StringBuilder sb, int indent) {
-        sb.append("function " + p.getName() + "(");
+        for (FunctionFlag flag : p.getFlags()) {
+            sb.append(flag);
+            sb.append(" ");
+        }
+        sb.append("function ").append(p.getName()).append("(");
         boolean first = true;
         for (ImVar p1 : p.getParameters()) {
             if (!first) sb.append(", ");
@@ -141,18 +145,18 @@ public class ImPrinter {
     }
 
     public static void print(ImSet p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + " = ");
+        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append(" = ");
         p.getRight().print(sb, indent);
     }
 
     public static void print(ImSetTuple p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + " #" + p.getTupleIndex());
+        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append(" #").append(p.getTupleIndex());
         sb.append(" = ");
         p.getRight().print(sb, indent);
     }
 
     public static void print(ImSetArray p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + "[");
+        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append("[");
         p.getIndex().print(sb, indent);
         sb.append("]");
         sb.append(" = ");
@@ -160,10 +164,10 @@ public class ImPrinter {
     }
 
     public static void print(ImSetArrayTuple p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName() + smallHash(p.getLeft()) + "[");
+        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append("[");
         p.getIndex().print(sb, indent);
         sb.append("]");
-        sb.append(" #" + p.getTupleIndex());
+        sb.append(" #").append(p.getTupleIndex());
         sb.append(" = ");
         p.getRight().print(sb, indent);
     }
@@ -204,7 +208,7 @@ public class ImPrinter {
 
 
     public static void print(ImVarAccess p, StringBuilder sb, int indent) {
-        sb.append(p.getVar().getName() + smallHash(p.getVar()));
+        sb.append(p.getVar().getName()).append(smallHash(p.getVar()));
 
     }
 
@@ -216,7 +220,7 @@ public class ImPrinter {
 
 
     public static void print(ImVarArrayAccess p, StringBuilder sb, int indent) {
-        sb.append(p.getVar().getName() + smallHash(p.getVar()) + "[");
+        sb.append(p.getVar().getName()).append(smallHash(p.getVar())).append("[");
         p.getIndex().print(sb, indent);
         sb.append("]");
     }
@@ -236,7 +240,7 @@ public class ImPrinter {
 
     public static void print(ImTupleSelection p, StringBuilder sb, int indent) {
         p.getTupleExpr().print(sb, indent);
-        sb.append("#" + p.getTupleIndex());
+        sb.append("#").append(p.getTupleIndex());
     }
 
 
@@ -263,7 +267,7 @@ public class ImPrinter {
 
 
     public static void print(ImFuncRef p, StringBuilder sb, int indent) {
-        sb.append("function " + p.getFunc().getName());
+        sb.append("function ").append(p.getFunc().getName());
     }
 
 
@@ -284,7 +288,7 @@ public class ImPrinter {
     public static void print(ImVar v, StringBuilder sb, int indent) {
         v.getType().print(sb, indent);
         sb.append(" ");
-        sb.append(v.getName() + smallHash(v));
+        sb.append(v.getName()).append(smallHash(v));
     }
 
 
@@ -293,7 +297,7 @@ public class ImPrinter {
         if (e.getArguments().size() == 2) {
             // binary operator
             e.getArguments().get(0).print(sb, indent);
-            sb.append(" " + e.getOp() + " ");
+            sb.append(" ").append(e.getOp()).append(" ");
             e.getArguments().get(1).print(sb, indent);
         } else {
             sb.append(e.getOp());
@@ -312,7 +316,7 @@ public class ImPrinter {
             p.print(sb, 0);
         } catch (Throwable t) {
             t.printStackTrace();
-            sb.append("## error {" + t + "}");
+            sb.append("## error {").append(t).append("}");
         }
         return sb.toString();
     }
@@ -355,7 +359,7 @@ public class ImPrinter {
     public static void print(ImInstanceof e, StringBuilder sb,
                              int indent) {
         e.getObj().print(sb, 0);
-        sb.append(" instanceof " + e.getClazz().getName());
+        sb.append(" instanceof ").append(e.getClazz().getName());
 
 
     }
@@ -363,7 +367,7 @@ public class ImPrinter {
 
     public static void print(ImTypeIdOfClass e, StringBuilder sb,
                              int indent) {
-        sb.append(e.getClass().getName() + ".typeId");
+        sb.append(e.getClass().getName()).append(".typeId");
 
     }
 
@@ -377,14 +381,14 @@ public class ImPrinter {
 
     public static void print(ImArrayTypeMulti imArrayTypeMulti,
                              StringBuilder sb, int indent) {
-        sb.append("array " + imArrayTypeMulti.getTypename() + " size: " + imArrayTypeMulti.getArraySize());
+        sb.append("array ").append(imArrayTypeMulti.getTypename()).append(" size: ").append(imArrayTypeMulti.getArraySize());
 
     }
 
 
     public static void print(ImSetArrayMulti imSetArrayMulti, StringBuilder sb,
                              int indent) {
-        sb.append(imSetArrayMulti.getLeft().getName() + smallHash(imSetArrayMulti.getLeft()) + "[");
+        sb.append(imSetArrayMulti.getLeft().getName()).append(smallHash(imSetArrayMulti.getLeft())).append("[");
         imSetArrayMulti.getIndices().get(0).print(sb, indent);
         sb.append("]");
         sb.append("[");
@@ -398,7 +402,7 @@ public class ImPrinter {
 
     public static void print(ImVarArrayMultiAccess imVarArrayMultiAccess,
                              StringBuilder sb, int indent) {
-        sb.append(imVarArrayMultiAccess.getVar().getName() + smallHash(imVarArrayMultiAccess.getVar()));
+        sb.append(imVarArrayMultiAccess.getVar().getName()).append(smallHash(imVarArrayMultiAccess.getVar()));
 
     }
 
@@ -412,5 +416,14 @@ public class ImPrinter {
         sb.append("compiletime<<");
         e.getExpr().print(sb, indent);
         sb.append(">>");
+    }
+
+    public static void print(ImVarargLoop e, StringBuilder sb, int indent) {
+        sb.append("foreach vararg ");
+        e.getLoopVar().print(sb, indent);
+        sb.append(" {\n");
+        e.getBody().print(sb, indent + 1);
+        indent(sb, indent);
+        sb.append("}");
     }
 }

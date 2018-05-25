@@ -22,7 +22,7 @@ public class DescriptionHtml {
         String comment = f.attrComment();
         comment = comment.replaceAll("\n", "<br />");
         String params = getParameterString(f);
-        String returnTypeHtml = htmlType(f.getReturnTyp().attrTyp());
+        String returnTypeHtml = htmlType(f.attrReturnTyp());
         String functionDescription;
         if (f.attrComment().length() > 1) {
             functionDescription = comment;
@@ -402,5 +402,9 @@ public class DescriptionHtml {
 
     public static String description(ArrayInitializer arrayInitializer) {
         return "An array initializer";
+    }
+
+    public static String description(ModVararg modVararg) {
+        return "A varargs modifier";
     }
 }

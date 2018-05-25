@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.NativeFunctionsIO;
+import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
@@ -28,25 +28,37 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class CompiletimeFunctionRunner {
 
     private final ImProg imProg;
-    private ILInterpreter interpreter;
-    private WurstGui gui;
-    private FunctionFlagToRun functionFlag;
-    private List<ImFunction> successTests = Lists.newArrayList();
-    private Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+    private final ILInterpreter interpreter;
+    private final WurstGui gui;
+    private final FunctionFlagToRun functionFlag;
+    private final List<ImFunction> successTests = Lists.newArrayList();
+    private final Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+    private final ProgramStateIO globalState;
     private boolean injectObjects;
+
+    public ILInterpreter getInterpreter() {
+        return interpreter;
+    }
+
+    public ProgramStateIO getGlobalState() {
+        return globalState;
+    }
 
 
     public enum FunctionFlagToRun {
         Tests {
             @Override
             public boolean matches(ImFunction f) {
-                return f.hasFlag(FunctionFlagEnum.IS_TEST);
+                return f.hasFlag(FunctionFlagEnum.IS_TEST) || f.isCompiletime();
             }
         },
         CompiletimeFunctions {
@@ -63,11 +75,11 @@ public class CompiletimeFunctionRunner {
     public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
         Preconditions.checkNotNull(imProg);
         this.imProg = imProg;
-        ProgramStateIO globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
+        globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
 
-        interpreter.addNativeProvider(new NativeFunctionsIO());
         interpreter.addNativeProvider(new CompiletimeNatives(globalState));
+        interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         this.gui = gui;
         this.functionFlag = flag;
     }
@@ -80,7 +92,7 @@ public class CompiletimeFunctionRunner {
             List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
             collectCompiletimeExpressions(toExecute);
             collectCompiletimeFunctions(toExecute);
-            
+
             toExecute.sort(Comparator.comparing(this::getOrderIndex));
 
             execute(toExecute);
@@ -149,11 +161,11 @@ public class CompiletimeFunctionRunner {
         imProg.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {
+                super.visit(e);
                 toExecute.add(Either.forLeft(e));
             }
         });
     }
-
 
 
     private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
@@ -174,8 +186,8 @@ public class CompiletimeFunctionRunner {
             return JassIm.ImTupleExpr(
                     JassIm.ImExprs(
                             ((ILconstTuple) value).values().stream()
-                            .map(e -> constantToExpr(cte, e))
-                            .collect(Collectors.toList())
+                                    .map(e -> constantToExpr(cte, e))
+                                    .collect(Collectors.toList())
                     )
             );
         } else {

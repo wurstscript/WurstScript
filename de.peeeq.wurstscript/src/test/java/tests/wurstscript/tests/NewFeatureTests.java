@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,33 +9,18 @@ public class NewFeatureTests extends WurstScriptTest {
     private static final String TEST_DIR = "./testscripts/concept/";
 
     @Test
-    public void testEnums() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "enums.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testEnums() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "enums.wurst"), false);
     }
 
     @Test
-    public void testGenericUnit() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testGenericUnit() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "generics.wurst"), false);
     }
 
     @Test
-    public void testMinusOne() {
-        try {
-            testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+    public void testMinusOne() throws IOException {
+        testAssertOkFileWithStdLib(new File(TEST_DIR + "MinusOne.wurst"), false);
     }
 
 
@@ -347,6 +332,68 @@ public class NewFeatureTests extends WurstScriptTest {
                 "	callFunctionsWithAnnotation(\"@blub\")",
                 "	if x == 6",
                 "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testAnnotationWithMessage() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@deprecated(\"yes\") function foo()",
+                "init",
+                "	foo()",
+                "	testSuccess()"
+        );
+    }
+
+    @Test
+    public void testForInClose() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "int i = 0",
+                "function int.iterator() returns int",
+                "    return i",
+                "",
+                "function int.next() returns int",
+                "    i++",
+                "    return i",
+                "",
+                "function int.hasNext() returns boolean",
+                "    return i < 3",
+                "",
+                "function int.close()",
+                "    testSuccess()",
+                "init",
+                "    for x in i"
+        );
+    }
+
+    @Test
+    public void testForInCloseBeforeReturn() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "int i = 0",
+                "function int.iterator() returns int",
+                "    return i",
+                "",
+                "function int.next() returns int",
+                "    i++",
+                "    return i",
+                "",
+                "function int.hasNext() returns boolean",
+                "    return i < 3",
+                "",
+                "function int.close()",
+                "    testSuccess()",
+                "function do() returns int",
+                "    for x in i",
+                "        return x",
+                "    return 0",
+                "init",
+                "    do()"
         );
     }
 

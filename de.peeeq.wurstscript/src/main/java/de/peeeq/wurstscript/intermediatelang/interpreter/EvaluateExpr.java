@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
@@ -55,13 +54,7 @@ public class EvaluateExpr {
         final ImExprs arguments = e.getArguments();
         WurstOperator op = e.getOp();
         if (arguments.size() == 2 && op.isBinaryOp()) {
-            return op.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), new Supplier<ILconst>() {
-
-                @Override
-                public ILconst get() {
-                    return arguments.get(1).evaluate(globalState, localState);
-                }
-            });
+            return op.evaluateBinaryOperator(arguments.get(0).evaluate(globalState, localState), () -> arguments.get(1).evaluate(globalState, localState));
         } else if (arguments.size() == 1 && op.isUnaryOp()) {
             return op.evaluateUnaryOperator(arguments.get(0).evaluate(globalState, localState));
         } else {
@@ -92,6 +85,9 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
         ILconstTuple t = (ILconstTuple) e.getTupleExpr().evaluate(globalState, localState);
+        if (e.getTupleIndex() >= t.values().size()) {
+            throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+        }
         return t.getValue(e.getTupleIndex());
 
     }

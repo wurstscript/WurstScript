@@ -23,7 +23,32 @@ public class JassArray extends ILconstAbstract {
 
     @Override
     public String print() {
-        throw new Error("Not implemented yet.");
+        StringBuilder res = new StringBuilder();
+        int i = 0;
+        while (true) {
+            ILconst v = values.get(i);
+            if (v == null) {
+                break;
+            }
+            if (res.length() > 0) {
+                res.append(", ");
+            }
+            res.append(v);
+            i++;
+        }
+
+        int finalI = i;
+        values.keySet().stream().sorted().filter(x -> x < 0 || x >= finalI).forEach(k -> {
+            ILconst v = values.get(k);
+            if (res.length() > 0) {
+                res.append(", ");
+            }
+            res.append(k);
+            res.append(" -> ");
+            res.append(v);
+        });
+
+        return "[" + res + "]";
     }
 
     public void set(int key, ILconst value) {

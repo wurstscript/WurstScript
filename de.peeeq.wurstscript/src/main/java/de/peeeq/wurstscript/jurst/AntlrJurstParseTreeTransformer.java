@@ -316,7 +316,7 @@ public class AntlrJurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().getText());
+            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message.getText());
         }
         switch (m.modType.getType()) {
             case JurstParser.PUBLIC:
@@ -337,9 +337,9 @@ public class AntlrJurstParseTreeTransformer {
             case JurstParser.CONSTANT:
                 return Ast.ModConstant(src);
             case JurstParser.DELEGATE:
-                return Ast.Annotation(src, "delegate");
+                return Ast.Annotation(src, "delegate", "internal");
             case JurstParser.STUB:
-                return Ast.Annotation(src, "stub");
+                return Ast.Annotation(src, "stub", "internal");
         }
         throw error(m, "modifier not implemented");
     }
@@ -1081,7 +1081,16 @@ public class AntlrJurstParseTreeTransformer {
         WParameters parameters = transformFormalParameters(
                 e.formalParameters(), true);
         Expr implementation = transformExpr(e.expr());
-        return Ast.ExprClosure(source(e), parameters, implementation);
+        WShortParameters sparameters = Ast.WShortParameters();
+        for (WParameter p : parameters) {
+            sparameters.add(Ast.WShortParameter(
+                    p.getSource(),
+                    p.getModifiers().copy(),
+                    p.getTyp().copy(),
+                    p.getNameId().copy()
+            ));
+        }
+        return Ast.ExprClosure(source(e), source(e.arrow), sparameters, implementation);
     }
 
     private Indexes transformIndexes(List<IndexesContext> indexList) {
@@ -1094,26 +1103,27 @@ public class AntlrJurstParseTreeTransformer {
 
     private Expr transformAtom(Token a) {
         WPos source = source(a);
-        if (a.getType() == JurstParser.INT) {
-            return Ast.ExprIntVal(source, text(a));
-        } else if (a.getType() == JurstParser.REAL) {
-            return Ast.ExprRealVal(source, text(a));
-        } else if (a.getType() == JurstParser.STRING) {
-            return Ast.ExprStringVal(source, getStringVal(source, text(a)));
-        } else if (a.getType() == JurstParser.NULL) {
-            return Ast.ExprNull(source);
-        } else if (a.getType() == JurstParser.TRUE) {
-            return Ast.ExprBoolVal(source, true);
-        } else if (a.getType() == JurstParser.FALSE) {
-            return Ast.ExprBoolVal(source, false);
-        } else if (a.getType() == JurstParser.THIS) {
-            if (isJassCode) {
-                return Ast.ExprVarAccess(source, Ast.Identifier(source, "this"));
-            } else {
-                return Ast.ExprThis(source);
-            }
-        } else if (a.getType() == JurstParser.SUPER) {
-            return Ast.ExprSuper(source);
+        switch (a.getType()) {
+            case JurstParser.INT:
+                return Ast.ExprIntVal(source, text(a));
+            case JurstParser.REAL:
+                return Ast.ExprRealVal(source, text(a));
+            case JurstParser.STRING:
+                return Ast.ExprStringVal(source, getStringVal(source, text(a)));
+            case JurstParser.NULL:
+                return Ast.ExprNull(source);
+            case JurstParser.TRUE:
+                return Ast.ExprBoolVal(source, true);
+            case JurstParser.FALSE:
+                return Ast.ExprBoolVal(source, false);
+            case JurstParser.THIS:
+                if (isJassCode) {
+                    return Ast.ExprVarAccess(source, Ast.Identifier(source, "this"));
+                } else {
+                    return Ast.ExprThis(source);
+                }
+            case JurstParser.SUPER:
+                return Ast.ExprSuper(source);
         }
         // TODO Auto-generated method stub
         throw error(source(a), "atom not implemented: " + text(a));
@@ -1207,7 +1217,7 @@ public class AntlrJurstParseTreeTransformer {
             if (t.arraySizes != null && !t.arraySizes.isEmpty()) {
                 arrSize = t.arraySizes.get(0);
                 if (t.arraySizes.size() > 1) {
-                    error(t.arraySizes.get(1), "Currently only one dimension is allowed for arrays.");
+                    throw error(t.arraySizes.get(1), "Currently only one dimension is allowed for arrays.");
                 }
             }
 

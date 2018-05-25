@@ -85,11 +85,11 @@ public class AboutDialog extends javax.swing.JDialog {
 
 
         logo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        logo.setIcon(new javax.swing.ImageIcon(getClass().getClassLoader().getResource("wurst.jpg"))); // NOI18N
+        logo.setIcon(new javax.swing.ImageIcon(getClass().getClassLoader().getResource("icon.png"))); // NOI18N
         logo.setName("logo"); // NOI18N
         logo.setLocation(0, 0);
 
-        heading.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        heading.setFont(new java.awt.Font("Tahoma", Font.BOLD, 18)); // NOI18N
         heading.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         heading.setText("WurstScript");
         heading.setName("heading"); // NOI18N
@@ -100,15 +100,15 @@ public class AboutDialog extends javax.swing.JDialog {
         description.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         description.setName("description"); // NOI18N
 
-        versionTitle.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        versionTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
         versionTitle.setText("Version:");
         versionTitle.setName("versionTitle"); // NOI18N
 
-        authorTitle.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        authorTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
         authorTitle.setText("Authors:");
         authorTitle.setName("authorTitle"); // NOI18N
 
-        homepageTitle.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        homepageTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
         homepageTitle.setText("Homepage:");
         homepageTitle.setName("homepageTitle"); // NOI18N
 

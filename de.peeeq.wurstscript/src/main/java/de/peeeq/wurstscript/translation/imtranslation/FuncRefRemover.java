@@ -29,6 +29,7 @@ public class FuncRefRemover {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImFuncRef imFuncRef) {
+                super.visit(imFuncRef);
                 funcRefs.add(imFuncRef);
             }
         });

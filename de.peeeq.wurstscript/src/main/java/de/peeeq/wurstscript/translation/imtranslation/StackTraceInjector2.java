@@ -40,11 +40,13 @@ public class StackTraceInjector2 {
 
             @Override
             public void visit(ImGetStackTrace e) {
+                super.visit(e);
                 stackTraceGets.put(e.getNearestFunc(), e);
             }
 
             @Override
             public void visit(ImFunctionCall c) {
+                super.visit(c);
                 calls.put(c.getFunc(), c);
                 ImFunction caller = c.getNearestFunc();
                 callRelation.put(caller, c.getFunc());
@@ -52,6 +54,7 @@ public class StackTraceInjector2 {
 
             @Override
             public void visit(ImFuncRef imFuncRef) {
+                super.visit(imFuncRef);
                 funcRefs.add(imFuncRef);
             }
         });
@@ -96,6 +99,7 @@ public class StackTraceInjector2 {
             f.getBody().accept(new ImStmts.DefaultVisitor() {
                 @Override
                 public void visit(ImReturn imReturn) {
+                    super.visit(imReturn);
                     returns.add(imReturn);
                 }
             });
@@ -127,11 +131,13 @@ public class StackTraceInjector2 {
         ret.accept(new ImExprOpt.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall imFunctionCall) {
+                super.visit(imFunctionCall);
                 res[0] = true;
             }
 
             @Override
             public void visit(ImGetStackTrace imGetStackTrace) {
+                super.visit(imGetStackTrace);
                 res[0] = true;
             }
 

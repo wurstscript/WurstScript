@@ -1,16 +1,25 @@
 package de.peeeq.wurstscript;
 
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
 
 public class WLoggerDefault implements WLoggerI {
 
-    private Logger logger;
+    private org.slf4j.Logger logger;
 
-    {
-        logger = Logger.getLogger("wurstlog");
-        logger.setLevel(Level.OFF); // adjust level for debugging
+    public WLoggerDefault(String loggerName) {
+        logger = LoggerFactory.getLogger(loggerName);
+    }
+
+    /**
+     * (non-Javadoc)
+     *
+     * @see de.peeeq.wurstscript.WLoggerI#trace(String)
+     */
+    @Override
+    public void trace(String msg) {
+        logger.trace(msg);
     }
 
     /**
@@ -30,7 +39,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void warning(String msg) {
-        logger.log(Level.WARNING, msg);
+        logger.warn(msg);
     }
 
     /**
@@ -40,7 +49,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void warning(String msg, Throwable e) {
-        logger.log(Level.WARNING, msg, e);
+        logger.warn(msg, e);
     }
 
     /**
@@ -50,7 +59,7 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void severe(String msg) {
-        logger.log(Level.SEVERE, msg);
+        logger.error(msg);
     }
 
     /**
@@ -61,7 +70,7 @@ public class WLoggerDefault implements WLoggerI {
     @Override
     public void severe(Throwable t) {
         t.printStackTrace();
-        logger.log(Level.SEVERE, "Error", t);
+        logger.error("Error", t);
     }
 
     /**
@@ -71,29 +80,18 @@ public class WLoggerDefault implements WLoggerI {
      */
     @Override
     public void info(Throwable e) {
-        logger.log(Level.INFO, "Error", e);
+        logger.info("Error", e);
 
     }
 
     /**
      * (non-Javadoc)
-     *
-     * @see de.peeeq.wurstscript.WLoggerI#setHandler(java.util.logging.Handler)
-     */
-    @Override
-    public void setHandler(Handler handler) {
-        logger.setUseParentHandlers(false);
-        logger.addHandler(handler);
-    }
-
-    /**
-     * (non-Javadoc)
-     *
-     * @see de.peeeq.wurstscript.WLoggerI#setLevel(java.util.logging.Level)
      */
     @Override
     public void setLevel(Level level) {
-        logger.setLevel(level);
+        if (logger instanceof Logger) {
+            ((Logger) logger).setLevel(level);
+        }
     }
 
 }

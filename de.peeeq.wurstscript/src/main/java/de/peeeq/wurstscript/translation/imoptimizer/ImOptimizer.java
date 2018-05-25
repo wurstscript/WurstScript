@@ -124,6 +124,7 @@ public class ImOptimizer {
                 f.accept(new ImFunction.DefaultVisitor() {
                     @Override
                     public void visit(ImSet e) {
+                        super.visit(e);
                         if (!trans.getReadVariables().contains(e.getLeft())) {
                             replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
                         }
@@ -131,6 +132,7 @@ public class ImOptimizer {
 
                     @Override
                     public void visit(ImSetArrayTuple e) {
+                        super.visit(e);
                         if (!trans.getReadVariables().contains(e.getLeft())) {
                             replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
                         }
@@ -138,6 +140,7 @@ public class ImOptimizer {
 
                     @Override
                     public void visit(ImSetArray e) {
+                        super.visit(e);
                         if (!trans.getReadVariables().contains(e.getLeft())) {
                             replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
                         }
@@ -145,6 +148,7 @@ public class ImOptimizer {
 
                     @Override
                     public void visit(ImSetTuple e) {
+                        super.visit(e);
                         if (!trans.getReadVariables().contains(e.getLeft())) {
                             replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
                         }

@@ -1,6 +1,6 @@
 package tests.wurstscript.tests;
 
-import org.junit.Test;
+import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -496,6 +496,63 @@ public class ModuleTests extends WurstScriptTest {
                 "    int x = 3",
                 "    construct(int i)",
                 "        x = x - 1"
+        );
+    }
+
+    @Test
+    public void testModuleMemberInit() { // see #656
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "import LinkedListModule",
+                "public class TestClass",
+                "    use LinkedListModule",
+                "    construct()",
+                "        print(\"constructed\")",
+                "init",
+                "    new TestClass()",
+                "    print(\"size test:\" + TestClass.size.toString())",
+                "endpackage",
+                "package Test2",
+                "import Test",
+                "native testSuccess()",
+                "init",
+                "    print(\"size test2:\" + TestClass.size.toString())",
+                "    if TestClass.size == 1",
+                "        print(\"size test3:\" + TestClass.size.toString())",
+                "        testSuccess()",
+                "        print(\"size test4:\" + TestClass.size.toString())",
+                "endpackage"
+        );
+    }
+
+
+    @Test
+    public void stupidTest() { // see #656
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "    testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testModuleMemberInit2() { // see #656
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "import LinkedListModule",
+                "native testSuccess()",
+                "public class TestClass",
+                "    use LinkedListModule",
+                "    static TestClass a = new TestClass",
+                "    construct()",
+                "        print(\"constructed\")",
+                "init",
+                "    print(\"size test2:\" + TestClass.size.toString())",
+                "    if TestClass.size == 1",
+                "        testSuccess()",
+                "endpackage"
         );
     }
 }

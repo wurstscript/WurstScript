@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 
 public interface ExecutableJassFunction {
 
-    ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments);
+    ILconst execute(JassInterpreter jassInterpreter, ILconst... arguments);
 
 
 }
@@ -29,33 +29,7 @@ class UserDefinedJassFunction implements ExecutableJassFunction {
 
 }
 
-class NativeJassFunction implements ExecutableJassFunction {
 
-    private Method method;
-    private ReflectionBasedNativeProvider natives;
-
-    public NativeJassFunction(ReflectionBasedNativeProvider natives, Method method) {
-        this.natives = natives;
-        this.method = method;
-    }
-
-    @Override
-    public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
-        try {
-            Object result = method.invoke(natives, (Object[]) arguments);
-            return (ILconst) result;
-        } catch (IllegalArgumentException | IllegalAccessException e) {
-            throw new Error(e);
-        } catch (InvocationTargetException e) {
-            if (e.getCause() instanceof Error) {
-                throw (Error) e.getCause();
-            } else {
-                throw new Error(e.getCause());
-            }
-        }
-    }
-
-}
 
 
 class UnknownJassFunction implements ExecutableJassFunction {

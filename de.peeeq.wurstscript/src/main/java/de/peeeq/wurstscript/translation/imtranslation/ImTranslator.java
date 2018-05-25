@@ -9,7 +9,9 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -99,7 +101,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<ImVar, ImExpr>());
+        imProg = ImProg(ImVars(), ImFunctions(), JassIm.ImClasses(), new LinkedHashMap<>());
     }
 
 
@@ -110,7 +112,8 @@ public class ImTranslator {
         try {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
-            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg",
+                    false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             calculateCompiletimeOrder();
 
@@ -135,7 +138,8 @@ public class ImTranslator {
             throw t;
         } catch (Throwable t) {
             WLogger.severe(t);
-            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t.getMessage() +
+            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t
+                    .getMessage() +
                     "\nPlease open a ticket with source code and the error log.", t);
         }
     }
@@ -166,6 +170,7 @@ public class ImTranslator {
         p.accept(new de.peeeq.wurstscript.ast.Element.DefaultVisitor() {
             @Override
             public void visit(FuncDef funcDef) {
+                super.visit(funcDef);
                 if (funcDef.attrIsCompiletime()) {
                     compiletimeFlags.put(funcDef, new FunctionFlagCompiletime(compiletimeOrderCounter++));
                 }
@@ -173,6 +178,7 @@ public class ImTranslator {
 
             @Override
             public void visit(ExprFunctionCall fc) {
+                super.visit(fc);
                 if (fc.getFuncName().equals("compiletime")) {
                     compiletimeExpressionsOrder.put(fc, compiletimeOrderCounter++);
                 }
@@ -198,12 +204,12 @@ public class ImTranslator {
     private <T extends Element> void sortList(List<T> list) {
         List<T> classes = removeAll(list);
         Comparator<T> comparator = Comparator.comparing(this::getQualifiedClassName);
-        Collections.sort(classes, comparator);
+        classes.sort(comparator);
         list.addAll(classes);
     }
 
     public <T> List<T> removeAll(List<T> list) {
-        List<T> result = new ArrayList<T>();
+        List<T> result = new ArrayList<>();
         while (!list.isEmpty()) {
             result.add(0, list.remove(list.size() - 1));
         }
@@ -245,7 +251,8 @@ public class ImTranslator {
             if (f.isNative() && natives.containsKey(f.getName())) {
                 ImFunction existing = natives.get(f.getName());
                 if (!compatibleTypes(f, existing)) {
-                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " + existing.attrTrace().attrErrorPos());
+                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " +
+                            existing.attrTrace().attrErrorPos());
                 }
                 // remove duplicate
                 it.remove();
@@ -257,12 +264,14 @@ public class ImTranslator {
         // rewrite removed links
         imProg.accept(new ImProg.DefaultVisitor() {
             public void visit(ImFunctionCall e) {
+                super.visit(e);
                 if (removed.containsKey(e.getFunc())) {
                     e.setFunc(removed.get(e.getFunc()));
                 }
             }
 
             public void visit(ImFuncRef e) {
+                super.visit(e);
                 if (removed.containsKey(e.getFunc())) {
                     e.setFunc(removed.get(e.getFunc()));
                 }
@@ -330,11 +339,11 @@ public class ImTranslator {
 
 
     private ImFunction getNativeFunc(String funcName) {
-        ImmutableCollection<NameLink> wurstFunc = wurstProg.lookupFuncs(funcName);
+        ImmutableCollection<FuncLink> wurstFunc = wurstProg.lookupFuncs(funcName);
         if (wurstFunc.isEmpty()) {
             return null;
         }
-        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getNameDef());
+        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef());
     }
 
     private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
@@ -389,6 +398,7 @@ public class ImTranslator {
         initFunc.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImReturn imReturn) {
+                super.visit(imReturn);
                 imReturn.setReturnValue(JassIm.ImBoolVal(true));
             }
         });
@@ -501,14 +511,15 @@ public class ImTranslator {
     }
 
     private ImExpr getDefaultValueForJassTypeName(String typeName) {
-        if (typeName.equals("integer")) {
-            return ImIntVal(0);
-        } else if (typeName.equals("real")) {
-            return ImRealVal("0.");
-        } else if (typeName.equals("boolean")) {
-            return ImBoolVal(false);
-        } else {
-            return ImNull();
+        switch (typeName) {
+            case "integer":
+                return ImIntVal(0);
+            case "real":
+                return ImRealVal("0.");
+            case "boolean":
+                return ImBoolVal(false);
+            default:
+                return ImNull();
         }
     }
 
@@ -517,7 +528,8 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(StructureDef classDef) {
             ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
-            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(),
+                    flags());
             addFunction(f);
             return f;
         }
@@ -528,15 +540,8 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            boolean abstr;
-            if (classDef instanceof ClassDef) {
-                abstr = false; // all classes can have ondestroy, so this is not abstract
-            } else {
-                // interface destroy methods are abstract
-                abstr = true;
-            }
             ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(),
-                    impl, Lists.<ImMethod>newArrayList(), abstr);
+                    impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
     };
@@ -555,7 +560,8 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(ImClass c) {
-            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(),
+            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)),
+                    TypesHelper.imVoid(),
                     JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
         }
 
@@ -589,10 +595,19 @@ public class ImTranslator {
             if (funcDef2.attrHasAnnotation("compiletimenative")) {
                 flags.add(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
             }
-            if (funcDef2.attrHasAnnotation("test") || funcDef2.attrHasAnnotation("Test")) {
+            if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
         }
+
+        // Check if last parameter is vararg
+        if (funcDef instanceof AstElementWithParameters) {
+            WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+            if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
+                flags.add(IS_VARARG);
+            }
+        }
+
 
         if (funcDef instanceof HasModifier) {
             HasModifier awm = (HasModifier) funcDef;
@@ -606,6 +621,7 @@ public class ImTranslator {
 
         ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
+
         addFunction(f);
         functionMap.put(funcDef, f);
         return f;
@@ -634,13 +650,8 @@ public class ImTranslator {
     }
 
     public ImFunction getInitFuncFor(WPackage p) {
-        ImFunction f = initFuncMap.get(p);
-        if (f == null) {
-            f = JassIm.ImFunction(p, "init_" + p.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
-            initFuncMap.put(p, f);
-            // TODO more precise trace
-        }
-        return f;
+        // TODO more precise trace
+        return initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
     }
 
     /**
@@ -871,22 +882,23 @@ public class ImTranslator {
         }
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
-            NameLink funcNameLink = null;
+            FuncLink funcNameLink = null;
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                if (nameLink.getNameDef() == func) {
-                    funcNameLink = nameLink;
+                if (nameLink.getDef() == func) {
+                    funcNameLink = (FuncLink) nameLink;
                 }
             }
             if (funcNameLink == null) {
                 throw new Error("must not happen");
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                NameDef nameDef = nameLink.getNameDef();
+                NameDef nameDef = nameLink.getDef();
                 if (nameLink.getDefinedIn() == c) {
-                    if (nameDef instanceof FuncDef) {
-                        FuncDef f = (FuncDef) nameDef;
+                    if (nameLink instanceof FuncLink && nameLink.getDef() instanceof FuncDef) {
+                        FuncLink funcLink = (FuncLink) nameLink;
+                        FuncDef f = (FuncDef) funcLink.getDef();
                         // check if function f overrides func
-                        if (WurstValidator.canOverride(nameLink, funcNameLink)) {
+                        if (WurstValidator.canOverride(funcLink, funcNameLink)) {
                             result.put(c, f);
                         }
                     }
@@ -901,12 +913,7 @@ public class ImTranslator {
     private Map<ClassDef, List<WStatement>> classInitStatements = Maps.newLinkedHashMap();
 
     public List<Pair<ImVar, VarInitialization>> getDynamicInits(ClassDef c) {
-        List<Pair<ImVar, VarInitialization>> r = classDynamicInitMap.get(c);
-        if (r == null) {
-            r = Lists.newArrayList();
-            classDynamicInitMap.put(c, r);
-        }
-        return r;
+        return classDynamicInitMap.computeIfAbsent(c, k -> Lists.newArrayList());
     }
 
 
@@ -988,9 +995,6 @@ public class ImTranslator {
     private Multimap<ClassDef, ClassDef> subclasses = null;
     private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
-    private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
-
-
     private boolean isEclipseMode = false;
 
     public Collection<ClassDef> getSubClasses(ClassDef classDef) {
@@ -1051,10 +1055,11 @@ public class ImTranslator {
         }
     }
 
+    private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
+
     public void addCompiletimeFunc(ImFunction f) {
         compiletimeFuncs.add(f);
     }
-
 
     public int getEnumMemberId(EnumMember enumMember) {
         return ((EnumMembers) enumMember.getParent()).indexOf(enumMember);
@@ -1174,12 +1179,7 @@ public class ImTranslator {
     }
 
     public ImType getOriginalReturnValue(ImFunction f) {
-        ImType result = originalReturnValues.get(f);
-        if (result == null) {
-            result = f.getReturnType();
-            originalReturnValues.put(f, result);
-        }
-        return result;
+        return originalReturnValues.computeIfAbsent(f, ImFunction::getReturnType);
     }
 
     public void assertProperties(AssertProperty... properties1) {
@@ -1259,12 +1259,8 @@ public class ImTranslator {
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
-        ImClass c = classForStructureDef.get(s);
-        if (c == null) {
-            c = JassIm.ImClass(s, s.getName(), JassIm.ImVars(), JassIm.ImMethods(), Lists.<ImClass>newArrayList());
-            classForStructureDef.put(s, c);
-        }
-        return c;
+        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImVars(), JassIm.ImMethods(),
+                Lists.<ImClass>newArrayList()));
     }
 
 
@@ -1306,11 +1302,7 @@ public class ImTranslator {
         classManagementVars = Maps.newLinkedHashMap();
         for (ImClass c : imProg.getClasses()) {
             ImClass rep = p.getRep(c);
-            ClassManagementVars v = classManagementVars.get(rep);
-            if (v == null) {
-                v = new ClassManagementVars(rep, this);
-                classManagementVars.put(rep, v);
-            }
+            ClassManagementVars v = classManagementVars.computeIfAbsent(rep, r -> new ClassManagementVars(r, this));
             classManagementVars.put(c, v);
         }
         return classManagementVars;
@@ -1365,13 +1357,13 @@ public class ImTranslator {
         if (p == null) {
             return Optional.empty();
         }
-        ImmutableCollection<NameLink> funcs = p.getElements().lookupFuncs("error");
+        ImmutableCollection<FuncLink> funcs = p.getElements().lookupFuncs("error");
         if (funcs.isEmpty()) {
             return Optional.empty();
         } else if (funcs.size() > 1) {
             return Optional.empty();
         }
-        FuncDef f = (FuncDef) funcs.stream().findAny().get().getNameDef();
+        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef();
         return Optional.of(f);
     }
 

@@ -12,31 +12,37 @@ public class UsedVariables {
         f.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImSet e) {
+                super.visit(e);
                 result.add(e.getLeft());
             }
 
             @Override
             public void visit(ImSetArrayTuple e) {
+                super.visit(e);
                 result.add(e.getLeft());
             }
 
             @Override
             public void visit(ImSetArray e) {
+                super.visit(e);
                 result.add(e.getLeft());
             }
 
             @Override
             public void visit(ImSetTuple e) {
+                super.visit(e);
                 result.add(e.getLeft());
             }
 
             @Override
             public void visit(ImVarAccess e) {
+                super.visit(e);
                 result.add(e.getVar());
             }
 
             @Override
             public void visit(ImVarArrayAccess e) {
+                super.visit(e);
                 result.add(e.getVar());
             }
         });
@@ -48,11 +54,13 @@ public class UsedVariables {
         f.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess e) {
+                super.visit(e);
                 result.add(e.getVar());
             }
 
             @Override
             public void visit(ImVarArrayAccess e) {
+                super.visit(e);
                 result.add(e.getVar());
             }
         });

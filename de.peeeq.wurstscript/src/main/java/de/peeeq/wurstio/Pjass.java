@@ -61,11 +61,11 @@ public class Pjass {
                 }
                 lineOffsets.set(line + 1, cont.length() - 1);
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
 
             List<CompileError> result = Lists.newArrayList();
-            for (String error : getMessage().split("(\n|\r)+")) {
+            for (String error : getMessage().split("([\n\r])+")) {
                 Pattern pat = Pattern.compile(".*:([0-9]+):(.*)");
                 Matcher match = pat.matcher(error);
                 if (!match.matches()) {
@@ -111,7 +111,7 @@ public class Pjass {
             String line;
             while ((line = input.readLine()) != null) {
                 WLogger.info(line);
-                output.append(line + "\n");
+                output.append(line).append("\n");
             }
             input.close();
 

@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
 
+import static de.peeeq.wurstscript.attributes.HasAnnotation.normalizeAnnotation;
+
 public class ModifiersHelper {
 
     public static boolean isPublic(HasModifier e) {
@@ -26,6 +28,10 @@ public class ModifiersHelper {
 
     public static boolean isOverride(HasModifier e) {
         return containsType(e.getModifiers(), ModOverride.class);
+    }
+
+    public static boolean isVararg(HasModifier e) {
+        return containsType(e.getModifiers(), ModVararg.class);
     }
 
     public static boolean isAbstract(HasModifier e) {
@@ -63,12 +69,32 @@ public class ModifiersHelper {
         return hasAnnotation(e.getModifiers(), name);
     }
 
+    public static Annotation getAnnotation(HasModifier e, String name) {
+        return getAnnotation(e.getModifiers(), name);
+    }
 
-    private static boolean hasAnnotation(Modifiers modifiers, String string) {
+
+    private static Annotation getAnnotation(Modifiers modifiers, String name) {
+        String searchName = normalizeAnnotation(name);
+
         for (Modifier m : modifiers) {
             if (m instanceof Annotation) {
                 Annotation annotation = (Annotation) m;
-                if (annotation.getAnnotationType().equals("@" + string)) {
+                if (normalizeAnnotation(annotation.getAnnotationType()).equals(searchName)) {
+                    return annotation;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static boolean hasAnnotation(Modifiers modifiers, String name) {
+        String searchName = normalizeAnnotation(name);
+
+        for (Modifier m : modifiers) {
+            if (m instanceof Annotation) {
+                Annotation annotation = (Annotation) m;
+                if (normalizeAnnotation(annotation.getAnnotationType()).equals(searchName)) {
                     return true;
                 }
             }
