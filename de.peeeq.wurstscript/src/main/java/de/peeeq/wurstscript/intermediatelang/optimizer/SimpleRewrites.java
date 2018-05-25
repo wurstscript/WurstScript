@@ -490,8 +490,14 @@ public class SimpleRewrites {
 
     /**
      * Optimizes
-     * set We=We-1
-     * set We=We-1
+     *
+     *   set x = x ⊕ c1
+     *   set x = x ⊕ c2
+     *
+     * into:
+     *
+     *   set x  = (x ⊕ c1) ⊕ c2
+     *
      * like code that is created by the branch merger
      */
     private void optimizeConsecutiveSet(ImSet imSet, ImSet imSet2) {
