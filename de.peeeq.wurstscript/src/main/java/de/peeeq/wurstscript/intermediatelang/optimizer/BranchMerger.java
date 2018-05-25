@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
+import de.peeeq.wurstscript.ast.StmtIf;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.ListIterator;
 
 /**
  * merges identical nodes in branches if possible without side effects
@@ -32,42 +35,48 @@ public class BranchMerger {
 
 
     private void mergeBranches(ImFunction func) {
-        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
+        func.getBody().accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImStmts stmts) {
+                ListIterator<ImStmt> it = stmts.listIterator();
+                while (it.hasNext()) {
+                    ImStmt s = it.next();
+                    if (s instanceof ImIf) {
+                        ImIf ifStmt = (ImIf) s;
+                        // first optimize inner statements
+                        ifStmt.getThenBlock().accept(this);
+                        ifStmt.getElseBlock().accept(this);
 
-        // init in and out with empty sets
-        for (Node n : cfg.getNodes()) {
-            @Nullable ImStmt stmt = n.getStmt();
-            if (stmt != null && stmt.getParent() != null && stmt.getParent() instanceof ImIf) {
-                ImIf imIf = (ImIf) stmt.getParent();
-                if (n.getPredecessors().size() <= 1 && n.getSuccessors().size() == 2) {
-                    Node leftStmt = n.getSuccessors().get(0);
-                    Node rightStmt = n.getSuccessors().get(1);
-                    if (leftStmt.getStmt() != null && rightStmt.getStmt() != null && leftStmt.getStmt().structuralEquals(rightStmt.getStmt())) {
-                        if (n.getPredecessors().size() == 1) {
-                            // Possible match. At last check if condition causes sideeffects.
-                            if (!sideEffectsCanAffectNode(n, leftStmt)) {
+                        while (!ifStmt.getThenBlock().isEmpty()
+                                && !ifStmt.getElseBlock().isEmpty()) {
+                            ImStmt firstStmtThen = ifStmt.getThenBlock().get(0);
+                            ImStmt firstStmtElse = ifStmt.getElseBlock().get(0);
+                            // if first statement in both branches is the same
+                            // and has no side-effects that could affect the if-condition:
+                            if (firstStmtThen.structuralEquals(firstStmtElse)
+                                    && !sideEffectAnalyzer.mightAffect(firstStmtThen, ifStmt.getCondition())) {
+                                // remove statements
+                                ifStmt.getThenBlock().remove(0);
+                                ifStmt.getElseBlock().remove(0);
+                                // and add before the if-statement
+                                it.previous();
+                                it.add(firstStmtThen);
+                                it.next();
 
-                                ImStmt mergedStmt = leftStmt.getStmt();
-                                mergedStmt.setParent(null);
-
-                                ImIf oldIf = imIf.copy();
-                                oldIf.getThenBlock().get(0).replaceBy(JassIm.ImNull());
-                                oldIf.getElseBlock().get(0).replaceBy(JassIm.ImNull());
-                                imIf.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(mergedStmt, oldIf), JassIm.ImNull()));
                                 branchesMerged++;
+                            } else {
+                                break;
                             }
                         }
+
+                    } else {
+                        s.accept(this);
                     }
                 }
-                // if the first statement of each branch of the if is the same, it can be moved before the branch
             }
-        }
+        });
     }
 
 
-    /** Checking if executing stmtNode could affect the condition of the ifNode. */
-    private boolean sideEffectsCanAffectNode(Node ifNode, Node stmtNode) {
-        return sideEffectAnalyzer.mightAffect(ifNode.getStmt(), stmtNode.getStmt());
-    }
 
 }
