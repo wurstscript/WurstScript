@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class SimpleRewrites {
+    private final SideEffectAnalyzer sideEffectAnalysis;
     public int totalRewrites = 0;
     private final ImProg prog;
     private final ImTranslator trans;
@@ -20,6 +21,7 @@ public class SimpleRewrites {
     public SimpleRewrites(ImTranslator trans) {
         this.prog = trans.getImProg();
         this.trans = trans;
+        this.sideEffectAnalysis = new SideEffectAnalyzer(prog);
     }
 
     public void optimize(boolean showRewrites) {
@@ -491,39 +493,36 @@ public class SimpleRewrites {
     /**
      * Optimizes
      *
-     *   set x = x ⊕ c1
-     *   set x = x ⊕ c2
+     *   set x = expr1
+     *   set x = x ⊕ expr2
      *
      * into:
      *
-     *   set x  = (x ⊕ c1) ⊕ c2
+     *   set x  = expr1 ⊕ expr2
      *
      * like code that is created by the branch merger
      */
-    private void optimizeConsecutiveSet(ImSet imSet, ImSet imSet2) {
-        ImVar leftVar1 = imSet.getLeft();
+    private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
+        ImVar leftVar1 = imSet1.getLeft();
         ImVar leftVar2 = imSet2.getLeft();
 
-        ImExpr rightExpr1 = imSet.getRight();
+        ImExpr rightExpr1 = imSet1.getRight();
         ImExpr rightExpr2 = imSet2.getRight();
 
         if (leftVar1 == leftVar2) {
-            if (rightExpr1 instanceof ImOperatorCall && rightExpr2 instanceof ImOperatorCall) {
-                ImOperatorCall rightOpCall1 = (ImOperatorCall) rightExpr1;
+            if (rightExpr2 instanceof ImOperatorCall) {
                 ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
-                if (rightOpCall1.getArguments().size() == 2 && rightOpCall2.getArguments().size() == 2) {
-                    if (rightOpCall1.getArguments().get(0) instanceof ImVarAccess && rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
-                        ImVarAccess imVarAccess1 = (ImVarAccess) rightOpCall1.getArguments().get(0);
+                if (rightOpCall2.getArguments().size() == 2) {
+                    if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
-                        if (imVarAccess1.getVar() == leftVar1 && imVarAccess2.getVar() == leftVar2) {
-                            if (rightOpCall1.getArguments().get(1) instanceof ImConst && rightOpCall2.getArguments().get(1) instanceof ImConst) {
-                                rightOpCall1.setParent(null);
-                                imVarAccess2.replaceBy(rightOpCall1);
-                                imSet.replaceBy(JassIm.ImNull());
+                        if (imVarAccess2.getVar() == leftVar2) {
+                            if (sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
+                                rightExpr1.setParent(null);
+                                imVarAccess2.replaceBy(rightExpr1);
+                                imSet1.replaceBy(JassIm.ImNull());
                                 totalRewrites++;
                             }
                         }
-
                     }
                 }
             }

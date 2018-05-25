@@ -206,4 +206,17 @@ public class SideEffectAnalyzer {
         // check that there are no variables, that both use
         return used1.stream().anyMatch(used2::contains);
     }
+
+    /**
+     * Checks if the given statement cannot use the variable v
+     */
+    public boolean cannotUseVar(ImStmt s, ImVar v) {
+        if (v.isGlobal()) {
+            return !usedVariables(s).contains(v)
+                    && calledNatives(s).isEmpty();
+        } else {
+            // local variables
+            return directlyUsedVariables(s).contains(v);
+        }
+    }
 }
