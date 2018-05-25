@@ -121,6 +121,27 @@ public class SimpleRewrites {
 
     }
 
+    /**
+     * Rewrites if statements that only contain an exitwhen statement
+     * so that the if's condition is combined with the exitwhen
+     * <p>
+     * if expr1
+     * exitwhen expr2
+     * <p>
+     * to:
+     * <p>
+     * exitwhen expr1 and expr2
+     */
+    private void optimizeIfExitwhen(ImIf imIf) {
+        ImExitwhen imStmt = (ImExitwhen) imIf.getThenBlock().get(0);
+        imStmt.getCondition().setParent(null);
+        imIf.getCondition().setParent(null);
+
+        imStmt.setCondition((JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(imIf.getCondition(), imStmt.getCondition()))));
+        imStmt.setParent(null);
+        imIf.replaceBy(imStmt);
+    }
+
     private void optimizeOpCall(ImOperatorCall opc) {
         // Binary
         boolean wasViable = true;
@@ -488,19 +509,21 @@ public class SimpleRewrites {
                     totalRewrites++;
                 }
             }
+        } else if (imIf.getElseBlock().isEmpty() && imIf.getThenBlock().size() == 1 && imIf.getThenBlock().get(0) instanceof ImExitwhen) {
+            optimizeIfExitwhen(imIf);
         }
     }
 
     /**
      * Optimizes
-     *
-     *   set x = expr1
-     *   set x = x ⊕ expr2
-     *
+     * <p>
+     * set x = expr1
+     * set x = x ⊕ expr2
+     * <p>
      * into:
-     *
-     *   set x  = expr1 ⊕ expr2
-     *
+     * <p>
+     * set x  = expr1 ⊕ expr2
+     * <p>
      * like code that is created by the branch merger
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {

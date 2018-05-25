@@ -625,4 +625,21 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void optimizeExitwhen() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	while x > 0",
+                "		if x == 50",
+                "			break",
+                "		if x == 101",
+                "			break",
+                "		x--",
+                "	testSuccess()"
+        );
+    }
+
 }
