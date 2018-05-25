@@ -501,7 +501,7 @@ public class SimpleRewrites {
         ImExpr rightExpr1 = imSet.getRight();
         ImExpr rightExpr2 = imSet2.getRight();
 
-        if (leftVar1.structuralEquals(leftVar2)) {
+        if (leftVar1 == leftVar2) {
             if (rightExpr1 instanceof ImOperatorCall && rightExpr2 instanceof ImOperatorCall) {
                 ImOperatorCall rightOpCall1 = (ImOperatorCall) rightExpr1;
                 ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
@@ -509,7 +509,7 @@ public class SimpleRewrites {
                     if (rightOpCall1.getArguments().get(0) instanceof ImVarAccess && rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
                         ImVarAccess imVarAccess1 = (ImVarAccess) rightOpCall1.getArguments().get(0);
                         ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
-                        if (imVarAccess1.getVar().structuralEquals(leftVar1) && imVarAccess2.getVar().structuralEquals(leftVar2)) {
+                        if (imVarAccess1.getVar() == leftVar1 && imVarAccess2.getVar() == leftVar2) {
                             if (rightOpCall1.getArguments().get(1) instanceof ImConst && rightOpCall2.getArguments().get(1) instanceof ImConst) {
                                 rightOpCall1.setParent(null);
                                 imVarAccess2.replaceBy(rightOpCall1);

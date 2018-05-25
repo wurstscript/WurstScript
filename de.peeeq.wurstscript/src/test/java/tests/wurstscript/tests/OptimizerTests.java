@@ -610,4 +610,19 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void optimizeSet2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	var Test_x = x - 100",
+                "	Test_x += 1",
+                "	x += 1",
+                "	if x == 101 and Test_x == 1",
+                "		testSuccess()"
+        );
+    }
+
 }
