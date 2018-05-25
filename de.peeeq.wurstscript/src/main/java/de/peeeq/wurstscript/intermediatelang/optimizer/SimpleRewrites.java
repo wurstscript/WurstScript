@@ -103,6 +103,7 @@ public class SimpleRewrites {
 
     private void optimizeConsecutiveExitWhen(ImExitwhen lookback, ImExitwhen element) {
         lookback.getCondition().setParent(null);
+        element.getCondition().setParent(null);
         lookback.getCondition().replaceBy(JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lookback.getCondition(), element.getCondition())));
         element.replaceBy(JassIm.ImNull());
         totalRewrites++;
