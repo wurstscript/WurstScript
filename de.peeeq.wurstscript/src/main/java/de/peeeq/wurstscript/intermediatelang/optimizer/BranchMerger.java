@@ -51,7 +51,7 @@ public class BranchMerger {
                 if (n.getPredecessors().size() <= 1 && n.getSuccessors().size() == 2) {
                     Node leftStmt = n.getSuccessors().get(0);
                     Node rightStmt = n.getSuccessors().get(1);
-                    if (leftStmt.getStmt() != null && rightStmt.getStmt() != null && leftStmt.getStmt().toString().equals(rightStmt.getStmt().toString())) {
+                    if (leftStmt.getStmt() != null && rightStmt.getStmt() != null && leftStmt.getStmt().structuralEquals(rightStmt.getStmt())) {
                         if (n.getPredecessors().size() == 1) {
                             // Possible match. At last check if condition causes sideeffects.
                             if (!sideEffectsCanAffectNode(n, leftStmt)) {
