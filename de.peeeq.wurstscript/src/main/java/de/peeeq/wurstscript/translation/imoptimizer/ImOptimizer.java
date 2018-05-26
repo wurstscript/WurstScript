@@ -105,13 +105,12 @@ public class ImOptimizer {
         boolean changes = true;
         int iterations = 0;
         while (changes && iterations++ < 10) {
-            changes = false;
             ImProg prog = trans.imProg();
             trans.calculateCallRelationsAndUsedVariables();
 
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
-            changes |= prog.getGlobals().retainAll(trans.getReadVariables());
+            changes = prog.getGlobals().retainAll(trans.getReadVariables());
             int globalsAfter = prog.getGlobals().size();
             int globalsRemoved = globalsBefore - globalsAfter;
             totalGlobalsRemoved += globalsRemoved;
