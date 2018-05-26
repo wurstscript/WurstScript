@@ -7,7 +7,7 @@ import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
-import de.peeeq.wurstio.hotdoc.HotDocWithThyme;
+import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.map.importer.ImportFile;
@@ -103,7 +103,7 @@ public class Main {
             }
 
             if (runArgs.createHotDoc()) {
-                HotDocWithThyme hg = new HotDocWithThyme(runArgs.getFiles());
+                HotdocGenerator hg = new HotdocGenerator(runArgs.getFiles());
                 hg.generateDoc();
                 return;
             }

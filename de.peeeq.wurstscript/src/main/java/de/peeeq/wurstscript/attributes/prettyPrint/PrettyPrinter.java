@@ -1,21 +1,9 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
+import org.apache.commons.lang.StringUtils;
 
 public class PrettyPrinter {
-
-    public static boolean isBlank(final CharSequence cs) {
-        int strLen;
-        if (cs == null || (strLen = cs.length()) == 0) {
-            return true;
-        }
-        for (int i = 0; i < strLen; i++) {
-            if (!Character.isWhitespace(cs.charAt(i))) {
-                return false;
-            }
-        }
-        return true;
-    }
 
     public static void prettyPrint(Annotation e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append(e.getAnnotationType());
@@ -172,7 +160,7 @@ public class PrettyPrinter {
     public static void prettyPrint(ExprFuncRef e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append("function");
         spacer.addSpace(sb);
-        if (!isBlank(e.getScopeName())) {
+        if (!StringUtils.isBlank(e.getScopeName())) {
             sb.append(e.getScopeName());
             sb.append(".");
         }
@@ -737,11 +725,11 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprIfElse e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append("(");
-        e.getCond().prettyPrint(spacer, sb, indent + 1);
+        e.getCond().prettyPrint(spacer, sb, indent+1);
         sb.append(" ? ");
-        e.getIfTrue().prettyPrint(spacer, sb, indent + 1);
+        e.getIfTrue().prettyPrint(spacer, sb, indent+1);
         sb.append(" : ");
-        e.getIfFalse().prettyPrint(spacer, sb, indent + 1);
+        e.getIfFalse().prettyPrint(spacer, sb, indent+1);
         sb.append(")");
     }
 
