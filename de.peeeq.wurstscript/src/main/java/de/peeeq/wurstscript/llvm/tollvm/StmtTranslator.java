@@ -213,6 +213,11 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
     }
 
     @Override
+    public void case_ImVarargLoop(ImVarargLoop imVarargLoop) {
+        throw new RuntimeException("should be eliminated");
+    }
+
+    @Override
     public void case_ImRealVal(ImRealVal e) {
         tr.translateExpr(e);
     }

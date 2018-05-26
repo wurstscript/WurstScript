@@ -1,7 +1,14 @@
 package Test
 
 native print(string s)
+native I2S(int i) returns string
+native Random() returns int
 
 init
+    var x = Random()
+    x += 1
+    x *= 2
+    x += 1
+    x += 1
+    I2S(x)
     print("hello world")
-

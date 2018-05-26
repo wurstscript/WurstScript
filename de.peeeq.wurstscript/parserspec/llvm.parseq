@@ -9,13 +9,16 @@ Prog(TypeDefList typeDefs,
     GlobalList globals,
     ProcList procedures)
 
-Global(ref Type type, String name, boolean isConstant, Const initialValue)
+Global(ref Type type, String name, boolean isConstant, InitialValue initialValue)
+
+InitialValue = Const | External()
 
 Variable =
       Parameter(ref Type type, String name)
     | TemporaryVar(String name)
 
 Proc(String name,
+    boolean isExtern,
     ref Type returnType,
     ParameterList parameters,
     BasicBlockList basicBlocks)
@@ -30,6 +33,7 @@ Instruction =
     | TerminatingInstruction
     | Print(Operand e)
     | Store(Operand address, Operand value)
+    | CallVoid(Operand function, OperandList arguments)
     | CommentInstr(String text)
 
 Assign =
@@ -83,7 +87,7 @@ Type =
     | TypeNullpointer()
     | TypeProc(TypeRefList argTypes, ref Type resultType)
     | TypeVoid()
-    | TypeDef
+    | TypeRef(ref TypeDef typeDef)
 
 TypeDef =
       TypeStruct(String name, StructFieldList fields)

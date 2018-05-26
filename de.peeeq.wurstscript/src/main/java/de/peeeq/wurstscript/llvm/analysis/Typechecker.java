@@ -41,7 +41,7 @@ public class Typechecker {
     }
 
     public static Type calculateType(ConstStruct o) {
-        return o.getStructType();
+        return Ast.TypeRef(o.getStructType());
     }
 
     public static Type calculateType(Parameter parameter) {
@@ -214,6 +214,11 @@ public class Typechecker {
 
     public static Type calculateType(ConstString constString) {
         return Ast.TypeArray(Ast.TypeByte(), constString.getStringVal().getBytes().length);
+    }
+
+    public static boolean equalsType(TypeRef typeRef, Type other) {
+        return other instanceof TypeRef
+                && typeRef.getTypeDef() == ((TypeRef) other).getTypeDef();
     }
 }
 

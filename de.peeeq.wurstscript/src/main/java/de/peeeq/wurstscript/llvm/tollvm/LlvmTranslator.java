@@ -24,6 +24,7 @@ public class LlvmTranslator {
     private Map<ImVar, Global> globals = new HashMap<>();
     private Map<ImClass, TypeStruct> structFor = new HashMap<>();
     private Table<ImClass, ImVar, Integer> fieldIndex = HashBasedTable.create();
+    private Map<String, Global> globalStringConstant = new HashMap<>();
 
 
     private Map<ImFunction, Proc> procFor = new HashMap<ImFunction, Proc>();
@@ -61,6 +62,7 @@ public class LlvmTranslator {
             BasicBlockList blocks = Ast.BasicBlockList();
             Proc proc = Ast.Proc(
                     function.getName(),
+                    function.isNative(),
                     translateType(function.getReturnType()),
                     function.getParameters()
                             .stream()
@@ -195,14 +197,14 @@ public class LlvmTranslator {
         free {
             @Override
             public Proc init(LlvmTranslator tr) {
-                Proc proc = Ast.Proc("free", Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypePointer(Ast.TypeByte()), "ptr")), Ast.BasicBlockList());
+                Proc proc = Ast.Proc("free", true, Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypePointer(Ast.TypeByte()), "ptr")), Ast.BasicBlockList());
                 tr.prog.getProcedures().add(0, proc);
                 return proc;
             }
         }, alloc {
             @Override
             public Proc init(LlvmTranslator tr) {
-                Proc proc = Ast.Proc("alloc", Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypeInt(), "size")), Ast.BasicBlockList());
+                Proc proc = Ast.Proc("alloc", true, Ast.TypePointer(Ast.TypeByte()), Ast.ParameterList(Ast.Parameter(Ast.TypeInt(), "size")), Ast.BasicBlockList());
                 tr.prog.getProcedures().add(0, proc);
                 return proc;
             }
@@ -216,5 +218,14 @@ public class LlvmTranslator {
 
     public Proc builtinProc(BuiltinProc proc) {
         return buitinProcs.computeIfAbsent(proc, p -> p.init(this));
+    }
+
+    public Global getGlobalStringConstant(String str) {
+        return globalStringConstant.computeIfAbsent(str, s -> {
+            Type stringType = ((TypePointer) translateType(JassIm.ImSimpleType("string"))).getTo();
+            Global global = Ast.Global(stringType, str, true, Ast.External());
+            prog.getGlobals().add(global);
+            return global;
+        });
     }
 }

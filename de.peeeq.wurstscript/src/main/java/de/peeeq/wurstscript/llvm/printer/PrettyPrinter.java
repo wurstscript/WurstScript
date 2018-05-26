@@ -160,8 +160,18 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_External(External external) {
+        append("external");
+    }
+
+    @Override
     public void case_Proc(Proc proc) {
-        append("define " + proc.getReturnType() + " @" + getName(proc) + "(");
+        if (proc.getIsExtern()) {
+            append("declare ");
+        } else {
+            append("define ");
+        }
+        append(proc.getReturnType() + " @" + getName(proc) + "(");
         boolean first = true;
         for (Parameter p : proc.getParameters()) {
             if (!first) {
@@ -172,24 +182,32 @@ public class PrettyPrinter implements
             append(p);
             first = false;
         }
-        appendLine(") {");
-        for (BasicBlock b : proc.getBasicBlocks()) {
-            print(b);
+        append(")");
+        if (!proc.getIsExtern()) {
+            appendLine(" {");
+            for (BasicBlock b : proc.getBasicBlocks()) {
+                print(b);
+            }
+            appendLine();
+            appendLine("}");
         }
-        appendLine();
-        appendLine("}");
         appendLine();
     }
 
     @Override
     public void case_Global(Global g) {
         append("@" + getName(g) + " = ");
-        if (g.getIsConstant()) {
-            append("constant ");
+        if (g.getInitialValue() instanceof External) {
+            append("external global ");
+            print(g.getType());
         } else {
-            append("global ");
+            if (g.getIsConstant()) {
+                append("constant ");
+            } else {
+                append("global ");
+            }
+            print(g.getInitialValue());
         }
-        print(g.getInitialValue());
     }
 
     @Override
@@ -232,6 +250,11 @@ public class PrettyPrinter implements
         addBuiltins(sb);
     }
 
+    @Override
+    public void case_NotEq(NotEq notEq) {
+        append("noteq");
+    }
+
     private void printStringConstants(Prog p) {
         p.accept(new Element.DefaultVisitor() {
             int messageNr = 0;
@@ -260,15 +283,15 @@ public class PrettyPrinter implements
         appendLine();
         appendLine("declare noalias i8* @malloc(i32)");
         appendLine();
-        appendLine("declare i32 @printf(i8*, ...)");
+//        appendLine("declare i32 @printf(i8*, ...)");
         appendLine();
         appendLine("declare void @exit(i32)");
         appendLine();
-        appendLine("@.printstr = private unnamed_addr constant [4 x i8] c\"%d\\0A\\00\", align 1");
-        appendLine("define void @print(i32 %i) {");
-        appendLine("	%temp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.printstr, i32 0, i32 0), i32 %i)");
-        appendLine("	ret void");
-        appendLine("}");
+//        appendLine("@.printstr = private unnamed_addr constant [4 x i8] c\"%d\\0A\\00\", align 1");
+//        appendLine("define void @print(i32 %i) {");
+//        appendLine("	%temp = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @.printstr, i32 0, i32 0), i32 %i)");
+//        appendLine("	ret void");
+//        appendLine("}");
     }
 
     @Override
@@ -363,6 +386,11 @@ public class PrettyPrinter implements
         appendLine("}");
     }
 
+    @Override
+    public void case_Fadd(Fadd fadd) {
+        append("fadd");
+    }
+
 
     @Override
     public void case_ReturnVoid(ReturnVoid s) {
@@ -445,6 +473,11 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Sle(Sle sle) {
+        append("sle");
+    }
+
+    @Override
     public void case_HaltWithError(HaltWithError s) {
         appendLine("; ERROR: " + s.getMsg().replaceAll("[\r\n]", " | ") + "");
         appendLine("    call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([" + (s.getMsg().getBytes().length + 2) + " x i8], [" + (s.getMsg().getBytes().length + 2) + " x i8]* @" + stringConstantNames.get(s.getMsg()) + ", i32 0, i32 0))");
@@ -467,6 +500,11 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Sge(Sge sge) {
+        append("sge");
+    }
+
+    @Override
     public void case_Store(Store s) {
         append("store ");
         printWithType(s.getValue());
@@ -475,24 +513,26 @@ public class PrettyPrinter implements
     }
 
     @Override
-    public void case_Call(Call s) {
-        Type t = s.getFunction().calculateType();
+    public void case_CallVoid(CallVoid s) {
+        printCall(s.getFunction(), s.getArguments());
+    }
+
+    private void printCall(Operand func, OperandList args) {
+        Type t = func.calculateType();
         if (t instanceof TypePointer) {
-            TypePointer funcPointerType = (TypePointer) s.getFunction().calculateType();
+            TypePointer funcPointerType = (TypePointer) func.calculateType();
             if (funcPointerType.getTo() instanceof TypeProc) {
                 TypeProc procType = (TypeProc) funcPointerType.getTo();
                 t = procType.getResultType();
             }
         }
 
-
-        append(s.getVar() + " = ");
         append("call " + t + " ");
 
-        print(s.getFunction());
+        print(func);
         append("(");
         boolean first = true;
-        for (Operand arg : s.getArguments()) {
+        for (Operand arg : args) {
             if (!first) {
                 append(", ");
             }
@@ -503,10 +543,21 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Call(Call s) {
+        append(s.getVar() + " = ");
+        printCall(s.getFunction(), s.getArguments());
+    }
+
+    @Override
     public void case_Print(Print s) {
         append("call void @print(");
         printWithType(s.getE());
         append(")");
+    }
+
+    @Override
+    public void case_Frem(Frem frem) {
+        append("frem");
     }
 
 
@@ -557,6 +608,11 @@ public class PrettyPrinter implements
         appendLine();
     }
 
+    @Override
+    public void case_Fdiv(Fdiv fdiv) {
+        append("fdiv");
+    }
+
 
     @Override
     public void case_TypeInt(TypeInt t) {
@@ -603,6 +659,11 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Sgt(Sgt sgt) {
+        append("sgt");
+    }
+
+    @Override
     public void case_Or(Or or) {
         append("or");
     }
@@ -610,6 +671,11 @@ public class PrettyPrinter implements
     @Override
     public void case_Eq(Eq eq) {
         append("eq");
+    }
+
+    @Override
+    public void case_Fmul(Fmul fmul) {
+        append("fmul");
     }
 
     @Override
@@ -625,6 +691,11 @@ public class PrettyPrinter implements
     @Override
     public void case_Xor(Xor xor) {
         append("xor");
+    }
+
+    @Override
+    public void case_Fsub(Fsub fsub) {
+        append("fsub");
     }
 
     @Override
@@ -686,6 +757,22 @@ public class PrettyPrinter implements
     @Override
     public void case_TypeRefList(TypeRefList l) {
         printList(l, ", ");
+    }
+
+    @Override
+    public void case_TypeRef(TypeRef typeRef) {
+        typeRef.getTypeDef().match(new TypeDef.MatcherVoid() {
+
+            @Override
+            public void case_TypeStruct(TypeStruct typeStruct) {
+                append("%" + typeStruct.getName());
+            }
+
+            @Override
+            public void case_TypeOpaque(TypeOpaque typeOpaque) {
+                append("%" + typeOpaque.getName());
+            }
+        });
     }
 
     @Override

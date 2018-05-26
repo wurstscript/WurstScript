@@ -26,9 +26,9 @@ public class TypeTranslator implements ImType.Matcher<Type> {
         Type type = usedTypes.get(t.getTypename());
         if (type == null) {
             TypeDef td = Ast.TypeOpaque(t.getTypename());
-            type = td;
+            type = Ast.TypePointer(Ast.TypeRef(td));
             tr.addType(td);
-            usedTypes.put(t.getTypename(), td);
+            usedTypes.put(t.getTypename(), type);
         }
         return type;
     }

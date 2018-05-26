@@ -49,14 +49,20 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
 
     @Override
     public Operand case_ImFunctionCall(ImFunctionCall fc) {
-        TemporaryVar v = Ast.TemporaryVar("call_result");
+
         Proc func = tr.getProcFor(fc.getFunc());
         OperandList args = fc.getArguments().stream()
                 .map(tr::translateExpr)
                 .collect(Collectors.toCollection(Ast::OperandList));
 
-        tr.addInstruction(Ast.Call(v, Ast.ProcedureRef(func), args));
-        return Ast.VarRef(v);
+        if (fc.attrTyp() instanceof ImVoid) {
+            tr.addInstruction(Ast.CallVoid(Ast.ProcedureRef(func), args));
+            return null;
+        } else {
+            TemporaryVar v = Ast.TemporaryVar("call_result");
+            tr.addInstruction(Ast.Call(v, Ast.ProcedureRef(func), args));
+            return Ast.VarRef(v);
+        }
     }
 
     @Override
@@ -71,7 +77,8 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
 
     @Override
     public Operand case_ImStringVal(ImStringVal imStringVal) {
-        return Ast.ConstString(imStringVal.getValS());
+        Global glob = tr.getGlobalStringConstant(imStringVal.getValS());
+        return Ast.GlobalRef(glob);
     }
 
     @Override
@@ -190,8 +197,11 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     }
 
     @Override
-    public Operand case_ImVarAccess(ImVarAccess imVarAccess) {
-        throw new RuntimeException("TODO");
+    public Operand case_ImVarAccess(ImVarAccess e) {
+        Operand loc = tr.getVarLocation(e.getVar());
+        TemporaryVar v = Ast.TemporaryVar(e.getVar().getName());
+        tr.addInstruction(Ast.Load(v, loc));
+        return Ast.VarRef(v);
     }
 
     @Override

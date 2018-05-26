@@ -136,6 +136,12 @@ public class ExpectedType {
                     // unknown
                     return Ast.TypePointer(Ast.TypeByte());
                 }
+
+                @Override
+                public Type case_CallVoid(CallVoid callVoid) {
+                    // unknown
+                    return Ast.TypePointer(Ast.TypeByte());
+                }
             });
         }
         throw new RuntimeException("Unhandled case: " + parent.getClass().getSimpleName());

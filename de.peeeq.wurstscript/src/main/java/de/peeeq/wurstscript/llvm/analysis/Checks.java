@@ -177,28 +177,37 @@ public class Checks {
             }
 
             @Override
+            public void case_CallVoid(CallVoid call) {
+                checkCall(call, call.getFunction(), call.getArguments());
+            }
+
+            @Override
             public void case_Call(Call call) {
-                Type funcType = getType(call.getFunction());
+                checkCall(call, call.getFunction(), call.getArguments());
+            }
+
+            private void checkCall(Element errorPos, Operand func, OperandList args) {
+                Type funcType = getType(func);
                 if (funcType instanceof TypePointer) {
                     TypePointer pointerType = (TypePointer) funcType;
                     if (pointerType.getTo() instanceof TypeProc) {
                         TypeProc pt = (TypeProc) pointerType.getTo();
 
-                        if (call.getArguments().size() != pt.getArgTypes().size()) {
-                            error(call, "Expected " + pt.getArgTypes().size() + " arguments, but has " + call.getArguments().size() + " arguments.");
+                        if (args.size() != pt.getArgTypes().size()) {
+                            error(errorPos, "Expected " + pt.getArgTypes().size() + " arguments, but has " + args.size() + " arguments.");
                             return;
                         }
 
                         // check parameter types
-                        for (int i = 0; i < call.getArguments().size(); i++) {
-                            expectType(call.getArguments().get(i),
+                        for (int i = 0; i < args.size(); i++) {
+                            expectType(args.get(i),
                                     pt.getArgTypes().get(i));
                         }
                         return;
                     }
 
                 }
-                error(call.getFunction(), "Procedure type must be a pointer to a procedure, but found: " + funcType);
+                error(errorPos, "Procedure type must be a pointer to a procedure, but found: " + funcType);
             }
 
             @Override
