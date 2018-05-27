@@ -31,7 +31,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
         ObjectTable modifiedTable = unitStore.getModifiedTable();
         for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
             if (od.getNewObjectId() == newUnitId.getVal()) {
-                throw new Error("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
+                globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
             }
         }
         ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
@@ -132,8 +132,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public void compileError(ILconstString msg) {
-        Element trace = globalState.getLastStatement().attrTrace();
-        globalState.getGui().sendError(new CompileError(trace.attrSource(), msg.getVal()));
+        globalState.compilationError(msg.getVal());
     }
 
 }
