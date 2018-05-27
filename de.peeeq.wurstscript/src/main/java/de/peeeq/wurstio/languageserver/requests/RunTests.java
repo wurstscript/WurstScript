@@ -41,7 +41,7 @@ public class RunTests extends UserRequest<Object> {
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
 
-    private static final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+    private static ScheduledExecutorService service;
 
     static public class TestFailure {
 
@@ -171,6 +171,10 @@ public class RunTests extends UserRequest<Object> {
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
+                    if (service != null && !service.isShutdown()) {
+                        service.shutdownNow();
+                    }
+                    service = Executors.newSingleThreadScheduledExecutor();
                     service.execute(future);
                     try {
                         future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
