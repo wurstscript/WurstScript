@@ -41,7 +41,7 @@ public class RunTests extends UserRequest<Object> {
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
 
-    private static ScheduledExecutorService service;
+    private static ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 
     static public class TestFailure {
 
@@ -186,6 +186,7 @@ public class RunTests extends UserRequest<Object> {
                     }
                     service.shutdown();
                     service.awaitTermination(10, TimeUnit.SECONDS);
+                    service = Executors.newSingleThreadScheduledExecutor();
                     successTests.add(f);
                     println("\tOK!");
                 } catch (TestSuccessException e) {
