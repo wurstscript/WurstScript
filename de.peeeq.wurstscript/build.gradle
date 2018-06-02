@@ -31,6 +31,16 @@ jacocoTestReport {
     reports {
         xml.enabled true
     }
+
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['build/**',
+                              'src-gen/**',
+                              'de.peeeq.wurstscript/build/**',
+                              'de.peeeq.wurstscript/src-gen/**'])
+        })
+    }
 }
 
 String genDir = "$projectDir/src-gen"
@@ -61,8 +71,8 @@ repositories {
 // In this section you declare the dependencies for your production and test code
 dependencies {
 
-	// Antlr parsing library
-	antlr "org.antlr:antlr4:4.7"
+    // Antlr parsing library
+    antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
     compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.2.1'
@@ -112,7 +122,7 @@ configurations.all {
 
 task genAst {
     description = 'Compile ast specifications'
-    fileTree(dir: 'parserspec', include:'**/*.parseq').each { file ->
+    fileTree(dir: 'parserspec', include: '**/*.parseq').each { file ->
 
         Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
         String fileContents = file.text

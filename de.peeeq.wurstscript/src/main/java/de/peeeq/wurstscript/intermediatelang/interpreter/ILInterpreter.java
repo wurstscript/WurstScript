@@ -148,17 +148,7 @@ public class ILInterpreter implements AbstractInterpreter {
                 // ignore
             }
         }
-        ImStmt lastStatement = globalState.getLastStatement();
-        String errorMessage = "function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors;
-        if (lastStatement != null) {
-            WPos source = lastStatement.attrTrace().attrSource();
-            globalState.getGui().sendError(new CompileError(source, errorMessage));
-        } else {
-            globalState.getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
-        }
-        for (ILStackFrame sf : Utils.iterateReverse(globalState.getStackFrames().getStackFrames())) {
-            globalState.getGui().sendError(sf.makeCompileError());
-        }
+        globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
         return new LocalState();
     }
 

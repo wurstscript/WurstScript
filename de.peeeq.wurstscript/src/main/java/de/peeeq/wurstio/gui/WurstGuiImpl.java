@@ -98,7 +98,9 @@ public class WurstGuiImpl extends WurstGui {
                     }
                 }
                 SwingUtilities.invokeAndWait(() -> {
-                    errorWindow.sendFinished();
+                    if (getErrorCount() == 0) {
+                        errorWindow.sendFinished();
+                    }
                     statusWindow.sendFinished();
                 });
             } catch (Throwable e) {

@@ -436,7 +436,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return prog;
     }
 
-    private void checkNoCompiletimeExpr(ImProg prog) {
+    public void checkNoCompiletimeExpr(ImProg prog) {
         prog.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImCompiletimeExpr e) {

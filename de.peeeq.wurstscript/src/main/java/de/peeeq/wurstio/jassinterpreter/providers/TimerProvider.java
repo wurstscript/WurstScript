@@ -3,7 +3,6 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstio.jassinterpreter.mocks.TimerMock;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class TimerProvider extends Provider {
     private static IlConstHandle lastExpiredMock = null;
@@ -13,10 +12,15 @@ public class TimerProvider extends Provider {
     }
 
     public IlConstHandle CreateTimer() {
-        return new IlConstHandle(NameProvider.getRandomName("timer"), new TimerMock());
+        TimerMock mock = new TimerMock(interpreter);
+        IlConstHandle timer = new IlConstHandle(NameProvider.getRandomName("timer"), mock);
+        mock.setHandle(timer);
+        return timer;
     }
 
-    public void DestroyTimer(IlConstHandle trigger) {
+    public void DestroyTimer(IlConstHandle timer) {
+        TimerMock timerMock = (TimerMock) timer.getObj();
+        timerMock.destroy();
     }
 
     public IlConstHandle GetExpiredTimer() {
@@ -25,6 +29,12 @@ public class TimerProvider extends Provider {
 
     public void TimerStart(IlConstHandle whichTimer, ILconstReal timeout, ILconstBool periodic, ILconstAbstract handlerFunc) {
         TimerMock timerMock = (TimerMock) whichTimer.getObj();
-        timerMock.start(timeout, periodic, handlerFunc);
+        if (handlerFunc instanceof ILconstFuncRef) {
+            timerMock.start(timeout, periodic, (ILconstFuncRef) handlerFunc);
+        }
+    }
+
+    public static void setLastExpiredMock(IlConstHandle lastExpiredMock) {
+        TimerProvider.lastExpiredMock = lastExpiredMock;
     }
 }
