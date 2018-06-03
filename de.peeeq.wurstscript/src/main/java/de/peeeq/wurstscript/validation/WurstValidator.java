@@ -2122,8 +2122,7 @@ public class WurstValidator {
     }
 
     private boolean distinctFunctions(FuncLink nl1, FuncLink nl2) {
-        if (nl1.getReceiverType() != null && nl2.getReceiverType() != null
-                && !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef())) {
+        if (receiverTypesDifferent(nl1, nl2)) {
             return true;
         }
         FunctionDefinition f1 = nl1.getDef();
@@ -2141,6 +2140,14 @@ public class WurstValidator {
             }
         }
         return false;
+    }
+
+    private boolean receiverTypesDifferent(FuncLink nl1, FuncLink nl2) {
+        if (nl1.getReceiverType() == null) {
+            return nl2.getReturnType() != null;
+        } else {
+            return nl2.getReceiverType() == null || !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef());
+        }
     }
 
     private void checkForDuplicateImports(WPackage p) {
