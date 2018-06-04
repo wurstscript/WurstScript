@@ -66,7 +66,7 @@ public class TLDTranslation {
         }
         if (classDef.attrExtendedClass() != null) {
             // first translate super classes:
-            translate(classDef.attrExtendedClass(), translator);
+            translate(classDef.attrExtendedClass().getClassDef(), translator);
         }
         ClassTranslator.translate(classDef, translator);
         translator.setTranslated(classDef);

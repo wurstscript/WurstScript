@@ -156,6 +156,11 @@ public class VarLink extends DefLink {
         return type;
     }
 
+    @Override
+    public VarLink withDef(NameDef def) {
+        return new VarLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, type);
+    }
+
 
     public VarLink withConfigDef() {
         VarDef def = (VarDef) this.def.attrConfigActualNameDef();

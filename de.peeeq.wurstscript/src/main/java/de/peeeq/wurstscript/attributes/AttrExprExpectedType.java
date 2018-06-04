@@ -105,12 +105,12 @@ public class AttrExprExpectedType {
         if (c == null) {
             return null;
         }
-        TypeLink superClass = c.attrExtendedClass();
+        WurstTypeClass superClass = c.attrExtendedClass();
         if (superClass == null) {
             return null;
         }
         // call super constructor
-        ClassDef superClassDef = (ClassDef) superClass.getDef();
+        ClassDef superClassDef = superClass.getDef();
         ConstructorDefs constructors = superClassDef.getConstructors();
 
 

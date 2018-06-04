@@ -32,7 +32,7 @@ public class ValidateGlobalsUsage {
             @Override
             public void visit(ExprVarAccess e) {
                 super.visit(e);
-                NameDef nameDef = e.attrNameDef();
+                NameDef nameDef = e.attrNameDef().getDef();
                 if (nameDef instanceof GlobalVarDef) {
                     GlobalVarDef g = (GlobalVarDef) nameDef;
                     if (!definedVars.contains(g)

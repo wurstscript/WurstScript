@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.OptTypeExpr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -10,11 +12,12 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {
 
-    ClassDef classDef;
+    private ClassDef classDef;
 
 
     public WurstTypeClass(ClassDef classDef, List<WurstTypeBoundTypeParam> typeParameters, boolean staticRef) {
@@ -32,25 +35,48 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         if (obj instanceof WurstTypeInterface) {
             // TODO probably not a good idea to get type arg binding after the fact, implemented interfaces should return List<WurstTypeInterface> with typeArgs already set
 
-            WurstTypeInterface pti = (WurstTypeInterface) obj;
-            for (WurstTypeInterface implementedInterface : classDef.attrImplementedInterfaces()) {
 
-                if (implementedInterface.setTypeArgs(getTypeArgBinding()).isSubtypeOf(pti, location)) {
-                    return true;
-                }
+        }
+        // TODO this looks fishy, so I disabled it, but it's probably required for accessing module members
+//        if (obj instanceof WurstTypeModuleInstanciation) {
+//            WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
+//            return n.isParent(this);
+//        }
+        WurstTypeClass extendedClass = extendedClass();
+        if (extendedClass != null) {
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = extendedClass.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+            if (mapping2 != null) {
+                return mapping2;
             }
         }
-        if (obj instanceof WurstTypeModuleInstanciation) {
-            WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
-            return n.isParent(this);
+        // try if one of my interfaces implements the right type:
+        // OPT this could be optimized -- only do this if obj is an interface type
+        for (WurstTypeInterface implementedInterface : implementedInterfaces()) {
+
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+            if (mapping2 != null) {
+                return mapping2;
+            }
         }
-        if (classDef.getExtendedClass() instanceof TypeExpr) {
-            TypeExpr extendedClass = (TypeExpr) classDef.getExtendedClass();
-            WurstType superType = extendedClass.attrTyp();
-            superType = superType.setTypeArgs(this.getTypeArgBinding());
-            return superType.isSubtypeOf(obj, location);
+        return null;
+    }
+
+    public List<WurstTypeInterface> implementedInterfaces() {
+        return classDef.getImplementsList().stream()
+                .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * A type for the class extended by this class (or null if none)
+     */
+    private @Nullable WurstTypeClass extendedClass() {
+        OptTypeExpr extendedClass = classDef.getExtendedClass();
+        if (extendedClass == null) {
+            return null;
         }
-        return false;
+        WurstType unboundType = extendedClass.attrTyp();
+        return (WurstTypeClass) unboundType.setTypeArgs(getTypeArgBinding());
     }
 
     @Override

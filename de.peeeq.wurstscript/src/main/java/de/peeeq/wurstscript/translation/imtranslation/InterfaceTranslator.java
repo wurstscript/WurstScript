@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
@@ -86,12 +88,12 @@ public class InterfaceTranslator {
             ClassDef subC = subE.getKey();
             ImmutableCollection<WurstTypeInterface> interfaces = subC.attrImplementedInterfaces();
 
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding =
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding =
                     interfaces.stream()
                             .filter(t -> t.getDef() == interfaceDef)
                             .map(WurstTypeNamedScope::getTypeArgBinding)
                             .findFirst()
-                            .orElse(Collections.emptyMap());
+                            .orElse(WurstType.emptyMapping());
 
             FuncDef subM = subE.getValue();
             ImMethod m = translator.getMethodFor(subM);

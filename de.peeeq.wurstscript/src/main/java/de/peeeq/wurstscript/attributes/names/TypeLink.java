@@ -62,6 +62,11 @@ public class TypeLink extends NameLink {
         return def.attrTyp();
     }
 
+    @Override
+    public TypeLink withDef(NameDef def) {
+        return new TypeLink(getVisibility(), getDefinedIn(), getTypeParams(), (TypeDef) def, type);
+    }
+
     public WurstType getTyp(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         // TODO only set the type parameters bound here
         return def.attrTyp().setTypeArgs(mapping);

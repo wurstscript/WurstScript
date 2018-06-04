@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
@@ -1351,11 +1352,11 @@ public class ImTranslator {
 
 
     private Optional<FuncDef> findErrorFunc() throws CompileError {
-        WPackage p = wurstProg.lookupPackage("ErrorHandling");
+        PackageLink p = wurstProg.lookupPackage("ErrorHandling");
         if (p == null) {
             return Optional.empty();
         }
-        ImmutableCollection<FuncLink> funcs = p.getElements().lookupFuncs("error");
+        ImmutableCollection<FuncLink> funcs = p.getDef().getElements().lookupFuncs("error");
         if (funcs.isEmpty()) {
             return Optional.empty();
         } else if (funcs.size() > 1) {

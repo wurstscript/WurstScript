@@ -12,7 +12,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class NameResolution {
 
@@ -106,7 +105,7 @@ public class NameResolution {
         receiverType.addMemberMethods(node, name, result);
     }
 
-    public static @Nullable NameDef lookupVarNoConfig(Element node, String name, boolean showErrors) {
+    public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
         WurstType receiverType;
         @Nullable
         StructureDef nearestStructureDef = node.attrNearestStructureDef();
@@ -160,7 +159,7 @@ public class NameResolution {
                     node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n"
                             + Utils.printAlternatives(candidates));
                 }
-                return (NameDef) candidates.get(0).getDef();
+                return candidates.get(0);
             }
             scope = nextScope(scope);
         }
@@ -170,13 +169,13 @@ public class NameResolution {
             } else {
                 node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
                         " If you want to access it, declare it public.");
-                return privateCandidate.getDef();
+                return privateCandidate;
             }
         }
         return null;
     }
 
-    public static @Nullable NameDef lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
+    public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
 //		WLogger.info("lookupMemberVar " + receiverType+"."+name);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
@@ -195,7 +194,7 @@ public class NameResolution {
                         }
                     }
 
-                    return n.getDef();
+                    return n;
                 }
             }
             scope = nextScope(scope);
@@ -215,7 +214,7 @@ public class NameResolution {
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
-                    } else if (privateCandidate != null) {
+                    } else if (privateCandidate == null) {
                         privateCandidate = n;
                     }
                 }
@@ -241,12 +240,12 @@ public class NameResolution {
         return null;
     }
 
-    public static @Nullable WPackage lookupPackage(Element node, String name, boolean showErrors) {
+    public static PackageLink lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getDef() instanceof WPackage) {
-                    return (WPackage) n.getDef();
+                if (n instanceof PackageLink) {
+                    return (PackageLink) n;
                 }
             }
             scope = nextScope(scope);
@@ -262,11 +261,11 @@ public class NameResolution {
         return lookupMemberFuncs(elem, receiverType, name, true);
     }
 
-    public static @Nullable NameDef lookupVarShort(Element node, String name) {
+    public static NameLink lookupVarShort(Element node, String name) {
         return lookupVar(node, name, true);
     }
 
-    public static @Nullable NameDef lookupMemberVarShort(Element node, WurstType receiverType, String name) {
+    public static NameLink lookupMemberVarShort(Element node, WurstType receiverType, String name) {
         return lookupMemberVar(node, receiverType, name, true);
     }
 
@@ -274,14 +273,15 @@ public class NameResolution {
         return lookupType(node, name, true);
     }
 
-    public static @Nullable WPackage lookupPackageShort(Element node, String name) {
+    public static PackageLink lookupPackageShort(Element node, String name) {
         return lookupPackage(node, name, true);
     }
 
-    public static @Nullable NameDef lookupVar(Element e, String name, boolean showErrors) {
-        NameDef v = e.lookupVarNoConfig(name, showErrors);
+    public static NameLink lookupVar(Element e, String name, boolean showErrors) {
+        NameLink v = e.lookupVarNoConfig(name, showErrors);
         if (v != null) {
-            return (NameDef) v.attrConfigActualNameDef();
+            NameDef actual = v.getDef().attrConfigActualNameDef();
+            return v.withDef(actual);
         }
         return null;
     }

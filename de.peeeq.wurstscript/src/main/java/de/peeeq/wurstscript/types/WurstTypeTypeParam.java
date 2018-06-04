@@ -55,13 +55,13 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        return Collections.emptyMap();
+        return WurstType.emptyMapping();
     }
 
     @Override
     public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
-        if (typeParamBounds.containsKey(def)) {
-            return typeParamBounds.get(def);
+        if (typeParamBounds.contains(def)) {
+            return typeParamBounds.get(def).some();
         }
         return this;
     }

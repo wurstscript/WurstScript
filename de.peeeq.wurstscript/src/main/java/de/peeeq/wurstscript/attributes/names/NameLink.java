@@ -133,4 +133,6 @@ public abstract class NameLink {
 
     // TODO should it be possible to get the type without providing a mapping for the type-arguments?
     public abstract WurstType getTyp();
+
+    public abstract NameLink withDef(NameDef actual);
 }

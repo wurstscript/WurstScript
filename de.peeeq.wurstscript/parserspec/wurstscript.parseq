@@ -861,19 +861,19 @@ Element.lookupType(String name, boolean showErrors)
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupType
 
 Element.lookupPackage(String name, boolean showErrors)
-	returns @Nullable WPackage
+	returns de.peeeq.wurstscript.attributes.names.PackageLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackage
 
 Element.lookupVar(String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVar
 
 Element.lookupVarNoConfig(String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarNoConfig
 
 Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
 
 Element.lookupFuncs(String name, boolean showErrors)
@@ -894,15 +894,15 @@ Element.lookupType(String name)
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupTypeShort
 
 Element.lookupPackage(String name)
-	returns @Nullable WPackage
+	returns de.peeeq.wurstscript.attributes.names.PackageLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackageShort
 
 Element.lookupVar(String name)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarShort
 
 Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
 
 Element.lookupFuncs(String name)

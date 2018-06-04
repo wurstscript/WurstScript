@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypePackage;
@@ -58,6 +55,11 @@ public class PackageLink extends DefLink {
     @Override
     public WurstType getTyp() {
         return new WurstTypePackage(def);
+    }
+
+    @Override
+    public PackageLink withDef(NameDef def) {
+        return new PackageLink(getVisibility(), getDefinedIn(), (WPackage) def);
     }
 
 

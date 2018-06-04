@@ -45,7 +45,7 @@ public class WurstTypeClosure extends WurstType {
         } else {
             FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
             if (abstractMethod != null) {
-                return closureImplementsAbstractMethod(abstractMethod, location, mapping);
+                return closureImplementsAbstractMethod(abstractMethod, location, typeParams, mapping);
             }
         }
         return null;
@@ -53,14 +53,14 @@ public class WurstTypeClosure extends WurstType {
 
 
     private @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-                                                                                                     Element location, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+                                                                                                     Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
             return null;
         }
 
         // contravariant parameter types
         for (int i = 0; i < paramTypes.size(); i++) {
-            mapping = abstractMethod.getParamTypes().get(i).matchAgainstSupertype(paramTypes.get(i), location, mapping);
+            mapping = abstractMethod.getParamTypes().get(i).matchAgainstSupertype(paramTypes.get(i), location, typeParams, mapping);
             if (mapping == null) {
                 return null;
             }
@@ -72,7 +72,7 @@ public class WurstTypeClosure extends WurstType {
         }
 
         // covariant return types
-        return returnType.matchAgainstSupertype(abstractMethod.getReturnType(), location, mapping);
+        return returnType.matchAgainstSupertype(abstractMethod.getReturnType(), location, typeParams, mapping);
     }
 
 

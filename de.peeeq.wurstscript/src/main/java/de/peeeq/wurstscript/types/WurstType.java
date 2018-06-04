@@ -74,9 +74,29 @@ public abstract class WurstType {
 
 
     /**
-     * @param other
-     * @param location
-     * @return is this type a subtype (or equal) to other type?
+     * Matches a type against a supertype .
+     * Both sides can include type parameters, but only the type parameters given in typeParams are matched.
+     * <p>
+     * returns the type mapping required to make the types equal and null if they do not match.
+     * <p>
+     * Simple examples:
+     * int match: int --> {} (the empty mapping}
+     * int match: string --> null
+     * ⋀T. A[int] match: A[T] --> {T -> int}
+     * ⋀T. A[T] match A[int] --> {T -> int}
+     * <p>
+     * Nonlinear patterns are also possible (matches from left to right):
+     * ⋀T. A[T, T] match A[int, int] --> {T -> int}
+     * <p>
+     * The complicated case is when we have subclasses:
+     * e.g. conider two classes
+     * class A[S,T]
+     * class B[X,Y] extends A[X,List[X]]
+     * <p>
+     * B[int,string] match A[int, List[int]] --> {}
+     * ⋀X Y. B[int,string] match A[X, Y] --> {X -> int, Y -> List[int]}
+     * <p>
+     * The given mapping are already mapped type parameters.
      */
     abstract @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping);
 

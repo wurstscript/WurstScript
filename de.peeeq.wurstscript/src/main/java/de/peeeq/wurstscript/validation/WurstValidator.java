@@ -438,19 +438,19 @@ public class WurstValidator {
 
         if (e instanceof GlobalVarDef) {
             GlobalVarDef v = (GlobalVarDef) e;
-            NameDef origVar = origPackage.getElements().lookupVarNoConfig(v.getName(), false);
+            NameLink origVar = origPackage.getElements().lookupVarNoConfig(v.getName(), false);
             if (origVar == null) {
                 e.addError("Could not find var " + v.getName() + " in configured package.");
                 return;
             }
 
-            if (!v.attrTyp().equalsType(origVar.attrTyp(), v)) {
-                e.addError("Configured variable must have type " + origVar.attrTyp() + " but the found type is "
+            if (!v.attrTyp().equalsType(origVar.getTyp(), v)) {
+                e.addError("Configured variable must have type " + origVar.getTyp() + " but the found type is "
                         + v.attrTyp() + ".");
                 return;
             }
 
-            if (!origVar.hasAnnotation("@configurable")) {
+            if (!origVar.getDef().hasAnnotation("@configurable")) {
                 e.addWarning("The configured variable " + v.getName() + " is not marked with @configurable.\n"
                         + "It is still possible to configure this var but it is not recommended.");
             }
@@ -739,7 +739,7 @@ public class WurstValidator {
 
             @Override
             public void case_ExprMemberVarDot(ExprMemberVarDot e) {
-                if (e.attrNameDef() instanceof WParameter) {
+                if (e.attrNameDef().getDef() instanceof WParameter) {
                     // we have an assignment to a tuple variable
                     // check whether left side is 'this' or a constant variable
                     if (e.getLeft() instanceof ExprThis) {
@@ -1087,7 +1087,7 @@ public class WurstValidator {
         checkFuncDefDeprecated(stmtCall);
 
         if (stmtCall.attrFuncDef() != null) {
-            FunctionDefinition calledFunc = stmtCall.attrFuncDef();
+            FuncLink calledFunc = stmtCall.attrFuncDef();
             if (calledFunc.attrIsDynamicClassMember()) {
                 if (!stmtCall.attrIsDynamicContext()) {
                     stmtCall.addError("Cannot call dynamic function " + funcName + " from static context.");

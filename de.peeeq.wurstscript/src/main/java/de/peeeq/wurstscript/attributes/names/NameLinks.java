@@ -25,7 +25,7 @@ public class NameLinks {
         if (c instanceof ClassDef) {
             ClassDef classDef = (ClassDef) c;
             addNamesFormSuperClass(result, classDef);
-            addNamesFromImplementedInterfaces(result, classDef);
+            addNamesFromImplementedInterfaces(result, (WurstTypeClass) classDef.attrTyp());
         }
         return result.build();
     }
@@ -177,13 +177,12 @@ public class NameLinks {
         }
     }
 
-    private static void addNamesFromImplementedInterfaces(Builder<String, DefLink> result, ClassDef classDef) {
-        for (TypeLink implementedInterface : classDef.attrImplementedInterfaces()) {
-            WurstTypeInterface interfaceType = (WurstTypeInterface) implementedInterface.getTyp();
+    private static void addNamesFromImplementedInterfaces(Builder<String, DefLink> result, WurstTypeClass classDef) {
+        for (WurstTypeInterface interfaceType : classDef.implementedInterfaces()) {
             TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = interfaceType.getTypeArgBinding();
             InterfaceDef i = interfaceType.getInterfaceDef();
             for (Entry<String, DefLink> e : i.attrNameLinks().entries()) {
-                result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef, binding));
+                result.put(e.getKey(), e.getValue().withTypeArgBinding(classDef.getClassDef(), binding));
             }
         }
     }

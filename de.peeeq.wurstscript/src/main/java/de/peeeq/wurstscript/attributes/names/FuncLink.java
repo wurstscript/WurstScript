@@ -125,6 +125,11 @@ public class FuncLink extends DefLink {
         return getReturnType();
     }
 
+    @Override
+    public FuncLink withDef(NameDef def) {
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType());
+    }
+
     private WurstType adjustType(Element context, WurstType t, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         return t.setTypeArgs(binding);
     }
