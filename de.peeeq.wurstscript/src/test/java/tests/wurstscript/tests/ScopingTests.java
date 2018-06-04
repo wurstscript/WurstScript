@@ -16,9 +16,10 @@ public class ScopingTests extends WurstScriptTest {
 				"endpackage");
 	}
 
+
     @Test
     public void test_duplicates_jass_func() {
-        testAssertErrorsLines(false, "Call to function foo is ambiguous. Alternatives are",
+        testAssertErrorsLines(false, "already defined",
                 "function foo takes nothing returns integer",
                 "	return 3",
                 "endfunction",

@@ -2134,7 +2134,7 @@ public class WurstValidator {
 
     private boolean receiverTypesDifferent(FuncLink nl1, FuncLink nl2) {
         if (nl1.getReceiverType() == null) {
-            return nl2.getReturnType() != null;
+            return nl2.getReceiverType() != null;
         } else {
             return nl2.getReceiverType() == null || !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef());
         }
