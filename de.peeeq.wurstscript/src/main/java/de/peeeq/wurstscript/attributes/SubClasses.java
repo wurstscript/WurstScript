@@ -1,10 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -14,7 +12,7 @@ import java.util.stream.Collectors;
 public class SubClasses {
 
 
-    public static @Nullable ClassDef getExtendedClass(ClassDef classDef) {
+    public static WurstTypeClass getExtendedClass(ClassDef classDef) {
         assertNonCyclicClassHierarchy(classDef, new ArrayList<>());
 
         if (classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass) {
@@ -23,7 +21,7 @@ public class SubClasses {
                 // using an exception, because cyclic dependencies can cause stack overflow later
                 throw new CompileError(classDef.getSource(), "Classes must not extend themselves");
             }
-            return c.getClassDef();
+            return c;
         } else if (classDef.getExtendedClass() instanceof TypeExpr) {
             classDef.getExtendedClass().addError("Cannot extend " + classDef.getExtendedClass().attrTyp() + ", because it is not a class.");
         }

@@ -18,6 +18,9 @@ import java.util.stream.Stream;
 
 
 public abstract class WurstType {
+
+    public static final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> EMPTY_MAPPING = TreeMap.empty(TypeParamOrd.instance());
+
     /**
      * @param other
      * @param location
@@ -29,7 +32,7 @@ public abstract class WurstType {
 
     @NotNull
     public static TreeMap<TypeParamDef, WurstTypeBoundTypeParam> emptyMapping() {
-        return TreeMap.empty(TypeParamOrd.instance());
+        return EMPTY_MAPPING;
     }
 
 //    public final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location) {
@@ -55,8 +58,6 @@ public abstract class WurstType {
         } else if (other instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return mapping;
-        } else if (other instanceof WurstTypeDeferred) {
-            return matchAgainstSupertype(((WurstTypeDeferred) other).force(), location, typeParams, mapping);
         } else if (other instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
             Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());

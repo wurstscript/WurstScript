@@ -13,6 +13,8 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
+import fj.P2;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -1088,12 +1090,12 @@ public class WurstValidator {
 
         if (stmtCall.attrFuncDef() != null) {
             FuncLink calledFunc = stmtCall.attrFuncDef();
-            if (calledFunc.attrIsDynamicClassMember()) {
+            if (calledFunc.getDef().attrIsDynamicClassMember()) {
                 if (!stmtCall.attrIsDynamicContext()) {
                     stmtCall.addError("Cannot call dynamic function " + funcName + " from static context.");
                 }
             }
-            if (calledFunc instanceof ExtensionFuncDef) {
+            if (calledFunc.getDef() instanceof ExtensionFuncDef) {
                 stmtCall.addError("Extension function " + funcName + " must be called with an explicit receiver.\n"
                         + "Try to write this." + funcName + "(...) .");
             }
@@ -1151,9 +1153,9 @@ public class WurstValidator {
     }
 
     private void visit(ExprBinary expr) {
-        FunctionDefinition def = expr.attrFuncDef();
+        FuncLink def = expr.attrFuncDef();
         if (def != null) {
-            FunctionSignature sig = FunctionSignature.forFunctionDefinition(def);
+            FunctionSignature sig = FunctionSignature.fromNameLink(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
         }
@@ -1325,7 +1327,7 @@ public class WurstValidator {
                             + " cannot be used with the cascade operator. Only dynamic objects are allowed.");
                 } else if (e.getParent() instanceof ExprMemberMethod) {
                     ExprMemberMethod em = (ExprMemberMethod) e.getParent();
-                    if (em.attrFuncDef() instanceof ExtensionFuncDef) {
+                    if (em.attrFuncDef().getDef() instanceof ExtensionFuncDef) {
                         e.addError("Reference to " + e.getVarName()
                                 + " can only be used for calling static methods, but not for calling extension method method '" + em.getFuncName() + "'.");
                     }
@@ -1353,8 +1355,44 @@ public class WurstValidator {
     }
 
     private void checkTypeBinding(HasTypeArgs e) {
-        for (Entry<TypeParamDef, WurstTypeBoundTypeParam> t : e.attrTypeParameterBindings().entrySet()) {
-            WurstTypeBoundTypeParam boundTyp = t.getValue();
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = e.match(new HasTypeArgs.Matcher<TreeMap<TypeParamDef, WurstTypeBoundTypeParam>>() {
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprNewObject(ExprNewObject e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ModuleUse(ModuleUse moduleUse) {
+                return null;
+            }
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_TypeExprSimple(TypeExprSimple e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprFunctionCall(ExprFunctionCall e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprMemberMethodDot(ExprMemberMethodDot e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
+
+            @Override
+            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprMemberMethodDotDot(ExprMemberMethodDotDot e) {
+                return e.attrTyp().getTypeArgBinding();
+            }
+        });
+        if (mapping == null) {
+            return;
+        }
+
+        for (P2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
+            WurstTypeBoundTypeParam boundTyp = t._2();
             WurstType typ = boundTyp.getBaseType();
             if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
                 String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
@@ -1424,14 +1462,21 @@ public class WurstValidator {
             ref.addError("Missing function name.");
         }
         checkFuncDefDeprecated(ref);
-        FunctionDefinition called = ref.attrFuncDef();
+        FuncLink called = ref.attrFuncDef();
         WScope scope = ref.attrNearestFuncDef();
         if (scope == null) {
             scope = ref.attrNearestScope();
         }
         if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
-            calledFunctions.put(scope, called);
+            calledFunctions.put(scope, called.getDef());
         }
+    }
+
+    private void checkNameRefDeprecated(Element trace, NameLink link) {
+        if (link != null) {
+            checkNameRefDeprecated(trace, link.getDef());
+        }
+
     }
 
     private void checkNameRefDeprecated(Element trace, NameDef def) {
@@ -1448,14 +1493,14 @@ public class WurstValidator {
     }
 
     private void checkFuncRef(ExprFuncRef ref) {
-        FunctionDefinition called = ref.attrFuncDef();
+        FuncLink called = ref.attrFuncDef();
         if (called == null) {
             return;
         }
         if (ref.attrTyp() instanceof WurstTypeCode) {
-            if (called.attrParameterTypesIncludingReceiver().size() > 0) {
+            if (called.getDef().attrParameterTypesIncludingReceiver().size() > 0) {
                 String msg = "Can only use functions without parameters in 'code' function references.";
-                if (called.attrIsDynamicClassMember()) {
+                if (called.getDef().attrIsDynamicClassMember()) {
                     msg += "\nNote that " + called.getName()
                             + " is a dynamic function and thus has an implicit parameter 'this'.";
                 }
@@ -1680,7 +1725,7 @@ public class WurstValidator {
         }
         for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
             InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
             // TODO check type mapping
 
             nextFunction:
@@ -1724,8 +1769,9 @@ public class WurstValidator {
         }
 
         if (!classDef.attrIsAbstract() && classDef.attrExtendedClass() != null) {
-            for (Entry<String, DefLink> e : classDef.attrExtendedClass().attrNameLinks().entries()) {
-                if (e.getValue() instanceof FuncDef) {
+            // TODO getClassDef().attrNameLinks() --> directly get name links from classtype
+            for (Entry<String, DefLink> e : classDef.attrExtendedClass().getClassDef().attrNameLinks().entries()) {
+                if (e.getValue().getDef() instanceof FuncDef) {
                     FuncDef f = (FuncDef) e.getValue().getDef();
                     if (f.attrIsAbstract()) {
                         boolean implemented = false;
@@ -2200,11 +2246,13 @@ public class WurstValidator {
     }
 
     private void checkLocalShadowing(LocalVarDef v) {
-        NameDef shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
-        if (shadowed instanceof LocalVarDef) {
-            v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
-        } else if (shadowed instanceof WParameter) {
-            v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+        NameLink shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
+        if (shadowed != null) {
+            if (shadowed.getDef() instanceof LocalVarDef) {
+                v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
+            } else if (shadowed.getDef() instanceof WParameter) {
+                v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
+            }
         }
     }
 

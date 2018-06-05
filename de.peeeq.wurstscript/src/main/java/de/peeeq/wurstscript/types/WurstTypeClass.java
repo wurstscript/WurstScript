@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.ClassDef;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.OptTypeExpr;
-import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -72,7 +69,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
      */
     private @Nullable WurstTypeClass extendedClass() {
         OptTypeExpr extendedClass = classDef.getExtendedClass();
-        if (extendedClass == null) {
+        if (extendedClass instanceof NoTypeExpr) {
             return null;
         }
         WurstType unboundType = extendedClass.attrTyp();

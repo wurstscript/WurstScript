@@ -1,10 +1,10 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.collect.ImmutableList;
+import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeDeferred;
 import fj.data.TreeMap;
 
 import java.util.Collections;
@@ -12,10 +12,10 @@ import java.util.List;
 
 
 public class TypeLink extends NameLink {
-    private final WurstType type;
+    private final Deferred<WurstType> type;
     private final TypeDef def;
 
-    public TypeLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, TypeDef def, WurstType type) {
+    public TypeLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, TypeDef def, Deferred<WurstType> type) {
         super(visibility, definedIn, typeParams);
         this.def = def;
         this.type = type;
@@ -26,8 +26,8 @@ public class TypeLink extends NameLink {
         if (def instanceof AstElementWithTypeParameters) {
             typeParams = ImmutableList.copyOf(((AstElementWithTypeParameters) def).getTypeParameters());
         }
-        // create deferred type to avoid cyclcic dependencies
-        WurstType type = new WurstTypeDeferred(def::attrTyp);
+        // create deferred type to avoid cyclic dependencies
+        Deferred<WurstType> type = new Deferred<>(def::attrTyp);
         return new TypeLink(calcVisibility(definedIn, def), definedIn, typeParams, def, type);
     }
 

@@ -100,7 +100,7 @@ public class AttrExprType {
         if (varDefType instanceof WurstTypeArray) {
             return ((WurstTypeArray) varDefType).getBaseType();
         } else {
-            term.addError("Variable " + varDef.getName() + " is no array variable.");
+            term.addError("Variable " + varDef.getName() + " is of type " + varDefType + ", should be an array variable.");
         }
         return WurstTypeUnknown.instance();
     }
