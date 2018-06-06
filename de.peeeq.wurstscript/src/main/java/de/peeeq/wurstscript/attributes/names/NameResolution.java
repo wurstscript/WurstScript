@@ -82,16 +82,16 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = receiverType.getTypeArgBinding();
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
-                WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof FuncLink
-                        && n_receiverType != null
-                        && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    FuncLink f = (FuncLink) n;
-                    result.add(f.withTypeArgBinding(node, typeArgBinding));
+                if (!(n instanceof FuncLink)) {
+                    continue;
+                }
+                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, false);
+                if (n2 != null) {
+                    FuncLink f = (FuncLink) n2;
+                    result.add(f);
                 }
             }
             scope = nextScope(scope);
@@ -176,30 +176,40 @@ public class NameResolution {
     }
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
-//		WLogger.info("lookupMemberVar " + receiverType+"."+name);
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
-//				WLogger.info("	- " + n);
-                WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof VarLink
-                        && n_receiverType != null
-                        && n_receiverType.isSupertypeOf(receiverType, node)) {
-                    if (showErrors) {
-                        if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
-                            node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-                        }
-                        if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
-                            node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
-                        }
-                    }
-
-                    return n;
+                if (!(n instanceof VarLink)) {
+                    continue;
+                }
+                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
+                if (n2 != null) {
+                    return n2;
                 }
             }
             scope = nextScope(scope);
         }
         return null;
+    }
+
+    public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
+        WurstType n_receiverType = n.getReceiverType();
+        if (n_receiverType == null) {
+            return null;
+        }
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = receiverType.matchAgainstSupertype(n_receiverType, node, n.getTypeParams(), WurstType.emptyMapping());
+        if (mapping == null) {
+            return null;
+        }
+        if (showErrors) {
+            if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
+                node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
+            }
+            if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
+                node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
+            }
+        }
+        return n.withTypeArgBinding(node, mapping);
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {

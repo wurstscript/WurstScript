@@ -280,7 +280,7 @@ public class ExprTranslation {
                 ExprMemberVar mv2 = (ExprMemberVar) expr;
                 Expr left = mv2.getLeft();
                 if (left.attrTyp() instanceof WurstTypeTuple) {
-                    indexes.add(0, (WParameter) mv2.attrNameDef());
+                    indexes.add(0, (WParameter) mv2.attrNameDef().getDef());
                     expr = left;
                     continue;
                 }

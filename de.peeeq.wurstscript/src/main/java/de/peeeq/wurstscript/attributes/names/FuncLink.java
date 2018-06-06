@@ -11,7 +11,6 @@ import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
@@ -54,8 +53,6 @@ public class FuncLink extends DefLink {
         }
         return null;
     }
-
-
 
 
     public String getName() {
@@ -110,11 +107,13 @@ public class FuncLink extends DefLink {
                 newParamTypes.add(newPt);
             }
         }
+        WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
+        changed = changed || newReceiverType != getReceiverType();
         if (changed) {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
                     .filter(binding::contains)
                     .collect(Collectors.toList());
-            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, newParamTypes, newReturnType);
+            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType);
         } else {
             return this;
         }
@@ -131,6 +130,9 @@ public class FuncLink extends DefLink {
     }
 
     private WurstType adjustType(Element context, WurstType t, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+        if (t == null) {
+            return null;
+        }
         return t.setTypeArgs(binding);
     }
 

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import javax.annotation.CheckReturnValue;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +49,7 @@ public class FunctionSignature {
         return receiverType;
     }
 
+    @CheckReturnValue
     public FunctionSignature setTypeArgs(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
         WurstType r2 = returnType.setTypeArgs(typeArgBinding);
         List<WurstType> pt2 = Lists.newArrayList();
@@ -55,7 +57,7 @@ public class FunctionSignature {
             pt2.add(p.setTypeArgs(typeArgBinding));
         }
         Collection<TypeParamDef> typeParams2 = typeParams.stream()
-                .filter(typeArgBinding::contains)
+                .filter(t -> !typeArgBinding.contains(t))
                 .collect(Utils.toImmutableList());
         return new FunctionSignature(typeParams2, receiverType, pt2, paramNames, r2, isVararg);
     }

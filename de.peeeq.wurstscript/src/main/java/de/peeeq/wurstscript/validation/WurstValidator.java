@@ -1955,7 +1955,7 @@ public class WurstValidator {
                     for (SwitchCase c : s.getCases()) {
                         if (c.getExpr() instanceof NameRef) {
                             NameRef exprVarAccess = (NameRef) c.getExpr();
-                            if (exprVarAccess.attrNameDef() == e) {
+                            if (exprVarAccess.attrNameDef().getDef() == e) {
                                 continue nextMember;
                             }
                         }

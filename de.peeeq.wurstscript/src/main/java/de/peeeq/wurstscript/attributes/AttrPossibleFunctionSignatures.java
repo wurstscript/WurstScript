@@ -71,7 +71,7 @@ public class AttrPossibleFunctionSignatures {
 
         WurstType returnType = struct.attrTyp().dynamic();
         // TODO get binding by matching args
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = WurstType.emptyMapping();
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = GenericsHelper.givenBinding(fc, GenericsHelper.typeParameters(struct));
         List<WurstType> paramTypes = Lists.newArrayList();
         for (WParameter p : f.getParameters()) {
             paramTypes.add(p.attrTyp());
@@ -82,7 +82,7 @@ public class AttrPossibleFunctionSignatures {
             typeParams = ((AstElementWithTypeParameters) struct).getTypeParameters();
         }
         FunctionSignature sig = new FunctionSignature(typeParams, null, paramTypes, pNames, returnType, f.attrIsVararg());
-        sig.setTypeArgs(fc, binding2);
+        sig = sig.setTypeArgs(fc, binding2);
         return ImmutableList.of(sig);
     }
 

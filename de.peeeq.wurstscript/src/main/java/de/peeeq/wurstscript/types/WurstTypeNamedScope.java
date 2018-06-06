@@ -168,12 +168,13 @@ public abstract class WurstTypeNamedScope extends WurstType {
         } else if (scope != null) {
             TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
             for (DefLink n : scope.attrNameLinks().get(name)) {
-                WurstType receiverType = n.getReceiverType();
-                if (n instanceof FuncLink
-                        && receiverType != null
-                        && receiverType.isSupertypeOf(this, node)) {
-                    FuncLink f = (FuncLink) n;
-                    result.add(f.hidingPrivateAndProtected().withTypeArgBinding(node, typeArgBinding));
+                if (!(n instanceof FuncLink)) {
+                    continue;
+                }
+                DefLink n2 = NameResolution.matchDefLinkReceiver(n, this, node, false);
+                if (n2 != null) {
+                    FuncLink f = (FuncLink) n2;
+                    result.add(f.hidingPrivateAndProtected());
                 }
             }
         }
