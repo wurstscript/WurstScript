@@ -172,14 +172,13 @@ public class RunMap extends MapRequest {
 
         patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
 
-
         if (patchVersion <= 1.27) {
             // 1.27 and lower compat
             print("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
         } else {
             // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
-            File oldFile = new File(wc3Path, "Test" + File.separator + testMapName);
+            File oldFile = new File(wc3Path, "Maps" + File.separator + "Test" + File.separator + testMapName);
             if (oldFile.exists()) {
                 if (!oldFile.delete()) {
                     WLogger.severe("Cannot delete old Wurst Test Map");
