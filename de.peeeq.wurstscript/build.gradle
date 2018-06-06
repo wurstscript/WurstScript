@@ -35,10 +35,7 @@ jacocoTestReport {
     afterEvaluate {
         classDirectories = files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['build/**',
-                              'src-gen/**',
-                              'de.peeeq.wurstscript/build/**',
-                              'de.peeeq.wurstscript/src-gen/**'])
+                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**'])
         })
     }
 }
