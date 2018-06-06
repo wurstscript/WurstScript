@@ -136,4 +136,19 @@ public class ExtensionMethodsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void sameName() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	function int.bla()",
+                "		testSuccess()",
+                "	function bla()",
+                "	init",
+                "		int i = 2",
+                "		i.bla()",
+                "endpackage"
+        );
+    }
+
 }

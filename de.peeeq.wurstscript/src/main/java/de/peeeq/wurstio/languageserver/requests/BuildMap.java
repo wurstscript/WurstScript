@@ -104,15 +104,14 @@ public class BuildMap extends MapRequest {
             applyProjectConfig(projectConfig, targetMap);
             gui.sendProgress("Done.");
         } catch (CompileError e) {
-            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
+            WLogger.info(e);
+            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map:\n" + e);
         } catch (RuntimeException e) {
             throw e;
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
-            if (gui.getErrorCount() == 0) {
-                gui.sendFinished();
-            }
+            gui.sendFinished();
         }
         return "ok"; // TODO
     }

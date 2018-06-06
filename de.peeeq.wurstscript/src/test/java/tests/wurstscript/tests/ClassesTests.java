@@ -269,7 +269,7 @@ public class ClassesTests extends WurstScriptTest {
                 "			destroy cs[j]",
                 "		for int k = 0 to 6000",
                 "			cs[k] = new C()",
-                "			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
+//                "			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
                 "		if cs[6000] castTo int <= 6001",
                 "			testSuccess()",
                 "endpackage"

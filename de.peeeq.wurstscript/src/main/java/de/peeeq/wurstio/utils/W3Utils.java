@@ -17,6 +17,19 @@ public class W3Utils {
 
     private static final Pattern patchPattern = Pattern.compile("(?i)Patch (\\d.\\d\\d)");
 
+    private static double patchVer = -1;
+
+    public static double getWc3PatchVersion() {
+        if (patchVer == -1) {
+            try {
+                patchVer = parsePatchVersion(new File(W3Utils.getGamePath()));
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return patchVer;
+    }
+
     public static double parsePatchVersion(File wc3Path) {
         WLogger.info("Parsing Patch Version");
         File patchTxt = new File(wc3Path, "Patch.txt");

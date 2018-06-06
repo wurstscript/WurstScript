@@ -265,6 +265,38 @@ public class ClosureTests extends WurstScriptTest {
     }
 
     @Test
+    public void oneAbstractMethodInherited() {
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "abstract class A",
+                "	abstract function foo()",
+                "abstract class B extends A",
+                "	override function foo()",
+                "	abstract function bar()",
+                "init",
+                "	B b = () -> testSuccess()",
+                "	b.bar()"
+        );
+    }
+
+    @Test
+    public void oneAbstractMethodInheritedOverloaded() {
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "abstract class A",
+                "	abstract function foo()",
+                "abstract class B extends A",
+                "	override function foo()",
+                "	abstract function foo(int x)",
+                "init",
+                "	B b = (int i) -> testSuccess()",
+                "	b.foo(5)"
+        );
+    }
+
+    @Test
     public void twoAbstractMethods() {
         testAssertErrorsLines(false, "Cannot assign () -> Void to A",
                 "package test",

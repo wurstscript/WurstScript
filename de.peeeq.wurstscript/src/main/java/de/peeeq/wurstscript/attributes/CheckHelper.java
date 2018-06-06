@@ -61,4 +61,7 @@ public class CheckHelper {
     }
 
 
+    public static boolean isRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of) {
+        return !checkIfIsRefinement(typeParamMapping, f, of, "").isPresent();
+    }
 }

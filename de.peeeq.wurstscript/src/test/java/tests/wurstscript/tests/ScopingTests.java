@@ -4,17 +4,18 @@ import org.testng.annotations.Test;
 
 public class ScopingTests extends WurstScriptTest {
 
-//	@Test
-//	public void test_duplicates_cu() {
-//		testAssertErrorsLines(false, "already defined",
-//				"package A",
-//				"endpackage",
-//				"package A",
-//				"endpackage",
-//				"package B",
-//				"	import A",
-//				"endpackage");
-//	}
+	@Test
+	public void test_duplicates_cu() {
+		testAssertErrorsLines(false, "An element with name A already exists",
+				"package A",
+				"endpackage",
+				"package A",
+				"endpackage",
+				"package B",
+				"	import A",
+				"endpackage");
+	}
+
 
     @Test
     public void test_duplicates_jass_func() {

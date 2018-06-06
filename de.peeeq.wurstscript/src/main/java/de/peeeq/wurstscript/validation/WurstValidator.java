@@ -71,8 +71,6 @@ public class WurstValidator {
 
     /**
      * checks done after walking the tree
-     *
-     * @param toCheck
      */
     private void postChecks(List<CompilationUnit> toCheck) {
         checkUnusedImports(toCheck);
@@ -109,7 +107,6 @@ public class WurstValidator {
 
         // check for imports, which only contribute a subset of some other
         // import
-        Set<WImport> unused = Sets.newLinkedHashSet();
         for (WImport imp : p.getImports()) {
             if (imp.attrImportedPackage() == null || imp.getIsPublic() || imp.getPackagename().equals("Wurst")) {
                 continue;
@@ -2122,8 +2119,7 @@ public class WurstValidator {
     }
 
     private boolean distinctFunctions(FuncLink nl1, FuncLink nl2) {
-        if (nl1.getReceiverType() != null && nl2.getReceiverType() != null
-                && !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef())) {
+        if (receiverTypesDifferent(nl1, nl2)) {
             return true;
         }
         FunctionDefinition f1 = nl1.getDef();
@@ -2133,14 +2129,15 @@ public class WurstValidator {
         if (ps1.size() != ps2.size()) {
             return true;
         }
-        for (int i = 0; i < ps1.size(); i++) {
-            WurstType t1 = ps1.get(i).attrTyp();
-            WurstType t2 = ps2.get(i).attrTyp();
-            if (!t1.isSubtypeOf(t2, f1) && !t2.isSubtypeOf(t1, f1)) {
-                return true;
-            }
+        return parametersTypeDisjunct(ps1, ps2);
+    }
+
+    private boolean receiverTypesDifferent(FuncLink nl1, FuncLink nl2) {
+        if (nl1.getReceiverType() == null) {
+            return nl2.getReceiverType() != null;
+        } else {
+            return nl2.getReceiverType() == null || !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef());
         }
-        return false;
     }
 
     private void checkForDuplicateImports(WPackage p) {
