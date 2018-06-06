@@ -202,7 +202,7 @@ public class Main {
         String compatPath = wc3Path + COMPAT_FOLDER;
         WLogger.info("Wc3 Path: " + wc3Path);
 
-        double patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
+        double patchVersion = W3Utils.getWc3PatchVersion();
         if (patchVersion > 1.27 && !new File(compatPath).exists()) {
             JLabel notice = new JLabel("Patch 1.28 or higher has been detected on your system.\n" +
                     "Selecting yes will create a compatibility copy of your installation.\n" +

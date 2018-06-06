@@ -20,6 +20,13 @@ public class W3Utils {
     private static double patchVer = -1;
 
     public static double getWc3PatchVersion() {
+        if (patchVer == -1) {
+            try {
+                patchVer = parsePatchVersion(new File(W3Utils.getGamePath()));
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
         return patchVer;
     }
 
@@ -33,7 +40,7 @@ public class W3Utils {
             // If neither of the patch logs exist and the gamedll is gone as well,
             // we likely are dealing with a 1.29 install or higher
             WLogger.info("Assumed Version: 1.29");
-            return patchVer = 1.29;
+            return 1.29;
         }
 
         try {
@@ -55,7 +62,7 @@ public class W3Utils {
                 matches.sort(Comparator.comparing(Double::parseDouble, Collections.reverseOrder()));
                 double patchVersion = Double.parseDouble(matches.get(0));
                 WLogger.info("Patch Version: " + patchVersion);
-                return patchVer = patchVersion;
+                return patchVersion;
 
             } else {
                 WLogger.severe("Could not determine wc3 version");
@@ -64,7 +71,7 @@ public class W3Utils {
             WLogger.severe(e);
         }
         WLogger.severe("Could not determine wc3 version");
-        return patchVer = -1;
+        return -1;
     }
 
     /**
