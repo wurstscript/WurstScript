@@ -99,7 +99,7 @@ public class RunMap extends MapRequest {
 
             WLogger.info("Starting wc3 ... ");
 
-            String path = customTarget != null ? new File(customTarget, testMapName2).getAbsolutePath(): "Maps\\Test\\" + testMapName2;
+            String path = customTarget != null ? new File(customTarget, testMapName2).getAbsolutePath() : "Maps\\Test\\" + testMapName2;
             // now start the map
             List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
 
@@ -129,7 +129,8 @@ public class RunMap extends MapRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        return Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe")
+        return (W3Utils.getWc3PatchVersion() < 1.29 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
+                Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
                 .findFirst()
