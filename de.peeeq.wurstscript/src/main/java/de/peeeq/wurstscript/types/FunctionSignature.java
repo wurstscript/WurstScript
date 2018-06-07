@@ -1,12 +1,15 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.CheckReturnValue;
 import java.util.Collection;
@@ -185,7 +188,7 @@ public class FunctionSignature {
         return ((WurstTypeVararg) paramTypes.get(paramTypes.size() - 1)).getBaseType();
     }
 
-    public FunctionSignature matchAgainstArgs(List<WurstType> argTypes, Element location) {
+    public @Nullable FunctionSignature matchAgainstArgs(List<WurstType> argTypes, Element location) {
         if (!isValidParameterNumber(argTypes.size())) {
             return null;
         }
@@ -200,6 +203,69 @@ public class FunctionSignature {
 
         }
 
-        return null;
+        return setTypeArgs(location, mapping);
+    }
+
+    public static class ArgsMatchResult {
+        private final FunctionSignature sig;
+        private final ImmutableList<CompileError> errors;
+        private final int badness;
+
+        public ArgsMatchResult(FunctionSignature sig, ImmutableList<CompileError> errors, int badness) {
+            this.sig = sig;
+            this.errors = ImmutableList.copyOf(errors);
+            this.badness = badness;
+        }
+
+        public FunctionSignature getSig() {
+            return sig;
+        }
+
+        public ImmutableList<CompileError> getErrors() {
+            return errors;
+        }
+
+        public int getBadness() {
+            return badness;
+        }
+
+    }
+
+    /**
+     * Tries to match as much as possible to get a good errors message
+     */
+    public ArgsMatchResult tryMatchAgainstArgs(List<WurstType> argTypes, List<Expr> args, Element location) {
+        ImmutableList.Builder<CompileError> errors = ImmutableList.builder();
+        int badness = 0;
+        if (!isValidParameterNumber(argTypes.size())) {
+            if (argTypes.size() > getMaxNumParams()) {
+                errors.add(new CompileError(location.attrSource(), "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
+                        " expected."));
+                badness += argTypes.size() - getMaxNumParams();
+            } else if (argTypes.size() < getMinNumParams()) {
+                errors.add(new CompileError(location.attrSource(), "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
+                badness += getMinNumParams() - argTypes.size();
+            }
+        }
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        for (int i = 0; i < argTypes.size() && i < getMaxNumParams(); i++) {
+            WurstType pt = getParamType(i);
+            WurstType at = argTypes.get(i);
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = at.matchAgainstSupertype(pt, location, typeParams, mapping);
+            if (mapping2 == null) {
+                WurstType ptBound = pt.setTypeArgs(mapping);
+                Expr arg = args.get(i);
+                errors = errors.add(new CompileError(arg.attrSource(), "Wrong argument for parameter " + getParamName(i) + ": expected " + ptBound + ", but found " + at + "."));
+                badness++;
+            } else {
+                mapping = mapping2;
+            }
+        }
+
+        return new ArgsMatchResult(setTypeArgs(location, mapping), errors.build(), badness);
+    }
+
+    public Collection<TypeParamDef> getTypeParams() {
+        return typeParams;
     }
 }

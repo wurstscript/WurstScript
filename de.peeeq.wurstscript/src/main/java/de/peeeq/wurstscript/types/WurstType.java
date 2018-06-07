@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -60,6 +61,14 @@ public abstract class WurstType {
             return mapping;
         } else if (other instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
+            if (this instanceof WurstTypeTypeParam) {
+                WurstTypeTypeParam this2 = (WurstTypeTypeParam) this;
+                if (this2.getDef() == tp.getDef()) {
+                    // same type variable --> match without binding
+                    return mapping;
+                }
+            }
+
             Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
             if (bound.isSome()) {
                 // already bound, use current bound
@@ -68,7 +77,6 @@ public abstract class WurstType {
                 // match this type parameter
                 return mapping.set(tp.getDef(), new WurstTypeBoundTypeParam(tp.getDef(), this, location));
             }
-
         }
         return this.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
     }
