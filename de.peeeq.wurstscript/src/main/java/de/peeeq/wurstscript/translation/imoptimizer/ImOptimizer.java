@@ -2,10 +2,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.ConstantAndCopyPropagation;
-import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
-import de.peeeq.wurstscript.intermediatelang.optimizer.SimpleRewrites;
-import de.peeeq.wurstscript.intermediatelang.optimizer.TempMerger;
+import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
@@ -45,6 +42,7 @@ public class ImOptimizer {
         ConstantAndCopyPropagation cpOpt = new ConstantAndCopyPropagation(trans);
         SimpleRewrites simpleRewrites = new SimpleRewrites(trans);
         LocalMerger localMerger = new LocalMerger(trans);
+        BranchMerger branchMerger = new BranchMerger(trans);
         UselessFunctionCallsRemover functionCallsRemover = new UselessFunctionCallsRemover(trans);
         GlobalsInliner globalsInliner = new GlobalsInliner(trans);
         removeGarbage();
@@ -69,6 +67,10 @@ public class ImOptimizer {
             localMerger.optimize();
             endV = localMerger.totalLocalsMerged;
             deltaV += (endV - startV);
+            startV = branchMerger.branchesMerged;
+            branchMerger.optimize();
+            endV = branchMerger.branchesMerged;
+            deltaV += (endV - startV);
             startV = functionCallsRemover.totalCallsRemoved;
             functionCallsRemover.optimize();
             endV = functionCallsRemover.totalCallsRemoved;
@@ -90,6 +92,7 @@ public class ImOptimizer {
         WLogger.info("== Globals Inlined:    " + globalsInliner.obsoleteCount);
         WLogger.info("== Globals removed:    " + totalGlobalsRemoved);
         WLogger.info("== Functions removed:  " + totalFunctionsRemoved);
+        WLogger.info("== Branches merged:    " + branchMerger.branchesMerged);
     }
 
     public void doNullsetting() {
@@ -102,13 +105,12 @@ public class ImOptimizer {
         boolean changes = true;
         int iterations = 0;
         while (changes && iterations++ < 10) {
-            changes = false;
             ImProg prog = trans.imProg();
             trans.calculateCallRelationsAndUsedVariables();
 
             // keep only used variables
             int globalsBefore = prog.getGlobals().size();
-            changes |= prog.getGlobals().retainAll(trans.getReadVariables());
+            changes = prog.getGlobals().retainAll(trans.getReadVariables());
             int globalsAfter = prog.getGlobals().size();
             int globalsRemoved = globalsBefore - globalsAfter;
             totalGlobalsRemoved += globalsRemoved;

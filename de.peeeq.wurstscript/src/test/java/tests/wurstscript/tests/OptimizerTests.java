@@ -9,8 +9,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
+import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
@@ -518,8 +517,157 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse("testSuccess should be removed", compiledAndOptimized.contains("testSuccess"));
     }
 
-	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
-	DestroyEffect(blablub)
-		*/
+    @Test
+    public void controlFlowMergeNoSideEffect() throws IOException {
+        test().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
+        assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void test_controlFlowMergeSideEffect() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
+    public void controlFlowMergeSideEffect() throws IOException {
+        test().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void controlFlowMergeSideEffect2() throws IOException {
+        test().withStdLib().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function someSideEffectFunc(int x) returns bool",
+                "	if x < 3",
+                "		BJDebugMsg(\"test\")",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if someSideEffectFunc(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect2_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void optimizeSet() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var ghs = 12",
+                "init",
+                "	var x = 6 + 3",
+                "	ghs += 2",
+                "	ghs -= 2",
+                "	if ghs == 12 and x == 9",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void optimizeSet2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	var Test_x = x - 100",
+                "	Test_x += 1",
+                "	x += 1",
+                "	if x == 101 and Test_x == 1",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void optimizeExitwhen() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	while x > 0",
+                "		if x == 50",
+                "			break",
+                "		if x == 101",
+                "			break",
+                "		x--",
+                "	testSuccess()"
+        );
+    }
 
 }
