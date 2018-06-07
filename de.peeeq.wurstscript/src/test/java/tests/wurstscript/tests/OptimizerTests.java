@@ -596,6 +596,34 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    public void controlFlowMergeSideEffect2() throws IOException {
+        test().withStdLib().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function someSideEffectFunc(int x) returns bool",
+                "	if x < 3",
+                "		BJDebugMsg(\"test\")",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if someSideEffectFunc(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect2_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
     public void optimizeSet() {
         testAssertOkLines(true,
                 "package Test",
