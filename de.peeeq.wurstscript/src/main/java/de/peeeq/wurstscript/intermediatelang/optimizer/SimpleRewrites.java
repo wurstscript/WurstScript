@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class SimpleRewrites {
+    private final SideEffectAnalyzer sideEffectAnalysis;
     public int totalRewrites = 0;
     private final ImProg prog;
     private final ImTranslator trans;
@@ -20,6 +21,7 @@ public class SimpleRewrites {
     public SimpleRewrites(ImTranslator trans) {
         this.prog = trans.getImProg();
         this.trans = trans;
+        this.sideEffectAnalysis = new SideEffectAnalyzer(prog);
     }
 
     public void optimize(boolean showRewrites) {
@@ -74,9 +76,20 @@ public class SimpleRewrites {
         // optimize children:
         for (int i = 0; i < elem.size(); i++) {
             optimizeElement(elem.get(i));
+            if (i > 0) {
+                Element lookback = elem.get(i - 1);
+                if (elem.get(i) instanceof ImExitwhen && lookback instanceof ImExitwhen) {
+                    optimizeConsecutiveExitWhen((ImExitwhen) lookback, (ImExitwhen) elem.get(i));
+                }
+
+                if (elem.get(i) instanceof ImSet && lookback instanceof ImSet) {
+                    optimizeConsecutiveSet((ImSet) lookback, (ImSet) elem.get(i));
+                }
+            }
         }
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opc = (ImOperatorCall) elem;
+            optimizeElement(opc.getArguments());
             optimizeOpCall(opc);
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
@@ -86,6 +99,13 @@ public class SimpleRewrites {
             optimizeExitwhen(imExitwhen);
         }
 
+    }
+
+    private void optimizeConsecutiveExitWhen(ImExitwhen lookback, ImExitwhen element) {
+        element.getCondition().setParent(null);
+        lookback.setCondition(JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lookback.getCondition().copy(), element.getCondition())));
+        element.replaceBy(JassIm.ImNull());
+        totalRewrites++;
     }
 
     private void optimizeExitwhen(ImExitwhen imExitwhen) {
@@ -98,6 +118,28 @@ public class SimpleRewrites {
             }
         }
 
+    }
+
+    /**
+     * Rewrites if statements that only contain an exitwhen statement
+     * so that the if's condition is combined with the exitwhen
+     * <p>
+     * if expr1
+     * exitwhen expr2
+     * <p>
+     * to:
+     * <p>
+     * exitwhen expr1 and expr2
+     */
+    private void optimizeIfExitwhen(ImIf imIf) {
+        ImExitwhen imStmt = (ImExitwhen) imIf.getThenBlock().get(0);
+        imStmt.getCondition().setParent(null);
+        imIf.getCondition().setParent(null);
+
+        imStmt.setCondition((JassIm.ImOperatorCall(WurstOperator.AND, JassIm.ImExprs(imIf.getCondition(), imStmt.getCondition()))));
+        imStmt.setParent(null);
+        imIf.replaceBy(imStmt);
+        totalRewrites++;
     }
 
     private void optimizeOpCall(ImOperatorCall opc) {
@@ -465,6 +507,47 @@ public class SimpleRewrites {
                 } else {
                     imIf.replaceBy(JassIm.ImNull());
                     totalRewrites++;
+                }
+            }
+        } else if (imIf.getElseBlock().isEmpty() && imIf.getThenBlock().size() == 1 && imIf.getThenBlock().get(0) instanceof ImExitwhen) {
+            optimizeIfExitwhen(imIf);
+        }
+    }
+
+    /**
+     * Optimizes
+     * <p>
+     * set x = expr1
+     * set x = x ⊕ expr2
+     * <p>
+     * into:
+     * <p>
+     * set x  = expr1 ⊕ expr2
+     * <p>
+     * like code that is created by the branch merger
+     */
+    private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
+        ImVar leftVar1 = imSet1.getLeft();
+        ImVar leftVar2 = imSet2.getLeft();
+
+        ImExpr rightExpr1 = imSet1.getRight();
+        ImExpr rightExpr2 = imSet2.getRight();
+
+        if (leftVar1 == leftVar2) {
+            if (rightExpr2 instanceof ImOperatorCall) {
+                ImOperatorCall rightOpCall2 = (ImOperatorCall) rightExpr2;
+                if (rightOpCall2.getArguments().size() == 2) {
+                    if (rightOpCall2.getArguments().get(0) instanceof ImVarAccess) {
+                        ImVarAccess imVarAccess2 = (ImVarAccess) rightOpCall2.getArguments().get(0);
+                        if (imVarAccess2.getVar() == leftVar2) {
+                            if (sideEffectAnalysis.cannotUseVar(rightOpCall2.getArguments().get(1), leftVar1)) {
+                                rightExpr1.setParent(null);
+                                imVarAccess2.replaceBy(rightExpr1);
+                                imSet1.replaceBy(JassIm.ImNull());
+                                totalRewrites++;
+                            }
+                        }
+                    }
                 }
             }
         }

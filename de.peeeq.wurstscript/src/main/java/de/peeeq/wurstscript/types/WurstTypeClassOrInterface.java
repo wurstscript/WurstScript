@@ -3,10 +3,10 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
+import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.translation.imtranslation.OverrideUtils;
 
 import java.util.List;
 
@@ -48,19 +48,23 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         for (NameLink nl : nameLinks.values()) {
             if (nl instanceof FuncLink
                     && nl.getDef().attrIsAbstract()) {
-                if (abstractMethod != null) {
-                    // there is more than one abstract function
-                    // --> closure cannot implement this
-                    return null;
-                }
+
                 for (DefLink other : nameLinks.get(nl.getName())) {
-                    if (other != nl && other.getDef().attrIsOverride() && !other.getDef().attrIsAbstract()) {
+                    if (other != nl
+                            && other.getDef().attrIsOverride()
+                            && !other.getDef().attrIsAbstract()
+                            && other instanceof FuncLink
+                            && CheckHelper.isRefinement(this.getTypeArgBinding(), ((FuncLink) other).getDef(), ((FuncLink) nl).getDef())) {
                         // the abstract method is overridden, so it is not really abstract
                         // TODO check: why are we including overridden methods anyway?
                         continue withNextNameLink;
                     }
                 }
-
+                if (abstractMethod != null) {
+                    // there is more than one abstract function
+                    // --> closure cannot implement this
+                    return null;
+                }
                 abstractMethod = ((FuncLink) nl);
             }
         }
