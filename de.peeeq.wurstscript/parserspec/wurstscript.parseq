@@ -438,6 +438,15 @@ NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
 
+ClassDef.attrTypC
+	returns de.peeeq.wurstscript.types.WurstTypeClass
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
+InterfaceDef.attrTypI
+	returns de.peeeq.wurstscript.types.WurstTypeInterface
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
+
 FunctionLike.attrReturnType
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
@@ -616,14 +625,6 @@ Element.attrErrorPos() "returns the position where errors are marked"
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos
 
 
-InterfaceDef.attrExtendedInterfaces
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
-	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
-
-ClassDef.attrExtendedClass
-	returns de.peeeq.wurstscript.types.WurstTypeClass
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
-
 ClassDef.isInnerClass()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.InnerClasses.isInnerClass
@@ -736,11 +737,6 @@ StmtForEach.attrCloseFunc
 		)
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
-
-	ClassDef.attrImplementedInterfaces
-		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
-		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
-
 
 
 Element.addError(String msg)

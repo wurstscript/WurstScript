@@ -161,9 +161,10 @@ public class ClassTranslator {
 
         if (c instanceof ClassDef) {
             ClassDef cd = (ClassDef) c;
-            if (cd.attrExtendedClass() != null) {
+            WurstTypeClass ct = cd.attrTypC();
+            if (ct.extendedClass() != null) {
                 // call onDestroy of super class
-                ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getClassDef().getOnDestroy());
+                ImFunction onDestroy = translator.getFuncFor(ct.extendedClass().getClassDef().getOnDestroy());
                 addTo.add(ImFunctionCall(c,
                         onDestroy,
                         ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));

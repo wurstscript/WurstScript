@@ -50,19 +50,19 @@ public class SubClasses {
         if (c == null) {
             return null;
         }
-        WurstTypeClass superClass = c.attrExtendedClass();
+        WurstTypeClass ct = c.attrTypC();
+        WurstTypeClass superClass = ct.extendedClass();
         if (superClass == null) {
             return null;
         }
         // call super constructor
         ClassDef superClassDef = superClass.getDef();
         ConstructorDefs constructors = superClassDef.getConstructors();
-        ConstructorDef superConstr = OverloadingResolver.resolveSuperCall(constructors, constr);
-        return superConstr;
+        return OverloadingResolver.resolveSuperCall(constructors, constr);
     }
 
     public static WurstType getExtendedClassType(ClassDef c) {
-        return c.attrExtendedClass();
+        return c.attrTypC();
     }
 
 }

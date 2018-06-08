@@ -15,27 +15,23 @@ public abstract class WurstTypeNamedScope extends WurstType {
     private final boolean isStaticRef;
     // TODO change this to a list of TypeParamDef and add typeMapping?
     private final List<WurstTypeBoundTypeParam> typeParameters;
-    private final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeMapping;
 
 
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters, boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = typeParameters;
-        this.typeMapping = emptyMapping();
     }
 
     public WurstTypeNamedScope(List<WurstTypeBoundTypeParam> typeParameters) {
         this.isStaticRef = false;
         this.typeParameters = typeParameters;
-        this.typeMapping = emptyMapping();
     }
 
 
     public WurstTypeNamedScope(boolean isStaticRef) {
         this.isStaticRef = isStaticRef;
         this.typeParameters = Collections.emptyList();
-        this.typeMapping = emptyMapping();
     }
 
     @Override
@@ -93,7 +89,11 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     @Override
     public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        return typeMapping;
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = emptyMapping();
+        for (WurstTypeBoundTypeParam tp : typeParameters) {
+            res = res.set(tp.getTypeParamDef(), tp);
+        }
+        return res;
     }
 
     private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {

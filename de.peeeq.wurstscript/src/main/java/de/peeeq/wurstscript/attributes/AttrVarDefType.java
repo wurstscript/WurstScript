@@ -57,14 +57,13 @@ public class AttrVarDefType {
         return sig.getParamTypes().get(paramIndex);
     }
 
-    public static WurstType calculate(ClassDef c) {
+    public static WurstTypeClass calculate(ClassDef c) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : c.getTypeParameters()) {
             WurstTypeTypeParam typParam = new WurstTypeTypeParam(tp);
             typeArgs.add(new WurstTypeBoundTypeParam(tp, typParam, tp));
         }
-        WurstTypeClass t = new WurstTypeClass(c, typeArgs, true);
-        return t;
+        return new WurstTypeClass(c, typeArgs, true);
     }
 
     private static WurstType defaultCase(GlobalOrLocalVarDef v) {
@@ -139,7 +138,7 @@ public class AttrVarDefType {
         return new WurstTypeTypeParam(t);
     }
 
-    public static WurstType calculate(InterfaceDef i) {
+    public static WurstTypeInterface calculate(InterfaceDef i) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : i.getTypeParameters()) {
             WurstTypeTypeParam tpType = new WurstTypeTypeParam(tp);

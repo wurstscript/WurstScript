@@ -25,7 +25,7 @@ public class NameLinks {
         if (c instanceof ClassDef) {
             ClassDef classDef = (ClassDef) c;
             addNamesFormSuperClass(result, classDef);
-            addNamesFromImplementedInterfaces(result, (WurstTypeClass) classDef.attrTyp());
+            addNamesFromImplementedInterfaces(result, classDef.attrTypC());
         }
         return result.build();
     }

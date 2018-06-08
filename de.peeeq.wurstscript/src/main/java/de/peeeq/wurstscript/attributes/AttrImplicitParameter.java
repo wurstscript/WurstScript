@@ -69,7 +69,7 @@ public class AttrImplicitParameter {
                 ExprThis t = Ast.ExprThis(e.getSource());
                 t.setParent(e);
                 // check if 'this' has correct type
-                if (!t.attrTyp().isSubtypeOf(calledFunc.getDef().attrNearestStructureDef().attrTyp(), e)) {
+                if (!t.attrTyp().isSubtypeOf(calledFunc.getReceiverType(), e)) {
                     e.addError("Cannot access dynamic function " + e.getFuncName() + " from context of type " +
                             t.attrTyp() + ".");
                 }

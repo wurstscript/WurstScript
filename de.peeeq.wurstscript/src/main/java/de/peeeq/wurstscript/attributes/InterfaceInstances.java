@@ -47,7 +47,7 @@ public class InterfaceInstances {
             }
             result.add(i);
             TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds = i.getTypeArgBinding();
-            for (WurstTypeInterface i2 : i.getInterfaceDef().attrExtendedInterfaces()) {
+            for (WurstTypeInterface i2 : i.extendedInterfaces()) {
                 result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
             }
 
@@ -59,9 +59,8 @@ public class InterfaceInstances {
     private static void addInterfacesFromExtends(Builder<WurstTypeInterface> result, TypeExpr t) {
         if (t.attrTyp() instanceof WurstTypeClass) {
             WurstTypeClass wtc = (WurstTypeClass) t.attrTyp();
-            ClassDef c = wtc.getClassDef();
             TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds = wtc.getTypeArgBinding();
-            for (WurstTypeInterface i2 : c.attrImplementedInterfaces()) {
+            for (WurstTypeInterface i2 : wtc.implementedInterfaces()) {
                 result.add((WurstTypeInterface) i2.setTypeArgs(typeParamBounds));
             }
         }

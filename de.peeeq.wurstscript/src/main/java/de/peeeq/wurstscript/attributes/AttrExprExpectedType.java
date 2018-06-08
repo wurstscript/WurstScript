@@ -105,7 +105,7 @@ public class AttrExprExpectedType {
         if (c == null) {
             return null;
         }
-        WurstTypeClass superClass = c.attrExtendedClass();
+        WurstTypeClass superClass = c.attrTypC().extendedClass();
         if (superClass == null) {
             return null;
         }

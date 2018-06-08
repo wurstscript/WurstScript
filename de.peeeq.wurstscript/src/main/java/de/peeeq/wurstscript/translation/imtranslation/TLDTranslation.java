@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -64,9 +66,11 @@ public class TLDTranslation {
         if (translator.isTranslated(classDef)) {
             return;
         }
-        if (classDef.attrExtendedClass() != null) {
+        WurstTypeClass ct = classDef.attrTypC();
+        WurstTypeClass extendedClass = ct.extendedClass();
+        if (extendedClass != null) {
             // first translate super classes:
-            translate(classDef.attrExtendedClass().getClassDef(), translator);
+            translate(extendedClass.getClassDef(), translator);
         }
         ClassTranslator.translate(classDef, translator);
         translator.setTranslated(classDef);

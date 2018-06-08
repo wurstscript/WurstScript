@@ -12,6 +12,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 public class WurstTypeInterface extends WurstTypeClassOrInterface {
@@ -78,7 +79,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
                 return matchTypeParams(getTypeParameters(), other2.getTypeParameters(), location, typeParams, mapping);
             } else {
                 // test super interfaces:
-                for (WurstTypeInterface extendedType : interfaceDef.attrExtendedInterfaces()) {
+                for (WurstTypeInterface extendedType : extendedInterfaces()) {
                     TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = extendedType.matchAgainstSupertype(other, location, typeParams, mapping);
                     if (res != null) {
                         return res;
@@ -87,6 +88,12 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
             }
         }
         return null;
+    }
+
+    public List<WurstTypeInterface> extendedInterfaces() {
+        return interfaceDef.getExtendsList().stream()
+                .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+                .collect(Collectors.toList());
     }
 
 

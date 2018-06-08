@@ -71,6 +71,42 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSubtypeGenericClass() {
+        testAssertOkLines(false,
+                "package test",
+                "	class A<T>",
+                "	class B<S> extends A<S>",
+                "	init",
+                "		A<int> x = new B<int>",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testSubtypeGenericClass2() {
+        testAssertOkLines(false,
+                "package test",
+                "	class A<T>",
+                "	class B<S> extends A<S>",
+                "	function foo<X>()",
+                "		A<X> x = new B<X>",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testSubtypeGenericInterface() {
+        testAssertOkLines(false,
+                "package test",
+                "	interface I<T>",
+                "	class B<S> implements I<S>",
+                "	init",
+                "		I<int> x = new B<int>",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void identityFail1() {
         testAssertErrorsLines(true, "real",
                 "package test",

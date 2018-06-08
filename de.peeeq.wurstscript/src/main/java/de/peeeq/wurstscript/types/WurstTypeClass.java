@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -41,7 +42,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 //        }
         WurstTypeClass extendedClass = extendedClass();
         if (extendedClass != null) {
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = extendedClass.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = extendedClass.matchAgainstSupertype(obj, location, typeParams, mapping);
             if (mapping2 != null) {
                 return mapping2;
             }
@@ -50,7 +51,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         // OPT this could be optimized -- only do this if obj is an interface type
         for (WurstTypeInterface implementedInterface : implementedInterfaces()) {
 
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertype(obj, location, typeParams, mapping);
             if (mapping2 != null) {
                 return mapping2;
             }
@@ -58,16 +59,16 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         return null;
     }
 
-    public List<WurstTypeInterface> implementedInterfaces() {
+    public ImmutableList<WurstTypeInterface> implementedInterfaces() {
         return classDef.getImplementsList().stream()
                 .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
-                .collect(Collectors.toList());
+                .collect(ImmutableList.toImmutableList());
     }
 
     /**
      * A type for the class extended by this class (or null if none)
      */
-    private @Nullable WurstTypeClass extendedClass() {
+    public @Nullable WurstTypeClass extendedClass() {
         OptTypeExpr extendedClass = classDef.getExtendedClass();
         if (extendedClass instanceof NoTypeExpr) {
             return null;

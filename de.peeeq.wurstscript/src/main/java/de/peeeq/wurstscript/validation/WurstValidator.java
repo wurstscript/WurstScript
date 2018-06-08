@@ -1697,9 +1697,10 @@ public class WurstValidator {
         StructureDef s = d.attrNearestStructureDef();
         if (s instanceof ClassDef) {
             ClassDef c = (ClassDef) s;
-            if (c.attrExtendedClass() != null) {
+            WurstTypeClass ct = c.attrTypC();
+            if (ct.extendedClass() != null) {
                 // check if super constructor is called correctly...
-                // TODO check constr.
+                // TODO check constr: get it from ct so that it has the correct type binding
                 ConstructorDef sc = d.attrSuperConstructor();
                 if (sc == null) {
                     d.addError("No super constructor found.");
@@ -1723,7 +1724,8 @@ public class WurstValidator {
             // only concrete classes have to be checked
             return;
         }
-        for (WurstTypeInterface interfaceType : classDef.attrImplementedInterfaces()) {
+        WurstTypeClass classT = classDef.attrTypC();
+        for (WurstTypeInterface interfaceType : classT.implementedInterfaces()) {
             InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
             TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
             // TODO check type mapping
@@ -1768,9 +1770,9 @@ public class WurstValidator {
             }
         }
 
-        if (!classDef.attrIsAbstract() && classDef.attrExtendedClass() != null) {
+        if (!classDef.attrIsAbstract() && classT.extendedClass() != null) {
             // TODO getClassDef().attrNameLinks() --> directly get name links from classtype
-            for (Entry<String, DefLink> e : classDef.attrExtendedClass().getClassDef().attrNameLinks().entries()) {
+            for (Entry<String, DefLink> e : classT.extendedClass().getClassDef().attrNameLinks().entries()) {
                 if (e.getValue().getDef() instanceof FuncDef) {
                     FuncDef f = (FuncDef) e.getValue().getDef();
                     if (f.attrIsAbstract()) {
@@ -1807,8 +1809,6 @@ public class WurstValidator {
     private void checkInterfaceDef(InterfaceDef i) {
         checkTypeName(i, i.getName());
         // TODO check if functions are refinements
-
-        i.attrExtendedInterfaces();
     }
 
     private void checkNewObj(ExprNewObject e) {
