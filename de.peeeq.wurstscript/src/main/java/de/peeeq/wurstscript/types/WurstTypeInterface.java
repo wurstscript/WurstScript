@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -43,6 +44,11 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
         return interfaceDef;
     }
 
+    @Override
+    public ImmutableList<WurstTypeInterface> directSupertypes() {
+        return extendedInterfaces();
+    }
+
     public InterfaceDef getInterfaceDef() {
         return interfaceDef;
     }
@@ -65,35 +71,11 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
         return new WurstTypeInterface(getInterfaceDef(), newTypes);
     }
 
-    @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMatch = super.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
-        if (superMatch != null) {
-            return superMatch;
-        }
 
-        if (other instanceof WurstTypeInterface) {
-            WurstTypeInterface other2 = (WurstTypeInterface) other;
-            if (interfaceDef == other2.interfaceDef) {
-                // same interface -> check if type params are equal
-                return matchTypeParams(getTypeParameters(), other2.getTypeParameters(), location, typeParams, mapping);
-            } else {
-                // test super interfaces:
-                for (WurstTypeInterface extendedType : extendedInterfaces()) {
-                    TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = extendedType.matchAgainstSupertype(other, location, typeParams, mapping);
-                    if (res != null) {
-                        return res;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    public List<WurstTypeInterface> extendedInterfaces() {
+    public ImmutableList<WurstTypeInterface> extendedInterfaces() {
         return interfaceDef.getExtendsList().stream()
                 .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
-                .collect(Collectors.toList());
+                .collect(ImmutableList.toImmutableList());
     }
 
 

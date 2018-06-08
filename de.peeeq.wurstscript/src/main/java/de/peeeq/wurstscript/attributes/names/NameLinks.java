@@ -22,11 +22,6 @@ public class NameLinks {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
         addNamesFromUsedModuleInstantiations(c, result);
         addDefinedNames(result, c);
-        if (c instanceof ClassDef) {
-            ClassDef classDef = (ClassDef) c;
-            addNamesFormSuperClass(result, classDef);
-            addNamesFromImplementedInterfaces(result, classDef.attrTypC());
-        }
         return result.build();
     }
 

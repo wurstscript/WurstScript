@@ -37,5 +37,8 @@ public class WurstTypeInt extends WurstTypePrimitive {
         return JassIm.ImIntVal(0);
     }
 
-
+    @Override
+    public String toString() {
+        return "int";
+    }
 }

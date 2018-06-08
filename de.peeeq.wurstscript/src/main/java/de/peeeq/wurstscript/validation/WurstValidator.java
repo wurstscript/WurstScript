@@ -1994,11 +1994,13 @@ public class WurstValidator {
 
     private void checkOverrides(ClassDef c) {
         int level = c.attrLevel();
+        WurstTypeClass classType = c.attrTypC();
         for (String funcName : c.attrNameLinks().keySet()) {
             List<FuncLink> funcs = Lists.newArrayList(keepFunctions(c.attrNameLinks().get(funcName)));
             sortByLevel(funcs);
 
-            Multimap<FuncLink, FuncLink> overridesMap = calcOverrides(funcs);
+            Multimap<FuncLink, String> overrideErrors = HashMultimap.create();
+            Multimap<FuncLink, FuncLink> overridesMap = calcOverrides(funcs, classType, overrideErrors);
             Multimap<FuncLink, FuncLink> overriddenByMap = Utils.inverse(overridesMap);
 
             for (FuncLink link : funcs) {
@@ -2038,7 +2040,8 @@ public class WurstValidator {
 
                 if (func.attrIsOverride()) {
                     if (overridesMap.get(link).size() == 0) {
-                        func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.");
+                        func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.\n"
+                                + overrideErrors.get(link).stream().collect(Collectors.joining("\n")));
                     }
                     for (NameLink overriden : overridesMap.get(link)) {
                         if (overriden.getDefinedIn() instanceof ClassDef && overriden.getDef() instanceof FuncDef) {
@@ -2074,39 +2077,69 @@ public class WurstValidator {
         }
     }
 
-    private Multimap<FuncLink, FuncLink> calcOverrides(List<FuncLink> funcs) {
+    private Multimap<FuncLink, FuncLink> calcOverrides(List<FuncLink> funcs, WurstTypeClassOrInterface type, Multimap<FuncLink, String> overrideErrors) {
         Multimap<FuncLink, FuncLink> overridesMap = HashMultimap.create();
-
-        for (FuncLink link1 : funcs) {
-            for (FuncLink link2 : funcs) {
-                if (link1 == link2) {
-                    continue;
-                }
-                if (canOverride(link1, link2)) {
-                    overridesMap.put(link1, link2);
-                }
-
-            }
-        }
+        collectOverrides(type, funcs, overridesMap, overrideErrors);
         return overridesMap;
     }
+
+    private void collectOverrides(WurstTypeClassOrInterface type, List<FuncLink> funcs, Multimap<FuncLink, FuncLink> overridesMap, Multimap<FuncLink, String> overrideErrors) {
+        for (WurstTypeClassOrInterface superType : type.directSupertypes()) {
+            ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
+            for (FuncLink func : funcs) {
+                for (DefLink superDef : superNameLinks.get(func.getName())) {
+                    if (superDef instanceof FuncLink) {
+                        FuncLink superFunc = (FuncLink) superDef;
+                        String error = checkOverride(func, superFunc);
+                        if (error == null) {
+                            overridesMap.put(func, superFunc);
+                        } else {
+                            overrideErrors.put(func, error);
+                        }
+                    }
+                }
+            }
+            collectOverrides(superType, funcs, overridesMap, overrideErrors);
+        }
+    }
+
 
     /**
      * checks if func1 can override func2
      */
     public static boolean canOverride(FuncLink func1, FuncLink func2) {
-        if (func1.getParameterTypes().size() != func2.getParameterTypes().size()) {
-            return false;
+        return checkOverride(func1, func2) == null;
+    }
+
+    public static String checkOverride(FuncLink func1, FuncLink func2) {
+        if (func1.isVarargMethod()) {
+            return "Vararg method " + func1.getName() + " cannot override other methods.";
+        }
+        if (func2.isVarargMethod()) {
+            return "Cannot override vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+        }
+        int paramCount2 = func2.getParameterTypes().size();
+        int paramCount1 = func1.getParameterTypes().size();
+        if (paramCount1 != paramCount2) {
+            return Utils.printElement(func2.getDef()) + " takes " + paramCount2
+                    + " parameters, but there are only " + paramCount1 + " parameters here.";
         }
 
         // contravariant parametertypes
-        for (int i = 0; i < func1.getParameterTypes().size(); i++) {
-            if (!func1.getParameterTypes().get(i).isSupertypeOf(func2.getParameterTypes().get(i), func1.getDef())) {
-                return false;
+        for (int i = 0; i < paramCount1; i++) {
+            WurstType type1 = func1.getParameterType(i);
+            WurstType type2 = func2.getParameterType(i);
+            if (!type1.isSupertypeOf(type2, func1.getDef())) {
+                return "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
+                        + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
             }
         }
         // covariant return types
-        return func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef());
+        if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef())) {
+            return "Return type should be " + func2.getReturnType() + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
+        }
+        // no error
+        return null;
     }
 
     /**

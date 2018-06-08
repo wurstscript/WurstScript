@@ -881,9 +881,9 @@ public class ImTranslator {
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
             FuncLink funcNameLink = null;
-            for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
+            for (FuncLink nameLink : c.lookupFuncs(func.getName())) {
                 if (nameLink.getDef() == func) {
-                    funcNameLink = (FuncLink) nameLink;
+                    funcNameLink = nameLink;
                 }
             }
             if (funcNameLink == null) {

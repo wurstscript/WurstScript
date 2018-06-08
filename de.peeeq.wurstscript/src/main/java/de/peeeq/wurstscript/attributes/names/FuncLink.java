@@ -153,7 +153,14 @@ public class FuncLink extends DefLink {
         return parameterTypes.get(i);
     }
 
-    private boolean isVarargMethod() {
+    public String getParameterName(int i) {
+        if (isVarargMethod() && i >= parameterNames.size() - 1) {
+            return parameterNames.get(parameterNames.size() - 1);
+        }
+        return parameterNames.get(i);
+    }
+
+    public boolean isVarargMethod() {
         List<WurstType> parameterTypes = getParameterTypes();
         if (parameterTypes.size() > 0) {
             return parameterTypes.get(parameterTypes.size() - 1) instanceof WurstTypeVararg;
@@ -182,5 +189,6 @@ public class FuncLink extends DefLink {
     public FuncLink adaptToReceiverType(WurstType receiverType) {
         return (FuncLink) super.adaptToReceiverType(receiverType);
     }
+
 
 }

@@ -21,7 +21,7 @@ public class GenericsHelper {
         for (int i = 0; i < typeArgs.size() && i < typeParams.size(); i++) {
             TypeParamDef tp = typeParams.get(i);
             TypeExpr te = typeArgs.get(i);
-            res = res.set(tp, new WurstTypeBoundTypeParam(tp, te.attrTyp(), e));
+            res = res.set(tp, new WurstTypeBoundTypeParam(tp, te.attrTyp().dynamic(), e));
         }
         return res;
     }

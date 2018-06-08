@@ -72,7 +72,7 @@ public abstract class WurstType {
             Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
             if (bound.isSome()) {
                 // already bound, use current bound
-                return matchAgainstSupertypeIntern(bound.some(), location, typeParams, mapping);
+                return matchAgainstSupertype(bound.some(), location, typeParams, mapping);
             } else if (typeParams.contains(tp.getDef())) {
                 // match this type parameter
                 return mapping.set(tp.getDef(), new WurstTypeBoundTypeParam(tp.getDef(), this, location));

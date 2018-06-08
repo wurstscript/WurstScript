@@ -24,40 +24,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         this.classDef = classDef;
     }
 
-    @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
-        if (superMapping != null) {
-            return superMapping;
-        }
-        if (obj instanceof WurstTypeInterface) {
-            // TODO probably not a good idea to get type arg binding after the fact, implemented interfaces should return List<WurstTypeInterface> with typeArgs already set
 
-
-        }
-        // TODO this looks fishy, so I disabled it, but it's probably required for accessing module members
-//        if (obj instanceof WurstTypeModuleInstanciation) {
-//            WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
-//            return n.isParent(this);
-//        }
-        WurstTypeClass extendedClass = extendedClass();
-        if (extendedClass != null) {
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = extendedClass.matchAgainstSupertype(obj, location, typeParams, mapping);
-            if (mapping2 != null) {
-                return mapping2;
-            }
-        }
-        // try if one of my interfaces implements the right type:
-        // OPT this could be optimized -- only do this if obj is an interface type
-        for (WurstTypeInterface implementedInterface : implementedInterfaces()) {
-
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertype(obj, location, typeParams, mapping);
-            if (mapping2 != null) {
-                return mapping2;
-            }
-        }
-        return null;
-    }
 
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {
         return classDef.getImplementsList().stream()
@@ -80,6 +47,19 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     @Override
     public ClassDef getDef() {
         return classDef;
+    }
+
+    @Override
+    public ImmutableList<? extends WurstTypeClassOrInterface> directSupertypes() {
+        WurstTypeClass ec = extendedClass();
+        if (ec == null) {
+            return implementedInterfaces();
+        } else {
+            ImmutableList.Builder<WurstTypeClassOrInterface> builder = ImmutableList.builder();
+            builder.add(ec);
+            builder.addAll(implementedInterfaces());
+            return builder.build();
+        }
     }
 
     public ClassDef getClassDef() {

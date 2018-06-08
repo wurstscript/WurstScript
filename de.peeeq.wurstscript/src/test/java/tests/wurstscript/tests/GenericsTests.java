@@ -279,6 +279,21 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void nativeTypes() {
+        testAssertOkLines(false,
+                "type effect extends handle",
+                "package Test",
+                "function effectToIndex(effect e) returns int",
+                "	return 0",
+                "function effectFromIndex(int index) returns effect",
+                "	return null",
+                "class L<T>",
+                "init",
+                "	L<effect> l = new L<effect>()"
+        );
+    }
+
+    @Test
     public void implicitConversionFail() { // see bug #121
         testAssertOkLinesWithStdLib(false,
                 "package Test",
@@ -477,7 +492,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void genericsSubstitute_override_interface_fail() {
-        testAssertErrorsLines(false, "implement",
+        testAssertErrorsLines(false, "Parameter int s should have type MyType to override function bla",
                 "package Test",
                 "interface I<T,S>",
                 "	function bla(S s, T t)",
