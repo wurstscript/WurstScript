@@ -1,5 +1,7 @@
 package de.peeeq.wurstio;
 
+import de.peeeq.wurstscript.utils.Utils;
+
 public class UtilsIO {
 
     public static void sleep(int i) {

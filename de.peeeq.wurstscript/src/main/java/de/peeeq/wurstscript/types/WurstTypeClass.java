@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -10,7 +11,9 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {

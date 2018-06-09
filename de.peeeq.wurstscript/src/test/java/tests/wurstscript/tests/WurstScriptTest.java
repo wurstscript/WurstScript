@@ -100,7 +100,8 @@ public class WurstScriptTest {
         }
 
         CompilationResult lines(String... lines) {
-            additionalCompilationUnits.add(new CU("lines", Utils.join(lines, "\n") + "\n"));
+            String testName = UtilsIO.getMethodName(WurstScriptTest.class.getName());
+            additionalCompilationUnits.add(new CU(testName, Utils.join(lines, "\n") + "\n"));
             return run();
         }
 

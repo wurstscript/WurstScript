@@ -234,7 +234,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void constr_super_wrong1() {
-        testAssertErrorsLines(true, "Expected integer",
+        testAssertErrorsLines(true, "Expected int",
                 "package test",
                 "    native testSuccess()",
                 "    class Pair",

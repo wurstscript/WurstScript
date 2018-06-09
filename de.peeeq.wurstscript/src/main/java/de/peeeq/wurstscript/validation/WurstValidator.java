@@ -2000,7 +2000,9 @@ public class WurstValidator {
             sortByLevel(funcs);
 
             Multimap<FuncLink, String> overrideErrors = HashMultimap.create();
+            // map from func -> overridden super-functions
             Multimap<FuncLink, FuncLink> overridesMap = calcOverrides(funcs, classType, overrideErrors);
+            // map from func to implementing interface
             Multimap<FuncLink, FuncLink> overriddenByMap = Utils.inverse(overridesMap);
 
             for (FuncLink link : funcs) {
@@ -2077,6 +2079,13 @@ public class WurstValidator {
         }
     }
 
+    /**
+     *
+     * @param funcs the functions for which to search overrides
+     * @param type where to search for overrides
+     * @param overrideErrors for each FuncLink in supertypes, store a reason why the function cannot
+     * @return a mapping from func to overridden functions
+     */
     private Multimap<FuncLink, FuncLink> calcOverrides(List<FuncLink> funcs, WurstTypeClassOrInterface type, Multimap<FuncLink, String> overrideErrors) {
         Multimap<FuncLink, FuncLink> overridesMap = HashMultimap.create();
         collectOverrides(type, funcs, overridesMap, overrideErrors);
@@ -2088,7 +2097,7 @@ public class WurstValidator {
             ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
             for (FuncLink func : funcs) {
                 for (DefLink superDef : superNameLinks.get(func.getName())) {
-                    if (superDef instanceof FuncLink) {
+                    if (superDef instanceof FuncLink && superDef.getVisibility().inherited()) {
                         FuncLink superFunc = (FuncLink) superDef;
                         String error = checkOverride(func, superFunc);
                         if (error == null) {

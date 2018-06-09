@@ -982,7 +982,7 @@ public class ImTranslator {
         interfaceInstances = HashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
-                for (WurstTypeInterface i : c.attrTypC().implementedInterfaces()) {
+                for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
                     interfaceInstances.put(i.getDef(), c);
                 }
             }

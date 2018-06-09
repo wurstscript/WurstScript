@@ -1,9 +1,9 @@
 package de.peeeq.wurstscript.types;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
@@ -64,6 +64,22 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
     public abstract ImmutableList<? extends WurstTypeClassOrInterface> directSupertypes();
 
+
+    public ImmutableList<? extends WurstTypeClassOrInterface> transitiveSupertypes() {
+        ImmutableList.Builder<WurstTypeClassOrInterface> builder = ImmutableList.builder();
+        for (WurstTypeClassOrInterface st : directSupertypes()) {
+            builder.add(st);
+            builder.addAll(st.transitiveSupertypes());
+        }
+        return builder.build();
+    }
+
+    public ImmutableList<WurstTypeInterface> transitiveSuperInterfaces() {
+        return transitiveSupertypes().stream()
+                .filter(t -> t instanceof WurstTypeInterface)
+                .map(t -> (WurstTypeInterface) t)
+                .collect(ImmutableList.toImmutableList());
+    }
 
     /**
      * if this type has a single abstract method, return it.
