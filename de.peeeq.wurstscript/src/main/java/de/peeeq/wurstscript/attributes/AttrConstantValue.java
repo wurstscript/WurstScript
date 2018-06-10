@@ -30,7 +30,7 @@ public class AttrConstantValue {
     }
 
     public static ILconst calculate(ExprVarAccess e) {
-        NameLink v = e.attrNameDef();
+        NameLink v = e.attrNameLink();
         if (v != null && v.getDef() instanceof GlobalVarDef) {
             GlobalVarDef g = (GlobalVarDef) v.getDef();
             if (g.attrIsConstant() && g.getInitialExpr() instanceof Expr) {

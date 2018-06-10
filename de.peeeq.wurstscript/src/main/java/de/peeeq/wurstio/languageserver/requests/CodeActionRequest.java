@@ -70,7 +70,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
 
         } else if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameLink nd = nr.attrNameDef();
+            NameLink nd = nr.attrNameLink();
             if (nd == null) {
                 return handleMissingName(modelManager, nr);
             }

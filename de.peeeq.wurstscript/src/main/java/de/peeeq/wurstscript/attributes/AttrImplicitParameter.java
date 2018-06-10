@@ -85,7 +85,7 @@ public class AttrImplicitParameter {
     }
 
     private static OptExpr getImplicitParamterCaseNormalVar(NameRef e) {
-        NameLink def = e.attrNameDef();
+        NameLink def = e.attrNameLink();
         if (def != null && def.getDef() instanceof VarDef) {
             VarDef varDef = (VarDef) def.getDef();
             if (varDef.attrIsDynamicClassMember()) {

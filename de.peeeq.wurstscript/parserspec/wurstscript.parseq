@@ -759,9 +759,13 @@ FunctionLike.attrHasEmptyBody()
 
 // Naming:
 
-NameRef.attrNameDef
+NameRef.attrNameLink
 	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
+
+NameRef.attrNameDef
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculateDef
 
 FuncRef.attrPossibleFuncDefs
 	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>

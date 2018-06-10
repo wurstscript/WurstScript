@@ -33,7 +33,7 @@ public class AttrClosureCapturedVariables {
         }
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameLink def = nr.attrNameDef();
+            NameLink def = nr.attrNameLink();
 
             if (def != null && (def.getDef() instanceof LocalVarDef || def.getDef() instanceof WParameter)) {
                 VarDef v = (VarDef) def.getDef();

@@ -166,7 +166,7 @@ public class WurstValidator {
         }
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameLink def = nr.attrNameDef();
+            NameLink def = nr.attrNameLink();
             if (def != null) {
                 used.add(def.getDef().attrNearestPackage());
             }
@@ -694,7 +694,7 @@ public class WurstValidator {
 
     private void checkStmtSet(StmtSet s) {
 
-        NameLink nameLink = s.getUpdatedExpr().attrNameDef();
+        NameLink nameLink = s.getUpdatedExpr().attrNameLink();
         if (nameLink == null) {
             s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
             return;
@@ -718,7 +718,7 @@ public class WurstValidator {
 
     private void checkIfNoEffectAssignment(StmtSet s) {
         if (refersToSameVar(s.getUpdatedExpr(), s.getRight())) {
-            s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef().getDef())
+            s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef())
                     + "  probably has no effect.");
         }
 
@@ -734,7 +734,7 @@ public class WurstValidator {
         if (a instanceof NameRef && b instanceof NameRef) {
             NameRef va = (NameRef) a;
             NameRef vb = (NameRef) b;
-            if (va.attrNameDef() == vb.attrNameDef()
+            if (va.attrNameLink() == vb.attrNameLink()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
                 if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
                     AstElementWithIndexes vai = (AstElementWithIndexes) va;
@@ -762,12 +762,12 @@ public class WurstValidator {
 
             @Override
             public void case_ExprVarAccess(ExprVarAccess e) {
-                checkVarNotConstant(left, e.attrNameDef());
+                checkVarNotConstant(left, e.attrNameLink());
             }
 
             @Override
             public void case_ExprMemberVarDot(ExprMemberVarDot e) {
-                if (e.attrNameDef().getDef() instanceof WParameter) {
+                if (e.attrNameDef() instanceof WParameter) {
                     // we have an assignment to a tuple variable
                     // check whether left side is 'this' or a constant variable
                     if (e.getLeft() instanceof ExprThis) {
@@ -779,7 +779,7 @@ public class WurstValidator {
                                 "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
                     }
                 }
-                checkVarNotConstant(left, e.attrNameDef());
+                checkVarNotConstant(left, e.attrNameLink());
             }
 
             @Override
@@ -1331,7 +1331,7 @@ public class WurstValidator {
      * @param dynamicContext
      */
     private void checkVarRef(NameRef e, boolean dynamicContext) {
-        NameLink link = e.attrNameDef();
+        NameLink link = e.attrNameLink();
         if (link == null) {
             return;
         }
@@ -1987,7 +1987,7 @@ public class WurstValidator {
                     for (SwitchCase c : s.getCases()) {
                         if (c.getExpr() instanceof NameRef) {
                             NameRef exprVarAccess = (NameRef) c.getExpr();
-                            if (exprVarAccess.attrNameDef().getDef() == e) {
+                            if (exprVarAccess.attrNameDef() == e) {
                                 continue nextMember;
                             }
                         }

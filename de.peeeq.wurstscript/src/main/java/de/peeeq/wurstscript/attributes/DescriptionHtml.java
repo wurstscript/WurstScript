@@ -156,7 +156,7 @@ public class DescriptionHtml {
     }
 
     public static String description(NameRef nr) {
-        NameLink nameDef = nr.attrNameDef();
+        NameLink nameDef = nr.attrNameLink();
         if (nameDef == null) {
             return nr.getVarName() + " is not defined yet.";
         }

@@ -45,7 +45,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprVarAccess term) {
-        NameLink varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
 
         if (varDef == null) {
             String varName = term.getVarName();
@@ -91,7 +91,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprVarArrayAccess term) {
-        NameLink varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
@@ -377,7 +377,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberVarDot term) {
-        NameLink varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
@@ -392,7 +392,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberArrayVarDot term) {
-        NameLink varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }

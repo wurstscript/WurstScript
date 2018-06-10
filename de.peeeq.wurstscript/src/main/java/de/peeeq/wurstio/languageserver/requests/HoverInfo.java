@@ -149,7 +149,7 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         public  List<Either<String, MarkedString>> description(NameRef nr) {
-            NameLink nameDef = nr.attrNameDef();
+            NameLink nameDef = nr.attrNameLink();
             if (nameDef == null) {
                 return string(nr.getVarName() + " is not defined yet.");
             }

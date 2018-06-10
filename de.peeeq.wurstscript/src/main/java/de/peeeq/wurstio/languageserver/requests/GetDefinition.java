@@ -43,7 +43,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
             return linkTo(decl.getDef());
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
-            NameLink decl = nameRef.attrNameDef();
+            NameLink decl = nameRef.attrNameLink();
             return linkTo(decl.getDef());
         } else if (e instanceof TypeExpr) {
             TypeExpr typeExpr = (TypeExpr) e;

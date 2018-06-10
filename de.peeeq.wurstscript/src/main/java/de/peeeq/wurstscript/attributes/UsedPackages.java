@@ -30,7 +30,7 @@ public class UsedPackages {
 
     public static ImmutableCollection<WPackage> usedPackages(NameRef e) {
         ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
-        NameLink def = e.attrNameDef();
+        NameLink def = e.attrNameLink();
         if (def.getDef() instanceof VarDef) {
             if (def.getDef().attrNearestPackage() instanceof WPackage) {
                 result.add((WPackage) e.attrNearestPackage());

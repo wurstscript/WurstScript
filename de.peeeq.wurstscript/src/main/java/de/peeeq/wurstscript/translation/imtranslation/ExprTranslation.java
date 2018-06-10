@@ -209,7 +209,7 @@ public class ExprTranslation {
     }
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
-        NameDef decl = e.attrNameDef().getDef();
+        NameDef decl = e.attrNameDef();
         if (decl == null) {
             // should only happen with gg_ variables
             if (!t.isEclipseMode()) {
@@ -280,7 +280,7 @@ public class ExprTranslation {
                 ExprMemberVar mv2 = (ExprMemberVar) expr;
                 Expr left = mv2.getLeft();
                 if (left.attrTyp() instanceof WurstTypeTuple) {
-                    indexes.add(0, (WParameter) mv2.attrNameDef().getDef());
+                    indexes.add(0, (WParameter) mv2.attrNameDef());
                     expr = left;
                     continue;
                 }

@@ -35,7 +35,7 @@ public class UsedGlobalVariables {
             }
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
-            NameLink def = nameRef.attrNameDef();
+            NameLink def = nameRef.attrNameLink();
             if (def.getDef() instanceof GlobalVarDef) {
                 GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                 result.add(varDef);
@@ -102,7 +102,7 @@ public class UsedGlobalVariables {
             if (e.getParent() instanceof StmtSet && ((StmtSet) e.getParent()).getUpdatedExpr() == e) {
                 // write access
             } else {
-                NameLink def = nameRef.attrNameDef();
+                NameLink def = nameRef.attrNameLink();
                 if (def.getDef() instanceof GlobalVarDef) {
                     GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                     result.add(varDef);
