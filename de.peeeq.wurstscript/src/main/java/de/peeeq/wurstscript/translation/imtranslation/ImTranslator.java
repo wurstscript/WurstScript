@@ -41,6 +41,7 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -327,6 +328,15 @@ public class ImTranslator {
         }
         Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
 
+        ImVar initTrigVar = prepareTrigger();
+
+        for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
+            callInitFunc(calledInitializers, p, initTrigVar);
+        }
+    }
+
+    @NotNull
+    private ImVar prepareTrigger() {
         ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
         getMainFunc().getLocals().add(initTrigVar);
 
@@ -336,10 +346,7 @@ public class ImTranslator {
             getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
                     JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
         }
-
-        for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
-            callInitFunc(calledInitializers, p, initTrigVar);
-        }
+        return initTrigVar;
     }
 
 
@@ -362,7 +369,10 @@ public class ImTranslator {
             callInitFunc(calledInitializers, dep, initTrigVar);
         }
         ImFunction initFunc = initFuncMap.get(p);
-        if (initFunc == null) {
+        if (initFunc == null ) {
+            return;
+        }
+        if(initFunc.getBody().size() == 0) {
             return;
         }
         boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
