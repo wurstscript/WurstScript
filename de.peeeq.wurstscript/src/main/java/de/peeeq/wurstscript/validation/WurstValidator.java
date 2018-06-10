@@ -2042,7 +2042,7 @@ public class WurstValidator {
             ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
             for (FuncLink func : funcs) {
                 for (DefLink superDef : superNameLinks.get(func.getName())) {
-                    if (superDef instanceof FuncLink && superDef.getVisibility().inherited()) {
+                    if (superDef instanceof FuncLink && superDef.getVisibility().isInherited()) {
                         FuncLink superFunc = (FuncLink) superDef;
                         String error = checkOverride(func, superFunc, false);
                         if (error == null) {

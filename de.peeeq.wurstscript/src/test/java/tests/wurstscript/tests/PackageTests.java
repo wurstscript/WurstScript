@@ -343,4 +343,27 @@ public class PackageTests extends WurstScriptTest {
                 "endpackage");
     }
 
+
+    @Test
+    public void testMembersNoImport() {
+        testAssertOkLines(true,
+                "package A",
+                "	public class Blub",
+                "		int x = 2",
+                "		function f() returns int",
+                "			return 3",
+                "endpackage",
+                "package B",
+                "	import A",
+                "	public let blub = new Blub",
+                "endpackage",
+                "package C",
+                "	import B",
+                "	native testSuccess()",
+                "	init",
+                "		if blub.x == 2 and blub.f() == 3",
+                "			testSuccess()",
+                "endpackage");
+    }
+
 }

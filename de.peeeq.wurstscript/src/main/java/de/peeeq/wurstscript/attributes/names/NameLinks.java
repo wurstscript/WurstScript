@@ -122,7 +122,7 @@ public class NameLinks {
     private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride) {
         for (Entry<String, DefLink> e : newNameLinks.entries()) {
             DefLink def = e.getValue();
-            if (def.getVisibility() == Visibility.LOCAL) {
+            if (!def.getVisibility().isInherited()) {
                 continue;
             }
             String name = e.getKey();
