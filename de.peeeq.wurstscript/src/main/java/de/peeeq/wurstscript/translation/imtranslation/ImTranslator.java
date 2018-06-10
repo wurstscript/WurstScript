@@ -11,7 +11,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -42,6 +41,7 @@ import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -328,13 +328,25 @@ public class ImTranslator {
         }
         Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
 
-        ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
-        getMainFunc().getLocals().add(initTrigVar);
+        ImVar initTrigVar = prepareTrigger();
 
         for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
             callInitFunc(calledInitializers, p, initTrigVar);
         }
+    }
 
+    @NotNull
+    private ImVar prepareTrigger() {
+        ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
+        getMainFunc().getLocals().add(initTrigVar);
+
+        // initTrigVar = CreateTrigger()
+        ImFunction createTrigger = getNativeFunc("CreateTrigger");
+        if (createTrigger != null) {
+            getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
+                    JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
+        }
+        return initTrigVar;
     }
 
 
@@ -357,7 +369,10 @@ public class ImTranslator {
             callInitFunc(calledInitializers, dep, initTrigVar);
         }
         ImFunction initFunc = initFuncMap.get(p);
-        if (initFunc == null) {
+        if (initFunc == null ) {
+            return;
+        }
+        if(initFunc.getBody().size() == 0) {
             return;
         }
         boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
@@ -371,18 +386,14 @@ public class ImTranslator {
     private boolean createInitFuncCall(WPackage p, ImVar initTrigVar, ImFunction initFunc) {
         ImStmts mainBody = getMainFunc().getBody();
 
-
-        ImFunction native_CreateTrigger = getNativeFunc("CreateTrigger");
-        ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
+        ImFunction native_ClearTrigger = getNativeFunc("TriggerClearConditions");
         ImFunction native_TriggerAddCondition = getNativeFunc("TriggerAddCondition");
         ImFunction native_Condition = getNativeFunc("Condition");
         ImFunction native_TriggerEvaluate = getNativeFunc("TriggerEvaluate");
         ImFunction native_DisplayTimedTextToPlayer = getNativeFunc("DisplayTimedTextToPlayer");
         ImFunction native_GetLocalPlayer = getNativeFunc("GetLocalPlayer");
 
-
-        if (native_CreateTrigger == null
-                || native_DestroyTrigger == null
+        if (native_ClearTrigger == null
                 || native_TriggerAddCondition == null
                 || native_Condition == null
                 || native_TriggerEvaluate == null
@@ -405,10 +416,6 @@ public class ImTranslator {
         de.peeeq.wurstscript.ast.Element trace = initFunc.getTrace();
         initFunc.getBody().add(JassIm.ImReturn(trace, JassIm.ImBoolVal(true)));
 
-
-        // initTrigVar = CreateTrigger()
-        mainBody.add(JassIm.ImSet(trace, initTrigVar,
-                JassIm.ImFunctionCall(trace, native_CreateTrigger, JassIm.ImExprs(), false, CallType.NORMAL)));
 
         // TriggerAddCondition(initTrigVar, Condition(function myInit))
         mainBody.add(JassIm.ImFunctionCall(trace, native_TriggerAddCondition, JassIm.ImExprs(
@@ -434,7 +441,7 @@ public class ImTranslator {
                 ),
                 // else:
                 JassIm.ImStmts()));
-        mainBody.add(JassIm.ImFunctionCall(trace, native_DestroyTrigger,
+        mainBody.add(JassIm.ImFunctionCall(trace, native_ClearTrigger,
                 JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
         return true;
     }
