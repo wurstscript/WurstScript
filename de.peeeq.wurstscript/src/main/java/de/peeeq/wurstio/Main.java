@@ -190,7 +190,7 @@ public class Main {
         WLogger.info("### Started wurst version: (" + AboutDialog.version + ")");
         WLogger.info("### With wurst-args " + Utils.printSep(", ", args));
         if (arguments != null && arguments.size() > 0) {
-            WLogger.info("### With vm-args " + Utils.printSep(", ", (String[]) arguments.toArray()));
+            WLogger.info("### With vm-args " + Utils.printSep(", ", arguments.toArray(new String[0])));
         }
         try {
             WLogger.info("### compiler path1: " + Main.class.getProtectionDomain().getCodeSource().getLocation());
@@ -208,7 +208,7 @@ public class Main {
         String compatPath = wc3Path + COMPAT_FOLDER;
         WLogger.info("Wc3 Path: " + wc3Path);
 
-        double patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
+        double patchVersion = W3Utils.getWc3PatchVersion();
         if (patchVersion > 1.27 && !new File(compatPath).exists()) {
             JLabel notice = new JLabel("Patch 1.28 or higher has been detected on your system.\n" +
                     "Selecting yes will create a compatibility copy of your installation.\n" +

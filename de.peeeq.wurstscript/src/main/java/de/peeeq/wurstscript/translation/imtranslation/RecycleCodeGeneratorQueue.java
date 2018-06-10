@@ -23,6 +23,8 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         locals.add(thisVar);
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
+
+        int maxSize = 32768;
         // if freeCount == 0 then
         ImStmts elseBlock = JassIm.ImStmts();
         ImStmts thenBlock = JassIm.ImStmts();
@@ -33,7 +35,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ImStmts ifNotEnoughMemory = JassIm.ImStmts();
         //     if maxIndex < 8191
         thenBlock.add(JassIm.ImIf(tr,
-                JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(8191))),
+                JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxSize))),
                 ifEnoughMemory, ifNotEnoughMemory));
         //         maxIndex = maxIndex + 1
         ifEnoughMemory.add(JassIm.ImSet(tr, mVars.maxIndex,
@@ -49,7 +51,8 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ifNotEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImIntVal(0)));
         // else:
         //     freeCount = freeCount - 1
-        elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(1)))));
+        elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm
+                .ImIntVal(1)))));
         //     this = free[freeCount]
         elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
         //     typeId[this] = ...
@@ -84,7 +87,8 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                         // free[freeCount] = this
                         JassIm.ImSetArray(tr, mVars.free, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImVarAccess(thisVar)),
                         // freeCount++
-                        JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm.ImIntVal(1)))),
+                        JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount),
+                                JassIm.ImIntVal(1)))),
                         // typeId[this] = 0
                         JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))
                 )));

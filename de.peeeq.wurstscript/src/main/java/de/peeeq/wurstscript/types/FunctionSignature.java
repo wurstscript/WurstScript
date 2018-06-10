@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.types;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -12,16 +12,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(null, Collections.<WurstType>emptyList(), Collections.<String>emptyList(), WurstTypeUnknown.instance());
+    public static final FunctionSignature empty = new FunctionSignature(null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance(),
+            false);
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
     private final WurstType returnType;
+    private boolean isVararg;
 
 
-    public FunctionSignature(@Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(@Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType, boolean isVararg) {
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
+        this.isVararg = isVararg;
         this.receiverType = receiverType;
         this.paramTypes = paramTypes;
         this.returnType = returnType;
@@ -47,16 +50,16 @@ public class FunctionSignature {
         for (WurstType p : paramTypes) {
             pt2.add(p.setTypeArgs(typeArgBinding));
         }
-        return new FunctionSignature(receiverType, pt2, paramNames, r2);
+        return new FunctionSignature(receiverType, pt2, paramNames, r2, isVararg);
     }
 
 
     public static FunctionSignature forFunctionDefinition(@Nullable FunctionDefinition f) {
-//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.getReturnTyp().attrTyp());
+//		return new FunctionSignature(def.attrReceiverType(), def.attrParameterTypes(), def.attrReturnTyp());
         if (f == null) {
             return FunctionSignature.empty;
         }
-        WurstType returnType = f.getReturnTyp().attrTyp().dynamic();
+        WurstType returnType = f.attrReturnTyp();
         if (f instanceof TupleDef) {
             TupleDef tupleDef = (TupleDef) f;
             returnType = tupleDef.attrTyp().dynamic();
@@ -65,7 +68,8 @@ public class FunctionSignature {
 
         List<WurstType> paramTypes = f.attrParameterTypes();
         List<String> paramNames = getParamNames(f.getParameters());
-        return new FunctionSignature(f.attrReceiverType(), paramTypes, paramNames, returnType);
+        return new FunctionSignature(f.attrReceiverType(), paramTypes, paramNames, returnType,
+                f.getParameters().size() == 1 && f.getParameters().get(0).attrIsVararg());
     }
 
 
@@ -76,13 +80,13 @@ public class FunctionSignature {
     }
 
 
-    public static FunctionSignature fromNameLink(NameLink f) {
+    public static FunctionSignature fromNameLink(FuncLink f) {
         List<String> pNames = Collections.emptyList();
-        if (f.getNameDef() instanceof AstElementWithParameters) {
-            AstElementWithParameters n = (AstElementWithParameters) f.getNameDef();
+        if (f.getDef() instanceof AstElementWithParameters) {
+            AstElementWithParameters n = (AstElementWithParameters) f.getDef();
             pNames = getParamNames(n.getParameters());
         }
-        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType());
+        return new FunctionSignature(f.getReceiverType(), f.getParameterTypes(), pNames, f.getReturnType(), f.getDef().attrIsVararg());
     }
 
 
@@ -110,8 +114,20 @@ public class FunctionSignature {
     public String getParamName(int i) {
         if (i >= 0 && i < paramNames.size()) {
             return paramNames.get(i);
+        } else if (isVararg) {
+            return paramNames.get(paramNames.size() - 1);
         }
         return "";
+    }
+
+    public WurstType getParamType(int i) {
+        if (isVararg && i >= paramTypes.size() - 1) {
+            return getVarargType();
+        }
+        if (i >= 0 && i < paramTypes.size()) {
+            return paramTypes.get(i);
+        }
+        throw new RuntimeException("Parameter index out of bounds: " + i);
     }
 
     @Override
@@ -127,4 +143,12 @@ public class FunctionSignature {
         return result.toString();
     }
 
+    public boolean isVararg() {
+        return isVararg;
+    }
+
+    public WurstType getVarargType() {
+        Preconditions.checkArgument(isVararg);
+        return ((WurstTypeVararg) paramTypes.get(paramTypes.size() - 1)).getBaseType();
+    }
 }

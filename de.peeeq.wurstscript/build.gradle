@@ -1,22 +1,44 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'de.undercouch:gradle-download-task:3.2.0'
+        classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:1.0.2'
+    }
+}
+
+plugins {
+    id "jacoco"
+    id 'com.github.kt3k.coveralls' version '2.8.2'
+    id 'java'
+    id 'antlr'
+    id 'eclipse'
+    id 'idea'
+    id 'application'
+}
+
 import de.undercouch.gradle.tasks.download.Download
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
-// Apply the java plugin to add support for Java
-apply plugin: 'java'
 
 
-apply plugin: 'antlr'
-
-// plugins for generating IDE projects
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-
-
-apply plugin: 'application'
 mainClassName = "de.peeeq.wurstio.Main"
-version = "1.7.0.0"
+version = "1.8.0.0"
 
+jacocoTestReport {
+    reports {
+        xml.enabled true
+    }
+
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/build/**'])
+        })
+    }
+}
 
 String genDir = "$projectDir/src-gen"
 
@@ -40,16 +62,17 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
+    jcenter()
 }
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
 
-	// Antlr parsing library
-	antlr "org.antlr:antlr4:4.7"
+    // Antlr parsing library
+    antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.2.1'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.3.0'
 
     // JUnit for testing
     testCompile group: 'org.testng', name: 'testng', version: '6.13.1'
@@ -59,7 +82,7 @@ dependencies {
     compile 'com.google.guava:guava:21.0'
 
     // Support for the vscode language server protocol
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.2.0'
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.4.0'
 
     // @Nullable annotations
     compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
@@ -93,7 +116,7 @@ configurations.all {
 
 task genAst {
     description = 'Compile ast specifications'
-    fileTree(dir: 'parserspec', include:'**/*.parseq').each { file ->
+    fileTree(dir: 'parserspec', include: '**/*.parseq').each { file ->
 
         Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
         String fileContents = file.text
@@ -194,19 +217,12 @@ task wrapper(type: Wrapper) {
     gradleVersion = '2.12'
 }
 
-buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'de.undercouch:gradle-download-task:3.2.0'
-    }
-}
+
 
 apply plugin: 'de.undercouch.download'
 
 task downloadZipFile(type: Download) {
-    src 'https://github.com/Frotty/wurstStdlib2/archive/master.zip'
+    src 'https://github.com/wurstscript/wurstStdlib2/archive/master.zip'
     dest new File(buildDir, 'stdlib2.zip')
 }
 

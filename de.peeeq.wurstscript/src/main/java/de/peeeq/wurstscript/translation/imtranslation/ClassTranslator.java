@@ -246,11 +246,11 @@ public class ClassTranslator {
 
 
     private void translateVars(ClassOrModuleInstanciation c) {
-        for (GlobalVarDef v : c.getVars()) {
-            translateVar(v);
-        }
         for (ModuleInstanciation mi : c.getModuleInstanciations()) {
             translateVars(mi);
+        }
+        for (GlobalVarDef v : c.getVars()) {
+            translateVar(v);
         }
     }
 

@@ -251,7 +251,9 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void recyling() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+                .executeProgOnlyAfterTransforms()
+                .lines(
                 "package test",
                 "	native testSuccess()",
                 "	native println(string msg)",
@@ -267,7 +269,7 @@ public class ClassesTests extends WurstScriptTest {
                 "			destroy cs[j]",
                 "		for int k = 0 to 6000",
                 "			cs[k] = new C()",
-//				"			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
+//                "			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
                 "		if cs[6000] castTo int <= 6001",
                 "			testSuccess()",
                 "endpackage"
@@ -543,7 +545,9 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test(expectedExceptions = DebugPrintError.class)
     public void NPE() {
-        testAssertOkLines(true,
+        test().executeProg()
+                .executeProgOnlyAfterTransforms()
+                .lines(
                 "package test",
                 "	native testSuccess()",
                 "	class A",
@@ -553,13 +557,14 @@ public class ClassesTests extends WurstScriptTest {
                 "		A a = null",
                 "		if a.foo() == 7",
                 "			testSuccess()",
-                "endpackage"
-        );
+                "endpackage");
     }
 
     @Test(expectedExceptions = DebugPrintError.class)
     public void destroyed() {
-        testAssertOkLines(true,
+        test().executeProg()
+                .executeProgOnlyAfterTransforms()
+                .lines(
                 "package test",
                 "	native testSuccess()",
                 "	class A",
@@ -570,8 +575,7 @@ public class ClassesTests extends WurstScriptTest {
                 "		destroy a",
                 "		if a.foo() == 7",
                 "			testSuccess()",
-                "endpackage"
-        );
+                "endpackage");
     }
 
     @Test
@@ -1110,6 +1114,25 @@ public class ClassesTests extends WurstScriptTest {
                 "   tuple t(int i)",
                 "   class A",
                 "       t array[2] b",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testOver9000() {
+        testAssertOkLines(true,
+                "package Vegeta",
+                "   native testSuccess()",
+                "   class PowerLevel",
+                "       static int amount = 0",
+                "       construct()",
+                "           amount++",
+                "",
+                "   init",
+                "       for i = 0 to 20000",
+                "           new PowerLevel()",
+                "       if PowerLevel.amount > 9000 and PowerLevel.amount == 20001",
+                "	        testSuccess()",
                 "endpackage"
         );
     }

@@ -64,28 +64,12 @@ public class AttrTypeExprType {
 
 
     public static WurstType calculate(TypeExprArray typeExprArray) {
+        WurstType baseType = typeExprArray.getBase().attrTyp().dynamic();
         if (typeExprArray.getArraySize() instanceof NoExpr) {
-            return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic());
+            return new WurstTypeArray(baseType);
         } else { // otherwise it must be an Expr
             Expr arSize = (Expr) typeExprArray.getArraySize();
-            // default is to have no array sizes:
-            int[] sizes = {};
-            // when there is an array size given, try to evaluate it:
-            try {
-                ILconst i = arSize.attrConstantValue();
-                if (i instanceof ILconstInt) {
-                    int val = ((ILconstInt) i).getVal();
-                    sizes = new int[]{val};
-                    if (val <= 0) {
-                        arSize.addError("Array size must be at least 1");
-                    }
-                } else {
-                    arSize.addError("Array sizes should be integer...");
-                }
-            } catch (ConstantValueCalculationException e) {
-                arSize.addError("Array size is not a constant expression.");
-            }
-            return new WurstTypeArray(typeExprArray.getBase().attrTyp().dynamic(), sizes);
+            return new WurstTypeArray(baseType, arSize);
         }
     }
 

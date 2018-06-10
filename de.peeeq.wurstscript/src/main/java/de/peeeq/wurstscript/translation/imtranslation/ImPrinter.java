@@ -83,6 +83,10 @@ public class ImPrinter {
     }
 
     public static void print(ImFunction p, StringBuilder sb, int indent) {
+        for (FunctionFlag flag : p.getFlags()) {
+            sb.append(flag);
+            sb.append(" ");
+        }
         sb.append("function ").append(p.getName()).append("(");
         boolean first = true;
         for (ImVar p1 : p.getParameters()) {
@@ -412,5 +416,14 @@ public class ImPrinter {
         sb.append("compiletime<<");
         e.getExpr().print(sb, indent);
         sb.append(">>");
+    }
+
+    public static void print(ImVarargLoop e, StringBuilder sb, int indent) {
+        sb.append("foreach vararg ");
+        e.getLoopVar().print(sb, indent);
+        sb.append(" {\n");
+        e.getBody().print(sb, indent + 1);
+        indent(sb, indent);
+        sb.append("}");
     }
 }

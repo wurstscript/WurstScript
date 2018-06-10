@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
@@ -22,7 +23,7 @@ public class PossibleFuncDefs {
 
     public static ImmutableCollection<FunctionDefinition> calculate(final ExprFuncRef node) {
 
-        ImmutableCollection<NameLink> funcs;
+        ImmutableCollection<FuncLink> funcs;
         if (node.getScopeName().length() > 0) {
             TypeDef typeDef = node.lookupType(node.getScopeName());
             if (typeDef == null) {
@@ -41,7 +42,7 @@ public class PossibleFuncDefs {
         }
         ImmutableList.Builder<FunctionDefinition> result = ImmutableList.builder();
         for (NameLink nameLink : funcs) {
-            result.add((FunctionDefinition) nameLink.getNameDef());
+            result.add((FunctionDefinition) nameLink.getDef());
         }
         return result.build();
     }
@@ -89,7 +90,7 @@ public class PossibleFuncDefs {
         if (node == null) {
             return ImmutableList.of();
         }
-        ImmutableCollection<NameLink> funcs1 = node.lookupFuncs(funcName);
+        ImmutableCollection<FuncLink> funcs1 = node.lookupFuncs(funcName);
         if (funcs1.size() == 0) {
             if (funcName.startsWith("InitTrig_")) {
                 // ignore error
@@ -100,7 +101,7 @@ public class PossibleFuncDefs {
         }
         try {
             // filter out the methods which are private somewhere else
-            ImmutableCollection<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+            ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
 
             funcs = filterByReceiverType(node, funcName, funcs);
 
@@ -112,13 +113,13 @@ public class PossibleFuncDefs {
 
 
     private static ImmutableCollection<FunctionDefinition> searchMemberFunc(Expr node, WurstType leftType, String funcName) {
-        ImmutableCollection<NameLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
+        ImmutableCollection<FuncLink> funcs1 = node.lookupMemberFuncs(leftType, funcName);
         if (funcs1.size() == 0) {
             return ImmutableList.of();
         }
         try {
             // filter out the methods which are private somewhere else
-            ImmutableCollection<NameLink> funcs = filterInvisible(funcName, node, funcs1);
+            ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
 
             // chose method with most specific receiver type
             funcs = filterByReceiverType(node, funcName, funcs);
@@ -130,23 +131,22 @@ public class PossibleFuncDefs {
 
 
     private static ImmutableCollection<FunctionDefinition> nameLinksToFunctionDefinition(
-            ImmutableCollection<NameLink> funcs) {
+            ImmutableCollection<FuncLink> funcs) {
         return funcs.stream()
-                .map(nl -> (FunctionDefinition) nl.getNameDef())
+                .map(nl -> nl.getDef())
                 .collect(Utils.toImmutableList());
     }
 
 
-    private static ImmutableCollection<NameLink> filterInvisible(String funcName, Element node, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
+    private static ImmutableCollection<FuncLink> filterInvisible(String funcName, Element node, ImmutableCollection<FuncLink> funcs) throws EarlyReturn {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return funcs;
         }
-        List<NameLink> funcs2 = Lists.newArrayListWithCapacity(funcs.size());
-        for (NameLink nl : funcs) {
+        List<FuncLink> funcs2 = Lists.newArrayListWithCapacity(funcs.size());
+        for (FuncLink nl : funcs) {
             if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
-                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)
-                    && nl.getNameDef() instanceof FunctionDefinition) {
+                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)) {
                 funcs2.add(nl);
             }
         }
@@ -163,14 +163,14 @@ public class PossibleFuncDefs {
     }
 
 
-    private static ImmutableList<NameLink> filterByReceiverType(Element node,
-                                                                String funcName, ImmutableCollection<NameLink> funcs) throws EarlyReturn {
-        ImmutableList.Builder<NameLink> funcs3 = ImmutableList.builder();
-        for (NameLink f : funcs) {
+    private static ImmutableList<FuncLink> filterByReceiverType(Element node,
+                                                                String funcName, ImmutableCollection<FuncLink> funcs) throws EarlyReturn {
+        ImmutableList.Builder<FuncLink> funcs3 = ImmutableList.builder();
+        for (FuncLink f : funcs) {
             boolean existsMoreSpecific = false;
             WurstType f_receiverType = f.getReceiverType();
             if (f_receiverType != null) {
-                for (NameLink g : funcs) {
+                for (FuncLink g : funcs) {
                     if (f != g) {
                         WurstType g_receiverType = g.getReceiverType();
                         if (g_receiverType != null
@@ -186,7 +186,7 @@ public class PossibleFuncDefs {
                 funcs3.add(f);
             }
         }
-        ImmutableList<NameLink> funcs4 = funcs3.build();
+        ImmutableList<FuncLink> funcs4 = funcs3.build();
         if (funcs4.size() == 0) {
             node.addError("Function " + funcName + " has a wrong receiver type.");
             throw new EarlyReturn(firstFunc(funcs));
@@ -196,12 +196,9 @@ public class PossibleFuncDefs {
         return funcs4;
     }
 
-    private static FunctionDefinition firstFunc(Collection<NameLink> funcs1) {
-        NameLink nl = Utils.getFirst(funcs1);
-        if (nl.getNameDef() instanceof FunctionDefinition) {
-            return (FunctionDefinition) nl.getNameDef();
-        }
-        throw new Error("Collection of funcs was empty");
+    private static FunctionDefinition firstFunc(Collection<FuncLink> funcs1) {
+        FuncLink nl = Utils.getFirst(funcs1);
+        return nl.getDef();
     }
 
 }

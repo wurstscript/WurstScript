@@ -3,12 +3,11 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +48,26 @@ public class Generics {
     private static void inferTypeParametersUsingArguments(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Arguments args, WParameters params, TypeParamDefs typeParams) {
         // calculate (most general) unifier
         for (int i = 0; i < args.size() && i < params.size(); i++) {
-            inferTypeParameters(result, args, args.get(i).attrTyp(), params.get(i).attrTyp(), typeParams);
+            WurstType argType;
+            Expr arg = args.get(i);
+            if (arg instanceof ExprClosure) {
+                ExprClosure closure = (ExprClosure) arg;
+                List<WurstType> clParamTypes = new ArrayList<>();
+                for (WShortParameter param : closure.getShortParameters()) {
+                    WurstType paramType;
+                    if (param.getTypOpt() instanceof TypeExpr) {
+                        paramType = param.getTypOpt().attrTyp();
+                    } else {
+                        paramType = new WurstTypeDeferred(() -> param.attrTyp());
+                    }
+                    clParamTypes.add(paramType);
+                }
+                WurstTypeDeferred ret = new WurstTypeDeferred(() -> closure.getImplementation().attrTyp());
+                argType = new WurstTypeClosure(clParamTypes, ret);
+            } else {
+                argType = arg.attrTyp();
+            }
+            inferTypeParameters(result, args, argType, params.get(i).attrTyp(), typeParams);
         }
         if (result.size() < typeParams.size()) {
             for (TypeParamDef tp : typeParams) {
@@ -62,6 +80,11 @@ public class Generics {
 
     private static void inferTypeParameters(Map<TypeParamDef, WurstTypeBoundTypeParam> result, Element pos, WurstType argType, WurstType paramTyp,
                                             TypeParamDefs typeParams) {
+        if(paramTyp instanceof WurstTypeVararg) {
+            WurstTypeVararg bt = (WurstTypeVararg) paramTyp;
+            inferTypeParameters(result, pos, argType, bt.getBaseType(), typeParams);
+            return;
+        }
         if (paramTyp instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) paramTyp;
             inferTypeParameters(result, pos, argType, bt.getBaseType(), typeParams);
@@ -77,15 +100,27 @@ public class Generics {
                 }
             }
         }
-        if (paramTyp instanceof WurstTypeNamedScope && argType instanceof WurstTypeNamedScope) {
+        if (paramTyp instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope paramTyp2 = (WurstTypeNamedScope) paramTyp;
-            WurstTypeNamedScope argTyp2 = (WurstTypeNamedScope) argType;
-            List<WurstTypeBoundTypeParam> paramTyp2childs = paramTyp2.getTypeParameters();
-            List<WurstTypeBoundTypeParam> argTyp2childs = argTyp2.getTypeParameters();
-            for (int i = 0; i < paramTyp2childs.size() && i < argTyp2childs.size(); i++) {
-                inferTypeParameters(result, pos, argTyp2childs.get(i), paramTyp2childs.get(i), typeParams);
+            if (argType instanceof WurstTypeNamedScope) {
+                WurstTypeNamedScope argTyp2 = (WurstTypeNamedScope) argType;
+                List<WurstTypeBoundTypeParam> paramTyp2childs = paramTyp2.getTypeParameters();
+                List<WurstTypeBoundTypeParam> argTyp2childs = argTyp2.getTypeParameters();
+                for (int i = 0; i < paramTyp2childs.size() && i < argTyp2childs.size(); i++) {
+                    inferTypeParameters(result, pos, argTyp2childs.get(i), paramTyp2childs.get(i), typeParams);
+                }
             }
-
+        }
+        if (paramTyp instanceof WurstTypeClassOrInterface && argType instanceof WurstTypeClosure) {
+            WurstTypeClassOrInterface paramTyp2 = (WurstTypeClassOrInterface) paramTyp;
+            WurstTypeClosure argTyp2 = (WurstTypeClosure) argType;
+            FuncLink sa = paramTyp2.findSingleAbstractMethod(pos).withTypeArgBinding(pos, paramTyp2.getTypeArgBinding());
+            if (sa != null) {
+                for (int i = 0; i < sa.getParameterTypes().size() && i < argTyp2.getParamTypes().size(); i++) {
+                    inferTypeParameters(result, pos, argTyp2.getParamTypes().get(i), sa.getParameterTypes().get(i), typeParams);
+                }
+                inferTypeParameters(result, pos, argTyp2.getReturnType(), sa.getReturnType(), typeParams);
+            }
         }
     }
 

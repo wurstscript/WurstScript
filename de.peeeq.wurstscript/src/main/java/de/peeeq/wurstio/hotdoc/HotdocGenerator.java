@@ -123,8 +123,7 @@ public class HotdocGenerator {
         try {
             Files.write(render(t, context), new File(outputfolder + "/index.html"), Charsets.UTF_8);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
     }
@@ -143,8 +142,7 @@ public class HotdocGenerator {
         try {
             Files.write(render(t, context), new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8);
         } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
 
     }
@@ -213,11 +211,11 @@ public class HotdocGenerator {
                 first = false;
             }
             descr.append(")");
-            if (f.getReturnTyp().attrTyp().isVoid()) {
+            if (f.attrReturnTyp().isVoid()) {
 
             } else {
                 descr.append(" returns ");
-                descr.append(f.getReturnTyp().attrTyp());
+                descr.append(f.attrReturnTyp());
             }
 
             context.put("name", descr);

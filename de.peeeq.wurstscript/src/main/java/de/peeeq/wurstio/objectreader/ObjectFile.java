@@ -103,10 +103,14 @@ public class ObjectFile {
     public void exportToWurst(Appendable out, ObjectFileType fileType) throws IOException {
         out.append("package WurstExportedObjects_").append(fileType.getExt()).append("\n");
         out.append("import ObjEditingNatives\n\n");
-//		out.append("//origTable: \n\n");
-//		origTable.exportToWurst(out);
-        out.append("//modifiedTable: \n\n");
+
+        out.append("// Modified Table (contains all custom objects)\n\n");
         modifiedTable.exportToWurst(out);
+
+        out.append( "// Original Table (contains all modified default objects)\n" +
+                    "// Wurst does not support modifying default objects\n" +
+                    "// but you can copy these functions and replace 'xxxx' with a new, custom id.\n\n");
+        origTable.exportToWurst(out);
     }
 
 

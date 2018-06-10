@@ -92,6 +92,7 @@ type weapontype         extends     handle
 type soundtype          extends     handle
 type lightning          extends     handle
 type pathingtype        extends     handle
+type mousebuttontype    extends     handle
 type image              extends     handle
 type ubersplat          extends     handle
 type hashtable          extends     agent
@@ -140,6 +141,7 @@ constant native ConvertDamageType           takes integer i returns damagetype
 constant native ConvertWeaponType           takes integer i returns weapontype
 constant native ConvertSoundType            takes integer i returns soundtype
 constant native ConvertPathingType          takes integer i returns pathingtype
+constant native ConvertMouseButtonType      takes integer i returns mousebuttontype
 
 constant native OrderId                     takes string  orderIdString     returns integer
 constant native OrderId2String              takes integer orderId           returns string
@@ -153,6 +155,13 @@ constant native AbilityId2String            takes integer abilityId         retu
 // Looks up the "name" field for any object (unit, item, ability)
 constant native GetObjectName               takes integer objectId          returns string
 
+constant native GetBJMaxPlayers             takes nothing returns integer
+constant native GetBJPlayerNeutralVictim    takes nothing returns integer
+constant native GetBJPlayerNeutralExtra     takes nothing returns integer
+constant native GetBJMaxPlayerSlots         takes nothing returns integer
+constant native GetPlayerNeutralPassive     takes nothing returns integer
+constant native GetPlayerNeutralAggressive  takes nothing returns integer
+
 globals
 
 //===================================================
@@ -162,10 +171,10 @@ globals
     // pfff
     constant boolean            FALSE                           = false
     constant boolean            TRUE                            = true
-    constant integer            JASS_MAX_ARRAY_SIZE             = 8192
+    constant integer            JASS_MAX_ARRAY_SIZE             = 32768
 
-    constant integer            PLAYER_NEUTRAL_PASSIVE          = 15
-    constant integer            PLAYER_NEUTRAL_AGGRESSIVE       = 12
+    constant integer            PLAYER_NEUTRAL_PASSIVE          = GetPlayerNeutralPassive()
+    constant integer            PLAYER_NEUTRAL_AGGRESSIVE       = GetPlayerNeutralAggressive()
 
     constant playercolor        PLAYER_COLOR_RED                = ConvertPlayerColor(0)
     constant playercolor        PLAYER_COLOR_BLUE               = ConvertPlayerColor(1)
@@ -179,6 +188,18 @@ globals
     constant playercolor        PLAYER_COLOR_LIGHT_BLUE         = ConvertPlayerColor(9)
     constant playercolor        PLAYER_COLOR_AQUA               = ConvertPlayerColor(10)
     constant playercolor        PLAYER_COLOR_BROWN              = ConvertPlayerColor(11)
+    constant playercolor        PLAYER_COLOR_MAROON             = ConvertPlayerColor(12)
+    constant playercolor        PLAYER_COLOR_NAVY               = ConvertPlayerColor(13)
+    constant playercolor        PLAYER_COLOR_TURQUOISE          = ConvertPlayerColor(14)
+    constant playercolor        PLAYER_COLOR_VIOLET             = ConvertPlayerColor(15)
+    constant playercolor        PLAYER_COLOR_WHEAT              = ConvertPlayerColor(16)
+    constant playercolor        PLAYER_COLOR_PEACH              = ConvertPlayerColor(17)
+    constant playercolor        PLAYER_COLOR_MINT               = ConvertPlayerColor(18)
+    constant playercolor        PLAYER_COLOR_LAVENDER           = ConvertPlayerColor(19)
+    constant playercolor        PLAYER_COLOR_COAL               = ConvertPlayerColor(20)
+    constant playercolor        PLAYER_COLOR_SNOW               = ConvertPlayerColor(21)
+    constant playercolor        PLAYER_COLOR_EMERALD            = ConvertPlayerColor(22)
+    constant playercolor        PLAYER_COLOR_PEANUT             = ConvertPlayerColor(23)
 
     constant race               RACE_HUMAN                      = ConvertRace(1)
     constant race               RACE_ORC                        = ConvertRace(2)
@@ -270,6 +291,10 @@ globals
     constant pathingtype        PATHING_TYPE_BLIGHTPATHING      = ConvertPathingType(5)
     constant pathingtype        PATHING_TYPE_FLOATABILITY       = ConvertPathingType(6)
     constant pathingtype        PATHING_TYPE_AMPHIBIOUSPATHING  = ConvertPathingType(7)
+
+    constant mousebuttontype    MOUSE_BUTTON_TYPE_LEFT          = ConvertMouseButtonType(1)
+    constant mousebuttontype    MOUSE_BUTTON_TYPE_MIDDLE        = ConvertMouseButtonType(2)
+    constant mousebuttontype    MOUSE_BUTTON_TYPE_RIGHT         = ConvertMouseButtonType(3)
 
 //===================================================
 // Map Setup Constants    
@@ -633,34 +658,37 @@ globals
     constant playerevent        EVENT_PLAYER_ARROW_DOWN_UP              = ConvertPlayerEvent(266)
     constant playerevent        EVENT_PLAYER_ARROW_UP_DOWN              = ConvertPlayerEvent(267)
     constant playerevent        EVENT_PLAYER_ARROW_UP_UP                = ConvertPlayerEvent(268)
+    constant playerevent        EVENT_PLAYER_MOUSE_DOWN                 = ConvertPlayerEvent(269)
+    constant playerevent        EVENT_PLAYER_MOUSE_UP                   = ConvertPlayerEvent(270)
+    constant playerevent        EVENT_PLAYER_MOUSE_MOVE                 = ConvertPlayerEvent(271)
 
     //===================================================
     // For use with TriggerRegisterPlayerUnitEvent
     //===================================================
 
-    constant playerunitevent    EVENT_PLAYER_UNIT_SELL                  = ConvertPlayerUnitEvent(269)
-    constant playerunitevent    EVENT_PLAYER_UNIT_CHANGE_OWNER          = ConvertPlayerUnitEvent(270)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SELL_ITEM             = ConvertPlayerUnitEvent(271)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CHANNEL         = ConvertPlayerUnitEvent(272)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CAST            = ConvertPlayerUnitEvent(273)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_EFFECT          = ConvertPlayerUnitEvent(274)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_FINISH          = ConvertPlayerUnitEvent(275)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_ENDCAST         = ConvertPlayerUnitEvent(276)
-    constant playerunitevent    EVENT_PLAYER_UNIT_PAWN_ITEM             = ConvertPlayerUnitEvent(277)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SELL                  = ConvertPlayerUnitEvent(272)
+    constant playerunitevent    EVENT_PLAYER_UNIT_CHANGE_OWNER          = ConvertPlayerUnitEvent(273)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SELL_ITEM             = ConvertPlayerUnitEvent(274)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CHANNEL         = ConvertPlayerUnitEvent(275)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CAST            = ConvertPlayerUnitEvent(276)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_EFFECT          = ConvertPlayerUnitEvent(277)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_FINISH          = ConvertPlayerUnitEvent(278)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_ENDCAST         = ConvertPlayerUnitEvent(279)
+    constant playerunitevent    EVENT_PLAYER_UNIT_PAWN_ITEM             = ConvertPlayerUnitEvent(280)
 
     //===================================================
     // For use with TriggerRegisterUnitEvent
     //===================================================
 
-    constant unitevent          EVENT_UNIT_SELL                         = ConvertUnitEvent(286)
-    constant unitevent          EVENT_UNIT_CHANGE_OWNER                 = ConvertUnitEvent(287)
-    constant unitevent          EVENT_UNIT_SELL_ITEM                    = ConvertUnitEvent(288)
-    constant unitevent          EVENT_UNIT_SPELL_CHANNEL                = ConvertUnitEvent(289)
-    constant unitevent          EVENT_UNIT_SPELL_CAST                   = ConvertUnitEvent(290)
-    constant unitevent          EVENT_UNIT_SPELL_EFFECT                 = ConvertUnitEvent(291)
-    constant unitevent          EVENT_UNIT_SPELL_FINISH                 = ConvertUnitEvent(292)
-    constant unitevent          EVENT_UNIT_SPELL_ENDCAST                = ConvertUnitEvent(293)
-    constant unitevent          EVENT_UNIT_PAWN_ITEM                    = ConvertUnitEvent(294)
+    constant unitevent          EVENT_UNIT_SELL                         = ConvertUnitEvent(289)
+    constant unitevent          EVENT_UNIT_CHANGE_OWNER                 = ConvertUnitEvent(290)
+    constant unitevent          EVENT_UNIT_SELL_ITEM                    = ConvertUnitEvent(291)
+    constant unitevent          EVENT_UNIT_SPELL_CHANNEL                = ConvertUnitEvent(292)
+    constant unitevent          EVENT_UNIT_SPELL_CAST                   = ConvertUnitEvent(293)
+    constant unitevent          EVENT_UNIT_SPELL_EFFECT                 = ConvertUnitEvent(294)
+    constant unitevent          EVENT_UNIT_SPELL_FINISH                 = ConvertUnitEvent(295)
+    constant unitevent          EVENT_UNIT_SPELL_ENDCAST                = ConvertUnitEvent(296)
+    constant unitevent          EVENT_UNIT_PAWN_ITEM                    = ConvertUnitEvent(297)
 
     //===================================================
     // Limit Event API constants    
@@ -2415,3 +2443,99 @@ native PreloadGenClear  takes nothing returns nothing
 native PreloadGenStart  takes nothing returns nothing
 native PreloadGenEnd    takes string filename returns nothing
 native Preloader        takes string filename returns nothing
+
+// Automation Test
+native AutomationTestStart takes string testName returns nothing
+native AutomationTestEnd takes string testName returns nothing
+
+// JAPI Functions
+native BlzGetTriggerPlayerMouseX                   takes nothing returns real
+native BlzGetTriggerPlayerMouseY                   takes nothing returns real
+native BlzGetTriggerPlayerMousePosition            takes nothing returns location
+native BlzGetTriggerPlayerMouseButton              takes nothing returns mousebuttontype
+native BlzSetAbilityTooltip                        takes integer abilCode, string tooltip, integer level returns nothing
+native BlzSetAbilityActivatedTooltip               takes integer abilCode, string tooltip, integer level returns nothing
+native BlzSetAbilityExtendedTooltip                takes integer abilCode, string ExtendedTooltip, integer level returns nothing
+native BlzSetAbilityActivatedExtendedTooltip       takes integer abilCode, string ExtendedTooltip, integer level returns nothing
+native BlzSetAbilityResearchTooltip                takes integer abilCode, string researchTooltip, integer level returns nothing
+native BlzSetAbilityResearchExtendedTooltip        takes integer abilCode, string researchExtendedTooltip, integer level returns nothing
+native BlzGetAbilityTooltip                        takes integer abilCode, integer level returns string
+native BlzGetAbilityActivatedTooltip               takes integer abilCode, integer level returns string
+native BlzGetAbilityExtendedTooltip                takes integer abilCode, integer level returns string
+native BlzGetAbilityActivatedExtendedTooltip       takes integer abilCode, integer level returns string
+native BlzGetAbilityResearchTooltip                takes integer abilCode, integer level returns string
+native BlzGetAbilityResearchExtendedTooltip        takes integer abilCode, integer level returns string
+native BlzSetAbilityIcon                           takes integer abilCode, string iconPath returns nothing
+native BlzGetAbilityIcon                           takes integer abilCode returns string
+native BlzSetAbilityActivatedIcon                  takes integer abilCode, string iconPath returns nothing
+native BlzGetAbilityActivatedIcon                  takes integer abilCode returns string
+native BlzGetAbilityPosX                           takes integer abilCode returns integer
+native BlzGetAbilityPosY                           takes integer abilCode returns integer
+native BlzSetAbilityPosX                           takes integer abilCode, integer x returns nothing
+native BlzSetAbilityPosY                           takes integer abilCode, integer y returns nothing
+native BlzGetAbilityActivatedPosX                  takes integer abilCode returns integer
+native BlzGetAbilityActivatedPosY                  takes integer abilCode returns integer
+native BlzSetAbilityActivatedPosX                  takes integer abilCode, integer x returns nothing
+native BlzSetAbilityActivatedPosY                  takes integer abilCode, integer y returns nothing
+native BlzGetUnitMaxHP                             takes unit whichUnit returns integer
+native BlzSetUnitMaxHP                             takes unit whichUnit, integer hp returns nothing
+native BlzGetUnitMaxMana                           takes unit whichUnit returns integer
+native BlzSetUnitMaxMana                           takes unit whichUnit, integer mana returns nothing
+native BlzDeleteHeroAbility                        takes unit whichUnit, integer abilCode returns nothing
+native BlzSetItemName                              takes item whichItem, string name returns nothing
+native BlzSetItemDescription                       takes item whichItem, string name returns nothing
+native BlzGetItemDescription                       takes item whichItem returns string
+native BlzSetItemTooltip                           takes item whichItem, string name returns nothing
+native BlzGetItemTooltip                           takes item whichItem returns string
+native BlzSetItemExtendedTooltip                   takes item whichItem, string name returns nothing
+native BlzGetItemExtendedTooltip                   takes item whichItem returns string
+native BlzSetItemIconPath                          takes item whichItem, string name returns nothing
+native BlzGetItemIconPath                          takes item whichItem returns string
+native BlzSetUnitName                              takes unit whichUnit, string name returns nothing
+native BlzSetHeroProperName                        takes unit whichUnit, string name returns nothing
+native BlzGetUnitBaseDamage                        takes unit whichUnit, integer weaponIndex returns integer
+native BlzSetUnitBaseDamage                        takes unit whichUnit, integer baseDamage, integer weaponIndex returns nothing
+native BlzGetUnitDiceNumber                        takes unit whichUnit, integer weaponIndex returns integer
+native BlzSetUnitDiceNumber                        takes unit whichUnit, integer diceNumber, integer weaponIndex returns nothing
+native BlzGetUnitDiceSides                         takes unit whichUnit, integer weaponIndex returns integer
+native BlzSetUnitDiceSides                         takes unit whichUnit, integer diceSides, integer weaponIndex returns nothing
+native BlzGetUnitAttackCooldown                    takes unit whichUnit, integer weaponIndex returns real
+native BlzSetUnitAttackCooldown                    takes unit whichUnit, real cooldown, integer weaponIndex returns nothing
+native BlzSetSpecialEffectColorByPlayer            takes effect whichEffect, player whichPlayer returns nothing
+native BlzSetSpecialEffectColor                    takes effect whichEffect, integer r, integer g, integer b returns nothing
+native BlzSetSpecialEffectAlpha                    takes effect whichEffect, integer alpha returns nothing
+native BlzSetSpecialEffectScale                    takes effect whichEffect, real scale returns nothing
+native BlzSetSpecialEffectPosition                 takes effect whichEffect, real x, real y, real z returns nothing
+native BlzSetSpecialEffectHeight                   takes effect whichEffect, real height returns nothing
+native BlzSetSpecialEffectTimeScale                takes effect whichEffect, real timeScale returns nothing
+native BlzSetSpecialEffectTime                     takes effect whichEffect, real time returns nothing
+native BlzSetSpecialEffectOrientation              takes effect whichEffect, real yaw, real pitch, real roll returns nothing
+native BlzSetSpecialEffectYaw                      takes effect whichEffect, real yaw returns nothing
+native BlzSetSpecialEffectPitch                    takes effect whichEffect, real pitch returns nothing
+native BlzSetSpecialEffectRoll                     takes effect whichEffect, real roll returns nothing
+native BlzSetSpecialEffectX                        takes effect whichEffect, real x returns nothing
+native BlzSetSpecialEffectY                        takes effect whichEffect, real y returns nothing
+native BlzSetSpecialEffectZ                        takes effect whichEffect, real z returns nothing
+native BlzSetSpecialEffectPositionLoc              takes effect whichEffect, location loc returns nothing
+native BlzGetLocalSpecialEffectX                   takes effect whichEffect returns real
+native BlzGetLocalSpecialEffectY                   takes effect whichEffect returns real
+native BlzGetLocalSpecialEffectZ                   takes effect whichEffect returns real
+native BlzGetUnitArmor                             takes unit whichUnit returns real
+native BlzSetUnitArmor                             takes unit whichUnit, real armorAmount returns nothing
+native BlzUnitHideAbility                          takes unit whichUnit, integer abilId, boolean flag returns nothing
+native BlzUnitDisableAbility                       takes unit whichUnit, integer abilId, boolean flag, boolean hideUI returns nothing
+native BlzUnitCancelTimedLife                      takes unit whichUnit returns nothing
+native BlzIsUnitSelectable                         takes unit whichUnit returns boolean
+native BlzIsUnitInvulnerable                       takes unit whichUnit returns boolean
+native BlzUnitInterruptAttack                      takes unit whichUnit returns nothing
+native BlzGetUnitCollisionSize                     takes unit whichUnit returns real
+native BlzGetAbilityManaCost                       takes integer abilId, integer level returns integer
+native BlzGetAbilityCooldown                       takes integer abilId, integer level returns real
+native BlzSetUnitAbilityCooldown                   takes unit whichUnit, integer abilId, integer level, real cooldown returns nothing
+native BlzGetUnitAbilityCooldown                   takes unit whichUnit, integer abilId, integer level returns real
+native BlzGetUnitAbilityCooldownRemaining          takes unit whichUnit, integer abilId returns real
+native BlzEndUnitAbilityCooldown                   takes unit whichUnit, integer abilCode returns nothing
+native BlzGetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level returns integer
+native BlzGetLocalUnitZ                            takes unit whichUnit returns real    
+native BlzDecPlayerTechResearched                  takes player whichPlayer, integer techid, integer levels returns nothing
+native BlzSetEventDamage                           takes real damage returns nothing

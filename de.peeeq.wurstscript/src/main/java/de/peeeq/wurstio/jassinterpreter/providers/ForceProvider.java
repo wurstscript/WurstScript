@@ -1,14 +1,16 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
 import de.peeeq.wurstscript.WLogger;
+import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.LinkedHashSet;
 
 public class ForceProvider extends Provider {
-    public ForceProvider(ILInterpreter interpreter) {
+    public ForceProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 
@@ -31,6 +33,11 @@ public class ForceProvider extends Provider {
         forceList.clear();
     }
 
+    public ILconstBool IsPlayerInForce(IlConstHandle player, IlConstHandle force) {
+        LinkedHashSet<IlConstHandle> forceList = (LinkedHashSet<IlConstHandle>) force.getObj();
+        return ILconstBool.instance(forceList.contains(player));
+    }
+
     public void DestroyForce(IlConstHandle force) {
         ForceClear(force);
     }
@@ -39,6 +46,6 @@ public class ForceProvider extends Provider {
         // TODO take force param into account
         // For now this simply executes the supplied function.
         WLogger.trace("for force call");
-        interpreter.runVoidFunc(funcRef.getFunc(), null);
+        interpreter.runFuncRef(funcRef, null);
     }
 }

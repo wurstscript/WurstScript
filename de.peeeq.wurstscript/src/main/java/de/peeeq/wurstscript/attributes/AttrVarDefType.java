@@ -2,9 +2,13 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -21,7 +25,36 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(WParameter node) {
+        if (node.attrIsVararg()) {
+            return new WurstTypeVararg(node.getTyp().attrTyp().dynamic());
+        }
         return node.getTyp().attrTyp().dynamic();
+    }
+
+    public static WurstType calculate(WShortParameter p) {
+        if (p.getTypOpt() instanceof TypeExpr) {
+            return p.getTypOpt().attrTyp().dynamic();
+        }
+        // if the type of the lambda parameter is not specified,
+        // we have to look up the expected type of the lambda
+        ExprClosure parentClosure = (ExprClosure) p.getParent().getParent();
+        int paramIndex = parentClosure.getShortParameters().indexOf(p);
+//        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
+//        return WurstTypeInfer.instance();
+        WurstType expectedTyp = parentClosure.attrExpectedTyp();
+        FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
+        if (sig == null) {
+            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+                    "The target type could not be uniquely determined for expected type " + expectedTyp + ".");
+            return WurstTypeInfer.instance();
+        }
+
+        if (sig.getParamTypes().size() <= paramIndex) {
+            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+                    "Closure type " + expectedTyp + " does not take so many parameters.");
+            return WurstTypeInfer.instance();
+        }
+        return sig.getParamTypes().get(paramIndex);
     }
 
     public static WurstType calculate(ClassDef c) {
@@ -66,6 +99,17 @@ public class AttrVarDefType {
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
                 return new WurstTypeArray(valueType);
+            } else if (v.getParent() instanceof StmtForEach) {
+                StmtForEach forEach = (StmtForEach) v.getParent();
+                @Nullable NameDef nameDef = forEach.getIn().tryGetNameDef();
+                if (nameDef instanceof WParameter && nameDef.attrTyp() instanceof WurstTypeVararg) {
+                    return ((WurstTypeVararg) nameDef.attrTyp()).getBaseType();
+                }
+                Optional<FuncLink> nameLink = forEach.attrGetNextFunc();
+                if (nameLink.isPresent()) {
+                    return nameLink.get().getReturnType().normalize();
+                }
+                return WurstTypeUnknown.instance();
             } else {
                 v.addError("Could not infer the type of variable '" + v.getName() + "' because it does not have an initial expression.\n"
                         + "Fix this error by providing a type (e.g. 'int " + v.getName() + "' or 'string " + v.getName() + "').");
@@ -88,7 +132,7 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(FunctionDefinition f) {
-        return f.getReturnTyp().attrTyp();
+        return f.attrReturnTyp();
     }
 
     public static WurstType calculate(TypeParamDef t) {

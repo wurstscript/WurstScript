@@ -113,16 +113,41 @@ public class JurstTests extends WurstScriptTest {
         testJurstWithJass(true, false, jassCode, jurstCode);
     }
 
+    @Test
+    public void logicalOperatorPrecedence() { // #641
+        String jassCode = Utils.string(
+                "function foo takes nothing returns boolean",
+                "	return true or false and false",
+                "endfunction");
+
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if not foo()",
+                "			testSuccess()",
+                "		end",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
         Map<String, String> inputs = ImmutableMap.of(
                 "example.j", jass,
                 "test.jurst", jurst
         );
-        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false);
+        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false, false);
     }
 
     private void testJurst(boolean executeProg, boolean withStdLib, String jurst) {
-        testScript("test.jurst", jurst, "JurstTest", executeProg, withStdLib);
+        test().executeProg(executeProg)
+                .executeProgOnlyAfterTransforms()
+                .withStdLib(withStdLib)
+                .withCu(compilationUnit("test.jurst", jurst))
+                .run();
     }
 
 }

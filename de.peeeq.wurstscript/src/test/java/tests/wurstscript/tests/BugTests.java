@@ -680,6 +680,21 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
+    public void underscore_end() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "var y_ = 1",
+                "function foo_(int x_) returns int",
+                "    return x_ + y_",
+                "init",
+                "    int i_ = 2",
+                "    if foo_(i_) == 3",
+                "       testSuccess()");
+
+    }
+
+    @Test
     public void extensionFunc_noreturn() { // see #280
         testAssertErrorsLines(false, "missing a body",
                 "package test",
@@ -910,5 +925,23 @@ public class BugTests extends WurstScriptTest {
         );
 
     }
+
+    @Test
+    public void testCyclicDependencyError() {
+        testAssertErrorsLines(true, "type may not depend on each other",
+                "package Test",
+                "native testSuccess()",
+                "function foo() returns bool",
+                "    var x = 0",
+                "    for x in x",
+                "        sum += i",
+                "    return true",
+                "init",
+                "    if foo()",
+                "        testSuccess()"
+        );
+    }
+
+
 
 }

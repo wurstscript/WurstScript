@@ -41,4 +41,7 @@ public class AttrIsClassMember {
         return false;
     }
 
+    public static boolean calculate(WShortParameter wShortParameter) {
+        return false;
+    }
 }

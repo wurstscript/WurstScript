@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -119,13 +120,14 @@ public class ImToJassTranslator {
     }
 
     private void translateFunction(ImFunction imFunc) {
-        if (imFunc.isBj()) {
+        if (imFunc.isBj() || imFunc.hasFlag(FunctionFlagEnum.IS_VARARG)) {
             return;
         }
         // not a native
         JassFunctionOrNative f = getJassFuncFor(imFunc);
 
         f.setReturnType(imFunc.getReturnType().translateType());
+
         // translate parameters
         for (ImVar v : imFunc.getParameters()) {
             f.getParams().add((JassSimpleVar) getJassVarFor(v));
@@ -143,10 +145,7 @@ public class ImToJassTranslator {
 
 
     private String getUniqueGlobalName(String name) { // TODO find local names
-
-        if (restrictedNames.contains(name) || name.startsWith("_")) {
-            name = "w" + name;
-        }
+        name = jassifyName(name);
 
         if (!usedNames.contains(name)) {
             // name not used yet
@@ -165,6 +164,7 @@ public class ImToJassTranslator {
     }
 
     private String getUniqueLocalName(ImFunction imFunction, String name) {
+        name = jassifyName(name);
         if (!usedNames.contains(name) && !usedLocalNames.containsEntry(imFunction, name)) {
             usedLocalNames.put(imFunction, name);
             return name;
@@ -188,7 +188,7 @@ public class ImToJassTranslator {
         if (result == null) {
             boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
             String type = v.getType().translateType();
-            String name = jassifyName(v.getName());
+            String name = v.getName();
             if (v.getNearestFunc() != null) {
                 name = getUniqueLocalName(v.getNearestFunc(), name);
             } else {
@@ -199,12 +199,12 @@ public class ImToJassTranslator {
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
                     JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
-                    result = JassAst.JassInitializedVar(type, name, initialVal);
+                    result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
                 }
             }
-            if (isGlobal(v) && !v.getIsBJ()) {
+            if (isGlobal(v) && (!v.getIsBJ() || result instanceof JassInitializedVar)) {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);
@@ -213,8 +213,8 @@ public class ImToJassTranslator {
     }
 
     private String jassifyName(String name) {
-        while (name.startsWith("_")) {
-            name = name.substring(1);
+        if (restrictedNames.contains(name) || name.startsWith("_")) {
+            name = "w" + name;
         }
         if (name.endsWith("_")) {
             name = name + "u";
@@ -242,7 +242,8 @@ public class ImToJassTranslator {
                 }
             } else {
                 String name = getUniqueGlobalName(func.getName());
-                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements());
+                boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
+                f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
                 if (!func.isBj() && !func.isExtern()) {
                     prog.getFunctions().add((JassFunction) f);
                 }

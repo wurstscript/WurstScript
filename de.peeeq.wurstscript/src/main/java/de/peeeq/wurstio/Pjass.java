@@ -61,7 +61,7 @@ public class Pjass {
                 }
                 lineOffsets.set(line + 1, cont.length() - 1);
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
 
             List<CompileError> result = Lists.newArrayList();

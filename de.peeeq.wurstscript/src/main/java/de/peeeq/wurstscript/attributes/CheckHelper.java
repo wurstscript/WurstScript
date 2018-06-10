@@ -27,8 +27,8 @@ public class CheckHelper {
             return Optional.of("Function " + funcName + " must be static.");
         }
         // check returntype
-        WurstType f_type = getRealType(f, typeParamMapping, f.getReturnTyp().attrTyp());
-        WurstType of_type = getRealType(f, typeParamMapping, of.getReturnTyp().attrTyp());
+        WurstType f_type = getRealType(f, typeParamMapping, f.attrReturnTyp());
+        WurstType of_type = getRealType(f, typeParamMapping, of.attrReturnTyp());
         if (!f_type.isSubtypeOf(of_type, f)) {
             return Optional.of(errorMessage + funcName + ": The return type is " + f_type +
                     " but it should be " + of_type + ".");
@@ -61,4 +61,7 @@ public class CheckHelper {
     }
 
 
+    public static boolean isRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of) {
+        return !checkIfIsRefinement(typeParamMapping, f, of, "").isPresent();
+    }
 }

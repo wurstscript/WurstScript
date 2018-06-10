@@ -9,7 +9,9 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -110,7 +112,8 @@ public class ImTranslator {
         try {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
-            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg", false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg",
+                    false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             calculateCompiletimeOrder();
 
@@ -135,7 +138,8 @@ public class ImTranslator {
             throw t;
         } catch (Throwable t) {
             WLogger.severe(t);
-            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t.getMessage() +
+            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t
+                    .getMessage() +
                     "\nPlease open a ticket with source code and the error log.", t);
         }
     }
@@ -247,7 +251,8 @@ public class ImTranslator {
             if (f.isNative() && natives.containsKey(f.getName())) {
                 ImFunction existing = natives.get(f.getName());
                 if (!compatibleTypes(f, existing)) {
-                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " + existing.attrTrace().attrErrorPos());
+                    throw new CompileError(f.attrTrace().attrErrorPos(), "Native function definition conflicts with other native function defined in " +
+                            existing.attrTrace().attrErrorPos());
                 }
                 // remove duplicate
                 it.remove();
@@ -334,11 +339,11 @@ public class ImTranslator {
 
 
     private ImFunction getNativeFunc(String funcName) {
-        ImmutableCollection<NameLink> wurstFunc = wurstProg.lookupFuncs(funcName);
+        ImmutableCollection<FuncLink> wurstFunc = wurstProg.lookupFuncs(funcName);
         if (wurstFunc.isEmpty()) {
             return null;
         }
-        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getNameDef());
+        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef());
     }
 
     private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
@@ -523,7 +528,8 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(StructureDef classDef) {
             ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
-            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+            ImFunction f = JassIm.ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), params, TypesHelper.imVoid(), ImVars(), ImStmts(),
+                    flags());
             addFunction(f);
             return f;
         }
@@ -554,7 +560,8 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(ImClass c) {
-            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(),
+            return JassIm.ImFunction(c.getTrace(), "dealloc_" + c.getName(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)),
+                    TypesHelper.imVoid(),
                     JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
         }
 
@@ -593,6 +600,15 @@ public class ImTranslator {
             }
         }
 
+        // Check if last parameter is vararg
+        if (funcDef instanceof AstElementWithParameters) {
+            WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+            if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
+                flags.add(IS_VARARG);
+            }
+        }
+
+
         if (funcDef instanceof HasModifier) {
             HasModifier awm = (HasModifier) funcDef;
             for (Modifier m : awm.getModifiers()) {
@@ -605,6 +621,7 @@ public class ImTranslator {
 
         ImFunction f = JassIm.ImFunction(funcDef, name, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
+
         addFunction(f);
         functionMap.put(funcDef, f);
         return f;
@@ -634,7 +651,7 @@ public class ImTranslator {
 
     public ImFunction getInitFuncFor(WPackage p) {
         // TODO more precise trace
-        return  initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
+        return initFuncMap.computeIfAbsent(p, p1 -> JassIm.ImFunction(p1, "init_" + p1.getName(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
     }
 
     /**
@@ -865,22 +882,23 @@ public class ImTranslator {
         }
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
-            NameLink funcNameLink = null;
+            FuncLink funcNameLink = null;
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                if (nameLink.getNameDef() == func) {
-                    funcNameLink = nameLink;
+                if (nameLink.getDef() == func) {
+                    funcNameLink = (FuncLink) nameLink;
                 }
             }
             if (funcNameLink == null) {
                 throw new Error("must not happen");
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                NameDef nameDef = nameLink.getNameDef();
+                NameDef nameDef = nameLink.getDef();
                 if (nameLink.getDefinedIn() == c) {
-                    if (nameDef instanceof FuncDef) {
-                        FuncDef f = (FuncDef) nameDef;
+                    if (nameLink instanceof FuncLink && nameLink.getDef() instanceof FuncDef) {
+                        FuncLink funcLink = (FuncLink) nameLink;
+                        FuncDef f = (FuncDef) funcLink.getDef();
                         // check if function f overrides func
-                        if (WurstValidator.canOverride(nameLink, funcNameLink)) {
+                        if (WurstValidator.canOverride(funcLink, funcNameLink)) {
                             result.put(c, f);
                         }
                     }
@@ -1339,13 +1357,13 @@ public class ImTranslator {
         if (p == null) {
             return Optional.empty();
         }
-        ImmutableCollection<NameLink> funcs = p.getElements().lookupFuncs("error");
+        ImmutableCollection<FuncLink> funcs = p.getElements().lookupFuncs("error");
         if (funcs.isEmpty()) {
             return Optional.empty();
         } else if (funcs.size() > 1) {
             return Optional.empty();
         }
-        FuncDef f = (FuncDef) funcs.stream().findAny().get().getNameDef();
+        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef();
         return Optional.of(f);
     }
 

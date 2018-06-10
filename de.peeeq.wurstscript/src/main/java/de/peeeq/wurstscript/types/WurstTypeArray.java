@@ -2,6 +2,10 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.attributes.AttrConstantValue;
+import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -10,21 +14,49 @@ import java.util.List;
 
 public class WurstTypeArray extends WurstType {
 
+    private Expr arSize;
     private WurstType baseType;
     private int[] sizes;
 
-    public WurstTypeArray(WurstType baseType, int[] sizes) {
+
+    public WurstTypeArray(WurstType baseType, Expr arSize) {
         if (baseType instanceof WurstTypeArray) {
             throw new Error("cannot have array of arrays...");
         }
         this.baseType = baseType;
-        this.sizes = Utils.copyArray(sizes);
+        this.arSize = arSize;
     }
 
-
     public WurstTypeArray(WurstType baseType) {
+        if (baseType instanceof WurstTypeArray) {
+            throw new Error("cannot have array of arrays...");
+        }
         this.baseType = baseType;
         this.sizes = new int[1];
+    }
+
+    private void initSizes() {
+        if (sizes != null) {
+            return;
+        }
+        // default is to have no array sizes:
+        int[] sizes = {};
+        // when there is an array size given, try to evaluate it:
+        try {
+            ILconst i = arSize.attrConstantValue();
+            if (i instanceof ILconstInt) {
+                int val = ((ILconstInt) i).getVal();
+                sizes = new int[]{val};
+                if (val <= 0) {
+                    arSize.addError("Array size must be at least 1");
+                }
+            } else {
+                arSize.addError("Array sizes should be integer...");
+            }
+        } catch (AttrConstantValue.ConstantValueCalculationException e) {
+            arSize.addError("Array size is not a constant expression.");
+        }
+        this.sizes = sizes;
     }
 
 
@@ -34,6 +66,7 @@ public class WurstTypeArray extends WurstType {
 
 
     public int getDimensions() {
+        initSizes();
         return sizes.length;
     }
 
@@ -60,12 +93,14 @@ public class WurstTypeArray extends WurstType {
 
 
     public int getSize(int i) {
+        initSizes();
         return sizes[i];
     }
 
 
     @Override
     public ImType imTranslateType() {
+        initSizes();
         ImType bt = baseType.imTranslateType();
 
         if (bt instanceof ImSimpleType) {

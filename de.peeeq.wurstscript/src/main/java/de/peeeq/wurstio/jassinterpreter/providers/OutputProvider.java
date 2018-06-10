@@ -5,6 +5,7 @@ import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
+import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -14,7 +15,7 @@ import java.io.PrintStream;
 public class OutputProvider extends Provider {
     protected PrintStream outStream = System.err;
 
-    public OutputProvider(ILInterpreter interpreter) {
+    public OutputProvider(AbstractInterpreter interpreter) {
         super(interpreter);
     }
 

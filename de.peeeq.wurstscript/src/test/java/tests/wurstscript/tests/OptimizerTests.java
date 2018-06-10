@@ -9,15 +9,14 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static org.testng.AssertJUnit.assertFalse;
-import static org.testng.AssertJUnit.assertTrue;
+import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
 
     @Test
     public void test_number_shortening() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	function foo() returns int",
                 "		return 800000",
@@ -26,7 +25,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_number_shortening2() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	function foo() returns real",
                 "		if 1.0 > 0.1",
@@ -39,7 +38,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_double_renaming_bug() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	int testVar = 0",
                 "	function w() returns int",
@@ -55,7 +54,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_remove_useless() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	int testVar1 = 1",
                 "	real testVar2 = 1.1",
@@ -68,7 +67,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_inline_globals() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	int testVar1 = 1",
                 "	real testVar2 = 1.1",
@@ -85,7 +84,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_nullsetter1() {
-        assertOk(true,
+        test().executeProg().lines(
                 "type player extends handle",
                 "package test",
                 "	@extern native Player(integer id) returns player",
@@ -101,7 +100,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_nullsetter2() {
-        assertOk(true,
+        test().executeProg().lines(
                 "type player extends handle",
                 "package test",
                 "	@extern native Player(integer id) returns player",
@@ -118,7 +117,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_nullsetter3() {
-        assertOk(true,
+        test().executeProg().lines(
                 "type player extends handle",
                 "package test",
                 "	@extern native Player(integer id) returns player",
@@ -135,7 +134,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_nullsetter4() {
-        assertOk(true,
+        test().executeProg().lines(
                 "type player extends handle",
                 "package test",
                 "	@extern native Player(integer id) returns player",
@@ -158,7 +157,7 @@ public class OptimizerTests extends WurstScriptTest {
 //	(04:49:36 PM) Frotty: wird nicht entfernt
     @Test
     public void test_varRemoval() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	constant i = 5",
                 "endpackage");
@@ -170,8 +169,7 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     public void assertOk(boolean executeProg, String... body) {
-        String prog = makeCode(body);
-        testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
+        test().executeProg().lines(body);
     }
 
     public void assertError(boolean executeProg, String expected, String... body) {
@@ -181,7 +179,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifTrue() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -196,7 +194,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifFalse() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -211,7 +209,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifDoubleOr1() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -226,7 +224,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifDoubleOr2() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -241,7 +239,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifDoubleAnd1() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -256,7 +254,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifDoubleAnd2() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -271,7 +269,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifMulti() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -287,7 +285,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifInt1() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -301,7 +299,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifInt2() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -315,7 +313,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifInt3() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -330,7 +328,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifInt4() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -343,7 +341,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ifEmpty() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -363,7 +361,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_exitwhen() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -375,7 +373,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ConstFolding() {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	init",
                 "		int i = 3 + 7 * 2 * 33",
@@ -384,7 +382,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_ConstFoldingCombined() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -397,7 +395,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_tempVarRemover() throws IOException {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	@extern native I2S(int i) returns string",
                 "	native println(string s)",
@@ -416,7 +414,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_tempVarRemover2() throws IOException {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	@extern native I2S(int i) returns string",
                 "	native println(string s)",
@@ -431,7 +429,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_localVarMerger() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -461,7 +459,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_localVarMerger2() {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	native testSuccess()",
                 "	native testFail(string s)",
@@ -478,7 +476,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_unused_func_remover() throws IOException {
-        assertOk(true,
+        test().executeProg().lines(
                 "package test",
                 "	@extern native I2S(int i) returns string",
                 "	native testSuccess()",
@@ -492,7 +490,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_unused_func_remover2() throws IOException {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	@extern native I2S(int i) returns string",
                 "	init",
@@ -504,7 +502,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_unreachableCodeRemover() throws IOException {
-        assertOk(false,
+        test().lines(
                 "package test",
                 "	import MagicFunctions",
                 "	native testSuccess()",
@@ -519,8 +517,157 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse("testSuccess should be removed", compiledAndOptimized.contains("testSuccess"));
     }
 
-	/*	let blablub = AddSpecialEffect("Abilities\\Spells\\Undead\\DeathCoil\\DeathCoilSpecialArt.mdl", 1,2)
-	DestroyEffect(blablub)
-		*/
+    @Test
+    public void controlFlowMergeNoSideEffect() throws IOException {
+        test().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeNoSideEffect_opt.j"), Charsets.UTF_8);
+        assertEquals(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void test_controlFlowMergeSideEffect() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
+    public void controlFlowMergeSideEffect() throws IOException {
+        test().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function nonInlinable(int x) returns bool",
+                "	ghs += 6",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if nonInlinable(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void controlFlowMergeSideEffect2() throws IOException {
+        test().withStdLib().lines(
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "var ghs = 12",
+                "function someSideEffectFunc(int x) returns bool",
+                "	if x < 3",
+                "		BJDebugMsg(\"test\")",
+                "	if x > 6",
+                "		return true",
+                "	else",
+                "		return false",
+                "init",
+                "	var x = 6",
+                "	if someSideEffectFunc(x)",
+                "		ghs = 0",
+                "		testFail(\"bad\")",
+                "	else",
+                "		ghs = 0",
+                "		if ghs == 0",
+                "			testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect2_opt.j"), Charsets.UTF_8);
+        assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
+    }
+
+    @Test
+    public void optimizeSet() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var ghs = 12",
+                "init",
+                "	var x = 6 + 3",
+                "	ghs += 2",
+                "	ghs -= 2",
+                "	if ghs == 12 and x == 9",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void optimizeSet2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	var Test_x = x - 100",
+                "	Test_x += 1",
+                "	x += 1",
+                "	if x == 101 and Test_x == 1",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void optimizeExitwhen() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "var x = 100",
+                "init",
+                "	while x > 0",
+                "		if x == 50",
+                "			break",
+                "		if x == 101",
+                "			break",
+                "		x--",
+                "	testSuccess()"
+        );
+    }
 
 }

@@ -144,6 +144,12 @@ public abstract class MapRequest extends UserRequest<Object> {
                 ctr.run();
             }
 
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui.getErrorList().get(0));
+            }
+
+
+
             if (runArgs.isInjectObjects()) {
                 Preconditions.checkNotNull(mpqEditor);
                 // add the imports
@@ -168,9 +174,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
             return outFile;
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**

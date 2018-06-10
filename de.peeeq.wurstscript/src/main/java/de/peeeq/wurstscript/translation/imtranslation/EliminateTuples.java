@@ -756,4 +756,8 @@ public class EliminateTuples {
     public static ImExpr eliminateTuplesExpr(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
         return eliminateTuples2(e, translator, f);
     }
+
+    public static ImStmt eliminateTuples(ImVarargLoop imVarargLoop, ImTranslator translator, ImFunction f) {
+        return imVarargLoop;
+    }
 }

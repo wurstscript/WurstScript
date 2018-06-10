@@ -104,15 +104,14 @@ public class BuildMap extends MapRequest {
             applyProjectConfig(projectConfig, targetMap);
             gui.sendProgress("Done.");
         } catch (CompileError e) {
-            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
+            WLogger.info(e);
+            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map:\n" + e);
         } catch (RuntimeException e) {
             throw e;
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
-            if (gui.getErrorCount() == 0) {
-                gui.sendFinished();
-            }
+            gui.sendFinished();
         }
         return "ok"; // TODO
     }
@@ -134,14 +133,14 @@ public class BuildMap extends MapRequest {
                 mpq.insertFile("war3map.w3i", java.nio.file.Files.readAllBytes(w3iFile.toPath()));
                 w3iFile.delete();
             } catch (Exception e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
         }
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
             mpq.setKeepHeaderOffset(false);
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         MAP_NAME_MAGIC_START.rewind();
         MAP_NAME_MAGIC_END.rewind();

@@ -73,7 +73,7 @@ public class AttrExprExpectedType {
                 StmtReturn stmtReturn = (StmtReturn) parent;
                 FunctionImplementation nearestFuncDef = stmtReturn.attrNearestFuncDef();
                 if (nearestFuncDef != null) {
-                    return nearestFuncDef.getReturnTyp().attrTyp();
+                    return nearestFuncDef.attrReturnTyp();
                 }
             } else if (parent instanceof SwitchCase) {
                 SwitchCase sc = (SwitchCase) parent;
@@ -133,7 +133,9 @@ public class AttrExprExpectedType {
         WurstType res = WurstTypeUnknown.instance();
 
         for (FunctionSignature sig : sigs) {
-            if (index < sig.getParamTypes().size()) {
+            if (index >= sig.getParamTypes().size() - 1 &&  sig.isVararg()) {
+                res = res.typeUnion(sig.getVarargType(), expr);
+            } else if (index < sig.getParamTypes().size()) {
                 res = res.typeUnion(sig.getParamTypes().get(index), expr);
             }
         }

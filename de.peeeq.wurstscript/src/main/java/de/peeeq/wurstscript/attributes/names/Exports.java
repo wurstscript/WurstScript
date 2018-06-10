@@ -15,8 +15,8 @@ public class Exports {
     /**
      * calculates all the namelinks exported by package p
      */
-    public static ImmutableMultimap<String, NameLink> exportedNameLinks(WPackage p) {
-        Builder<String, NameLink> result = ImmutableMultimap.builder();
+    public static ImmutableMultimap<String, DefLink> exportedNameLinks(WPackage p) {
+        Builder<String, DefLink> result = ImmutableMultimap.builder();
         addExportedNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
         return result.build();
     }
@@ -25,7 +25,7 @@ public class Exports {
     /**
      * recursively adds all exported namelinks from package p to the result map
      */
-    private static void addExportedNameLinks(Builder<String, NameLink> result, WPackage p, Set<WPackage> alreadyImported) {
+    private static void addExportedNameLinks(Builder<String, DefLink> result, WPackage p, Set<WPackage> alreadyImported) {
         if (alreadyImported.contains(p)) {
             return;
         }
@@ -47,21 +47,21 @@ public class Exports {
 
     }
 
-    public static ImmutableMultimap<String, NameLink> exportedTypeNameLinks(WPackage p) {
-        Builder<String, NameLink> result = ImmutableMultimap.builder();
+    public static ImmutableMultimap<String, TypeLink> exportedTypeNameLinks(WPackage p) {
+        Builder<String, TypeLink> result = ImmutableMultimap.builder();
         addExportedTypeNameLinks(result, p, Sets.<WPackage>newLinkedHashSet());
         return result.build();
     }
 
 
-    private static void addExportedTypeNameLinks(Builder<String, NameLink> result, WPackage p, Set<WPackage> alreadyImported) {
+    private static void addExportedTypeNameLinks(Builder<String, TypeLink> result, WPackage p, Set<WPackage> alreadyImported) {
         if (alreadyImported.contains(p)) {
             return;
         }
         alreadyImported.add(p);
 
         // add elements:
-        NameLinks.addHidingPrivateAndProtected(result, p.getElements().attrTypeNameLinks());
+        NameLinks.addTypesHidingPrivateAndProtected(result, p.getElements().attrTypeNameLinks());
         // import public imports
         for (WImport imp2 : p.getImports()) {
             if (imp2.getIsPublic()) {
