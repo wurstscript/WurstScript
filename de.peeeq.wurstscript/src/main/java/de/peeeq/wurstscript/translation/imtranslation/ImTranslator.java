@@ -331,13 +331,15 @@ public class ImTranslator {
         getMainFunc().getLocals().add(initTrigVar);
 
         // initTrigVar = CreateTrigger()
-        getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
-                JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
+        ImFunction createTrigger = getNativeFunc("CreateTrigger");
+        if (createTrigger != null) {
+            getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
+                    JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
+        }
 
         for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
             callInitFunc(calledInitializers, p, initTrigVar);
         }
-
     }
 
 
