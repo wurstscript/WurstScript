@@ -27,7 +27,25 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         this.classDef = classDef;
     }
 
+    @Override
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        if (superMapping != null) {
+            return superMapping;
+        }
+        // check module instantiations:
+        if (obj instanceof WurstTypeModuleInstanciation) {
+            WurstTypeModuleInstanciation mi = (WurstTypeModuleInstanciation) obj;
+            @Nullable ClassDef nearestClass = mi.getDef().attrNearestClassDef();
+            if (nearestClass == this.classDef) {
+                // TODO adjust mapping?
+                return mapping;
+            }
+        }
+        return null;
 
+
+    }
 
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {
         return classDef.getImplementsList().stream()

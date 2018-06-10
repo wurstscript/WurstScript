@@ -251,7 +251,7 @@ public class ModuleTests extends WurstScriptTest {
 
     @Test
     public void staticmeth_external() {
-        testAssertErrorsLines(false, "method b is undefined",
+        testAssertErrorsLines(false, "Could not find function b",
                 "package test",
                 "    module A",
                 "        static function b(int b)",

@@ -2041,7 +2041,7 @@ public class WurstValidator {
                 for (DefLink superDef : superNameLinks.get(func.getName())) {
                     if (superDef instanceof FuncLink && superDef.getVisibility().inherited()) {
                         FuncLink superFunc = (FuncLink) superDef;
-                        String error = checkOverride(func, superFunc);
+                        String error = checkOverride(func, superFunc, false);
                         if (error == null) {
                             overridesMap.put(func, superFunc);
                         } else {
@@ -2059,7 +2059,7 @@ public class WurstValidator {
      * checks if func1 can override func2
      */
     public static boolean canOverride(FuncLink func1, FuncLink func2) {
-        return checkOverride(func1, func2) == null;
+        return checkOverride(func1, func2, false) == null;
     }
 
     /**
@@ -2067,12 +2067,20 @@ public class WurstValidator {
      * <p>
      * Returns null if yes and an error message if not.
      */
-    public static String checkOverride(FuncLink func1, FuncLink func2) {
-        if (func1.isStatic()) {
-            return "Static method " + func1.getName() + " cannot override other methods.";
-        }
-        if (func2.isStatic()) {
-            return "Static method " + Utils.printElementWithSource(func2.getDef()) + " cannot be overridden.";
+    public static String checkOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+        if (!allowStaticOverride) {
+            if (func1.isStatic()) {
+                return "Static method " + func1.getName() + " cannot override other methods.";
+            }
+            if (func2.isStatic()) {
+                return "Static " + Utils.printElementWithSource(func2.getDef()) + " cannot be overridden.";
+            }
+        } else {
+            if (func1.isStatic() && !func2.isStatic()) {
+                return "Static method " + func1.getName() + " cannot override dynamic "+ Utils.printElementWithSource(func2.getDef()) + ".";
+            } else if (!func1.isStatic() && func2.isStatic()) {
+                return "Method " + func1.getName() + " cannot override static "+ Utils.printElementWithSource(func2.getDef()) + ".";
+            }
         }
         if (func1.isVarargMethod()) {
             return "Vararg method " + func1.getName() + " cannot override other methods.";
