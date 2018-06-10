@@ -39,7 +39,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;
-            FuncLink decl = funcRef.attrFuncDef();
+            FuncLink decl = funcRef.attrFuncLink();
             return linkTo(decl.getDef());
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
@@ -66,7 +66,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
             return linkTo(def);
         } else if (e instanceof ExprBinary) {
             ExprBinary eb = (ExprBinary) e;
-            FuncLink def = eb.attrFuncDef();
+            FuncLink def = eb.attrFuncLink();
             if (def != null) {
                 return linkTo(def.getDef());
             }

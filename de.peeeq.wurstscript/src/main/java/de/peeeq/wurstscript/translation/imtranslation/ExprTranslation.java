@@ -129,9 +129,9 @@ public class ExprTranslation {
         ImExpr left = e.getLeft().imTranslateExpr(t, f);
         ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
-        if (e.attrFuncDef() != null) {
+        if (e.attrFuncLink() != null) {
             // overloaded operator
-            ImFunction calledFunc = t.getFuncFor(e.attrFuncDef().getDef());
+            ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
             return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
@@ -165,7 +165,7 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprFuncRef e, ImTranslator t, ImFunction f) {
-        ImFunction func = t.getFuncFor(e.attrFuncDef().getDef());
+        ImFunction func = t.getFuncFor(e.attrFuncDef());
         return ImFuncRef(func);
     }
 
@@ -388,7 +388,7 @@ public class ExprTranslation {
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
 
-        FunctionDefinition calledFunc = e.attrFuncDef().getDef();
+        FunctionDefinition calledFunc = e.attrFuncDef();
 
         if (e.attrImplicitParameter() instanceof Expr) {
             if (isCalledOnDynamicRef(e) && calledFunc instanceof FuncDef) {

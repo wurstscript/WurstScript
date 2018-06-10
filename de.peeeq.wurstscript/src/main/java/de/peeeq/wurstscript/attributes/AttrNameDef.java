@@ -112,7 +112,7 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameDef tryGetNameDef(FuncRef e) {
-        FuncLink link = e.attrFuncDef();
+        FuncLink link = e.attrFuncLink();
         if (link == null) {
             return null;
         }

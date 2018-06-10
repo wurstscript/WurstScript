@@ -323,7 +323,7 @@ public class AttrExprType {
     private static WurstType handleOperatorOverloading(ExprBinary term) {
         WurstType leftType = term.getLeft().attrTyp();
         WurstType rightType = term.getRight().attrTyp();
-        FuncLink def = term.attrFuncDef();
+        FuncLink def = term.attrFuncLink();
         if (def == null) {
             term.addError("No operator overloading function for operator " + term.getOp() +
                     " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp()

@@ -157,7 +157,7 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         public  List<Either<String, MarkedString>> description(FuncRef fr) {
-            FuncLink def = fr.attrFuncDef();
+            FuncLink def = fr.attrFuncLink();
             if (def == null) {
                 return string(fr.getFuncName() + " is not defined yet.");
             }
@@ -373,7 +373,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ExprBinary(ExprBinary exprBinary) {
-            FuncLink funcDef = exprBinary.attrFuncDef();
+            FuncLink funcDef = exprBinary.attrFuncLink();
             if (funcDef != null) {
                 return description(funcDef.getDef());
             }

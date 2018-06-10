@@ -305,7 +305,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingMemberCall(List<CompletionItem> completions, ExprMemberMethod c) {
-        FuncLink funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
@@ -314,7 +314,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
-        FuncLink funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             alreadyEntered = c.getFuncName();
             CompletionItem ci = makeFunctionCompletion(funcDef);

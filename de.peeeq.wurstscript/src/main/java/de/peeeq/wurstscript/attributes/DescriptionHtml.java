@@ -127,7 +127,7 @@ public class DescriptionHtml {
     }
 
     public static @Nullable String description(ExprBinary e) {
-        FuncLink f = e.attrFuncDef();
+        FuncLink f = e.attrFuncLink();
         if (f != null) {
             return "This is an overloaded operator:<br/>" +
                     f.getDef().descriptionHtml();
@@ -148,7 +148,7 @@ public class DescriptionHtml {
     }
 
     public static String description(FuncRef fr) {
-        FuncLink def = fr.attrFuncDef();
+        FuncLink def = fr.attrFuncLink();
         if (def != null) {
             return def.getDef().descriptionHtml();
         }

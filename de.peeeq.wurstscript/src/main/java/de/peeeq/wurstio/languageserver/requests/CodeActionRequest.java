@@ -63,7 +63,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             }
         } else if (e instanceof FuncRef) {
             FuncRef fr = (FuncRef) e;
-            FuncLink fd = fr.attrFuncDef();
+            FuncLink fd = fr.attrFuncLink();
             if (fd == null) {
                 return handleMissingFunction(modelManager, fr);
             }

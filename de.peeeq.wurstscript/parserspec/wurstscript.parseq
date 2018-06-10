@@ -768,17 +768,25 @@ FuncRef.attrPossibleFuncDefs
 	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
 
 
-FuncRef.attrFuncDef
+FuncRef.attrFuncLink
 	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+FuncRef.attrFuncDef()
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculateDef
 
 ExprNewObject.attrConstructorDef
 	returns @Nullable ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
 
-ExprBinary.attrFuncDef
+ExprBinary.attrFuncLink
 	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+ExprBinary.attrFuncDef()
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculateDef
 
 
 FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"

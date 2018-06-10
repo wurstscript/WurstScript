@@ -58,7 +58,7 @@ public class AttrImplicitParameter {
     }
 
     private static OptExpr getImplicitParamterCaseNormalFunctionCall(FunctionCall e) {
-        FuncLink calledFunc = e.attrFuncDef();
+        FuncLink calledFunc = e.attrFuncLink();
         if (calledFunc == null) {
             return Ast.NoExpr();
         }

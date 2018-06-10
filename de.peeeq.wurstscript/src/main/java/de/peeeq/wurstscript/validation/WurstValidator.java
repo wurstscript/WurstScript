@@ -159,7 +159,7 @@ public class WurstValidator {
 
         if (e instanceof FuncRef) {
             FuncRef fr = (FuncRef) e;
-            FuncLink link = fr.attrFuncDef();
+            FuncLink link = fr.attrFuncLink();
             if (link != null) {
                 used.add(link.getDef().attrNearestPackage());
             }
@@ -180,7 +180,7 @@ public class WurstValidator {
         }
         if (e instanceof ExprBinary) {
             ExprBinary binop = (ExprBinary) e;
-            FuncLink def = binop.attrFuncDef();
+            FuncLink def = binop.attrFuncLink();
             if (def != null) {
                 used.add(def.getDef().attrNearestPackage());
             }
@@ -1114,8 +1114,8 @@ public class WurstValidator {
 
         checkFuncDefDeprecated(stmtCall);
 
-        if (stmtCall.attrFuncDef() != null) {
-            FuncLink calledFunc = stmtCall.attrFuncDef();
+        if (stmtCall.attrFuncLink() != null) {
+            FuncLink calledFunc = stmtCall.attrFuncLink();
             if (calledFunc.getDef().attrIsDynamicClassMember()) {
                 if (!stmtCall.attrIsDynamicContext()) {
                     stmtCall.addError("Cannot call dynamic function " + funcName + " from static context.");
@@ -1132,7 +1132,7 @@ public class WurstValidator {
             Expr firstArg = stmtCall.getArgs().get(0);
             if (firstArg instanceof ExprFuncRef) {
                 ExprFuncRef exprFuncRef = (ExprFuncRef) firstArg;
-                FuncLink f = exprFuncRef.attrFuncDef();
+                FuncLink f = exprFuncRef.attrFuncLink();
                 if (f != null) {
                     if (!(f.getReturnType() instanceof WurstTypeBool) && !(f.getReturnType() instanceof WurstTypeVoid)) {
                         firstArg.addError("Functions passed to Filter or Condition must return boolean or nothing.");
@@ -1179,7 +1179,7 @@ public class WurstValidator {
     }
 
     private void visit(ExprBinary expr) {
-        FuncLink def = expr.attrFuncDef();
+        FuncLink def = expr.attrFuncLink();
         if (def != null) {
             FunctionSignature sig = FunctionSignature.fromNameLink(def);
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
@@ -1353,7 +1353,7 @@ public class WurstValidator {
                             + " cannot be used with the cascade operator. Only dynamic objects are allowed.");
                 } else if (e.getParent() instanceof ExprMemberMethod) {
                     ExprMemberMethod em = (ExprMemberMethod) e.getParent();
-                    if (em.attrFuncDef().getDef() instanceof ExtensionFuncDef) {
+                    if (em.attrFuncDef() instanceof ExtensionFuncDef) {
                         e.addError("Reference to " + e.getVarName()
                                 + " can only be used for calling static methods, but not for calling extension method method '" + em.getFuncName() + "'.");
                     }
@@ -1488,7 +1488,10 @@ public class WurstValidator {
             ref.addError("Missing function name.");
         }
         checkFuncDefDeprecated(ref);
-        FuncLink called = ref.attrFuncDef();
+        FuncLink called = ref.attrFuncLink();
+        if (called == null) {
+            return;
+        }
         WScope scope = ref.attrNearestFuncDef();
         if (scope == null) {
             scope = ref.attrNearestScope();
@@ -1515,11 +1518,11 @@ public class WurstValidator {
     }
 
     private void checkFuncDefDeprecated(FuncRef ref) {
-        checkNameRefDeprecated(ref, ref.attrFuncDef());
+        checkNameRefDeprecated(ref, ref.attrFuncLink());
     }
 
     private void checkFuncRef(ExprFuncRef ref) {
-        FuncLink called = ref.attrFuncDef();
+        FuncLink called = ref.attrFuncLink();
         if (called == null) {
             return;
         }

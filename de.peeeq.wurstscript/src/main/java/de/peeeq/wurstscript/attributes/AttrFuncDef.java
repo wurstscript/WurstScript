@@ -338,4 +338,13 @@ public class AttrFuncDef {
     }
 
 
+    public static FunctionDefinition calculateDef(FuncRef e) {
+        FuncLink f = e.attrFuncLink();
+        return f == null ? null : f.getDef();
+    }
+
+    public static FunctionDefinition calculateDef(ExprBinary e) {
+        FuncLink f = e.attrFuncLink();
+        return f == null ? null : f.getDef();
+    }
 }

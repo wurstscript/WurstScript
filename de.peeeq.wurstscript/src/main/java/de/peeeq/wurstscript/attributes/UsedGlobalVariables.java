@@ -14,7 +14,7 @@ public class UsedGlobalVariables {
         ImmutableList.Builder<VarDef> result = ImmutableList.builder();
         if (e instanceof FunctionCall) {
             FunctionCall funcCall = (FunctionCall) e;
-            FuncLink f = funcCall.attrFuncDef();
+            FuncLink f = funcCall.attrFuncLink();
             if (f != null) {
                 result.addAll(f.getDef().attrUsedGlobalVariables());
             }
@@ -78,7 +78,7 @@ public class UsedGlobalVariables {
     private static void collectReadGlobals(Element e, Builder<VarDef> result) {
         if (e instanceof FunctionCall) {
             FunctionCall funcRef = (FunctionCall) e;
-            FuncLink f = funcRef.attrFuncDef();
+            FuncLink f = funcRef.attrFuncLink();
             if (f != null) {
                 result.addAll(f.getDef().attrReadGlobalVariables());
             }
