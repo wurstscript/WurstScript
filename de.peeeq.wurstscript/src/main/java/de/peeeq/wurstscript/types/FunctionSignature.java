@@ -18,8 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance(),
-            false);
+    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
@@ -28,15 +27,22 @@ public class FunctionSignature {
     private final boolean isVararg;
 
 
-    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType, boolean isVararg) {
+    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
         this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
-        this.isVararg = isVararg;
+        this.isVararg = hasVarargParam(paramTypes);
         this.receiverType = receiverType;
         this.paramTypes = paramTypes;
         this.returnType = returnType;
         this.paramNames = paramNames;
+    }
+
+    private boolean hasVarargParam(List<WurstType> paramTypes) {
+        if (paramTypes.isEmpty()) {
+            return false;
+        }
+        return Utils.getLast(paramTypes) instanceof WurstTypeVararg;
     }
 
 
@@ -62,7 +68,7 @@ public class FunctionSignature {
         Collection<TypeParamDef> typeParams2 = typeParams.stream()
                 .filter(t -> !typeArgBinding.contains(t))
                 .collect(Utils.toImmutableList());
-        return new FunctionSignature(typeParams2, receiverType, pt2, paramNames, r2, isVararg);
+        return new FunctionSignature(typeParams2, receiverType, pt2, paramNames, r2);
     }
 
 
@@ -84,8 +90,7 @@ public class FunctionSignature {
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
-        return new FunctionSignature(typeParams, f.attrReceiverType(), paramTypes, paramNames, returnType,
-                f.getParameters().size() == 1 && f.getParameters().get(0).attrIsVararg());
+        return new FunctionSignature(typeParams, f.attrReceiverType(), paramTypes, paramNames, returnType);
     }
 
 
@@ -97,7 +102,7 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType(), f.getDef().attrIsVararg());
+        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 

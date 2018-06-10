@@ -105,7 +105,7 @@ public class AttrPossibleFunctionSignatures {
         if (struct instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) struct).getTypeParameters();
         }
-        FunctionSignature sig = new FunctionSignature(typeParams, null, paramTypes, pNames, returnType, f.attrIsVararg());
+        FunctionSignature sig = new FunctionSignature(typeParams, null, paramTypes, pNames, returnType);
         sig = sig.setTypeArgs(fc, binding2);
         return ImmutableList.of(sig);
     }

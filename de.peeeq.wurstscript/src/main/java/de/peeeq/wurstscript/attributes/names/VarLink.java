@@ -6,6 +6,7 @@ import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -48,7 +49,11 @@ public class VarLink extends DefLink {
         Deferred<WurstType> type;
         if (def.attrOptTypeExpr() instanceof TypeExpr) {
             TypeExpr typeExpr = (TypeExpr) def.attrOptTypeExpr();
-            type = new Deferred<>(typeExpr.attrTyp().dynamic());
+            WurstType t = typeExpr.attrTyp().dynamic();
+            if (def.attrIsVararg()) {
+                t = new WurstTypeVararg(t);
+            }
+            type = new Deferred<>(t);
         } else {
             // if type has to be inferred, we have to do it deferred to avoid cyclic dependencies
             type = new Deferred<>(def::attrTyp);

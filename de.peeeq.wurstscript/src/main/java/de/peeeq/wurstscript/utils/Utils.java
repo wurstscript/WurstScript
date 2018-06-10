@@ -233,6 +233,10 @@ public class Utils {
         throw new Error("collection has no first element");
     }
 
+    public static <T> T getLast(List<T> ts) {
+        return ts.get(ts.size() - 1);
+    }
+
 
     private static <T> void topSortHelperIgnoreCycles(List<T> result,
                                                       Set<T> visitedItems,
