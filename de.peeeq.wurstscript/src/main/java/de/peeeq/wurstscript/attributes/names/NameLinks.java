@@ -233,7 +233,13 @@ public class NameLinks {
             }
             if (e instanceof WScope && !(e instanceof ModuleDef)) {
                 WScope scope = (WScope) e;
-                addHidingPrivate(result, scope.attrNameLinks());
+                List<TypeParamDef> typeParams;
+                if (scope instanceof AstElementWithTypeParameters) {
+                    typeParams = ((AstElementWithTypeParameters) scope).getTypeParameters();
+                } else {
+                    typeParams = Collections.emptyList();
+                }
+                addHidingPrivate(result, scope.attrNameLinks(), typeParams);
             }
         }
         return result.build();
@@ -336,12 +342,12 @@ public class NameLinks {
     }
 
 
-    public static void addHidingPrivate(Builder<String, DefLink> result, Multimap<String, DefLink> adding) {
+    public static void addHidingPrivate(Builder<String, DefLink> result, Multimap<String, DefLink> adding, List<TypeParamDef> typeParams) {
         for (Entry<String, DefLink> e : adding.entries()) {
             if (e.getValue().getVisibility() == Visibility.LOCAL) {
                 continue;
             }
-            result.put(e.getKey(), e.getValue().hidingPrivate());
+            result.put(e.getKey(), e.getValue().hidingPrivate().withGenericTypeParams(typeParams));
         }
 
     }

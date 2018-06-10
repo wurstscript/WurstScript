@@ -1,8 +1,9 @@
 package de.peeeq.wurstscript.attributes.names;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
@@ -31,7 +32,7 @@ public class FuncLink extends DefLink {
 
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
         Visibility visibiliy = calcVisibility(definedIn, func);
-        List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(func)).collect(Collectors.toList());
+        List<TypeParamDef> typeParams = typeParams(func).collect(Collectors.toList());
         List<String> lParameterNames = func.getParameters().stream()
                 .map(WParameter::getName)
                 .collect(Collectors.toList());
@@ -74,14 +75,50 @@ public class FuncLink extends DefLink {
     }
 
 
+    public String getParameterDescription() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < getParameterTypes().size(); i++) {
+            if (i > 0) {
+                sb.append(", ");
+            }
+            sb.append(getParameterType(i).toString());
+            if (i < getParameterNames().size()) {
+                sb.append(" ");
+                sb.append(getParameterName(i));
+            }
+        }
+        return sb.toString();
+    }
+
     @Override
     public String toString() {
-        String r = "" + getVisibility() + " ";
+        StringBuilder result = new StringBuilder();
+        result.append(getVisibility());
+        result.append(" ");
         if (getReceiverType() != null) {
-            r += getReceiverType() + ".";
+            result.append(getReceiverType()).append(".");
         }
-        return r + Utils.printElementWithSource(def);
+        result.append(getName());
+        if (!typeParams.isEmpty()) {
+            result.append("<");
+            result.append(typeParams.stream()
+                    .map(TypeParamDef::getName)
+                    .collect(Collectors.joining(", ")));
+            result.append(">");
+        }
+        result.append("(");
+        result.append(getParameterDescription());
+        result.append(") returns ");
+        result.append(returnType);
+        WPos src = def.attrSource();
+        result.append(" (")
+                .append(src.getFile())
+                .append(":")
+                .append(src.getLine())
+                .append(")");
+        return result.toString();
     }
+
 
     @Override
     public NameLinkType getType() {
@@ -110,13 +147,23 @@ public class FuncLink extends DefLink {
         WurstType newReceiverType = adjustType(context, getReceiverType(), binding);
         changed = changed || newReceiverType != getReceiverType();
         if (changed) {
+            // remove type parameters that are now bound:
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(binding::contains)
+                    .filter(tp -> !binding.contains(tp))
                     .collect(Collectors.toList());
             return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType);
         } else {
             return this;
         }
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
+        if (typeParams.isEmpty()) {
+            return this;
+        }
+        ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
+        return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType);
     }
 
     @Override

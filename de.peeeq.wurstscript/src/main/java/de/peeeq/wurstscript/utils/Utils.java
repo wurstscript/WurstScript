@@ -955,4 +955,13 @@ public class Utils {
         }
         return result.toString();
     }
+
+    @SafeVarargs
+    public static <T> ImmutableList<T> concatLists(List<T> ...lists) {
+        Builder<T> builder = ImmutableList.builder();
+        for (List<T> list : lists) {
+            builder.addAll(list);
+        }
+        return builder.build();
+    }
 }

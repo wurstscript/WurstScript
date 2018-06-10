@@ -21,6 +21,7 @@ public class WurstTypeUnknown extends WurstType {
         this.name = name;
     }
 
+
     @Override
     @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         // unknown is a subtype of everything, so that we don't propagate errors

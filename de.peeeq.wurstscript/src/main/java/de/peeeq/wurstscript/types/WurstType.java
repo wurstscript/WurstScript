@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -46,7 +45,13 @@ public abstract class WurstType {
      * Will try to instantiate type variables from the set typeParams
      */
     public final @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        if (other instanceof WurstTypeBoundTypeParam) {
+        if (other instanceof WurstTypeUnknown || this instanceof WurstTypeUnknown) {
+            // everything is a subtype of unknown (stops error cascades)
+            return mapping;
+        } else if (other instanceof WurstTypeInfer || this instanceof WurstTypeInfer) {
+            // assume everything can match a type that is inferred later
+            return mapping;
+        } else if (other instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
             return matchAgainstSupertype(btp.getBaseType(), location, typeParams, mapping);
         } else if (other instanceof WurstTypeUnion) {
@@ -56,9 +61,6 @@ public abstract class WurstType {
                 return null;
             }
             return matchAgainstSupertype(wtu.getTypeB(), location, typeParams, mapping);
-        } else if (other instanceof WurstTypeUnknown) {
-            // everything is a subtype of unknown (stops error cascades)
-            return mapping;
         } else if (other instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
             if (this instanceof WurstTypeTypeParam) {

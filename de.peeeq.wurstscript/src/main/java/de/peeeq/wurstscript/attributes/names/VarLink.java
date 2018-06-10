@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
@@ -155,6 +156,15 @@ public class VarLink extends DefLink {
         } else {
             return this;
         }
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
+        if (typeParams.isEmpty()) {
+            return this;
+        }
+        ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
+        return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, type);
     }
 
     @Override

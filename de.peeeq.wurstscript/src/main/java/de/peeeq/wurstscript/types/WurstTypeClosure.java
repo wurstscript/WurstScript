@@ -65,7 +65,7 @@ public class WurstTypeClosure extends WurstType {
                 return null;
             }
         }
-        if (!(abstractMethod.getReturnType() instanceof WurstTypeVoid)) {
+        if (abstractMethod.getReturnType() instanceof WurstTypeVoid) {
             // closures returning void may return anything
             // this is to allow expressions
             return mapping;

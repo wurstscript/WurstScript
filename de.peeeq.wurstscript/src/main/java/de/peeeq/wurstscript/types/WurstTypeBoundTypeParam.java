@@ -27,6 +27,9 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private Element context;
 
     public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
+        if (baseType instanceof WurstTypeIntLiteral) {
+            baseType = WurstTypeInt.instance();
+        }
         this.typeParamDef = def;
         this.baseType = baseType;
         this.context = context;

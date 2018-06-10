@@ -5,7 +5,6 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -130,7 +129,11 @@ public class AttrFuncDef {
                 } else {
                     List<WurstType> paramTypes = new ArrayList<>();
                     for (WShortParameter p : closure.getShortParameters()) {
-                        paramTypes.add(p.getTypOpt().attrTyp());
+                        if (p.getTypOpt() instanceof TypeExpr) {
+                            paramTypes.add(p.getTypOpt().attrTyp());
+                        } else {
+                            paramTypes.add(WurstTypeInfer.instance());
+                        }
                     }
                     WurstType resultType = WurstTypeInfer.instance();
                     argType = new WurstTypeClosure(paramTypes, resultType);

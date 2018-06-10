@@ -108,4 +108,5 @@ public abstract class DefLink extends NameLink {
     @Override
     public abstract DefLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding);
 
+    public abstract DefLink withGenericTypeParams(List<TypeParamDef> typeParams);
 }

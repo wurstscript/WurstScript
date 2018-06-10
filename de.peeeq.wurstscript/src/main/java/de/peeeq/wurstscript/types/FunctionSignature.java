@@ -18,16 +18,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
+    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
     private final WurstType returnType;
     private final Collection<TypeParamDef> typeParams;
     private final boolean isVararg;
+    private final String name;
 
 
-    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+        this.name = name;
         this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
@@ -68,7 +70,7 @@ public class FunctionSignature {
         Collection<TypeParamDef> typeParams2 = typeParams.stream()
                 .filter(t -> !typeArgBinding.contains(t))
                 .collect(Utils.toImmutableList());
-        return new FunctionSignature(typeParams2, receiverType, pt2, paramNames, r2);
+        return new FunctionSignature(typeParams2, receiverType, name, pt2, paramNames, r2);
     }
 
 
@@ -90,7 +92,7 @@ public class FunctionSignature {
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
-        return new FunctionSignature(typeParams, f.attrReceiverType(), paramTypes, paramNames, returnType);
+        return new FunctionSignature(typeParams, f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
     }
 
 
@@ -102,7 +104,7 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 
@@ -174,13 +176,21 @@ public class FunctionSignature {
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
-        result.append(returnType).append(" ");
         if (receiverType != null) {
             result.append(receiverType).append(".");
         }
+        result.append(name);
+        if (!typeParams.isEmpty()) {
+            result.append("<");
+            result.append(typeParams.stream()
+                    .map(TypeParamDef::getName)
+                    .collect(Collectors.joining(", ")));
+            result.append(">");
+        }
         result.append("(");
         result.append(getParameterDescription());
-        result.append(")");
+        result.append(") returns ");
+        result.append(returnType);
         return result.toString();
     }
 

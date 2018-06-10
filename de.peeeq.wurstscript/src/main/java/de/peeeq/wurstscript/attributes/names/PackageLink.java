@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.types.WurstTypePackage;
 import fj.data.TreeMap;
 
 import java.util.Collections;
+import java.util.List;
 
 
 public class PackageLink extends DefLink {
@@ -48,7 +49,12 @@ public class PackageLink extends DefLink {
 
     @Override
     public PackageLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
-        // packages do not have type paramaters
+        // packages do not have type parameters
+        return this;
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
         return this;
     }
 

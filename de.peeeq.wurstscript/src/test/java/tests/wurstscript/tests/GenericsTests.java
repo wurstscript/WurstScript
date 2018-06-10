@@ -786,4 +786,44 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericOverload() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	private T x",
+                "	construct(T x)",
+                "		this.x = x",
+                "	function foo(T t)",
+                "		foo(new C(t))",
+                "	function foo(C<T> t)",
+                "		testSuccess()",
+                "init",
+                "	let c = new C(1)",
+                "	c.foo(1)"
+        );
+    }
+
+    @Test
+    public void genericOverload2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	private T x",
+                "	construct(T x)",
+                "		this.x = x",
+                "	function foo(T t)",
+                "		foo(new C(t))",
+                "	function foo(C<T> t)",
+                "		testSuccess()",
+                "	function test()",
+                "		let c = new C(1)",
+                "		c.foo(1)",
+                "init",
+                "	new C(1).test()"
+        );
+    }
+
 }
