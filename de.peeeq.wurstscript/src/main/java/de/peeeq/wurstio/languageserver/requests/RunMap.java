@@ -56,6 +56,9 @@ public class RunMap extends MapRequest {
         WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
+            if (wc3Path != null) {
+                W3Utils.parsePatchVersion(new File(wc3Path));
+            }
             File gameExe = findGameExecutable();
 
             if (!map.exists()) {
