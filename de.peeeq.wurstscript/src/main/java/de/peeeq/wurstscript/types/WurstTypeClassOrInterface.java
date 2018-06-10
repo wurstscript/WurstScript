@@ -34,6 +34,13 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
     @Override
     public abstract StructureDef getDef();
 
+    /**
+     * Level in the type hierarchy.
+     * Root is at 0, subtypes one below max supertype
+     */
+    protected int level() {
+        return getDef().attrLevel();
+    }
 
     @Override
     public boolean canBeUsedInInstanceOf() {

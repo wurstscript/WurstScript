@@ -152,6 +152,8 @@ public class NameResolution {
                         privateCandidate = n;
                     }
 
+                } else if (n instanceof TypeDefLink) {
+                    candidates.add(n);
                 }
             }
             if (candidates.size() > 0) {

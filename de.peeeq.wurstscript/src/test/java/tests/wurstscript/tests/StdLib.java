@@ -46,9 +46,9 @@ public class StdLib {
                 Utils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
             }
 
-            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD");
-            System.out.println("revision = " + revision);
+            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD").trim();
             if (!revision.equals(version)) {
+                System.out.println("Wrong version '" + revision + "', executing git pull to get '" + version + "'");
                 Utils.exec(stdLibFolder, "git", "checkout", "master");
                 Utils.exec(stdLibFolder, "git", "pull");
                 Utils.exec(stdLibFolder, "git", "checkout", version);

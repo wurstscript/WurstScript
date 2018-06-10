@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.validation;
 import com.google.common.collect.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
@@ -217,8 +216,7 @@ public class WurstValidator {
             if (e instanceof AstElementWithNameId)
                 checkName((AstElementWithNameId) e);
             if (e instanceof ClassDef) {
-                checkInstanceDef((ClassDef) e);
-                checkOverrides((ClassDef) e);
+                checkAbstractMethods((ClassDef) e);
                 visit((ClassDef) e);
             }
             if (e instanceof ClassOrModule)
@@ -310,7 +308,7 @@ public class WurstValidator {
             if (e instanceof TypeExpr)
                 checkTypeExpr((TypeExpr) e);
             if (e instanceof TypeExprArray)
-                chechCodeArrays((TypeExprArray) e);
+                checkCodeArrays((TypeExprArray) e);
             if (e instanceof TupleDef)
                 checkTupleDef((TupleDef) e);
             if (e instanceof VarDef)
@@ -337,8 +335,36 @@ public class WurstValidator {
             cde.printStackTrace();
             Element element = cde.getElement();
             String attr = cde.getAttributeName().replaceFirst("^attr", "");
+            WLogger.info(cde);
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+        }
+    }
+
+    private void checkAbstractMethods(ClassDef c) {
+        ImmutableMultimap<String, DefLink> nameLinks = c.attrNameLinks();
+        if (!c.attrIsAbstract()) {
+            StringBuilder toImplement = new StringBuilder();
+            // should have no abstract methods
+            for (DefLink link : nameLinks.values()) {
+                NameDef f = link.getDef();
+                if (f.attrIsAbstract()) {
+                    if (f.attrNearestStructureDef() == c) {
+                        Element loc = f.getModifiers().stream()
+                                .filter(m -> m instanceof ModAbstract)
+                                .<Element>map(x -> x)
+                                .findFirst()
+                                .orElse(f);
+                        loc.addError("Non-abstract class " + c.getName() + " cannot have abstract functions like " + f.getName());
+                    } else if (link instanceof FuncLink) {
+                        toImplement.append("\n    ");
+                        toImplement.append(((FuncLink) link).printFunctionTemplate());
+                    }
+                }
+            }
+            if (toImplement.length() > 0) {
+                c.addError("Non-abstract class " + c.getName() + " must implement the following functions:" + toImplement);
+            }
         }
     }
 
@@ -1719,6 +1745,7 @@ public class WurstValidator {
         }
     }
 
+    /*
     private void checkInstanceDef(ClassDef classDef) {
         if (classDef.attrIsAbstract()) {
             // only concrete classes have to be checked
@@ -1770,6 +1797,7 @@ public class WurstValidator {
             }
         }
 
+
         if (!classDef.attrIsAbstract() && classT.extendedClass() != null) {
             // TODO getClassDef().attrNameLinks() --> directly get name links from classtype
             for (Entry<String, DefLink> e : classT.extendedClass().getClassDef().attrNameLinks().entries()) {
@@ -1796,6 +1824,7 @@ public class WurstValidator {
             }
         }
     }
+    */
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
         checkNameRefDeprecated(ea, ea.tryGetNameDef());
@@ -1982,7 +2011,7 @@ public class WurstValidator {
         }
     }
 
-    private void chechCodeArrays(TypeExprArray e) {
+    private void checkCodeArrays(TypeExprArray e) {
         if (e.getBase() instanceof TypeExprSimple) {
             TypeExprSimple base = (TypeExprSimple) e.getBase();
             if (base.getTypeName().equals("code")) {
@@ -1992,97 +2021,10 @@ public class WurstValidator {
         }
     }
 
-    private void checkOverrides(ClassDef c) {
-        int level = c.attrLevel();
-        WurstTypeClass classType = c.attrTypC();
-        for (String funcName : c.attrNameLinks().keySet()) {
-            List<FuncLink> funcs = Lists.newArrayList(keepFunctions(c.attrNameLinks().get(funcName)));
-            sortByLevel(funcs);
-
-            Multimap<FuncLink, String> overrideErrors = HashMultimap.create();
-            // map from func -> overridden super-functions
-            Multimap<FuncLink, FuncLink> overridesMap = calcOverrides(funcs, classType, overrideErrors);
-            // map from func to implementing interface
-            Multimap<FuncLink, FuncLink> overriddenByMap = Utils.inverse(overridesMap);
-
-            for (FuncLink link : funcs) {
-                FuncDef func = (FuncDef) link.getDef();
-                if (func.attrIsAbstract() && !(c.attrIsAbstract())) {
-                    boolean implExists = false;
-                    for (NameLink link2 : overriddenByMap.get(link)) {
-                        FuncDef func2 = (FuncDef) link2.getDef();
-
-                        if (func.attrIsStatic() && !func2.attrIsStatic()) {
-                            func2.addError("Cannot override static function with nonstatic function.");
-                        } else if (!func.attrIsStatic() && func2.attrIsStatic()) {
-                            func2.addError("Cannot override nonstatic function with static function.");
-                        }
-
-                        if (!func2.attrIsAbstract()) {
-                            implExists = true;
-                            break;
-                        }
-                    }
-                    if (!implExists) {
-                        if (c == func.attrNearestStructureDef()) {
-                            func.addError("Class " + c.getName()
-                                    + " is not abstract so it cannot have abstract functions like " + func.getName()
-                                    + ".");
-                        } else {
-                            c.addError("Class " + c.getName() + " must implement the abstract function "
-                                    + func.getName() + " from " + Utils.printElement(func.attrNearestStructureDef()));
-                        }
-                    }
-                }
-
-                if (link.getLevel() < level) {
-                    // only check functions from current level
-                    continue;
-                }
-
-                if (func.attrIsOverride()) {
-                    if (overridesMap.get(link).size() == 0) {
-                        func.addError("Function " + func.getName() + " uses override modifier but overrides nothing.\n"
-                                + overrideErrors.get(link).stream().collect(Collectors.joining("\n")));
-                    }
-                    for (NameLink overriden : overridesMap.get(link)) {
-                        if (overriden.getDefinedIn() instanceof ClassDef && overriden.getDef() instanceof FuncDef) {
-                            FuncDef overriddenFunc = (FuncDef) overriden.getDef();
-                            if (overriddenFunc.attrIsStatic()) {
-                                func.addError("Cannot override static function from classes.");
-                            }
-                            if (func.attrIsStatic() && !overriddenFunc.attrIsStatic()) {
-                                func.addError("Cannot override nonstatic function " + func.getName()
-                                        + " with a static function.");
-                            }
-                            if (!func.attrIsStatic() && overriddenFunc.attrIsStatic()) {
-                                func.addError("Cannot override static function " + func.getName()
-                                        + " with a nonstatic function.");
-                            }
-                        }
-                    }
-                } else {
-                    for (NameLink overriden : overridesMap.get(link)) {
-                        if (overriden.getDefinedIn() == link.getDefinedIn()) {
-                            func.addError("A function with name " + func.getName() + " is already defined "
-                                    + "and the two functions can not be disambiguated using overloading.");
-                            break;
-                        } else if (!(overriden.getDefinedIn() instanceof InterfaceDef)) {
-                            func.addError("Function " + func.getName() + " needs the 'override' modifier.");
-                            break;
-                        }
-                    }
-                }
-
-            }
-
-        }
-    }
 
     /**
-     *
-     * @param funcs the functions for which to search overrides
-     * @param type where to search for overrides
+     * @param funcs          the functions for which to search overrides
+     * @param type           where to search for overrides
      * @param overrideErrors for each FuncLink in supertypes, store a reason why the function cannot
      * @return a mapping from func to overridden functions
      */
@@ -2120,7 +2062,18 @@ public class WurstValidator {
         return checkOverride(func1, func2) == null;
     }
 
+    /**
+     * checks if func1 can override func2
+     * <p>
+     * Returns null if yes and an error message if not.
+     */
     public static String checkOverride(FuncLink func1, FuncLink func2) {
+        if (func1.isStatic()) {
+            return "Static method " + func1.getName() + " cannot override other methods.";
+        }
+        if (func2.isStatic()) {
+            return "Static method " + Utils.printElementWithSource(func2.getDef()) + " cannot be overridden.";
+        }
         if (func1.isVarargMethod()) {
             return "Vararg method " + func1.getName() + " cannot override other methods.";
         }

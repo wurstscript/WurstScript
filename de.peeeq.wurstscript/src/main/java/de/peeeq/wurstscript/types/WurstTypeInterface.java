@@ -75,6 +75,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
     public ImmutableList<WurstTypeInterface> extendedInterfaces() {
         return interfaceDef.getExtendsList().stream()
                 .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+                .filter(i -> i.level() < level())
                 .collect(ImmutableList.toImmutableList());
     }
 

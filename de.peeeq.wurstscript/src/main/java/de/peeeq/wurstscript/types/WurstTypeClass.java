@@ -32,6 +32,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {
         return classDef.getImplementsList().stream()
                 .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
+                .filter(i -> i.level() < level())
                 .collect(ImmutableList.toImmutableList());
     }
 
@@ -43,8 +44,16 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         if (extendedClass instanceof NoTypeExpr) {
             return null;
         }
-        WurstType unboundType = extendedClass.attrTyp();
-        return (WurstTypeClass) unboundType.setTypeArgs(getTypeArgBinding());
+        WurstType t = extendedClass.attrTyp();
+        if (t instanceof WurstTypeClass) {
+            WurstTypeClass ct = (WurstTypeClass) t;
+            if (ct.level() >= level()) {
+                // cyclic dependency
+                return null;
+            }
+            return (WurstTypeClass) ct.setTypeArgs(getTypeArgBinding());
+        }
+        return null;
     }
 
     @Override

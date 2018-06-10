@@ -86,7 +86,7 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void array_init_global_fail1() {
-        testAssertErrorsLines(false, "Expected expression of type integer in array initialization, but found string",
+        testAssertErrorsLines(false, "Expected expression of type int in array initialization, but found string",
                 "package test",
                 "int array blub = [1,\"2\",3,4]"
         );
@@ -94,7 +94,7 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void array_init_local_fail1() {
-        testAssertErrorsLines(false, "Expected expression of type integer in array initialization, but found string",
+        testAssertErrorsLines(false, "Expected expression of type int in array initialization, but found string",
                 "package test",
                 "function foo()",
                 "   int array blub = [1,\"2\",3,4]"

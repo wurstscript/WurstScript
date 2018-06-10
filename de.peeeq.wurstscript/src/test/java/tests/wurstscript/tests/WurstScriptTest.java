@@ -122,7 +122,9 @@ public class WurstScriptTest {
                 return new CompilationResult(model);
             } catch (CompileError e) {
                 if (expectedError != null) {
-                    Assert.assertTrue(e.getMessage().toLowerCase().contains(expectedError.toLowerCase()), e.toString());
+                    if (!e.getMessage().toLowerCase().contains(expectedError.toLowerCase())) {
+                        throw e;
+                    }
                     return null;
                 }
                 throw e;

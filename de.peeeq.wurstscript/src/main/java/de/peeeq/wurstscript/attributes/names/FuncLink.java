@@ -191,4 +191,27 @@ public class FuncLink extends DefLink {
     }
 
 
+    public String printFunctionTemplate() {
+        StringBuilder res = new StringBuilder("function ");
+        res.append(getName());
+        res.append("(");
+        for (int i = 0; i < parameterNames.size(); i++) {
+            if (i > 0) {
+                res.append(", ");
+            }
+            res.append(parameterTypes.get(i));
+            res.append(" ");
+            res.append(parameterNames.get(i));
+        }
+        res.append(")");
+        if (!getReturnType().isVoid()) {
+            res.append(" returns ");
+            res.append(getReturnType());
+        }
+        return res.toString();
+    }
+
+    public boolean isStatic() {
+        return def.attrIsStatic();
+    }
 }

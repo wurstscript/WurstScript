@@ -33,7 +33,7 @@ public class UtilsIO {
     public static String getMethodName(String currentClass) {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
         for (int i = 2; i < ste.length; i++) {
-            if (!ste[i].getClassName().equals(currentClass)) {
+            if (!ste[i].getClassName().startsWith(currentClass)) {
                 return ste[i].getMethodName();
             }
         }
