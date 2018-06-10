@@ -333,6 +333,12 @@ public class ImTranslator {
         for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
             callInitFunc(calledInitializers, p, initTrigVar);
         }
+
+        ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
+        if(native_DestroyTrigger != null) {
+            getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger,
+                    JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
+        }
     }
 
     @NotNull
