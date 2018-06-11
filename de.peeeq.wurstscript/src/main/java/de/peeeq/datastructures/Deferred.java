@@ -1,6 +1,7 @@
 package de.peeeq.datastructures;
 
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -27,4 +28,18 @@ public class Deferred<T> {
         }
         return value;
     }
+
+    public <S> Deferred<S> map(Function<T, S> f) {
+        if (supplier == null) {
+            S newValue = f.apply(value);
+            if (newValue == value) {
+                //noinspection unchecked
+                return (Deferred<S>) this;
+            } else {
+                return new Deferred<>(newValue);
+            }
+        }
+        return new Deferred<>(() -> f.apply(get()));
+    }
+
 }

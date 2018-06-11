@@ -1,6 +1,6 @@
 package de.peeeq.wurstio;
 
-import de.peeeq.wurstscript.utils.Utils;
+import java.io.File;
 
 public class UtilsIO {
 
@@ -41,4 +41,10 @@ public class UtilsIO {
     }
 
 
+    public static void mkdirs(File dir) {
+        boolean res = dir.mkdirs();
+        if (!res) {
+            throw new RuntimeException("Directory " + dir + " could not be created.");
+        }
+    }
 }

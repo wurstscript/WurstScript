@@ -2085,11 +2085,11 @@ public class WurstValidator {
                 return "Method " + func1.getName() + " cannot override static "+ Utils.printElementWithSource(func2.getDef()) + ".";
             }
         }
-        if (func1.isVarargMethod()) {
-            return "Vararg method " + func1.getName() + " cannot override other methods.";
+        if (func1.isVarargMethod() && !func2.isVarargMethod()) {
+            return "Vararg method " + func1.getName() + " cannot override non-vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
         }
-        if (func2.isVarargMethod()) {
-            return "Cannot override vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+        if (!func1.isVarargMethod() && func2.isVarargMethod()) {
+            return "Non-vararg method " + func1.getName() + " cannot override vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
         }
         int paramCount2 = func2.getParameterTypes().size();
         int paramCount1 = func1.getParameterTypes().size();

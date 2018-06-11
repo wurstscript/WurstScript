@@ -826,4 +826,21 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void inferType() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function id(int x) returns int",
+                "	return x",
+                "class C<T>",
+                "	var x = id(4)",
+                "init",
+                "	let x= new C<int>",
+                "	if x.x == 4",
+                "		testSuccess()"
+        );
+    }
+
+
 }

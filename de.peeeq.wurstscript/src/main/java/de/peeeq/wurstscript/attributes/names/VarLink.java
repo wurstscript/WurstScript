@@ -141,9 +141,8 @@ public class VarLink extends DefLink {
         if (binding.isEmpty()) {
             return this;
         }
-        WurstType oldType = type.get();
-        WurstType newType = oldType.setTypeArgs(binding);
-        boolean changed = newType != oldType;
+        Deferred<WurstType> newType = type.map(oldType -> oldType.setTypeArgs(binding));
+        boolean changed = newType != type;
         WurstType newReceiverType = getReceiverType().setTypeArgs(binding);
         changed |= newReceiverType == getReceiverType();
 
@@ -152,7 +151,7 @@ public class VarLink extends DefLink {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
                     .filter(binding::contains)
                     .collect(Collectors.toList());
-            return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, new Deferred<>( newType));
+            return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, newType);
         } else {
             return this;
         }

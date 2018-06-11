@@ -281,5 +281,30 @@ public class VarargTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void varargOverride() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    function foo(vararg int xs) returns int",
+                "        int sum = 0",
+                "        for x in xs",
+                "            sum += x",
+                "        return sum",
+                "class D extends C",
+                "    override function foo(vararg int xs) returns int",
+                "        int prod = 1",
+                "        for x in xs",
+                "            prod *= x",
+                "        return prod",
+                "init",
+                "    C c = new C",
+                "    C d = new D",
+                "    if c.foo(1,2) == 3 and d.foo(1,2) == 2 and d.foo(1,2,3,4) == 24",
+                "        testSuccess()");
+
+    }
+
 
 }

@@ -30,7 +30,7 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
-    public void insertFile(String filenameInMpq, byte[] contents) throws Exception {
+    public void insertFile(String filenameInMpq, byte[] contents) {
         getEditor().insertByteArray(filenameInMpq, contents);
     }
 
@@ -50,7 +50,7 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
-    public void deleteFile(String filenameInMpq) throws Exception {
+    public void deleteFile(String filenameInMpq) {
         getEditor().deleteFile(filenameInMpq);
     }
 
@@ -67,7 +67,7 @@ class Jmpq3BasedEditor implements MpqEditor {
     }
 
     @Override
-    public boolean hasFile(String fileName) throws Exception {
+    public boolean hasFile(String fileName) {
         return getEditor().hasFile(fileName);
     }
 

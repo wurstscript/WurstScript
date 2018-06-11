@@ -135,7 +135,7 @@ public class RealWorldExamples extends WurstScriptTest {
 
 
     @Test
-    public void test_stdlib() throws IOException {
+    public void test_stdlib() {
         List<File> inputs = Lists.newLinkedList();
         // TODO set config
         RunArgs runArgs = RunArgs.defaults();
