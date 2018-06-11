@@ -599,8 +599,6 @@ public class OptimizerTests extends WurstScriptTest {
     public void controlFlowMergeSideEffect2() throws IOException {
         test().withStdLib().lines(
                 "package Test",
-                "native testSuccess()",
-                "native testFail(string msg)",
                 "var ghs = 12",
                 "function someSideEffectFunc(int x) returns bool",
                 "	if x < 3",

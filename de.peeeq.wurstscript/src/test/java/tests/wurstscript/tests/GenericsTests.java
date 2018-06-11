@@ -298,7 +298,7 @@ public class GenericsTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(false,
                 "package Test",
                 "import LinkedList",
-                "Table data",
+//                "Table data",
 //				"function effectToIndex(effect e) returns int",
 //				"	return e.getHandleId()",
 //
@@ -318,7 +318,7 @@ public class GenericsTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(false,
                 "package Test",
                 "import LinkedList",
-                "Table data",
+//                "Table data",
 
                 "init",
                 "	LinkedList<effect> fxs = new LinkedList<effect>()",
