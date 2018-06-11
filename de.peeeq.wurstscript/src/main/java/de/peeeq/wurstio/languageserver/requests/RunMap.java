@@ -56,6 +56,10 @@ public class RunMap extends MapRequest {
         WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
+            if (wc3Path != null) {
+                W3Utils.setPatchVer(W3Utils.parsePatchVersion(new File(wc3Path)));
+                patchVersion = W3Utils.getWc3PatchVersion();
+            }
             File gameExe = findGameExecutable();
 
             if (!map.exists()) {
@@ -170,7 +174,6 @@ public class RunMap extends MapRequest {
             }
         }
 
-        patchVersion = W3Utils.parsePatchVersion(new File(wc3Path));
 
         if (patchVersion <= 1.27) {
             // 1.27 and lower compat

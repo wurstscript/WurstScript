@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.NonNull;
 
@@ -14,20 +15,23 @@ import java.util.*;
  * <p>
  * the input must be a flattened program
  */
-public class LocalMerger {
-    public int totalLocalsMerged = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
+public class LocalMerger implements OptimizerPass {
+    private int totalLocalsMerged = 0;
 
-    public LocalMerger(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
-    }
-
-    public void optimize() {
+    @Override
+    public int optimize(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
+        totalLocalsMerged = 0;
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
         }
+        return totalLocalsMerged;
+    }
+
+
+    @Override
+    public String getName() {
+        return "Local variables merged";
     }
 
     private void optimizeFunc(ImFunction func) {
@@ -291,4 +295,6 @@ public class LocalMerger {
         }
         return result;
     }
+
+
 }

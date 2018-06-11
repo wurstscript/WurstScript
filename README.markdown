@@ -6,6 +6,7 @@ Wurstscript is a delicious programming language which can compile to Jass code t
 [![Travis](https://travis-ci.org/wurstscript/WurstScript.svg?branch=master)](https://travis-ci.org/wurstscript/WurstScript)
 [![GitHub issues](https://img.shields.io/github/issues/wurstscript/WurstScript.svg)]()
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/wurstscript/WurstScript.svg)]()
+[![Coverage Status](https://coveralls.io/repos/github/wurstscript/WurstScript/badge.svg?branch=master)](https://coveralls.io/github/wurstscript/WurstScript?branch=master)
 
 
 ## User Documentation

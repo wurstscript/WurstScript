@@ -403,12 +403,12 @@ public class OptimizerTests extends WurstScriptTest {
                 "	init",
                 "		let blub_a = GetRandomInt(0,100)",
                 "		let blub_b = blub_a",
-                "		let blub_c = blub_b + blub_b",
+                "		let blub_c = blub_b + blub_b + blub_b",
                 "		println(I2S(blub_c))",
                 "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover_inlopt.j"), Charsets.UTF_8);
-        assertFalse(output.contains("blub_a"));
-        assertFalse(output.contains("blub_c"));
+
+        assertTrue(!output.contains("blub_a") ? (output.contains("blub_b") || output.contains("blub_c")) : (!output.contains("blub_b") && !output.contains("blub_c")));
     }
 
 

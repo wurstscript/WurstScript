@@ -9,7 +9,6 @@ public class ArrayTests extends WurstScriptTest {
 
     @Test
     public void testArray1() {
-        System.out.println("");
         assertOk(true,
                 "int array blub",
                 "init",

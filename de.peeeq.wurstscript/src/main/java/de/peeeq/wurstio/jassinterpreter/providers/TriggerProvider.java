@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class TriggerProvider extends Provider {
 
@@ -29,6 +28,11 @@ public class TriggerProvider extends Provider {
     public void TriggerAddCondition(IlConstHandle trigger, IlConstHandle boolexpr) {
         TriggerMock triggerMock = (TriggerMock) trigger.getObj();
         triggerMock.addCondition(boolexpr);
+    }
+
+    public void TriggerClearConditions(IlConstHandle trigger) {
+        TriggerMock triggerMock = (TriggerMock) trigger.getObj();
+        triggerMock.clearConditions();
     }
 
     public void TriggerAddAction(IlConstHandle trigger, ILconstFuncRef code) {

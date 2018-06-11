@@ -1,10 +1,8 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import de.peeeq.wurstscript.ast.StmtIf;
-import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ListIterator;
 
@@ -13,20 +11,20 @@ import java.util.ListIterator;
  * <p>
  * the input must be a flattened program
  */
-public class BranchMerger {
-    private final SideEffectAnalyzer sideEffectAnalyzer;
+public class BranchMerger  implements OptimizerPass {
+    private SideEffectAnalyzer sideEffectAnalyzer;
     public int branchesMerged = 0;
-    private final ImProg prog;
 
-    public BranchMerger(ImTranslator trans) {
-        this.prog = trans.getImProg();
+    @Override
+    public int optimize(ImTranslator trans) {
+        branchesMerged = 0;
+        ImProg prog = trans.getImProg();
         this.sideEffectAnalyzer = new SideEffectAnalyzer(prog);
-    }
 
-    public void optimize() {
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
         }
+        return branchesMerged;
     }
 
     private void optimizeFunc(ImFunction func) {
@@ -79,4 +77,8 @@ public class BranchMerger {
 
 
 
+    @Override
+    public String getName() {
+        return "Branches merged";
+    }
 }
