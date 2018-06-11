@@ -3,25 +3,34 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
-public class TempMerger {
-    public int totalMerged = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
+public class TempMerger implements OptimizerPass {
+    private int totalMerged = 0;
 
-    public TempMerger(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
+
+    @Override
+    public String getName() {
+        return "Temp variables merged";
     }
 
-    public void optimize() {
+    /**
+     * @return The amount of merged temp variables
+     */
+    @Override
+    public int optimize(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
+        totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
         prog.clearAttributes();
         for (ImFunction f : prog.getFunctions()) {
@@ -29,6 +38,7 @@ public class TempMerger {
         }
         // flatten the program because we introduced null-statements
         prog.flatten(trans);
+        return totalMerged;
     }
 
     private void optimizeFunc(ImFunction f) {
@@ -158,7 +168,7 @@ public class TempMerger {
         return false;
     }
 
-    public boolean readsVar(Element elem, ImVar left) {
+    private boolean readsVar(Element elem, ImVar left) {
         if (elem instanceof ImVarRead) {
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar() == left) {
@@ -175,7 +185,7 @@ public class TempMerger {
         return false;
     }
 
-    public boolean readsGlobal(Element elem) {
+    private boolean readsGlobal(Element elem) {
         if (elem instanceof ImVarRead) {
             ImVarRead va = (ImVarRead) elem;
             if (va.getVar().isGlobal()) {

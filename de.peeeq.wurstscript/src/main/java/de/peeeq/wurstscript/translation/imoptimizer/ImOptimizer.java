@@ -7,11 +7,27 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class ImOptimizer {
     private int totalFunctionsRemoved = 0;
     private int totalGlobalsRemoved = 0;
+
+    private static final ArrayList<OptimizerPass> localPasses = new ArrayList<>();
+    private static final HashMap<String, Integer> totalCount = new HashMap<>();
+
+    static {
+        localPasses.add(new ConstantAndCopyPropagation());
+        localPasses.add(new SimpleRewrites());
+        localPasses.add(new BranchMerger());
+        localPasses.add(new TempMerger());
+        localPasses.add(new LocalMerger());
+        localPasses.add(new UselessFunctionCallsRemover());
+        localPasses.add(new GlobalsInliner());
+    }
+
 
     ImTranslator trans;
 
@@ -28,8 +44,8 @@ public class ImOptimizer {
     public void doInlining() {
         // remove garbage to reduce work for the inliner
         removeGarbage();
-        GlobalsInliner globalsInliner = new GlobalsInliner(trans);
-        globalsInliner.inlineGlobals();
+        GlobalsInliner globalsInliner = new GlobalsInliner();
+        globalsInliner.optimize(trans);
         ImInliner inliner = new ImInliner(trans);
         inliner.doInlining();
         trans.assertProperties();
@@ -37,62 +53,29 @@ public class ImOptimizer {
         removeGarbage();
     }
 
+    private int optCount = 1;
+
     public void localOptimizations() {
-        TempMerger tempMerger = new TempMerger(trans);
-        ConstantAndCopyPropagation cpOpt = new ConstantAndCopyPropagation(trans);
-        SimpleRewrites simpleRewrites = new SimpleRewrites(trans);
-        LocalMerger localMerger = new LocalMerger(trans);
-        BranchMerger branchMerger = new BranchMerger(trans);
-        UselessFunctionCallsRemover functionCallsRemover = new UselessFunctionCallsRemover(trans);
-        GlobalsInliner globalsInliner = new GlobalsInliner(trans);
+        totalCount.clear();
         removeGarbage();
-        int deltaV = 1;
+
         int finalItr = 0;
-        for (int i = 0; i <= 10 && deltaV > 0; i++) {
-            deltaV = 0;
-            int startV = tempMerger.totalMerged;
-            tempMerger.optimize();
-            int endV = tempMerger.totalMerged;
-            deltaV += (endV - startV);
-            startV = cpOpt.totalPropagated;
-            cpOpt.optimize();
-            endV = cpOpt.totalPropagated;
-            deltaV += (endV - startV);
-            startV = simpleRewrites.totalRewrites;
-            simpleRewrites.optimize(false);
-            endV = simpleRewrites.totalRewrites;
-            deltaV += (endV - startV);
-            WLogger.info("optimized: " + (endV - startV));
-            startV = localMerger.totalLocalsMerged;
-            localMerger.optimize();
-            endV = localMerger.totalLocalsMerged;
-            deltaV += (endV - startV);
-            startV = branchMerger.branchesMerged;
-            branchMerger.optimize();
-            endV = branchMerger.branchesMerged;
-            deltaV += (endV - startV);
-            startV = functionCallsRemover.totalCallsRemoved;
-            functionCallsRemover.optimize();
-            endV = functionCallsRemover.totalCallsRemoved;
-            deltaV += (endV - startV);
-            startV = globalsInliner.obsoleteCount;
-            globalsInliner.inlineGlobals();
-            endV = globalsInliner.obsoleteCount;
-            deltaV += (endV - startV);
+        for (int i = 0; i <= 10 && optCount > 0; i++) {
+            optCount = 0;
+            localPasses.forEach(pass -> {
+                int count = pass.optimize(trans);
+                optCount += count;
+                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + optCount);
+            });
             trans.getImProg().flatten(trans);
             removeGarbage();
             finalItr = i;
+            WLogger.info("=== Optimization pass: " + i + " opts: " + optCount + " ===");
         }
         WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
-        WLogger.info("== Temp vars merged:   " + tempMerger.totalMerged);
-        WLogger.info("== Vars propagated:    " + cpOpt.totalPropagated);
-        WLogger.info("== Rewrites:           " + simpleRewrites.totalRewrites);
-        WLogger.info("== Locals merged:      " + localMerger.totalLocalsMerged);
-        WLogger.info("== Calls removed:      " + functionCallsRemover.totalCallsRemoved);
-        WLogger.info("== Globals Inlined:    " + globalsInliner.obsoleteCount);
-        WLogger.info("== Globals removed:    " + totalGlobalsRemoved);
-        WLogger.info("== Functions removed:  " + totalFunctionsRemoved);
-        WLogger.info("== Branches merged:    " + branchMerger.branchesMerged);
+        totalCount.forEach((k, v) -> {
+            WLogger.info("== " + k + ":   " + k);
+        });
     }
 
     public void doNullsetting() {

@@ -2,26 +2,32 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 
-public class ConstantAndCopyPropagation {
-    public int totalPropagated = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
+public class ConstantAndCopyPropagation implements OptimizerPass {
+    private int totalPropagated = 0;
 
-    public ConstantAndCopyPropagation(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
-    }
+    public int optimize(ImTranslator trans) {
+        ImProg prog = trans.getImProg();
 
-    public void optimize() {
+        totalPropagated = 0;
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
         }
+        return totalPropagated;
+    }
+
+    @Override
+    public String getName() {
+        return "Constant and Copy Propagated";
     }
 
     static class Value {
