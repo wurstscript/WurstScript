@@ -20,12 +20,12 @@ public class ImOptimizer {
 
     static {
         localPasses.add(new ConstantAndCopyPropagation());
-        localPasses.add(new SimpleRewrites());
-        localPasses.add(new BranchMerger());
-        localPasses.add(new TempMerger());
-        localPasses.add(new LocalMerger());
         localPasses.add(new UselessFunctionCallsRemover());
         localPasses.add(new GlobalsInliner());
+        localPasses.add(new BranchMerger());
+        localPasses.add(new SimpleRewrites());
+        localPasses.add(new TempMerger());
+        localPasses.add(new LocalMerger());
     }
 
 
