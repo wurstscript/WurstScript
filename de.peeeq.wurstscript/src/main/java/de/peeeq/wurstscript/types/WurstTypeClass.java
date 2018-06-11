@@ -1,19 +1,16 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.Option;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class WurstTypeClass extends WurstTypeClassOrInterface {
@@ -38,13 +35,29 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
             WurstTypeModuleInstanciation mi = (WurstTypeModuleInstanciation) obj;
             @Nullable ClassDef nearestClass = mi.getDef().attrNearestClassDef();
             if (nearestClass == this.classDef) {
-                // TODO adjust mapping?
-                return mapping;
+                return extendMapping(mapping, getTypeArgBinding(), location);
             }
         }
         return null;
 
 
+    }
+
+    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> extendMapping(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> m1, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> m2, Element location) {
+        for (TypeParamDef t : m2.keys()) {
+            Option<WurstTypeBoundTypeParam> currentVal = m1.get(t);
+            WurstTypeBoundTypeParam m2Val = m2.get(t).some();
+            if (currentVal.isSome()) {
+                WurstTypeBoundTypeParam m1Val = currentVal.some();
+                if (!m1Val.equalsType(m2Val, location)) {
+                    // no match
+                    return null;
+                }
+            } else {
+                m1 = m1.set(t, m2Val);
+            }
+        }
+        return m1;
     }
 
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {

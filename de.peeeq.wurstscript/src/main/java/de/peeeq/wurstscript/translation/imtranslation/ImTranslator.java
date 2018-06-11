@@ -660,14 +660,11 @@ public class ImTranslator {
         if (e instanceof FuncDef) {
             FuncDef f = (FuncDef) e;
             if (f.attrNearestStructureDef() != null) {
-                return f.attrNearestStructureDef().getName() + "_" + f.getName();
+                return getNameFor(f.attrNearestStructureDef()) + "_" + f.getName();
             }
         } else if (e instanceof ExtensionFuncDef) {
             ExtensionFuncDef f = (ExtensionFuncDef) e;
             return getNameFor(f.getExtendedType()) + "_" + f.getName();
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) e;
-            return t.getTypeName();
         } else if (e instanceof TypeExprSimple) {
             TypeExprSimple t = (TypeExprSimple) e;
             return t.getTypeName();
@@ -676,6 +673,9 @@ public class ImTranslator {
         } else if (e instanceof TypeExprArray) {
             TypeExprArray t = (TypeExprArray) e;
             return getNameFor(t.getBase()) + "Array";
+        } else if (e instanceof ModuleInstanciation) {
+            ModuleInstanciation mi = (ModuleInstanciation) e;
+            return getNameFor(mi.getParent().attrNearestNamedScope()) + "_" + mi.getName();
         }
 
 
@@ -752,7 +752,7 @@ public class ImTranslator {
             ImType type = varDef.attrTyp().imTranslateType();
             String name = varDef.getName();
             if (isNamedScopeVar(varDef)) {
-                name = varDef.attrNearestNamedScope().getName() + "_" + name;
+                name = getNameFor(varDef.attrNearestNamedScope()) + "_" + name;
             }
             boolean isBj = isBJ(varDef.getSource());
             v = JassIm.ImVar(varDef, type, name, isBj);

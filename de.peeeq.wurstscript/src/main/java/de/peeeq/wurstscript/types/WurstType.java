@@ -204,7 +204,7 @@ public abstract class WurstType {
                                  List<FuncLink> result) {
     }
 
-    public Stream<NameLink> getMemberMethods(Element node) {
+    public Stream<FuncLink> getMemberMethods(Element node) {
         return Stream.empty();
     }
 

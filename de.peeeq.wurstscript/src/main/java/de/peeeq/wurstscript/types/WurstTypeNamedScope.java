@@ -1,7 +1,8 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.*;
 import fj.data.TreeMap;
@@ -159,45 +160,50 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return !isStaticRef();
     }
 
+    /**
+     * get the name links available in this class or interface
+     * This includes inherited names
+     */
+    public ImmutableMultimap<String, DefLink> nameLinks() {
+        ImmutableMultimap<String, DefLink> res = getDef().attrNameLinks();
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = getTypeArgBinding();
+        if (!binding.isEmpty()) {
+            // OPT maybe cache this
+            ImmutableMultimap.Builder<String, DefLink> resBuilder = ImmutableMultimap.builder();
+            for (Map.Entry<String, DefLink> e : res.entries()) {
+                resBuilder.put(e.getKey(), e.getValue().withTypeArgBinding(getDef(), binding));
+            }
+            return resBuilder.build();
+        }
+        return res;
+    }
+
+    public ImmutableCollection<DefLink> nameLinks(String name) {
+        return nameLinks().get(name);
+    }
+
     @Override
     public void addMemberMethods(Element node, String name,
                                  List<FuncLink> result) {
-        NamedScope scope = getDef();
-        if (scope instanceof ModuleDef) {
-            // cannot access functions from outside of module
-        } else if (scope != null) {
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding = getTypeArgBinding();
-            for (DefLink n : scope.attrNameLinks().get(name)) {
-                if (!(n instanceof FuncLink)) {
-                    continue;
-                }
-                DefLink n2 = NameResolution.matchDefLinkReceiver(n, this, node, false);
-                if (n2 != null) {
-                    FuncLink f = (FuncLink) n2;
-                    result.add(f.hidingPrivateAndProtected());
+        for (DefLink defLink : nameLinks(name)) {
+            if (defLink instanceof FuncLink) {
+                FuncLink f = (FuncLink) defLink;
+//                result.add(f.hidingPrivateAndProtected());
+                if (f.getVisibility().isPublic()) {
+                    result.add(f);
                 }
             }
         }
     }
 
     @Override
-    public Stream<NameLink> getMemberMethods(Element node) {
-        NamedScope scope = getDef();
-        if (scope instanceof ModuleDef) {
-            // cannot access functions from outside of module
-        } else if (scope != null) {
-            return scope.attrNameLinks()
-                    .values()
-                    .stream()
-                    .filter(n -> {
-                        WurstType receiverType = n.getReceiverType();
-                        return n.getType() == NameLinkType.FUNCTION
-                                && receiverType != null
-                                && receiverType.isSupertypeOf(this, node);
-                    })
-                    .map(NameLink::hidingPrivateAndProtected);
-        }
-        return Stream.empty();
+    public Stream<FuncLink> getMemberMethods(Element node) {
+        return nameLinks().values().stream()
+                .filter(n -> {
+                    WurstType receiverType = n.getReceiverType();
+                    return n instanceof FuncLink
+                            && receiverType != null;
+                }).map(n -> (FuncLink) n);
     }
 
     @Override

@@ -83,15 +83,7 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
-        if (receiverType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
-            // directly add matching members from class/interface (no import required)
-            for (DefLink n : ct.nameLinks().get(name)) {
-                if (n instanceof FuncLink && n.getVisibility().isPublic()) {
-                    result.add((FuncLink) n);
-                }
-            }
-        }
+        addMemberMethods(node, receiverType, name, result);
 
         WScope scope = node.attrNearestScope();
         while (scope != null) {
@@ -107,7 +99,6 @@ public class NameResolution {
             }
             scope = nextScope(scope);
         }
-        addMemberMethods(node, receiverType, name, result);
         return removeDuplicates(result);
     }
 
@@ -189,17 +180,6 @@ public class NameResolution {
     }
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
-        if (receiverType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
-            for (DefLink n : ct.nameLinks().get(name)) {
-                if (n instanceof VarLink) {
-                    if (n.getVisibility().isPublic()) {
-                        return n;
-                    }
-                }
-            }
-        }
-
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (DefLink n : scope.attrNameLinks().get(name)) {
@@ -213,6 +193,18 @@ public class NameResolution {
             }
             scope = nextScope(scope);
         }
+
+        if (receiverType instanceof WurstTypeClassOrInterface) {
+            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
+            for (DefLink n : ct.nameLinks().get(name)) {
+                if (n instanceof VarLink) {
+                    if (n.getVisibility().isPublic()) {
+                        return n;
+                    }
+                }
+            }
+        }
+
         return null;
     }
 

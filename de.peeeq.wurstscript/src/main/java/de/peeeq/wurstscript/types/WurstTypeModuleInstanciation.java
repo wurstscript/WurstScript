@@ -1,9 +1,13 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableMultimap;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -12,6 +16,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
@@ -69,7 +74,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
     @Override
     public String getName() {
-        return getDef().getName() + printTypeParams() + " (module instanciation)";
+        return getDef().getName() + printTypeParams() + " (module instanciation in " + moduleInst.getParent().attrNearestNamedScope().attrTyp() + ")";
     }
 
     @Override

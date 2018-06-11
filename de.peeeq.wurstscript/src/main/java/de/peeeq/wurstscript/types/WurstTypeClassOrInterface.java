@@ -53,22 +53,6 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         return true;
     }
 
-    /**
-     * get the name links defined directly in this class or interface
-     */
-    public ImmutableMultimap<String, DefLink> nameLinks() {
-        ImmutableMultimap<String, DefLink> res = getDef().attrNameLinks();
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = getTypeArgBinding();
-        if (!binding.isEmpty()) {
-            // OPT maybe cache this
-            ImmutableMultimap.Builder<String, DefLink> resBuilder = ImmutableMultimap.builder();
-            for (Map.Entry<String, DefLink> e : res.entries()) {
-                resBuilder.put(e.getKey(), e.getValue().withTypeArgBinding(getDef(), binding));
-            }
-            return resBuilder.build();
-        }
-        return res;
-    }
 
     public abstract ImmutableList<? extends WurstTypeClassOrInterface> directSupertypes();
 
