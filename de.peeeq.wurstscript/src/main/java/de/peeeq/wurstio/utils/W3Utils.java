@@ -19,6 +19,10 @@ public class W3Utils {
 
     private static double patchVer = -1;
 
+    public static void setPatchVer(double patchVer) {
+        W3Utils.patchVer = patchVer;
+    }
+
     public static double getWc3PatchVersion() {
         if (patchVer == -1) {
             try {
