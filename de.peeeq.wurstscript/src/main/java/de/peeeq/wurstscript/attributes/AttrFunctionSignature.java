@@ -1,7 +1,9 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.types.FunctionSignature;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
@@ -35,18 +37,20 @@ public class AttrFunctionSignature {
         if (candidates.isEmpty()) {
             // parameters match for no element, just return the first signature
             return Utils.getFirst(sigs);
-        } else if (candidates.size() > 1) {
-            if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
-                // only show overloading error, if type for all arguments could be determined
-                StringBuilder alternatives = new StringBuilder();
-                for (FunctionSignature s : candidates) {
-                    if (alternatives.length() > 0) {
-                        alternatives.append(", ");
-                    }
-                    alternatives.append(s.toString());
+        } else if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+
+        if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
+            // only show overloading error, if type for all arguments could be determined
+            StringBuilder alternatives = new StringBuilder();
+            for (FunctionSignature s : candidates) {
+                if (alternatives.length() > 0) {
+                    alternatives.append(", ");
                 }
-                location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
+                alternatives.append(s.toString());
             }
+            location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
     }
