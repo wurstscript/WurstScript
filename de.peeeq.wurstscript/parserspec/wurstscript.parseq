@@ -416,6 +416,10 @@ Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
+Expr.attrExpectedTypAfterOverloading() "more precise expected type, after overloading"
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.afterOverloading
+
 ExprClosure.attrClosureAbstractMethod
 	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate

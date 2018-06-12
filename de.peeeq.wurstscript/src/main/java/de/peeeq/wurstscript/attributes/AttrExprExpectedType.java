@@ -135,17 +135,37 @@ public class AttrExprExpectedType {
         WurstType res = WurstTypeUnknown.instance();
 
         for (FunctionSignature sig : sigs) {
-            if (index >= sig.getParamTypes().size() - 1 &&  sig.isVararg()) {
-                res = res.typeUnion(sig.getVarargType(), expr);
-            } else if (index < sig.getParamTypes().size()) {
-                res = res.typeUnion(sig.getParamTypes().get(index), expr);
+            if (index < sig.getMaxNumParams()) {
+                res = res.typeUnion(sig.getParamType(index), expr);
             }
         }
         return res;
+    }
+
+    private static WurstType expectedTypeAfterOverloading(Expr expr, Arguments args, StmtCall stmtCall) {
+        FunctionSignature sig = stmtCall.attrFunctionSignature();
+        int index = args.indexOf(expr);
+
+        if (index < sig.getMaxNumParams()) {
+            return sig.getParamType(index);
+        }
+        return WurstTypeUnknown.instance();
     }
 
     public static WurstType normalizedType(Expr e) {
         return e.attrExpectedTypRaw().normalize();
     }
 
+    public static WurstType afterOverloading(Expr e) {
+        Element parent = e.getParent();
+        if (parent instanceof Arguments) {
+            Arguments args = (Arguments) parent;
+            Element parent2 = args.getParent();
+            if (parent2 instanceof StmtCall) {
+                StmtCall stmtCall = (StmtCall) parent2;
+                return expectedTypeAfterOverloading(e, args, stmtCall).normalize();
+            }
+        }
+        return e.attrExpectedTyp();
+    }
 }

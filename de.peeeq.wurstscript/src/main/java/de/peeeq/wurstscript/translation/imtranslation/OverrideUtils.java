@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.utils.Utils;
+import fj.P2;
 import fj.data.TreeMap;
 
 import java.util.ArrayList;
@@ -19,7 +21,7 @@ public class OverrideUtils {
     public static void addOverrideClosure(ImTranslator tr, FuncDef superMethod, ImMethod m, ExprClosure exprClosure) {
 
 
-        WurstType expected = exprClosure.attrExpectedTyp();
+        WurstType expected = exprClosure.attrExpectedTypAfterOverloading();
 
         Element e = exprClosure;
 

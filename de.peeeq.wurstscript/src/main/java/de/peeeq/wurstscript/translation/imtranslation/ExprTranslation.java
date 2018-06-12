@@ -116,19 +116,19 @@ public class ExprTranslation {
             }
         }
 
-        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
-        System.out.println("  actualType = " + actualType.getFullName());
-        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
+//        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
+//        System.out.println("  actualType = " + actualType.getFullName());
+//        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
 
         if (toIndex != null && fromIndex != null) {
-            System.out.println("  --> cancel");
+//            System.out.println("  --> cancel");
             // the two conversions cancel each other out
             return translated;
         } else if (fromIndex != null) {
-            System.out.println("  --> fromIndex");
+//            System.out.println("  --> fromIndex");
             return JassIm.ImFunctionCall(trace, fromIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
-            System.out.println("  --> toIndex");
+//            System.out.println("  --> toIndex");
             return JassIm.ImFunctionCall(trace, toIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
         }
         return translated;
