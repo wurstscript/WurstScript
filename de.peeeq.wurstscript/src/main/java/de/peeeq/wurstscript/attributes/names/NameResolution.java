@@ -243,9 +243,9 @@ public class NameResolution {
     public static @Nullable WPackage lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getDef() instanceof WPackage) {
-                    return (WPackage) n.getDef();
+            for (NameLink n : scope.attrNameLinks().get(name)) {
+                if (n instanceof PackageLink) {
+                    return ((PackageLink) n).getDef();
                 }
             }
             scope = nextScope(scope);
