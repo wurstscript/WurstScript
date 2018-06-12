@@ -269,7 +269,7 @@ public class NameResolution {
     public static PackageLink lookupPackage(Element node, String name, boolean showErrors) {
         WScope scope = node.attrNearestScope();
         while (scope != null) {
-            for (NameLink n : scope.attrTypeNameLinks().get(name)) {
+            for (NameLink n : scope.attrNameLinks().get(name)) {
                 if (n instanceof PackageLink) {
                     return (PackageLink) n;
                 }
