@@ -36,8 +36,6 @@ public class InterpreterException extends RuntimeException {
         if (trace == null) {
             return getMessage();
         }
-        System.err.println(trace);
-        System.err.println(trace.attrSource());
         WPos pos = trace.attrSource();
         return "at " + pos.print() + ":\n" + getMessage()
                 + (stackTrace != null ? "\nStack trace:\n" + stackTrace : "");

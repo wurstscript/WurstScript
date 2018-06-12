@@ -895,5 +895,30 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void genericFunctionOverload() { // #628
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "class LinkedList<T>",
+                "	T x",
+                "function stringToIndex(string b) returns int",
+                "	return 0",
+                "function stringFromIndex(int i) returns string",
+                "	return \"\"",
+                "public function LinkedList<string>.foo(string separator) returns string",
+                "	this.foo<string>(s -> s, separator) // Doesn't work",
+                "	this.foo2<string>(s -> s, separator) // Works",
+                "	return separator",
+                "interface ToStringClosure<A>",
+                "	function apply(A a) returns A",
+                "public function LinkedList<T>.foo<T>(ToStringClosure<T> cls, string separator)",
+                "public function LinkedList<T>.foo2<T>(ToStringClosure<T> cls, string separator)",
+                "init",
+                "	let x = new LinkedList<string>",
+                "	x.foo(\"a\")"
+        );
+    }
+
 
 }

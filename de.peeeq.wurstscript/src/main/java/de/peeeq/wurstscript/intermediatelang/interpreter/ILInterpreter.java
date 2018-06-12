@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.JassArray;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
@@ -105,7 +106,7 @@ public class ILInterpreter implements AbstractInterpreter {
         } catch (InterpreterException e) {
             String msg = buildStacktrace(globalState, e);
             throw e.withStacktrace(msg);
-        } catch (TestSuccessException | TestFailException e) {
+        } catch (TestSuccessException | TestFailException | DebugPrintError e) {
             throw e;
         } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
