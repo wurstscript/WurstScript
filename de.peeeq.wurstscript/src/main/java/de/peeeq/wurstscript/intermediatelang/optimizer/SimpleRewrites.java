@@ -8,9 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
@@ -91,7 +89,6 @@ public class SimpleRewrites implements OptimizerPass {
         }
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opc = (ImOperatorCall) elem;
-            optimizeElement(opc.getArguments());
             optimizeOpCall(opc);
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
