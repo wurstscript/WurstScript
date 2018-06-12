@@ -91,7 +91,6 @@ public class SimpleRewrites implements OptimizerPass {
         }
         if (elem instanceof ImOperatorCall) {
             ImOperatorCall opc = (ImOperatorCall) elem;
-            optimizeElement(opc.getArguments());
             optimizeOpCall(opc);
         } else if (elem instanceof ImIf) {
             ImIf imIf = (ImIf) elem;
