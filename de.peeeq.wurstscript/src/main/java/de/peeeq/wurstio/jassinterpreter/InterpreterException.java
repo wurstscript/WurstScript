@@ -26,7 +26,7 @@ public class InterpreterException extends RuntimeException {
         this.trace = trace;
     }
 
-    public InterpreterException(Element trace, String msg, Exception e) {
+    public InterpreterException(Element trace, String msg, Throwable e) {
         super(msg, e);
         this.trace = trace;
     }

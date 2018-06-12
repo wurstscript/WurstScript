@@ -54,7 +54,9 @@ public class AttrVarDefType {
                     "Closure type " + expectedTyp + " does not take so many parameters.");
             return WurstTypeInfer.instance();
         }
-        return sig.getParamTypes().get(paramIndex);
+        // we call normalize here, because we do not want to get implicit conversions
+        // for closures these are handled by creating wrapper functions
+        return sig.getParamTypes().get(paramIndex).normalize();
     }
 
     public static WurstTypeClass calculate(ClassDef c) {

@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;

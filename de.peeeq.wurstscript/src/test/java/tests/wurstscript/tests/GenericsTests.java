@@ -210,6 +210,59 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void implicitConversions3() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	public interface FoldClosure<T, Q>",
+                "		function apply(T t, Q q) returns Q",
+                "	class Cell<T>",
+                "		T elem",
+                "		function set(T t)",
+                "			elem = t",
+                "		function get() returns T",
+                "			return elem",
+                "		function fold<Q>(Q start, FoldClosure<T,Q> f) returns Q",
+                "			return f.apply(elem, start)",
+                "",
+                "	tuple bla(int z, int y)",
+                "	function blaToIndex(bla b) returns int",
+                "		return b.z",
+                "	function blaFromIndex(int i) returns bla",
+                "		return bla(i, 2)",
+                "	init",
+                "		Cell<bla> c = new Cell<bla>()",
+                "		c.set(bla(5, 3))",
+                "		let x = c.fold(2, (e, a) -> e.z + a)",
+                "		if x == 7",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void implicitConversions4() { // #490
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function booleanToIndex(bool b) returns int",
+                "	return b ? 1 : 0",
+                "function booleanFromIndex(int i) returns bool",
+                "	return i == 0 ? false : true",
+                "interface TFunc<T>",
+                "    abstract function run(T t)",
+                "",
+                "function runFunc(TFunc<bool> func)",
+                "    func.run(false)",
+                "",
+                "init",
+                "    runFunc( (bool b) -> begin",
+                "        testSuccess()",
+                "    end )"
+                );
+    }
+
+    @Test
     public void implicitConversionsFail() {
         testAssertErrorsLines(true, "Could not find function blaFromIndex",
                 "package test",

@@ -14,6 +14,8 @@ import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.jassinterpreter.TestFailException;
+import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -103,13 +105,15 @@ public class ILInterpreter implements AbstractInterpreter {
         } catch (InterpreterException e) {
             String msg = buildStacktrace(globalState, e);
             throw e.withStacktrace(msg);
-        } catch (Exception e) {
+        } catch (TestSuccessException | TestFailException e) {
+            throw e;
+        } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
             throw new InterpreterException(globalState.getLastStatement().attrTrace(), "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
         }
     }
 
-    private static String buildStacktrace(ProgramState globalState, Exception e) {
+    private static String buildStacktrace(ProgramState globalState, Throwable e) {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();
