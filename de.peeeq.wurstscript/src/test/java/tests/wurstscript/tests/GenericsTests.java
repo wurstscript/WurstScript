@@ -263,6 +263,40 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void implicitConversions5() { // #490
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native R2I(real r) returns int",
+                "native R2S(real r) returns string",
+                "native println(string s)",
+                "function realToIndex(real r) returns int",
+                "	return R2I(r*1000.)",
+                "function realFromIndex(int i) returns real",
+                "	return i / 1000.",
+                "interface F<A,R>",
+                "	function apply(A a) returns R",
+                "class Cell<T>",
+                "	T elem",
+                "	construct(T t)",
+                "		this.elem = t",
+                "	function get() returns T",
+                "		return elem",
+                "	function map<R>(F<T,R> f) returns Cell<R>",
+                "		return new Cell(f.apply(elem))",
+                "function real.assertEquals(real expected)",
+                "	if this == expected",
+                "		testSuccess()",
+                "	else",
+                "		println(R2S(this))",
+                "init",
+                "	let a = new Cell(5)",
+                "	let b = a.map(i -> i*10.)",
+                "	b.get().assertEquals(50)"
+        );
+    }
+
+    @Test
     public void implicitConversionsFail() {
         testAssertErrorsLines(true, "Could not find function blaFromIndex",
                 "package test",
