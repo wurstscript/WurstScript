@@ -7,7 +7,10 @@ import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
-import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -1530,6 +1533,9 @@ public class WurstValidator {
                 @Override
                 public void case_LocalVarDef(LocalVarDef localVarDef) {
                     check(ModConstant.class);
+                    if (localVarDef.hasAnnotation("@compiletime")) {
+                        localVarDef.getAnnotation("@compiletime").addWarning("The annotation '@compiletime' has no effect on variables.");
+                    }
                 }
 
                 @Override
@@ -1539,6 +1545,9 @@ public class WurstValidator {
                                 Annotation.class);
                     } else {
                         check(VisibilityPublic.class, ModConstant.class, Annotation.class);
+                    }
+                    if (g.hasAnnotation("@compiletime")) {
+                        g.getAnnotation("@compiletime").addWarning("The annotation '@compiletime' has no effect on variables.");
                     }
                 }
 
@@ -1559,6 +1568,12 @@ public class WurstValidator {
                         }
                     } else {
                         check(VisibilityPublic.class, Annotation.class);
+                    }
+                    if(f.attrIsCompiletime()) {
+                        if(f.getParameters().size() > 0) {
+                            f.addError("Functions annotated '@compiletime' may not take parameters." +
+                                    "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
+                        }
                     }
                 }
 
