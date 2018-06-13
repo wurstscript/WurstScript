@@ -251,7 +251,7 @@ public class ModuleTests extends WurstScriptTest {
 
     @Test
     public void staticmeth_external() {
-        testAssertErrorsLines(false, "method b is undefined",
+        testAssertErrorsLines(false, "Could not find function b",
                 "package test",
                 "    module A",
                 "        static function b(int b)",
@@ -514,7 +514,6 @@ public class ModuleTests extends WurstScriptTest {
                 "endpackage",
                 "package Test2",
                 "import Test",
-                "native testSuccess()",
                 "init",
                 "    print(\"size test2:\" + TestClass.size.toString())",
                 "    if TestClass.size == 1",
@@ -530,7 +529,6 @@ public class ModuleTests extends WurstScriptTest {
     public void stupidTest() { // see #656
         testAssertOkLinesWithStdLib(true,
                 "package Test",
-                "native testSuccess()",
                 "init",
                 "    testSuccess()",
                 "endpackage"
@@ -542,7 +540,6 @@ public class ModuleTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(true,
                 "package Test",
                 "import LinkedListModule",
-                "native testSuccess()",
                 "public class TestClass",
                 "    use LinkedListModule",
                 "    static TestClass a = new TestClass",

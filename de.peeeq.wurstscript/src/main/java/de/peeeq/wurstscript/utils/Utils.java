@@ -8,6 +8,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import org.eclipse.jdt.annotation.Nullable;
@@ -233,6 +234,10 @@ public class Utils {
         throw new Error("collection has no first element");
     }
 
+    public static <T> T getLast(List<T> ts) {
+        return ts.get(ts.size() - 1);
+    }
+
 
     private static <T> void topSortHelperIgnoreCycles(List<T> result,
                                                       Set<T> visitedItems,
@@ -386,6 +391,10 @@ public class Utils {
     public static Element getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
 //		System.out.println("get element " + Utils.printElement(elem)  
 //			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
+        if (elem instanceof ModuleInstanciation) {
+            // do not helicopter into module instantiations
+            return elem;
+        }
         List<Element> betterResults = Lists.newArrayList();
         for (int i = 0; i < elem.size(); i++) {
             Element e = elem.get(i);
@@ -788,7 +797,6 @@ public class Utils {
 
     public static <T>
     Collector<T, ?, ImmutableList<T>> toImmutableList() {
-        Collectors.toList();
         return new Collector<T, Builder<T>, ImmutableList<T>>() {
 
             @Override
@@ -951,5 +959,27 @@ public class Utils {
             e = e.getParent();
         }
         return result.toString();
+    }
+
+    @SafeVarargs
+    public static <T> ImmutableList<T> concatLists(List<T> ...lists) {
+        Builder<T> builder = ImmutableList.builder();
+        for (List<T> list : lists) {
+            builder.addAll(list);
+        }
+        return builder.build();
+    }
+
+    public static String prettyPrint(Element e) {
+        StringBuilder sb = new StringBuilder();
+        e.prettyPrint(new DefaultSpacer(), sb, 0);
+        return sb.toString();
+    }
+
+    public static String prettyPrintWithLine(Element e) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.attrSource().getFile()).append(":").append(e.attrSource().getLine()).append(": ");
+        e.prettyPrint(new DefaultSpacer(), sb, 4);
+        return sb.toString();
     }
 }

@@ -1,11 +1,15 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypePackage extends WurstTypeNamedScope {

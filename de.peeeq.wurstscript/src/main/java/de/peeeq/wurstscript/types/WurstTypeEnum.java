@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableMultimap;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;

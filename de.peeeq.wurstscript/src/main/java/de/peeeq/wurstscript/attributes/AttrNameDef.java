@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
@@ -12,20 +14,20 @@ import org.eclipse.jdt.annotation.Nullable;
 public class AttrNameDef {
 
 
-    public static NameDef calculate(ExprVarArrayAccess term) {
+    public static NameLink calculate(ExprVarArrayAccess term) {
         return searchNameInScope(term.getVarName(), term);
     }
 
-    public static NameDef calculate(ExprVarAccess term) {
-        NameDef result = specialEnumLookupRules(term);
+    public static NameLink calculate(ExprVarAccess term) {
+        NameLink result = specialEnumLookupRules(term);
         if (result != null) {
             return result;
         }
         return searchNameInScope(term.getVarName(), term);
     }
 
-    public static @Nullable NameDef specialEnumLookupRules(ExprVarAccess term) {
-        NameDef result = null;
+    public static @Nullable NameLink specialEnumLookupRules(ExprVarAccess term) {
+        NameLink result = null;
         Element parent = term.getParent();
         if (parent instanceof SwitchCase) {
             SwitchStmt s = (SwitchStmt) parent.getParent().getParent();
@@ -42,7 +44,7 @@ public class AttrNameDef {
         return result;
     }
 
-    public static @Nullable NameDef lookupEnumConst(String varName, WurstType t) {
+    public static @Nullable NameLink lookupEnumConst(String varName, WurstType t) {
         if (t instanceof WurstTypeEnum) {
             WurstTypeEnum e = (WurstTypeEnum) t;
             // if we expect an enum type we can as well directly look into the enum
@@ -52,36 +54,32 @@ public class AttrNameDef {
         return null;
     }
 
-    public static @Nullable NameDef calculate(ExprMemberVar term) {
+    public static NameLink calculate(ExprMemberVar term) {
         return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
     }
 
-    public static @Nullable NameDef calculate(ExprMemberArrayVar term) {
+    public static @Nullable NameLink calculate(ExprMemberArrayVar term) {
         return memberVarCase(term.getLeft(), term.getVarName(), isWriteAccess(term), term);
     }
 
 
-    protected static NameDef searchNameInScope(String varName, NameRef node) {
+    protected static NameLink searchNameInScope(String varName, NameRef node) {
         boolean showErrors = !varName.startsWith("gg_");
-        NameDef result = node.lookupVar(varName, showErrors);
+        NameLink result = node.lookupVar(varName, showErrors);
         return result;
     }
 
     private static boolean isWriteAccess(final NameRef node) {
-        boolean writeAccess1 = false;
         if (node.getParent() instanceof StmtSet) {
             StmtSet stmtSet = (StmtSet) node.getParent();
-            if (stmtSet.getUpdatedExpr() == node) {
-                writeAccess1 = true;
-            }
+            return stmtSet.getUpdatedExpr() == node;
         }
-        final boolean writeAccess = writeAccess1;
-        return writeAccess;
+        return false;
     }
 
-    private static @Nullable NameDef memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
+    private static @Nullable NameLink memberVarCase(Expr left, String varName, boolean writeAccess, Expr node) {
         WurstType receiverType = left.attrTyp();
-        NameDef result = node.lookupMemberVar(receiverType, varName);
+        NameLink result = node.lookupMemberVar(receiverType, varName);
         if (result == null) {
 
 
@@ -102,7 +100,11 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameDef tryGetNameDef(NameRef e) {
-        return e.attrNameDef();
+        NameLink link = e.attrNameLink();
+        if (link == null) {
+            return null;
+        }
+        return link.getDef();
     }
 
     public static @Nullable NameDef tryGetNameDef(NameDef e) {
@@ -110,7 +112,11 @@ public class AttrNameDef {
     }
 
     public static @Nullable NameDef tryGetNameDef(FuncRef e) {
-        return e.attrFuncDef();
+        FuncLink link = e.attrFuncLink();
+        if (link == null) {
+            return null;
+        }
+        return link.getDef();
     }
 
     public static @Nullable NameDef tryGetNameDef(TypeRef e) {
@@ -122,4 +128,8 @@ public class AttrNameDef {
     }
 
 
+    public static NameDef calculateDef(NameRef nameRef) {
+        NameLink l = nameRef.attrNameLink();
+        return l == null ? null : l.getDef();
+    }
 }

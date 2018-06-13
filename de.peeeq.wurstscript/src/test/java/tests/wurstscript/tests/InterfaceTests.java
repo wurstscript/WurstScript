@@ -477,7 +477,7 @@ public class InterfaceTests extends WurstScriptTest {
 
     @Test
     public void testOverrideFail() {
-        testAssertErrorsLines(false, "Cannot implement interface I because of function foo: The type of parameter x is string but it should be integer",
+        testAssertErrorsLines(false, "Non-abstract class C must implement the following functions:",
                 "package test",
                 "	native testSuccess()",
                 "	interface I",

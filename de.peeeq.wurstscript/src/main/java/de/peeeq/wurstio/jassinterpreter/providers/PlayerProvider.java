@@ -24,6 +24,17 @@ public class PlayerProvider extends Provider {
         return p != null ? ((PlayerMock) p.getObj()).id : ILconstInt.create(-1);
     }
 
+    public ILconstInt GetPlayerNeutralPassive() {
+        // fake value
+        return new ILconstInt(31);
+    }
+
+    public ILconstInt GetPlayerNeutralAggressive() {
+        // fake value
+        return new ILconstInt(30);
+    }
+
+
     public IlConstHandle GetLocalPlayer() {
         return new IlConstHandle("Local Player", "local player");
     }

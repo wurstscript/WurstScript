@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.validation.WurstValidator;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class OverriddenFunctions {
 
 

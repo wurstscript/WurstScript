@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 
 public class UsedPackages {
 
@@ -29,9 +30,9 @@ public class UsedPackages {
 
     public static ImmutableCollection<WPackage> usedPackages(NameRef e) {
         ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
-        NameDef def = e.attrNameDef();
-        if (def instanceof VarDef) {
-            if (def.attrNearestPackage() instanceof WPackage) {
+        NameLink def = e.attrNameLink();
+        if (def.getDef() instanceof VarDef) {
+            if (def.getDef().attrNearestPackage() instanceof WPackage) {
                 result.add((WPackage) e.attrNearestPackage());
             }
         }

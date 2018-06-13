@@ -416,6 +416,10 @@ Expr.attrExpectedTyp "try to guess what type is expected here"
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.normalizedType
 
+Expr.attrExpectedTypAfterOverloading() "more precise expected type, after overloading"
+	returns de.peeeq.wurstscript.types.WurstType
+	implemented by de.peeeq.wurstscript.attributes.AttrExprExpectedType.afterOverloading
+
 ExprClosure.attrClosureAbstractMethod
 	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod.calculate
@@ -437,6 +441,15 @@ NameRef.attrImplicitParameter
 NameDef.attrTyp
 	returns de.peeeq.wurstscript.types.WurstType
 	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
+ClassDef.attrTypC
+	returns de.peeeq.wurstscript.types.WurstTypeClass
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
+InterfaceDef.attrTypI
+	returns de.peeeq.wurstscript.types.WurstTypeInterface
+	implemented by de.peeeq.wurstscript.attributes.AttrVarDefType.calculate
+
 
 FunctionLike.attrReturnType
 	returns de.peeeq.wurstscript.types.WurstType
@@ -616,26 +629,6 @@ Element.attrErrorPos() "returns the position where errors are marked"
 	implemented by de.peeeq.wurstscript.attributes.AttrPos.getErrorPos
 
 
-HasTypeArgs.attrTypeParameterBindings
-	returns com.google.common.collect.ImmutableMap<TypeParamDef, de.peeeq.wurstscript.types.WurstTypeBoundTypeParam>
-	implemented by de.peeeq.wurstscript.attributes.Generics.getTypeParameterBindings
-
-
-
-
-
-InterfaceDef.attrExtendedInterfaces
-	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
-	implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getExtendedInterfaces
-
-ClassDef.attrExtendedClass
-	returns ClassDef
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClass
-
-ClassDef.attrExtendedClassType
-	returns de.peeeq.wurstscript.types.WurstType
-	implemented by de.peeeq.wurstscript.attributes.SubClasses.getExtendedClassType
-
 ClassDef.isInnerClass()
 	returns boolean
 	implemented by de.peeeq.wurstscript.attributes.InnerClasses.isInnerClass
@@ -749,11 +742,6 @@ StmtForEach.attrCloseFunc
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.FuncSkeleton.create
 
-	ClassDef.attrImplementedInterfaces
-		returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.types.WurstTypeInterface>
-		implemented by de.peeeq.wurstscript.attributes.InterfaceInstances.getImplementedInterfaces
-
-
 
 Element.addError(String msg)
 	returns void
@@ -775,26 +763,38 @@ FunctionLike.attrHasEmptyBody()
 
 // Naming:
 
-NameRef.attrNameDef
-	returns @Nullable NameDef
+NameRef.attrNameLink
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
+NameRef.attrNameDef
+	returns NameDef
+	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculateDef
+
 FuncRef.attrPossibleFuncDefs
-	returns com.google.common.collect.ImmutableCollection<FunctionDefinition>
+	returns com.google.common.collect.ImmutableCollection<de.peeeq.wurstscript.attributes.names.FuncLink>
 	implemented by de.peeeq.wurstscript.attributes.PossibleFuncDefs.calculate
 
 
-FuncRef.attrFuncDef
-	returns @Nullable FunctionDefinition
+FuncRef.attrFuncLink
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+FuncRef.attrFuncDef()
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculateDef
 
 ExprNewObject.attrConstructorDef
 	returns @Nullable ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.AttrConstructorDef.calculate
 
-ExprBinary.attrFuncDef
-	returns @Nullable FunctionDefinition
+ExprBinary.attrFuncLink
+	returns de.peeeq.wurstscript.attributes.names.FuncLink
 	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculate
+
+ExprBinary.attrFuncDef()
+	returns FunctionDefinition
+	implemented by de.peeeq.wurstscript.attributes.AttrFuncDef.calculateDef
 
 
 FunctionDefinition.attrRealFuncDef "returns the function definition which overrides this definition"
@@ -873,19 +873,19 @@ Element.lookupType(String name, boolean showErrors)
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupType
 
 Element.lookupPackage(String name, boolean showErrors)
-	returns @Nullable WPackage
+	returns de.peeeq.wurstscript.attributes.names.PackageLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackage
 
 Element.lookupVar(String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVar
 
 Element.lookupVarNoConfig(String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarNoConfig
 
 Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name, boolean showErrors)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVar
 
 Element.lookupFuncs(String name, boolean showErrors)
@@ -906,15 +906,15 @@ Element.lookupType(String name)
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupTypeShort
 
 Element.lookupPackage(String name)
-	returns @Nullable WPackage
+	returns de.peeeq.wurstscript.attributes.names.PackageLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupPackageShort
 
 Element.lookupVar(String name)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupVarShort
 
 Element.lookupMemberVar(de.peeeq.wurstscript.types.WurstType receiverType, String name)
-	returns @Nullable NameDef
+	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.names.NameResolution.lookupMemberVarShort
 
 Element.lookupFuncs(String name)

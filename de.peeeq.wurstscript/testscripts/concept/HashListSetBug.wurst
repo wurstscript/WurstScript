@@ -1,0 +1,15 @@
+package HashListSetBug
+import HashSet
+import LinkedListModule
+
+class B
+    function destr()
+
+class AA
+    use LinkedListModule
+    HashList<B> list = new HashList<B> //click the left `HashList`
+    function destr()
+        for i in list
+            i.destr() //vscode error here
+        destroy list
+        destroy this

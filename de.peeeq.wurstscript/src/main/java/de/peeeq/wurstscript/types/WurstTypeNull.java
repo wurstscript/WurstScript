@@ -1,8 +1,13 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.Collection;
 
 
 public class WurstTypeNull extends WurstTypePrimitive {
@@ -15,8 +20,8 @@ public class WurstTypeNull extends WurstTypePrimitive {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return other instanceof WurstTypeNull
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        if (other instanceof WurstTypeNull
                 || other instanceof WurstTypeHandle
                 || other instanceof WurstNativeType
                 || other instanceof WurstTypeString
@@ -26,7 +31,10 @@ public class WurstTypeNull extends WurstTypePrimitive {
                 || other instanceof WurstTypeModule
                 || other instanceof WurstTypeModuleInstanciation
                 || other instanceof WurstTypeTypeParam
-                || other instanceof WurstTypeBoundTypeParam;
+                || other instanceof WurstTypeBoundTypeParam) {
+            return mapping;
+        }
+        return null;
     }
 
 

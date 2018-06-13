@@ -10,6 +10,7 @@ import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
+import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -100,7 +101,8 @@ public class WurstScriptTest {
         }
 
         CompilationResult lines(String... lines) {
-            additionalCompilationUnits.add(new CU("lines", Utils.join(lines, "\n") + "\n"));
+            String testName = UtilsIO.getMethodName(WurstScriptTest.class.getName());
+            additionalCompilationUnits.add(new CU(testName, Utils.join(lines, "\n") + "\n"));
             return run();
         }
 
@@ -121,7 +123,9 @@ public class WurstScriptTest {
                 return new CompilationResult(model);
             } catch (CompileError e) {
                 if (expectedError != null) {
-                    Assert.assertTrue(e.getMessage().toLowerCase().contains(expectedError.toLowerCase()), e.toString());
+                    if (!e.getMessage().toLowerCase().contains(expectedError.toLowerCase())) {
+                        throw e;
+                    }
                     return null;
                 }
                 throw e;
@@ -475,19 +479,11 @@ public class WurstScriptTest {
     }
 
     private void executeTests(WurstGui gui, ImProg imProg) {
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, Tests);
-        cfr.run();
-        WLogger.info("Successfull tests: " + cfr.getSuccessTests().size());
-        int failedTestCount = cfr.getFailTests().size();
-        WLogger.info("Failed tests: " + failedTestCount);
-        if (failedTestCount == 0) {
-            return;
+        RunTests runTests = new RunTests(null, 0, 0);
+        RunTests.TestResult res = runTests.runTests(imProg, null, null);
+        if (res.getPassedTests() < res.getTotalTests()) {
+            throw new Error("tests failed");
         }
-        for (Entry<ImFunction, Pair<ImStmt, String>> e : cfr.getFailTests().entrySet()) {
-            Assert.assertFalse(true, Utils.printElementWithSource(e.getKey().attrTrace()) + " " + e.getValue().getB()
-                    + "\n" + "at " + Utils.printElementWithSource(e.getValue().getA().attrTrace()));
-        }
-        throw new Error("tests failed");
     }
 
     /**

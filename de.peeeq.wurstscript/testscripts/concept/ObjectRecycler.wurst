@@ -2,6 +2,8 @@ package ObjectRecycler
 import Stack
 import TypeCasting
 import MapBounds
+import Table
+import ErrorHandling
 
 Table objectLists = new Table()
 
@@ -13,7 +15,7 @@ public function unit.recycle()
 		this.hide()
 		this.setPos(1, 2)
 	else
-		printError("trying to recycle a unit not created by 'getUnit'!")
+		error("trying to recycle a unit not created by 'getUnit'!")
 	
 
 public function getUnit(player p, int id, vec2 pos, angle facing) returns unit
@@ -27,3 +29,89 @@ public function getUnit(player p, int id, vec2 pos, angle facing) returns unit
 init
 	unit u = getUnit(Player(0), 0, vec2(0,0), angle(0))
 	u.recycle()
+
+endpackage
+package Stack
+
+public class Stack<T>
+	private SEntry<T> dummy
+	private SEntry<T> top
+	private int size = 0
+
+	construct()
+		dummy = new SEntry<T>(null, null)
+		top = dummy
+
+	// add an element to the end of the list
+	function push(T elem)
+		top = new SEntry(elem, top)
+		size++
+
+	// get & remove the top element
+	function pop() returns T
+		let val = top
+		top = top.prev
+		size--
+		return val.elem
+
+
+	// look at the top element
+	function peek() returns T
+		return top.elem
+
+	// add all elements from elems to this stack
+	function addAll(Stack<T> elems)
+		for T elem in elems
+			push(elem)
+
+
+	// gets the size of the stack
+	function getSize() returns int
+		return size
+
+	// get an iterator for this stack
+	function iterator() returns SIterator<T>
+		return new SIterator(dummy, top)
+
+	ondestroy
+		SEntry<T> current = top
+		while current != dummy
+			let temp = current
+			current = current.prev
+			destroy temp
+		destroy dummy
+
+class SEntry<S>
+	S elem
+	SEntry<S> prev
+
+	construct(S elem, SEntry<S> prev)
+		this.elem = elem
+		this.prev = prev
+
+class SIterator<Q>
+	SEntry<Q> dummy
+	SEntry<Q> current
+
+	construct(SEntry<Q> dummy, SEntry<Q> top)
+		this.dummy = dummy
+		this.current = top
+
+	// remove the current element from the list
+	function remove()
+		if current != dummy
+			let cp = current.prev
+			destroy current
+			current = cp
+
+
+	function hasNext() returns boolean
+		return current.prev != dummy
+
+	function next() returns Q
+		current = current.prev
+		return current.elem
+
+	function close()
+		destroy this
+endpackage

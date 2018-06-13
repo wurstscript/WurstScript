@@ -234,7 +234,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void constr_super_wrong1() {
-        testAssertErrorsLines(true, "Expected integer",
+        testAssertErrorsLines(true, "Expected int",
                 "package test",
                 "    native testSuccess()",
                 "    class Pair",
@@ -573,7 +573,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void teststaticoverride() {
-        testAssertErrorsLines(false, "Cannot override static func",
+        testAssertErrorsLines(false, "Function foo does not override anything.",
                 "package test",
                 "    native testSuccess()",
                 "    class A",
@@ -591,6 +591,32 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    native testSuccess()",
                 "    abstract class A",
                 "        abstract static function foo()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void teststaticoverride3() {
+        testAssertErrorsLines(false, "Function foo does not override anything.",
+                "package test",
+                "    native testSuccess()",
+                "    class A",
+                "        static function foo()",
+                "    class B extends A",
+                "        override function foo()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void teststaticoverride4() {
+        testAssertErrorsLines(false, "Function foo does not override anything.",
+                "package test",
+                "    native testSuccess()",
+                "    class A",
+                "        function foo()",
+                "    class B extends A",
+                "        override static function foo()",
                 "endpackage"
         );
     }

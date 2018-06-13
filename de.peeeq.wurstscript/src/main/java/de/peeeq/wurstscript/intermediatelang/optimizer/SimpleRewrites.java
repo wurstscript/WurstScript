@@ -8,9 +8,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
