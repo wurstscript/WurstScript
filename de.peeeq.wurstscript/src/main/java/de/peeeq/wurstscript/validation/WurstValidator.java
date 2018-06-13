@@ -19,6 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import de.peeeq.wurstscript.attributes.names.VarLink;
 
 /**
  * this class validates a wurstscript program
@@ -2080,9 +2081,9 @@ public class WurstValidator {
             }
         } else {
             if (func1.isStatic() && !func2.isStatic()) {
-                return "Static method " + func1.getName() + " cannot override dynamic "+ Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Static method " + func1.getName() + " cannot override dynamic " + Utils.printElementWithSource(func2.getDef()) + ".";
             } else if (!func1.isStatic() && func2.isStatic()) {
-                return "Method " + func1.getName() + " cannot override static "+ Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Method " + func1.getName() + " cannot override static " + Utils.printElementWithSource(func2.getDef()) + ".";
             }
         }
         if (func1.isVarargMethod() && !func2.isVarargMethod()) {
