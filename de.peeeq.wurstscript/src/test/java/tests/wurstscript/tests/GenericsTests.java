@@ -259,7 +259,7 @@ public class GenericsTests extends WurstScriptTest {
                 "    runFunc( (bool b) -> begin",
                 "        testSuccess()",
                 "    end )"
-                );
+        );
     }
 
     @Test
@@ -968,6 +968,37 @@ public class GenericsTests extends WurstScriptTest {
                 "init",
                 "	let x = new LinkedList<int>",
                 "	x.foldl<int,int>(0, (x, y) -> x + y)"
+        );
+    }
+
+    @Test
+    public void normalFoldlInfer() { // #657
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native I2S(int i) returns string",
+                "string array s",
+                "int s_max = -1",
+                "function stringToIndex(string b) returns int",
+                "	s_max++",
+                "	s[s_max] = b",
+                "	return s_max",
+                "function stringFromIndex(int i) returns string",
+                "	return s[i]",
+                "class LinkedList<T>",
+                "	T x",
+                "	function foldl<Q>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+                "		return predicate.run(x, startValue)",
+                "	function toString() returns string",
+                "		let fold = foldl(\"[\", (i, q) -> q + I2S(i castTo int) + \",\")",
+                "		return fold + \"]\"",
+                "interface FoldClosure<T, Q>",
+                "	function run(T t, Q q) returns Q",
+                "init",
+                "	let x = new LinkedList<int>",
+                "	x.x = 5",
+                "	if x.toString() == \"[5,]\"",
+                "		testSuccess()"
         );
     }
 
