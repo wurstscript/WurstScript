@@ -133,6 +133,11 @@ public class RealWorldExamples extends WurstScriptTest {
         super.testAssertErrorFileWithStdLib(new File(TEST_DIR + "CriggesInitOrder2.wurst"), "used before it is initialized", false);
     }
 
+    @Test
+    public void blubber() throws IOException {
+        super.testAssertOkFileWithStdLib(new File(TEST_DIR + "HashListSetBug.wurst"), false);
+    }
+
 
     @Test
     public void test_stdlib() {
