@@ -74,7 +74,7 @@ public class ImOptimizer {
         }
         WLogger.info("=== Local optimizations done! Ran " + finalItr + " passes. ===");
         totalCount.forEach((k, v) -> {
-            WLogger.info("== " + k + ":   " + k);
+            WLogger.info("== " + k + ":   " + v);
         });
     }
 
