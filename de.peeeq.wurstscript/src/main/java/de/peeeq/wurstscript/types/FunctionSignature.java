@@ -18,17 +18,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(Collections.emptySet(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
+    public static final FunctionSignature empty = new FunctionSignature(Collections.emptyList(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
     private final WurstType returnType;
-    private final Collection<TypeParamDef> typeParams;
+    private final List<TypeParamDef> typeParams;
     private final boolean isVararg;
     private final String name;
 
 
-    public FunctionSignature(Collection<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(List<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
         this.name = name;
         this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
@@ -62,12 +62,16 @@ public class FunctionSignature {
 
     @CheckReturnValue
     public FunctionSignature setTypeArgs(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
+        if (typeArgBinding.isEmpty()) {
+            return this;
+        }
+
         WurstType r2 = returnType.setTypeArgs(typeArgBinding);
         List<WurstType> pt2 = Lists.newArrayList();
         for (WurstType p : paramTypes) {
             pt2.add(p.setTypeArgs(typeArgBinding));
         }
-        Collection<TypeParamDef> typeParams2 = typeParams.stream()
+        List<TypeParamDef> typeParams2 = typeParams.stream()
                 .filter(t -> !typeArgBinding.contains(t))
                 .collect(Utils.toImmutableList());
         return new FunctionSignature(typeParams2, receiverType, name, pt2, paramNames, r2);
@@ -88,7 +92,7 @@ public class FunctionSignature {
 
         List<WurstType> paramTypes = f.attrParameterTypes();
         List<String> paramNames = getParamNames(f.getParameters());
-        Collection<TypeParamDef> typeParams = Collections.emptyList();
+        List<TypeParamDef> typeParams = Collections.emptyList();
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
@@ -280,7 +284,7 @@ public class FunctionSignature {
         return new ArgsMatchResult(setTypeArgs(location, mapping), errors.build(), badness);
     }
 
-    public Collection<TypeParamDef> getTypeParams() {
+    public List<TypeParamDef> getTypeParams() {
         return typeParams;
     }
 }

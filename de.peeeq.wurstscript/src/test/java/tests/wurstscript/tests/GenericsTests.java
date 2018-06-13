@@ -954,5 +954,22 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void strangeFoldl() { // #655
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "class LinkedList<T>",
+                "	T x",
+                "	function foldl<Q, T>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+                "		return null",
+                "interface FoldClosure<T, Q>",
+                "	function run(T t, Q q) returns Q",
+                "init",
+                "	let x = new LinkedList<int>",
+                "	x.foldl<int,int>(0, (x, y) -> x + y)"
+        );
+    }
+
 
 }

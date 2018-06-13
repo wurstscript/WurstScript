@@ -35,6 +35,10 @@ public class AttrPossibleFunctionSignatures {
                     sig = sig.setTypeArgs(fc, mapping);
                 }
             } // TODO else check?
+
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = GenericsHelper.givenBinding(fc, sig.getTypeParams());
+            sig = sig.setTypeArgs(fc, mapping);
+
             resultBuilder.add(sig);
         }
         ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
@@ -101,7 +105,7 @@ public class AttrPossibleFunctionSignatures {
             paramTypes.add(p.attrTyp());
         }
         List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
-        Collection<TypeParamDef> typeParams = Collections.emptyList();
+        List<TypeParamDef> typeParams = Collections.emptyList();
         if (struct instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) struct).getTypeParameters();
         }
