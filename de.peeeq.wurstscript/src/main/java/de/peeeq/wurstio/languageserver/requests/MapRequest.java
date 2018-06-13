@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
+import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -106,7 +107,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         modelManager.syncCompilationUnit(WFile.create(existingScript));
     }
 
-    protected File compileMap(WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) throws IOException {
+    protected File compileMap(WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) {
         try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             //WurstGui gui = new WurstGuiLogger();
             if (!mpqEditor.canWrite()) {
@@ -203,7 +204,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     protected File getBuildDir() {
         File buildDir = new File(workspaceRoot.getFile(), "_build");
-        buildDir.mkdirs();
+        UtilsIO.mkdirs(buildDir);
         return buildDir;
     }
 

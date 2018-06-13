@@ -10,16 +10,16 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class PackageLink extends DefLink {
-    private final WPackage def;
+public class TypeDefLink extends DefLink {
+    private final TypeDef def;
 
-    public PackageLink(Visibility visibility, WScope definedIn, WPackage def) {
+    public TypeDefLink(Visibility visibility, WScope definedIn, TypeDef def) {
         super(visibility, definedIn, Collections.emptyList(), null);
         this.def = def;
     }
 
-    public static PackageLink create(WPackage def, WScope definedIn) {
-        return new PackageLink(calcVisibility(definedIn, def), definedIn, def);
+    public static TypeDefLink create(TypeDef def, WScope definedIn) {
+        return new TypeDefLink(calcVisibility(definedIn, def), definedIn, def);
     }
 
     @Override
@@ -28,13 +28,13 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public WPackage getDef() {
+    public TypeDef getDef() {
         return def;
     }
 
     @Override
-    public PackageLink withVisibility(Visibility newVis) {
-        return new PackageLink(newVis, getDefinedIn(), def);
+    public TypeDefLink withVisibility(Visibility newVis) {
+        return new TypeDefLink(newVis, getDefinedIn(), def);
     }
 
     @Override
@@ -48,8 +48,8 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public PackageLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
-        // packages do not have type parameters
+    public TypeDefLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+        // packages do not have type paramaters
         return this;
     }
 
@@ -60,21 +60,21 @@ public class PackageLink extends DefLink {
 
     @Override
     public WurstType getTyp() {
-        return new WurstTypePackage(def);
+        return def.attrTyp();
     }
 
     @Override
-    public PackageLink withDef(NameDef def) {
-        return new PackageLink(getVisibility(), getDefinedIn(), (WPackage) def);
+    public TypeDefLink withDef(NameDef def) {
+        return new TypeDefLink(getVisibility(), getDefinedIn(), (TypeDef) def);
     }
 
 
-    public PackageLink hidingPrivate() {
-        return (PackageLink) super.hidingPrivate();
+    public TypeDefLink hidingPrivate() {
+        return (TypeDefLink) super.hidingPrivate();
     }
 
-    public PackageLink hidingPrivateAndProtected() {
-        return (PackageLink) super.hidingPrivateAndProtected();
+    public TypeDefLink hidingPrivateAndProtected() {
+        return (TypeDefLink) super.hidingPrivateAndProtected();
     }
 
 }

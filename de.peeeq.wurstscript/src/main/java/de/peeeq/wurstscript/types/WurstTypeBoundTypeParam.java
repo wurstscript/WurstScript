@@ -5,13 +5,14 @@ import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 public class WurstTypeBoundTypeParam extends WurstType {
@@ -25,14 +26,17 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private Element context;
 
     public WurstTypeBoundTypeParam(TypeParamDef def, WurstType baseType, Element context) {
+        if (baseType instanceof WurstTypeIntLiteral) {
+            baseType = WurstTypeInt.instance();
+        }
         this.typeParamDef = def;
         this.baseType = baseType;
         this.context = context;
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return baseType.isSubtypeOfIntern(other, location);
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        return baseType.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
     }
 
     @Override
@@ -84,7 +88,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public Stream<NameLink> getMemberMethods(Element node) {
+    public Stream<FuncLink> getMemberMethods(Element node) {
         return baseType.getMemberMethods(node);
     }
 
@@ -137,7 +141,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public WurstTypeBoundTypeParam setTypeArgs(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstTypeBoundTypeParam setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }
 

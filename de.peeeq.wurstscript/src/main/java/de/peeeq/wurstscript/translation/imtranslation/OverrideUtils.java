@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.utils.Utils;
+import fj.P2;
+import fj.data.TreeMap;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,14 +21,14 @@ public class OverrideUtils {
     public static void addOverrideClosure(ImTranslator tr, FuncDef superMethod, ImMethod m, ExprClosure exprClosure) {
 
 
-        WurstType expected = exprClosure.attrExpectedTyp();
+        WurstType expected = exprClosure.attrExpectedTypAfterOverloading();
 
         Element e = exprClosure;
 
 
         if (expected instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) expected;
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = t.getTypeArgBinding();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = t.getTypeArgBinding();
 
             addOverride(tr, superMethod, m.attrClass(), m, e, typeBinding);
         } else {
@@ -41,7 +44,7 @@ public class OverrideUtils {
             ImClass subClass,
             ImMethod subMethod,
             Element e,
-            Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
         ImMethod superMethodIm = tr.getMethodFor(superMethod);
         boolean needConversion = false;
         List<FuncDef> argFromIndexFuncs = new ArrayList<>();
@@ -56,8 +59,8 @@ public class OverrideUtils {
             if (paramType instanceof WurstTypeTypeParam) {
                 WurstTypeTypeParam bt = (WurstTypeTypeParam) paramType; // TODO also bound type params?
                 TypeParamDef tpDef = bt.getDef();
-                if (typeBinding.containsKey(tpDef)) {
-                    WurstTypeBoundTypeParam btp = typeBinding.get(tpDef);
+                if (typeBinding.contains(tpDef)) {
+                    WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).some();
                     if (btp.getToIndex() != null) {
                         needConversion = true;
                         argFromIndexFuncs.add(btp.getFromIndex());
@@ -72,8 +75,8 @@ public class OverrideUtils {
         if (retType instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam bt = (WurstTypeTypeParam) retType;
             TypeParamDef tpDef = bt.getDef();
-            if (typeBinding.containsKey(tpDef)) {
-                WurstTypeBoundTypeParam btp = typeBinding.get(tpDef);
+            if (typeBinding.contains(tpDef)) {
+                WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).some();
                 if (btp.getToIndex() != null) {
                     needConversion = true;
                     retToIndexFunc = btp.getToIndex();

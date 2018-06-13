@@ -41,17 +41,16 @@ public class CallSignature {
                         "Found " + l_receiver.attrTyp() + " but expected " + sig.getReceiverType());
             }
         }
-        if (getArguments().size() > sig.getParamTypes().size() && !sig.isVararg()) {
-            if (sig.getParamTypes().size() == 0) {
+        if (getArguments().size() > sig.getMaxNumParams()) {
+            if (sig.getMaxNumParams() == 0) {
                 pos.addError("Too many arguments. Function " + funcName + " takes no parameter.");
-            } else if (sig.getParamTypes().size() < 2) {
-                pos.addError("Too many arguments. Function " + funcName + " only takes " + sig.getParamTypes().size()
-                        + " parameter.");
+            } else if (sig.getMaxNumParams() == 1) {
+                pos.addError("Too many arguments. Function " + funcName + " only takes one parameter.");
             } else {
                 pos.addError("Too many arguments. Function " + funcName + " only takes " + sig.getParamTypes().size()
                         + " parameters.");
             }
-        } else if (getArguments().size() < sig.getParamTypes().size()) {
+        } else if (getArguments().size() < sig.getMinNumParams()) {
             pos.addError("Not enough arguments. Function " + funcName + " requires the following arguments: " + sig.getParameterDescription());
         } else {
             for (int i = 0; i < getArguments().size(); i++) {

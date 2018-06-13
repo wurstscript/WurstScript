@@ -26,7 +26,7 @@ public class InterpreterException extends RuntimeException {
         this.trace = trace;
     }
 
-    public InterpreterException(Element trace, String msg, Exception e) {
+    public InterpreterException(Element trace, String msg, Throwable e) {
         super(msg, e);
         this.trace = trace;
     }
@@ -36,8 +36,6 @@ public class InterpreterException extends RuntimeException {
         if (trace == null) {
             return getMessage();
         }
-        System.err.println(trace);
-        System.err.println(trace.attrSource());
         WPos pos = trace.attrSource();
         return "at " + pos.print() + ":\n" + getMessage()
                 + (stackTrace != null ? "\nStack trace:\n" + stackTrace : "");

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableMultimap.Builder;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 
 import java.util.Map.Entry;
@@ -32,10 +33,10 @@ public class AttrClosureCapturedVariables {
         }
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
-            NameDef def = nr.attrNameDef();
-            if (def instanceof LocalVarDef || def instanceof WParameter) {
-                assert def != null; // instanceof-checks ensure this, but eclipse does not get it
-                VarDef v = (VarDef) def;
+            NameLink def = nr.attrNameLink();
+
+            if (def != null && (def.getDef() instanceof LocalVarDef || def.getDef() instanceof WParameter)) {
+                VarDef v = (VarDef) def.getDef();
                 if (v.attrNearestExprClosure() != closure) {
                     result.put(nr, v);
                     if (v.attrTyp() instanceof WurstTypeArray) {

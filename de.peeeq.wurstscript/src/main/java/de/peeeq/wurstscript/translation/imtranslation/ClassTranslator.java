@@ -19,6 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
+import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
@@ -160,9 +161,10 @@ public class ClassTranslator {
 
         if (c instanceof ClassDef) {
             ClassDef cd = (ClassDef) c;
-            if (cd.attrExtendedClass() != null) {
+            WurstTypeClass ct = cd.attrTypC();
+            if (ct.extendedClass() != null) {
                 // call onDestroy of super class
-                ImFunction onDestroy = translator.getFuncFor(cd.attrExtendedClass().getOnDestroy());
+                ImFunction onDestroy = translator.getFuncFor(ct.extendedClass().getClassDef().getOnDestroy());
                 addTo.add(ImFunctionCall(c,
                         onDestroy,
                         ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
@@ -293,9 +295,9 @@ public class ClassTranslator {
                 ClassDef subC = subE.getKey();
 
                 WurstTypeClass ct = getExtendedClassType(subC);
-                Map<TypeParamDef, WurstTypeBoundTypeParam> typeBinding;
+                TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding;
                 if (ct == null) {
-                    typeBinding = Collections.emptyMap();
+                    typeBinding = WurstType.emptyMapping();
                 } else {
                     typeBinding = ct.getTypeArgBinding();
                 }

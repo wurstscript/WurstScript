@@ -11,9 +11,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.types.WurstTypeVoid;
@@ -27,6 +25,7 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * Created by peter on 24.04.16.
@@ -147,7 +146,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             leftType.getMemberMethods(elem).forEach(nameLink -> {
                 if (isSuitableCompletion(nameLink.getName())) {
-                    CompletionItem completion = makeNameDefCompletion(nameLink.getDef());
+                    CompletionItem completion = makeNameDefCompletion(nameLink);
                     completions.add(completion);
                 }
             });
@@ -242,7 +241,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         Set<String> usedPackages = Sets.newHashSet();
         for (WPackage p : model.attrPackages().values()) {
             if (!usedPackages.contains(p.getName()) && isSuitableCompletion(p.getName())) {
-                completions.add(makeNameDefCompletion(p));
+                completions.add(makeNameDefCompletion(PackageLink.create(p, p.attrNearestScope())));
                 usedPackages.add(p.getName());
             }
         }
@@ -306,7 +305,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingMemberCall(List<CompletionItem> completions, ExprMemberMethod c) {
-        FunctionDefinition funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             CompletionItem ci = makeFunctionCompletion(funcDef);
             ci.setTextEdit(null);
@@ -315,7 +314,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void getCompletionsForExistingCall(List<CompletionItem> completions, ExprFunctionCall c) {
-        FunctionDefinition funcDef = c.attrFuncDef();
+        FuncLink funcDef = c.attrFuncLink();
         if (funcDef != null) {
             alreadyEntered = c.getFuncName();
             CompletionItem ci = makeFunctionCompletion(funcDef);
@@ -448,13 +447,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 }
             }
 
-            if (e.getValue().getDef() instanceof FunctionDefinition) {
-                FunctionDefinition f = (FunctionDefinition) e.getValue().getDef();
-
-                CompletionItem completion = makeFunctionCompletion(f);
+            if (e.getValue() instanceof FuncLink) {
+                FuncLink funcLink = (FuncLink) e.getValue();
+                CompletionItem completion = makeFunctionCompletion(funcLink);
                 completions.add(completion);
             } else {
-                completions.add(makeNameDefCompletion(e.getValue().getDef()));
+                completions.add(makeNameDefCompletion(e.getValue()));
             }
             if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
                 // got enough completions
@@ -480,15 +478,15 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private CompletionItem makeNameDefCompletion(NameDef n) {
-        if (n instanceof FunctionDefinition) {
-            return makeFunctionCompletion((FunctionDefinition) n);
+    private CompletionItem makeNameDefCompletion(NameLink n) {
+        if (n instanceof FuncLink) {
+            return makeFunctionCompletion((FuncLink) n);
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(HoverInfo.descriptionString(n));
-        completion.setDocumentation(n.attrComment());
-        double rating = calculateRating(n.getName(), n.attrTyp());
+        completion.setDetail(HoverInfo.descriptionString(n.getDef()));
+        completion.setDocumentation(n.getDef().attrComment());
+        double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
         String newText = n.getName();
         completion.setInsertText(newText);
@@ -560,9 +558,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
-    private CompletionItem makeFunctionCompletion(FunctionDefinition f) {
+    private CompletionItem makeFunctionCompletion(FuncLink f) {
         String replacementString = f.getName();
-        WParameters params = f.getParameters();
+        List<WurstType> params = f.getParameterTypes();
         if (!isBeforeParenthesis()) {
             if (params.isEmpty()) {
                 replacementString += "()";
@@ -571,24 +569,24 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
-        completion.setDetail(getFunctionDescriptionShort(f));
-        completion.setDocumentation(HoverInfo.descriptionString(f));
+        completion.setDetail(getFunctionDescriptionShort(f.getDef()));
+        completion.setDocumentation(HoverInfo.descriptionString(f.getDef()));
         completion.setInsertText(replacementString);
-        completion.setSortText(ratingToString(calculateRating(f.getName(), f.attrReturnTyp())));
+        completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnType())));
         // TODO use call signature instead for generics
 //        completion.set
 
-        addParamSnippet(replacementString, params, completion);
+        addParamSnippet(replacementString, f.getParameterNames(), completion);
 
         return completion;
     }
 
-    private void addParamSnippet(String replacementString, WParameters params, CompletionItem completion) {
-        if (!params.isEmpty()) {
+    private void addParamSnippet(String replacementString, List<String> paramNames, CompletionItem completion) {
+        if (!paramNames.isEmpty()) {
             List<String> paramSnippets = new ArrayList<>();
-            for (int i = 0; i < params.size(); i++) {
-                WParameter param = params.get(i);
-                paramSnippets.add("${" + (i + 1) + ":" + param.getName() + "}");
+            for (int i = 0; i < paramNames.size(); i++) {
+                String paramName = paramNames.get(i);
+                paramSnippets.add("${" + (i + 1) + ":" + paramName + "}");
             }
             replacementString += "(" + String.join(", ", paramSnippets) + ")";
             completion.setInsertText(replacementString);
@@ -622,7 +620,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setSortText(ratingToString(calculateRating(c.getName(), c.attrTyp().dynamic())));
 
 
-        addParamSnippet(replacementString, constr.getParameters(), completion);
+        List<String> parameterNames = constr.getParameters().stream().map(WParameter::getName).collect(Collectors.toList());
+        addParamSnippet(replacementString, parameterNames, completion);
 
         return completion;
     }
@@ -633,10 +632,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
-            if (e.getValue().getDef() instanceof ExtensionFuncDef) {
-                ExtensionFuncDef ef = (ExtensionFuncDef) e.getValue().getDef();
-                if (ef.getExtendedType().attrTyp().dynamic().isSupertypeOf(leftType, ef)) {
-                    completions.add(makeFunctionCompletion(ef));
+            if (e.getValue() instanceof FuncLink) {
+                FuncLink ef = (FuncLink) e.getValue();
+                FuncLink ef2 = ef.adaptToReceiverType(leftType);
+                if (ef2 != null) {
+                    completions.add(makeFunctionCompletion(ef2));
                 }
             }
         }

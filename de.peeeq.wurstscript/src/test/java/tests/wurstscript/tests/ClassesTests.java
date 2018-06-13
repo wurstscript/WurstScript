@@ -410,7 +410,7 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void override() {
-        testAssertErrorsLines(false, "uses override",
+        testAssertErrorsLines(false, "Function foo does not override anything",
                 "package test",
                 "	native testSuccess()",
                 "	class A",
@@ -647,7 +647,7 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void abstract_fail2() {
-        testAssertErrorsLines(true, "must implement the abstract function foo",
+        testAssertErrorsLines(true, "must implement",
                 "package test",
                 "	native testSuccess()",
                 "	int i",

@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -114,12 +116,19 @@ public class ExprTranslation {
             }
         }
 
+//        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
+//        System.out.println("  actualType = " + actualType.getFullName());
+//        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
+
         if (toIndex != null && fromIndex != null) {
+//            System.out.println("  --> cancel");
             // the two conversions cancel each other out
             return translated;
         } else if (fromIndex != null) {
+//            System.out.println("  --> fromIndex");
             return JassIm.ImFunctionCall(trace, fromIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
+//            System.out.println("  --> toIndex");
             return JassIm.ImFunctionCall(trace, toIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
         }
         return translated;
@@ -129,7 +138,7 @@ public class ExprTranslation {
         ImExpr left = e.getLeft().imTranslateExpr(t, f);
         ImExpr right = e.getRight().imTranslateExpr(t, f);
         WurstOperator op = e.getOp();
-        if (e.attrFuncDef() != null) {
+        if (e.attrFuncLink() != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
             return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false, CallType.NORMAL);
