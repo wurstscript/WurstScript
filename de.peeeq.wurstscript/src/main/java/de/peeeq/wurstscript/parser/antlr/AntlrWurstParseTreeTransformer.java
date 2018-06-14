@@ -1,13 +1,17 @@
 package de.peeeq.wurstscript.parser.antlr;
 
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.antlr.WurstParser.*;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.parser.WPosWithComments;
+import de.peeeq.wurstscript.parser.WPosWithComments.Comment;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -15,20 +19,28 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@SuppressWarnings("Duplicates")
 public class AntlrWurstParseTreeTransformer {
 
-    private String file;
-    private ErrorHandler cuErrorHandler;
-    private LineOffsets lineOffsets;
+    private final String file;
+    private final ErrorHandler cuErrorHandler;
+    private final LineOffsets lineOffsets;
+    private final Deque<Token> commentTokens;
+    private final List<WPosWithComments> positions = new ArrayList<>();
+    private final boolean storeComments;
 
     public AntlrWurstParseTreeTransformer(String file,
-                                          ErrorHandler cuErrorHandler, LineOffsets lineOffsets) {
+                                          ErrorHandler cuErrorHandler, LineOffsets lineOffsets, Deque<Token> commentTokens, boolean storeComments) {
         this.file = file;
         this.cuErrorHandler = cuErrorHandler;
         this.lineOffsets = lineOffsets;
+        this.commentTokens = commentTokens;
+        this.storeComments = storeComments;
     }
 
     public CompilationUnit transform(CompilationUnitContext cu) {
@@ -52,8 +64,69 @@ public class AntlrWurstParseTreeTransformer {
             // ignore
         }
 
-        return Ast
+
+        CompilationUnit res = Ast
                 .CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+        addComments(res);
+        return res;
+    }
+
+    private void addComments(CompilationUnit cu) {
+        if (!storeComments || positions.isEmpty()) {
+            return;
+        }
+
+
+        // positions big first
+        positions.sort(Comparator.comparing(WPos::getLeftPos)
+                .thenComparing(Comparator.comparing(WPos::getRightPos).reversed()));
+
+
+        // positions, big last
+        List<WPosWithComments> positions2 = positions.stream()
+                .sorted(Comparator.comparing(WPos::getRightPos)
+                        .thenComparing(Comparator.comparing(WPos::getLeftPos).reversed()))
+                .collect(Collectors.toList());
+
+        int pos = 0;
+        int pos2 = 0;
+        commentLoop:
+        while (!commentTokens.isEmpty() && pos < positions.size()) {
+            Token token = commentTokens.removeFirst();
+            // find position directly after comment
+            while (positions.get(pos).getLeftPos() < token.getStopIndex()) {
+                pos++;
+                if (pos >= positions.size()) {
+                    commentTokens.addFirst(token);
+                    break commentLoop;
+                }
+            }
+            WPosWithComments posAfterComment = positions.get(pos);
+
+            // find position directly before comment
+            while (pos2 + 1 < positions2.size() && positions2.get(pos2 + 1).getRightPos() < token.getStartIndex()) {
+                pos2++;
+                if (pos2 >= positions2.size()) {
+                    commentTokens.addFirst(token);
+                    break commentLoop;
+                }
+            }
+            WPosWithComments posBeforeComment = positions2.get(pos2);
+
+            Comment comment = tokenToComment(token);
+            if (comment.getPos().getLine() == posBeforeComment.getEndLine()) {
+                // same line --> add to position before
+                posBeforeComment.addCommentAfter(comment);
+            } else {
+                // otherwise add to position after
+                posAfterComment.addCommentBefore(comment);
+            }
+        }
+
+        for (Token t : commentTokens) {
+            Utils.getLast(positions2).addCommentAfter(tokenToComment(t));
+        }
+
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(
@@ -1286,7 +1359,7 @@ public class AntlrWurstParseTreeTransformer {
                             Ast.Modifiers(Ast.ModConstant(source(ps.singleParam).artificial())),
                             Ast.NoTypeExpr(),
                             text(ps.singleParam)
-                            )
+                    )
             );
         }
         WShortParameters result = Ast.WShortParameters();
@@ -1299,7 +1372,7 @@ public class AntlrWurstParseTreeTransformer {
     private WParameter transformFormalParameter(FormalParameterContext p,
                                                 boolean makeConstant) {
         Modifiers modifiers = Ast.Modifiers();
-        if(p.vararg != null) {
+        if (p.vararg != null) {
             modifiers.add(Ast.ModVararg(source(p).artificial()));
         }
         if (makeConstant) {
@@ -1346,11 +1419,31 @@ public class AntlrWurstParseTreeTransformer {
         } else {
             stopIndex = p.stop.getStopIndex() + 1;
         }
-        return new WPos(file, lineOffsets, p.start.getStartIndex(), stopIndex);
+        return makeWPos(p.start.getStartIndex(), stopIndex);
     }
 
     private WPos source(Token p) {
-        return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
+        int start = p.getStartIndex();
+        int stop = p.getStopIndex() + 1;
+        return makeWPos(start, stop);
+    }
+
+    @NotNull
+    private WPos makeWPos(int start, int stop) {
+        if (storeComments) {
+            WPosWithComments pos = new WPosWithComments(file, lineOffsets, start, stop);
+            positions.add(pos);
+            return pos;
+        } else {
+            return new WPos(file, lineOffsets, start, stop);
+        }
+    }
+
+    @NotNull
+    private Comment tokenToComment(Token comment) {
+        WPos commentPos = new WPos(file, lineOffsets, comment.getStartIndex(), comment.getStopIndex());
+        boolean isSingleLine = comment.getType() == WurstLexer.LINE_COMMENT;
+        return new Comment(commentPos, comment.getText(), isSingleLine);
     }
 
     class FuncSig {

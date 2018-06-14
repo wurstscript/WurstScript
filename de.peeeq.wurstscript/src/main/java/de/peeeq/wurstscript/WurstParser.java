@@ -114,7 +114,7 @@ public class WurstParser {
                 gui.sendError(warning);
             }
 
-            CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
+            CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets(), lexer.getCommentTokens(), true).transform(cu);
             if (this.removeSugar) {
                 removeSyntacticSugar(root, hasCommonJ);
             }

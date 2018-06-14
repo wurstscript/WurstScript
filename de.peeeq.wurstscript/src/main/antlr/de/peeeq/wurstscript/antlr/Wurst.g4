@@ -4,7 +4,7 @@ grammar Wurst;
     package de.peeeq.wurstscript.antlr;
 }
 
-compilationUnit : NL* decls+=topLevelDeclaration*;
+compilationUnit : NL* decls+=topLevelDeclaration* EOF;
 
 topLevelDeclaration:
 					 wpackage
@@ -586,5 +586,5 @@ TAB: [\t];
 SPACETAB:'    ';
 WS : (' '|'  '|'   ') -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
-ML_COMMENT: '/*' .*? '*/' -> skip;
-LINE_COMMENT: '//' ~[\r\n]* -> skip;
+ML_COMMENT: '/*' .*? '*/' -> channel(2);
+LINE_COMMENT: '//' ~[\r\n]* -> channel(2);

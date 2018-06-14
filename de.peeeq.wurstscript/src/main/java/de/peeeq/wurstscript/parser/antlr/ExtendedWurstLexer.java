@@ -10,9 +10,7 @@ import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.Pair;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Stack;
+import java.util.*;
 
 public class ExtendedWurstLexer implements TokenSource {
 
@@ -32,6 +30,12 @@ public class ExtendedWurstLexer implements TokenSource {
     // which character is used for indentation
     private TabChoice tabChoice = TabChoice.Unknown;
     private CompileError tabWarning = null;
+    private Deque<Token> commentTokens = new ArrayDeque<>();
+
+    public Deque<Token> getCommentTokens() {
+        return commentTokens;
+    }
+
 
     enum State {
         INIT, NEWLINES, BEGIN_LINE
@@ -122,6 +126,11 @@ public class ExtendedWurstLexer implements TokenSource {
             if (debug) WLogger.info("orig token = " + token);
 
             if (token == null) {
+                continue;
+            }
+
+            if (token.getChannel() == 2) {
+                commentTokens.addLast(token);
                 continue;
             }
 
@@ -325,12 +334,18 @@ public class ExtendedWurstLexer implements TokenSource {
                 // all lines must be indented on the same level,
                 // with the exception of the 'end' keyword, which can be on a different line
                 if (token.getType() != WurstParser.END) {
-                    for (ANTLRErrorListener el : orig.getErrorListeners()) {
-                        int line = lineOffsets.getLine(start);
-                        el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".", null);
-                    }
+                    int line = lineOffsets.getLine(start);
+                    int charPositionInLine = start - lineOffsets.get(line);
+                    String msg = "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".";
+                    reportError(line, charPositionInLine, msg);
                 }
             }
+        }
+    }
+
+    private void reportError(int line, int charPositionInLine, String msg) {
+        for (ANTLRErrorListener el : orig.getErrorListeners()) {
+            el.syntaxError(orig, "", line, charPositionInLine, msg, null);
         }
     }
 
