@@ -29,7 +29,6 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
@@ -146,9 +145,9 @@ public abstract class MapRequest extends UserRequest<Object> {
             }
 
             if (gui.getErrorCount() > 0) {
-                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui.getErrorList().get(0));
+                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
+                        .getErrorList().get(0));
             }
-
 
 
             if (runArgs.isInjectObjects()) {
@@ -204,7 +203,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     protected File getBuildDir() {
         File buildDir = new File(workspaceRoot.getFile(), "_build");
-        UtilsIO.mkdirs(buildDir);
+        if (!buildDir.exists()) {
+            UtilsIO.mkdirs(buildDir);
+        }
         return buildDir;
     }
 
