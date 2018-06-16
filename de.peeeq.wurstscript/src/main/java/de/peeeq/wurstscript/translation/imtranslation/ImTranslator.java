@@ -901,7 +901,7 @@ public class ImTranslator {
                 }
             }
             if (funcNameLink == null) {
-                throw new Error("must not happen");
+                throw new Error("Could not find " + Utils.printElementWithSource(func) + " in " + Utils.printElementWithSource(c));
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
                 NameDef nameDef = nameLink.getDef();

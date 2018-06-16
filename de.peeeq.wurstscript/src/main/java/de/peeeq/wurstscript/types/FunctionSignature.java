@@ -6,19 +6,19 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.CheckReturnValue;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(Collections.emptyList(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
+    public static final FunctionSignature empty = new FunctionSignature(null, Collections.emptyList(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
+    private final Element trace;
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
@@ -28,7 +28,8 @@ public class FunctionSignature {
     private final String name;
 
 
-    public FunctionSignature(List<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(Element trace, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+        this.trace = trace;
         this.name = name;
         this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
@@ -74,7 +75,7 @@ public class FunctionSignature {
         List<TypeParamDef> typeParams2 = typeParams.stream()
                 .filter(t -> !typeArgBinding.contains(t))
                 .collect(Utils.toImmutableList());
-        return new FunctionSignature(typeParams2, receiverType, name, pt2, paramNames, r2);
+        return new FunctionSignature(trace, typeParams2, receiverType, name, pt2, paramNames, r2);
     }
 
 
@@ -96,7 +97,7 @@ public class FunctionSignature {
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
-        return new FunctionSignature(typeParams, f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
+        return new FunctionSignature(f, typeParams, f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
     }
 
 
@@ -108,7 +109,7 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        return new FunctionSignature(f.getDef(), f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 
@@ -195,6 +196,11 @@ public class FunctionSignature {
         result.append(getParameterDescription());
         result.append(") returns ");
         result.append(returnType);
+        WPos src = trace.attrSource();
+        result.append(", defined in ")
+                .append(src.getFile())
+                .append(": ")
+                .append(src.getLine());
         return result.toString();
     }
 

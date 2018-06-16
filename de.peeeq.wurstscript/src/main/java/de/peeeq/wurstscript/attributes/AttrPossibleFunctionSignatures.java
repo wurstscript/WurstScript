@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import fj.data.TreeMap;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -109,7 +108,7 @@ public class AttrPossibleFunctionSignatures {
         if (struct instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) struct).getTypeParameters();
         }
-        FunctionSignature sig = new FunctionSignature(typeParams, null, "construct", paramTypes, pNames, returnType);
+        FunctionSignature sig = new FunctionSignature(f, typeParams, null, "construct", paramTypes, pNames, returnType);
         sig = sig.setTypeArgs(fc, binding2);
         return ImmutableList.of(sig);
     }

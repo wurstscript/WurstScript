@@ -45,9 +45,7 @@ public class AttrFunctionSignature {
             // only show overloading error, if type for all arguments could be determined
             StringBuilder alternatives = new StringBuilder();
             for (FunctionSignature s : candidates) {
-                if (alternatives.length() > 0) {
-                    alternatives.append(", ");
-                }
+                alternatives.append("\n");
                 alternatives.append(s.toString());
             }
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
