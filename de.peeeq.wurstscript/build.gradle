@@ -54,18 +54,13 @@ sourceSets {
     }
 }
 
-// In this section you declare where to find the dependencies of your project
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    //jcenter()
     mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
     jcenter()
 }
 
-// In this section you declare the dependencies for your production and test code
 dependencies {
 
     // Antlr parsing library
@@ -100,10 +95,10 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:jmpq3:1.6.0'
+    compile 'com.github.inwc3:jmpq3:1.6.1'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:d0a470d9e3'
+    compile 'com.github.inwc3:wc3libs:1130f3e6f6'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:WurstSetup:7b96dfbc6c'

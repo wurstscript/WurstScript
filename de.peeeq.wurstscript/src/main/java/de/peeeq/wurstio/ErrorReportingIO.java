@@ -26,7 +26,7 @@ public class ErrorReportingIO extends ErrorReporting {
             // ignore
         }
 
-        String title = "Sorry!";
+        String title = "Sor!";
         String message = "You have encountered a bug in the Wurst Compiler.\n" +
                 "Your version is: " + AboutDialog.version + "\n" +
                 "The Error message is: " + t.getMessage() + "\n" + Utils.printExceptionWithStackTrace(t) + "\n\n" +

@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.swing.*;
@@ -35,6 +36,7 @@ import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static javax.swing.SwingConstants.CENTER;
@@ -222,7 +224,7 @@ public class Main {
     }
 
     private static void copyMap() throws Exception {
-        String wc3Path = W3Utils.getGamePath();
+        String wc3Path = Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent();
         WLogger.info("Wc3 Path: " + wc3Path);
 
         String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
