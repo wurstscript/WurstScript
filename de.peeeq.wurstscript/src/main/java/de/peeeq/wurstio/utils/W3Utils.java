@@ -1,99 +1,59 @@
 package de.peeeq.wurstio.utils;
 
-import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.utils.WinRegistry;
+import net.moonlightflower.wc3libs.bin.GameExe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Objects;
 
 public class W3Utils {
+    private static final Logger log = LoggerFactory.getLogger(W3Utils.class.getName());
+    private static GameExe gameExe;
+    private static double version = -1;
 
-    private static final Pattern patchPattern = Pattern.compile("(?i)Patch (\\d.\\d\\d)");
-
-    private static double patchVer = -1;
-
-    public static void setPatchVer(double patchVer) {
-        W3Utils.patchVer = patchVer;
-    }
-
+    /**
+     * @return The wc3 patch version or -1 if none has been found
+     */
     public static double getWc3PatchVersion() {
-        if (patchVer == -1) {
+        if (gameExe == null) {
+            gameExe = GameExe.fromRegistry();
+        }
+        if (version == -1 && gameExe != null) {
             try {
-                String gamePath = W3Utils.getGamePath();
-                if (gamePath != null) {
-                    File file = new File(gamePath);
-                    if (file.exists()) {
-                        patchVer = parsePatchVersion(file);
-                    }
-                }
-            } catch (InvocationTargetException | IllegalAccessException e) {
+                log.info("Parsed game version: " + gameExe.getVersion());
+                version =  Double.parseDouble(gameExe.getVersion().replaceAll("\\.", ""));
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        return patchVer;
-    }
-
-    public static double parsePatchVersion(File wc3Path) {
-        WLogger.info("Parsing Patch Version");
-        File patchTxt = new File(wc3Path, "Patch.txt");
-        File releaseNotes = new File(wc3Path, "Release Notes.txt");
-        File gamedll = new File(wc3Path, "game.dll");
-
-        if (!patchTxt.exists() && !releaseNotes.exists() && !gamedll.exists()) {
-            // If neither of the patch logs exist and the gamedll is gone as well,
-            // we likely are dealing with a 1.29 install or higher
-            WLogger.info("Assumed Version: 1.29");
-            return 1.29;
-        }
-
-        try {
-            final List<String> matches = new ArrayList<>();
-            if (patchTxt.exists()) {
-                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(patchTxt.toPath())));
-                while (matcher.find()) {
-                    matches.add(matcher.group(1));
-                }
-            }
-            if (releaseNotes.exists()) {
-                Matcher matcher = patchPattern.matcher(new String(java.nio.file.Files.readAllBytes(releaseNotes.toPath())));
-                while (matcher.find()) {
-                    matches.add(matcher.group(1));
-                }
-            }
-
-            if (matches.size() > 0) {
-                matches.sort(Comparator.comparing(Double::parseDouble, Collections.reverseOrder()));
-                double patchVersion = Double.parseDouble(matches.get(0));
-                WLogger.info("Patch Version: " + patchVersion);
-                return patchVersion;
-
-            } else {
-                WLogger.severe("Could not determine wc3 version");
-            }
-        } catch (IOException e) {
-            WLogger.severe(e);
-        }
-        WLogger.severe("Could not determine wc3 version");
-        return -1;
+        return version;
     }
 
     /**
-     * Reads the installation path from windows registry
+     * Pass a custom directory here to attempt parsing patch level from.
      *
-     * @return The wc3 installation path, or null if no registry entry exists
-     * @throws InvocationTargetException
-     * @throws IllegalAccessException
+     * @return The wc3 patch version or -1 if none has been found
      */
-    public static String getGamePath() throws InvocationTargetException, IllegalAccessException {
-        String path = WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "SOFTWARE\\Blizzard Entertainment\\Warcraft III", "InstallPath");
-        if (path != null && !path.endsWith("\\")) path = path + "\\";
-        return path;
+    public static double parsePatchVersion(File wc3Path) {
+        try {
+            gameExe = GameExe.fromDir(wc3Path);
+            if (gameExe != null) {
+                String version = gameExe.getVersion();
+                log.info("Parsed game version: " + version);
+                W3Utils.version = Double.parseDouble(version.replaceAll("\\.", ""));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return version;
+    }
+
+    /**
+     * @return The wc3 installation path
+     */
+    public static String getGamePath() {
+        return Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent();
     }
 }
