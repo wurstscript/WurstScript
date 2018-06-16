@@ -895,7 +895,8 @@ public class ImTranslator {
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
             FuncLink funcNameLink = null;
-            for (FuncLink nameLink : c.lookupFuncs(func.getName())) {
+            WurstTypeClass cType = c.attrTypC();
+            for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
                 if (nameLink.getDef() == func) {
                     funcNameLink = nameLink;
                 }

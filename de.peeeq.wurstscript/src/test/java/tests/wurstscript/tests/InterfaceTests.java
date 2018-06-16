@@ -505,4 +505,31 @@ public class InterfaceTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void implGap() { // #676
+        testAssertOkLines(true,
+                "package test1",
+                "	interface I",
+                "		function foo() returns int",
+                "	public abstract class B implements I",
+                "		override function foo() returns int",
+                "			return 2",
+                "endpackage",
+                "package test2",
+                "	import test1",
+                "	public class C extends B",
+                "endpackage",
+                "package test",
+                "	import test2",
+                "	native testSuccess()",
+                "	class D extends C",
+                "	init",
+                "		C c1 = new C()",
+                "		C c2 = new D()",
+                "		if c1.foo() == 2 and c2.foo() == 2",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
 }
