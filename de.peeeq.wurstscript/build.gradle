@@ -98,7 +98,7 @@ dependencies {
     compile 'com.github.inwc3:wc3libs:ccf44373c7'
 
     // The setup tool for wurst.build handling
-    compile 'com.github.wurstscript:WurstSetup:7b96dfbc6c'
+    compile 'com.github.wurstscript:wurstsetup:cc208dcc86'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
