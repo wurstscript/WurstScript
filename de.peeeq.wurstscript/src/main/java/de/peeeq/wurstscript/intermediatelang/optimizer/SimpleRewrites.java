@@ -186,6 +186,8 @@ public class SimpleRewrites implements OptimizerPass {
                     left.setParent(null);
                     opc.replaceBy(left);
                     wasViable = true;
+                } else {
+                    wasViable = false;
                 }
             } else {
                 wasViable = false;
