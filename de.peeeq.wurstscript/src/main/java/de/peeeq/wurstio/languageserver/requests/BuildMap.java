@@ -132,6 +132,7 @@ public class BuildMap extends MapRequest {
 
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
         mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayerCount());
+        mapHeader.setMapName(projectConfig.getBuildMapData().getFileName());
         mapHeader.writeToMapFile(targetMap);
     }
 
