@@ -290,6 +290,9 @@ public class SideEffectAnalyzer {
         }
     }
 
+    /**
+     * Checks if the given function calls any functions or modifies and variable
+     */
     public boolean hasSideEffects(ImFunctionCall call) {
         Set<ImFunction> natives = calledNatives(call.getFunc());
         Set<ImFunction> directFuncs = calledFunctions(call.getFunc());
