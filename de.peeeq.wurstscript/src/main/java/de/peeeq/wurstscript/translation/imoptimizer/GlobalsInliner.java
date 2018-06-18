@@ -16,6 +16,11 @@ public class GlobalsInliner implements OptimizerPass {
 
         Set<ImVar> obsoleteVars = Sets.newLinkedHashSet();
         for (final ImVar v : prog.getGlobals()) {
+            if (trans.isUnitTestMode() && v.getName().equals("MagicFunctions_compiletime")) {
+                // in unit test mode we run tests and compiletime functions with optimizations,
+                // so it is important, that we do not optimize away the compiletime constant
+                continue;
+            }
             if (v.attrWrites().size() == 1) {
                 ImExpr right = null;
                 ImVarWrite obs = null;
