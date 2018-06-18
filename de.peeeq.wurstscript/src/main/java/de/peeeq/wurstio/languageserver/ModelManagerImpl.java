@@ -120,8 +120,8 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private void processWurstFiles(File dir) throws IOException {
-        for (File f : dir.listFiles()) {
+    private void processWurstFiles(File dir) {
+        for (File f : getFiles(dir)) {
             if (f.isDirectory()) {
                 processWurstFiles(f);
             } else if (f.getName().endsWith(".wurst") || f.getName().endsWith(".jurst") || f.getName().endsWith(".j")) {
@@ -130,7 +130,15 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    private void processWurstFile(WFile f) throws IOException {
+    private File[] getFiles(File dir) {
+        File[] res = dir.listFiles();
+        if (res == null) {
+            return new File[0];
+        }
+        return res;
+    }
+
+    private void processWurstFile(WFile f) {
         WLogger.info("processing file " + f);
         replaceCompilationUnit(f);
     }
@@ -602,7 +610,7 @@ public class ModelManagerImpl implements ModelManager {
 
     private void addDependencyWurstFiles(Set<File> result, File file) {
         if (file.isDirectory()) {
-            for (File child : file.listFiles()) {
+            for (File child : getFiles(file)) {
                 addDependencyWurstFiles(result, child);
             }
         } else if (Utils.isWurstFile(file)) {

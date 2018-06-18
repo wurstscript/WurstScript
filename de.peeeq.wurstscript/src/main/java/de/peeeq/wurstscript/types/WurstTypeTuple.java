@@ -4,16 +4,19 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TupleDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.*;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 
 
 public class WurstTypeTuple extends WurstType {
 
-    TupleDef tupleDef;
+    private TupleDef tupleDef;
 
 
     public WurstTypeTuple(TupleDef tupleDef) {
@@ -22,12 +25,14 @@ public class WurstTypeTuple extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, @Nullable Element location) {
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeTuple) {
             WurstTypeTuple otherTuple = (WurstTypeTuple) other;
-            return tupleDef == otherTuple.tupleDef;
+            if (tupleDef == otherTuple.tupleDef) {
+                return mapping;
+            }
         }
-        return false;
+        return null;
     }
 
 

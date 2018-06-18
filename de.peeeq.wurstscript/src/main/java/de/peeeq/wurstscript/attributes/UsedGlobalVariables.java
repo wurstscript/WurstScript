@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 
@@ -12,9 +14,9 @@ public class UsedGlobalVariables {
         ImmutableList.Builder<VarDef> result = ImmutableList.builder();
         if (e instanceof FunctionCall) {
             FunctionCall funcCall = (FunctionCall) e;
-            FunctionDefinition f = funcCall.attrFuncDef();
+            FuncLink f = funcCall.attrFuncLink();
             if (f != null) {
-                result.addAll(f.attrUsedGlobalVariables());
+                result.addAll(f.getDef().attrUsedGlobalVariables());
             }
 
         } else if (e instanceof ExprNewObject) {
@@ -33,9 +35,9 @@ public class UsedGlobalVariables {
             }
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
-            NameDef def = nameRef.attrNameDef();
-            if (def instanceof GlobalVarDef) {
-                GlobalVarDef varDef = (GlobalVarDef) def;
+            NameLink def = nameRef.attrNameLink();
+            if (def.getDef() instanceof GlobalVarDef) {
+                GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                 result.add(varDef);
             }
         }
@@ -76,9 +78,9 @@ public class UsedGlobalVariables {
     private static void collectReadGlobals(Element e, Builder<VarDef> result) {
         if (e instanceof FunctionCall) {
             FunctionCall funcRef = (FunctionCall) e;
-            FunctionDefinition f = funcRef.attrFuncDef();
+            FuncLink f = funcRef.attrFuncLink();
             if (f != null) {
-                result.addAll(f.attrReadGlobalVariables());
+                result.addAll(f.getDef().attrReadGlobalVariables());
             }
 
         } else if (e instanceof ExprNewObject) {
@@ -100,9 +102,9 @@ public class UsedGlobalVariables {
             if (e.getParent() instanceof StmtSet && ((StmtSet) e.getParent()).getUpdatedExpr() == e) {
                 // write access
             } else {
-                NameDef def = nameRef.attrNameDef();
-                if (def instanceof GlobalVarDef) {
-                    GlobalVarDef varDef = (GlobalVarDef) def;
+                NameLink def = nameRef.attrNameLink();
+                if (def.getDef() instanceof GlobalVarDef) {
+                    GlobalVarDef varDef = (GlobalVarDef) def.getDef();
                     result.add(varDef);
                 }
             }

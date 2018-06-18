@@ -3,6 +3,8 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -43,7 +45,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprVarAccess term) {
-        NameDef varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
 
         if (varDef == null) {
             String varName = term.getVarName();
@@ -65,18 +67,16 @@ public class AttrExprType {
 
             return WurstTypeUnknown.instance();
         }
-        if (varDef instanceof VarDef) {
-            if (Utils.getParentVarDef(term) == varDef) {
+        if (varDef.getDef() instanceof VarDef) {
+            if (Utils.getParentVarDef(term) == varDef.getDef()) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
-            return varDef.attrTyp().dynamic();
         }
-        if (varDef instanceof FunctionDefinition) {
+        if (varDef.getDef() instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
-        WurstType typ = varDef.attrTyp();
-        return typ;
+        return varDef.getTyp();
     }
 
 
@@ -91,19 +91,16 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprVarArrayAccess term) {
-        NameDef varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
 
-        WurstType varDefType = varDef.attrTyp().dynamic();
+        WurstType varDefType = varDef.getTyp();
         if (varDefType instanceof WurstTypeArray) {
-            WurstType typ = ((WurstTypeArray) varDefType).getBaseType();
-            return typ;
-        } else if (varDef.attrIsVararg()) {
-            // TODO
+            return ((WurstTypeArray) varDefType).getBaseType();
         } else {
-            term.addError("Variable " + varDef.getName() + " is no array variable.");
+            term.addError("Variable " + varDef.getName() + " is of type " + varDefType + ", should be an array variable.");
         }
         return WurstTypeUnknown.instance();
     }
@@ -326,14 +323,14 @@ public class AttrExprType {
     private static WurstType handleOperatorOverloading(ExprBinary term) {
         WurstType leftType = term.getLeft().attrTyp();
         WurstType rightType = term.getRight().attrTyp();
-        FunctionDefinition def = term.attrFuncDef();
+        FuncLink def = term.attrFuncLink();
         if (def == null) {
             term.addError("No operator overloading function for operator " + term.getOp() +
                     " was found for operands " + leftType + " and " + rightType + ". The overloading function has to be named: " + term.getOp()
                     .getOverloadingFuncName());
             return WurstTypeUnknown.instance();
         }
-        return def.attrReturnTyp();
+        return def.getReturnType();
     }
 
     private static WurstType requireEqualTypes(ExprBinary term,
@@ -380,29 +377,29 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberVarDot term) {
-        NameDef varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef instanceof FunctionDefinition) {
+        if (varDef.getDef() instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
-        if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
         }
-        return varDef.attrTyp().setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
+        return varDef.getTyp(); // TODO .setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
     }
 
 
     public static WurstType calculate(ExprMemberArrayVarDot term) {
-        NameDef varDef = term.attrNameDef();
+        NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef.attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
         }
-        WurstType typ = varDef.attrTyp().dynamic();
+        WurstType typ = varDef.getTyp();
         if (typ instanceof WurstTypeArray) {
             WurstTypeArray ar = (WurstTypeArray) typ;
             return ar.getBaseType();

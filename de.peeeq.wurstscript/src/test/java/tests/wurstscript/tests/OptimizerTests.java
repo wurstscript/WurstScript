@@ -617,8 +617,6 @@ public class OptimizerTests extends WurstScriptTest {
     public void controlFlowMergeSideEffect2() throws IOException {
         test().withStdLib().lines(
                 "package Test",
-                "native testSuccess()",
-                "native testFail(string msg)",
                 "var ghs = 12",
                 "function someSideEffectFunc(int x) returns bool",
                 "	if x < 3",
@@ -687,5 +685,20 @@ public class OptimizerTests extends WurstScriptTest {
                 "	testSuccess()"
         );
     }
+
+    @Test
+    public void number() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(int x) returns bool",
+                "	return (((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((x == 1) or (x == 852056)) or (x == 852064)) or (x == 852065)) or (x == 852067)) or (x == 852068)) or (x == 852076)) or (x == 852077)) or (x == 852090)) or (x == 852091)) or (x == 852100)) or (x == 852102)) or (x == 852103)) or (x == 852107)) or (x == 852108)) or (x == 852129)) or (x == 852130)) or (x == 852133)) or (x == 852134)) or (x == 852136)) or (x == 852137)) or (x == 852150)) or (x == 852151)) or (x == 852174)) or (x == 852158)) or (x == 852159)) or (x == 852162)) or (x == 852163)) or (x == 852174)) or (x == 852175)) or (x == 852177)) or (x == 852178)) or (x == 852191)) or (x == 852192)) or (x == 852198)) or (x == 852199)) or (x == 852203)) or (x == 852204)) or (x == 852212)) or (x == 852213)) or (x == 852244)) or (x == 852245)) or (x == 852249)) or (x == 852250)) or (x == 852255)) or (x == 852256)) or (x == 852458)) or (x == 852459)) or (x == 852478)) or (x == 852479)) or (x == 852484)) or (x == 852485)) or (x == 852515)) or (x == 852516)) or (x == 852522)) or (x == 852523)) or (x == 852540)) or (x == 852541)) or (x == 852543)) or (x == 852544)) or (x == 852546)) or (x == 852547)) or (x == 852549)) or (x == 852550)) or (x == 852552)) or (x == 852553)) or (x == 852562)) or (x == 852563)) or (x == 852571)) or (x == 852578)) or (x == 852579)) or (x == 852589)) or (x == 852590)) or (x == 852602)) or (x == 852603)) or (x == 852671)) or (x == 852672))",
+                "init",
+                "	if foo(852478)",
+                "		testSuccess()"
+        );
+    }
+
+
 
 }

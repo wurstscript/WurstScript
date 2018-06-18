@@ -1,12 +1,17 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.Collection;
 
 /**
  * the exact type is not known but it will be whatever you want it to be ;)
- * (used for the buildin/native functions, where we cannot check the types)
+ * (used for the builtin/native functions, where we cannot check the types)
  */
 public class WurstTypeInfer extends WurstType {
 
@@ -16,8 +21,8 @@ public class WurstTypeInfer extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
-        return true;
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        return mapping;
     }
 
     @Override

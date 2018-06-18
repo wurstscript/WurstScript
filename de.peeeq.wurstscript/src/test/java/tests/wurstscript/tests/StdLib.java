@@ -14,12 +14,12 @@ public class StdLib {
     /**
      * the repo to download
      */
-    private final static String gitRepo = "https://github.com/peq/wurstStdlib.git";
+    private final static String gitRepo = "https://github.com/wurstscript/WurstStdlib2";
 
     /**
      * version to use for the tests
      */
-    private final static String version = "7ea2806aa56320bf00d6a9fa3615adfca851d66c";
+    private final static String version = "449a22b54841e70ad3ed260f302de3a540983b80";
 
     /**
      * flag so that initialization in only done once
@@ -27,7 +27,7 @@ public class StdLib {
     private static boolean isInitialized = false;
 
     private static File tempFolder = new File("./temp");
-    private static File stdLibFolder = new File(tempFolder, "wurstStdlib");
+    private static File stdLibFolder = new File(tempFolder, "WurstStdlib2");
 
     @Test
     public void download() {
@@ -43,12 +43,12 @@ public class StdLib {
 
             if (!stdLibFolder.exists()) {
                 tempFolder.mkdirs();
-                Utils.exec(tempFolder, "git", "clone", gitRepo, "wurstStdlib");
+                Utils.exec(tempFolder, "git", "clone", gitRepo, stdLibFolder.getName());
             }
 
-            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD");
-            System.out.println("revision = " + revision);
+            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD").trim();
             if (!revision.equals(version)) {
+                System.out.println("Wrong version '" + revision + "', executing git pull to get '" + version + "'");
                 Utils.exec(stdLibFolder, "git", "checkout", "master");
                 Utils.exec(stdLibFolder, "git", "pull");
                 Utils.exec(stdLibFolder, "git", "checkout", version);

@@ -91,7 +91,7 @@ public class GenerateBotData {
                 // inside a StructureDef
 
                 WurstType returnType = struct.attrTyp().dynamic();
-                Map<TypeParamDef, WurstTypeBoundTypeParam> binding2 = Collections.emptyMap(); // Simplified
+                fj.data.TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = WurstType.emptyMapping(); // TODO get mapping?
                 List<WurstType> paramTypes = Lists.newArrayList();
                 for (WParameter p : f.getParameters()) {
                     paramTypes.add(p.attrTyp().setTypeArgs(binding2));

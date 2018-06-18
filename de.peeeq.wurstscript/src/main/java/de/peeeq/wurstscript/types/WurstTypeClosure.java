@@ -1,11 +1,15 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 
 public class WurstTypeClosure extends WurstType {
@@ -19,52 +23,56 @@ public class WurstTypeClosure extends WurstType {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeClosure) {
             WurstTypeClosure o = (WurstTypeClosure) other;
             if (paramTypes.size() != o.paramTypes.size()) {
-                return false;
+                return null;
             }
             // contravariant parameter types
             for (int i = 0; i < paramTypes.size(); i++) {
-                if (!o.paramTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                    return false;
+                mapping =  o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, typeParams, mapping);
+                if (mapping == null) {
+                    return null;
                 }
             }
             // covariant return types
-            return returnType.isSubtypeOf(o.returnType, location);
+            return returnType.matchAgainstSupertype(o.returnType, location, typeParams, mapping);
         } else if (other instanceof WurstTypeCode) {
-            return paramTypes.size() == 0;
+            if (paramTypes.size() == 0) {
+                return mapping;
+            }
         } else {
             FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
             if (abstractMethod != null) {
-                return closureImplementsAbstractMethod(abstractMethod, location);
+                return closureImplementsAbstractMethod(abstractMethod, location, typeParams, mapping);
             }
         }
-        return false;
+        return null;
     }
 
 
-    private boolean closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-                                                    Element location) {
+    private @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> closureImplementsAbstractMethod(FunctionSignature abstractMethod,
+                                                                                                     Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
-            return false;
+            return null;
         }
 
         // contravariant parameter types
         for (int i = 0; i < paramTypes.size(); i++) {
-            if (!abstractMethod.getParamTypes().get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                return false;
+            mapping = abstractMethod.getParamTypes().get(i).matchAgainstSupertype(paramTypes.get(i), location, typeParams, mapping);
+            if (mapping == null) {
+                return null;
             }
         }
+        if (abstractMethod.getReturnType() instanceof WurstTypeVoid) {
+            // closures returning void may return anything
+            // this is to allow expressions
+            return mapping;
+        }
+
         // covariant return types
-        if (!returnType.isSubtypeOf(abstractMethod.getReturnType(), location)) {
-            // void return type accepts every other returntype
-            if (!(abstractMethod.getReturnType() instanceof WurstTypeVoid)) {
-                return false;
-            }
-        }
-        return true;
+        return returnType.matchAgainstSupertype(abstractMethod.getReturnType(), location, typeParams, mapping);
     }
 
 

@@ -3,18 +3,21 @@ package de.peeeq.wurstscript.attributes.names;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import fj.data.TreeMap;
 
-import java.util.Map;
+import java.util.List;
 import java.util.stream.Stream;
 
 
 public abstract class NameLink {
+    protected final List<TypeParamDef> typeParams;
     private final Visibility visibility;
     private final WScope definedIn;
 
-    public NameLink(Visibility visibility, WScope definedIn) {
+    public NameLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams) {
         this.visibility = visibility;
         this.definedIn = definedIn;
+        this.typeParams = typeParams;
     }
 
 
@@ -94,6 +97,10 @@ public abstract class NameLink {
     }
 
 
+    public List<TypeParamDef> getTypeParams() {
+        return typeParams;
+    }
+
     public NameLink hidingPrivate() {
         if (visibility == Visibility.PRIVATE_HERE) {
             return withVisibility(Visibility.PRIVATE_OTHER);
@@ -122,5 +129,10 @@ public abstract class NameLink {
 
     public abstract boolean receiverCompatibleWith(WurstType receiverType, Element location);
 
-    public abstract NameLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding);
+    public abstract NameLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding);
+
+    // TODO should it be possible to get the type without providing a mapping for the type-arguments?
+    public abstract WurstType getTyp();
+
+    public abstract NameLink withDef(NameDef actual);
 }

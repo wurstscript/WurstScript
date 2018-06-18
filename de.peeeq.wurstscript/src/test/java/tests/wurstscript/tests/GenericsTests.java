@@ -71,6 +71,42 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSubtypeGenericClass() {
+        testAssertOkLines(false,
+                "package test",
+                "	class A<T>",
+                "	class B<S> extends A<S>",
+                "	init",
+                "		A<int> x = new B<int>",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testSubtypeGenericClass2() {
+        testAssertOkLines(false,
+                "package test",
+                "	class A<T>",
+                "	class B<S> extends A<S>",
+                "	function foo<X>()",
+                "		A<X> x = new B<X>",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void testSubtypeGenericInterface() {
+        testAssertOkLines(false,
+                "package test",
+                "	interface I<T>",
+                "	class B<S> implements I<S>",
+                "	init",
+                "		I<int> x = new B<int>",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void identityFail1() {
         testAssertErrorsLines(true, "real",
                 "package test",
@@ -174,6 +210,93 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void implicitConversions3() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	public interface FoldClosure<T, Q>",
+                "		function apply(T t, Q q) returns Q",
+                "	class Cell<T>",
+                "		T elem",
+                "		function set(T t)",
+                "			elem = t",
+                "		function get() returns T",
+                "			return elem",
+                "		function fold<Q>(Q start, FoldClosure<T,Q> f) returns Q",
+                "			return f.apply(elem, start)",
+                "",
+                "	tuple bla(int z, int y)",
+                "	function blaToIndex(bla b) returns int",
+                "		return b.z",
+                "	function blaFromIndex(int i) returns bla",
+                "		return bla(i, 2)",
+                "	init",
+                "		Cell<bla> c = new Cell<bla>()",
+                "		c.set(bla(5, 3))",
+                "		let x = c.fold(2, (e, a) -> e.z + a)",
+                "		if x == 7",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void implicitConversions4() { // #490
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function booleanToIndex(bool b) returns int",
+                "	return b ? 1 : 0",
+                "function booleanFromIndex(int i) returns bool",
+                "	return i == 0 ? false : true",
+                "interface TFunc<T>",
+                "    abstract function run(T t)",
+                "",
+                "function runFunc(TFunc<bool> func)",
+                "    func.run(false)",
+                "",
+                "init",
+                "    runFunc( (bool b) -> begin",
+                "        testSuccess()",
+                "    end )"
+        );
+    }
+
+    @Test
+    public void implicitConversions5() { // #490
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native R2I(real r) returns int",
+                "@extern native R2S(real r) returns string",
+                "native println(string s)",
+                "function realToIndex(real r) returns int",
+                "	return R2I(r*1000.)",
+                "function realFromIndex(int i) returns real",
+                "	return i / 1000.",
+                "interface F<A,R>",
+                "	function apply(A a) returns R",
+                "class Cell<T>",
+                "	T elem",
+                "	construct(T t)",
+                "		this.elem = t",
+                "	function get() returns T",
+                "		return elem",
+                "	function map<R>(F<T,R> f) returns Cell<R>",
+                "		return new Cell(f.apply(elem))",
+                "function real.assertEquals(real expected)",
+                "	if this == expected",
+                "		testSuccess()",
+                "	else",
+                "		println(R2S(this))",
+                "init",
+                "	let a = new Cell(5)",
+                "	let b = a.map(i -> i*10.)",
+                "	b.get().assertEquals(50)"
+        );
+    }
+
+    @Test
     public void implicitConversionsFail() {
         testAssertErrorsLines(true, "Could not find function blaFromIndex",
                 "package test",
@@ -243,11 +366,26 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void nativeTypes() {
+        testAssertOkLines(false,
+                "type effect extends handle",
+                "package Test",
+                "function effectToIndex(effect e) returns int",
+                "	return 0",
+                "function effectFromIndex(int index) returns effect",
+                "	return null",
+                "class L<T>",
+                "init",
+                "	L<effect> l = new L<effect>()"
+        );
+    }
+
+    @Test
     public void implicitConversionFail() { // see bug #121
         testAssertOkLinesWithStdLib(false,
                 "package Test",
                 "import LinkedList",
-                "Table data",
+//                "Table data",
 //				"function effectToIndex(effect e) returns int",
 //				"	return e.getHandleId()",
 //
@@ -267,7 +405,7 @@ public class GenericsTests extends WurstScriptTest {
         testAssertOkLinesWithStdLib(false,
                 "package Test",
                 "import LinkedList",
-                "Table data",
+//                "Table data",
 
                 "init",
                 "	LinkedList<effect> fxs = new LinkedList<effect>()",
@@ -441,7 +579,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void genericsSubstitute_override_interface_fail() {
-        testAssertErrorsLines(false, "implement",
+        testAssertErrorsLines(false, "Parameter int s should have type MyType to override function bla",
                 "package Test",
                 "interface I<T,S>",
                 "	function bla(S s, T t)",
@@ -734,5 +872,135 @@ public class GenericsTests extends WurstScriptTest {
                 "			testSuccess()"
         );
     }
+
+    @Test
+    public void genericOverload() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	private T x",
+                "	construct(T x)",
+                "		this.x = x",
+                "	function foo(T t)",
+                "		foo(new C(t))",
+                "	function foo(C<T> t)",
+                "		testSuccess()",
+                "init",
+                "	let c = new C(1)",
+                "	c.foo(1)"
+        );
+    }
+
+    @Test
+    public void genericOverload2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T>",
+                "	private T x",
+                "	construct(T x)",
+                "		this.x = x",
+                "	function foo(T t)",
+                "		foo(new C(t))",
+                "	function foo(C<T> t)",
+                "		testSuccess()",
+                "	function test()",
+                "		let c = new C(1)",
+                "		c.foo(1)",
+                "init",
+                "	new C(1).test()"
+        );
+    }
+
+    @Test
+    public void inferType() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function id(int x) returns int",
+                "	return x",
+                "class C<T>",
+                "	var x = id(4)",
+                "init",
+                "	let x= new C<int>",
+                "	if x.x == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericFunctionOverload() { // #628
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "class LinkedList<T>",
+                "	T x",
+                "function stringToIndex(string b) returns int",
+                "	return 0",
+                "function stringFromIndex(int i) returns string",
+                "	return \"\"",
+                "public function LinkedList<string>.foo(string separator) returns string",
+                "	this.foo<string>(s -> s, separator) // Doesn't work",
+                "	this.foo2<string>(s -> s, separator) // Works",
+                "	return separator",
+                "interface ToStringClosure<A>",
+                "	function apply(A a) returns A",
+                "public function LinkedList<T>.foo<T>(ToStringClosure<T> cls, string separator)",
+                "public function LinkedList<T>.foo2<T>(ToStringClosure<T> cls, string separator)",
+                "init",
+                "	let x = new LinkedList<string>",
+                "	x.foo(\"a\")"
+        );
+    }
+
+    @Test
+    public void strangeFoldl() { // #655
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "class LinkedList<T>",
+                "	T x",
+                "	function foldl<Q, T>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+                "		return null",
+                "interface FoldClosure<T, Q>",
+                "	function run(T t, Q q) returns Q",
+                "init",
+                "	let x = new LinkedList<int>",
+                "	x.foldl<int,int>(0, (x, y) -> x + y)"
+        );
+    }
+
+    @Test
+    public void normalFoldlInfer() { // #657
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native I2S(int i) returns string",
+                "string array s",
+                "int s_max = -1",
+                "function stringToIndex(string b) returns int",
+                "	s_max++",
+                "	s[s_max] = b",
+                "	return s_max",
+                "function stringFromIndex(int i) returns string",
+                "	return s[i]",
+                "class LinkedList<T>",
+                "	T x",
+                "	function foldl<Q>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+                "		return predicate.run(x, startValue)",
+                "	function toString() returns string",
+                "		let fold = foldl(\"[\", (i, q) -> q + I2S(i castTo int) + \",\")",
+                "		return fold + \"]\"",
+                "interface FoldClosure<T, Q>",
+                "	function run(T t, Q q) returns Q",
+                "init",
+                "	let x = new LinkedList<int>",
+                "	x.x = 5",
+                "	if x.toString() == \"[5,]\"",
+                "		testSuccess()"
+        );
+    }
+
 
 }

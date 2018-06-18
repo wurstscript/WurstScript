@@ -22,7 +22,7 @@ public class AttrForEachStatement {
         Optional<FuncLink> iteratorFunc = iterator.stream().filter(nl -> nl.getParameterTypes().isEmpty()).findFirst();
         // find the 'hasNext' function without parameters
         if (!iteratorFunc.isPresent()) {
-            forEach.getIn().addError("For loop target <" + Utils.printElement(iterationTarget) + "> doesn't provide a iterator() function");
+            forEach.getIn().addError("For loop target " + itrType + " doesn't provide a iterator() function");
         }
         return iteratorFunc;
     }

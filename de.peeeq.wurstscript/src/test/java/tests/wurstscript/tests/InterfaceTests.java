@@ -477,7 +477,7 @@ public class InterfaceTests extends WurstScriptTest {
 
     @Test
     public void testOverrideFail() {
-        testAssertErrorsLines(false, "Cannot implement interface I because of function foo: The type of parameter x is string but it should be integer",
+        testAssertErrorsLines(false, "Non-abstract class C must implement the following functions:",
                 "package test",
                 "	native testSuccess()",
                 "	interface I",
@@ -501,6 +501,33 @@ public class InterfaceTests extends WurstScriptTest {
                 "	init",
                 "		I i = new C()",
                 "		if i.foo(1) == 43",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void implGap() { // #676
+        testAssertOkLines(true,
+                "package test1",
+                "	interface I",
+                "		function foo() returns int",
+                "	public abstract class B implements I",
+                "		override function foo() returns int",
+                "			return 2",
+                "endpackage",
+                "package test2",
+                "	import test1",
+                "	public class C extends B",
+                "endpackage",
+                "package test",
+                "	import test2",
+                "	native testSuccess()",
+                "	class D extends C",
+                "	init",
+                "		C c1 = new C()",
+                "		C c2 = new D()",
+                "		if c1.foo() == 2 and c2.foo() == 2",
                 "			testSuccess()",
                 "endpackage"
         );

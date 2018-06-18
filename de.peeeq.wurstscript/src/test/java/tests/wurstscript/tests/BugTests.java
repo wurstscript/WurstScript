@@ -212,7 +212,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void cyclicDependency2() {
-        testAssertErrorsLines(false, "must not extend themselves",
+        testAssertErrorsLines(false, "Interface I has a cyclic class hierarchy",
                 "package test",
                 "	interface I extends I",
                 "		function foo()",
@@ -221,7 +221,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void nonAbstractClass() {
-        testAssertErrorsLines(false, "class A is not abstract",
+        testAssertErrorsLines(false, "Non-abstract class A cannot have abstract functions like blub",
                 "package test",
                 "	class A",
                 "		abstract function blub()",

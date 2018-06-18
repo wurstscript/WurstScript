@@ -60,8 +60,7 @@ package HeroNAdept
 		construct(vec3 pos, player owner)
 			super(pos, 64., CreateUnit(owner, '0000', pos.x, pos.y, 0.))
 			registerEvents(actor)
-			debugPrint("created", 2)
-	
+
 		override static function onCast(int abilId, thistype caster, int lvl)
 			BarrierBuff.onCast(caster, lvl)
 		override static function onPointCast(int abildId, thistype caster, int lvl, vec2 tpos)
@@ -194,8 +193,8 @@ package Entity
 			this.vel += vel
 			
 		function setTarget( vec3 tpos, real speed )
-			var t = distanceBetweenCoords(pos.x, pos.y, tpos.x, tpos.y) / speed
-			let tangle = angleBetweenCoords(pos.x, pos.y, tpos.x, tpos.y)
+			var t = pos.distanceTo2d(tpos) / speed
+			let tangle = pos.angleTo2d(tpos)
 			let e = getTerrainZ(tpos.x,tpos.y)
 			
 			if t < 1.
@@ -242,7 +241,7 @@ package Entity
 			
 		function setXY(vec3 tpos)
 			pos = tpos
-			actor.setXY(tpos.x,tpos.y)
+			actor.setXY(tpos.toVec2())
 			
 		static function onDamage()
 			let victimData = GetTriggerUnit().getUserData() castTo UnitEntity
@@ -276,10 +275,236 @@ package Entity
 			
 		override function setPos(vec3 tpos)
 			pos = tpos
-			fx.setPos(tpos.x,tpos.y)
+			fx.setXY(tpos.toVec2())
 
 endpackage
 
 
+package OnCast
+import public Vectors
 
-	
+public module OnPointCast
+	private static trigger t = null
+	private static integer spellId
+
+	abstract static function onPointCast(unit caster, int level, vec2 target )
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onPointCast(GetSpellAbilityUnit(),
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId),
+				vec2(GetSpellTargetX(), GetSpellTargetY()))
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))
+
+
+public module OnCast
+	private static trigger t = null
+	private static integer spellId
+
+	abstract static function onCast(unit caster, int level)
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onCast(GetSpellAbilityUnit(),
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId))
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))
+
+
+
+public module OnUnitTargetCast
+	private static trigger t = null
+	private static integer spellId
+
+	abstract static function onUnitTargetCast(unit caster, int level, unit target)
+
+	private static function actions() returns boolean
+		if GetSpellAbilityId() == spellId
+			onUnitTargetCast(GetSpellAbilityUnit(),
+				GetUnitAbilityLevel(GetSpellAbilityUnit(), spellId), GetSpellTargetUnit())
+		return false
+
+	static function registerSpellEvent(int p_spellId)
+		spellId = p_spellId
+		CreateTrigger()
+			..registerAnyUnitEvent(EVENT_PLAYER_UNIT_SPELL_EFFECT)
+			..addCondition(Condition(function actions))
+
+
+endpackage
+
+package TimedLoop
+
+// TimedLoop
+// originally created by Vexorian
+// augmented by some ideas from "Constant Timer Loop 32" by Nestharus
+
+
+timer timedLoopTimer = CreateTimer()
+trigger timedLoopTrig = CreateTrigger()
+int conditionCount = 0
+
+function evaluateTimedLoopTrig()
+	TriggerEvaluate(timedLoopTrig)
+	if conditionCount == 0
+		timedLoopTimer.pause()
+
+enum Mode
+	RUNNING
+	PAUSED
+	STOPPED
+	STOPPED_FOR_GOOD
+
+
+public module TimedLoop
+	static private thistype array instances		// The array
+	static private integer instanceCount = 0	// The count
+	static private triggercondition triggerCond = null // the triggerCondition for this
+	static private conditionfunc cond = Condition(function onExpire)
+
+	// TODO this should be private but does not work currently
+	private Mode mode = Mode.PAUSED
+
+	abstract function onTimedLoop()
+
+	private static function onExpire() returns boolean
+		int i = instanceCount - 1
+		while i >= 0
+			thistype t = instances[i]
+
+			t.onTimedLoop()
+			if t.mode != Mode.RUNNING
+				instanceCount--
+				instances[i] = instances[instanceCount]
+				if t.mode == Mode.STOPPED_FOR_GOOD
+					t.mode = Mode.PAUSED
+					destroy t
+				else
+					t.mode = Mode.PAUSED
+			i--
+		if instanceCount == 0
+			TriggerRemoveCondition(timedLoopTrig, triggerCond)
+			triggerCond = null
+			conditionCount--
+		return false
+
+	function stopTimedLoop()
+		mode = Mode.STOPPED
+
+	function stopTimedLoopAndDestroy()
+		mode = Mode.STOPPED_FOR_GOOD
+
+	function startTimedLoop()
+		instances[instanceCount] = this
+		instanceCount++
+		if instanceCount == 1
+			if triggerCond == null
+				triggerCond = TriggerAddCondition(timedLoopTrig, cond)
+				conditionCount++
+				if conditionCount == 1
+					timedLoopTimer.startPeriodic(ANIMATION_PERIOD, function evaluateTimedLoopTrig)
+		mode = Mode.RUNNING
+
+	ondestroy
+		if mode != Mode.PAUSED
+			stopTimedLoop()
+
+endpackage
+
+package Terrain
+import NoWurst
+import Item
+
+constant real		MAX_RANGE	 	= 10.
+constant integer 	DUMMY_ITEM_ID 	= 'wolg'
+location 			tempLoc 		= Location(0.,0.)
+item	   			dItem   		= null
+rect	   			find   			= null
+item array 			hid
+integer				hidMax 			= 0
+vec2 				tempPos 		= vec2(0,0)
+
+init
+	find = Rect(0., 0., 128., 128.)
+	dItem = CreateItem(DUMMY_ITEM_ID, 0, 0)
+	SetItemVisible(dItem, false)
+
+/** Returns the (not normalised) terrain-normal at the given point */
+public function getTerrainNormal( real x, real y, real sampleRadius) returns vec3
+	MoveLocation(tempLoc, x-sampleRadius, y)
+	var zx = GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x+sampleRadius, y)
+	zx -= GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x, y-sampleRadius)
+	var zy = GetLocationZ(tempLoc)
+	MoveLocation(tempLoc, x, y+sampleRadius)
+	zy -= GetLocationZ(tempLoc)
+	let sampleRadius2 = 2*sampleRadius
+	return vec3( zx*sampleRadius2, zy*sampleRadius2, sampleRadius2*sampleRadius2 )
+
+public function getTerrainZ(real x, real y) returns real
+	MoveLocation( tempLoc, x, y )
+	return GetLocationZ( tempLoc )
+
+public function getTerrainZ(vec2 v) returns real
+	MoveLocation( tempLoc, v.x, v.y )
+	return GetLocationZ( tempLoc )
+
+public function vec2.withTerrainZ() returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
+
+public function vec2.withTerrainZ(real zoffset) returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+
+public function vec3.withTerrainZ() returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y))
+
+public function vec3.withTerrainZ(real zoffset) returns vec3
+	return vec3(this.x, this.y, getTerrainZ(this.x, this.y) + zoffset)
+
+public function isTerrainDeepWater(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
+
+public function isTerrainShallowWater(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
+
+public function isTerrainLand(real x, real y) returns boolean
+	return IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY)
+
+public function isTerrainPlatform(real x, real y) returns boolean
+	return not IsTerrainPathable(x, y, PATHING_TYPE_FLOATABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY) and not IsTerrainPathable(x, y, PATHING_TYPE_BUILDABILITY)
+
+function hideItem()
+	if IsItemVisible(GetEnumItem())
+		hid[hidMax] = GetEnumItem()
+		SetItemVisible(hid[hidMax], false)
+		hidMax++
+
+public function isTerrainWalkable(real x, real y) returns boolean
+	//Hide any items in the area to avoid conflicts with our item
+	MoveRectTo(find, x, y)
+	EnumItemsInRect(find ,null, function hideItem)
+	//Try to move the test item and get its coords
+	SetItemPosition(dItem, x, y) //Unhides the item
+	tempPos = dItem.getPos()
+	SetItemVisible(dItem, false)//Hide it again
+	//Unhide any items hidden at the start
+	while hidMax > 0
+		hidMax--
+		SetItemVisible(hid[hidMax], true)
+		hid[hidMax] = null
+	//Return walkability
+	return (tempPos.x-x)*(tempPos.x-x)+(tempPos.y-y)*(tempPos.y-y) <= MAX_RANGE*MAX_RANGE and not IsTerrainPathable(x, y, PATHING_TYPE_WALKABILITY)
+
+endpackage
