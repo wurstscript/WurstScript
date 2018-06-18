@@ -43,7 +43,9 @@ public class InterpreterException extends RuntimeException {
 
 
     public InterpreterException withStacktrace(String msg) {
-        this.stackTrace = msg;
+        if (this.stackTrace == null) {
+            this.stackTrace = msg;
+        }
         return this;
     }
 

@@ -20,15 +20,15 @@ import java.util.*;
 public class ProgramState extends State {
 
     public static final int GENERATED_BY_WURST = 42;
-    private @Nullable ImStmt lastStatement;
+    private de.peeeq.wurstscript.jassIm.Element lastStatement;
     protected WurstGui gui;
     private PrintStream outStream = System.err;
     private List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;
     private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
-    private Stack<ILStackFrame> stackFrames = new Stack<>();
-    private Stack<ImStmt> lastStatements = new Stack<>();
+    private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
+    private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
 
 
@@ -42,7 +42,7 @@ public class ProgramState extends State {
         lastStatement = s;
     }
 
-    public @Nullable ImStmt getLastStatement() {
+    public de.peeeq.wurstscript.jassIm.Element getLastStatement() {
         return lastStatement;
     }
 
@@ -134,14 +134,18 @@ public class ProgramState extends State {
 
     public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
         stackFrames.push(new ILStackFrame(f, args, trace));
-        lastStatements.push(lastStatement);
+        de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
+        if (stmt == null) {
+            stmt = f;
+        }
+        lastStatements.push(stmt);
     }
 
     public void popStackframe() {
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
-        if (!lastStatements.empty()) {
+        if (!lastStatements.isEmpty()) {
             lastStatement = lastStatements.pop();
         }
     }
@@ -156,7 +160,7 @@ public class ProgramState extends State {
     }
 
     public void compilationError(String errorMessage) {
-        ImStmt lastStatement = getLastStatement();
+        de.peeeq.wurstscript.jassIm.Element lastStatement = getLastStatement();
         if (lastStatement != null) {
             WPos source = lastStatement.attrTrace().attrSource();
             getGui().sendError(new CompileError(source, errorMessage));
@@ -171,7 +175,7 @@ public class ProgramState extends State {
     public static class StackTrace {
         private final List<ILStackFrame> stackFrames;
 
-        public StackTrace(Stack<ILStackFrame> stackFrames) {
+        public StackTrace(Deque<ILStackFrame> stackFrames) {
             ImmutableList.Builder<ILStackFrame> builder = ImmutableList.builder();
             for (ILStackFrame stackFrame : stackFrames) {
                 builder.add(stackFrame);

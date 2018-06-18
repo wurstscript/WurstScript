@@ -130,7 +130,7 @@ public class RunTests extends UserRequest<Object> {
     public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
@@ -145,6 +145,12 @@ public class RunTests extends UserRequest<Object> {
 
         // first run compiletime functions
         cfr.run();
+
+        if (gui.getErrorCount() > 0) {
+            println("There were some problem while running compiletime expressions and functions.");
+            return new TestResult(0, 1);
+        }
+
         WLogger.info("Ran compiletime functions");
 
 
@@ -168,6 +174,8 @@ public class RunTests extends UserRequest<Object> {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
                         finalInterpreter.runVoidFunc(f, null);
+                        // each test must finish it's own timers (otherwise, we would get strange results)
+                        finalInterpreter.completeTimers();
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
@@ -221,6 +229,10 @@ public class RunTests extends UserRequest<Object> {
         } else {
             println(">> " + failTests.size() + " Tests have failed!");
         }
+        if (gui.getErrorCount() > 0) {
+            println("There were some errors reported while running the tests.");
+        }
+
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
     }

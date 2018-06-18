@@ -11,4 +11,8 @@ import org.eclipse.jdt.annotation.Nullable;
 public interface AbstractInterpreter {
 
     void runFuncRef(ILconstFuncRef obj, @Nullable Element trace);
+
+    TimerMockHandler getTimerMockHandler();
+
+    void completeTimers();
 }
