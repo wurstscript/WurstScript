@@ -8,7 +8,9 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 
 public class SimpleRewrites implements OptimizerPass {
     private SideEffectAnalyzer sideEffectAnalysis;
@@ -190,8 +192,11 @@ public class SimpleRewrites implements OptimizerPass {
                     wasViable = false;
                 }
             } else if (left.structuralEquals(right) && opc.getOp() == WurstOperator.PLUS && !(left instanceof ImStringVal)) {
-                opc.setOp(WurstOperator.MULT);
-                right.replaceBy(JassIm.ImIntVal(2));
+                if (!(left instanceof ImFunctionCall && sideEffectAnalysis.hasSideEffects((ImFunctionCall) left))) {
+                    opc.setOp(WurstOperator.MULT);
+                    right.replaceBy(JassIm.ImIntVal(2));
+                    wasViable = true;
+                }
             } else {
                 wasViable = false;
             }
