@@ -41,7 +41,7 @@ public class RunTests extends UserRequest<Object> {
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
 
-    private static final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+    private static ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 
     static public class TestFailure {
 
@@ -130,7 +130,7 @@ public class RunTests extends UserRequest<Object> {
     public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, new TestGui(), CompiletimeFunctions);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(imProg, null, null, gui, CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
@@ -145,6 +145,12 @@ public class RunTests extends UserRequest<Object> {
 
         // first run compiletime functions
         cfr.run();
+
+        if (gui.getErrorCount() > 0) {
+            println("There were some problem while running compiletime expressions and functions.");
+            return new TestResult(0, 1);
+        }
+
         WLogger.info("Ran compiletime functions");
 
 
@@ -168,9 +174,15 @@ public class RunTests extends UserRequest<Object> {
                     @Nullable ILInterpreter finalInterpreter = interpreter;
                     Callable<Void> run = () -> {
                         finalInterpreter.runVoidFunc(f, null);
+                        // each test must finish it's own timers (otherwise, we would get strange results)
+                        finalInterpreter.completeTimers();
                         return null;
                     };
                     RunnableFuture<Void> future = new FutureTask<>(run);
+                    if (service != null && !service.isShutdown()) {
+                        service.shutdownNow();
+                    }
+                    service = Executors.newSingleThreadScheduledExecutor();
                     service.execute(future);
                     try {
                         future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
@@ -182,6 +194,7 @@ public class RunTests extends UserRequest<Object> {
                     }
                     service.shutdown();
                     service.awaitTermination(10, TimeUnit.SECONDS);
+                    service = Executors.newSingleThreadScheduledExecutor();
                     successTests.add(f);
                     println("\tOK!");
                 } catch (TestSuccessException e) {
@@ -216,6 +229,10 @@ public class RunTests extends UserRequest<Object> {
         } else {
             println(">> " + failTests.size() + " Tests have failed!");
         }
+        if (gui.getErrorCount() > 0) {
+            println("There were some errors reported while running the tests.");
+        }
+
         WLogger.info("finished tests");
         return new TestResult(successTests.size(), successTests.size() + failTests.size());
     }

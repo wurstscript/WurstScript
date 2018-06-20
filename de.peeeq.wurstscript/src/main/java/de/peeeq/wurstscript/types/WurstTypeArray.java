@@ -3,12 +3,15 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.AttrConstantValue;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
 
 
@@ -72,12 +75,19 @@ public class WurstTypeArray extends WurstType {
 
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType other, Element location) {
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
         if (other instanceof WurstTypeArray) {
             WurstTypeArray otherArray = (WurstTypeArray) other;
-            return baseType.equalsType(otherArray.baseType, location) && getDimensions() == otherArray.getDimensions();
+            mapping = baseType.matchTypes(otherArray.baseType, location, typeParams, mapping);
+            if (mapping == null) {
+                return null;
+            }
+            if (getDimensions() != otherArray.getDimensions()) {
+                return null;
+            }
+            return mapping;
         }
-        return false;
+        return null;
     }
 
     @Override

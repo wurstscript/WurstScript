@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import fj.data.TreeMap;
 
 import java.util.Map;
 import java.util.Optional;
@@ -17,7 +18,7 @@ public class CheckHelper {
      *
      * Returns an error if it is not a refinement
      */
-    public static Optional<String> checkIfIsRefinement(Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage) {
+    public static Optional<String> checkIfIsRefinement(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage) {
         String funcName = f.getName();
         // check static-ness
         if (f.attrIsStatic() && !of.attrIsStatic()) {
@@ -56,9 +57,12 @@ public class CheckHelper {
         return Optional.empty();
     }
 
-    private static WurstType getRealType(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
+    private static WurstType getRealType(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
         return t.setTypeArgs(typeParamMapping);
     }
 
 
+    public static boolean isRefinement(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of) {
+        return !checkIfIsRefinement(typeParamMapping, f, of, "").isPresent();
+    }
 }

@@ -14,26 +14,19 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import file.WurstProjectConfig;
 import file.WurstProjectConfigData;
+import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.List;
 
 /**
  * Created by peter on 16.05.16.
  */
 public class BuildMap extends MapRequest {
-    private static final ByteBuffer MAP_NAME_MAGIC_START = ByteBuffer.wrap(new byte[]{'H', 'M', '3', 'W', 0x00, 0x00, 0x00, 0x00})
-            .order(ByteOrder.LITTLE_ENDIAN);
-    private static final ByteBuffer MAP_NAME_MAGIC_END = ByteBuffer.wrap(new byte[]{0x00, 'x', (byte) 0xE4, 0x01, 0x00, 0x08, 0x00, 0x00})
-            .order(ByteOrder.LITTLE_ENDIAN);
     private static final String FILE_NAME = "wurst.build";
-
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -104,15 +97,14 @@ public class BuildMap extends MapRequest {
             applyProjectConfig(projectConfig, targetMap);
             gui.sendProgress("Done.");
         } catch (CompileError e) {
-            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
+            WLogger.info(e);
+            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map:\n" + e);
         } catch (RuntimeException e) {
             throw e;
         } catch (final Exception e) {
             throw new RuntimeException(e);
         } finally {
-            if (gui.getErrorCount() == 0) {
-                gui.sendFinished();
-            }
+            gui.sendFinished();
         }
         return "ok"; // TODO
     }
@@ -138,27 +130,10 @@ public class BuildMap extends MapRequest {
             }
         }
 
-        try (MpqEditor mpq = MpqEditorFactory.getEditor(targetMap)) {
-            mpq.setKeepHeaderOffset(false);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        MAP_NAME_MAGIC_START.rewind();
-        MAP_NAME_MAGIC_END.rewind();
-
-        byte[] mapBytes = java.nio.file.Files.readAllBytes(targetMap.toPath());
-        ByteBuffer mapNameBuffer = ByteBuffer.allocate(512).order(ByteOrder.LITTLE_ENDIAN);
-        mapNameBuffer.put(MAP_NAME_MAGIC_START);
-        mapNameBuffer.put(projectConfig.getBuildMapData().getName().getBytes());
-        mapNameBuffer.put(MAP_NAME_MAGIC_END);
-
-        mapNameBuffer.rewind();
-        try (FileOutputStream dest = new FileOutputStream(targetMap)) {
-            byte[] bytes = new byte[512 + mapBytes.length];
-            mapNameBuffer.get(bytes, 0, 512);
-            System.arraycopy(mapBytes, 0, bytes, 512, mapBytes.length);
-            dest.write(bytes);
-        }
+        MapHeader mapHeader = MapHeader.ofFile(targetMap);
+        mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayerCount());
+        mapHeader.setMapName(projectConfig.getBuildMapData().getFileName());
+        mapHeader.writeToMapFile(targetMap);
     }
 
     private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {

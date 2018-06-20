@@ -6,6 +6,8 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
@@ -65,9 +67,7 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
         } else if (e instanceof ExprBinary) {
             ExprBinary eb = (ExprBinary) e;
             FunctionDefinition def = eb.attrFuncDef();
-            if (def != null) {
-                return linkTo(def);
-            }
+            return linkTo(def);
         }
         return Collections.emptyList();
     }

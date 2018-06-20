@@ -57,7 +57,7 @@ public class BackupController {
         return val;
     }
 
-    private int backupCount(String mapName) throws Error, IOException {
+    private int backupCount(String mapName) throws Error {
         int count = 0;
         for (File f : backupFolder.listFiles()) {
             String name = f.getName();

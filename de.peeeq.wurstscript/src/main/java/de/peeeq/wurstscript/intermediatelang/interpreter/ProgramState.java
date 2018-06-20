@@ -5,10 +5,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.utils.LineOffsets;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
@@ -17,15 +20,15 @@ import java.util.*;
 public class ProgramState extends State {
 
     public static final int GENERATED_BY_WURST = 42;
-    private @Nullable ImStmt lastStatement;
+    private de.peeeq.wurstscript.jassIm.Element lastStatement;
     protected WurstGui gui;
     private PrintStream outStream = System.err;
     private List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;
     private Map<Integer, Object> objectToClassKey = Maps.newLinkedHashMap();
-    private Stack<ILStackFrame> stackFrames = new Stack<>();
-    private Stack<ImStmt> lastStatements = new Stack<>();
+    private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
+    private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
 
 
@@ -39,7 +42,7 @@ public class ProgramState extends State {
         lastStatement = s;
     }
 
-    public @Nullable ImStmt getLastStatement() {
+    public de.peeeq.wurstscript.jassIm.Element getLastStatement() {
         return lastStatement;
     }
 
@@ -131,14 +134,18 @@ public class ProgramState extends State {
 
     public void pushStackframe(ImFunction f, ILconst[] args, WPos trace) {
         stackFrames.push(new ILStackFrame(f, args, trace));
-        lastStatements.push(lastStatement);
+        de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
+        if (stmt == null) {
+            stmt = f;
+        }
+        lastStatements.push(stmt);
     }
 
     public void popStackframe() {
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
         }
-        if (!lastStatements.empty()) {
+        if (!lastStatements.isEmpty()) {
             lastStatement = lastStatements.pop();
         }
     }
@@ -152,10 +159,23 @@ public class ProgramState extends State {
         return new StackTrace(stackFrames);
     }
 
+    public void compilationError(String errorMessage) {
+        de.peeeq.wurstscript.jassIm.Element lastStatement = getLastStatement();
+        if (lastStatement != null) {
+            WPos source = lastStatement.attrTrace().attrSource();
+            getGui().sendError(new CompileError(source, errorMessage));
+        } else {
+            getGui().sendError(new CompileError(new WPos("", new LineOffsets(), 0, 0), errorMessage));
+        }
+        for (ILStackFrame sf : Utils.iterateReverse(getStackFrames().getStackFrames())) {
+            getGui().sendError(sf.makeCompileError());
+        }
+    }
+
     public static class StackTrace {
         private final List<ILStackFrame> stackFrames;
 
-        public StackTrace(Stack<ILStackFrame> stackFrames) {
+        public StackTrace(Deque<ILStackFrame> stackFrames) {
             ImmutableList.Builder<ILStackFrame> builder = ImmutableList.builder();
             for (ILStackFrame stackFrame : stackFrames) {
                 builder.add(stackFrame);
@@ -164,7 +184,7 @@ public class ProgramState extends State {
         }
 
         public void appendTo(StringBuilder sb) {
-            for (int i = stackFrames.size()-1; i>= 0; i--) {
+            for (int i = stackFrames.size() - 1; i >= 0; i--) {
                 sb.append(stackFrames.get(i).getMessage());
                 sb.append("\n");
             }

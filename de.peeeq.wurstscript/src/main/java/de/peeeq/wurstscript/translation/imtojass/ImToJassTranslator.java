@@ -145,10 +145,7 @@ public class ImToJassTranslator {
 
 
     private String getUniqueGlobalName(String name) { // TODO find local names
-
-        if (restrictedNames.contains(name) || name.startsWith("_")) {
-            name = "w" + name;
-        }
+        name = jassifyName(name);
 
         if (!usedNames.contains(name)) {
             // name not used yet
@@ -167,6 +164,7 @@ public class ImToJassTranslator {
     }
 
     private String getUniqueLocalName(ImFunction imFunction, String name) {
+        name = jassifyName(name);
         if (!usedNames.contains(name) && !usedLocalNames.containsEntry(imFunction, name)) {
             usedLocalNames.put(imFunction, name);
             return name;
@@ -190,7 +188,7 @@ public class ImToJassTranslator {
         if (result == null) {
             boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
             String type = v.getType().translateType();
-            String name = jassifyName(v.getName());
+            String name = v.getName();
             if (v.getNearestFunc() != null) {
                 name = getUniqueLocalName(v.getNearestFunc(), name);
             } else {
@@ -215,8 +213,8 @@ public class ImToJassTranslator {
     }
 
     private String jassifyName(String name) {
-        while (name.startsWith("_")) {
-            name = name.substring(1);
+        if (restrictedNames.contains(name) || name.startsWith("_")) {
+            name = "w" + name;
         }
         if (name.endsWith("_")) {
             name = name + "u";

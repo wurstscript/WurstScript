@@ -109,7 +109,7 @@ public class ExtensionMethodsTests extends WurstScriptTest {
 
     @Test
     public void extmethontype() {
-        testAssertErrorsLines(true, "bla is undefined",
+        testAssertErrorsLines(true, "Could not find function bla",
                 "type unit extends handle",
                 "package test",
                 "	function unit.bla()",
@@ -129,6 +129,21 @@ public class ExtensionMethodsTests extends WurstScriptTest {
                 "		testSuccess()",
                 "	function real.bla()",
                 "		skip",
+                "	init",
+                "		int i = 2",
+                "		i.bla()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void sameName() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	function int.bla()",
+                "		testSuccess()",
+                "	function bla()",
                 "	init",
                 "		int i = 2",
                 "		i.bla()",

@@ -1,24 +1,27 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
+import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeDeferred;
+import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 public class VarLink extends DefLink {
     private final NameDef def;
-    private final WurstType type;
+    private final Deferred<WurstType> type;
 
-    public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, NameDef def, WurstType type) {
+    public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, NameDef def, Deferred<WurstType> type) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.type = type;
@@ -29,7 +32,7 @@ public class VarLink extends DefLink {
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
         WurstType lreceiverType = calcReceiverType(definedIn, def);
         WurstType type = def.attrTyp();
-        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
+        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, new Deferred<>(type));
     }
 
     public static VarLink create(EnumMember def, WScope definedIn) {
@@ -37,20 +40,24 @@ public class VarLink extends DefLink {
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
         WurstType lreceiverType = calcReceiverType(definedIn, def);
         WurstType type = def.attrTyp();
-        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
+        return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, new Deferred<>(type));
     }
 
     public static VarLink create(VarDef def, WScope definedIn) {
         Visibility visibility = calcVisibility(definedIn, def);
         List<TypeParamDef> typeParams = Streams.concat(typeParams(definedIn), typeParams(def)).collect(Collectors.toList());
         WurstType lreceiverType = calcReceiverType(definedIn, def);
-        WurstType type;
+        Deferred<WurstType> type;
         if (def.attrOptTypeExpr() instanceof TypeExpr) {
             TypeExpr typeExpr = (TypeExpr) def.attrOptTypeExpr();
-            type = typeExpr.attrTyp().dynamic();
+            WurstType t = typeExpr.attrTyp().dynamic();
+            if (def.attrIsVararg()) {
+                t = new WurstTypeVararg(t);
+            }
+            type = new Deferred<>(t);
         } else {
             // if type has to be inferred, we have to do it deferred to avoid cyclic dependencies
-            type = new WurstTypeDeferred(def::attrTyp);
+            type = new Deferred<>(def::attrTyp);
         }
         return new VarLink(visibility, definedIn, typeParams, lreceiverType, def, type);
     }
@@ -130,11 +137,11 @@ public class VarLink extends DefLink {
         return r + Utils.printElementWithSource(def);
     }
 
-    public VarLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public VarLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
         if (binding.isEmpty()) {
             return this;
         }
-        WurstType newType = type.setTypeArgs(binding);
+        Deferred<WurstType> newType = type.map(oldType -> oldType.setTypeArgs(binding));
         boolean changed = newType != type;
         WurstType newReceiverType = getReceiverType().setTypeArgs(binding);
         changed |= newReceiverType == getReceiverType();
@@ -142,12 +149,31 @@ public class VarLink extends DefLink {
 
         if (changed) {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(binding::containsKey)
+                    .filter(binding::contains)
                     .collect(Collectors.toList());
             return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, newType);
         } else {
             return this;
         }
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
+        if (typeParams.isEmpty()) {
+            return this;
+        }
+        ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
+        return new VarLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, type);
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return type.get();
+    }
+
+    @Override
+    public VarLink withDef(NameDef def) {
+        return new VarLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, type);
     }
 
 
@@ -166,6 +192,9 @@ public class VarLink extends DefLink {
         return (VarLink) super.hidingPrivateAndProtected();
     }
 
+    public VarLink adaptToReceiverType(WurstType receiverType) {
+        return (VarLink) super.adaptToReceiverType(receiverType);
+    }
 
 
 }

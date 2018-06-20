@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
+import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -24,6 +25,7 @@ public class JassInterpreter implements AbstractInterpreter {
     private Map<String, ILconst> globalVarMap;
     private boolean trace = false;
     private Map<String, ExecutableJassFunction> functionCache = new HashMap<>();
+    private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
     public void loadProgram(JassProg prog) {
         this.prog = prog;
@@ -474,6 +476,11 @@ public class JassInterpreter implements AbstractInterpreter {
         func.execute(this);
     }
 
+    @Override
+    public TimerMockHandler getTimerMockHandler() {
+        return timerMockHandler;
+    }
+
     public void runProgram() {
         for (JassVar var : prog.getGlobals()) {
             if (var instanceof JassInitializedVar) {
@@ -482,5 +489,12 @@ public class JassInterpreter implements AbstractInterpreter {
             }
         }
         executeFunction("main");
+        timerMockHandler.completeTimers();
+    }
+
+
+    @Override
+    public void completeTimers() {
+        timerMockHandler.completeTimers();
     }
 }

@@ -1,12 +1,21 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableMultimap;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import fj.data.TreeMap;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeModule extends WurstTypeNamedScope {
@@ -26,15 +35,18 @@ public class WurstTypeModule extends WurstTypeNamedScope {
     }
 
     @Override
-    public boolean isSubtypeOfIntern(WurstType obj, Element location) {
-        if (super.isSubtypeOfIntern(obj, location)) {
-            return true;
+    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        if (superMapping != null) {
+            return superMapping;
         }
         if (obj instanceof WurstTypeModuleInstanciation) {
             WurstTypeModuleInstanciation n = (WurstTypeModuleInstanciation) obj;
-            return n.isParent(this);
+            if (n.isParent(this)) {
+                return mapping;
+            }
         }
-        return false;
+        return null;
     }
 
     @Override
@@ -73,5 +85,16 @@ public class WurstTypeModule extends WurstTypeNamedScope {
     @Override
     public boolean isCastableToInt() {
         return true;
+    }
+
+    @Override
+    public void addMemberMethods(Element node, String name, List<FuncLink> result) {
+        // module methods cannot be called (only of module instantiations)
+    }
+
+    @Override
+    public Stream<FuncLink> getMemberMethods(Element node) {
+        // module methods cannot be called (only of module instantiations)
+        return Stream.empty();
     }
 }

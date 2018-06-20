@@ -1,14 +1,13 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WScope;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import de.peeeq.wurstscript.types.WurstTypePackage;
+import fj.data.TreeMap;
 
 import java.util.Collections;
-import java.util.Map;
+import java.util.List;
 
 
 public class PackageLink extends DefLink {
@@ -49,9 +48,24 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public PackageLink withTypeArgBinding(Element context, Map<TypeParamDef, WurstTypeBoundTypeParam> binding) {
-        // packages do not have type paramaters
+    public PackageLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+        // packages do not have type parameters
         return this;
+    }
+
+    @Override
+    public DefLink withGenericTypeParams(List<TypeParamDef> typeParams) {
+        return this;
+    }
+
+    @Override
+    public WurstType getTyp() {
+        return new WurstTypePackage(def);
+    }
+
+    @Override
+    public PackageLink withDef(NameDef def) {
+        return new PackageLink(getVisibility(), getDefinedIn(), (WPackage) def);
     }
 
 

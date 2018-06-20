@@ -7,20 +7,20 @@ import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Set;
 
-public class GlobalsInliner {
+public class GlobalsInliner implements OptimizerPass {
 
-    public int obsoleteCount;
-    private ImProg prog;
-
-    public GlobalsInliner(ImTranslator translator) {
-        this.prog = translator.getImProg();
-    }
-
-    public void inlineGlobals() {
+    public int optimize(ImTranslator trans) {
+        int obsoleteCount = 0;
+        ImProg prog = trans.getImProg();
         prog.clearAttributes(); // TODO only clear read/write attributes
 
         Set<ImVar> obsoleteVars = Sets.newLinkedHashSet();
         for (final ImVar v : prog.getGlobals()) {
+            if (trans.isUnitTestMode() && v.getName().equals("MagicFunctions_compiletime")) {
+                // in unit test mode we run tests and compiletime functions with optimizations,
+                // so it is important, that we do not optimize away the compiletime constant
+                continue;
+            }
             if (v.attrWrites().size() == 1) {
                 ImExpr right = null;
                 ImVarWrite obs = null;
@@ -73,7 +73,7 @@ public class GlobalsInliner {
         obsoleteCount += obsoleteVars.size();
         for (ImVar i : obsoleteVars) {
             // remove the write
-            if(i.attrWrites().size() > 0) {
+            if (i.attrWrites().size() > 0) {
                 ImVarWrite write = Utils.getFirstAndOnly(i.attrWrites());
                 if (write.getParent() != null) {
                     write.replaceBy(write.getRight().copy());
@@ -81,6 +81,12 @@ public class GlobalsInliner {
             }
         }
         prog.getGlobals().removeAll(obsoleteVars);
+        return obsoleteCount;
+    }
+
+    @Override
+    public String getName() {
+        return "Globals Inlined";
     }
 
 }

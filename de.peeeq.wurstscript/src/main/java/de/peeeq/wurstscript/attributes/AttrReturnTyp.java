@@ -11,4 +11,8 @@ public class AttrReturnTyp {
     public static WurstType calculate(FunctionDefinition f) {
         return f.getReturnTyp().attrTyp().dynamic();
     }
+
+    public static WurstType calculate(TupleDef f) {
+        return f.attrTyp();
+    }
 }

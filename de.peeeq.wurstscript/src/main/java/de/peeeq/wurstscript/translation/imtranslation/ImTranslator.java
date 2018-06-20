@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
@@ -34,14 +35,12 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.types.WurstTypeBool;
-import de.peeeq.wurstscript.types.WurstTypeInterface;
-import de.peeeq.wurstscript.types.WurstTypeString;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -328,13 +327,31 @@ public class ImTranslator {
         }
         Set<WPackage> calledInitializers = Sets.newLinkedHashSet();
 
-        ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
-        getMainFunc().getLocals().add(initTrigVar);
+        ImVar initTrigVar = prepareTrigger();
 
         for (WPackage p : Utils.sortByName(initFuncMap.keySet())) {
             callInitFunc(calledInitializers, p, initTrigVar);
         }
 
+        ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
+        if(native_DestroyTrigger != null) {
+            getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger,
+                    JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
+        }
+    }
+
+    @NotNull
+    private ImVar prepareTrigger() {
+        ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
+        getMainFunc().getLocals().add(initTrigVar);
+
+        // initTrigVar = CreateTrigger()
+        ImFunction createTrigger = getNativeFunc("CreateTrigger");
+        if (createTrigger != null) {
+            getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
+                    JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
+        }
+        return initTrigVar;
     }
 
 
@@ -360,6 +377,9 @@ public class ImTranslator {
         if (initFunc == null) {
             return;
         }
+        if(initFunc.getBody().size() == 0) {
+            return;
+        }
         boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
 
         if (!successful) {
@@ -371,18 +391,14 @@ public class ImTranslator {
     private boolean createInitFuncCall(WPackage p, ImVar initTrigVar, ImFunction initFunc) {
         ImStmts mainBody = getMainFunc().getBody();
 
-
-        ImFunction native_CreateTrigger = getNativeFunc("CreateTrigger");
-        ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
+        ImFunction native_ClearTrigger = getNativeFunc("TriggerClearConditions");
         ImFunction native_TriggerAddCondition = getNativeFunc("TriggerAddCondition");
         ImFunction native_Condition = getNativeFunc("Condition");
         ImFunction native_TriggerEvaluate = getNativeFunc("TriggerEvaluate");
         ImFunction native_DisplayTimedTextToPlayer = getNativeFunc("DisplayTimedTextToPlayer");
         ImFunction native_GetLocalPlayer = getNativeFunc("GetLocalPlayer");
 
-
-        if (native_CreateTrigger == null
-                || native_DestroyTrigger == null
+        if (native_ClearTrigger == null
                 || native_TriggerAddCondition == null
                 || native_Condition == null
                 || native_TriggerEvaluate == null
@@ -405,10 +421,6 @@ public class ImTranslator {
         de.peeeq.wurstscript.ast.Element trace = initFunc.getTrace();
         initFunc.getBody().add(JassIm.ImReturn(trace, JassIm.ImBoolVal(true)));
 
-
-        // initTrigVar = CreateTrigger()
-        mainBody.add(JassIm.ImSet(trace, initTrigVar,
-                JassIm.ImFunctionCall(trace, native_CreateTrigger, JassIm.ImExprs(), false, CallType.NORMAL)));
 
         // TriggerAddCondition(initTrigVar, Condition(function myInit))
         mainBody.add(JassIm.ImFunctionCall(trace, native_TriggerAddCondition, JassIm.ImExprs(
@@ -434,7 +446,7 @@ public class ImTranslator {
                 ),
                 // else:
                 JassIm.ImStmts()));
-        mainBody.add(JassIm.ImFunctionCall(trace, native_DestroyTrigger,
+        mainBody.add(JassIm.ImFunctionCall(trace, native_ClearTrigger,
                 JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
         return true;
     }
@@ -662,14 +674,11 @@ public class ImTranslator {
         if (e instanceof FuncDef) {
             FuncDef f = (FuncDef) e;
             if (f.attrNearestStructureDef() != null) {
-                return f.attrNearestStructureDef().getName() + "_" + f.getName();
+                return getNameFor(f.attrNearestStructureDef()) + "_" + f.getName();
             }
         } else if (e instanceof ExtensionFuncDef) {
             ExtensionFuncDef f = (ExtensionFuncDef) e;
             return getNameFor(f.getExtendedType()) + "_" + f.getName();
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) e;
-            return t.getTypeName();
         } else if (e instanceof TypeExprSimple) {
             TypeExprSimple t = (TypeExprSimple) e;
             return t.getTypeName();
@@ -678,6 +687,9 @@ public class ImTranslator {
         } else if (e instanceof TypeExprArray) {
             TypeExprArray t = (TypeExprArray) e;
             return getNameFor(t.getBase()) + "Array";
+        } else if (e instanceof ModuleInstanciation) {
+            ModuleInstanciation mi = (ModuleInstanciation) e;
+            return getNameFor(mi.getParent().attrNearestNamedScope()) + "_" + mi.getName();
         }
 
 
@@ -754,7 +766,7 @@ public class ImTranslator {
             ImType type = varDef.attrTyp().imTranslateType();
             String name = varDef.getName();
             if (isNamedScopeVar(varDef)) {
-                name = varDef.attrNearestNamedScope().getName() + "_" + name;
+                name = getNameFor(varDef.attrNearestNamedScope()) + "_" + name;
             }
             boolean isBj = isBJ(varDef.getSource());
             v = JassIm.ImVar(varDef, type, name, isBj);
@@ -883,13 +895,14 @@ public class ImTranslator {
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
             FuncLink funcNameLink = null;
-            for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
+            WurstTypeClass cType = c.attrTypC();
+            for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
                 if (nameLink.getDef() == func) {
-                    funcNameLink = (FuncLink) nameLink;
+                    funcNameLink = nameLink;
                 }
             }
             if (funcNameLink == null) {
-                throw new Error("must not happen");
+                throw new Error("Could not find " + Utils.printElementWithSource(func) + " in " + Utils.printElementWithSource(c));
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
                 NameDef nameDef = nameLink.getDef();
@@ -984,8 +997,8 @@ public class ImTranslator {
         interfaceInstances = HashMultimap.create();
         for (CompilationUnit cu : wurstProg) {
             for (ClassDef c : cu.attrGetByType().classes) {
-                for (WurstTypeInterface i : c.attrImplementedInterfaces()) {
-                    interfaceInstances.put(i.getInterfaceDef(), c);
+                for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
+                    interfaceInstances.put(i.getDef(), c);
                 }
             }
         }
@@ -1017,8 +1030,9 @@ public class ImTranslator {
         }
         directSubclasses = HashMultimap.create();
         for (ClassDef c : classes()) {
-            if (c.attrExtendedClass() != null) {
-                directSubclasses.put(c.attrExtendedClass(), c);
+            WurstTypeClass extendedClass = c.attrTypC().extendedClass();
+            if (extendedClass != null) {
+                directSubclasses.put(((ClassDef) extendedClass.getDef()), c);
             }
         }
     }
@@ -1353,11 +1367,11 @@ public class ImTranslator {
 
 
     private Optional<FuncDef> findErrorFunc() throws CompileError {
-        WPackage p = wurstProg.lookupPackage("ErrorHandling");
+        PackageLink p = wurstProg.lookupPackage("ErrorHandling");
         if (p == null) {
             return Optional.empty();
         }
-        ImmutableCollection<FuncLink> funcs = p.getElements().lookupFuncs("error");
+        ImmutableCollection<FuncLink> funcs = p.getDef().getElements().lookupFuncs("error");
         if (funcs.isEmpty()) {
             return Optional.empty();
         } else if (funcs.size() > 1) {

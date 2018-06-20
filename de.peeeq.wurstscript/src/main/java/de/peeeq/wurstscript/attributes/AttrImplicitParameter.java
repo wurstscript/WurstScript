@@ -1,6 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrImplicitParameter {
@@ -56,18 +58,18 @@ public class AttrImplicitParameter {
     }
 
     private static OptExpr getImplicitParamterCaseNormalFunctionCall(FunctionCall e) {
-        FunctionDefinition calledFunc = e.attrFuncDef();
+        FuncLink calledFunc = e.attrFuncLink();
         if (calledFunc == null) {
             return Ast.NoExpr();
         }
-        if (calledFunc.attrIsDynamicClassMember()) {
+        if (calledFunc.getDef().attrIsDynamicClassMember()) {
             // dynamic function call
             if (e.attrIsDynamicContext()) {
                 // dynamic context means we have a 'this':
                 ExprThis t = Ast.ExprThis(e.getSource());
                 t.setParent(e);
                 // check if 'this' has correct type
-                if (!t.attrTyp().isSubtypeOf(calledFunc.attrNearestStructureDef().attrTyp(), e)) {
+                if (!t.attrTyp().isSubtypeOf(calledFunc.getReceiverType(), e)) {
                     e.addError("Cannot access dynamic function " + e.getFuncName() + " from context of type " +
                             t.attrTyp() + ".");
                 }
@@ -83,9 +85,9 @@ public class AttrImplicitParameter {
     }
 
     private static OptExpr getImplicitParamterCaseNormalVar(NameRef e) {
-        NameDef def = e.attrNameDef();
-        if (def instanceof VarDef) {
-            VarDef varDef = (VarDef) def;
+        NameLink def = e.attrNameLink();
+        if (def != null && def.getDef() instanceof VarDef) {
+            VarDef varDef = (VarDef) def.getDef();
             if (varDef.attrIsDynamicClassMember()) {
                 // dynamic var access
                 if (e.attrIsDynamicContext()) {

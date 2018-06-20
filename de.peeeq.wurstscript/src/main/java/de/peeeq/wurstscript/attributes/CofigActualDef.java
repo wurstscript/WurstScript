@@ -19,9 +19,9 @@ public class CofigActualDef {
     public static NameDef calculate(GlobalVarDef g) {
         WPackage p = getConfigPackage(g);
         if (p != null) {
-            NameDef v = p.getElements().lookupVarNoConfig(g.getName(), false);
-            if (v != null && hasConfigAnnotation(v)) {
-                return v;
+            NameLink v = p.getElements().lookupVarNoConfig(g.getName(), false);
+            if (v != null && hasConfigAnnotation(v.getDef())) {
+                return v.getDef();
             }
         }
         // not configured

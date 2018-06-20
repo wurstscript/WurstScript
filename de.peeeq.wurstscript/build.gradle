@@ -35,10 +35,7 @@ jacocoTestReport {
     afterEvaluate {
         classDirectories = files(classDirectories.files.collect {
             fileTree(dir: it,
-                    exclude: ['build/**',
-                              'src-gen/**',
-                              'de.peeeq.wurstscript/build/**',
-                              'de.peeeq.wurstscript/src-gen/**'])
+                    exclude: ['**/ast/**', '**/jassAst/**', '**/jassIm/**', '**/luaAst/**', '**/antlr/**'])
         })
     }
 }
@@ -57,25 +54,20 @@ sourceSets {
     }
 }
 
-// In this section you declare where to find the dependencies of your project
 repositories {
-    // Use 'jcenter' for resolving your dependencies.
-    // You can declare any Maven/Ivy/file repository here.
-    //jcenter()
     mavenLocal()
     mavenCentral()
     maven { url 'https://jitpack.io' }
     jcenter()
 }
 
-// In this section you declare the dependencies for your production and test code
 dependencies {
 
     // Antlr parsing library
     antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.2.1'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.3.0'
 
     // JUnit for testing
     testCompile group: 'org.testng', name: 'testng', version: '6.13.1'
@@ -83,6 +75,9 @@ dependencies {
 
     // Google guava
     compile 'com.google.guava:guava:21.0'
+
+    // Functional data structures:
+    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.7'
 
     // Support for the vscode language server protocol
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.4.0'
@@ -99,14 +94,11 @@ dependencies {
     // Chardet for guessing the file-encoding of a source-file
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
-    // JMPQ by Crigges for handling mpq archives
-    compile 'com.github.inwc3:jmpq3:1.5.9'
-
-    // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:d0a470d9e3'
+    // Water's wc3 libs including Crigges' jmpq
+    compile 'com.github.inwc3:wc3libs:ccf44373c7'
 
     // The setup tool for wurst.build handling
-    compile 'com.github.wurstscript:WurstSetup:7b96dfbc6c'
+    compile 'com.github.wurstscript:wurstsetup:cc208dcc86'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
@@ -206,6 +198,9 @@ compileJava.dependsOn gen
 
 
 test {
+    // set minimal heap size required to run tests:
+    jvmArgs = ['-Xms256m']
+
     useTestNG() {
         suites 'src/test/resources/AllTestsSuite.xml'
     }
@@ -235,7 +230,6 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
-
 
 
 

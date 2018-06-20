@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
+import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -28,7 +29,6 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
@@ -106,7 +106,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         modelManager.syncCompilationUnit(WFile.create(existingScript));
     }
 
-    protected File compileMap(WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) throws IOException {
+    protected File compileMap(WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) {
         try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             //WurstGui gui = new WurstGuiLogger();
             if (!mpqEditor.canWrite()) {
@@ -143,6 +143,12 @@ public abstract class MapRequest extends UserRequest<Object> {
                 ctr.setOutputStream(new PrintStream(System.err));
                 ctr.run();
             }
+
+            if (gui.getErrorCount() > 0) {
+                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
+                        .getErrorList().get(0));
+            }
+
 
             if (runArgs.isInjectObjects()) {
                 Preconditions.checkNotNull(mpqEditor);
@@ -197,7 +203,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     protected File getBuildDir() {
         File buildDir = new File(workspaceRoot.getFile(), "_build");
-        buildDir.mkdirs();
+        if (!buildDir.exists()) {
+            UtilsIO.mkdirs(buildDir);
+        }
         return buildDir;
     }
 

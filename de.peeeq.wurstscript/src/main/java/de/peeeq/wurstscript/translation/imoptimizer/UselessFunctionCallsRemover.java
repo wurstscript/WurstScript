@@ -16,20 +16,21 @@ import java.util.ListIterator;
  * <p>
  * when the result is not used
  */
-public class UselessFunctionCallsRemover {
+public class UselessFunctionCallsRemover implements OptimizerPass {
     public int totalCallsRemoved = 0;
-    private final ImProg prog;
-    private final ImTranslator trans;
 
-    public UselessFunctionCallsRemover(ImTranslator trans) {
-        this.prog = trans.getImProg();
-        this.trans = trans;
-    }
-
-    public void optimize() {
+    public int optimize(ImTranslator trans) {
+        totalCallsRemoved = 0;
+        ImProg prog = trans.getImProg();
         for (ImFunction func : prog.getFunctions()) {
             optimizeFunc(func);
         }
+        return totalCallsRemoved;
+    }
+
+    @Override
+    public String getName() {
+        return "Useless function calls removed";
     }
 
     private void optimizeFunc(ImFunction func) {
