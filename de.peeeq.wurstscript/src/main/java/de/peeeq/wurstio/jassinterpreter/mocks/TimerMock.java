@@ -1,51 +1,99 @@
 package de.peeeq.wurstio.jassinterpreter.mocks;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.providers.TimerProvider;
-import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
+import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
 
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TimerMock {
     private AbstractInterpreter interpreter;
-    private ScheduledFuture<?> thread;
+    private TimerMockHandler timerMockHandler;
+    private final TimerProvider timerProvider;
     private IlConstHandle timerHandle;
+    private TimerMockHandler.RunTask runTask;
+    private TimerMockHandler.PausedTask pausedTask;
 
-    public TimerMock(AbstractInterpreter interpreter) {
+    private class TimerMockRunnable implements Runnable {
+
+        private ILconstFuncRef handlerFunc;
+        private boolean periodic;
+        private float timeout;
+        private boolean cancelled;
+
+        public TimerMockRunnable(ILconstFuncRef handlerFunc, boolean periodic, float timeout) {
+            this.handlerFunc = handlerFunc;
+            this.periodic = periodic;
+            this.timeout = timeout;
+        }
+
+        @Override
+        public void run() {
+            if (cancelled) {
+                return;
+            }
+            timerProvider.setLastExpiredMock(timerHandle);
+            interpreter.runFuncRef(handlerFunc, null);
+            if (periodic) {
+                // run again:
+                timerMockHandler.registerTimedAction(timeout, this);
+            }
+        }
+
+        public void cancel() {
+            this.cancelled = true;
+        }
+    }
+
+    public TimerMock(AbstractInterpreter interpreter, TimerProvider timerProvider) {
         this.interpreter = interpreter;
+        this.timerProvider = timerProvider;
+        this.timerMockHandler = interpreter.getTimerMockHandler();
     }
 
     public void start(ILconstReal timeout, ILconstBool periodic, ILconstFuncRef handlerFunc) {
-        Runnable runnable = () -> {
-            if (interpreter != null) {
-                TimerProvider.setLastExpiredMock(timerHandle);
-                interpreter.runFuncRef(handlerFunc, null);
-                TimerProvider.setLastExpiredMock(timerHandle);
-            }
-        };
-        long val = ((long) timeout.getVal() * 1000) + 1;
-        if (periodic.getVal()) {
-            thread = RunTests.getService().scheduleAtFixedRate(runnable, val, val, TimeUnit.MILLISECONDS);
-        } else {
-            thread = RunTests.getService().schedule(runnable, val, TimeUnit.MILLISECONDS);
+        if (runTask != null) {
+            timerMockHandler.cancelTask(runTask);
         }
+        pausedTask = null;
+        TimerMockRunnable toRun = new TimerMockRunnable(handlerFunc, periodic.getVal(), timeout.getVal());
+        this.runTask = timerMockHandler.registerTimedAction(timeout.getVal(), toRun);
     }
 
     public void destroy() {
-        if (thread != null) {
-            thread.cancel(true);
-            thread = null;
+        if (runTask != null) {
+            timerMockHandler.cancelTask(runTask);
         }
+        runTask = null;
+        pausedTask = null;
         interpreter = null;
+        timerMockHandler = null;
         timerHandle = null;
     }
 
     public void setHandle(IlConstHandle handle) {
         this.timerHandle = handle;
+    }
+
+    public void pause() {
+        if (runTask == null) {
+            throw new InterpreterException("Trying to pause a timer that was not started.");
+        }
+        pausedTask = timerMockHandler.pauseTask(runTask);
+        runTask = null;
+    }
+
+    public void resume() {
+        if (pausedTask == null) {
+            throw new InterpreterException("Trying to resume a timer that was not paused.");
+        }
+        runTask = timerMockHandler.resumeTask(pausedTask);
+        pausedTask = null;
     }
 }

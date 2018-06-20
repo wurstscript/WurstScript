@@ -2,25 +2,18 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstio.jassinterpreter.JassArray;
 import de.peeeq.wurstio.jassinterpreter.VarargArray;
 import de.peeeq.wurstscript.ast.Annotation;
 import de.peeeq.wurstscript.ast.HasModifier;
 import de.peeeq.wurstscript.ast.Modifier;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstFuncRef;
-import de.peeeq.wurstscript.intermediatelang.ILconstInt;
-import de.peeeq.wurstscript.intermediatelang.ILconstReal;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -30,6 +23,7 @@ import java.util.stream.Collectors;
 public class ILInterpreter implements AbstractInterpreter {
     private ImProg prog;
     private final ProgramState globalState;
+    private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
     public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
         this.prog = prog;
@@ -88,6 +82,12 @@ public class ILInterpreter implements AbstractInterpreter {
                 i++;
             }
 
+            if (f.getBody().isEmpty()) {
+                return localState.setReturnVal(ILconstNull.instance());
+            } else {
+                globalState.setLastStatement(f.getBody().get(0));
+            }
+
             globalState.pushStackframe(f, args, (caller == null ? f : caller).attrTrace().attrErrorPos());
 
             try {
@@ -110,7 +110,9 @@ public class ILInterpreter implements AbstractInterpreter {
             throw e;
         } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
-            throw new InterpreterException(globalState.getLastStatement().attrTrace(), "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
+            Element lastStatement = globalState.getLastStatement();
+            de.peeeq.wurstscript.ast.Element trace = lastStatement == null ? f.attrTrace() : lastStatement.attrTrace();
+            throw new InterpreterException(trace, "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
         }
     }
 
@@ -188,7 +190,7 @@ public class ILInterpreter implements AbstractInterpreter {
         runFunc(globalState, f, trace);
     }
 
-    public @Nullable ImStmt getLastStatement() {
+    public Element getLastStatement() {
         return globalState.getLastStatement();
     }
 
@@ -219,5 +221,15 @@ public class ILInterpreter implements AbstractInterpreter {
     @Override
     public void runFuncRef(ILconstFuncRef obj, @Nullable Element trace) {
         runVoidFunc(obj.getFunc(), trace);
+    }
+
+    @Override
+    public TimerMockHandler getTimerMockHandler() {
+        return timerMockHandler;
+    }
+
+    @Override
+    public void completeTimers() {
+        timerMockHandler.completeTimers();
     }
 }

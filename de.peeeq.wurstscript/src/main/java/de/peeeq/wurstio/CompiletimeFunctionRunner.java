@@ -41,7 +41,7 @@ public class CompiletimeFunctionRunner {
     private final WurstGui gui;
     private final FunctionFlagToRun functionFlag;
     private final List<ImFunction> successTests = Lists.newArrayList();
-    private final Map<ImFunction, Pair<ImStmt, String>> failTests = Maps.newLinkedHashMap();
+    private final Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> failTests = Maps.newLinkedHashMap();
     private final ProgramStateIO globalState;
     private boolean injectObjects;
 
@@ -103,7 +103,7 @@ public class CompiletimeFunctionRunner {
             }
         } catch (Throwable e) {
             WLogger.severe(e);
-            ImStmt s = interpreter.getLastStatement();
+            de.peeeq.wurstscript.jassIm.Element s = interpreter.getLastStatement();
             Element origin = s == null ? null : s.attrTrace();
             if (origin != null) {
                 gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
@@ -130,6 +130,7 @@ public class CompiletimeFunctionRunner {
                 executeCompiletimeFunction(f);
             }
         }
+        interpreter.completeTimers();
     }
 
     private int getOrderIndex(Either<ImCompiletimeExpr, ImFunction> e) {
@@ -199,6 +200,9 @@ public class CompiletimeFunctionRunner {
     private void executeCompiletimeFunction(ImFunction f) {
         if (functionFlag.matches(f)) {
             try {
+                if (!f.getBody().isEmpty()) {
+                    interpreter.getGlobalState().setLastStatement(f.getBody().get(0));
+                }
                 WLogger.info("running " + functionFlag + " function " + f.getName());
                 interpreter.runVoidFunc(f, null);
                 successTests.add(f);
@@ -206,6 +210,9 @@ public class CompiletimeFunctionRunner {
                 successTests.add(f);
             } catch (TestFailException e) {
                 failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+            } catch (Throwable e) {
+                failTests.put(f, Pair.create(interpreter.getLastStatement(), e.toString()));
+                throw e;
             }
         }
     }
@@ -215,7 +222,7 @@ public class CompiletimeFunctionRunner {
     }
 
 
-    public Map<ImFunction, Pair<ImStmt, String>> getFailTests() {
+    public Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> getFailTests() {
         return failTests;
     }
 
