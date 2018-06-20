@@ -293,10 +293,10 @@ public class SideEffectAnalyzer {
     /**
      * Checks if the given function calls any functions or modifies and variable
      */
-    public boolean hasSideEffects(ImFunctionCall call) {
-        Set<ImFunction> natives = calledNatives(call.getFunc());
-        Set<ImFunction> directFuncs = calledFunctions(call.getFunc());
-        Set<ImVar> imVars = directlySetVariables(call.getFunc());
+    public boolean hasSideEffects(Element elem) {
+        Set<ImFunction> natives = calledNatives(elem);
+        Set<ImFunction> directFuncs = calledFunctions(elem);
+        Set<ImVar> imVars = directlySetVariables(elem);
         return natives.size() + directFuncs.size() + imVars.size() > 0;
     }
 }
