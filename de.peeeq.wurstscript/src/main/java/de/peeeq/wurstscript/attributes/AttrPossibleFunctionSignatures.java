@@ -16,6 +16,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
+import static de.peeeq.wurstscript.attributes.GenericsHelper.typeParameters;
+
 public class AttrPossibleFunctionSignatures {
 
     public static ImmutableCollection<FunctionSignature> calculate(FunctionCall fc) {
@@ -35,7 +38,7 @@ public class AttrPossibleFunctionSignatures {
                 }
             } // TODO else check?
 
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = GenericsHelper.givenBinding(fc, sig.getTypeParams());
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = givenBinding(fc, sig.getTypeParams());
             sig = sig.setTypeArgs(fc, mapping);
 
             resultBuilder.add(sig);
@@ -53,7 +56,7 @@ public class AttrPossibleFunctionSignatures {
         if (res2.isEmpty()) {
             // no signature matches precisely --> try to match as good as possible
             ImmutableList<ArgsMatchResult> match3 = res.stream()
-                    .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(),  fc))
+                    .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
                     .collect(ImmutableList.toImmutableList());
 
             if (match3.isEmpty()) {
@@ -89,28 +92,30 @@ public class AttrPossibleFunctionSignatures {
     }
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
-        ConstructorDef f = fc.attrConstructorDef();
-        if (f == null) {
+        TypeDef typeDef = fc.attrTypeDef();
+        if (!(typeDef instanceof ClassDef)) {
             return ImmutableList.of();
         }
-        StructureDef struct = f.attrNearestStructureDef();
-        assert struct != null; // because constructors can only appear inside a StructureDef
 
-        WurstType returnType = struct.attrTyp().dynamic();
-        // TODO get binding by matching args
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = GenericsHelper.givenBinding(fc, GenericsHelper.typeParameters(struct));
-        List<WurstType> paramTypes = Lists.newArrayList();
-        for (WParameter p : f.getParameters()) {
-            paramTypes.add(p.attrTyp());
+        ClassDef classDef = (ClassDef) typeDef;
+
+        List<ConstructorDef> constructors = classDef.getConstructors();
+
+        ImmutableList.Builder<FunctionSignature> res = ImmutableList.builder();
+        for (ConstructorDef f : constructors) {
+            WurstType returnType = classDef.attrTyp().dynamic();
+            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = givenBinding(fc, typeParameters(classDef));
+            List<WurstType> paramTypes = Lists.newArrayList();
+            for (WParameter p : f.getParameters()) {
+                paramTypes.add(p.attrTyp());
+            }
+            List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
+            List<TypeParamDef> typeParams = classDef.getTypeParameters();
+            FunctionSignature sig = new FunctionSignature(f, typeParams, null, "construct", paramTypes, pNames, returnType);
+            sig = sig.setTypeArgs(fc, binding2);
+            res.add(sig);
         }
-        List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
-        List<TypeParamDef> typeParams = Collections.emptyList();
-        if (struct instanceof AstElementWithTypeParameters) {
-            typeParams = ((AstElementWithTypeParameters) struct).getTypeParameters();
-        }
-        FunctionSignature sig = new FunctionSignature(f, typeParams, null, "construct", paramTypes, pNames, returnType);
-        sig = sig.setTypeArgs(fc, binding2);
-        return ImmutableList.of(sig);
+        return res.build();
     }
 
 }
