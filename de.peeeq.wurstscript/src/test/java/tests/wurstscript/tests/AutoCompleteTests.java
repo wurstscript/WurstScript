@@ -233,6 +233,30 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void closuresWithOperatorOverloading() {
+        CompletionTestData testData = input(
+                "package test",
+                "	function int.foo()",
+                "	function int.bar()",
+                "	class C",
+                "		construct(G g, int y)",
+                "		construct(F f, int y)",
+                "	interface F",
+                "		function apply(int i) returns int",
+                "	interface G",
+                "		function apply() returns int",
+                "	init",
+                "		int x = 5",
+                "		new C(i -> i + 1, x.|)",
+                "endpackage"
+        );
+
+        testCompletions(testData, "bar", "foo");
+    }
+
+
+
     static class CompletionTestData {
         String buffer;
         int line;

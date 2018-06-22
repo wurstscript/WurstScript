@@ -408,9 +408,47 @@ public class OptimizerTests extends WurstScriptTest {
                 "endpackage");
         String output = Files.toString(new File("./test-output/OptimizerTests_test_tempVarRemover_inlopt.j"), Charsets.UTF_8);
 
-        assertTrue(!output.contains("blub_a") ? (output.contains("blub_b") || output.contains("blub_c")) : (!output.contains("blub_b") && !output.contains("blub_c")));
+        assertTrue(!output.contains("blub_a") ? (output.contains("blub_b") || output.contains("blub_c")) : (!output.contains("blub_b") && !output.contains
+                ("blub_c")));
     }
 
+    @Test
+    public void test_mult2rewrite() throws IOException {
+        test().lines(
+                "package test",
+                "	@extern native I2S(int i) returns string",
+                "	native println(string s)",
+                "	@extern native GetRandomInt(int a, int b) returns int",
+                "	init",
+                "		let blub_a = GetRandomInt(0,100)",
+                "		let blub_b = blub_a",
+                "		let blub_c = blub_b + blub_b",
+                "		println(I2S(blub_c))",
+                "endpackage");
+        String output = Files.toString(new File("./test-output/OptimizerTests_test_mult2rewrite_inlopt.j"), Charsets.UTF_8);
+
+        assertTrue(!output.contains("blub_a") && !(output.contains("blub_b") && !output.contains("blub_c")));
+    }
+
+    @Test
+    public void test_mult3rewrite() throws IOException {
+        test().lines(
+                "package test",
+                "	@extern native I2S(int i) returns string",
+                "	native println(string s)",
+                "	int ghs = 0",
+                "	function foo() returns int",
+                "		ghs += 2",
+                "		return 4 + ghs",
+                "	init",
+                "		let blub_c = foo() + foo()",
+                "		println(I2S(blub_c))",
+                "endpackage");
+        String output1 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_inlopt.j"), Charsets.UTF_8);
+        String output2 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_opt.j"), Charsets.UTF_8);
+        assertTrue(!output1.contains("foo()"));
+        assertTrue(output2.contains("foo() + foo()"));
+    }
 
     @Test
     public void test_tempVarRemover2() throws IOException {
@@ -620,6 +658,7 @@ public class OptimizerTests extends WurstScriptTest {
         String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_controlFlowMergeSideEffect2_opt.j"), Charsets.UTF_8);
         assertNotSame(compiledAndOptimized.indexOf("Test_ghs = 0"), compiledAndOptimized.lastIndexOf("Test_ghs = 0"));
     }
+
 
     @Test
     public void optimizeSet() {
