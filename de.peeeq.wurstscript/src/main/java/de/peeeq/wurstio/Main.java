@@ -201,6 +201,9 @@ public class Main {
     /** Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP. */
     private static void fixInstallation() throws Exception {
         String wc3Path = W3Utils.getGamePath();
+        if(wc3Path == null) {
+            WLogger.severe("installation could not be found");
+        }
         String compatPath = wc3Path + COMPAT_FOLDER;
         WLogger.info("Wc3 Path: " + wc3Path);
 
