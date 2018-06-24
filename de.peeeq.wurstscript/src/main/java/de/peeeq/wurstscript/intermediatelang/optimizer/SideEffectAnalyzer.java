@@ -185,6 +185,76 @@ public class SideEffectAnalyzer {
         return imVars;
     }
 
+    /**
+     * Variables directly used in e
+     */
+    public Set<ImVar> directlyAccessedVariables(Element e) {
+        Set<ImVar> imVars = new LinkedHashSet<>();
+        e.accept(new ImStmt.DefaultVisitor() {
+
+            @Override
+            public void visit(ImVarAccess va) {
+                super.visit(va);
+                imVars.add(va.getVar());
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess va) {
+                super.visit(va);
+                imVars.add(va.getVar());
+            }
+
+            @Override
+            public void visit(ImVarArrayMultiAccess va) {
+                super.visit(va);
+                imVars.add(va.getVar());
+            }
+
+            @Override
+            public void visit(ImMemberAccess va) {
+                super.visit(va);
+                imVars.add(va.getVar());
+            }
+
+        });
+        return imVars;
+    }
+
+    /**
+     * Variables directly used in e
+     */
+    public Set<ImVar> directlySetVariables(Element e) {
+        Set<ImVar> imVars = new LinkedHashSet<>();
+        e.accept(new ImStmt.DefaultVisitor() {
+
+            @Override
+            public void visit(ImSet va) {
+                super.visit(va);
+                imVars.add(va.getLeft());
+            }
+
+            @Override
+            public void visit(ImSetTuple va) {
+                super.visit(va);
+                imVars.add(va.getLeft());
+            }
+
+            @Override
+            public void visit(ImSetArrayTuple va) {
+                super.visit(va);
+                imVars.add(va.getLeft());
+            }
+
+            @Override
+            public void visit(ImVarargLoop va) {
+                super.visit(va);
+                imVars.add(va.getLoopVar());
+            }
+
+        });
+        return imVars;
+    }
+
 
     /**
      * Checks if two statements might affect each other.
@@ -218,5 +288,15 @@ public class SideEffectAnalyzer {
             // local variables
             return directlyUsedVariables(s).contains(v);
         }
+    }
+
+    /**
+     * Checks if the given function calls any functions or modifies and variable
+     */
+    public boolean hasSideEffects(Element elem) {
+        Set<ImFunction> natives = calledNatives(elem);
+        Set<ImFunction> directFuncs = calledFunctions(elem);
+        Set<ImVar> imVars = directlySetVariables(elem);
+        return natives.size() + directFuncs.size() + imVars.size() > 0;
     }
 }
