@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <configuration>
+
+    <!-- Do not print status to console (this kills the language server protocol) -->
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <!-- encoders are  by default assigned the type
              ch.qos.logback.classic.encoder.PatternLayoutEncoder -->
@@ -44,7 +48,7 @@
         <appender-ref ref="lang_server_log"/>
     </logger>
     <logger name="default" level="info">
-        <appender-ref ref="compiler_log" />
+        <appender-ref ref="compiler_log"/>
     </logger>
     <root level="debug">
         <appender-ref ref="compiler_log"/>

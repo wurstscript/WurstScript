@@ -13,17 +13,21 @@ public class W3Utils {
     private static GameExe gameExe;
     private static double version = -1;
 
+    private static boolean isWindows() {
+        return System.getProperty("os.name").contains("win");
+    }
+
     /**
      * @return The wc3 patch version or -1 if none has been found
      */
     public static double getWc3PatchVersion() {
-        if (gameExe == null) {
+        if (gameExe == null && isWindows()) {
             gameExe = GameExe.fromRegistry();
         }
         if (version == -1 && gameExe != null) {
             try {
                 log.info("Parsed game version: " + gameExe.getVersion());
-                version =  Double.parseDouble(gameExe.getVersion().replaceAll("\\.", ""));
+                version = Double.parseDouble(gameExe.getVersion().replaceAll("\\.", ""));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -54,6 +58,6 @@ public class W3Utils {
      * @return The wc3 installation path
      */
     public static String getGamePath() {
-        return Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent();
+        return isWindows() ? Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent() : null;
     }
 }
