@@ -133,7 +133,7 @@ public class PrettyPrinter implements
 
     @Override
     public void case_PhiNode(PhiNode e) {
-        append(e.getVar() + " = phi " + e.getType() + " ");
+        append("phi " + e.getType() + " ");
         boolean first = true;
         for (PhiNodeChoice choice : e.getChoices()) {
             if (!first) {
@@ -423,19 +423,25 @@ public class PrettyPrinter implements
 
     @Override
     public void case_Bitcast(Bitcast s) {
-        append(s.getVar() + " = bitcast ");
+        append("bitcast ");
         printWithType(s.getExpr());
         append(" to " + s.getType());
     }
 
     @Override
+    public void case_Assign(Assign s) {
+        append(s.getVar());
+        append(" = ");
+        print(s.getValueInstruction());
+    }
+
+    @Override
     public void case_BinaryOperation(BinaryOperation s) {
-        append(s.getVar() + " = ");
         if (Typechecker.isComparison(s.getOperator())) {
             append("icmp " + s.getOperator() + " ");
             printWithType(s.getLeft());
         } else {
-            append(s.getOperator() + " " + s.getVar().calculateType() + " ");
+            append(s.getOperator() + " " + ((Assign) s.getParent()).getVar().calculateType() + " ");
             print(s.getLeft());
         }
         append(", ");
@@ -449,7 +455,7 @@ public class PrettyPrinter implements
         if (t instanceof TypePointer) {
             t = ((TypePointer) t).getTo();
         }
-        append(s.getVar() + " = getelementptr " + t + ", ");
+        append("getelementptr " + t + ", ");
         // TODO type
         printWithType(s.getBaseAddress());
         for (Operand ind : s.getIndices()) {
@@ -468,7 +474,7 @@ public class PrettyPrinter implements
         } else {
             t = Ast.TypeByte();
         }
-        append(s.getVar() + " = load " + t + ", ");
+        append("load " + t + ", ");
         printWithType(s.getAddress());
     }
 
@@ -488,7 +494,7 @@ public class PrettyPrinter implements
 
     @Override
     public void case_Alloc(Alloc s) {
-        append(s.getVar() + " = call i8* @malloc(");
+        append("call i8* @malloc(");
         printWithType(s.getSizeInBytes());
         append(")");
     }
@@ -544,7 +550,6 @@ public class PrettyPrinter implements
 
     @Override
     public void case_Call(Call s) {
-        append(s.getVar() + " = ");
         printCall(s.getFunction(), s.getArguments());
     }
 
@@ -824,7 +829,7 @@ public class PrettyPrinter implements
 
     @Override
     public void case_Alloca(Alloca s) {
-        append(s.getVar() + " = alloca " + s.getType());
+        append("alloca " + s.getType());
     }
 
     public Map<Element, WPos> getSourcePositions() {

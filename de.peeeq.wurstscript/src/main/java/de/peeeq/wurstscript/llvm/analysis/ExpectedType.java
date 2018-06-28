@@ -53,26 +53,7 @@ public class ExpectedType {
                     return Ast.TypeBool();
                 }
 
-                @Override
-                public Type case_BinaryOperation(BinaryOperation binaryOperation) {
-                    // approximation: expects same type as other operand
-                    Type t;
-                    if (operand == binaryOperation.getLeft()) {
-                        t = binaryOperation.getRight().calculateType();
-                    } else {
-                        t = binaryOperation.getLeft().calculateType();
-                    }
-                    if (t instanceof TypeNullpointer) {
-                        return Ast.TypePointer(Ast.TypeByte());
-                    }
-                    return t;
-                }
 
-                @Override
-                public Type case_Bitcast(Bitcast bitcast) {
-                    // unknown
-                    return Ast.TypePointer(Ast.TypeByte());
-                }
 
                 @Override
                 public Type case_HaltWithError(HaltWithError haltWithError) {
@@ -84,10 +65,7 @@ public class ExpectedType {
                     return Ast.TypeInt();
                 }
 
-                @Override
-                public Type case_PhiNode(PhiNode phiNode) {
-                    throw new RuntimeException();
-                }
+
 
                 @Override
                 public Type case_ReturnExpr(ReturnExpr returnExpr) {
@@ -99,27 +77,6 @@ public class ExpectedType {
                     throw new RuntimeException();
                 }
 
-                @Override
-                public Type case_Alloca(Alloca alloca) {
-                    throw new RuntimeException();
-                }
-
-                @Override
-                public Type case_Load(Load load) {
-                    // unknown
-                    return Ast.TypePointer(Ast.TypeByte());
-                }
-
-                @Override
-                public Type case_Alloc(Alloc alloc) {
-                    return Ast.TypeInt();
-                }
-
-                @Override
-                public Type case_GetElementPtr(GetElementPtr gep) {
-                    // unknown
-                    return Ast.TypePointer(Ast.TypeByte());
-                }
 
                 @Override
                 public Type case_CommentInstr(CommentInstr commentInstr) {
@@ -132,9 +89,64 @@ public class ExpectedType {
                 }
 
                 @Override
-                public Type case_Call(Call call) {
-                    // unknown
-                    return Ast.TypePointer(Ast.TypeByte());
+                public Type case_Assign(Assign assign) {
+                    return assign.getValueInstruction().match(new ValueInstruction.Matcher<Type>() {
+
+                        @Override
+                        public Type case_Alloca(Alloca alloca) {
+                            throw new RuntimeException();
+                        }
+
+                        @Override
+                        public Type case_Load(Load load) {
+                            // unknown
+                            return Ast.TypePointer(Ast.TypeByte());
+                        }
+
+                        @Override
+                        public Type case_Alloc(Alloc alloc) {
+                            return Ast.TypeInt();
+                        }
+
+                        @Override
+                        public Type case_PhiNode(PhiNode phiNode) {
+                            throw new RuntimeException();
+                        }
+
+                        @Override
+                        public Type case_BinaryOperation(BinaryOperation binaryOperation) {
+                            // approximation: expects same type as other operand
+                            Type t;
+                            if (operand == binaryOperation.getLeft()) {
+                                t = binaryOperation.getRight().calculateType();
+                            } else {
+                                t = binaryOperation.getLeft().calculateType();
+                            }
+                            if (t instanceof TypeNullpointer) {
+                                return Ast.TypePointer(Ast.TypeByte());
+                            }
+                            return t;
+                        }
+
+                        @Override
+                        public Type case_Bitcast(Bitcast bitcast) {
+                            // unknown
+                            return Ast.TypePointer(Ast.TypeByte());
+                        }
+
+                        @Override
+                        public Type case_GetElementPtr(GetElementPtr gep) {
+                            // unknown
+                            return Ast.TypePointer(Ast.TypeByte());
+                        }
+
+                        @Override
+                        public Type case_Call(Call call) {
+                            // unknown
+                            return Ast.TypePointer(Ast.TypeByte());
+                        }
+
+                    });
                 }
 
                 @Override

@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.llvm.tollvm;
 
 
-import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.llvm.ast.*;
 
@@ -29,7 +28,7 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
         Operand obj = tr.translateExpr(imDealloc.getObj());
         TemporaryVar resVar = Ast.TemporaryVar("void");
         Operand func = Ast.ProcedureRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
-        tr.addInstruction(Ast.Call(resVar, func, Ast.OperandList(obj)));
+        tr.addInstruction(Ast.Assign(resVar, Ast.Call(func, Ast.OperandList(obj))));
         return Ast.VarRef(resVar);
     }
 
@@ -43,7 +42,7 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
         Operand obj = Ast.Sizeof(tr.getStructFor(imAlloc.getClazz()));
         TemporaryVar resVar = Ast.TemporaryVar("void");
         Operand func = Ast.ProcedureRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
-        tr.addInstruction(Ast.Call(resVar, func, Ast.OperandList(obj)));
+        tr.addInstruction(Ast.Assign(resVar, Ast.Call(func, Ast.OperandList(obj))));
         return Ast.VarRef(resVar);
     }
 
@@ -60,7 +59,7 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
             return null;
         } else {
             TemporaryVar v = Ast.TemporaryVar("call_result");
-            tr.addInstruction(Ast.Call(v, Ast.ProcedureRef(func), args));
+            tr.addInstruction(Ast.Assign(v, Ast.Call(Ast.ProcedureRef(func), args)));
             return Ast.VarRef(v);
         }
     }
@@ -97,56 +96,56 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
 
         switch (e.getOp()) {
             case OR:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Or(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation( args.get(0), Ast.Or(), args.get(1))));
                 break;
             case AND:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.And(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.And(), args.get(1))));
                 break;
             case EQ:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Eq(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Eq(), args.get(1))));
                 break;
             case NOTEQ:
                 TemporaryVar eq_res = Ast.TemporaryVar("eq_res");
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.NotEq(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.NotEq(), args.get(1))));
                 break;
             case LESS_EQ:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Sle(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Sle(), args.get(1))));
                 break;
             case LESS:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Slt(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Slt(), args.get(1))));
                 break;
             case GREATER_EQ:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Sge(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Sge(), args.get(1))));
                 break;
             case GREATER:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Sgt(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Sgt(), args.get(1))));
                 break;
             case PLUS:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Add(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Add(), args.get(1))));
                 break;
             case MINUS:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Sub(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Sub(), args.get(1))));
                 break;
             case MULT:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Mul(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Mul(), args.get(1))));
                 break;
             case DIV_REAL:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Fdiv(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Fdiv(), args.get(1))));
                 break;
             case DIV_INT:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Sdiv(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Sdiv(), args.get(1))));
                 break;
             case MOD_REAL:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Frem(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Frem(), args.get(1))));
                 break;
             case MOD_INT:
-                tr.addInstruction(Ast.BinaryOperation(res, args.get(0), Ast.Srem(), args.get(1)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Srem(), args.get(1))));
                 break;
             case NOT:
-                tr.addInstruction(Ast.BinaryOperation(res, Ast.ConstInt(1), Ast.Xor(), args.get(0)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(Ast.ConstInt(1), Ast.Xor(), args.get(0))));
                 break;
             case UNARY_MINUS:
-                tr.addInstruction(Ast.BinaryOperation(res, Ast.ConstInt(0), Ast.Sub(), args.get(0)));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(Ast.ConstInt(0), Ast.Sub(), args.get(0))));
                 break;
             default:
                 throw new RuntimeException("unhandled operator " + e.getOp());
@@ -200,7 +199,7 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     public Operand case_ImVarAccess(ImVarAccess e) {
         Operand loc = tr.getVarLocation(e.getVar());
         TemporaryVar v = Ast.TemporaryVar(e.getVar().getName());
-        tr.addInstruction(Ast.Load(v, loc));
+        tr.addInstruction(Ast.Assign(v, Ast.Load(loc)));
         return Ast.VarRef(v);
     }
 

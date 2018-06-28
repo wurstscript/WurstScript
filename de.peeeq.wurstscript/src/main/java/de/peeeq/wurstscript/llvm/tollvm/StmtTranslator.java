@@ -102,7 +102,7 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
         Operand r = tr.translateExpr(e.getRight());
         Operand index = tr.translateExpr(e.getIndex());
         TemporaryVar ta = Ast.TemporaryVar("array_address");
-        tr.addInstruction(Ast.GetElementPtr(ta, vl, Ast.OperandList(Ast.ConstInt(0), index)));
+        tr.addInstruction(Ast.Assign(ta, Ast.GetElementPtr(vl, Ast.OperandList(Ast.ConstInt(0), index))));
         tr.addInstruction(Ast.Store(Ast.VarRef(ta), r));
     }
 

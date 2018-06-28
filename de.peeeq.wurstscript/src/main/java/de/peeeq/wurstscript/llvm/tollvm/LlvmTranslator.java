@@ -119,14 +119,14 @@ public class LlvmTranslator {
             ImVar var = function.getParameters().get(i);
             Parameter param = p.getParameters().get(i);
             TemporaryVar v = Ast.TemporaryVar(var.getName());
-            addInstruction(Ast.Alloca(v, translateType(var.getType())));
+            addInstruction(Ast.Assign(v, Ast.Alloca(translateType(var.getType()))));
             addInstruction(Ast.Store(Ast.VarRef(v), Ast.VarRef(param)));
             localVars.put(var, v);
         }
         // add alloca instructions for locals
         for (ImVar var : function.getLocals()) {
             TemporaryVar v = Ast.TemporaryVar(var.getName());
-            addInstruction(Ast.Alloca(v, translateType(var.getType())));
+            addInstruction(Ast.Assign(v, Ast.Alloca(translateType(var.getType()))));
             localVars.put(var, v);
         }
         translateStmts(function.getBody());

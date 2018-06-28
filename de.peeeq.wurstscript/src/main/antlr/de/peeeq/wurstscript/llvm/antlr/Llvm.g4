@@ -22,18 +22,9 @@ grammar Llvm;
 //   MODULE ::= TOPLEVELENTITY*
 
 module
-	: topLevelEntities
+	: topLevelEntity*
 ;
 
-topLevelEntities
-	: 
-	| topLevelEntityList
-;
-
-topLevelEntityList
-	: topLevelEntity
-	| topLevelEntityList topLevelEntity
-;
 
 // --- ( top-LEVEL entities )? --------------------------------------------------
 
@@ -295,7 +286,7 @@ optPersonality
 //   ::= '(' basicBlock+ useListOrderDirective* ')*'
 
 functionBody
-	: '(' basicBlockList useListOrders ')*'
+	: '{' basicBlockList useListOrders '}'
 ;
 
 // ~~~ ( attribute group definition )? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -307,7 +298,7 @@ functionBody
 //   ::= 'ATTRIBUTES' attrGrpID '=' '(' attrValPair+ ')*'
 
 attrGroupDef
-	: 'attributes' attrGroupID '=' '(' funcAttrs ')*'
+	: 'attributes' attrGroupID '=' '{' funcAttrs '}'
 ;
 
 // ~~~ ( named metadata definition )? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -319,7 +310,7 @@ attrGroupDef
 //   !FOO = !( !1, !2 )*
 
 namedMetadataDef
-	: metadataName '=' '!' '(' metadataNodes ')*'
+	: metadataName '=' '!' '{' metadataNodes '}'
 ;
 
 metadataNodes
@@ -379,7 +370,7 @@ useListOrderList
 ;
 
 useListOrder
-	: 'uselistorder' type value ',' '(' indexList ')*'
+	: 'uselistorder' type value ',' '{' indexList '}'
 ;
 
 // REF: parseUseListOrderBB
@@ -387,7 +378,7 @@ useListOrder
 //   ::= 'USELISTORDER_BB' @FOO ',' %BAR ',' useListOrderIndexes
 
 useListOrderBB
-	: 'uselistorder_bb' globalIdent ',' localIdent ',' '(' indexList ')*'
+	: 'uselistorder_bb' globalIdent ',' localIdent ',' '{' indexList '}'
 ;
 
 // === ( identifiers )? =========================================================
@@ -462,7 +453,7 @@ type
 	// type ::= type '*'
 	// type ::= type 'ADDRSPACE' '(' uint32 ')' '*'
 	// pointerType
-    | type optAddrSpace '*'
+    | type optAddrSpace pointertype='*'
 	// type ::= '<' ... '>'
 	| vectorType
 	| labelType
@@ -485,7 +476,7 @@ concreteType:
 	// type ::= type '*'
 	// type ::= type 'ADDRSPACE' '(' uint32 ')' '*'
 	// pointerType
-	| type optAddrSpace '*'
+	| type optAddrSpace pointertype='*'
 	// type ::= '<' ... '>'
 	| vectorType
 	| labelType
@@ -616,10 +607,10 @@ arrayType
 //    ;
 
 structType
-	: '(' ')*'
-	| '(' typeList ')*'
-	| '<' '(' ')*' '>'
-	| '<' '(' typeList ')*' '>'
+	: '{' '}'
+	| '{' typeList '}'
+	| '<' '{' '}' '>'
+	| '<' '{' typeList '}' '>'
 ;
 
 typeList
@@ -778,10 +769,10 @@ noneConst
 //    ;
 
 structConst
-	: '(' ')*'
-	| '(' typeConstList ')*'
-	| '<' '(' ')*' '>'
-	| '<' '(' typeConstList ')*' '>'
+	: '{' '}'
+	| '{' typeConstList '}'
+	| '<' '{' '}' '>'
+	| '<' '{' typeConstList '}' '>'
 ;
 
 // --- ( array constants )? -----------------------------------------------------
@@ -1283,8 +1274,7 @@ selectExpr
 //   ::= labelStr? instruction*
 
 basicBlockList
-	: basicBlock
-	| basicBlockList basicBlock
+	: basicBlock+
 ;
 
 basicBlock
@@ -1303,13 +1293,7 @@ optLabelIdent
 // REF: parseInstruction
 
 instructions
-	: 
-	| instructionList
-;
-
-instructionList
-	: instruction
-	| instructionList instruction
+	: instruction*
 ;
 
 instruction
@@ -2342,8 +2326,8 @@ mDTuple
 // REF: parseMDField(mDFieldList &)
 
 mDFields
-	: '(' ')*'
-	| '(' mDFieldList ')*'
+	: '{' '}'
+	| '{' mDFieldList '}'
 ;
 
 mDFieldList
@@ -4525,7 +4509,7 @@ STRING_LIT
 ;
 
 fragment QUOTED_STRING
-	: '\'' ( . )*? '\''
+	: '"' ( . )*? '"'
 ;
 
 // === ( types )? ===============================================================

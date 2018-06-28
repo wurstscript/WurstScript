@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.llvm.ast.Prog;
+import de.peeeq.wurstscript.llvm.fromllvm.ExtendedLLvmParser;
 import de.peeeq.wurstscript.llvm.printer.PrettyPrinter;
 import de.peeeq.wurstscript.llvm.tollvm.LlvmTranslator;
 import org.eclipse.jdt.annotation.Nullable;
@@ -15,11 +16,10 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *
@@ -64,7 +64,6 @@ public class LlvmCompiler {
                 .start();
 
 
-
         try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -73,6 +72,15 @@ public class LlvmCompiler {
         }
         p.waitFor();
         System.out.println("exit value = " + p.exitValue());
+
+
+        String optimizedProg = new String(Files.readAllBytes(llvmOutoutOpt), StandardCharsets.UTF_8);
+
+        Prog parsed = ExtendedLLvmParser.parse(optimizedProg);
+
+
+        System.out.println("\n\nparsed optimized prog:\n" + parsed);
+
 
     }
 

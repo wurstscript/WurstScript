@@ -138,13 +138,6 @@ public class Checks {
                 expectType(returnExpr.getReturnValue(), proc.getReturnType());
             }
 
-            @Override
-            public void case_Load(Load load) {
-                Type addrType = getType(load.getAddress());
-                if (!(addrType instanceof TypePointer)) {
-                    error(load, "Address of load instruction must be a pointer type, but found type " + addrType);
-                }
-            }
 
             @Override
             public void case_Jump(Jump jump) {
@@ -156,24 +149,102 @@ public class Checks {
                 expectType(print.getE(), Ast.TypeInt());
             }
 
+
             @Override
-            public void case_PhiNode(PhiNode phiNode) {
-                List<BasicBlock> predecessors = new ArrayList<BasicBlock>(predecessorMap.get(phiNode.getParent()));
-                for (PhiNodeChoice c : phiNode.getChoices()) {
-                    expectType(c.getValue(), phiNode.getType());
-                    if (!predecessors.remove(c.getLabel())) {
-                        error(c, "Phi choice " + c.getLabel() + " is not a predecessor.");
+            public void case_Assign(Assign assign) {
+                assign.getValueInstruction().match(new ValueInstruction.MatcherVoid() {
+                    @Override
+                    public void case_GetElementPtr(GetElementPtr gep) {
+                        Type ba = getType(gep.getBaseAddress());
+                        if (ba instanceof TypePointer) {
+                            Type t = ((TypePointer) ba).getTo();
+                            for (int i = 1; i < gep.getIndices().size(); i++) {
+                                Operand index = gep.getIndices().get(i);
+                                if (t instanceof TypeArray) {
+                                    t = ((TypeArray) t).getOf();
+                                } else if (t instanceof TypeStruct) {
+                                    TypeStruct struct = (TypeStruct) t;
+                                    if (index instanceof ConstInt) {
+                                        int indexNr = ((ConstInt) index).getIntVal();
+                                        if (indexNr >= 0 && indexNr < struct.getFields().size()) {
+                                            t = struct.getFields().get(indexNr).getType();
+                                        } else {
+                                            error(index, "Struct " + struct.getName() + " does not have a field index " + indexNr);
+                                        }
+                                    }
+                                } else {
+                                    error(index, "Can only index into array or struct types, got " + t);
+                                }
+                            }
+                        } else {
+                            error(gep.getBaseAddress(), "Expected a pointer type, but found " + ba);
+                        }
                     }
-                }
-                for (BasicBlock predecessor : predecessors) {
-                    error(phiNode, "Phi node is missing a choice for " + predecessor);
-                }
-            }
 
+                    @Override
+                    public void case_BinaryOperation(BinaryOperation bop) {
+                        Type leftType = getType(bop.getLeft());
+                        Type rightType = getType(bop.getRight());
+                        if (!leftType.equalsType(rightType)) {
+                            error(bop, "Both operands of binary operation must be of same type, got " + leftType + " and " + rightType);
+                            return;
+                        }
+                        if (bop.getOperator() instanceof Eq) {
+                            // nothing more to check
+                        }
+                        if (Typechecker.isComparison(bop.getOperator())) {
+                            if (!isIntegerType(leftType) && !isPointerType(leftType)) {
+                                error(bop, "Can only compare integer and pointer types, but got type " + leftType);
+                            }
+                        } else {
+                            if (!isIntegerType(leftType)) {
+                                error(bop, "Binary operation " + bop.getOperator() + " can only be applied to integer types, but got type " + leftType);
+                            }
+                        }
+                    }
 
-            @Override
-            public void case_Alloc(Alloc alloc) {
-                // nothing to check
+                    @Override
+                    public void case_Alloca(Alloca alloca) {
+                        // nothing to check
+                    }
+
+                    @Override
+                    public void case_Load(Load load) {
+                        Type addrType = getType(load.getAddress());
+                        if (!(addrType instanceof TypePointer)) {
+                            error(load, "Address of load instruction must be a pointer type, but found type " + addrType);
+                        }
+                    }
+
+                    @Override
+                    public void case_Bitcast(Bitcast bitcast) {
+                        // no checks done (could do some sanity checks)
+                    }
+
+                    @Override
+                    public void case_Call(Call call) {
+                        checkCall(call, call.getFunction(), call.getArguments());
+                    }
+
+                    @Override
+                    public void case_Alloc(Alloc alloc) {
+                        // nothing to check
+                    }
+
+                    @Override
+                    public void case_PhiNode(PhiNode phiNode) {
+                        List<BasicBlock> predecessors = new ArrayList<BasicBlock>(predecessorMap.get(phiNode.getParent()));
+                        for (PhiNodeChoice c : phiNode.getChoices()) {
+                            expectType(c.getValue(), phiNode.getType());
+                            if (!predecessors.remove(c.getLabel())) {
+                                error(c, "Phi choice " + c.getLabel() + " is not a predecessor.");
+                            }
+                        }
+                        for (BasicBlock predecessor : predecessors) {
+                            error(phiNode, "Phi node is missing a choice for " + predecessor);
+                        }
+                    }
+                });
             }
 
             @Override
@@ -181,10 +252,6 @@ public class Checks {
                 checkCall(call, call.getFunction(), call.getArguments());
             }
 
-            @Override
-            public void case_Call(Call call) {
-                checkCall(call, call.getFunction(), call.getArguments());
-            }
 
             private void checkCall(Element errorPos, Operand func, OperandList args) {
                 Type funcType = getType(func);
@@ -210,70 +277,13 @@ public class Checks {
                 error(errorPos, "Procedure type must be a pointer to a procedure, but found: " + funcType);
             }
 
-            @Override
-            public void case_Bitcast(Bitcast bitcast) {
-                // no checks done (could do some sanity checks)
-            }
 
             @Override
             public void case_HaltWithError(HaltWithError haltWithError) {
                 // nothing to check
             }
 
-            @Override
-            public void case_GetElementPtr(GetElementPtr gep) {
-                Type ba = getType(gep.getBaseAddress());
-                if (ba instanceof TypePointer) {
-                    Type t = ((TypePointer) ba).getTo();
-                    for (int i = 1; i < gep.getIndices().size(); i++) {
-                        Operand index = gep.getIndices().get(i);
-                        if (t instanceof TypeArray) {
-                            t = ((TypeArray) t).getOf();
-                        } else if (t instanceof TypeStruct) {
-                            TypeStruct struct = (TypeStruct) t;
-                            if (index instanceof ConstInt) {
-                                int indexNr = ((ConstInt) index).getIntVal();
-                                if (indexNr >= 0 && indexNr < struct.getFields().size()) {
-                                    t = struct.getFields().get(indexNr).getType();
-                                } else {
-                                    error(index, "Struct " + struct.getName() + " does not have a field index " + indexNr);
-                                }
-                            }
-                        } else {
-                            error(index, "Can only index into array or struct types, got " + t);
-                        }
-                    }
-                } else {
-                    error(gep.getBaseAddress(), "Expected a pointer type, but found " + ba);
-                }
-            }
 
-            @Override
-            public void case_BinaryOperation(BinaryOperation bop) {
-                Type leftType = getType(bop.getLeft());
-                Type rightType = getType(bop.getRight());
-                if (!leftType.equalsType(rightType)) {
-                    error(bop, "Both operands of binary operation must be of same type, got " + leftType + " and " + rightType);
-                    return;
-                }
-                if (bop.getOperator() instanceof Eq) {
-                    // nothing more to check
-                }
-                if (Typechecker.isComparison(bop.getOperator())) {
-                    if (!isIntegerType(leftType) && !isPointerType(leftType)) {
-                        error(bop, "Can only compare integer and pointer types, but got type " + leftType);
-                    }
-                } else {
-                    if (!isIntegerType(leftType)) {
-                        error(bop, "Binary operation " + bop.getOperator() + " can only be applied to integer types, but got type " + leftType);
-                    }
-                }
-            }
-
-            @Override
-            public void case_Alloca(Alloca alloca) {
-                // nothing to check
-            }
         });
     }
 
