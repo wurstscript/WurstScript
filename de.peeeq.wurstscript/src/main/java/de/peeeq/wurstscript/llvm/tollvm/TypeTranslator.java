@@ -25,7 +25,7 @@ public class TypeTranslator implements ImType.Matcher<Type> {
     public Type case_ImSimpleType(ImSimpleType t) {
         Type type = usedTypes.get(t.getTypename());
         if (type == null) {
-            TypeDef td = Ast.TypeOpaque(t.getTypename());
+            TypeDef td = Ast.TypeDef(t.getTypename(), true, Ast.StructFieldList());
             type = Ast.TypePointer(Ast.TypeRef(td));
             tr.addType(td);
             usedTypes.put(t.getTypename(), type);

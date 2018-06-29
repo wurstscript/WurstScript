@@ -162,8 +162,8 @@ public class Checks {
                                 Operand index = gep.getIndices().get(i);
                                 if (t instanceof TypeArray) {
                                     t = ((TypeArray) t).getOf();
-                                } else if (t instanceof TypeStruct) {
-                                    TypeStruct struct = (TypeStruct) t;
+                                } else if (t instanceof TypeDef) {
+                                    TypeDef struct = (TypeDef) t;
                                     if (index instanceof ConstInt) {
                                         int indexNr = ((ConstInt) index).getIntVal();
                                         if (indexNr >= 0 && indexNr < struct.getFields().size()) {

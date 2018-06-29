@@ -17,7 +17,18 @@ public class Typechecker {
     }
 
     public static Type calculateType(GlobalRef o) {
-        return Ast.TypePointer(o.getGlobal().getType());
+        return Ast.TypePointer(o.getGlobal().match(new GlobalDef.Matcher<Type>() {
+            @Override
+            public Type case_Proc(Proc proc) {
+                // TODO calculate function type
+                return Ast.TypeByte();
+            }
+
+            @Override
+            public Type case_Global(Global global) {
+                return global.getType();
+            }
+        }));
     }
 
     public static Type calculateType(ProcedureRef o) {
@@ -106,8 +117,8 @@ public class Typechecker {
                             Operand index = gep.getIndices().get(i);
                             if (t instanceof TypeArray) {
                                 t = ((TypeArray) t).getOf();
-                            } else if (t instanceof TypeStruct) {
-                                TypeStruct struct = (TypeStruct) t;
+                            } else if (t instanceof TypeDef) {
+                                TypeDef struct = (TypeDef) t;
                                 if (index instanceof ConstInt) {
                                     int indexNr = ((ConstInt) index).getIntVal();
                                     if (indexNr >= 0 && indexNr < struct.getFields().size()) {
@@ -200,18 +211,13 @@ public class Typechecker {
         return other instanceof TypeNullpointer;
     }
 
-    public static boolean equalsType(TypeStruct t, Type other) {
+    public static boolean equalsType(TypeDef t, Type other) {
         return other instanceof TypeRef
                 && ((TypeRef) other).getTypeDef() == t;
     }
 
     public static boolean equalsType(TypeBool t, Type other) {
         return other instanceof TypeBool;
-    }
-
-    public static boolean equalsType(TypeOpaque t, Type other) {
-        return other instanceof TypeRef
-                && ((TypeRef) other).getTypeDef() == t;
     }
 
     public static Type calculateType(ConstString constString) {

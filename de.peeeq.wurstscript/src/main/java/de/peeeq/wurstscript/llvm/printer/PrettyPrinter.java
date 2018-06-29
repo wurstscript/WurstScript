@@ -362,8 +362,18 @@ public class PrettyPrinter implements
     @Override
     public void case_GlobalRef(GlobalRef e) {
         if (includeType) {
-            append(Ast.TypePointer(e.getGlobal().getType()));
-            append(" ");
+            e.getGlobal().match(new GlobalDef.MatcherVoid() {
+                @Override
+                public void case_Proc(Proc proc) {
+                    // TODO print function type
+                }
+
+                @Override
+                public void case_Global(Global global) {
+                    append(Ast.TypePointer(global.getType()));
+                    append(" ");
+                }
+            });
         }
         append("@" + getName(e.getGlobal()));
     }
@@ -586,31 +596,32 @@ public class PrettyPrinter implements
         append("void");
     }
 
-    @Override
-    public void case_TypeStruct(TypeStruct t) {
-        append("%" + getName(t) + " = type {");
-        boolean first = true;
-        for (StructField ta : t.getFields()) {
-            appendLine();
-            append("    ");
-            if (!first) {
-                append(",");
-            } else {
-                append(" ");
-            }
-            append(ta.getType());
-            append("  ; ");
-            append(ta.getName());
-            first = false;
-        }
-        appendLine();
-        append("}");
-    }
 
     @Override
-    public void case_TypeOpaque(TypeOpaque typeOpaque) {
-        append("%" + getName(typeOpaque) + " = type opaque");
+    public void case_TypeDef(TypeDef t) {
+        if (t.getOpaque()) {
+            append("%" + getName(t) + " = type opaque");
+        } else {
+            append("%" + getName(t) + " = type {");
+            boolean first = true;
+            for (StructField ta : t.getFields()) {
+                appendLine();
+                append("    ");
+                if (!first) {
+                    append(",");
+                } else {
+                    append(" ");
+                }
+                append(ta.getType());
+                append("  ; ");
+                append(ta.getName());
+                first = false;
+            }
+            appendLine();
+            append("}");
+        }
         appendLine();
+
     }
 
     @Override
@@ -709,6 +720,11 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Shl(Shl add) {
+        append("shl");
+    }
+
+    @Override
     public void case_ConstString(ConstString constString) {
         byte[] bytes = constString.getStringVal().getBytes();
         int len = bytes.length;
@@ -766,18 +782,7 @@ public class PrettyPrinter implements
 
     @Override
     public void case_TypeRef(TypeRef typeRef) {
-        typeRef.getTypeDef().match(new TypeDef.MatcherVoid() {
-
-            @Override
-            public void case_TypeStruct(TypeStruct typeStruct) {
-                append("%" + typeStruct.getName());
-            }
-
-            @Override
-            public void case_TypeOpaque(TypeOpaque typeOpaque) {
-                append("%" + typeOpaque.getName());
-            }
-        });
+        append("%" + typeRef.getTypeDef().getName());
     }
 
     @Override

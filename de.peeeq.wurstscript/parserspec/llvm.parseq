@@ -50,6 +50,8 @@ ValueInstruction =
 
 Operator = Add() | Sub() | Mul() | Sdiv() | Srem() | And() | Or() | Xor() | Eq() | Slt() | Sle() | Sgt() | Sge() | NotEq()
          | Frem() | Fdiv() | Fsub() | Fadd() | Fmul()
+         // shift operators
+         | Shl()
 
 PhiNodeChoice(ref BasicBlock label, Operand value)
 
@@ -70,12 +72,14 @@ Operand =
 Const =
       ConstBool(boolean boolVal)
     | ConstInt(int intVal)
-    | GlobalRef(ref Global global)
+    | GlobalRef(ref GlobalDef global)
     | ProcedureRef(ref Proc procedure)
     | Nullpointer()
-    | Sizeof(ref TypeStruct structType)
-    | ConstStruct(ref TypeStruct structType, ConstList values)
+    | Sizeof(ref TypeDef structType)
+    | ConstStruct(ref TypeDef structType, ConstList values)
     | ConstString(String stringVal)
+
+GlobalDef = Global | Proc
 
 // types:
 Type =
@@ -89,9 +93,7 @@ Type =
     | TypeVoid()
     | TypeRef(ref TypeDef typeDef)
 
-TypeDef =
-      TypeStruct(String name, StructFieldList fields)
-    | TypeOpaque(String name)
+TypeDef(String name, boolean opaque, StructFieldList fields)
 
 
 
@@ -113,7 +115,7 @@ InstructionList * Instruction
 OperandList * Operand
 
 // elements with name:
-ElementWithName = Global | Variable | Proc | TypeDef
+ElementWithName = GlobalDef | Variable | TypeDef
 
 attributes:
 

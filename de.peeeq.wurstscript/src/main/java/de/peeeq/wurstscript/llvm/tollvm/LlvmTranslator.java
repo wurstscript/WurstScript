@@ -22,7 +22,7 @@ public class LlvmTranslator {
     private StmtTranslator stmtTranslator = new StmtTranslator(this);
     private ExprTranslator exprTranslator = new ExprTranslator(this);
     private Map<ImVar, Global> globals = new HashMap<>();
-    private Map<ImClass, TypeStruct> structFor = new HashMap<>();
+    private Map<ImClass, TypeDef> structFor = new HashMap<>();
     private Table<ImClass, ImVar, Integer> fieldIndex = HashBasedTable.create();
     private Map<String, Global> globalStringConstant = new HashMap<>();
 
@@ -78,7 +78,7 @@ public class LlvmTranslator {
     private void initClasses() {
         for (ImClass c : program.getClasses()) {
             StructFieldList fields = Ast.StructFieldList();
-            structFor.put(c, Ast.TypeStruct(c.getName(), fields));
+            structFor.put(c, Ast.TypeDef(c.getName(), false, fields));
         }
 
         for (ImClass c : program.getClasses()) {
@@ -188,7 +188,7 @@ public class LlvmTranslator {
         return procFor.get(func);
     }
 
-    public TypeStruct getStructFor(ImClass clazz) {
+    public TypeDef getStructFor(ImClass clazz) {
         return structFor.get(clazz);
     }
 
