@@ -160,7 +160,168 @@ public class LlvmParseTreeTransformer {
             LlvmParser.AddInstContext instr = i.addInst();
             Operand left = transformValue(instr.value().get(0));
             Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Shl(), right);
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.orInst() != null) {
+            LlvmParser.OrInstContext instr = i.orInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Or(), right);
+        } else if (i.iCmpInst() != null) {
+            LlvmParser.ICmpInstContext instr = i.iCmpInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            Operator op;
+            switch (instr.iPred().getText()) {
+                case "eq":
+                    op = Ast.Eq();
+                    break;
+                case "ne":
+                    op = Ast.NotEq();
+                    break;
+                case "sge":
+                    op = Ast.Sge();
+                    break;
+                case "sgt":
+                    op = Ast.Sgt();
+                    break;
+                case "sle":
+                    op = Ast.Sle();
+                    break;
+                case "slt":
+                    op = Ast.Slt();
+                    break;
+//                case "uge":
+//                    op = Ast.
+//                    break;
+//                case "ugt":
+//                    op = Ast.
+//                    break;
+//                case "ule":
+//                    op = Ast.
+//                    break;
+//                case "ult":
+//                    op = Ast.
+//                    break;
+                default:
+                    throw new RuntimeException("unhandled case: " + str(instr.iPred()));
+            }
+
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
+        } else if (i.addInst() != null) {
+            LlvmParser.AddInstContext instr = i.addInst();
+            Operand left = transformValue(instr.value().get(0));
+            Operand right = transformValue(instr.value().get(1));
+            return Ast.BinaryOperation(left, Ast.Add(), right);
         }
 
         throw new RuntimeException("todo " + str(i));

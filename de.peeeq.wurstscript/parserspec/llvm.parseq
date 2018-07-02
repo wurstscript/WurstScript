@@ -73,7 +73,6 @@ Const =
       ConstBool(boolean boolVal)
     | ConstInt(int intVal)
     | GlobalRef(ref GlobalDef global)
-    | ProcedureRef(ref Proc procedure)
     | Nullpointer()
     | Sizeof(ref TypeDef structType)
     | ConstStruct(ref TypeDef structType, ConstList values)

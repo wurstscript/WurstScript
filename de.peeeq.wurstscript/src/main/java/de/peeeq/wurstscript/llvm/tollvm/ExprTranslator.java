@@ -27,21 +27,21 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     public Operand case_ImDealloc(ImDealloc imDealloc) {
         Operand obj = tr.translateExpr(imDealloc.getObj());
         TemporaryVar resVar = Ast.TemporaryVar("void");
-        Operand func = Ast.ProcedureRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
+        Operand func = Ast.GlobalRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
         tr.addInstruction(Ast.Assign(resVar, Ast.Call(func, Ast.OperandList(obj))));
         return Ast.VarRef(resVar);
     }
 
     @Override
     public Operand case_ImFuncRef(ImFuncRef imFuncRef) {
-        return Ast.ProcedureRef(tr.getProcFor(imFuncRef.getFunc()));
+        return Ast.GlobalRef(tr.getProcFor(imFuncRef.getFunc()));
     }
 
     @Override
     public Operand case_ImAlloc(ImAlloc imAlloc) {
         Operand obj = Ast.Sizeof(tr.getStructFor(imAlloc.getClazz()));
         TemporaryVar resVar = Ast.TemporaryVar("void");
-        Operand func = Ast.ProcedureRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
+        Operand func = Ast.GlobalRef(tr.builtinProc(LlvmTranslator.BuiltinProc.free));
         tr.addInstruction(Ast.Assign(resVar, Ast.Call(func, Ast.OperandList(obj))));
         return Ast.VarRef(resVar);
     }
@@ -55,11 +55,11 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
                 .collect(Collectors.toCollection(Ast::OperandList));
 
         if (fc.attrTyp() instanceof ImVoid) {
-            tr.addInstruction(Ast.CallVoid(Ast.ProcedureRef(func), args));
+            tr.addInstruction(Ast.CallVoid(Ast.GlobalRef(func), args));
             return null;
         } else {
             TemporaryVar v = Ast.TemporaryVar("call_result");
-            tr.addInstruction(Ast.Assign(v, Ast.Call(Ast.ProcedureRef(func), args)));
+            tr.addInstruction(Ast.Assign(v, Ast.Call(Ast.GlobalRef(func), args)));
             return Ast.VarRef(v);
         }
     }

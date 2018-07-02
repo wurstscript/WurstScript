@@ -341,12 +341,6 @@ public class Checks {
             }
 
             @Override
-            public void visit(ProcedureRef p) {
-                super.visit(p);
-                checkReference(p, p.getProcedure(), Prog.class);
-            }
-
-            @Override
             public void visit(ConstStruct p) {
                 super.visit(p);
                 checkReference(p, p.getStructType(), Prog.class);

@@ -342,24 +342,6 @@ public class PrettyPrinter implements
     }
 
     @Override
-    public void case_ProcedureRef(ProcedureRef e) {
-        if (includeType) {
-            append(Ast.TypePointer(procedureType(e.getProcedure())));
-            append(" ");
-        }
-        append("@" + getName(e.getProcedure()));
-    }
-
-    private Type procedureType(Proc procedure) { // TODO do somewhere else?
-        Type resultType = procedure.getReturnType();
-        TypeRefList argTypes = Ast.TypeRefList();
-        for (Parameter p : procedure.getParameters()) {
-            argTypes.add(p.getType());
-        }
-        return Ast.TypeProc(argTypes, resultType);
-    }
-
-    @Override
     public void case_GlobalRef(GlobalRef e) {
         if (includeType) {
             e.getGlobal().match(new GlobalDef.MatcherVoid() {
@@ -535,6 +517,7 @@ public class PrettyPrinter implements
 
     private void printCall(Operand func, OperandList args) {
         Type t = func.calculateType();
+        System.out.println("Function type of " + func + " is " + t);
         if (t instanceof TypePointer) {
             TypePointer funcPointerType = (TypePointer) func.calculateType();
             if (funcPointerType.getTo() instanceof TypeProc) {

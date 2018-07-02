@@ -20,8 +20,14 @@ public class Typechecker {
         return Ast.TypePointer(o.getGlobal().match(new GlobalDef.Matcher<Type>() {
             @Override
             public Type case_Proc(Proc proc) {
-                // TODO calculate function type
-                return Ast.TypeByte();
+                TypeRefList types = Ast.TypeRefList();
+
+                for (Parameter v : proc.getParameters()) {
+                    types.add(v.getType());
+                }
+
+                return Ast.TypeProc(types,
+                        proc.getReturnType());
             }
 
             @Override
@@ -31,17 +37,6 @@ public class Typechecker {
         }));
     }
 
-    public static Type calculateType(ProcedureRef o) {
-        Proc proc = o.getProcedure();
-        TypeRefList types = Ast.TypeRefList();
-
-        for (Parameter v : proc.getParameters()) {
-            types.add(v.getType());
-        }
-
-        return Ast.TypePointer(Ast.TypeProc(types,
-                proc.getReturnType()));
-    }
 
     public static Type calculateType(Nullpointer o) {
         return Ast.TypeNullpointer();

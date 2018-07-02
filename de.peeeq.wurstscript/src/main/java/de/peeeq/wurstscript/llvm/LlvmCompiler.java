@@ -64,14 +64,20 @@ public class LlvmCompiler {
                 .start();
 
 
+        StringBuilder sb = new StringBuilder();
         try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
             String line;
             while ((line = br.readLine()) != null) {
+                sb.append(line);
+                sb.append("\n");
                 System.out.println(line);
             }
         }
         p.waitFor();
         System.out.println("exit value = " + p.exitValue());
+        if (p.exitValue() != 0) {
+            throw new RuntimeException("LLVM optimization failed:\n" + sb);
+        }
 
 
         String optimizedProg = new String(Files.readAllBytes(llvmOutoutOpt), StandardCharsets.UTF_8);
