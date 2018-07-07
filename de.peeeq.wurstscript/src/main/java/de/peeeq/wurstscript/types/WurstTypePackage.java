@@ -1,15 +1,12 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.NamedScope;
 import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 
 public class WurstTypePackage extends WurstTypeNamedScope {
@@ -44,8 +41,8 @@ public class WurstTypePackage extends WurstTypeNamedScope {
     }
 
     @Override
-    public ImType imTranslateType() {
-        throw new Error("not implemented");
+    public ImType imTranslateType(ImTranslator tr) {
+        throw new RuntimeException("Cannot translate package type.");
     }
 
     @Override

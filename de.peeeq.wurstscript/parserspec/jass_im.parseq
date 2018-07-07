@@ -20,6 +20,7 @@ ImType =
 	| ImArrayTypeMulti(String typename, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
+	| ImClassType(ref ImClass def)
 	| ImVoid()
 	
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
@@ -34,7 +35,8 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name, 
 	ImVars fields, 
 	ImMethods methods, 
-	java.util.List<ImClass> superClasses)
+	java.util.List<ImClass> superClasses,
+	java.util.List<de.peeeq.wurstscript.translation.imtranslation.ClassFlag> classFlags)
 
 ImMethods * ImMethod
 

@@ -5,12 +5,12 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
-import java.util.Collections;
 
 public class WurstTypeTypeParam extends WurstType {
 
@@ -67,7 +67,7 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         return TypesHelper.imInt();
     }
 

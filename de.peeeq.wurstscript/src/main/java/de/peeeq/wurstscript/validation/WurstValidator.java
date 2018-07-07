@@ -1674,7 +1674,7 @@ public class WurstValidator {
 
                 @Override
                 public void case_ClassDef(ClassDef classDef) {
-                    check(VisibilityPublic.class, ModAbstract.class, ModStatic.class);
+                    check(VisibilityPublic.class, ModAbstract.class, ModStatic.class, Annotation.class);
                     if (!classDef.isInnerClass() && classDef.attrIsStatic()) {
                         classDef.addError("Top-level class " + classDef.getName() + " cannot be static. "
                                 + "Only inner classes can be declared static.");
@@ -1683,7 +1683,7 @@ public class WurstValidator {
 
                 @Override
                 public void case_InterfaceDef(InterfaceDef interfaceDef) {
-                    check(VisibilityPublic.class);
+                    check(VisibilityPublic.class, Annotation.class);
                 }
 
                 @Override

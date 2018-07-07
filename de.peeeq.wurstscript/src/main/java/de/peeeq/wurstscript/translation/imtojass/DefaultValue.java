@@ -47,4 +47,7 @@ public class DefaultValue {
         return JassIm.ImSimpleType(imArrayTypeMulti.getTypename()).defaultValue();
     }
 
+    public static ILconst get(ImClassType ct) {
+        return ILconstInt.create(0);
+    }
 }

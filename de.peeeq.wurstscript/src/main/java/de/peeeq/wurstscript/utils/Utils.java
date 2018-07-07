@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.ClassFlag;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.awt.event.MouseAdapter;
@@ -981,5 +982,15 @@ public class Utils {
         sb.append(e.attrSource().getFile()).append(":").append(e.attrSource().getLine()).append(": ");
         e.prettyPrint(new DefaultSpacer(), sb, 4);
         return sb.toString();
+    }
+
+    /**
+     * Creates a new list with one element and a tail list
+     */
+    public static <T> List<T> cons(T head, List<T> tail) {
+        return ImmutableList.<T>builder()
+                .add(head)
+                .addAll(tail)
+                .build();
     }
 }

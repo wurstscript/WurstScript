@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.TupleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -52,11 +53,11 @@ public class WurstTypeTuple extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         List<ImType> types = Lists.newArrayList();
         List<String> names = Lists.newArrayList();
         for (WParameter p : tupleDef.getParameters()) {
-            ImType pt = p.attrTyp().imTranslateType();
+            ImType pt = p.attrTyp().imTranslateType(tr);
             if (pt instanceof ImTupleType) {
                 ImTupleType ptt = (ImTupleType) pt;
                 // add flattened

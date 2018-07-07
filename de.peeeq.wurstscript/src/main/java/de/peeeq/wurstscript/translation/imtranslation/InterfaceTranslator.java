@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 
 import java.util.Collections;
@@ -26,6 +27,10 @@ public class InterfaceTranslator {
 
     public void translate() {
         translator.getImProg().getClasses().add(imClass);
+
+        if (interfaceDef.hasAnnotation("@managedRefCount")) {
+            imClass.setClassFlags(Utils.cons(ClassFlag.managedRefCount, imClass.getClassFlags()));
+        }
 
         // set super-classes
         for (TypeExpr ext : interfaceDef.getExtendsList()) {

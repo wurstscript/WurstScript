@@ -538,6 +538,11 @@ public class EliminateTuples {
             }
 
             @Override
+            public Integer case_ImClassType(ImClassType imClassType) {
+                return 1;
+            }
+
+            @Override
             public Integer case_ImArrayType(ImArrayType t) {
                 return 1;
             }

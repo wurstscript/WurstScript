@@ -1,0 +1,4 @@
+- adapt interpreter to include reference counting
+- if a variable is of a refcount type, null it when leaving scope
+- forbid using refcount in castTo int scenario (also includes bound type param)
+- forbid mixed type hierarchies (some supertypes refcounted, others not)

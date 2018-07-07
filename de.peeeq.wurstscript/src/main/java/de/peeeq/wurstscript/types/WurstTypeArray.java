@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.AttrConstantValue;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -109,9 +110,9 @@ public class WurstTypeArray extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         initSizes();
-        ImType bt = baseType.imTranslateType();
+        ImType bt = baseType.imTranslateType(tr);
 
         if (bt instanceof ImSimpleType) {
             String typename = ((ImSimpleType) bt).getTypename();

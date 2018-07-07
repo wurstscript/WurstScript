@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.JassIm;
 
 public class TypesHelper {
 
@@ -17,7 +18,7 @@ public class TypesHelper {
     }
 
     public static ImType imVoid() {
-        return WurstTypeVoid.instance().imTranslateType();
+        return JassIm.ImVoid();
     }
 
 

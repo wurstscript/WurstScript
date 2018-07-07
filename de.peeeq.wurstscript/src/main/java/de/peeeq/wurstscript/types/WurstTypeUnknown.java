@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -51,7 +52,7 @@ public class WurstTypeUnknown extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         throw new Error("not implemented");
     }
 

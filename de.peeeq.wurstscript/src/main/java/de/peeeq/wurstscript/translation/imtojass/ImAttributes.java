@@ -107,4 +107,7 @@ public class ImAttributes {
     }
 
 
+    public static String translateType(ImClassType ct) {
+        throw new RuntimeException("Class types should be eliminated before translation to Jass");
+    }
 }

@@ -426,4 +426,8 @@ public class ImPrinter {
         indent(sb, indent);
         sb.append("}");
     }
+
+    public static void print(ImClassType ct, StringBuilder sb, int indent) {
+        sb.append(ct.getDef().getName());
+    }
 }

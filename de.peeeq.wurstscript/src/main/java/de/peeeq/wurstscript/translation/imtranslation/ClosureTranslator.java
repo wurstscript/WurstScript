@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,7 +37,7 @@ public class ClosureTranslator {
             return translateAnonFunc();
         } else {
             ImClass c = createClass();
-            ImVar clVar = JassIm.ImVar(e, WurstTypeInt.instance().imTranslateType(), "clVar", false);
+            ImVar clVar = JassIm.ImVar(e, WurstTypeInt.instance().imTranslateType(tr), "clVar", false);
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
@@ -86,10 +87,10 @@ public class ClosureTranslator {
 
         if (e.getImplementation().attrTyp() instanceof WurstTypeBool) {
             impl.getBody().add(JassIm.ImReturn(e, translated));
-            impl.setReturnType(WurstTypeBool.instance().imTranslateType());
+            impl.setReturnType(WurstTypeBool.instance().imTranslateType(tr));
         } else {
             impl.getBody().add(translated);
-            impl.setReturnType(WurstTypeVoid.instance().imTranslateType());
+            impl.setReturnType(WurstTypeVoid.instance().imTranslateType(tr));
         }
         return JassIm.ImFuncRef(impl);
     }
@@ -127,7 +128,7 @@ public class ClosureTranslator {
         ImVars fields = JassIm.ImVars();
         ImMethods methods = JassIm.ImMethods();
         List<ImClass> superClasses = java.util.Collections.singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", fields, methods, superClasses);
+        ImClass c = JassIm.ImClass(e, "Closure", fields, methods, superClasses, Collections.emptyList());
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();

@@ -19,9 +19,9 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -70,6 +70,10 @@ public class ClassTranslator {
         addSuperClasses();
 
         List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
+
+        if (classDef.hasAnnotation("@managedRefCount")) {
+            imClass.setClassFlags(Utils.cons(ClassFlag.managedRefCount, imClass.getClassFlags()));
+        }
 
         // order is important here
         translateMethods(classDef, subClasses);
@@ -260,7 +264,7 @@ public class ClassTranslator {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
             // for dynamic class members create an array
-            ImType t = s.attrTyp().imTranslateType();
+            ImType t = s.attrTyp().imTranslateType(translator);
             v.setType(ImHelper.toArray(t));
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
@@ -356,7 +360,7 @@ public class ClassTranslator {
         Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
-            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(), p.getName(), false);
+            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), false);
             varReplacements.put(translator.getVarFor(p), imP);
             f.getParameters().add(imP);
         }

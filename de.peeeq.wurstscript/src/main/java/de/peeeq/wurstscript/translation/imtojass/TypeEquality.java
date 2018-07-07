@@ -65,4 +65,11 @@ public class TypeEquality {
     }
 
 
+    public static boolean isEqualType(ImClassType ct, ImType other) {
+        if (other instanceof ImClassType) {
+            ImClassType otherCt = (ImClassType) other;
+            return ct.getDef() == otherCt.getDef();
+        }
+        return false;
+    }
 }

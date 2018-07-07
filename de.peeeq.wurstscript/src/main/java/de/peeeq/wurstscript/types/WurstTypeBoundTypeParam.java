@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -56,8 +57,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
-        return baseType.imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return baseType.imTranslateType(tr);
     }
 
     @Override

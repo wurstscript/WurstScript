@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -38,7 +39,7 @@ public class WurstTypeIntLiteral extends WurstTypePrimitive {
     }
 
     @Override
-    public ImSimpleType imTranslateType() {
+    public ImSimpleType imTranslateType(ImTranslator tr) {
         return JassIm.ImSimpleType("integer");
     }
 
