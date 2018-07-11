@@ -76,6 +76,7 @@ public class StackTraceInjector2 {
             }
         }
 
+        addStackTracePush(affectedFuncs);
         addStackTracePop(affectedFuncs);
         passStacktraceParams(calls, affectedFuncs);
         rewriteFuncRefs(funcRefs, affectedFuncs);
@@ -83,6 +84,22 @@ public class StackTraceInjector2 {
 
         for (Entry<Element, Element> e : replacements.entrySet()) {
             e.getKey().replaceBy(e.getValue());
+        }
+    }
+
+    /**
+     * push a new stackframe when entering an affected function
+     */
+    private void addStackTracePush(Set<ImFunction> affectedFuncs) {
+        for (ImFunction f : affectedFuncs) {
+            if (isMainOrConfig(f)) {
+                continue;
+            }
+            ImStmts stmts = f.getBody();
+            de.peeeq.wurstscript.ast.Element trace = f.getTrace();
+            stmts.add(0, increment(trace, stackSize));
+            String callPos = getCallPos(f.attrTrace().attrErrorPos());
+            stmts.add(1, JassIm.ImSetArray(trace, stack, JassIm.ImVarAccess(stackSize), str(callPos)));
         }
     }
 
@@ -163,24 +180,25 @@ public class StackTraceInjector2 {
                     stmts.add(JassIm.ImSet(trace, stackSize, JassIm.ImIntVal(1)));
                     stmts.add(JassIm.ImSetArray(trace, stack, JassIm.ImIntVal(0), str(f.getName())));
                 } else {
-                    WPos source = call.attrTrace().attrErrorPos();
-                    String callPos;
-                    if (source.getFile().startsWith("<")) {
-                        callPos = "";
-                    } else {
-                        callPos = source.printShort();
-                    }
+                    String callPos = getCallPos(call.attrTrace().attrErrorPos());
                     // stack[stackSize] = ...
                     stmts.add(JassIm.ImSetArray(trace, stack, JassIm.ImVarAccess(stackSize), str(callPos)));
-                    // stackSize = stackSize + 1
-                    stmts.add(increment(trace, stackSize));
                 }
-
 
                 replacements.put(call, JassIm.ImStatementExpr(stmts, call.copy()));
             }
         }
 
+    }
+
+    private String getCallPos(WPos source) {
+        String callPos;
+        if (source.getFile().startsWith("<")) {
+            callPos = "";
+        } else {
+            callPos = source.printShort();
+        }
+        return callPos;
     }
 
     private ImStmt increment(de.peeeq.wurstscript.ast.Element trace, ImVar v) {
