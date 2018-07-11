@@ -356,7 +356,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // debug: add stacktraces
             if (runArgs.isIncludeStacktraces()) {
                 beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg2).transform();
+                new StackTraceInjector2(imProg2, imTranslator2).transform();
             }
         }
         imTranslator2.assertProperties();

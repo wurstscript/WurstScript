@@ -943,5 +943,30 @@ public class BugTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void testStacktrace() {
+        testAssertOkLines(true,
+                "package MagicFunctions",
+                "public function getStackTraceString() returns string",
+                "    return \"\"",
+                "endpackage",
+                "package Test",
+                "import MagicFunctions",
+                "native testSuccess()",
+                "native println(string s)",
+                "function foo(int x, int y) returns bool",
+                "    println(getStackTraceString())",
+                "    return x < y",
+                "function bar(int x) returns int",
+                "    if x == 2",
+                "        println(getStackTraceString())",
+                "    return x",
+                "init",
+                "    if foo(bar(1), bar(2))",
+                "        testSuccess()"
+        );
+    }
+
+
 
 }

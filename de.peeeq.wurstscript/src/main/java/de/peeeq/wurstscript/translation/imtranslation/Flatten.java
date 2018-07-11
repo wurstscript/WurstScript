@@ -107,7 +107,9 @@ public class Flatten {
 
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
         if (e instanceof ImFunctionCall) {
-            result.add(((ImStmt) e).copy());
+            Result res = flatten((ImFunctionCall) e, t, f);
+            result.addAll(res.stmts);
+            result.add(res.expr);
         } else if (e instanceof ImStatementExpr) {
             ImStatementExpr e2 = (ImStatementExpr) e;
             flattenStatementsInto(result, e2.getStatements(), t, f);

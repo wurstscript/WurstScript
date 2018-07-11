@@ -6,12 +6,18 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 /**
  * Takes a program and inserts stack traces at error messages
@@ -21,12 +27,13 @@ public class StackTraceInjector2 {
     private static final int MAX_STACKTRACE_SIZE = 20;
     private static final String WURST_STACK_TRACE = "wurstStackTrace";
     private ImProg prog;
+    private final ImTranslator tr;
     private ImVar stackSize;
     private ImVar stack;
-    private Map<Element, Element> replacements = new LinkedHashMap<>();
 
-    public StackTraceInjector2(ImProg prog) {
+    public StackTraceInjector2(ImProg prog, ImTranslator imTranslator2) {
         this.prog = prog;
+        tr = imTranslator2;
     }
 
     public void transform() {
@@ -76,21 +83,18 @@ public class StackTraceInjector2 {
             }
         }
 
-        addStackTracePush(affectedFuncs);
-        addStackTracePop(affectedFuncs);
         passStacktraceParams(calls, affectedFuncs);
+        addStackTracePush(calls, affectedFuncs);
+        addStackTracePop(affectedFuncs);
         rewriteFuncRefs(funcRefs, affectedFuncs);
         rewriteErrorStatements(stackTraceGets);
 
-        for (Entry<Element, Element> e : replacements.entrySet()) {
-            e.getKey().replaceBy(e.getValue());
-        }
     }
 
     /**
      * push a new stackframe when entering an affected function
      */
-    private void addStackTracePush(Set<ImFunction> affectedFuncs) {
+    private void addStackTracePush(Multimap<ImFunction, ImFunctionCall> calls, Set<ImFunction> affectedFuncs) {
         for (ImFunction f : affectedFuncs) {
             if (isMainOrConfig(f)) {
                 continue;
@@ -98,9 +102,12 @@ public class StackTraceInjector2 {
             ImStmts stmts = f.getBody();
             de.peeeq.wurstscript.ast.Element trace = f.getTrace();
             stmts.add(0, increment(trace, stackSize));
-            String callPos = getCallPos(f.attrTrace().attrErrorPos());
-            stmts.add(1, JassIm.ImSetArray(trace, stack, JassIm.ImVarAccess(stackSize), str(callPos)));
+            stmts.add(0, JassIm.ImSetArray(trace, stack, JassIm.ImVarAccess(stackSize), getStackPosVar(f)));
         }
+    }
+
+    private ImExpr getStackPosVar(ImFunction f) {
+        return JassIm.ImVarAccess(Utils.getLast(f.getParameters()));
     }
 
     /**
@@ -124,23 +131,50 @@ public class StackTraceInjector2 {
             for (ImReturn ret : returns) {
                 ImStmts stmts = JassIm.ImStmts();
                 ImReturn newReturn;
-                if (!containsAffectedFunctioncall(ret.getReturnValue())) {
-                    newReturn = ret.copy();
+                ImExprOpt returnedValue = ret.getReturnValue();
+                returnedValue.setParent(null);
+                de.peeeq.wurstscript.ast.Element trace = ret.getTrace();
+                if (returnedValue instanceof ImNoExpr || !containsAffectedFunctioncall(returnedValue)) {
+                    newReturn = JassIm.ImReturn(trace, returnedValue);
                 } else {
                     // temp = result
-                    ImVar temp = JassIm.ImVar(ret.getTrace(), f.getReturnType(), "stackTrace_tempReturn", false);
+                    ImVar temp = JassIm.ImVar(trace, f.getReturnType(), "stackTrace_tempReturn", false);
                     f.getLocals().add(temp);
-                    stmts.add(JassIm.ImSet(ret.getTrace(), temp, (ImExpr) ret.getReturnValue().copy()));
-                    newReturn = JassIm.ImReturn(ret.getTrace(), JassIm.ImVarAccess(temp));
+                    stmts.add(JassIm.ImSet(trace, temp, (ImExpr) returnedValue));
+                    newReturn = JassIm.ImReturn(trace, JassIm.ImVarAccess(temp));
                 }
                 // stackSize = stackSize - 1
-                stmts.add(decrement(ret.getTrace(), stackSize));
+                stmts.add(decrement(trace, stackSize));
                 stmts.add(newReturn);
-                replacements.put(ret, JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
 
+                ret.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
+            }
+
+            // also decrement at end of function:
+            if (!returnsOnAllPaths(f.getBody())) {
+                f.getBody().add(decrement(f.getTrace(), stackSize));
             }
 
         }
+    }
+
+    private boolean returnsOnAllPaths(ImStmts body) {
+        for (ImStmt v : body) {
+            if (v instanceof ImReturn) {
+                return true;
+            } else if (v instanceof ImIf) {
+                ImIf imIf = (ImIf) v;
+                if (returnsOnAllPaths(imIf.getThenBlock())
+                        && returnsOnAllPaths(imIf.getElseBlock())) {
+                    return true;
+                }
+            } else if (v instanceof ImStatementExpr) {
+                if (returnsOnAllPaths(((ImStatementExpr) v).getStatements())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean containsAffectedFunctioncall(ImExprOpt ret) {
@@ -169,26 +203,27 @@ public class StackTraceInjector2 {
 
     private void passStacktraceParams(final Multimap<ImFunction, ImFunctionCall> calls, Set<ImFunction> affectedFuncs) {
 
-        // pass the stacktrace parameter at all cals
         for (ImFunction f : affectedFuncs) {
-            for (ImFunctionCall call : calls.get(f)) {
-                ImFunction caller = call.getNearestFunc();
-                de.peeeq.wurstscript.ast.Element trace = call.getTrace();
-                ImStmts stmts = JassIm.ImStmts();
-                if (isMainOrConfig(caller)) {
-                    // reset stack and add name of main/config:
-                    stmts.add(JassIm.ImSet(trace, stackSize, JassIm.ImIntVal(1)));
-                    stmts.add(JassIm.ImSetArray(trace, stack, JassIm.ImIntVal(0), str(f.getName())));
-                } else {
-                    String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                    // stack[stackSize] = ...
-                    stmts.add(JassIm.ImSetArray(trace, stack, JassIm.ImVarAccess(stackSize), str(callPos)));
-                }
-
-                replacements.put(call, JassIm.ImStatementExpr(stmts, call.copy()));
+            if (isMainOrConfig(f)) {
+                continue;
+            }
+            Collection<ImFunctionCall> callsForF = calls.get(f);
+            // add stackPos parameter
+            f.getParameters().add(JassIm.ImVar(f.getTrace(), TypesHelper.imString(), "stackPos", false));
+            // pass the stacktrace parameter at all calls
+            for (ImFunctionCall call : callsForF) {
+                String callPos = getCallPos(call.attrTrace().attrErrorPos());
+                call.getArguments().add(str("when calling " + name(f) + " in " + callPos));
             }
         }
+    }
 
+    private String name(ImFunction f) {
+        @Nullable NameDef nameDef = f.attrTrace().tryGetNameDef();
+        if (nameDef != null) {
+            return nameDef.getName();
+        }
+        return f.getName();
     }
 
     private String getCallPos(WPos source) {
@@ -219,21 +254,23 @@ public class StackTraceInjector2 {
                 continue;
             }
 
-            ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), f.getParameters().copy(),
+            ImVars params = f.getParameters().copy();
+            // remove stacktrace param
+            params.remove(params.size() - 1);
+            ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), params,
                     (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
             prog.getFunctions().add(bridgeFunc);
 
             ImStmt stmt;
             ImExpr str = str(fr.attrTrace().attrSource().printShort());
-            ImExprs args = JassIm.ImExprs();
+            ImExprs args = JassIm.ImExprs(str);
             ImStmts body = bridgeFunc.getBody();
             de.peeeq.wurstscript.ast.Element trace = fr.attrTrace();
             if (trace.getParent() == null) {
                 throw new RuntimeException("no trace");
             }
             // reset stack and add information for callback:
-            body.add(JassIm.ImSet(trace, stackSize, JassIm.ImIntVal(1)));
-            body.add(JassIm.ImSetArray(trace, stack, JassIm.ImIntVal(0), str));
+            body.add(JassIm.ImSet(trace, stackSize, JassIm.ImIntVal(0)));
 
             ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true, CallType.NORMAL);
             if (bridgeFunc.getReturnType() instanceof ImVoid) {
@@ -282,7 +319,7 @@ public class StackTraceInjector2 {
                             JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("\n   "),
                                     JassIm.ImVarArrayAccess(stack, JassIm.ImVarAccess(traceI))))))));
 
-            replacements.put(s, JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
+            s.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
         }
     }
 
