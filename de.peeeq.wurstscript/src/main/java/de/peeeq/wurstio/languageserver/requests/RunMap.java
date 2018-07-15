@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 
 import javax.swing.filechooser.FileSystemView;
@@ -21,6 +22,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
+
+import static net.moonlightflower.wc3libs.bin.GameExe.VERSION_1_29;
 
 /**
  * Created by peter on 16.05.16.
@@ -32,9 +35,9 @@ public class RunMap extends MapRequest {
      */
     private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
     /**
-     * The patch version as double, e.g. 1.27, 1.28
+     * The patch version as Version object, e.g. 1.27, 1.28
      */
-    private double patchVersion;
+    private GameExe.Version patchVersion;
     private File customTarget = null;
 
     enum SafetyLevel {
@@ -133,7 +136,7 @@ public class RunMap extends MapRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        return (W3Utils.getWc3PatchVersion() < 1.29 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
+        return (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_29) < 0 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
                 Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
@@ -175,7 +178,7 @@ public class RunMap extends MapRequest {
         }
 
 
-        if (patchVersion <= 1.27) {
+        if (patchVersion.compareTo(new GameExe.Version("1.27")) <= 0) {
             // 1.27 and lower compat
             print("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
