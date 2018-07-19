@@ -166,21 +166,22 @@ public class RunMap extends MapRequest {
                 return testMapName;
             }
         }
-        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
+        File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
+        String documentPath = myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III";
         if (!new File(documentPath).exists()) {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");
             // Try wine default:
             documentPath = System.getProperty("user.home")
-                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/" + myDocumentsFolder.getName() + "/Warcraft III";
             if (!new File(documentPath).exists()) {
-                WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+                WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
             }
         }
 
 
         if (patchVersion.compareTo(new GameExe.Version("1.27")) <= 0) {
             // 1.27 and lower compat
-            print("Version 1.27 or lower detected, changing file location");
+            WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
         } else {
             // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
