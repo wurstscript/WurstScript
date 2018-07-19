@@ -69,7 +69,7 @@ To update your compiler installation use
 ### Import into IDE
 
 You can import the compiler project into any IDE that provides a gradle plugin, like IntelliJ IDEA or Eclipse.
-To run the Test Suite, execute `tests.wurstscript.tests.AllTests` as JUnit test.
+To run the Test Suite, execute `AllTests.xml` with TestNG.
 
 ### Updating the version number
 
