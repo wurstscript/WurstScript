@@ -24,10 +24,7 @@ Find the last modified file and copy it's contents.
 
 ## Contributing
 
-We gladly welcome any contributions - however it is highly recommended to contact us prior to starting your contribution.
-
-You can do this by either creating a ticket with our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues) or contacting us directly and then create the pull request after the task was accepted.
-For small changes you can also directly make a pull request, but bigger unannounced PRs might not be merged.
+See https://github.com/wurstscript/WurstScript/blob/master/CONTRIBUTING.md
 
 ## System Overview
 
@@ -69,7 +66,7 @@ To update your compiler installation use
 ### Import into IDE
 
 You can import the compiler project into any IDE that provides a gradle plugin, like IntelliJ IDEA or Eclipse.
-To run the Test Suite, execute `tests.wurstscript.tests.AllTests` as JUnit test.
+To run the Test Suite, execute `AllTests.xml` with TestNG.
 
 ### Updating the version number
 
