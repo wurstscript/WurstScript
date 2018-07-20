@@ -34,10 +34,7 @@ public class RunMap extends MapRequest {
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
     private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
-    /**
-     * The patch version as Version object, e.g. 1.27, 1.28
-     */
-    private GameExe.Version patchVersion;
+
     private File customTarget = null;
 
     enum SafetyLevel {
@@ -56,12 +53,14 @@ public class RunMap extends MapRequest {
         }
 
         // TODO use normal compiler for this, avoid code duplication
-        WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
+        WLogger.info("received runMap command: map=" + map.getAbsolutePath() + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
             if (wc3Path != null) {
                 W3Utils.parsePatchVersion(new File(wc3Path));
-                patchVersion = W3Utils.getWc3PatchVersion();
+            }
+            if (W3Utils.getWc3PatchVersion() == null) {
+                throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
             }
             File gameExe = findGameExecutable();
 
@@ -172,14 +171,14 @@ public class RunMap extends MapRequest {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");
             // Try wine default:
             documentPath = System.getProperty("user.home")
-                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/" + myDocumentsFolder.getName() + "/Warcraft III";
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
             if (!new File(documentPath).exists()) {
                 WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
             }
         }
 
 
-        if (patchVersion.compareTo(new GameExe.Version("1.27")) <= 0) {
+        if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27")) <= 0) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
