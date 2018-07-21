@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.*;
 import org.eclipse.lsp4j.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,12 +44,13 @@ public class SymbolInformationRequest extends UserRequest<List<? extends SymbolI
     }
 
     private List<SymbolInformation> symbolsFromCu(CompilationUnit cu) {
+        if (cu == null) {
+            return Collections.emptyList();
+        }
         List<SymbolInformation> result = new ArrayList<>();
         for (WPackage p : cu.getPackages()) {
             addSymbolsForPackage(result, p);
         }
-
-
         return result;
     }
 
