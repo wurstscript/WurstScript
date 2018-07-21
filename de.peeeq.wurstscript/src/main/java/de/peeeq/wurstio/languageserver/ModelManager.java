@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.ModuleInstanciations;
 import de.peeeq.wurstscript.ast.NoExpr;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.File;
@@ -48,7 +49,7 @@ public interface ModelManager {
      */
     Set<File> getDependencyWurstFiles();
 
-    CompilationUnit getCompilationUnit(WFile filename);
+    @Nullable CompilationUnit getCompilationUnit(WFile filename);
 
     WurstModel getModel();
 

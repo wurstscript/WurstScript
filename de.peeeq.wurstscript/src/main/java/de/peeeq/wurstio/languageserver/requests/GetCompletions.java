@@ -146,8 +146,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             leftType.getMemberMethods(elem).forEach(nameLink -> {
                 if (isSuitableCompletion(nameLink.getName())) {
-                    CompletionItem completion = makeNameDefCompletion(nameLink);
-                    completions.add(completion);
+                    if (nameLink.getVisibility() == Visibility.PUBLIC) {
+                        CompletionItem completion = makeNameDefCompletion(nameLink);
+                        completions.add(completion);
+                    }
                 }
             });
 
@@ -421,13 +423,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
+            DefLink defLink = e.getValue();
 
             // remove invisible functions
-            if (e.getValue().getVisibility() == Visibility.PRIVATE_OTHER || e.getValue().getVisibility() == Visibility.PROTECTED_OTHER) {
+            if (defLink.getVisibility() == Visibility.PRIVATE_OTHER || defLink.getVisibility() == Visibility.PROTECTED_OTHER) {
                 continue;
             }
 
-            WurstType receiverType = e.getValue().getReceiverType();
+            WurstType receiverType = defLink.getReceiverType();
             if (leftType == null) {
                 if (receiverType != null && !receiverType.isStaticRef()) {
                     // skip extension functions, when not needed
@@ -447,12 +450,12 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 }
             }
 
-            if (e.getValue() instanceof FuncLink) {
-                FuncLink funcLink = (FuncLink) e.getValue();
+            if (defLink instanceof FuncLink) {
+                FuncLink funcLink = (FuncLink) defLink;
                 CompletionItem completion = makeFunctionCompletion(funcLink);
                 completions.add(completion);
             } else {
-                completions.add(makeNameDefCompletion(e.getValue()));
+                completions.add(makeNameDefCompletion(defLink));
             }
             if (alreadyEntered.length() <= 3 && completions.size() >= MAX_COMPLETIONS) {
                 // got enough completions
@@ -632,7 +635,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
-            if (e.getValue() instanceof FuncLink) {
+            if (e.getValue() instanceof FuncLink && e.getValue().getVisibility().isPublic()) {
                 FuncLink ef = (FuncLink) e.getValue();
                 FuncLink ef2 = ef.adaptToReceiverType(leftType);
                 if (ef2 != null) {
