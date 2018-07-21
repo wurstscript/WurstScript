@@ -255,6 +255,80 @@ public class AutoCompleteTests extends WurstScriptTest {
         testCompletions(testData, "bar", "foo");
     }
 
+    @Test
+    public void testPrivateMethod() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    private function fuu() returns bool",
+                "        return true",
+                "function test()",
+                "    let a = new A()",
+                "    a.f|"
+        );
+
+        testCompletions(testData, "foo");
+    }
+
+    @Test
+    public void testPrivateMethod2() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    private function fuu() returns bool",
+                "        return true",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+    @Test
+    public void testProtectedMethod() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    protected function fuu() returns bool",
+                "        return true",
+                "package test2",
+                "import test",
+                "class B extends A",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+    @Test
+    public void testProtectedMethod2() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    protected function fuu() returns bool",
+                "        return true",
+                "package test2",
+                "import test",
+                "class B",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+        testCompletions(testData, "foo");
+    }
 
 
     static class CompletionTestData {
