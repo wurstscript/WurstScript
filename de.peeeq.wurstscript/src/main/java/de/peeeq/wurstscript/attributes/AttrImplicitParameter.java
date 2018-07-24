@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class AttrImplicitParameter {
@@ -95,9 +96,10 @@ public class AttrImplicitParameter {
                     ExprThis t = Ast.ExprThis(e.getSource());
                     t.setParent(e);
                     // check if 'this' has correct type
-                    if (!t.attrTyp().isSubtypeOf(varDef.attrNearestStructureDef().attrTyp(), e)) {
+                    WurstType thisType = t.attrTyp();
+                    if (!def.receiverCompatibleWith(thisType, e)) {
                         e.addError("Cannot access dynamic variable " + varDef.getName() + " from context of type " +
-                                t.attrTyp() + ".");
+                                thisType + ".");
                     }
                     return t;
                 } else {

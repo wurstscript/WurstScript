@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -108,44 +109,28 @@ public class NameResolution {
     }
 
     public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
-        WurstType receiverType;
-        @Nullable
-        StructureDef nearestStructureDef = node.attrNearestStructureDef();
-        if (nearestStructureDef != null) {
-            // inside a class one can write bar instead of this.bar
-            // so the receiver type is implicitly given by the enclosing class
-            receiverType = nearestStructureDef.attrTyp();
-        } else {
-            receiverType = null;
-        }
-
         NameLink privateCandidate = null;
         List<NameLink> candidates = Lists.newArrayList();
-
 
         WScope scope = node.attrNearestScope();
         while (scope != null) {
 //			WLogger.info("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
 //			WLogger.info("		" + scope.attrNameLinks());
 
+            if (scope instanceof StructureDef) {
+                StructureDef nearestStructureDef = (StructureDef) scope;
+                // inside a class one can write foo instead of this.foo()
+                // so the receiver type is implicitly given by the enclosing class
+                WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
+                for (DefLink link : receiverType.nameLinks(name)) {
+                    if (!(link instanceof FuncLink)) {
+                        return link;
+                    }
+                }
+            }
             for (DefLink n : scope.attrNameLinks().get(name)) {
                 WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof VarLink) {
-
-                    if (n_receiverType != null) {
-                        // when we have a receiver type we have to check that it matches with the receiver type of the variable
-                        // for example vec2.x could be in scope so we have to check that the current receiver is a vec2
-                        if (receiverType == null) {
-                            continue;
-                        }
-                        if (!receiverType.isSubtypeOf(n_receiverType, node)
-                                && !receiverType.isNestedInside(n_receiverType)) {
-                            continue;
-                        }
-                    }
-//						&& (n_receiverType == null
-//						|| (receiverType != null && receiverType.isSubtypeOf(n_receiverType, node))
-//						)) {
+                if (n instanceof VarLink && n_receiverType == null) {
 
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
@@ -157,6 +142,7 @@ public class NameResolution {
                 } else if (n instanceof TypeDefLink) {
                     candidates.add(n);
                 }
+
             }
             if (candidates.size() > 0) {
                 if (showErrors && candidates.size() > 1) {

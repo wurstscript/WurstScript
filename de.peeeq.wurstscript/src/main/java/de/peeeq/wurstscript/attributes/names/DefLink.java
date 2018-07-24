@@ -81,7 +81,7 @@ public abstract class DefLink extends NameLink {
         if (this.receiverType == null) {
             return receiverType == null;
         }
-        return this.receiverType.isSubtypeOf(receiverType, location);
+        return receiverType.isSubtypeOf(this.receiverType, location);
     }
 
     /**

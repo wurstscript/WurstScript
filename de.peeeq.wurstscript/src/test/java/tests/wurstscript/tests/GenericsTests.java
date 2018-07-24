@@ -1002,5 +1002,53 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void inheritField() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	int someInt",
+                "class B extends A<int>",
+                "	construct()",
+                "		someInt = 1",
+                "init",
+                "	if new B().someInt == 1",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void inheritField2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	int someInt",
+                "class B<K> extends A<K>",
+                "	construct()",
+                "		someInt = 1",
+                "init",
+                "	if new B().someInt == 1",
+                "		testSuccess()"
+        );
+    }
+
+
+    @Test
+    public void inheritMethod() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	function someInt()",
+                "		testSuccess()",
+                "class B extends A<int>",
+                "	construct()",
+                "		someInt()",
+                "init",
+                "	new B()"
+        );
+    }
 
 }
