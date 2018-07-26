@@ -178,7 +178,7 @@ public class RunMap extends MapRequest {
         }
 
 
-        if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27")) <= 0) {
+        if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27.9")) <= 0) {
             // 1.27 and lower compat
             WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
