@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import fj.data.Option;
@@ -256,4 +255,12 @@ public abstract class WurstType {
     }
 
 
+    /**
+     * Checks if this type has the same structure as another type.
+     * <p>
+     * This is only used for overloading resolution when resolving symbols.
+     *
+     * @see de.peeeq.wurstscript.attributes.names.GlobalSymbol
+     */
+    public abstract boolean structuralEquals(WurstType other);
 }

@@ -58,6 +58,19 @@ public class WurstTypeUnion extends WurstType {
         return typeA.getDefaultValue();
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof WurstTypeUnion) {
+            WurstTypeUnion u = (WurstTypeUnion) other;
+            return typeA.structuralEquals(u.typeA)
+                    && typeB.structuralEquals(u.typeB);
+        }
+        return false;
+    }
+
     public WurstType getTypeA() {
         return typeA;
     }

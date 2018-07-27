@@ -506,11 +506,11 @@ public class Utils {
     }
 
 
-    public static String printAlternatives(Collection<? extends NameLink> alternatives) {
+    public static String printAlternatives(Collection<? extends NameLink> alternatives, WurstModel m) {
         List<String> result = Lists.newArrayList();
         for (NameLink a : alternatives) {
-            WPos source = a.getDef().attrSource();
-            String s = Utils.printElement(a.getDef()) + " defined in line "
+            WPos source = a.getDef(m).attrSource();
+            String s = Utils.printElement(a.getDef(m)) + " defined in line "
                     + source.getLine() + " (" + source.getFile() + ")";
             result.add(s);
         }

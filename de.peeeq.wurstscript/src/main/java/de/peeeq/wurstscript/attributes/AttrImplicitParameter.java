@@ -63,7 +63,8 @@ public class AttrImplicitParameter {
         if (calledFunc == null) {
             return Ast.NoExpr();
         }
-        if (calledFunc.getDef().attrIsDynamicClassMember()) {
+        WurstModel m = e.getModel();
+        if (calledFunc.getDef(m).attrIsDynamicClassMember()) {
             // dynamic function call
             if (e.attrIsDynamicContext()) {
                 // dynamic context means we have a 'this':
@@ -87,8 +88,9 @@ public class AttrImplicitParameter {
 
     private static OptExpr getImplicitParamterCaseNormalVar(NameRef e) {
         NameLink def = e.attrNameLink();
-        if (def != null && def.getDef() instanceof VarDef) {
-            VarDef varDef = (VarDef) def.getDef();
+        WurstModel m = e.getModel();
+        if (def != null && def.getDef(m) instanceof VarDef) {
+            VarDef varDef = (VarDef) def.getDef(m);
             if (varDef.attrIsDynamicClassMember()) {
                 // dynamic var access
                 if (e.attrIsDynamicContext()) {

@@ -161,18 +161,20 @@ public class WurstValidator {
             collectUsedPackages(used, e.get(i));
         }
 
+        WurstModel m = e.getModel();
+
         if (e instanceof FuncRef) {
             FuncRef fr = (FuncRef) e;
             FuncLink link = fr.attrFuncLink();
             if (link != null) {
-                used.add(link.getDef().attrNearestPackage());
+                used.add(link.getDef(m).attrNearestPackage());
             }
         }
         if (e instanceof NameRef) {
             NameRef nr = (NameRef) e;
             NameLink def = nr.attrNameLink();
             if (def != null) {
-                used.add(def.getDef().attrNearestPackage());
+                used.add(def.getDef(m).attrNearestPackage());
             }
         }
         if (e instanceof TypeRef) {
@@ -186,7 +188,7 @@ public class WurstValidator {
             ExprBinary binop = (ExprBinary) e;
             FuncLink def = binop.attrFuncLink();
             if (def != null) {
-                used.add(def.getDef().attrNearestPackage());
+                used.add(def.getDef(m).attrNearestPackage());
             }
         }
         if (e instanceof Expr) {
@@ -351,7 +353,7 @@ public class WurstValidator {
             StringBuilder toImplement = new StringBuilder();
             // should have no abstract methods
             for (DefLink link : nameLinks.values()) {
-                NameDef f = link.getDef();
+                NameDef f = link.getDef(c.getModel());
                 if (f.attrIsAbstract()) {
                     if (f.attrNearestStructureDef() == c) {
                         Element loc = f.getModifiers().stream()
@@ -482,7 +484,7 @@ public class WurstValidator {
                 return;
             }
 
-            if (!origVar.getDef().hasAnnotation("@configurable")) {
+            if (!origVar.getDef(prog).hasAnnotation("@configurable")) {
                 e.addWarning("The configured variable " + v.getName() + " is not marked with @configurable.\n"
                         + "It is still possible to configure this var but it is not recommended.");
             }
@@ -492,8 +494,8 @@ public class WurstValidator {
             Collection<FuncLink> funcs = origPackage.getElements().lookupFuncsNoConfig(funcDef.getName(), false);
             FuncDef configuredFunc = null;
             for (NameLink nameLink : funcs) {
-                if (nameLink.getDef() instanceof FuncDef) {
-                    FuncDef f = (FuncDef) nameLink.getDef();
+                if (nameLink.getDef(prog) instanceof FuncDef) {
+                    FuncDef f = (FuncDef) nameLink.getDef(prog);
                     if (equalSignatures(funcDef, f)) {
                         configuredFunc = f;
                         break;
@@ -807,7 +809,7 @@ public class WurstValidator {
         if (link == null) {
             return;
         }
-        NameDef var = link.getDef();
+        NameDef var = link.getDef(prog);
         if (var != null && var.attrIsConstant()) {
             if (var instanceof GlobalVarDef) {
                 GlobalVarDef glob = (GlobalVarDef) var;
@@ -1120,12 +1122,12 @@ public class WurstValidator {
 
         if (stmtCall.attrFuncLink() != null) {
             FuncLink calledFunc = stmtCall.attrFuncLink();
-            if (calledFunc.getDef().attrIsDynamicClassMember()) {
+            if (calledFunc.getDef(prog).attrIsDynamicClassMember()) {
                 if (!stmtCall.attrIsDynamicContext()) {
                     stmtCall.addError("Cannot call dynamic function " + funcName + " from static context.");
                 }
             }
-            if (calledFunc.getDef() instanceof ExtensionFuncDef) {
+            if (calledFunc.getDef(prog) instanceof ExtensionFuncDef) {
                 stmtCall.addError("Extension function " + funcName + " must be called with an explicit receiver.\n"
                         + "Try to write this." + funcName + "(...) .");
             }
@@ -1185,7 +1187,7 @@ public class WurstValidator {
     private void visit(ExprBinary expr) {
         FuncLink def = expr.attrFuncLink();
         if (def != null) {
-            FunctionSignature sig = FunctionSignature.fromNameLink(def);
+            FunctionSignature sig = FunctionSignature.fromNameLink(def, expr.getModel());
             CallSignature callSig = new CallSignature(expr.getLeft(), Collections.singletonList(expr.getRight()));
             callSig.checkSignatureCompatibility(sig, "" + expr.getOp(), expr);
         }
@@ -1339,7 +1341,7 @@ public class WurstValidator {
         if (link == null) {
             return;
         }
-        NameDef def = link.getDef();
+        NameDef def = link.getDef(prog);
         if (def instanceof GlobalVarDef) {
             GlobalVarDef g = (GlobalVarDef) def;
             if (g.attrIsDynamicClassMember() && !dynamicContext) {
@@ -1443,7 +1445,7 @@ public class WurstValidator {
                     if (fromIndexFuncs.size() > 1) {
                         e.addError("There is more than one function named " + fromIndexFuncName);
                     }
-                    NameDef toIndex = Utils.getFirst(toIndexFuncs).getDef();
+                    NameDef toIndex = Utils.getFirst(toIndexFuncs).getDef(prog);
                     if (toIndex instanceof FuncDef) {
                         FuncDef toIndexF = (FuncDef) toIndex;
 
@@ -1462,7 +1464,7 @@ public class WurstValidator {
                         toIndex.addError("This should be a function.");
                     }
 
-                    NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getDef();
+                    NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getDef(prog);
                     if (fromIndex instanceof FuncDef) {
                         FuncDef fromIndexF = (FuncDef) fromIndex;
 
@@ -1501,13 +1503,13 @@ public class WurstValidator {
             scope = ref.attrNearestScope();
         }
         if (!(ref instanceof ExprFuncRef)) { // ExprFuncRef is not a direct call
-            calledFunctions.put(scope, called.getDef());
+            calledFunctions.put(scope, called.getDef(prog));
         }
     }
 
     private void checkNameRefDeprecated(Element trace, NameLink link) {
         if (link != null) {
-            checkNameRefDeprecated(trace, link.getDef());
+            checkNameRefDeprecated(trace, link.getDef(prog));
         }
 
     }
@@ -1531,9 +1533,9 @@ public class WurstValidator {
             return;
         }
         if (ref.attrTyp() instanceof WurstTypeCode) {
-            if (called.getDef().attrParameterTypesIncludingReceiver().size() > 0) {
+            if (called.getDef(prog).attrParameterTypesIncludingReceiver().size() > 0) {
                 String msg = "Can only use functions without parameters in 'code' function references.";
-                if (called.getDef().attrIsDynamicClassMember()) {
+                if (called.getDef(prog).attrIsDynamicClassMember()) {
                     msg += "\nNote that " + called.getName()
                             + " is a dynamic function and thus has an implicit parameter 'this'.";
                 }
@@ -1947,7 +1949,7 @@ public class WurstValidator {
                 if (funcs.size() > 1) {
                     StringBuilder alternatives = new StringBuilder();
                     for (NameLink nameLink : funcs) {
-                        alternatives.append("\n - ").append(Utils.printElementWithSource(nameLink.getDef()));
+                        alternatives.append("\n - ").append(Utils.printElementWithSource(nameLink.getDef(prog)));
                     }
                     e.addError("Ambiguous function name: " + exFunc + ". Alternatives are: " + alternatives);
                     return;
@@ -2060,7 +2062,7 @@ public class WurstValidator {
                 for (DefLink superDef : superNameLinks.get(func.getName())) {
                     if (superDef instanceof FuncLink && superDef.getVisibility().isInherited()) {
                         FuncLink superFunc = (FuncLink) superDef;
-                        String error = checkOverride(func, superFunc, false);
+                        String error = checkOverride(func, superFunc, false, prog);
                         if (error == null) {
                             overridesMap.put(func, superFunc);
                         } else {
@@ -2077,8 +2079,8 @@ public class WurstValidator {
     /**
      * checks if func1 can override func2
      */
-    public static boolean canOverride(FuncLink func1, FuncLink func2) {
-        return checkOverride(func1, func2, false) == null;
+    public static boolean canOverride(FuncLink func1, FuncLink func2, WurstModel prog) {
+        return checkOverride(func1, func2, false, prog) == null;
     }
 
     /**
@@ -2086,31 +2088,31 @@ public class WurstValidator {
      * <p>
      * Returns null if yes and an error message if not.
      */
-    public static String checkOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+    public static String checkOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride, WurstModel prog) {
         if (!allowStaticOverride) {
             if (func1.isStatic()) {
                 return "Static method " + func1.getName() + " cannot override other methods.";
             }
             if (func2.isStatic()) {
-                return "Static " + Utils.printElementWithSource(func2.getDef()) + " cannot be overridden.";
+                return "Static " + Utils.printElementWithSource(func2.getDef(prog)) + " cannot be overridden.";
             }
         } else {
             if (func1.isStatic() && !func2.isStatic()) {
-                return "Static method " + func1.getName() + " cannot override dynamic " + Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Static method " + func1.getName() + " cannot override dynamic " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
             } else if (!func1.isStatic() && func2.isStatic()) {
-                return "Method " + func1.getName() + " cannot override static " + Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Method " + func1.getName() + " cannot override static " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
             }
         }
         if (func1.isVarargMethod() && !func2.isVarargMethod()) {
-            return "Vararg method " + func1.getName() + " cannot override non-vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+            return "Vararg method " + func1.getName() + " cannot override non-vararg method " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
         }
         if (!func1.isVarargMethod() && func2.isVarargMethod()) {
-            return "Non-vararg method " + func1.getName() + " cannot override vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+            return "Non-vararg method " + func1.getName() + " cannot override vararg method " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
         }
         int paramCount2 = func2.getParameterTypes().size();
         int paramCount1 = func1.getParameterTypes().size();
         if (paramCount1 != paramCount2) {
-            return Utils.printElement(func2.getDef()) + " takes " + paramCount2
+            return Utils.printElement(func2.getDef(prog)) + " takes " + paramCount2
                     + " parameters, but there are only " + paramCount1 + " parameters here.";
         }
 
@@ -2118,14 +2120,14 @@ public class WurstValidator {
         for (int i = 0; i < paramCount1; i++) {
             WurstType type1 = func1.getParameterType(i);
             WurstType type2 = func2.getParameterType(i);
-            if (!type1.isSupertypeOf(type2, func1.getDef())) {
+            if (!type1.isSupertypeOf(type2, func1.getDef(prog))) {
                 return "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
-                        + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
+                        + " to override " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
             }
         }
         // covariant return types
-        if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef())) {
-            return "Return type should be " + func2.getReturnType() + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
+        if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef(prog))) {
+            return "Return type should be " + func2.getReturnType() + " to override " + Utils.printElementWithSource(func2.getDef(prog)) + ".";
         }
         // no error
         return null;
@@ -2171,11 +2173,11 @@ public class WurstValidator {
                 }
             }
             if (other.size() > 1) {
-                other.sort(Comparator.comparingInt(o -> o.getDef().attrSource().getLeftPos()));
+                other.sort(Comparator.comparingInt(o -> o.getDef(prog).attrSource().getLeftPos()));
                 NameLink l1 = other.get(0);
                 for (int j = 1; j < other.size(); j++) {
-                    other.get(j).getDef().addError("An element with name " + name + " already exists: "
-                            + Utils.printElementWithSource(l1.getDef()));
+                    other.get(j).getDef(prog).addError("An element with name " + name + " already exists: "
+                            + Utils.printElementWithSource(l1.getDef(prog)));
                 }
             }
             if (funcs.size() <= 1) {
@@ -2186,10 +2188,10 @@ public class WurstValidator {
                 for (int j = i + 1; j < funcs.size(); j++) {
                     FuncLink f2 = funcs.get(j);
                     if (!distinctFunctions(f1, f2)) {
-                        f1.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(f2.getDef()));
-                        f2.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(f1.getDef()));
+                        f1.getDef(prog).addError(
+                                "Function already defined : " + Utils.printElementWithSource(f2.getDef(prog)));
+                        f2.getDef(prog).addError(
+                                "Function already defined : " + Utils.printElementWithSource(f1.getDef(prog)));
                     }
                 }
             }
@@ -2200,8 +2202,8 @@ public class WurstValidator {
         if (receiverTypesDifferent(nl1, nl2)) {
             return true;
         }
-        FunctionDefinition f1 = nl1.getDef();
-        FunctionDefinition f2 = nl2.getDef();
+        FunctionDefinition f1 = nl1.getDef(prog);
+        FunctionDefinition f2 = nl2.getDef(prog);
         WParameters ps1 = f1.getParameters();
         WParameters ps2 = f2.getParameters();
         if (ps1.size() != ps2.size()) {
@@ -2214,7 +2216,7 @@ public class WurstValidator {
         if (nl1.getReceiverType() == null) {
             return nl2.getReceiverType() != null;
         } else {
-            return nl2.getReceiverType() == null || !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef());
+            return nl2.getReceiverType() == null || !nl1.getReceiverType().equalsType(nl2.getReceiverType(), nl1.getDef(prog));
         }
     }
 
@@ -2270,9 +2272,9 @@ public class WurstValidator {
     private void checkLocalShadowing(LocalVarDef v) {
         NameLink shadowed = v.getParent().getParent().lookupVar(v.getName(), false);
         if (shadowed != null) {
-            if (shadowed.getDef() instanceof LocalVarDef) {
+            if (shadowed.getDef(prog) instanceof LocalVarDef) {
                 v.addError("Variable " + v.getName() + " hides an other local variable with the same name.");
-            } else if (shadowed.getDef() instanceof WParameter) {
+            } else if (shadowed.getDef(prog) instanceof WParameter) {
                 v.addError("Variable " + v.getName() + " hides a parameter with the same name.");
             }
         }

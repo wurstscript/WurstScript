@@ -53,6 +53,17 @@ public class WurstTypeVararg extends WurstType {
         throw new Error();
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof WurstTypeVararg) {
+            return ((WurstTypeVararg) other).baseType.structuralEquals(baseType);
+        }
+        return false;
+    }
+
 
     @Override
     public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> t) {

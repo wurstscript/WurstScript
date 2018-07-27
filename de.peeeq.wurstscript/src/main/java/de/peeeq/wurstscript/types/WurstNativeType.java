@@ -56,4 +56,11 @@ public class WurstNativeType extends WurstType {
         return JassIm.ImNull();
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return this == other
+                || other instanceof WurstNativeType
+                && ((WurstNativeType) other).name.equals(name);
+    }
+
 }

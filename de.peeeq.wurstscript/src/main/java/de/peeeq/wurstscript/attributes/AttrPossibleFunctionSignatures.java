@@ -25,7 +25,7 @@ public class AttrPossibleFunctionSignatures {
         ImmutableCollection<FuncLink> fs = fc.attrPossibleFuncDefs();
         ImmutableCollection.Builder<FunctionSignature> resultBuilder = ImmutableList.builder();
         for (FuncLink f : fs) {
-            FunctionSignature sig = FunctionSignature.fromNameLink(f);
+            FunctionSignature sig = FunctionSignature.fromNameLink(f, fc.getModel());
 
             if (fc.attrImplicitParameter() instanceof Expr) {
                 Expr expr = (Expr) fc.attrImplicitParameter();

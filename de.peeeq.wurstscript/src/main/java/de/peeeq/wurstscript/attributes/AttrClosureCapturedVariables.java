@@ -35,8 +35,9 @@ public class AttrClosureCapturedVariables {
             NameRef nr = (NameRef) e;
             NameLink def = nr.attrNameLink();
 
-            if (def != null && (def.getDef() instanceof LocalVarDef || def.getDef() instanceof WParameter)) {
-                VarDef v = (VarDef) def.getDef();
+            WurstModel m = e.getModel();
+            if (def != null && (def.getDef(m) instanceof LocalVarDef || def.getDef(m) instanceof WParameter)) {
+                VarDef v = (VarDef) def.getDef(m);
                 if (v.attrNearestExprClosure() != closure) {
                     result.put(nr, v);
                     if (v.attrTyp() instanceof WurstTypeArray) {

@@ -6,8 +6,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -382,7 +380,7 @@ public class ExprTranslation {
             ExprStringVal s = (ExprStringVal) e.getArgs().get(0);
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
-            ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
+            ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef(e.getModel()));
             return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 

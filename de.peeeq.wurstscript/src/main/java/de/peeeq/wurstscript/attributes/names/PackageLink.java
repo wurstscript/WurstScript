@@ -28,7 +28,7 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public WPackage getDef() {
+    public WPackage getDef(WurstModel m) {
         return def;
     }
 

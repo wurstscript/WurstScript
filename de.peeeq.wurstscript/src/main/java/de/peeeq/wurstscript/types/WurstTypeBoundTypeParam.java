@@ -13,6 +13,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 public class WurstTypeBoundTypeParam extends WurstType {
@@ -138,6 +139,20 @@ public class WurstTypeBoundTypeParam extends WurstType {
     public boolean supportsGenerics() {
         return baseType.supportsGenerics()
                 || getFromIndex() != null && getToIndex() != null;
+    }
+
+    @Override
+    public boolean structuralEquals(WurstType o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        WurstTypeBoundTypeParam that = (WurstTypeBoundTypeParam) o;
+        return indexInitialized == that.indexInitialized &&
+                Objects.equals(typeParamDef, that.typeParamDef) &&
+                Objects.equals(baseType, that.baseType) &&
+                Objects.equals(fromIndex, that.fromIndex) &&
+                Objects.equals(toIndex, that.toIndex) &&
+                Objects.equals(context, that.context);
     }
 
     @Override

@@ -104,7 +104,7 @@ public class AttrNameDef {
         if (link == null) {
             return null;
         }
-        return link.getDef();
+        return link.getDef(e.getModel());
     }
 
     public static @Nullable NameDef tryGetNameDef(NameDef e) {
@@ -116,7 +116,7 @@ public class AttrNameDef {
         if (link == null) {
             return null;
         }
-        return link.getDef();
+        return link.getDef(e.getModel());
     }
 
     public static @Nullable NameDef tryGetNameDef(TypeRef e) {
@@ -130,6 +130,6 @@ public class AttrNameDef {
 
     public static NameDef calculateDef(NameRef nameRef) {
         NameLink l = nameRef.attrNameLink();
-        return l == null ? null : l.getDef();
+        return l == null ? null : l.getDef(nameRef.getModel());
     }
 }

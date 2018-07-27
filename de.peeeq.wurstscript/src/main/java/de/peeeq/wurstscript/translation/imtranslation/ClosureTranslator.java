@@ -255,7 +255,7 @@ public class ClosureTranslator {
 
     private FuncDef getSuperMethod() {
         NameLink nl = e.attrClosureAbstractMethod();
-        return (FuncDef) nl.getDef();
+        return (FuncDef) nl.getDef(tr.getWurstProg());
     }
 
 

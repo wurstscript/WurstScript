@@ -62,7 +62,7 @@ public class FuncLink extends DefLink {
 
 
     @Override
-    public FunctionDefinition getDef() {
+    public FunctionDefinition getDef(WurstModel m) {
         return def;
     }
 
@@ -233,8 +233,8 @@ public class FuncLink extends DefLink {
         return parameterNames;
     }
 
-    public FuncLink adaptToReceiverType(WurstType receiverType) {
-        return (FuncLink) super.adaptToReceiverType(receiverType);
+    public FuncLink adaptToReceiverType(WurstType receiverType, WurstModel m) {
+        return (FuncLink) super.adaptToReceiverType(receiverType, m);
     }
 
 

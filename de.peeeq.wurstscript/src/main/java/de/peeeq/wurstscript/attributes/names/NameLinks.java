@@ -44,11 +44,12 @@ public class NameLinks {
 
         if (c instanceof ClassDef) {
             WurstTypeClass classType = ((ClassDef) c).attrTypC();
-            addNamesFormSuperClass(result, classType, overrideCheckResults);
-            addNamesFromImplementedInterfaces(result, classType, overrideCheckResults);
+            WurstModel m = c.getModel();
+            addNamesFormSuperClass(result, classType, overrideCheckResults, m);
+            addNamesFromImplementedInterfaces(result, classType, overrideCheckResults, m);
         }
 
-        reportOverrideErrors(overrideCheckResults);
+        reportOverrideErrors(overrideCheckResults, c.getModel());
         return ImmutableMultimap.copyOf(result);
     }
 
@@ -65,11 +66,11 @@ public class NameLinks {
         return overrideCheckResults;
     }
 
-    private static void reportOverrideErrors(Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+    private static void reportOverrideErrors(Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, WurstModel m) {
         // report override errors
         for (Map<FuncLink, OverrideCheckResult> map : overrideCheckResults.values()) {
             for (Entry<FuncLink, OverrideCheckResult> e : map.entrySet()) {
-                FunctionDefinition f = e.getKey().getDef();
+                FunctionDefinition f = e.getKey().getDef(m);
                 OverrideCheckResult check = e.getValue();
                 if (f.attrIsOverride() && !check.doesOverride) {
                     StringBuilder msg = new StringBuilder("Function " + f.getName() + " does not override anything.");
@@ -94,32 +95,32 @@ public class NameLinks {
         Multimap<String, DefLink> result = HashMultimap.create();
         addDefinedNames(result, i, i.getMethods());
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
-        addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults);
-        reportOverrideErrors(overrideCheckResults);
+        addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults, i.getModel());
+        reportOverrideErrors(overrideCheckResults, i.getModel());
         return ImmutableMultimap.copyOf(result);
     }
 
-    private static void addNamesFromExtendedInterfaces(Multimap<String, DefLink> result, WurstTypeInterface iType, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+    private static void addNamesFromExtendedInterfaces(Multimap<String, DefLink> result, WurstTypeInterface iType, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, WurstModel m) {
         for (WurstTypeInterface superI : iType.extendedInterfaces()) {
-            addNewNameLinks(result, overrideCheckResults, superI.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, superI.nameLinks(), false, m);
         }
     }
 
 
-    private static void addNamesFromImplementedInterfaces(Multimap<String, DefLink> result, WurstTypeClass classDef, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+    private static void addNamesFromImplementedInterfaces(Multimap<String, DefLink> result, WurstTypeClass classDef, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, WurstModel m) {
         for (WurstTypeInterface interfaceType : classDef.implementedInterfaces()) {
-            addNewNameLinks(result, overrideCheckResults, interfaceType.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, interfaceType.nameLinks(), false, m);
         }
     }
 
-    private static void addNamesFormSuperClass(Multimap<String, DefLink> result, WurstTypeClass c, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
+    private static void addNamesFormSuperClass(Multimap<String, DefLink> result, WurstTypeClass c, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, WurstModel m) {
         @Nullable WurstTypeClass superClass = c.extendedClass();
         if (superClass != null) {
-            addNewNameLinks(result, overrideCheckResults, superClass.nameLinks(), false);
+            addNewNameLinks(result, overrideCheckResults, superClass.nameLinks(), false, m);
         }
     }
 
-    private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride) {
+    private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride, WurstModel m) {
         for (Entry<String, DefLink> e : newNameLinks.entries()) {
             DefLink def = e.getValue();
             if (!def.getVisibility().isInherited()) {
@@ -136,7 +137,7 @@ public class NameLinks {
                     FuncLink otherFunc = e2.getKey();
                     OverrideCheckResult checkResult = e2.getValue();
 
-                    String error = WurstValidator.checkOverride(otherFunc, func, allowStaticOverride);
+                    String error = WurstValidator.checkOverride(otherFunc, func, allowStaticOverride, m);
                     if (error == null) {
                         checkResult.doesOverride = true;
                         if (!(func.getReceiverType() instanceof WurstTypeInterface)) {
@@ -319,7 +320,7 @@ public class NameLinks {
     private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
                                                              Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (ModuleInstanciation m : c.getModuleInstanciations()) {
-            addNewNameLinks(result, overrideCheckResults, m.attrNameLinks(), true);
+            addNewNameLinks(result, overrideCheckResults, m.attrNameLinks(), true, c.getModel());
         }
     }
 

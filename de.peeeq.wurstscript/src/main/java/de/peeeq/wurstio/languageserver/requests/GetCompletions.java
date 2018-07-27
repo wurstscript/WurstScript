@@ -129,6 +129,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private void calculateCompletions(List<CompletionItem> completions) {
+        WurstModel m = modelManager.getModel();
         boolean isMemberAccess = false;
         if (elem instanceof ExprMember) {
             ExprMember e = (ExprMember) elem;
@@ -180,8 +181,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
             while (scope != null) {
                 Multimap<String, DefLink> visibleNames = scope.attrNameLinks();
                 for (NameLink n : visibleNames.values()) {
-                    if (n.getDef() instanceof ClassDef && isSuitableCompletion(n.getName())) {
-                        ClassDef c = (ClassDef) n.getDef();
+                    if (n.getDef(m) instanceof ClassDef && isSuitableCompletion(n.getName())) {
+                        ClassDef c = (ClassDef) n.getDef(m);
                         for (ConstructorDef constr : c.getConstructors()) {
                             completions.add(makeConstructorCompletion(c, constr));
                         }
@@ -482,13 +483,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private CompletionItem makeNameDefCompletion(NameLink n) {
+        WurstModel m = modelManager.getModel();
         if (n instanceof FuncLink) {
             return makeFunctionCompletion((FuncLink) n);
         }
         CompletionItem completion = new CompletionItem(n.getName());
 
-        completion.setDetail(HoverInfo.descriptionString(n.getDef()));
-        completion.setDocumentation(n.getDef().attrComment());
+        completion.setDetail(HoverInfo.descriptionString(n.getDef(m)));
+        completion.setDocumentation(n.getDef(m).attrComment());
         double rating = calculateRating(n.getName(), n.getTyp());
         completion.setSortText(ratingToString(rating));
         String newText = n.getName();
@@ -562,6 +564,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     }
 
     private CompletionItem makeFunctionCompletion(FuncLink f) {
+        WurstModel m = modelManager.getModel();
         String replacementString = f.getName();
         List<WurstType> params = f.getParameterTypes();
         if (!isBeforeParenthesis()) {
@@ -572,8 +575,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
-        completion.setDetail(getFunctionDescriptionShort(f.getDef()));
-        completion.setDocumentation(HoverInfo.descriptionString(f.getDef()));
+        completion.setDetail(getFunctionDescriptionShort(f.getDef(m)));
+        completion.setDocumentation(HoverInfo.descriptionString(f.getDef(m)));
         completion.setInsertText(replacementString);
         completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnType())));
         // TODO use call signature instead for generics
@@ -631,13 +634,14 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
                                                          WurstType leftType) {
+        WurstModel m = modelManager.getModel();
         for (Entry<String, DefLink> e : visibleNames.entries()) {
             if (!isSuitableCompletion(e.getKey())) {
                 continue;
             }
             if (e.getValue() instanceof FuncLink && e.getValue().getVisibility().isPublic()) {
                 FuncLink ef = (FuncLink) e.getValue();
-                FuncLink ef2 = ef.adaptToReceiverType(leftType);
+                FuncLink ef2 = ef.adaptToReceiverType(leftType, m);
                 if (ef2 != null) {
                     completions.add(makeFunctionCompletion(ef2));
                 }

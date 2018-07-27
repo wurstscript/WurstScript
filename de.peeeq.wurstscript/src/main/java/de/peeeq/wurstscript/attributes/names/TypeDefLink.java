@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes.names;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypePackage;
 import fj.data.TreeMap;
 
 import java.util.Collections;
@@ -28,7 +27,7 @@ public class TypeDefLink extends DefLink {
     }
 
     @Override
-    public TypeDef getDef() {
+    public TypeDef getDef(WurstModel m) {
         return def;
     }
 

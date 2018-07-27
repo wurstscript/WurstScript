@@ -43,7 +43,7 @@ public class WurstTypeClosure extends WurstType {
                 return mapping;
             }
         } else {
-            FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
+            FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other, location.getModel());
             if (abstractMethod != null) {
                 return closureImplementsAbstractMethod(abstractMethod, location, typeParams, mapping);
             }
@@ -106,6 +106,25 @@ public class WurstTypeClosure extends WurstType {
     @Override
     public ImExprOpt getDefaultValue() {
         return JassIm.ImIntVal(0);
+    }
+
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        } else if (other instanceof WurstTypeClosure) {
+            WurstTypeClosure ct = (WurstTypeClosure) other;
+            if (paramTypes.size() != ct.paramTypes.size()) {
+                return false;
+            }
+            for (int i = 0; i < paramTypes.size(); i++) {
+                if (!paramTypes.get(i).structuralEquals(ct.paramTypes.get(i))) {
+                    return false;
+                }
+            }
+            return returnType.structuralEquals(ct.returnType);
+        }
+        return false;
     }
 
     public List<WurstType> getParamTypes() {

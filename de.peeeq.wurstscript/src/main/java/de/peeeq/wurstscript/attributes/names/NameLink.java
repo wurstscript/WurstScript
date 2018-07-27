@@ -89,7 +89,7 @@ public abstract class NameLink {
     public abstract String getName();
 
 
-    public abstract NameDef getDef();
+    public abstract NameDef getDef(WurstModel m);
 
 
     public WScope getDefinedIn() {

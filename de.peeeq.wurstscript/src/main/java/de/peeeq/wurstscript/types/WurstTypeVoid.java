@@ -56,4 +56,9 @@ public class WurstTypeVoid extends WurstType {
         return true;
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return this == other;
+    }
+
 }

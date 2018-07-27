@@ -45,6 +45,7 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprVarAccess term) {
+        WurstModel m = term.getModel();
         NameLink varDef = term.attrNameLink();
 
         if (varDef == null) {
@@ -67,13 +68,13 @@ public class AttrExprType {
 
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef() instanceof VarDef) {
-            if (Utils.getParentVarDef(term) == varDef.getDef()) {
+        if (varDef.getDef(m) instanceof VarDef) {
+            if (Utils.getParentVarDef(term) == varDef.getDef(m)) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
         }
-        if (varDef.getDef() instanceof FunctionDefinition) {
+        if (varDef.getDef(m) instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
         return varDef.getTyp();
@@ -377,14 +378,15 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberVarDot term) {
+        WurstModel m = term.getModel();
         NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef() instanceof FunctionDefinition) {
+        if (varDef.getDef(m) instanceof FunctionDefinition) {
             term.addError("Missing parantheses for function call");
         }
-        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (varDef.getDef(m).attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static variable " + term.getVarName() + " via a dynamic reference.");
         }
         return varDef.getTyp(); // TODO .setTypeArgs(term.getLeft().attrTyp().getTypeArgBinding());
@@ -392,11 +394,12 @@ public class AttrExprType {
 
 
     public static WurstType calculate(ExprMemberArrayVarDot term) {
+        WurstModel m = term.getModel();
         NameLink varDef = term.attrNameLink();
         if (varDef == null) {
             return WurstTypeUnknown.instance();
         }
-        if (varDef.getDef().attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
+        if (varDef.getDef(m).attrIsStatic() && !term.getLeft().attrTyp().isStaticRef()) {
             term.addError("Cannot access static array variable " + term.getVarName() + " via a dynamic reference.");
         }
         WurstType typ = varDef.getTyp();

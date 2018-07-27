@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -360,7 +359,7 @@ public class ImTranslator {
         if (wurstFunc.isEmpty()) {
             return null;
         }
-        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef());
+        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef(wurstProg));
     }
 
     private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
@@ -897,7 +896,7 @@ public class ImTranslator {
             FuncLink funcNameLink = null;
             WurstTypeClass cType = c.attrTypC();
             for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
-                if (nameLink.getDef() == func) {
+                if (nameLink.getDef(wurstProg) == func) {
                     funcNameLink = nameLink;
                 }
             }
@@ -905,13 +904,13 @@ public class ImTranslator {
                 throw new Error("Could not find " + Utils.printElementWithSource(func) + " in " + Utils.printElementWithSource(c));
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                NameDef nameDef = nameLink.getDef();
+                NameDef nameDef = nameLink.getDef(wurstProg);
                 if (nameLink.getDefinedIn() == c) {
-                    if (nameLink instanceof FuncLink && nameLink.getDef() instanceof FuncDef) {
+                    if (nameLink instanceof FuncLink && nameLink.getDef(wurstProg) instanceof FuncDef) {
                         FuncLink funcLink = (FuncLink) nameLink;
-                        FuncDef f = (FuncDef) funcLink.getDef();
+                        FuncDef f = (FuncDef) funcLink.getDef(wurstProg);
                         // check if function f overrides func
-                        if (WurstValidator.canOverride(funcLink, funcNameLink)) {
+                        if (WurstValidator.canOverride(funcLink, funcNameLink, wurstProg)) {
                             result.put(c, f);
                         }
                     }
@@ -1371,13 +1370,13 @@ public class ImTranslator {
         if (p == null) {
             return Optional.empty();
         }
-        ImmutableCollection<FuncLink> funcs = p.getDef().getElements().lookupFuncs("error");
+        ImmutableCollection<FuncLink> funcs = p.getDef(wurstProg).getElements().lookupFuncs("error");
         if (funcs.isEmpty()) {
             return Optional.empty();
         } else if (funcs.size() > 1) {
             return Optional.empty();
         }
-        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef();
+        FuncDef f = (FuncDef) funcs.stream().findAny().get().getDef(wurstProg);
         return Optional.of(f);
     }
 

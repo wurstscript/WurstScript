@@ -31,8 +31,9 @@ public class UsedPackages {
     public static ImmutableCollection<WPackage> usedPackages(NameRef e) {
         ImmutableSet.Builder<WPackage> result = ImmutableSet.builder();
         NameLink def = e.attrNameLink();
-        if (def.getDef() instanceof VarDef) {
-            if (def.getDef().attrNearestPackage() instanceof WPackage) {
+        WurstModel m = e.getModel();
+        if (def.getDef(m) instanceof VarDef) {
+            if (def.getDef(m).attrNearestPackage() instanceof WPackage) {
                 result.add((WPackage) e.attrNearestPackage());
             }
         }

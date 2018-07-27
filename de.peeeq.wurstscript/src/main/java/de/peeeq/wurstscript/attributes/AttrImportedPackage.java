@@ -25,14 +25,14 @@ public class AttrImportedPackage {
     }
 
     public static WurstModel getModel(Element elem) {
-        Element e = elem.attrCompilationUnit();
+        Element e = elem;
         while (e != null) {
             if (e instanceof WurstModel) {
                 return (WurstModel) e;
             }
             e = e.getParent();
         }
-        throw new Error("trying to get model for element " + Utils.printElement(elem) + ", which is not attached to a model");
+        throw new Error("trying to get model for element " + Utils.printElement(elem) + ", which is not attached to a model" + elem.getClass());
     }
 
     public static ImmutableMap<String, WPackage> getPackages(WurstModel wurstModel) {

@@ -82,4 +82,16 @@ public class WurstTypeTypeParam extends WurstType {
         return true;
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof WurstTypeTypeParam) {
+            WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
+            return other2.def.equals(def);
+        }
+        return false;
+    }
+
 }

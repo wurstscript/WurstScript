@@ -28,4 +28,9 @@ public abstract class WurstTypePrimitive extends WurstType {
         return imType;
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return this == other;
+    }
+
 }

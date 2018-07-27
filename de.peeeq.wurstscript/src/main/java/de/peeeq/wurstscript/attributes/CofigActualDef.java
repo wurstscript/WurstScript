@@ -6,8 +6,6 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-
 public class CofigActualDef {
 
     public static NameDef calculate(NameDef d) {
@@ -20,8 +18,9 @@ public class CofigActualDef {
         WPackage p = getConfigPackage(g);
         if (p != null) {
             NameLink v = p.getElements().lookupVarNoConfig(g.getName(), false);
-            if (v != null && hasConfigAnnotation(v.getDef())) {
-                return v.getDef();
+            WurstModel m = g.getModel();
+            if (v != null && hasConfigAnnotation(v.getDef(m))) {
+                return v.getDef(m);
             }
         }
         // not configured
@@ -33,8 +32,9 @@ public class CofigActualDef {
         if (p != null) {
             ImmutableCollection<FuncLink> links = p.getElements().lookupFuncsNoConfig(f.getName(), false);
             for (NameLink link : links) {
-                if (hasConfigAnnotation(link.getDef())) {
-                    return link.getDef();
+                WurstModel m = f.getModel();
+                if (hasConfigAnnotation(link.getDef(m))) {
+                    return link.getDef(m);
                 }
             }
         }

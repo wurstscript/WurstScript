@@ -125,7 +125,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
-                    if (nameLink.getDef() instanceof FunctionDefinition) {
+                    if (nameLink.getDef(model) instanceof FunctionDefinition) {
                         if (nameLink.receiverCompatibleWith(receiverType, fr)) {
                             possibleImports.add(wPackage.getName());
                             continue withNextPackage;
@@ -150,7 +150,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedTypeNameLinks().get(typeName)) {
-                    if (nameLink.getDef() instanceof ClassDef) {
+                    if (nameLink.getDef(model) instanceof ClassDef) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }

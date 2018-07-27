@@ -16,7 +16,7 @@ public class UsedGlobalVariables {
             FunctionCall funcCall = (FunctionCall) e;
             FuncLink f = funcCall.attrFuncLink();
             if (f != null) {
-                result.addAll(f.getDef().attrUsedGlobalVariables());
+                result.addAll(f.getDef(e.getModel()).attrUsedGlobalVariables());
             }
 
         } else if (e instanceof ExprNewObject) {
@@ -36,8 +36,8 @@ public class UsedGlobalVariables {
         } else if (e instanceof NameRef) {
             NameRef nameRef = (NameRef) e;
             NameLink def = nameRef.attrNameLink();
-            if (def.getDef() instanceof GlobalVarDef) {
-                GlobalVarDef varDef = (GlobalVarDef) def.getDef();
+            if (def.getDef(e.getModel()) instanceof GlobalVarDef) {
+                GlobalVarDef varDef = (GlobalVarDef) def.getDef(e.getModel());
                 result.add(varDef);
             }
         }
@@ -80,7 +80,7 @@ public class UsedGlobalVariables {
             FunctionCall funcRef = (FunctionCall) e;
             FuncLink f = funcRef.attrFuncLink();
             if (f != null) {
-                result.addAll(f.getDef().attrReadGlobalVariables());
+                result.addAll(f.getDef(e.getModel()).attrReadGlobalVariables());
             }
 
         } else if (e instanceof ExprNewObject) {
@@ -103,8 +103,9 @@ public class UsedGlobalVariables {
                 // write access
             } else {
                 NameLink def = nameRef.attrNameLink();
-                if (def.getDef() instanceof GlobalVarDef) {
-                    GlobalVarDef varDef = (GlobalVarDef) def.getDef();
+                WurstModel m = e.getModel();
+                if (def.getDef(m) instanceof GlobalVarDef) {
+                    GlobalVarDef varDef = (GlobalVarDef) def.getDef(m);
                     result.add(varDef);
                 }
             }

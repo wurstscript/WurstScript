@@ -80,4 +80,11 @@ public class WurstTypeTuple extends WurstType {
         }
         return JassIm.ImTupleExpr(exprs);
     }
+
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return other == this
+                || other instanceof WurstTypeTuple
+                && tupleDef.equals(((WurstTypeTuple) other).tupleDef);
+    }
 }

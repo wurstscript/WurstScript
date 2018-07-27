@@ -288,7 +288,7 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             StmtSet s2 = (StmtSet) s;
             NameLink link = s2.getUpdatedExpr().attrNameLink();
             if (link != null) {
-                n = link.getDef();
+                n = link.getDef(s.getModel());
             }
 
         } else if (s instanceof LocalVarDef) {

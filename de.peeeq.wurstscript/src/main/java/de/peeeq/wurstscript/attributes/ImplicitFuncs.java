@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
@@ -11,10 +12,11 @@ import java.util.Collection;
 public class ImplicitFuncs {
 
     public static FuncDef findToIndexFunc(WurstType typ, Element e) {
+        WurstModel m = e.getModel();
         typ = typ.normalize();
         for (NameLink nl : findToIndexFuncs(typ, e)) {
-            if (nl.getDef() instanceof FuncDef) {
-                return (FuncDef) nl.getDef();
+            if (nl.getDef(m) instanceof FuncDef) {
+                return (FuncDef) nl.getDef(m);
             }
         }
         e.addError("Could not find function " + toIndexFuncName(typ));
@@ -22,10 +24,11 @@ public class ImplicitFuncs {
     }
 
     public static FuncDef findFromIndexFunc(WurstType typ, Element e) {
+        WurstModel m = e.getModel();
         typ = typ.normalize();
         for (NameLink nl : findFromIndexFuncs(typ, e)) {
-            if (nl.getDef() instanceof FuncDef) {
-                return (FuncDef) nl.getDef();
+            if (nl.getDef(m) instanceof FuncDef) {
+                return (FuncDef) nl.getDef(m);
             }
         }
         e.addError("Could not find function " + fromIndexFuncName(typ));

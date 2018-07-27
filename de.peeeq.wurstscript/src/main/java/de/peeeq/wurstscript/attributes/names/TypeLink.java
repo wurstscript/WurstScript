@@ -37,7 +37,7 @@ public class TypeLink extends NameLink {
     }
 
     @Override
-    public TypeDef getDef() {
+    public TypeDef getDef(WurstModel m) {
         return def;
     }
 

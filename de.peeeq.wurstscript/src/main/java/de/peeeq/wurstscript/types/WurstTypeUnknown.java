@@ -60,4 +60,9 @@ public class WurstTypeUnknown extends WurstType {
         return JassIm.ImNoExpr();
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return this == other;
+    }
+
 }

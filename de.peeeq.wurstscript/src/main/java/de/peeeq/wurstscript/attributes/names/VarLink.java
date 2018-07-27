@@ -13,17 +13,22 @@ import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 public class VarLink extends DefLink {
-    private final NameDef def;
+    private final Symbol<NameDef> def;
     private final Deferred<WurstType> type;
+
+    public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, Symbol<NameDef> def, Deferred<WurstType> type) {
+        super(visibility, definedIn, typeParams, receiverType);
+        this.def = def;
+        this.type = type;
+    }
 
     public VarLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, NameDef def, Deferred<WurstType> type) {
         super(visibility, definedIn, typeParams, receiverType);
-        this.def = def;
+        this.def = GlobalSymbol.fromDef(def);
         this.type = type;
     }
 
@@ -108,8 +113,8 @@ public class VarLink extends DefLink {
     }
 
 
-    public NameDef getDef() {
-        return def;
+    public NameDef getDef(WurstModel m) {
+        return def.getDef(m);
     }
 
 
@@ -134,7 +139,7 @@ public class VarLink extends DefLink {
         if (getReceiverType() != null) {
             r += getReceiverType() + ".";
         }
-        return r + Utils.printElementWithSource(def);
+        return r + def;
     }
 
     public VarLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
@@ -177,8 +182,8 @@ public class VarLink extends DefLink {
     }
 
 
-    public VarLink withConfigDef() {
-        VarDef def = (VarDef) this.def.attrConfigActualNameDef();
+    public VarLink withConfigDef(WurstModel m) {
+        VarDef def = (VarDef) this.def.getDef(m).attrConfigActualNameDef();
         return new VarLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, type);
     }
 
@@ -192,8 +197,8 @@ public class VarLink extends DefLink {
         return (VarLink) super.hidingPrivateAndProtected();
     }
 
-    public VarLink adaptToReceiverType(WurstType receiverType) {
-        return (VarLink) super.adaptToReceiverType(receiverType);
+    public VarLink adaptToReceiverType(WurstType receiverType, WurstModel m) {
+        return (VarLink) super.adaptToReceiverType(receiverType, m);
     }
 
 

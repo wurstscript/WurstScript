@@ -50,4 +50,16 @@ public class WurstTypeStaticTypeRef extends WurstType {
         return base;
     }
 
+
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof WurstTypeStaticTypeRef) {
+            return base.structuralEquals(((WurstTypeStaticTypeRef) other).base);
+        }
+        return false;
+    }
+
 }

@@ -52,7 +52,7 @@ public class AttrFuncDef {
             return e.getFunc();
         }
         if (funcs.size() > 1) {
-            node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+            node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs, node.getModel()));
         }
         return Utils.getFirst(funcs);
     }
@@ -170,8 +170,9 @@ public class AttrFuncDef {
 
             funcs = useLocalPackageIfPossible(node, funcs);
 
+            WurstModel m = node.getModel();
             node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
-                    + Utils.printAlternatives(funcs));
+                    + Utils.printAlternatives(funcs, m));
             return Utils.getFirst(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
@@ -184,8 +185,9 @@ public class AttrFuncDef {
         int localCount = 0;
         FuncLink local = null;
         PackageOrGlobal myPackage = node.attrNearestPackage();
+        WurstModel m = node.getModel();
         for (FuncLink n : funcs) {
-            if (n.getDef().attrNearestPackage() == myPackage) {
+            if (n.getDef(m).attrNearestPackage() == myPackage) {
                 local = n;
                 localCount++;
             }
@@ -197,7 +199,7 @@ public class AttrFuncDef {
         }
         List<FuncLink> result = Lists.newArrayList();
         for (FuncLink n : funcs) {
-            if (n.getDef().attrNearestPackage() == myPackage) {
+            if (n.getDef(m).attrNearestPackage() == myPackage) {
                 result.add(n);
             }
         }
@@ -218,7 +220,8 @@ public class AttrFuncDef {
             funcs = filterByReceiverType(node, funcName, funcs);
             funcs = filterByParameters(node, argumentTypes, funcs);
 
-            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+            WurstModel m = node.getModel();
+            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs, m));
             return Utils.getFirst(funcs);
         } catch (EarlyReturn e) {
             return e.getFunc();
@@ -340,11 +343,11 @@ public class AttrFuncDef {
 
     public static FunctionDefinition calculateDef(FuncRef e) {
         FuncLink f = e.attrFuncLink();
-        return f == null ? null : f.getDef();
+        return f == null ? null : f.getDef(e.getModel());
     }
 
     public static FunctionDefinition calculateDef(ExprBinary e) {
         FuncLink f = e.attrFuncLink();
-        return f == null ? null : f.getDef();
+        return f == null ? null : f.getDef(e.getModel());
     }
 }

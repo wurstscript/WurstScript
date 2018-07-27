@@ -3,12 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.validation.WurstValidator;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class OverriddenFunctions {
 
@@ -39,6 +34,7 @@ public class OverriddenFunctions {
     }
 
     private static FunctionDefinition getRealFuncDef(FuncDef f, WScope scope) {
+        WurstModel m = f.getModel();
         if (scope instanceof StructureDef) {
             StructureDef c = (StructureDef) scope;
 
@@ -47,11 +43,11 @@ public class OverriddenFunctions {
             if (c.attrNameLinks().containsKey(f.getName())) {
                 for (DefLink nl : c.attrNameLinks().get(f.getName())) {
                     if (nl.getLevel() == c.attrLevel()
-                            && nl.getDef() instanceof FunctionDefinition
+                            && nl.getDef(m) instanceof FunctionDefinition
                             && nl instanceof FuncLink
-                            && WurstValidator.canOverride((FuncLink) nl, fNameLink)
+                            && WurstValidator.canOverride((FuncLink) nl, fNameLink, m)
                             ) {
-                        return ((FuncLink) nl).getDef().attrRealFuncDef();
+                        return ((FuncLink) nl).getDef(m).attrRealFuncDef();
                     }
                 }
             }

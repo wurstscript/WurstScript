@@ -130,7 +130,7 @@ public class DescriptionHtml {
         FuncLink f = e.attrFuncLink();
         if (f != null) {
             return "This is an overloaded operator:<br/>" +
-                    f.getDef().descriptionHtml();
+                    f.getDef(e.getModel()).descriptionHtml();
         }
         return null;
     }
@@ -150,7 +150,7 @@ public class DescriptionHtml {
     public static String description(FuncRef fr) {
         FuncLink def = fr.attrFuncLink();
         if (def != null) {
-            return def.getDef().descriptionHtml();
+            return def.getDef(fr.getModel()).descriptionHtml();
         }
         return "";
     }
@@ -160,7 +160,7 @@ public class DescriptionHtml {
         if (nameDef == null) {
             return nr.getVarName() + " is not defined yet.";
         }
-        return nameDef.getDef().descriptionHtml();
+        return nameDef.getDef(nr.getModel()).descriptionHtml();
     }
 
     public static @Nullable String description(ExprIncomplete exprIncomplete) {

@@ -153,7 +153,7 @@ public class HoverInfo extends UserRequest<Hover> {
             if (nameDef == null) {
                 return string(nr.getVarName() + " is not defined yet.");
             }
-            return nameDef.getDef().match(this);
+            return nameDef.getDef(nr.getModel()).match(this);
         }
 
         public  List<Either<String, MarkedString>> description(FuncRef fr) {
@@ -161,7 +161,7 @@ public class HoverInfo extends UserRequest<Hover> {
             if (def == null) {
                 return string(fr.getFuncName() + " is not defined yet.");
             }
-            return def.getDef().match(this);
+            return def.getDef(fr.getModel()).match(this);
         }
 
         @Override
@@ -375,7 +375,7 @@ public class HoverInfo extends UserRequest<Hover> {
         public List<Either<String, MarkedString>> case_ExprBinary(ExprBinary exprBinary) {
             FuncLink funcDef = exprBinary.attrFuncLink();
             if (funcDef != null) {
-                return description(funcDef.getDef());
+                return description(funcDef.getDef(exprBinary.getModel()));
             }
             return string("A binary operation");
         }

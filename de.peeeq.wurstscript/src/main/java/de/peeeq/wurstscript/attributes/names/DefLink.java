@@ -1,20 +1,12 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeVararg;
-import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -88,7 +80,7 @@ public abstract class DefLink extends NameLink {
      * Tries to adapt this function to the given receiver
      * Setting type arguments appropriately
      */
-    public @Nullable DefLink adaptToReceiverType(WurstType receiverType) {
+    public DefLink adaptToReceiverType(WurstType receiverType, WurstModel m) {
         if (this.receiverType == null) {
             if (receiverType == null) {
                 return this;
@@ -96,7 +88,7 @@ public abstract class DefLink extends NameLink {
                 return null;
             }
         }
-        NameDef def = getDef();
+        NameDef def = getDef(m);
         TreeMap<TypeParamDef, WurstTypeBoundTypeParam> match = this.receiverType.matchAgainstSupertype(receiverType, def, typeParams, WurstType.emptyMapping());
         if (match == null) {
             return null;

@@ -108,8 +108,8 @@ public class FunctionSignature {
     }
 
 
-    public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getDef(), f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+    public static FunctionSignature fromNameLink(FuncLink f, WurstModel m) {
+        return new FunctionSignature(f.getDef(m), f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef(m).getParameters()), f.getReturnType());
     }
 
 

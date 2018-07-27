@@ -30,9 +30,10 @@ public class AttrConstantValue {
     }
 
     public static ILconst calculate(ExprVarAccess e) {
+        WurstModel m = e.getModel();
         NameLink v = e.attrNameLink();
-        if (v != null && v.getDef() instanceof GlobalVarDef) {
-            GlobalVarDef g = (GlobalVarDef) v.getDef();
+        if (v != null && v.getDef(m) instanceof GlobalVarDef) {
+            GlobalVarDef g = (GlobalVarDef) v.getDef(m);
             if (g.attrIsConstant() && g.getInitialExpr() instanceof Expr) {
                 // when this is a global constant:
                 Expr initial = (Expr) g.getInitialExpr();

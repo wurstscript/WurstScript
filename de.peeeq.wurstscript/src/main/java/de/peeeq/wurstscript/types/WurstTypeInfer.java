@@ -49,5 +49,10 @@ public class WurstTypeInfer extends WurstType {
         throw new Error("not implemented");
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        return this == other;
+    }
+
 
 }

@@ -222,5 +222,19 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return false;
     }
 
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (this.getClass().equals(other.getClass())) {
+            WurstTypeNamedScope o = (WurstTypeNamedScope) other;
+            return isStaticRef == o.isStaticRef
+                // TODO compare type params?
+                    && getDef().equals(o.getDef());
+        }
+        return false;
+    }
+
 
 }

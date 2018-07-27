@@ -42,7 +42,7 @@ public class NameResolution {
             }
             scope = nextScope(scope);
         }
-        return removeDuplicates(result);
+        return removeDuplicates(result, node.getModel());
     }
 
     public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
@@ -53,12 +53,12 @@ public class NameResolution {
         return ImmutableList.copyOf(result);
     }
 
-    private static <T extends NameLink> ImmutableCollection<T> removeDuplicates(List<T> nameLinks) {
+    private static <T extends NameLink> ImmutableCollection<T> removeDuplicates(List<T> nameLinks, WurstModel m) {
         List<T> result = Lists.newArrayList();
         nextLink:
         for (T nl : nameLinks) {
             for (T other : result) {
-                if (other.getDef() == nl.getDef()) {
+                if (other.getDef(m) == nl.getDef(m)) {
                     continue nextLink;
                 }
             }
@@ -100,7 +100,7 @@ public class NameResolution {
             }
             scope = nextScope(scope);
         }
-        return removeDuplicates(result);
+        return removeDuplicates(result, node.getModel());
     }
 
     public static void addMemberMethods(Element node,
@@ -109,6 +109,7 @@ public class NameResolution {
     }
 
     public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
+        WurstModel m = node.getModel();
         NameLink privateCandidate = null;
         List<NameLink> candidates = Lists.newArrayList();
 
@@ -147,7 +148,7 @@ public class NameResolution {
             if (candidates.size() > 0) {
                 if (showErrors && candidates.size() > 1) {
                     node.addError("Reference to variable " + name + " is ambiguous. Alternatives are:\n"
-                            + Utils.printAlternatives(candidates));
+                            + Utils.printAlternatives(candidates, m));
                 }
                 return candidates.get(0);
             }
@@ -157,7 +158,7 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
+                node.addError(Utils.printElementWithSource(privateCandidate.getDef(m)) + " is not visible inside this package." +
                         " If you want to access it, declare it public.");
                 return privateCandidate;
             }
@@ -195,6 +196,7 @@ public class NameResolution {
     }
 
     public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {
+        WurstModel m = node.getModel();
         WurstType n_receiverType = n.getReceiverType();
         if (n_receiverType == null) {
             return null;
@@ -205,24 +207,24 @@ public class NameResolution {
         }
         if (showErrors) {
             if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
-                node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
+                node.addError(Utils.printElement(n.getDef(m)) + " is private and cannot be used here.");
             }
             if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
-                node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
+                node.addError(Utils.printElement(n.getDef(m)) + " is protected and cannot be used here.");
             }
         }
         return n.withTypeArgBinding(node, mapping);
     }
 
     public static @Nullable TypeDef lookupType(Element node, String name, boolean showErrors) {
-
+        WurstModel m = node.getModel();
         NameLink privateCandidate = null;
         List<NameLink> candidates = Lists.newArrayList();
 
         WScope scope = node.attrNearestScope();
         while (scope != null) {
             for (NameLink n : scope.attrTypeNameLinks().get(name)) {
-                if (n.getDef() instanceof TypeDef) {
+                if (n.getDef(m) instanceof TypeDef) {
                     if (n.getVisibility() != Visibility.PRIVATE_OTHER
                             && n.getVisibility() != Visibility.PROTECTED_OTHER) {
                         candidates.add(n);
@@ -234,9 +236,9 @@ public class NameResolution {
             if (candidates.size() > 0) {
                 if (showErrors && candidates.size() > 1) {
                     node.addError("Reference to type " + name + " is ambiguous. Alternatives are:\n"
-                            + Utils.printAlternatives(candidates));
+                            + Utils.printAlternatives(candidates, m));
                 }
-                return (TypeDef) candidates.get(0).getDef();
+                return (TypeDef) candidates.get(0).getDef(m);
             }
             scope = nextScope(scope);
         }
@@ -244,9 +246,9 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find type " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
+                node.addError(Utils.printElementWithSource(privateCandidate.getDef(m)) + " is not visible inside this package." +
                         " If you want to access it, declare it public.");
-                return (TypeDef) privateCandidate.getDef();
+                return (TypeDef) privateCandidate.getDef(m);
             }
         }
         return null;
@@ -290,9 +292,10 @@ public class NameResolution {
     }
 
     public static NameLink lookupVar(Element e, String name, boolean showErrors) {
+        WurstModel m = e.getModel();
         NameLink v = e.lookupVarNoConfig(name, showErrors);
         if (v != null) {
-            NameDef actual = v.getDef().attrConfigActualNameDef();
+            NameDef actual = v.getDef(m).attrConfigActualNameDef();
             return v.withDef(actual);
         }
         return null;

@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -42,7 +41,7 @@ public class AttrVarDefType {
 //        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
 //        return WurstTypeInfer.instance();
         WurstType expectedTyp = parentClosure.attrExpectedTyp();
-        FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
+        FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp, p.getModel());
         if (sig == null) {
             p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "The target type could not be uniquely determined for expected type " + expectedTyp + ".");

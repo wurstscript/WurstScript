@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -139,6 +140,20 @@ public class WurstTypeArray extends WurstType {
     @Override
     public ImExprOpt getDefaultValue() {
         throw new Error();
+    }
+
+    @Override
+    public boolean structuralEquals(WurstType other) {
+        if (this == other) {
+            return true;
+        }
+        if (other instanceof WurstTypeArray) {
+            WurstTypeArray other2 = (WurstTypeArray) other;
+            return arSize.structuralEquals(other2.arSize)
+                    && baseType.structuralEquals(other2.baseType)
+                    && Arrays.equals(sizes, other2.sizes);
+        }
+        return false;
     }
 
 }
