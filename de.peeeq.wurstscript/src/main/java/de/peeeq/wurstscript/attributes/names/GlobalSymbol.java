@@ -9,12 +9,12 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  *
  */
 public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
+    public static final String GLOBAL_ROOT = "/global";
     private final ImmutableList<String> path;
     private final Class<? extends Def> defClass;
     // parameter types for overloading:
@@ -51,27 +51,25 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
     private static ImmutableList<String> getPath(Element def) {
         Deque<String> path = new ArrayDeque<>();
         outerLoop:
-        while (!(def instanceof CompilationUnit)) {
-            while (!(def instanceof AstElementWithNameId) ) {
-                if (def instanceof CompilationUnit) {
+        while (def != null) {
+            while (!(def instanceof AstElementWithNameId)) {
+                def = def.getParent();
+                if (def == null) {
                     break outerLoop;
                 }
-                def = def.getParent();
             }
             AstElementWithNameId named = (AstElementWithNameId) def;
             path.addFirst(named.getNameId().getName());
             def = def.getParent();
         }
-        CompilationUnit cu = (CompilationUnit) def;
-        path.addFirst(cu.getFile());
         return ImmutableList.copyOf(path);
     }
 
     @Override
     public Def getDef(WurstModel m) {
-        Element elem = findCompilationUnit(m, path.get(0));
-        for (int i = 1; i < path.size(); i++) {
-            elem = findParentWithName(elem, path.get(i));
+        Element elem = m;
+        for (int i = 0; i < path.size(); i++) {
+            elem = findParentWithName(elem, path.get(i), i == path.size() - 1);
         }
         return defClass.cast(elem);
     }
@@ -81,33 +79,37 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
         return Utils.getLast(path);
     }
 
-    private Element findParentWithName(Element elem, String name) {
+    private Element findParentWithName(Element elem, String name, boolean isLast) {
         for (int i = 0; i < elem.size(); i++) {
             Element e = elem.get(i);
             if (e instanceof AstElementWithNameId) {
                 AstElementWithNameId en = (AstElementWithNameId) e;
                 if (en.getNameId().getName().equals(name)) {
+                    if (isLast) {
+                        if (!defClass.isInstance(en)) {
+                            continue;
+                        }
+                        if (en instanceof FunctionDefinition) {
+                            // TODO add overloading check
+                        }
+                    } else {
+                        if (en instanceof FunctionDefinition
+                                || en instanceof VarDef) {
+                            continue;
+                        }
+                    }
                     return en;
                 }
             } else {
                 // search deeper:
                 try {
-                    return findParentWithName(e, name);
+                    return findParentWithName(e, name, isLast);
                 } catch (NotFound nf) {
                     // ignore
                 }
             }
         }
         throw new NotFound(path, name);
-    }
-
-    private Element findCompilationUnit(WurstModel m, String fileName) {
-        for (CompilationUnit cu : m) {
-            if (cu.getFile().equals(fileName)) {
-                return cu;
-            }
-        }
-        throw new NotFound(path, "compilation unit " + fileName);
     }
 
     public static class NotFound extends RuntimeException {

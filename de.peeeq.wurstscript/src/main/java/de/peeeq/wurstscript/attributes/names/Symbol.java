@@ -16,7 +16,7 @@ public abstract class Symbol<Def extends NameDef> {
 
 
     public static <D extends NameDef> Symbol<D> fromDef(D def) {
-        if (def instanceof LocalVarDef || def instanceof WParameter) {
+        if (def instanceof LocalVarDef || def instanceof WParameter || def instanceof WShortParameter) {
             //noinspection unchecked
             return (Symbol<D>) new LocalVarSymbol((VarDef) def);
         } else {
