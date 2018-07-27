@@ -116,7 +116,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         String funcName = fr.getFuncName();
         WurstType receiverType = null;
         if (fr instanceof ExprMember) {
-            ExprMemberMethod m = (ExprMemberMethod) fr;
+            ExprMember m = (ExprMember) fr;
             receiverType = m.getLeft().attrTyp();
         }
         WurstModel model = modelManager.getModel();

@@ -80,6 +80,8 @@ public abstract class DefLink extends NameLink {
     public boolean receiverCompatibleWith(WurstType receiverType, Element location) {
         if (this.receiverType == null) {
             return receiverType == null;
+        } else if (receiverType == null) {
+            return false;
         }
         return receiverType.isSubtypeOf(this.receiverType, location);
     }
