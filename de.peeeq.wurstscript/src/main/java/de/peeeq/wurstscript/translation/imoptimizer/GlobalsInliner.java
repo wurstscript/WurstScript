@@ -49,7 +49,8 @@ public class GlobalsInliner implements OptimizerPass {
                 if (replacement != null || v.attrReads().size() == 0) {
                     obsoleteVars.add(v);
                 }
-            } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType)) {
+            } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType
+                    || v.getType() instanceof ImTupleType || v.getType() instanceof ImTupleArrayType)) {
                 List<ImVarWrite> initWrites = v.attrWrites().stream().filter(write -> {
                     ImFunction nearestFunc = write.getNearestFunc();
                     return isInInit(nearestFunc);
