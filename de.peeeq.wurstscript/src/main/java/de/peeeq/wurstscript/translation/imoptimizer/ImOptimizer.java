@@ -60,12 +60,12 @@ public class ImOptimizer {
         removeGarbage();
 
         int finalItr = 0;
-        for (int i = 0; i <= 10 && optCount > 0; i++) {
+        for (int i = 1; i <= 10 && optCount > 0; i++) {
             optCount = 0;
             localPasses.forEach(pass -> {
                 int count = pass.optimize(trans);
                 optCount += count;
-                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + optCount);
+                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
             });
             trans.getImProg().flatten(trans);
             removeGarbage();
