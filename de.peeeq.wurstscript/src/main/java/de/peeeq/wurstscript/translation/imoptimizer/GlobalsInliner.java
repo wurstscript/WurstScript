@@ -56,8 +56,10 @@ public class GlobalsInliner implements OptimizerPass {
                 }).collect(Collectors.toList());
                 if (initWrites.size() == 1) {
                     boolean isDefault = ImHelper.defaultValueForType((ImSimpleType) v.getType()).structuralEquals(v.attrWrites().iterator().next().getRight());
-                    // Assignment is default value and can be removed
-                    v.attrWrites().iterator().next().replaceBy(JassIm.ImNull());
+                    if (isDefault) {
+                        // Assignment is default value and can be removed
+                        v.attrWrites().iterator().next().replaceBy(JassIm.ImNull());
+                    }
                 }
             }
 
