@@ -15,6 +15,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 
 public class ImInliner {
 
+    private static final Set<String> dontInline = Sets.newLinkedHashSet();
     private ImTranslator translator;
     private ImProg prog;
     private Set<ImFunction> inlinableFunctions = Sets.newLinkedHashSet();
@@ -22,6 +23,11 @@ public class ImInliner {
     private Map<ImFunction, Integer> funcSizes = Maps.newLinkedHashMap();
     private Set<ImFunction> done = Sets.newLinkedHashSet();
     private double inlineTreshold = 50;
+
+    static  {
+        dontInline.add("SetPlayerAllianceStateAllyBJ");
+        dontInline.add("InitBlizzard");
+    }
 
     public ImInliner(ImTranslator translator) {
         this.translator = translator;
@@ -163,7 +169,7 @@ public class ImInliner {
     }
 
     private double getRating(ImFunction f) {
-        if (f.isNative() || !inlinableFunctions.contains(f)) {
+        if (f.isNative() || !inlinableFunctions.contains(f) || dontInline.contains(f.getName())) {
             return Double.MAX_VALUE;
         }
 
