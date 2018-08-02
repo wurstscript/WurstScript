@@ -313,13 +313,13 @@ public class BugTests extends WurstScriptTest {
         testAssertOkLines(true,
                 "package test",
                 "native testSuccess()",
-                "var x = 0",
+                "var x = 1",
                 "function sideEffect(int r) returns int",
                 "	x = 4",
                 "	return r",
                 "init",
                 "	let y = x + sideEffect(2)",
-                "	if y == 2",
+                "	if y == 3",
                 "		testSuccess()",
                 "endpackage");
     }
