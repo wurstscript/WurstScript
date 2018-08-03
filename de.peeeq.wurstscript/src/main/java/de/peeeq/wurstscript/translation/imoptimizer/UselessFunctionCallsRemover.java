@@ -222,7 +222,7 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
                     "R2S", "R2SW", "Rad2Deg", "S2I", "S2R", "Sin", "SquareRoot", "StringCase", "StringHash",
                     "StringLength", "SubString", "Tan", "TimerGetElapsed", "TimerGetRemaining", "TimerGetTimeout",
                     "VersionGet", "WaygateGetDestinationX", "WaygateGetDestinationY", "WaygateIsActive",
-                    "WaygateSetDestination");
+                    "WaygateSetDestination", "Player");
             // just to be sure, sort it again
             Collections.sort(functionsWithoutSideEffects);
         }
