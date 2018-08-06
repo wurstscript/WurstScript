@@ -20,7 +20,7 @@ public class ValidateClassMemberUsage {
     }
 
     private static void checkVarUsage(WPackage p) {
-        Set<GlobalVarDef> definedVars = new HashSet<>();
+        Set<VarDef> definedVars = new HashSet<>();
 
         p.accept(new WPackage.DefaultVisitor() {
 
@@ -38,7 +38,7 @@ public class ValidateClassMemberUsage {
             public void visit(ExprVarAccess e) {
                 super.visit(e);
                 NameDef nameDef = e.attrNameDef();
-                if (nameDef instanceof GlobalVarDef) {
+                if (nameDef instanceof VarDef) {
                     definedVars.remove(nameDef);
                 }
             }
@@ -47,7 +47,43 @@ public class ValidateClassMemberUsage {
             public void visit(ExprVarArrayAccess e) {
                 super.visit(e);
                 NameDef nameDef = e.attrNameDef();
-                if (nameDef instanceof GlobalVarDef) {
+                if (nameDef instanceof VarDef) {
+                    definedVars.remove(nameDef);
+                }
+            }
+
+            @Override
+            public void visit(ExprMemberVarDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrNameDef();
+                if (nameDef instanceof VarDef) {
+                    definedVars.remove(nameDef);
+                }
+            }
+
+            @Override
+            public void visit(ExprMemberVarDotDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrNameDef();
+                if (nameDef instanceof VarDef) {
+                    definedVars.remove(nameDef);
+                }
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrNameDef();
+                if (nameDef instanceof VarDef) {
+                    definedVars.remove(nameDef);
+                }
+            }
+
+            @Override
+            public void visit(ExprMemberArrayVarDotDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrNameDef();
+                if (nameDef instanceof VarDef) {
                     definedVars.remove(nameDef);
                 }
             }
