@@ -987,4 +987,15 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testVarargConstruct() {
+        testAssertOkLines(true,
+                "package Test",
+                "class A",
+                "    construct(vararg int i)",
+                "init",
+                "    new A(1,2,3,4)"
+        );
+    }
+
 }

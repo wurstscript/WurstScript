@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.*;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -373,7 +372,6 @@ public class AutoCompleteTests extends WurstScriptTest {
         Position pos = new Position(testData.line, testData.column);
         CompletionParams position = new CompletionParams(textDocument, pos);
         GetCompletions getCompletions = new GetCompletions(position, bufferManager);
-
         //new GetCompletions(1, "test", testData.buffer, testData.line, testData.column);
 
         return getCompletions.execute(modelManager);

@@ -942,9 +942,18 @@ public class WurstValidator {
     private void visit(WParameter p) {
         checkVarName(p, false);
         if (p.attrIsVararg()) {
-            if (p.attrNearestFuncDef().getParameters().size() != 1) {
-                p.addError("Vararg functions may only have one parameter");
+            if (p.attrNearestScope() instanceof ConstructorDef) {
+                ConstructorDef constructorDef = (ConstructorDef) p.attrNearestScope();
+
+                if (constructorDef.getParameters().size() != 1) {
+                    p.addError("Vararg functions may only have one parameter");
+                }
+            } else {
+                if (p.attrNearestFuncDef().getParameters().size() != 1) {
+                    p.addError("Vararg functions may only have one parameter");
+                }
             }
+
         }
         checkIfParameterIsRead(p);
     }
@@ -1650,8 +1659,8 @@ public class WurstValidator {
                     } else {
                         check(VisibilityPublic.class, Annotation.class);
                     }
-                    if(f.attrIsCompiletime()) {
-                        if(f.getParameters().size() > 0) {
+                    if (f.attrIsCompiletime()) {
+                        if (f.getParameters().size() > 0) {
                             f.addError("Functions annotated '@compiletime' may not take parameters." +
                                     "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
                         }
@@ -1750,7 +1759,7 @@ public class WurstValidator {
                     for (WParameter p : sc.getParameters()) {
                         paramTypes.add(p.attrTyp());
                     }
-                    if(!sc.getIsExplicit() && paramTypes.size() > 0 && d.getSuperArgs().size() == 0) {
+                    if (!sc.getIsExplicit() && paramTypes.size() > 0 && d.getSuperArgs().size() == 0) {
                         c.addError("The extended class <" + ct.extendedClass().getName() + "> does not expose a no-arg constructor. " +
                                 "You must define a constructor that calls super(..) appropriately, in this class.");
                     } else {
@@ -1786,6 +1795,15 @@ public class WurstValidator {
             calledFunctions.put(e.attrNearestScope(), constr);
             if (constr.attrNearestClassDef().attrIsAbstract()) {
                 e.addError("Cannot create an instance of the abstract class " + constr.attrNearestClassDef().getName());
+                return;
+            }
+            if (constr.getParameters().size() == 1 && constr.getParameters().get(0).attrIsVararg()) {
+                OptTypeExpr other = constr.getParameters().get(0).attrOptTypeExpr();
+                e.getArgs().forEach(arg -> {
+                    if (!arg.attrTyp().isSubtypeOf(other.attrTypRaw(), null)) {
+                        e.addError("<" + arg.tryGetNameDef().getName() + "> is not of type " + other.attrTypRaw().getName());
+                    }
+                });
                 return;
             }
             checkParams(e, "Wrong object creation: ", e.getArgs(), e.attrFunctionSignature());
@@ -1962,7 +1980,8 @@ public class WurstValidator {
         return overridesMap;
     }
 
-    private void collectOverrides(WurstTypeClassOrInterface type, List<FuncLink> funcs, Multimap<FuncLink, FuncLink> overridesMap, Multimap<FuncLink, String> overrideErrors) {
+    private void collectOverrides(WurstTypeClassOrInterface type, List<FuncLink> funcs, Multimap<FuncLink, FuncLink> overridesMap, Multimap<FuncLink, String>
+            overrideErrors) {
         for (WurstTypeClassOrInterface superType : type.directSupertypes()) {
             ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
             for (FuncLink func : funcs) {
