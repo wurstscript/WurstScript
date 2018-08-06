@@ -6,10 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.*;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -22,7 +19,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import de.peeeq.wurstscript.attributes.names.VarLink;
 
 /**
  * this class validates a wurstscript program
@@ -1764,86 +1760,6 @@ public class WurstValidator {
         }
     }
 
-    /*
-    private void checkInstanceDef(ClassDef classDef) {
-        if (classDef.attrIsAbstract()) {
-            // only concrete classes have to be checked
-            return;
-        }
-        WurstTypeClass classT = classDef.attrTypC();
-        for (WurstTypeInterface interfaceType : classT.implementedInterfaces()) {
-            InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
-            // TODO check type mapping
-
-            nextFunction:
-            for (FuncDef i_funcDef : interfaceDef.getMethods()) {
-                Collection<DefLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
-
-                Map<FuncDef, String> errors = new LinkedHashMap<>();
-                for (NameLink nameLink : c_funcDefs) {
-                    NameDef c_nameDef = nameLink.getDef();
-                    if (c_nameDef instanceof FuncDef) {
-                        FuncDef c_funcDef = (FuncDef) c_nameDef;
-                        if (c_funcDef.attrIsAbstract()) {
-                            continue;
-                        }
-
-                        Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
-                                "Cannot implement interface " + interfaceDef.getName() + " because of function ");
-                        if (err.isPresent()) {
-                            if (c_funcDef.attrIsOverride()) {
-                                c_funcDef.addError(err.get());
-                                continue nextFunction;
-                            }
-                            errors.put(c_funcDef, err.get());
-                        } else {
-                            continue nextFunction;
-                        }
-                    }
-                }
-
-                if (i_funcDef.attrHasEmptyBody()) {
-                    if (errors.isEmpty()) {
-                        classDef.addError("The class " + classDef.getName() + " must implement the function "
-                                + i_funcDef.getName() + ".");
-                    } else {
-                        for (Entry<FuncDef, String> entry : errors.entrySet()) {
-                            entry.getKey().addError(entry.getValue());
-                        }
-                    }
-                }
-            }
-        }
-
-
-        if (!classDef.attrIsAbstract() && classT.extendedClass() != null) {
-            // TODO getClassDef().attrNameLinks() --> directly get name links from classtype
-            for (Entry<String, DefLink> e : classT.extendedClass().getClassDef().attrNameLinks().entries()) {
-                if (e.getValue().getDef() instanceof FuncDef) {
-                    FuncDef f = (FuncDef) e.getValue().getDef();
-                    if (f.attrIsAbstract()) {
-                        boolean implemented = false;
-                        Collection<DefLink> c_funcDefs = classDef.attrNameLinks().get(f.getName());
-                        for (NameLink c_nameDefLink : c_funcDefs) {
-                            NameDef c_nameDef = c_nameDefLink.getDef();
-                            if (c_nameDef instanceof FuncDef) {
-                                FuncDef f2 = (FuncDef) c_nameDef;
-                                if (!f2.attrIsAbstract()) {
-                                    implemented = true;
-                                }
-                            }
-                        }
-                        if (!implemented) {
-                            classDef.addError("Class " + classDef.getName() + " must implement the abstract function "
-                                    + f.getName() + " from class " + f.attrNearestClassDef().getName());
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
         checkNameRefDeprecated(ea, ea.tryGetNameDef());
@@ -1884,18 +1800,6 @@ public class WurstValidator {
         // checkIfTypeDefExists(n, p);
         // }
     }
-
-    // private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
-    // if (n instanceof WPackage) {
-    // // TODO check that there is no other package with same name?
-    // return;
-    // }
-    // TypeDef def = p.lookupType(n.getName());
-    // if (def != null) {
-    // n.addError("The definition for "+Utils.printElement(n)+" defines the same
-    // name as the type definition " + Utils.printElement(def));
-    // }
-    // }
 
     private void checkMemberVar(ExprMemberVar e) {
         if (e.getVarName().length() == 0) {

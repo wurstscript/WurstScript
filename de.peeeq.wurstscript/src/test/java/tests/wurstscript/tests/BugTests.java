@@ -967,6 +967,16 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testClassImplementsClass() {
+        testAssertErrorsLines(false, "not an interface",
+                "package Test",
+                "abstract class A",
+                "    construct(int i)",
+                "class B implements A"
+        );
+    }
+
 
 
 }
