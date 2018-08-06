@@ -76,7 +76,7 @@ public class WurstValidator {
     private void postChecks(List<CompilationUnit> toCheck) {
         checkUnusedImports(toCheck);
         ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
-        ValidateMemberVarUsage.checkMemberVarUsage(toCheck);
+        ValidateClassMemberUsage.checkClassMembers(toCheck);
     }
 
     private void checkUnusedImports(List<CompilationUnit> toCheck) {
