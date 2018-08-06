@@ -21,7 +21,6 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import fj.data.TreeMap;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
