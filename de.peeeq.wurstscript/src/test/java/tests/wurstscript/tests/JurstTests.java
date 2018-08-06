@@ -134,6 +134,54 @@ public class JurstTests extends WurstScriptTest {
         testJurstWithJass(true, false, jassCode, jurstCode);
     }
 
+    @Test
+    public void validNames() { // #641
+        String jassCode = Utils.string(
+                "function foo takes nothing returns boolean",
+                "	local integer mod = 1",
+                "	local real skip = 1.",
+                "	return true",
+                "endfunction");
+
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo()",
+                "			testSuccess()",
+                "		end",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
+    public void returnDetection() { // #641
+        String jassCode = Utils.string(
+                "function foo takes integer a returns integer",
+                "	if false then",
+                "		return a",
+                "	else",
+                "		return -a",
+                "	endif",
+                "endfunction");
+
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo(1) == -1",
+                "			testSuccess()",
+                "		end",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
         Map<String, String> inputs = ImmutableMap.of(
                 "example.j", jass,
