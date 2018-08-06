@@ -99,7 +99,7 @@ public class ValidateClassMemberUsage {
     }
 
     private static void checkFuncUsage(WPackage p) {
-        Set<FuncDef> definedFuncs = new HashSet<>();
+        Set<FunctionDefinition> definedFuncs = new HashSet<>();
 
         p.accept(new WPackage.DefaultVisitor() {
 
@@ -116,13 +116,31 @@ public class ValidateClassMemberUsage {
             @Override
             public void visit(ExprFunctionCall e) {
                 super.visit(e);
-                definedFuncs.removeIf(funcDef -> funcDef.getName().equals(e.getFuncName()));
+                definedFuncs.remove(e.attrFuncDef());
             }
 
             @Override
             public void visit(ExprFuncRef e) {
                 super.visit(e);
-                definedFuncs.removeIf(funcDef -> funcDef.getName().equals(e.getFuncName()));
+                definedFuncs.remove(e.attrFuncDef());
+            }
+
+            @Override
+            public void visit(ExprMemberMethodDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrFuncDef();
+                if (nameDef != null) {
+                    definedFuncs.remove(nameDef);
+                }
+            }
+
+            @Override
+            public void visit(ExprMemberMethodDotDot e) {
+                super.visit(e);
+                NameDef nameDef = e.attrFuncDef();
+                if (nameDef != null) {
+                    definedFuncs.remove(nameDef);
+                }
             }
 
         });
