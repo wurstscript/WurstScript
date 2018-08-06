@@ -238,7 +238,10 @@ public class WurstErrorWindow extends javax.swing.JFrame {
                 }
             }
 
-            String text = codeArea.getText();
+            String text = codeArea.getText()
+                            .replaceAll(" {4}", "  ")
+                            .replaceAll("\t", "  ");
+            codeArea.setText(text);
 
             MutableAttributeSet attrs = codeArea.getInputAttributes();
             StyleConstants.setUnderline(attrs, false);
