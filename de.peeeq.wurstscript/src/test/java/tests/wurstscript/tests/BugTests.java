@@ -977,6 +977,14 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
-
+    @Test
+    public void testClassExtendsClassWithoutNoArgConstructor() {
+        testAssertErrorsLines(false, "does not provide a no-arg constructor",
+                "package Test",
+                "class A",
+                "    construct(int i)",
+                "class B extends A"
+        );
+    }
 
 }

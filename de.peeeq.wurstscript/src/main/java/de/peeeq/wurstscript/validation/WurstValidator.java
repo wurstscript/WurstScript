@@ -1750,7 +1750,12 @@ public class WurstValidator {
                     for (WParameter p : sc.getParameters()) {
                         paramTypes.add(p.attrTyp());
                     }
-                    checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
+                    if(!sc.getIsExplicit() && paramTypes.size() > 0 && d.getSuperArgs().size() == 0) {
+                        c.addError("The extended class <" + ct.extendedClass().getName() + "> does not expose a no-arg constructor. " +
+                                "You must define a constructor that calls super(..) appropriately, in this class.");
+                    } else {
+                        checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
+                    }
                 }
             }
         } else {
