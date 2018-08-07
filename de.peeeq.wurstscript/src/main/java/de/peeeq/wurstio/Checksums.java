@@ -4,7 +4,6 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -65,7 +64,7 @@ public class Checksums {
         try {
             byte[] buf = new byte[1024];
             MessageDigest md = MessageDigest.getInstance("MD5");
-            try (InputStream is = new FileInputStream(f);
+            try (InputStream is = java.nio.file.Files.newInputStream(f.toPath());
                  DigestInputStream dis = new DigestInputStream(is, md)) {
                 while (dis.read(buf) >= 0) ;
             }

@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 public class BinaryDataInputStream implements Closeable {
 
@@ -11,8 +12,8 @@ public class BinaryDataInputStream implements Closeable {
     private boolean littleEndian;
 
     @SuppressWarnings("resource") // will be closed in close method
-    public BinaryDataInputStream(File file, boolean littleEndian) throws FileNotFoundException {
-        this(new FileInputStream(file), littleEndian);
+    public BinaryDataInputStream(File file, boolean littleEndian) throws IOException {
+        this(Files.newInputStream(file.toPath()), littleEndian);
     }
 
 

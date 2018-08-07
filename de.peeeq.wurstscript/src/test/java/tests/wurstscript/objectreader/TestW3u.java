@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.WLogger;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import static org.testng.Assert.assertEquals;
@@ -31,7 +30,7 @@ public class TestW3u {
 
     }
 
-    private void testW3u(File inFile, File outFile) throws FileNotFoundException {
+    private void testW3u(File inFile, File outFile) throws IOException {
         //read
         ObjectFile objFile = new ObjectFile(inFile, ObjectFileType.UNITS);
         // write

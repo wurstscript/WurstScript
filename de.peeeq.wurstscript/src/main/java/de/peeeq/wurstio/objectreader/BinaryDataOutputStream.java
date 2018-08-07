@@ -3,6 +3,7 @@ package de.peeeq.wurstio.objectreader;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 public class BinaryDataOutputStream implements Closeable {
 
@@ -10,8 +11,8 @@ public class BinaryDataOutputStream implements Closeable {
     private boolean littleEndian;
 
     @SuppressWarnings("resource")
-    public BinaryDataOutputStream(File file, boolean littleEndian) throws FileNotFoundException {
-        this(new FileOutputStream(file), littleEndian);
+    public BinaryDataOutputStream(File file, boolean littleEndian) throws IOException {
+        this(Files.newOutputStream(file.toPath()), littleEndian);
     }
 
 
