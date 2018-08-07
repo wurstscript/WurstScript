@@ -4,13 +4,9 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static de.peeeq.wurstscript.ast.Ast.Arguments;
-import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
 /**
  * general rules for syntactic sugar:
  * <p>
@@ -19,9 +15,6 @@ import static de.peeeq.wurstscript.ast.Ast.ExprVarAccess;
  */
 public class SyntacticSugar {
 
-    private int wurstIteratorCounter = 0;
-
-
     public void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {
         if (hasCommonJ) {
             addDefaultImports(root);
@@ -29,7 +22,6 @@ public class SyntacticSugar {
         rewriteNegatedInts(root);
         addDefaultConstructors(root);
         addEndFunctionStatements(root);
-//        expandForInLoops(root);
         replaceTypeIdUse(root);
     }
 
@@ -165,33 +157,6 @@ public class SyntacticSugar {
     }
 
 
-    private ExprMemberMethod closeIteratorStatement(String iteratorName, WPos loopVarPos, WPos loopInPos) {
-        return Ast.ExprMemberMethodDot(loopInPos,
-                ExprVarAccess(loopVarPos, Ast.Identifier(loopVarPos, iteratorName)), Ast.Identifier(loopInPos, "close"), Ast.TypeExprList(), Arguments());
-    }
-
-    private List<WStatement> addIteratorCloseStatemenst(List<WStatement> statements, String iteratorName, WPos loopVarPos, WPos loopInPos) {
-        ListIterator<WStatement> it = statements.listIterator();
-        while (it.hasNext()) {
-            WStatement s = it.next();
-            if (s instanceof AstElementWithBody) {
-                addIteratorCloseStatemenst(((AstElementWithBody) s).getBody(), iteratorName, loopVarPos, loopInPos);
-            } else if (s instanceof StmtIf) {
-                StmtIf stmtIf = (StmtIf) s;
-                addIteratorCloseStatemenst(stmtIf.getThenBlock(), iteratorName, loopVarPos, loopInPos);
-                addIteratorCloseStatemenst(stmtIf.getElseBlock(), iteratorName, loopVarPos, loopInPos);
-            } else if (s instanceof StmtReturn) {
-                // add the close statement
-                it.previous();
-                it.add(closeIteratorStatement(iteratorName, loopVarPos, loopInPos));
-                it.next();
-            }
-
-        }
-        return statements;
-    }
-
-
     /**
      * add a empty default constructor to every class without any constructor
      */
@@ -210,21 +175,4 @@ public class SyntacticSugar {
         }
     }
 
-//	/**
-//	 * return all classes occuring in a compilation unit 
-//	 */
-//	private List<ClassDef> getAllClasses(CompilationUnit root) {
-//		List<ClassDef> result = Lists.newArrayList();
-//		for (TopLevelDeclaration t : root) {
-//			if (t instanceof WPackage) {
-//				WPackage p = (WPackage) t;
-//				for (WEntity e : p.getElements()) {
-//					if (e instanceof ClassDef) {
-//						result.add((ClassDef) e);
-//					}
-//				}
-//			}
-//		}
-//		return result;
-//	}
 }

@@ -1,9 +1,7 @@
 package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
@@ -19,16 +17,13 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.Assert;
 
@@ -38,17 +33,20 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
+import static com.google.common.io.Files.asCharSink;
 import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
     private static final boolean testLua = false;
-    private Map<String, String> inputs = Maps.newLinkedHashMap();
 
     protected boolean testOptimizer() {
         return true;
+    }
+
+    protected boolean printDebugScripts() {
+        return false;
     }
 
     class TestConfig {
@@ -317,7 +315,7 @@ public class WurstScriptTest {
 
             // replace builtin lua functions
 
-            Files.write(luaScript, luaFile, Charsets.UTF_8);
+            asCharSink(luaFile, Charsets.UTF_8).write(luaScript);
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
 
@@ -387,7 +385,6 @@ public class WurstScriptTest {
             }
         }
 
-
         JassProg prog = compiler.transformProgToJass();
         if (gui.getErrorCount() > 0) {
             throw gui.getErrorList().get(0);
@@ -456,7 +453,6 @@ public class WurstScriptTest {
             // run the interpreter on the intermediate language
             ILInterpreter interpreter = new ILInterpreter(imProg, gui, null, false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
-//				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
             return;
@@ -496,7 +492,7 @@ public class WurstScriptTest {
             StringBuilder sb = new StringBuilder();
             new JassPrinter(true, prog).printProg(sb);
 
-            Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+            asCharSink(outputFile, Charsets.UTF_8).write(sb.toString());
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
@@ -513,7 +509,7 @@ public class WurstScriptTest {
             StringBuilder sb = new StringBuilder();
             prog.print(sb, 0);
 
-            Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+            asCharSink(outputFile, Charsets.UTF_8).write(sb.toString());
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }

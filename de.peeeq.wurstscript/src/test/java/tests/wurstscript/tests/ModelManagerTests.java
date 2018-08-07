@@ -2,7 +2,6 @@ package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -18,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.google.common.io.Files.asCharSink;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.Assert.assertEquals;
@@ -118,7 +118,7 @@ public class ModelManagerTests {
     }
 
     private void writeFile(File wurstFolder, String filename, String content) throws IOException {
-        Files.write(content, new File(wurstFolder, filename), Charsets.UTF_8);
+        asCharSink(new File(wurstFolder, filename), Charsets.UTF_8).write(content);
 
     }
 

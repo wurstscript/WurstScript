@@ -2,7 +2,6 @@ package de.peeeq.wurstio.hotdoc;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
@@ -19,7 +18,12 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+
+import static com.google.common.io.Files.asCharSink;
 
 public class HotdocGenerator {
 
@@ -121,7 +125,7 @@ public class HotdocGenerator {
         WLogger.info(s);
         // TODO
         try {
-            Files.write(render(t, context), new File(outputfolder + "/index.html"), Charsets.UTF_8);
+            asCharSink(new File(outputfolder + "/index.html"), Charsets.UTF_8).write(render(t, context));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -140,7 +144,7 @@ public class HotdocGenerator {
         WLogger.info(s);
         // TODO
         try {
-            Files.write(render(t, context), new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8);
+            asCharSink(new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8).write(render(t, context));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

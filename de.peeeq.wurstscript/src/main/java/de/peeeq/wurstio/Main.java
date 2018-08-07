@@ -38,6 +38,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
+import static com.google.common.io.Files.asCharSink;
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static javax.swing.SwingConstants.CENTER;
 
@@ -376,8 +377,7 @@ public class Main {
                     out.print(message);
                 }
             };
-            RunTests.TestResult res = runTests.runTests(compiler.getImProg(), null, null);
-
+            runTests.runTests(compiler.getImProg(), null, null);
 
             for (RunTests.TestFailure e : runTests.getFailTests()) {
                 gui.sendError(new CompileError(e.getFunction().attrTrace().attrErrorPos(), e.getMessage()));
@@ -430,7 +430,7 @@ public class Main {
             outputMapscript = new File("./temp/output.j");
         }
         outputMapscript.getParentFile().mkdirs();
-        Files.write(mapScript, outputMapscript, Charsets.UTF_8); // use ascii here, wc3 no understand utf8, you know?
+        asCharSink(outputMapscript, Charsets.UTF_8).write(mapScript);
 
         if (!runArgs.isDisablePjass()) {
             Result pJassResult = Pjass.runPjass(outputMapscript);

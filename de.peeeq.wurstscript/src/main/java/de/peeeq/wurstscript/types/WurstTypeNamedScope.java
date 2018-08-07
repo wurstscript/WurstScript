@@ -97,10 +97,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return res;
     }
 
-    private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
-        return bt.setTypeArgs(b);
-    }
-
     @Override
     public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
         List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();

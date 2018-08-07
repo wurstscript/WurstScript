@@ -213,11 +213,9 @@ public class ImPrinter {
     }
 
     private static String smallHash(Object g) {
-//		return "";
         String c = "" + g.hashCode();
         return c.substring(0, Math.min(3, c.length() - 1));
     }
-
 
     public static void print(ImVarArrayAccess p, StringBuilder sb, int indent) {
         sb.append(p.getVar().getName()).append(smallHash(p.getVar())).append("[");

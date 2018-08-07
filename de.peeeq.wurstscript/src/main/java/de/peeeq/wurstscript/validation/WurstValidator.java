@@ -6,7 +6,10 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
-import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -18,7 +21,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 /**
  * this class validates a wurstscript program
@@ -1952,39 +1954,6 @@ public class WurstValidator {
 
 
     /**
-     * @param funcs          the functions for which to search overrides
-     * @param type           where to search for overrides
-     * @param overrideErrors for each FuncLink in supertypes, store a reason why the function cannot
-     * @return a mapping from func to overridden functions
-     */
-    private Multimap<FuncLink, FuncLink> calcOverrides(List<FuncLink> funcs, WurstTypeClassOrInterface type, Multimap<FuncLink, String> overrideErrors) {
-        Multimap<FuncLink, FuncLink> overridesMap = HashMultimap.create();
-        collectOverrides(type, funcs, overridesMap, overrideErrors);
-        return overridesMap;
-    }
-
-    private void collectOverrides(WurstTypeClassOrInterface type, List<FuncLink> funcs, Multimap<FuncLink, FuncLink> overridesMap, Multimap<FuncLink, String> overrideErrors) {
-        for (WurstTypeClassOrInterface superType : type.directSupertypes()) {
-            ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
-            for (FuncLink func : funcs) {
-                for (DefLink superDef : superNameLinks.get(func.getName())) {
-                    if (superDef instanceof FuncLink && superDef.getVisibility().isInherited()) {
-                        FuncLink superFunc = (FuncLink) superDef;
-                        String error = checkOverride(func, superFunc, false);
-                        if (error == null) {
-                            overridesMap.put(func, superFunc);
-                        } else {
-                            overrideErrors.put(func, error);
-                        }
-                    }
-                }
-            }
-            collectOverrides(superType, funcs, overridesMap, overrideErrors);
-        }
-    }
-
-
-    /**
      * checks if func1 can override func2
      */
     public static boolean canOverride(FuncLink func1, FuncLink func2) {
@@ -2039,27 +2008,6 @@ public class WurstValidator {
         }
         // no error
         return null;
-    }
-
-    /**
-     * only keep functions and remove everything else from the list also removes
-     * private methods from other scopes
-     */
-    private List<FuncLink> keepFunctions(Collection<DefLink> funcs) {
-        return funcs.stream()
-                .filter(nl -> nl instanceof FuncLink)
-                .filter(nl -> nl.getVisibility() != Visibility.PRIVATE_OTHER)
-                .map(nl -> (FuncLink) nl)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * sorts the funcs by their level (lowest level first)
-     *
-     * @param funcs
-     */
-    private void sortByLevel(List<? extends NameLink> funcs) {
-        funcs.sort(Comparator.comparingInt(NameLink::getLevel));
     }
 
     private void checkForDuplicateNames(WScope scope) {
