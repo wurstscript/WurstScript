@@ -19,11 +19,13 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
     private final Class<? extends Def> defClass;
     // parameter types for overloading:
     private final ImmutableList<WurstType> paramTypes;
+    private final boolean isStatic;
 
-    private GlobalSymbol(ImmutableList<String> path, Class<? extends Def> defClass, ImmutableList<WurstType> paramTypes) {
+    private GlobalSymbol(ImmutableList<String> path, Class<? extends Def> defClass, ImmutableList<WurstType> paramTypes, boolean isStatic) {
         this.path = path;
         this.defClass = defClass;
         this.paramTypes = paramTypes;
+        this.isStatic = isStatic;
     }
 
     static <D extends NameDef> GlobalSymbol<D> globalSymbolFromDef(D def) {
@@ -40,9 +42,11 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
                     .map(WParameter::attrTyp)
                     .collect(ImmutableList.toImmutableList());
         }
-        GlobalSymbol<D> sym = new GlobalSymbol<>(getPath(def), c, paramTypes);
-        if (!sym.getDef(def.getModel()).equals(def)) {
-            throw new RuntimeException("Could not find symbol " + Utils.printElementWithSource(def));
+        boolean isStatic = def.attrIsStatic();
+        GlobalSymbol<D> sym = new GlobalSymbol<>(getPath(def), c, paramTypes, isStatic);
+        D def2 = sym.getDef(def.getModel());
+        if (!def2.equals(def)) {
+            throw new RuntimeException("Could not find symbol " + Utils.printElementWithSource(def) + "\nfound " + Utils.printElementWithSource(def2) + " instead");
         }
         return sym;
     }
@@ -79,7 +83,13 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
         return Utils.getLast(path);
     }
 
+    @Override
+    public boolean attrIsStatic() {
+        return isStatic;
+    }
+
     private Element findParentWithName(Element elem, String name, boolean isLast) {
+        withNextElem:
         for (int i = 0; i < elem.size(); i++) {
             Element e = elem.get(i);
             if (e instanceof AstElementWithNameId) {
@@ -90,7 +100,16 @@ public class GlobalSymbol<Def extends NameDef> extends Symbol<Def> {
                             continue;
                         }
                         if (en instanceof FunctionDefinition) {
-                            // TODO add overloading check
+                            WParameters params = ((FunctionDefinition) en).getParameters();
+                            if (params.size() != this.paramTypes.size()) {
+                                continue;
+                            }
+                            for (int j = 0; j < params.size(); j++) {
+                                WurstType param = params.get(j).attrTyp();
+                                if (!param.structuralEquals(paramTypes.get(j))) {
+                                    continue withNextElem;
+                                }
+                            }
                         }
                     } else {
                         if (en instanceof FunctionDefinition

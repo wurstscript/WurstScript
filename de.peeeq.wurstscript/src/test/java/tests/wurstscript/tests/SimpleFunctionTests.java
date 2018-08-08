@@ -60,6 +60,44 @@ public class SimpleFunctionTests extends WurstScriptTest {
 //				"");
 //	}
 
+    @Test
+    public void testOverloading1() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function foo(int x)",
+                "function foo(string x)",
+                "    testSuccess()",
+                "init",
+                "    foo(\"hi\")");
+    }
+
+    @Test
+    public void testOverloading2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    function foo(int x)",
+                "    function foo(string x)",
+                "        testSuccess()",
+                "init",
+                "    new C.foo(\"hi\")");
+    }
+
+    @Test
+    public void testOverloading3() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    static function foo(string x)",
+                "        testSuccess()",
+                "init",
+                "    new C.foo(\"hi\")");
+    }
+
+
 
     public void assertOk(boolean executeProg, String... body) {
         String prog = makeCode(body);

@@ -48,7 +48,7 @@ public class NameResolution {
     public static ImmutableCollection<FuncLink> lookupFuncs(Element e, String name, boolean showErrors) {
         ArrayList<FuncLink> result = Lists.newArrayList(e.lookupFuncsNoConfig(name, showErrors));
         for (int i = 0; i < result.size(); i++) {
-            result.set(i, result.get(i).withConfigDef());
+            result.set(i, result.get(i).withConfigDef(e.getModel()));
         }
         return ImmutableList.copyOf(result);
     }

@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
 
 
 public class FuncLink extends DefLink {
-    private final FunctionDefinition def;
+    private final Symbol<FunctionDefinition> def;
     private final WurstType returnType;
     private final List<String> parameterNames;
     private final List<WurstType> parameterTypes;
 
     public FuncLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams,
-                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType) {
+                    @Nullable WurstType receiverType, Symbol<FunctionDefinition> def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.returnType = returnType;
@@ -41,7 +41,7 @@ public class FuncLink extends DefLink {
                 .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType);
+        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, Symbol.fromDef(func), lParameterNames, lParameterTypes, lreturnType);
     }
 
 
@@ -63,7 +63,7 @@ public class FuncLink extends DefLink {
 
     @Override
     public FunctionDefinition getDef(WurstModel m) {
-        return def;
+        return def.getDef(m);
     }
 
 
@@ -110,12 +110,12 @@ public class FuncLink extends DefLink {
         result.append(getParameterDescription());
         result.append(") returns ");
         result.append(returnType);
-        WPos src = def.attrSource();
-        result.append(" (")
-                .append(src.getFile())
-                .append(":")
-                .append(src.getLine())
-                .append(")");
+//        WPos src = def.attrSource();
+//        result.append(" (")
+//                .append(src.getFile())
+//                .append(":")
+//                .append(src.getLine())
+//                .append(")");
         return result.toString();
     }
 
@@ -173,7 +173,8 @@ public class FuncLink extends DefLink {
 
     @Override
     public FuncLink withDef(NameDef def) {
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType());
+        Symbol<FunctionDefinition> defSym = Symbol.fromDef((FunctionDefinition) def);
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), defSym, getParameterNames(), getParameterTypes(), getReturnType());
     }
 
     private WurstType adjustType(Element context, WurstType t, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
@@ -215,9 +216,9 @@ public class FuncLink extends DefLink {
         return false;
     }
 
-    public FuncLink withConfigDef() {
-        FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType);
+    public FuncLink withConfigDef(WurstModel model) {
+        FunctionDefinition def = (FunctionDefinition) this.getDef(model).attrConfigActualNameDef();
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), Symbol.fromDef(def), parameterNames, parameterTypes, returnType);
     }
 
     public FuncLink hidingPrivate() {

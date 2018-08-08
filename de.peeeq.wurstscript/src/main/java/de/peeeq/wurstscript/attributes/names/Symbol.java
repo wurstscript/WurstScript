@@ -23,4 +23,6 @@ public abstract class Symbol<Def extends NameDef> {
             return GlobalSymbol.globalSymbolFromDef(def);
         }
     }
+
+    public abstract boolean attrIsStatic();
 }
