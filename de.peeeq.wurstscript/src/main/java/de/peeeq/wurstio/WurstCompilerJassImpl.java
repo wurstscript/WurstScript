@@ -471,7 +471,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
     }
 
-    private static final StringBuilder sb = new StringBuilder();
     private void printDebugImProg(String debugFile) {
         if (!errorHandler.isUnitTestMode() ) {
             // output only in unit test mode
@@ -479,7 +478,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         try {
             // TODO remove test output
-            sb.setLength(0);
+            StringBuilder sb = new StringBuilder();
             getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();

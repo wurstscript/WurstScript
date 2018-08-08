@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.objectreader.*;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
@@ -217,7 +218,7 @@ public class ProgramStateIO extends ProgramState {
             byte[] w3u = dataStore.writeToByteArray();
 
             // wurst exported objects
-            asCharSink(new File(folder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"), Charsets.UTF_8).write(dataStore.exportToWurst(fileType));
+            FileUtils.write(dataStore.exportToWurst(fileType), new File(folder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"));
 
             if (inject) {
                 if (mpqEditor == null) {

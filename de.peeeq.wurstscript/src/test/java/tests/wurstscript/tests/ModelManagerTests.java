@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -118,8 +119,7 @@ public class ModelManagerTests {
     }
 
     private void writeFile(File wurstFolder, String filename, String content) throws IOException {
-        asCharSink(new File(wurstFolder, filename), Charsets.UTF_8).write(content);
-
+        FileUtils.write(content, new File(wurstFolder, filename));
     }
 
     private String string(String... lines) {

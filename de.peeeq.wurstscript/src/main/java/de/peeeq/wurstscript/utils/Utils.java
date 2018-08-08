@@ -28,8 +28,6 @@ import java.util.stream.Collectors;
 
 public class Utils {
 
-    private static final StringBuilder builder = new StringBuilder();
-
     @SuppressWarnings("rawtypes")
     public static int size(Iterable<?> i) {
         if (i instanceof Collection) {
@@ -143,7 +141,7 @@ public class Utils {
 
 
     public static <T> String join(Iterable<T> hints, String seperator) {
-        builder.setLength(0);
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : hints) {
             if (!first) {
@@ -156,7 +154,7 @@ public class Utils {
     }
 
     public static <T> String join(T[] arguments, String seperator) {
-        builder.setLength(0);
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : arguments) {
             if (!first) {
@@ -291,7 +289,7 @@ public class Utils {
             if (t.getTypeArgs().size() > 0) {
                 name += "{";
                 boolean first = true;
-                builder.setLength(0);
+                StringBuilder builder = new StringBuilder();
                 builder.append(name);
                 for (TypeExpr ta : t.getTypeArgs()) {
                     if (!first) {
@@ -323,7 +321,7 @@ public class Utils {
     }
 
     public static String printStackTrace(StackTraceElement[] stackTrace) {
-        builder.setLength(0);
+        StringBuilder builder = new StringBuilder();
         for (StackTraceElement s : stackTrace) {
             builder.append(s.toString());
             builder.append("\n");
@@ -332,7 +330,7 @@ public class Utils {
     }
 
     public static String printExceptionWithStackTrace(Throwable t) {
-        builder.setLength(0);
+        StringBuilder builder = new StringBuilder();
         builder.append(t);
         builder.append("\n");
         for (; ; ) {
@@ -607,7 +605,7 @@ public class Utils {
     }
 
     public static String escapeString(String v) {
-        builder.setLength(0);
+        StringBuilder builder = new StringBuilder();
         builder.append("\"");
         for (int i = 0; i < v.length(); i++) {
             char c = v.charAt(i);

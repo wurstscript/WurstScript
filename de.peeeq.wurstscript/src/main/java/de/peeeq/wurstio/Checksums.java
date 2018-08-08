@@ -1,6 +1,6 @@
 package de.peeeq.wurstio;
 
-import com.google.common.base.Charsets;
+import de.peeeq.wurstio.utils.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -10,8 +10,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-
-import static com.google.common.io.Files.asCharSink;
 
 
 public class Checksums {
@@ -25,7 +23,7 @@ public class Checksums {
         List<Data> data = getData(dir);
         String out = printData(data);
         try {
-            asCharSink(outFile, Charsets.UTF_8).write(out);
+            FileUtils.write(out, outFile);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

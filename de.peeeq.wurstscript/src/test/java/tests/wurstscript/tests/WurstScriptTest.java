@@ -9,6 +9,7 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -315,7 +316,7 @@ public class WurstScriptTest {
 
             // replace builtin lua functions
 
-            asCharSink(luaFile, Charsets.UTF_8).write(luaScript);
+            FileUtils.write(luaScript, luaFile);
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
 
@@ -492,7 +493,7 @@ public class WurstScriptTest {
             StringBuilder sb = new StringBuilder();
             new JassPrinter(true, prog).printProg(sb);
 
-            asCharSink(outputFile, Charsets.UTF_8).write(sb.toString());
+            FileUtils.write(sb, outputFile);
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
@@ -508,8 +509,7 @@ public class WurstScriptTest {
         try {
             StringBuilder sb = new StringBuilder();
             prog.print(sb, 0);
-
-            asCharSink(outputFile, Charsets.UTF_8).write(sb.toString());
+            FileUtils.write(sb, outputFile);
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }

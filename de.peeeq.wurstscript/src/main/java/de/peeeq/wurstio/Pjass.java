@@ -86,7 +86,6 @@ public class Pjass {
 
     }
 
-    private static final StringBuilder output = new StringBuilder();
     public static Result runPjass(File outputFile) {
         try {
             Process p;
@@ -104,7 +103,7 @@ public class Pjass {
             }
             p = Runtime.getRuntime().exec(args.toArray(new String[0]));
 
-            output.setLength(0);
+            StringBuilder output = new StringBuilder();
 
             try(BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;

@@ -13,6 +13,7 @@ import de.peeeq.wurstio.languageserver.requests.RunTests;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -38,7 +39,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Objects;
 
-import static com.google.common.io.Files.asCharSink;
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 import static javax.swing.SwingConstants.CENTER;
 
@@ -57,7 +57,7 @@ public class Main {
         WurstGui gui = null;
         RunArgs runArgs = new RunArgs(args);
         try {
-            if(runArgs.isLanguageServer()) {
+            if (runArgs.isLanguageServer()) {
                 WLogger.setLogger("languageServer");
             }
             logStartup(args);
@@ -199,10 +199,12 @@ public class Main {
 
     private static final String COMPAT_FOLDER = "compat\\";
 
-    /** Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP. */
+    /**
+     * Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP.
+     */
     private static void fixInstallation() throws Exception {
         String wc3Path = W3Utils.getGamePath();
-        if(wc3Path == null) {
+        if (wc3Path == null) {
             WLogger.severe("installation could not be found");
         }
         String compatPath = wc3Path + COMPAT_FOLDER;
@@ -335,7 +337,7 @@ public class Main {
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
         WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
         gui.sendProgress("Check input map");
-        if(mpqEditor != null && !mpqEditor.canWrite()) {
+        if (mpqEditor != null && !mpqEditor.canWrite()) {
             WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
                     "Please supply a valid .w3x input map that can be opened in the world editor.");
         }
@@ -371,7 +373,7 @@ public class Main {
             // tests
             gui.sendProgress("Running tests");
             System.out.println("Running tests");
-            RunTests runTests = new RunTests(null,0,0) {
+            RunTests runTests = new RunTests(null, 0, 0) {
                 @Override
                 protected void print(String message) {
                     out.print(message);
@@ -430,7 +432,7 @@ public class Main {
             outputMapscript = new File("./temp/output.j");
         }
         outputMapscript.getParentFile().mkdirs();
-        asCharSink(outputMapscript, Charsets.UTF_8).write(mapScript);
+        FileUtils.write(mapScript, outputMapscript);
 
         if (!runArgs.isDisablePjass()) {
             Result pJassResult = Pjass.runPjass(outputMapscript);

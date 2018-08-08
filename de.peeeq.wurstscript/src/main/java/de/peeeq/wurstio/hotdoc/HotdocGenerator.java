@@ -3,6 +3,7 @@ package de.peeeq.wurstio.hotdoc;
 import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -125,7 +126,7 @@ public class HotdocGenerator {
         WLogger.info(s);
         // TODO
         try {
-            asCharSink(new File(outputfolder + "/index.html"), Charsets.UTF_8).write(render(t, context));
+            FileUtils.write(render(t, context), new File(outputfolder + "/index.html"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -144,7 +145,7 @@ public class HotdocGenerator {
         WLogger.info(s);
         // TODO
         try {
-            asCharSink(new File(outputfolder + "/" + pack.getName() + ".html"), Charsets.UTF_8).write(render(t, context));
+            FileUtils.write(render(t, context), new File(outputfolder + "/" + pack.getName() + ".html"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

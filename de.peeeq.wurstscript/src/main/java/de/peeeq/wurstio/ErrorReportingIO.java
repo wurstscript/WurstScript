@@ -1,8 +1,8 @@
 package de.peeeq.wurstio;
 
-import com.google.common.base.Charsets;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.GuiUtils;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.ErrorReporting;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.utils.Utils;
@@ -11,8 +11,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.*;
 import java.net.*;
-
-import static com.google.common.io.Files.asCharSink;
 
 public class ErrorReportingIO extends ErrorReporting {
 
@@ -86,7 +84,7 @@ public class ErrorReportingIO extends ErrorReporting {
 
 
             try {
-                asCharSink(new File("errorreport_source.wurst"), Charsets.UTF_8).write(sourcecode);
+                FileUtils.write(sourcecode, new File("errorreport_source.wurst"));
             } catch (IOException e) {
                 WLogger.severe(e);
             }
