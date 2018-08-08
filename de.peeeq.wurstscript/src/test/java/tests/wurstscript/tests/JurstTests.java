@@ -4,6 +4,9 @@ import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
@@ -114,18 +117,17 @@ public class JurstTests extends WurstScriptTest {
     }
 
     @Test
-    public void testBigjassScript() { // #498
-        String jassCode = Utils.getResourceFile("test.j");
+    public void testBigJassScript() throws IOException {
+        String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
 
         String jurstCode = Utils.string(
                 "package test",
-                "	native testSuccess()",
                 "	init",
                 "		testSuccess()",
                 "	end",
                 "endpackage");
 
-        testJurstWithJass(true, false, jassCode, jurstCode);
+        testJurstWithJass(false, true, jassCode, jurstCode);
     }
 
     @Test

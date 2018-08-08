@@ -2220,7 +2220,6 @@ unit DummyRecycler_gettempReturn=null
 timer getTimertempReturn=null
 unit createUnittempReturn=null
 endglobals
-native UnitAlive takes unit id returns boolean
 function error takes string msg returns nothing
 	call BJDebugMsg(msg)
 endfunction
