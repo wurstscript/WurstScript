@@ -154,4 +154,10 @@ public class RealWorldExamples extends WurstScriptTest {
 
     }
 
+    @Test
+    public void forces_opt() throws IOException {
+        // see bug #700
+        super.testAssertOkFileWithStdLib(new File(BUG_DIR + "forces_opt.wurst"), false);
+    }
+
 }

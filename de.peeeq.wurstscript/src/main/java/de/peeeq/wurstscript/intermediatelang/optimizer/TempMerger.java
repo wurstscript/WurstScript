@@ -48,11 +48,11 @@ public class TempMerger implements OptimizerPass {
     private void optimizeStatements(ImStmts stmts) {
         Knowledge kn = new Knowledge();
 
-        Replacement replacement = null;
-        do { // repeat while there are changes found
+        while (true) { // repeat while there are changes found
             kn.clear();
             // this terminates, because each replacement eliminates one set-statement
             // FIXME this is no longer true, because assignments which are used more than once are not removed
+            List<Replacement> replacements = new ArrayList<>();
             for (ImStmt s : stmts) {
                 if (s instanceof ImSet) {
                     ImSet imSet = (ImSet) s;
@@ -67,15 +67,18 @@ public class TempMerger implements OptimizerPass {
                     }
                 }
 
-                replacement = processStatement(s, kn);
-                if (replacement != null) {
-                    // do the replacement
-                    totalMerged++;
-                    replacement.apply();
-                    break;
-                }
+
+                processStatement(s, kn, replacements);
             }
-        } while (replacement != null);
+            if (replacements.isEmpty()) {
+                break;
+            }
+            for (Replacement replacement : replacements) {
+                // do the replacement
+                totalMerged++;
+                replacement.apply();
+            }
+        }
 
         // process nested statements:
         for (ImStmt s : stmts) {
@@ -90,10 +93,10 @@ public class TempMerger implements OptimizerPass {
         }
     }
 
-    private @Nullable Replacement processStatement(ImStmt s, Knowledge kn) {
+    private void processStatement(ImStmt s, Knowledge kn, List<Replacement> replacements) {
         Replacement rep = getPossibleReplacement(s, kn);
         if (rep != null) {
-            return rep;
+            replacements.add(rep);
         }
         if (containsFuncCall(s)) {
             kn.invalidateGlobals();
@@ -112,7 +115,6 @@ public class TempMerger implements OptimizerPass {
             // TODO this could be more precise for local variables,
             // but for now we just forget everything if we see a loop or if statement
         }
-        return null;
     }
 
     private @Nullable Replacement getPossibleReplacement(Element elem, Knowledge kn) {
