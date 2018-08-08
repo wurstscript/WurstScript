@@ -17,11 +17,9 @@ import java.util.List;
 
 
 public class AntlrJassParseTreeTransformer {
-
     private String file;
     private ErrorHandler cuErrorHandler;
     private LineOffsets lineOffsets;
-    private boolean isJassCode = true;
 
     public AntlrJassParseTreeTransformer(String file,
                                          ErrorHandler cuErrorHandler, LineOffsets lineOffsets) {
@@ -74,13 +72,6 @@ public class AntlrJassParseTreeTransformer {
             return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
         }
         return Ast.Identifier(source(c), c.getText());
-    }
-
-    private String rawText(@Nullable ParserRuleContext c) {
-        if (c == null) {
-            return "";
-        }
-        return c.getText();
     }
 
     private JassToplevelDeclaration transformJassTypeDecl(JassParser.JassTypeDeclContext t) {
@@ -414,6 +405,11 @@ public class AntlrJassParseTreeTransformer {
 
     private String getStringVal(WPos source, String text) {
         StringBuilder res = new StringBuilder();
+        buildStringVal(source, text, res);
+        return res.toString();
+    }
+
+    public static void buildStringVal(WPos source, String text, StringBuilder res) {
         for (int i = 1; i < text.length() - 1; i++) {
             char c = text.charAt(i);
             if (c == '\\') {
@@ -445,7 +441,6 @@ public class AntlrJassParseTreeTransformer {
                 res.append(c);
             }
         }
-        return res.toString();
     }
 
     private FuncSig transformFuncSig(JassParser.JassFuncSignatureContext s) {
@@ -521,19 +516,6 @@ public class AntlrJassParseTreeTransformer {
             this.formalParameters = formalParameters;
             this.returnType = returnType;
         }
-
-    }
-
-    class ClassSlotResult {
-
-        public ClassDefs innerClasses = Ast.ClassDefs();
-        public ConstructorDefs constructors = Ast.ConstructorDefs();
-        public ModuleInstanciations moduleInstanciations = Ast
-                .ModuleInstanciations();
-        public GlobalVarDefs vars = Ast.GlobalVarDefs();
-        public FuncDefs methods = Ast.FuncDefs();
-        public ModuleUses moduleUses = Ast.ModuleUses();
-        public @Nullable OnDestroyDef onDestroy = null;
 
     }
 

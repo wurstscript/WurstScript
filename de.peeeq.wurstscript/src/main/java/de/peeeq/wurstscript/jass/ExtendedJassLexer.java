@@ -19,7 +19,6 @@ public class ExtendedJassLexer implements TokenSource {
     private @Nullable Token eof = null;
     private @Nullable Token firstNewline;
     private LineOffsets lineOffsets = new LineOffsets();
-    public StringBuilder debugSb = new StringBuilder();
     private final boolean debug = false;
     private Pair<TokenSource, CharStream> sourcePair;
 
@@ -27,12 +26,10 @@ public class ExtendedJassLexer implements TokenSource {
         INIT, NEWLINES, BEGIN_LINE
     }
 
-
     public ExtendedJassLexer(CharStream input) {
         orig = new JassLexer(input);
         sourcePair = new Pair<>(orig, input);
     }
-
 
     @Override
     public int getCharPositionInLine() {
@@ -63,7 +60,6 @@ public class ExtendedJassLexer implements TokenSource {
     public Token nextToken() {
         Token t = nextTokenIntern();
 
-        debugSb.append(t.getText()).append(" ");
         if (debug) WLogger.info("		new token: " + t);
         return t;
     }
@@ -76,7 +72,7 @@ public class ExtendedJassLexer implements TokenSource {
 
         Token eof_local = eof;
         if (eof_local != null) {
-            return makeToken(JassParser.EOF, "$EOF", eof_local.getStartIndex(), eof_local.getStopIndex());
+            return makeToken(JassParser.EOF, eof_local.getStartIndex(), eof_local.getStopIndex());
         }
 
 
@@ -97,7 +93,7 @@ public class ExtendedJassLexer implements TokenSource {
                 // at EOF close all blocks and return an extra newline
                 eof = token;
                 // add a single newline
-                return makeToken(JassParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
+                return makeToken(JassParser.NL, token.getStartIndex(), token.getStopIndex());
             }
 
             if (token.getType() == JassParser.ID
@@ -142,7 +138,7 @@ public class ExtendedJassLexer implements TokenSource {
         state = s;
     }
 
-    private Token makeToken(int type, String text, int start, int stop) {
+    private Token makeToken(int type, int start, int stop) {
         Pair<TokenSource, CharStream> source = sourcePair;
         int channel = 0;
         return new CommonToken(source, type, channel, start, stop);

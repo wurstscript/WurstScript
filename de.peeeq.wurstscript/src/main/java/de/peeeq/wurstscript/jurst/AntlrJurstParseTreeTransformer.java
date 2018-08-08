@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
+import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -1131,37 +1132,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private String getStringVal(WPos source, String text) {
         StringBuilder res = new StringBuilder();
-        for (int i = 1; i < text.length() - 1; i++) {
-            char c = text.charAt(i);
-            if (c == '\\') {
-                i++;
-                switch (text.charAt(i)) {
-                    case '\\':
-                        res.append('\\');
-                        break;
-                    case 'n':
-                        res.append('\n');
-                        break;
-                    case 'r':
-                        res.append('\r');
-                        break;
-                    case 't':
-                        res.append('\t');
-                        break;
-                    case '"':
-                        res.append('"');
-                        break;
-                    case '\'':
-                        res.append('\'');
-                        break;
-                    default:
-                        throw new CompileError(source, "Invalid escape sequence: "
-                                + text.charAt(i));
-                }
-            } else {
-                res.append(c);
-            }
-        }
+        AntlrJassParseTreeTransformer.buildStringVal(source, text, res);
         return res.toString();
     }
 
