@@ -114,6 +114,21 @@ public class JurstTests extends WurstScriptTest {
     }
 
     @Test
+    public void testBigjassScript() { // #498
+        String jassCode = Utils.getResourceFile("test.j");
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		testSuccess()",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
     public void logicalOperatorPrecedence() { // #641
         String jassCode = Utils.string(
                 "function foo takes nothing returns boolean",
