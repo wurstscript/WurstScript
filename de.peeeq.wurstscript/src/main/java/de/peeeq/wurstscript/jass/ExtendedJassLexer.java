@@ -24,7 +24,7 @@ public class ExtendedJassLexer implements TokenSource {
     private Pair<TokenSource, CharStream> sourcePair;
 
     enum State {
-        INIT, WRAP_CHAR, NEWLINES, BEGIN_LINE
+        INIT, NEWLINES, BEGIN_LINE
     }
 
 
@@ -110,44 +110,23 @@ public class ExtendedJassLexer implements TokenSource {
 
             switch (state) {
                 case INIT:
-                    if (isWrapCharEndLine(token.getType())) {
-                        state(State.WRAP_CHAR);
-                        return token;
-                    } else if (token.getType() == JassParser.NL) {
+                    if (token.getType() == JassParser.NL) {
                         firstNewline = token;
                         state(State.NEWLINES);
                         continue;
                     }
                     return token;
                 case NEWLINES:
-                    if (isWrapCharBeginLine(token.getType())) {
-                        // ignore all the newlines when a wrap char comes after newlines
-                        state(State.WRAP_CHAR);
-                        return token;
-                    } else if (token.getType() == JassParser.NL) {
+                    if (token.getType() == JassParser.NL) {
                         continue;
                     } else {
                         nextTokens.add(token);
                         state(State.INIT);
                         return firstNewline;
                     }
-                case WRAP_CHAR:
-                    if (isWrapCharEndLine(token.getType())) {
-                        return token;
-                    } else if (token.getType() == JassParser.NL) {
-                        // ignore newlines after wrap char
-                        continue;
-                    } else {
-                        state(State.INIT);
-                        return token;
-                    }
                 case BEGIN_LINE:
                     if (token.getType() == JassParser.NL) {
                         state(State.NEWLINES);
-                    } else if (isWrapCharBeginLine(token.getType())) {
-                        // ignore all the newlines when a wrap char comes after newlines
-                        state(State.WRAP_CHAR);
-                        return token;
                     } else {
                         state(State.INIT);
                         nextTokens.add(token);
@@ -163,50 +142,10 @@ public class ExtendedJassLexer implements TokenSource {
         state = s;
     }
 
-
-    private boolean isWrapChar(int type) {
-        switch (type) {
-            case JassParser.COMMA:
-            case JassParser.PLUS:
-            case JassParser.MULT:
-            case JassParser.MINUS:
-            case JassParser.DIV_REAL:
-            case JassParser.MOD_REAL:
-            case JassParser.AND:
-            case JassParser.OR:
-                return true;
-        }
-        return false;
-    }
-
-
-    private boolean isWrapCharEndLine(int type) {
-        switch (type) {
-            case JassParser.PAREN_LEFT:
-            case JassParser.BRACKET_LEFT:
-                return true;
-            default:
-                return isWrapChar(type);
-        }
-    }
-
-
-    private boolean isWrapCharBeginLine(int type) {
-        switch (type) {
-            case JassParser.PAREN_RIGHT:
-            case JassParser.BRACKET_RIGHT:
-                return true;
-            default:
-                return isWrapChar(type);
-        }
-    }
-
-
     private Token makeToken(int type, String text, int start, int stop) {
         Pair<TokenSource, CharStream> source = sourcePair;
         int channel = 0;
-        CommonToken t = new CommonToken(source, type, channel, start, stop);
-        return t;
+        return new CommonToken(source, type, channel, start, stop);
     }
 
     @Override
