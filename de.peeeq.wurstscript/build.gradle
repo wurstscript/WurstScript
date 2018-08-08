@@ -95,7 +95,7 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // Water's wc3 libs including Crigges' jmpq
-    compile 'com.github.inwc3:wc3libs:981af726bf'
+    compile 'com.github.inwc3:wc3libs:b0db329598'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:cc208dcc86'
