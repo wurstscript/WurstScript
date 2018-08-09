@@ -103,8 +103,8 @@ jassExpr:
     | left=jassExpr op=('<='|'<'|'>'|'>=') right=jassExpr
     | left=jassExpr op=('=='|'!=') right=jassExpr
     | op='not' right=jassExpr
-    | left=jassExpr op='and' right=jassExpr
     | left=jassExpr op='or' right=jassExpr
+    | left=jassExpr op='and' right=jassExpr
     |
     ;
 
