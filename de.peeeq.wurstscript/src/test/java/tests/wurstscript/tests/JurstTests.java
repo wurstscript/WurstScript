@@ -4,6 +4,9 @@ import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.annotations.Test;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 
@@ -132,6 +135,80 @@ public class JurstTests extends WurstScriptTest {
                 "endpackage");
 
         testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
+    public void validNames() { // #641
+        String jassCode = Utils.string(
+                "function foo takes nothing returns boolean",
+                "	local integer mod = 1",
+                "	local real skip = 1.",
+                "	return true",
+                "endfunction");
+
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo()",
+                "			testSuccess()",
+                "		end",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
+    public void returnDetection() { // #641
+        String jassCode = Utils.string(
+                "function foo takes integer a returns integer",
+                "	if false then",
+                "		return a",
+                "	else",
+                "		return -a",
+                "	endif",
+                "endfunction");
+
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo(1) == -1",
+                "			testSuccess()",
+                "		end",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
+    public void testBigJassScript() throws IOException {
+        String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	init",
+                "		testSuccess()",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(false, true, jassCode, jurstCode);
+    }
+
+    @Test
+    public void testJurstWrapping() throws IOException {
+        String jassCode = Utils.string(
+                "function foo takes integer a returns string",
+                "	return \"   ah \"",
+                "endfunction");
+
+        String jurstCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.jurst"))));
+
+        testJurstWithJass(false, true, jassCode, jurstCode);
     }
 
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {

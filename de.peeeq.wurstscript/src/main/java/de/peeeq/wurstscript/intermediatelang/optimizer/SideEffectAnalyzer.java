@@ -259,7 +259,7 @@ public class SideEffectAnalyzer {
     /**
      * Checks if two statements might affect each other.
      * When this returns true, it is certain that it does not matter whether stmt1 or stmt2 are called first
-     *
+     * <p>
      * The only difference between executing stmt1; stmt2 vs stmt2; stmt1 would be if one of the statement
      * crashes and thus the second statement would not be executed.
      * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
@@ -282,11 +282,13 @@ public class SideEffectAnalyzer {
      */
     public boolean cannotUseVar(ImStmt s, ImVar v) {
         if (v.isGlobal()) {
-            return !usedVariables(s).contains(v)
-                    && calledNatives(s).isEmpty();
+            Set<ImVar> imVars = usedVariables(s);
+            Set<ImFunction> imFunctions = calledNatives(s);
+            return !imVars.contains(v) && imFunctions.isEmpty();
         } else {
             // local variables
-            return directlyUsedVariables(s).contains(v);
+            Set<ImVar> imVars = directlyUsedVariables(s);
+            return !imVars.contains(v);
         }
     }
 

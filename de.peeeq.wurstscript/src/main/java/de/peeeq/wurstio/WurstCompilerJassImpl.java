@@ -571,7 +571,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         gui.sendProgress("Parsing File " + file.getName());
         String source = file.getAbsolutePath();
-        try (Reader reader = FileReading.getFileReader(file)){
+        try (Reader reader = FileReading.getFileReader(file)) {
             // scanning
             return parse(source, reader);
 
@@ -587,11 +587,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public CompilationUnit parse(String source, Reader reader) {
-        if (source.endsWith(".jurst") || source.endsWith(".j")) {
-            return parser.parseJurst(reader, source, hasCommonJ);
+    public CompilationUnit parse(String fileName, Reader reader) {
+        if (fileName.endsWith(".j")) {
+            return parser.parseJass(reader, fileName, hasCommonJ);
         }
-        return parser.parse(reader, source, hasCommonJ);
+        if (fileName.endsWith(".jurst")) {
+            return parser.parseJurst(reader, fileName, hasCommonJ);
+        }
+        return parser.parse(reader, fileName, hasCommonJ);
     }
 
     private CompilationUnit emptyCompilationUnit() {
