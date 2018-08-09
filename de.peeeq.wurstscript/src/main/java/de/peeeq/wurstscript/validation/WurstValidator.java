@@ -6,10 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.*;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -22,7 +19,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import de.peeeq.wurstscript.attributes.names.VarLink;
 
 /**
  * this class validates a wurstscript program
