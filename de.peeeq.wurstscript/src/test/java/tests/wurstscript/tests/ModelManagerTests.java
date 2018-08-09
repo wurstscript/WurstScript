@@ -1,6 +1,5 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
@@ -18,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static com.google.common.io.Files.asCharSink;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.testng.Assert.assertEquals;
