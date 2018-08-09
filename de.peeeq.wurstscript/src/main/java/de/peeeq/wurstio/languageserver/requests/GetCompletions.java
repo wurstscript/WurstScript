@@ -159,7 +159,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             while (scope != null) {
                 ImmutableMultimap<String, DefLink> visibleNames = scope.attrNameLinks();
                 completionsAddVisibleNames(alreadyEntered, completions, visibleNames, leftType, isMemberAccess, elem);
-                completionsAddVisibleExtensionFunctions(alreadyEntered, completions, visibleNames, leftType);
+                completionsAddVisibleExtensionFunctions(completions, visibleNames, leftType);
                 scope = scope.attrNextScope();
             }
         } else if (elem instanceof ExprRealVal) {
@@ -387,14 +387,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     }
 
-    private String firstPartOfDisplayString(String s) {
-        int p = s.indexOf("-");
-        if (p < 0) {
-            return s;
-        }
-        return s.substring(0, p);
-    }
-
     /**
      * get the part of the input which belongs to the identifier being entered currently
      */
@@ -501,10 +493,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
         rating = Math.min(10, rating);
         DecimalFormat format = new DecimalFormat("####.000");
         return format.format(10. - rating); // TODO add label?
-    }
-
-    private Range range(int line, int startCol, int endCol) {
-        return new Range(new Position(line, startCol), new Position(line, endCol));
     }
 
     private CompletionItem makeSimpleNameCompletion(String name) {
@@ -629,7 +617,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         return completion;
     }
 
-    private void completionsAddVisibleExtensionFunctions(String alreadyEntered, List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
+    private void completionsAddVisibleExtensionFunctions(List<CompletionItem> completions, Multimap<String, DefLink> visibleNames,
                                                          WurstType leftType) {
         for (Entry<String, DefLink> e : visibleNames.entries()) {
             if (!isSuitableCompletion(e.getKey())) {
@@ -646,109 +634,4 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
     }
 
-//    public static class CompletionItem implements Comparable<CompletionItem> {
-//        String label;
-//        CompletionItemKind kind;
-//        String detail;
-//        String documentation;
-//        TextEdit textEdit;
-//        double rating;
-//        List<ParamInfo> parameters;
-//
-//
-//        CompletionItem(String label) {
-//            this.label = label;
-//        }
-//
-//        public boolean equalsCompletion(CompletionItem other) {
-//            return Objects.equals(other.label, label)
-//                    && Objects.equals(other.parameters, parameters);
-//        }
-//
-//        @Override
-//        public int compareTo(CompletionItem o) {
-//            return Double.compare(rating, o.rating);
-//        }
-//
-//        public CompletionItem withDisableAction() {
-//            // TODO remove
-//            textEdit = null;
-//            return this;
-//        }
-//
-//        public String getDisplayString() {
-//            return label;
-//        }
-//
-//        public double getRating() {
-//            return rating;
-//        }
-//    }
-//
-//    public static class ParamInfo {
-//        String type;
-//        String name;
-//
-//        public ParamInfo(String type, String name) {
-//            this.type = type;
-//            this.name = name;
-//        }
-//
-//        @Override
-//        public int hashCode() {
-//            return Objects.hash(type, name);
-//        }
-//
-//        @Override
-//        public boolean equals(Object obj) {
-//            if (obj instanceof ParamInfo) {
-//                ParamInfo other = (ParamInfo) obj;
-//                return name.equals(other.name) && type.equals(other.type);
-//            }
-//            return false;
-//        }
-//    }
-//
-//    private static class TextEdit {
-//        Range range;
-//        String newText;
-//
-//        public TextEdit(Range range, String newText) {
-//            this.range = range;
-//            this.newText = newText;
-//        }
-//
-//        static TextEdit replace(Range range, String newText) {
-//            return new TextEdit(range, newText);
-//        }
-//
-//        static TextEdit insert(TextPos position, String newText) {
-//            return new TextEdit(new Range(position, position), newText);
-//        }
-//
-//        static TextEdit delete(Range range) {
-//            return new TextEdit(range, "");
-//        }
-//    }
-//
-//    private enum CompletionItemKind {
-//        Text,
-//        Method,
-//        Function,
-//        Constructor,
-//        Field,
-//        Variable,
-//        Class,
-//        Interface,
-//        Module,
-//        Property,
-//        Unit,
-//        Value,
-//        Enum,
-//        Keyword,
-//        Snippet,
-//        Color,
-//        File,
-//        Reference;
-//    }
 }

@@ -69,7 +69,6 @@ public class StmtTranslation {
 
     public static ImStmt translate(StmtForFrom s, ImTranslator t, ImFunction f) {
         Expr iterationTarget = s.getIn();
-        WurstType iteratorType = iterationTarget.attrTyp();
         // Type of loop Variable:
         WurstType loopVarType = s.getLoopVar().attrTyp();
         List<ImStmt> result = Lists.newArrayList();
@@ -135,8 +134,6 @@ public class StmtTranslation {
             FuncLink nextFunc = nextFuncOpt.get();
             FuncLink hasNextFunc = hasNextFuncOpt.get();
 
-            // Type of iterator variable:
-            WurstType iteratorType = iteratorFunc.getReturnType();
             // Type of loop Variable:
             WurstType loopVarType = forIn.getLoopVar().attrTyp();
 

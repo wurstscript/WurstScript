@@ -86,7 +86,6 @@ public class Pjass {
 
     }
 
-
     public static Result runPjass(File outputFile) {
         try {
             Process p;
@@ -103,17 +102,18 @@ public class Pjass {
                 args.add(0, "wine");
             }
             p = Runtime.getRuntime().exec(args.toArray(new String[0]));
-            BufferedReader input =
-                    new BufferedReader
-                            (new InputStreamReader(p.getInputStream()));
 
             StringBuilder output = new StringBuilder();
-            String line;
-            while ((line = input.readLine()) != null) {
-                WLogger.info(line);
-                output.append(line).append("\n");
+
+            try(BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                String line;
+                while ((line = input.readLine()) != null) {
+                    WLogger.info(line);
+                    output.append(line).append("\n");
+                }
             }
-            input.close();
+
+
 
             int exitValue = p.waitFor();
             if (exitValue != 0) {

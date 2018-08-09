@@ -9,10 +9,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 public class TempMerger implements OptimizerPass {
@@ -29,6 +26,9 @@ public class TempMerger implements OptimizerPass {
      */
     @Override
     public int optimize(ImTranslator trans) {
+        containsFuncCall.clear();
+        readsVar.clear();
+        readsGlobal.clear();
         ImProg prog = trans.getImProg();
         totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
@@ -154,52 +154,69 @@ public class TempMerger implements OptimizerPass {
         return null;
     }
 
+    private HashMap<Element, Boolean> containsFuncCall = new HashMap<>();
+
     private boolean containsFuncCall(Element elem) {
-        if (elem instanceof ImFunctionCall) {
-            return true;
-        }
-        // process children
-        for (int i = 0; i < elem.size(); i++) {
-            boolean r = containsFuncCall(elem.get(i));
-            if (r) {
+        if (!containsFuncCall.containsKey(elem)) {
+            if (elem instanceof ImFunctionCall) {
+                containsFuncCall.put(elem, true);
                 return true;
             }
+            // process children
+            boolean r = false;
+            for (int i = 0; i < elem.size(); i++) {
+                r = containsFuncCall(elem.get(i));
+                if (r) break;
+            }
+            containsFuncCall.put(elem, r);
+
         }
-        return false;
+        return containsFuncCall.get(elem);
     }
+
+    private HashMap<Element, Boolean> readsVar = new HashMap<>();
 
     private boolean readsVar(Element elem, ImVar left) {
-        if (elem instanceof ImVarRead) {
-            ImVarRead va = (ImVarRead) elem;
-            if (va.getVar() == left) {
-                return true;
+        if (!readsVar.containsKey(elem)) {
+            if (elem instanceof ImVarRead) {
+                ImVarRead va = (ImVarRead) elem;
+                if (va.getVar() == left) {
+                    readsVar.put(elem, true);
+                    return true;
+                }
             }
-        }
-        // process children
-        for (int i = 0; i < elem.size(); i++) {
-            boolean r = readsVar(elem.get(i), left);
-            if (r) {
-                return true;
+            boolean r = false;
+            // process children
+            for (int i = 0; i < elem.size(); i++) {
+                r = readsVar(elem.get(i), left);
+                if (r) break;
             }
+            readsVar.put(elem, r);
         }
-        return false;
+        return readsVar.get(elem);
     }
 
+    private HashMap<Element, Boolean> readsGlobal = new HashMap<>();
+
     private boolean readsGlobal(Element elem) {
-        if (elem instanceof ImVarRead) {
-            ImVarRead va = (ImVarRead) elem;
-            if (va.getVar().isGlobal()) {
-                return true;
+        if (!readsGlobal.containsKey(elem)) {
+            if (elem instanceof ImVarRead) {
+                ImVarRead va = (ImVarRead) elem;
+                if (va.getVar().isGlobal()) {
+                    readsGlobal.put(elem, true);
+                    return true;
+                }
             }
-        }
-        // process children
-        for (int i = 0; i < elem.size(); i++) {
-            boolean r = readsGlobal(elem.get(i));
-            if (r) {
-                return true;
+            boolean r = false;
+            // process children
+            for (int i = 0; i < elem.size(); i++) {
+                r = readsGlobal(elem.get(i));
+                if (r) break;
             }
+            readsGlobal.put(elem, r);
         }
-        return false;
+
+        return readsGlobal.get(elem);
     }
 
     class Replacement {
@@ -261,32 +278,20 @@ public class TempMerger implements OptimizerPass {
 
     class Knowledge {
 
-        private Map<ImVar, ImSet> currentValues = Maps.newLinkedHashMap();
+        private HashMap<ImVar, ImSet> currentValues = Maps.newLinkedHashMap();
+
+        List<ImVar> invalid = Lists.newArrayList();
 
         public void invalidateGlobals() {
             // invalidate all knowledge which might be based on global state
             // i.e. using a global var or calling a function
-            List<ImVar> invalid = Lists.newArrayList();
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                if (readsGlobal(e.getValue().getRight()) || containsFuncCall(e.getValue())) {
-                    invalid.add(e.getKey());
-                }
-            }
-            removeKnowledge(invalid);
-
+            currentValues.entrySet().removeIf(e -> readsGlobal(e.getValue().getRight()) || containsFuncCall(e.getValue()));
         }
 
         public void invalidateMutatingExpressions() {
             // invalidate all knowledge which can change global state
             // i.e. calling a function
-            List<ImVar> invalid = Lists.newArrayList();
-            for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                if (containsFuncCall(e.getValue())) {
-                    invalid.add(e.getKey());
-                }
-            }
-            removeKnowledge(invalid);
-
+            currentValues.entrySet().removeIf(e -> containsFuncCall(e.getValue()));
         }
 
         public void clear() {
@@ -346,19 +351,7 @@ public class TempMerger implements OptimizerPass {
             if (left.isGlobal()) {
                 invalidateGlobals();
             } else {
-                List<ImVar> invalid = Lists.newArrayList();
-                for (Entry<ImVar, ImSet> e : currentValues.entrySet()) {
-                    if (readsVar(e.getValue().getRight(), left)) {
-                        invalid.add(e.getKey());
-                    }
-                }
-                removeKnowledge(invalid);
-            }
-        }
-
-        public void removeKnowledge(List<ImVar> invalid) {
-            for (ImVar i : invalid) {
-                currentValues.remove(i);
+                currentValues.entrySet().removeIf(e -> readsVar(e.getValue().getRight(), left));
             }
         }
 

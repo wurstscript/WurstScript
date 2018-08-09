@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import static com.google.common.io.Files.asCharSink;
+
 public class WurstCompilerJassImpl implements WurstCompiler {
 
     private List<File> files = Lists.newArrayList();
@@ -470,7 +472,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     private void printDebugImProg(String debugFile) {
-        if (!errorHandler.isUnitTestMode()) {
+        if (!errorHandler.isUnitTestMode() ) {
             // output only in unit test mode
             return;
         }
@@ -480,26 +482,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
-            Files.write(sb.toString(), file, Charsets.UTF_8);
+            asCharSink(file, Charsets.UTF_8).write(sb.toString());
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
     }
-
-    //	private List<ModuleDef> getAllModules(CompilationUnit root) {
-    //		List<ModuleDef> result = Lists.newArrayList();
-    //		for (TopLevelDeclaration t : root) {
-    //			if (t instanceof WPackage) {
-    //				WPackage p = (WPackage) t;
-    //				for (WEntity e : p.getElements()) {
-    //					if (e instanceof ModuleDef) {
-    //						result.add((ModuleDef) e);
-    //					}
-    //				}
-    //			}
-    //		}
-    //		return result;
-    //	}
 
     private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");

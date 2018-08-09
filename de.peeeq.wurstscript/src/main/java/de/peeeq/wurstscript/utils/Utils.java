@@ -65,15 +65,15 @@ public class Utils {
         return result;
 
     }
-
-    // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
-    // func) {
-    // p = p.postOrderStart();
-    // while (p != null) {
-    // func.apply(p);
+    // }
+    // }
     // p = p.postOrder();
-    // }
-    // }
+    // func.apply(p);
+    // while (p != null) {
+    // p = p.postOrderStart();
+    // func) {
+    // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
+
 
 
     public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
@@ -141,29 +141,29 @@ public class Utils {
 
 
     public static <T> String join(Iterable<T> hints, String seperator) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : hints) {
             if (!first) {
-                result.append(seperator);
+                builder.append(seperator);
             }
-            result.append(s);
+            builder.append(s);
             first = false;
         }
-        return result.toString();
+        return builder.toString();
     }
 
     public static <T> String join(T[] arguments, String seperator) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : arguments) {
             if (!first) {
-                result.append(seperator);
+                builder.append(seperator);
             }
-            result.append(s);
+            builder.append(s);
             first = false;
         }
-        return result.toString();
+        return builder.toString();
     }
 
 
@@ -289,15 +289,16 @@ public class Utils {
             if (t.getTypeArgs().size() > 0) {
                 name += "{";
                 boolean first = true;
-                StringBuilder nameBuilder = new StringBuilder(name);
+                StringBuilder builder = new StringBuilder();
+                builder.append(name);
                 for (TypeExpr ta : t.getTypeArgs()) {
                     if (!first) {
-                        nameBuilder.append(", ");
+                        builder.append(", ");
                     }
-                    nameBuilder.append(printElement(ta));
+                    builder.append(printElement(ta));
                     first = false;
                 }
-                name = nameBuilder.toString();
+                name = builder.toString();
                 name += "}";
             }
             type = "type";
@@ -320,30 +321,30 @@ public class Utils {
     }
 
     public static String printStackTrace(StackTraceElement[] stackTrace) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         for (StackTraceElement s : stackTrace) {
-            sb.append(s.toString());
-            sb.append("\n");
+            builder.append(s.toString());
+            builder.append("\n");
         }
-        return sb.toString();
+        return builder.toString();
     }
 
     public static String printExceptionWithStackTrace(Throwable t) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(t);
-        sb.append("\n");
+        StringBuilder builder = new StringBuilder();
+        builder.append(t);
+        builder.append("\n");
         for (; ; ) {
             for (StackTraceElement s : t.getStackTrace()) {
-                sb.append(s.toString());
-                sb.append("\n");
+                builder.append(s.toString());
+                builder.append("\n");
             }
             t = t.getCause();
             if (t == null) {
                 break;
             }
-            sb.append("Caused by: ").append(t.toString()).append("\n");
+            builder.append("Caused by: ").append(t.toString()).append("\n");
         }
-        return sb.toString();
+        return builder.toString();
     }
 
 
@@ -604,32 +605,32 @@ public class Utils {
     }
 
     public static String escapeString(String v) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\"");
+        StringBuilder builder = new StringBuilder();
+        builder.append("\"");
         for (int i = 0; i < v.length(); i++) {
             char c = v.charAt(i);
             switch (c) {
                 case '\n':
-                    sb.append("\\n");
+                    builder.append("\\n");
                     break;
                 case '\r':
-                    sb.append("\\r");
+                    builder.append("\\r");
                     break;
                 case '\"':
-                    sb.append("\\\"");
+                    builder.append("\\\"");
                     break;
                 case '\t':
-                    sb.append("\\t");
+                    builder.append("\\t");
                     break;
                 case '\\':
-                    sb.append("\\\\");
+                    builder.append("\\\\");
                     break;
                 default:
-                    sb.append(c);
+                    builder.append(c);
             }
         }
-        sb.append("\"");
-        return sb.toString();
+        builder.append("\"");
+        return builder.toString();
     }
 
     public static String escapeHtml(String s) {

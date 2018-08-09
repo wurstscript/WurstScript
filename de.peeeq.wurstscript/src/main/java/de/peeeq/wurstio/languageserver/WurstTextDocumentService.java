@@ -42,7 +42,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams position) {
         WLogger.info("signatureHelp");
-        return worker.handle(new SignatureInfo(position, worker.getBufferManager()));
+        return worker.handle(new SignatureInfo(position));
     }
 
     @Override

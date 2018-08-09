@@ -25,20 +25,15 @@ import java.util.Set;
 public class StackTraceInjector2 {
 
     private static final int MAX_STACKTRACE_SIZE = 20;
-    private static final String WURST_STACK_TRACE = "wurstStackTrace";
     private ImProg prog;
-    private final ImTranslator tr;
     private ImVar stackSize;
     private ImVar stack;
 
     public StackTraceInjector2(ImProg prog, ImTranslator imTranslator2) {
         this.prog = prog;
-        tr = imTranslator2;
     }
 
     public void transform() {
-        // @Deprecated final Multimap<ImFunction, ImError> errorPrints =
-        // LinkedListMultimap.create();
         final Multimap<ImFunction, ImGetStackTrace> stackTraceGets = LinkedListMultimap.create();
         final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
         final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
@@ -258,7 +253,7 @@ public class StackTraceInjector2 {
             // remove stacktrace param
             params.remove(params.size() - 1);
             ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), params,
-                    (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
+                    f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
             prog.getFunctions().add(bridgeFunc);
 
             ImStmt stmt;

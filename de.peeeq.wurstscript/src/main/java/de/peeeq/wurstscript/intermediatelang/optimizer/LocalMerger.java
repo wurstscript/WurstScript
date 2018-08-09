@@ -136,69 +136,6 @@ public class LocalMerger implements OptimizerPass {
     }
 
 
-    private Multimap<ImStmt, ImVar> calculateLiveness_old(ImFunction func) {
-        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Set<ImVar>> in = new HashMap<>();
-        Map<Node, Set<ImVar>> out = new HashMap<>();
-        // init in and out with empty sets
-        List<Node> nodes = new ArrayList<>(cfg.getNodes());
-        // go through list in reverse order, because liveness flows backwards
-        Collections.reverse(nodes);
-
-
-        for (Node node : nodes) {
-            in.put(node, Collections.emptySet());
-            out.put(node, Collections.emptySet());
-        }
-        // calculate def- and use- sets for each node
-        Multimap<Node, ImVar> def = calculateDefs(nodes);
-        Multimap<Node, ImVar> use = calculateUses(nodes);
-        boolean changes = true;
-        int iterations = 0;
-        while (changes) {
-            iterations++;
-            changes = false;
-            for (Node node : nodes) {
-                // in[n] = use[n] + (out[n] - def[n])
-                Set<ImVar> newIn = new HashSet<>(out.get(node));
-                newIn.removeAll(def.get(node));
-                newIn.addAll(use.get(node));
-
-                // out[n] = union s in succ[n]: in[s]
-                Set<ImVar> newOut = new HashSet<>();
-                for (Node s : node.getSuccessors()) {
-                    newOut.addAll(in.get(s));
-                }
-
-                if (!newIn.equals(in.get(node))) {
-                    changes = true;
-                    in.put(node, newIn);
-                }
-                if (!newOut.equals(out.get(node))) {
-                    changes = true;
-                    out.put(node, newOut);
-                }
-            }
-        }
-//		System.out.println("result after " + iterations + " iterations with " + nodes.size() + " nodes in func " + func.getName());
-
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
-//		System.out.println("//#########################################");
-//		System.out.println("// liveness for " + func.getName());
-//		for (Node node : nodes) {
-//			System.out.println(" // " + in.get(node));
-//			System.out.println(node);
-//			System.out.println(" // " + out.get(node));
-//		}
-        for (Node node : nodes) {
-            ImStmt stmt = node.getStmt();
-            if (stmt != null) {
-                result.putAll(stmt, out.get(node));
-            }
-        }
-        return result;
-    }
-
     private Multimap<ImStmt, ImVar> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Set<ImVar>> in = new HashMap<>();
@@ -215,11 +152,11 @@ public class LocalMerger implements OptimizerPass {
         // calculate def- and use- sets for each node
         Multimap<Node, ImVar> def = calculateDefs(cfg.getNodes());
         Multimap<Node, ImVar> use = calculateUses(cfg.getNodes());
-        boolean changes = true;
-        int iterations = 0;
+//        boolean changes = true;
+//        int iterations = 0;
         while (!todo.isEmpty()) {
             Node node = todo.poll();
-            iterations++;
+//            iterations++;
             // in[n] = use[n] + (out[n] - def[n])
             Set<ImVar> newIn = new HashSet<>(out.get(node));
             newIn.removeAll(def.get(node));
@@ -245,8 +182,6 @@ public class LocalMerger implements OptimizerPass {
             }
         }
 //		System.out.println("result after " + iterations + " iterations in func " + func.getName());
-
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
 //		System.out.println("//#########################################");
 //		System.out.println("// liveness for " + func.getName());
 //		for (Node node : nodes) {
@@ -254,6 +189,8 @@ public class LocalMerger implements OptimizerPass {
 //			System.out.println(node);
 //			System.out.println(" // " + out.get(node));
 //		}
+
+        Multimap<ImStmt, ImVar> result = HashMultimap.create();
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {

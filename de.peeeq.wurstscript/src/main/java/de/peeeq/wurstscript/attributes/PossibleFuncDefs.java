@@ -141,9 +141,9 @@ public class PossibleFuncDefs {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw new EarlyReturn(Utils.getFirst(funcs));
+            throw EarlyReturn.get(Utils.getFirst(funcs));
         } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs2));
+            throw EarlyReturn.get(Utils.getFirst(funcs2));
         }
         return ImmutableList.copyOf(funcs2);
     }
@@ -175,9 +175,9 @@ public class PossibleFuncDefs {
         ImmutableList<FuncLink> funcs4 = funcs3.build();
         if (funcs4.size() == 0) {
             node.addError("Function " + funcName + " has a wrong receiver type.");
-            throw new EarlyReturn(Utils.getFirst(funcs));
+            throw EarlyReturn.get(Utils.getFirst(funcs));
         } else if (funcs.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs4));
+            throw EarlyReturn.get(Utils.getFirst(funcs4));
         }
         return funcs4;
     }

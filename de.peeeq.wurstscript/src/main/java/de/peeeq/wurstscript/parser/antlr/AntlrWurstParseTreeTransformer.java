@@ -614,19 +614,6 @@ public class AntlrWurstParseTreeTransformer {
         return ws;
     }
 
-    private AstElementWithArgs findRightmostFunctionCall(Element e) {
-        while (true) {
-            if (e instanceof AstElementWithArgs) {
-                return ((AstElementWithArgs) e);
-            }
-            if (e.size() == 0) {
-                return null;
-            }
-            // continue with rightmost expression
-            e = e.get(e.size() - 1);
-        }
-    }
-
     private Expr transformExternalLambda(ExternalLambdaContext el) {
         WShortParameters closureParams = transformShortFormalParameters(el.shortFormalParameters());
         WPos paramSource = source(el.shortFormalParameters());

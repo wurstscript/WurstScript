@@ -193,7 +193,7 @@ public class AttrFuncDef {
         if (localCount == 0) {
             return funcs;
         } else if (localCount == 1) {
-            throw new EarlyReturn(local);
+            throw EarlyReturn.get(local);
         }
         List<FuncLink> result = Lists.newArrayList();
         for (FuncLink n : funcs) {
@@ -251,12 +251,12 @@ public class AttrFuncDef {
             funcs4.add(f);
         }
         if (funcs4.size() == 0) {
-            throw new EarlyReturn(Utils.getFirst(funcs3));
+            throw EarlyReturn.get(Utils.getFirst(funcs3));
         } else if (funcs4.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs4));
+            throw EarlyReturn.get(Utils.getFirst(funcs4));
         } else if (argumentTypes.stream().anyMatch(t -> t instanceof WurstTypeUnknown)) {
             // if some argument type could not be determined, we don't want errors here, just take the first one
-            throw new EarlyReturn(Utils.getFirst(funcs4));
+            throw EarlyReturn.get(Utils.getFirst(funcs4));
         }
         return funcs4;
     }
@@ -271,9 +271,9 @@ public class AttrFuncDef {
             }
         }
         if (funcs3.size() == 0) {
-            throw new EarlyReturn(Utils.getFirst(funcs2));
+            throw EarlyReturn.get(Utils.getFirst(funcs2));
         } else if (funcs3.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs3));
+            throw EarlyReturn.get(Utils.getFirst(funcs3));
         }
         return funcs3;
     }
@@ -296,9 +296,9 @@ public class AttrFuncDef {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw new EarlyReturn(Utils.getFirst(funcs1));
+            throw EarlyReturn.get(Utils.getFirst(funcs1));
         } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs2));
+            throw EarlyReturn.get(Utils.getFirst(funcs2));
         }
         return funcs2;
     }
@@ -330,9 +330,9 @@ public class AttrFuncDef {
 
         if (funcs3.size() == 0) {
             node.addError("Function " + funcName + " dfopsdfmpso.");
-            throw new EarlyReturn(Utils.getFirst(funcs2));
+            throw EarlyReturn.get(Utils.getFirst(funcs2));
         } else if (funcs2.size() == 1) {
-            throw new EarlyReturn(Utils.getFirst(funcs3));
+            throw EarlyReturn.get(Utils.getFirst(funcs3));
         }
         return funcs3;
     }

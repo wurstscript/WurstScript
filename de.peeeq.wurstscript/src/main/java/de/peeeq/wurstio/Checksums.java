@@ -1,10 +1,8 @@
 package de.peeeq.wurstio;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
+import de.peeeq.wurstio.utils.FileUtils;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.DigestInputStream;
@@ -25,7 +23,7 @@ public class Checksums {
         List<Data> data = getData(dir);
         String out = printData(data);
         try {
-            Files.write(out, outFile, Charsets.UTF_8);
+            FileUtils.write(out, outFile);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -65,7 +63,7 @@ public class Checksums {
         try {
             byte[] buf = new byte[1024];
             MessageDigest md = MessageDigest.getInstance("MD5");
-            try (InputStream is = new FileInputStream(f);
+            try (InputStream is = java.nio.file.Files.newInputStream(f.toPath());
                  DigestInputStream dis = new DigestInputStream(is, md)) {
                 while (dis.read(buf) >= 0) ;
             }

@@ -26,10 +26,10 @@ import java.util.logging.Logger;
  * @author Frotty
  */
 public class AboutDialog extends javax.swing.JDialog {
-    final URI uri;
-    final static String homepage = "http://wurstscript.github.com/WurstScript/";
+    private final URI uri;
+    private final static String homepage = "http://wurstscript.github.com/WurstScript/";
+    private final static String authors = "peq & Frotty";
     public final static String version = CompileTimeInfo.version;
-    final static String authors = "peq & Frotty";
 
     /**
      * Creates new form AboutDialog
@@ -89,7 +89,7 @@ public class AboutDialog extends javax.swing.JDialog {
         logo.setName("logo"); // NOI18N
         logo.setLocation(0, 0);
 
-        heading.setFont(new java.awt.Font("Tahoma", Font.BOLD, 18)); // NOI18N
+        heading.setFont(new Font("Tahoma", Font.BOLD, 18)); // NOI18N
         heading.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         heading.setText("WurstScript");
         heading.setName("heading"); // NOI18N
@@ -100,15 +100,15 @@ public class AboutDialog extends javax.swing.JDialog {
         description.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         description.setName("description"); // NOI18N
 
-        versionTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
+        versionTitle.setFont(new Font("Tahoma", Font.BOLD, 11)); // NOI18N
         versionTitle.setText("Version:");
         versionTitle.setName("versionTitle"); // NOI18N
 
-        authorTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
+        authorTitle.setFont(new Font("Tahoma", Font.BOLD, 11)); // NOI18N
         authorTitle.setText("Authors:");
         authorTitle.setName("authorTitle"); // NOI18N
 
-        homepageTitle.setFont(new java.awt.Font("Tahoma", Font.BOLD, 11)); // NOI18N
+        homepageTitle.setFont(new Font("Tahoma", Font.BOLD, 11)); // NOI18N
         homepageTitle.setText("Homepage:");
         homepageTitle.setName("homepageTitle"); // NOI18N
 
