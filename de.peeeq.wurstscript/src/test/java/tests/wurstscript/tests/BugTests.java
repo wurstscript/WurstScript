@@ -987,4 +987,16 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void ticket706() {
+        testAssertErrorsLines(false, "Classes may only extend other classes",
+                "package Test",
+                "interface I",
+                "class A extends I",
+                "class B extends A",
+                "init",
+                "    new B()"
+        );
+    }
+
 }

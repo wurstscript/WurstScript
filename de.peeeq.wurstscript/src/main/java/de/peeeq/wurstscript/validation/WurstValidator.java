@@ -1264,6 +1264,9 @@ public class WurstValidator {
 
     private void visit(ClassDef classDef) {
         checkTypeName(classDef, classDef.getName());
+        if (!(classDef.getExtendedClass() instanceof NoTypeExpr) && !(classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass)) {
+            classDef.getExtendedClass().addError("Classes may only extend other classes.");
+        }
         if (classDef.isInnerClass() && !classDef.attrIsStatic()) {
             classDef.addError("At the moment only static inner classes are supported.");
         }
