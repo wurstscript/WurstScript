@@ -117,20 +117,6 @@ public class JurstTests extends WurstScriptTest {
     }
 
     @Test
-    public void testBigJassScript() throws IOException {
-        String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
-
-        String jurstCode = Utils.string(
-                "package test",
-                "	init",
-                "		testSuccess()",
-                "	end",
-                "endpackage");
-
-        testJurstWithJass(false, true, jassCode, jurstCode);
-    }
-
-    @Test
     public void logicalOperatorPrecedence() { // #641
         String jassCode = Utils.string(
                 "function foo takes nothing returns boolean",
@@ -197,6 +183,32 @@ public class JurstTests extends WurstScriptTest {
                 "endpackage");
 
         testJurstWithJass(true, false, jassCode, jurstCode);
+    }
+
+    @Test
+    public void testBigJassScript() throws IOException {
+        String jassCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.j"))));
+
+        String jurstCode = Utils.string(
+                "package test",
+                "	init",
+                "		testSuccess()",
+                "	end",
+                "endpackage");
+
+        testJurstWithJass(false, true, jassCode, jurstCode);
+    }
+
+    @Test
+    public void testJurstWrapping() throws IOException {
+        String jassCode = Utils.string(
+                "function foo takes integer a returns string",
+                "	return \"   ah \"",
+                "endfunction");
+
+        String jurstCode = new String(Files.readAllBytes(Paths.get(Utils.getResourceFile("test.jurst"))));
+
+        testJurstWithJass(false, true, jassCode, jurstCode);
     }
 
     private void testJurstWithJass(boolean executeProg, boolean withStdLib, String jass, String jurst) {
