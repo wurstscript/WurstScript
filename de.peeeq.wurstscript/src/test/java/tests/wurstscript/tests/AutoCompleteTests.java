@@ -366,8 +366,9 @@ public class AutoCompleteTests extends WurstScriptTest {
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
         BufferManager bufferManager = new BufferManager();
-        ModelManager modelManager = new ModelManagerImpl(new File("."), bufferManager);
-        String uri = "file:///tmp/test.wurst";
+        File projectPath = new File("./test-output").getAbsoluteFile();
+        ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
+        String uri = projectPath.toURI().toString() + "/wurst/test.wurst";
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);
