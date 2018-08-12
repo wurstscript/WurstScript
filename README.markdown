@@ -19,8 +19,8 @@ For a formal description of all features, visit the [Manual](https://wurstscript
 
 Please report any bugs your encounter with our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues).
 Include as much information as possible, ideally with logs. 
-Logfiles are located in your operating system's `Temp` folder under `wurst`.
-Find the last modified file and copy it's contents.
+Logfiles are located in your home folder under `~/.wurst/logs`.
+Find the last modified file and pastebin it's contents.
 
 ## Contributing
 
