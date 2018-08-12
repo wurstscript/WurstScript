@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -46,10 +47,9 @@ public class AttrFuncDef {
             node.addError("Could not find a function with name " + node.getFuncName());
             return null;
         }
-        try {
-            funcs = filterInvisible(node.getFuncName(), node, funcs);
-        } catch (EarlyReturn e) {
-            return e.getFunc();
+        funcs = filterInvisible(node.getFuncName(), node, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
         }
         if (funcs.size() > 1) {
             node.addError("Reference to function " + node.getFuncName() + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
@@ -159,28 +159,38 @@ public class AttrFuncDef {
             }
             node.addError("Reference to function " + funcName + " could not be resolved.");
             return null;
+        } else if (funcs1.size() == 1) {
+            return Utils.getFirst(funcs1);
         }
-        try {
-            // filter out the methods which are private somewhere else
-            List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
-
-            funcs = filterByReceiverType(node, funcName, funcs);
-
-            funcs = filterByParameters(node, argumentTypes, funcs);
-
-            funcs = useLocalPackageIfPossible(node, funcs);
-
-            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
-                    + Utils.printAlternatives(funcs));
+        // filter out the methods which are private somewhere else
+        List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        if (funcs.size() == 1) {
             return Utils.getFirst(funcs);
-        } catch (EarlyReturn e) {
-            return e.getFunc();
         }
+
+        funcs = filterByReceiverType(node, funcName, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        funcs = filterByParameters(node, argumentTypes, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        funcs = useLocalPackageIfPossible(node, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
+                + Utils.printAlternatives(funcs));
+        return Utils.getFirst(funcs);
     }
 
 
     private static List<FuncLink> useLocalPackageIfPossible(FuncRef node,
-                                                            List<FuncLink> funcs) throws EarlyReturn {
+                                                            List<FuncLink> funcs) {
         int localCount = 0;
         FuncLink local = null;
         PackageOrGlobal myPackage = node.attrNearestPackage();
@@ -193,7 +203,7 @@ public class AttrFuncDef {
         if (localCount == 0) {
             return funcs;
         } else if (localCount == 1) {
-            throw EarlyReturn.get(local);
+            return ImmutableList.of(local);
         }
         List<FuncLink> result = Lists.newArrayList();
         for (FuncLink n : funcs) {
@@ -210,27 +220,38 @@ public class AttrFuncDef {
         if (funcs1.size() == 0) {
             return null;
         }
-        try {
-            // filter out the methods which are private somewhere else
-            List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
-
-            // chose method with most specific receiver type
-            funcs = filterByReceiverType(node, funcName, funcs);
-            funcs = filterByParameters(node, argumentTypes, funcs);
-
-            node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
-            return Utils.getFirst(funcs);
-        } catch (EarlyReturn e) {
-            return e.getFunc();
+        if (funcs1.size() == 1) {
+            return Utils.getFirst(funcs1);
         }
+        // filter out the methods which are private somewhere else
+        List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        // chose method with most specific receiver type
+        funcs = filterByReceiverType(node, funcName, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        funcs = filterByParameters(node, argumentTypes, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
+        node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
+        return Utils.getFirst(funcs);
     }
 
 
     private static List<FuncLink> filterByParameters(Element node,
-                                                     List<WurstType> argumentTypes, List<FuncLink> funcs)
-            throws EarlyReturn {
+                                                     List<WurstType> argumentTypes, List<FuncLink> funcs) {
         // filter out methods with wrong number of params
         funcs = filterByParamaeterNumber(argumentTypes, funcs);
+        if (funcs.size() == 1) {
+            return funcs;
+        }
 
         // filter out methods for which the arguments have wrong types
         funcs = filterByParameterTypes(node, argumentTypes, funcs);
@@ -239,7 +260,7 @@ public class AttrFuncDef {
 
 
     private static List<FuncLink> filterByParameterTypes(
-            Element node, List<WurstType> argumentTypes, List<FuncLink> funcs3) throws EarlyReturn {
+            Element node, List<WurstType> argumentTypes, List<FuncLink> funcs3) {
         List<FuncLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
         nextFunc:
         for (FuncLink f : funcs3) {
@@ -251,18 +272,18 @@ public class AttrFuncDef {
             funcs4.add(f);
         }
         if (funcs4.size() == 0) {
-            throw EarlyReturn.get(Utils.getFirst(funcs3));
+            return ImmutableList.of(Utils.getFirst(funcs3));
         } else if (funcs4.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs4));
+            return ImmutableList.of(Utils.getFirst(funcs4));
         } else if (argumentTypes.stream().anyMatch(t -> t instanceof WurstTypeUnknown)) {
             // if some argument type could not be determined, we don't want errors here, just take the first one
-            throw EarlyReturn.get(Utils.getFirst(funcs4));
+            return ImmutableList.of(Utils.getFirst(funcs4));
         }
         return funcs4;
     }
 
 
-    private static List<FuncLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<FuncLink> funcs2) throws EarlyReturn {
+    private static List<FuncLink> filterByParamaeterNumber(List<WurstType> argumentTypes, List<FuncLink> funcs2) {
         List<FuncLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
         for (FuncLink f : funcs2) {
             if (f.getParameterTypes().size() == argumentTypes.size()
@@ -271,15 +292,13 @@ public class AttrFuncDef {
             }
         }
         if (funcs3.size() == 0) {
-            throw EarlyReturn.get(Utils.getFirst(funcs2));
-        } else if (funcs3.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs3));
+            return Collections.singletonList(Utils.getFirst(funcs2));
         }
         return funcs3;
     }
 
 
-    private static List<FuncLink> filterInvisible(String funcName, Element node, Collection<FuncLink> funcs1) throws EarlyReturn {
+    private static List<FuncLink> filterInvisible(String funcName, Element node, Collection<FuncLink> funcs1) {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return Lists.newArrayList(funcs1);
@@ -296,16 +315,14 @@ public class AttrFuncDef {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw EarlyReturn.get(Utils.getFirst(funcs1));
-        } else if (funcs2.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs2));
+            return ImmutableList.of(Utils.getFirst(funcs1));
         }
         return funcs2;
     }
 
 
     private static List<FuncLink> filterByReceiverType(Element node,
-                                                       String funcName, List<FuncLink> funcs2) throws EarlyReturn {
+                                                       String funcName, List<FuncLink> funcs2) {
         List<FuncLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
         for (FuncLink f : funcs2) {
             boolean existsMoreSpecific = false;
@@ -330,9 +347,7 @@ public class AttrFuncDef {
 
         if (funcs3.size() == 0) {
             node.addError("Function " + funcName + " dfopsdfmpso.");
-            throw EarlyReturn.get(Utils.getFirst(funcs2));
-        } else if (funcs2.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs3));
+            return ImmutableList.of(Utils.getFirst(funcs2));
         }
         return funcs3;
     }

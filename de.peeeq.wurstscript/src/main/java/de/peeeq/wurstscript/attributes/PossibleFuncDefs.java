@@ -33,11 +33,7 @@ public class PossibleFuncDefs {
         } else {
             funcs = node.lookupFuncs(node.getFuncName());
         }
-        try {
-            funcs = filterInvisible(node.getFuncName(), node, funcs);
-        } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
-        }
+        funcs = filterInvisible(node.getFuncName(), node, funcs);
         return ImmutableList.copyOf(funcs);
     }
 
@@ -93,16 +89,15 @@ public class PossibleFuncDefs {
             node.addError("Reference to function " + funcName + " could not be resolved.");
             return ImmutableList.of();
         }
-        try {
-            // filter out the methods which are private somewhere else
-            ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
-
-            funcs = filterByReceiverType(node, funcName, funcs);
-
+        // filter out the methods which are private somewhere else
+        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        if (funcs.size() <= 1) {
             return funcs;
-        } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
         }
+
+        funcs = filterByReceiverType(node, funcName, funcs);
+
+        return funcs;
     }
 
 
@@ -111,20 +106,19 @@ public class PossibleFuncDefs {
         if (funcs1.size() == 0) {
             return ImmutableList.of();
         }
-        try {
-            // filter out the methods which are private somewhere else
-            ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
-
-            // chose method with most specific receiver type
-            funcs = filterByReceiverType(node, funcName, funcs);
+        // filter out the methods which are private somewhere else
+        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        if (funcs.size() <= 1) {
             return funcs;
-        } catch (EarlyReturn e) {
-            return ImmutableList.of(e.getFunc());
         }
+
+        // chose method with most specific receiver type
+        funcs = filterByReceiverType(node, funcName, funcs);
+        return funcs;
     }
 
 
-    private static ImmutableCollection<FuncLink> filterInvisible(String funcName, Element node, ImmutableCollection<FuncLink> funcs) throws EarlyReturn {
+    private static ImmutableCollection<FuncLink> filterInvisible(String funcName, Element node, ImmutableCollection<FuncLink> funcs) {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
             return funcs;
@@ -141,16 +135,14 @@ public class PossibleFuncDefs {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            throw EarlyReturn.get(Utils.getFirst(funcs));
-        } else if (funcs2.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs2));
+            return ImmutableList.of(Utils.getFirst(funcs));
         }
         return ImmutableList.copyOf(funcs2);
     }
 
 
     private static ImmutableList<FuncLink> filterByReceiverType(Element node,
-                                                                String funcName, ImmutableCollection<FuncLink> funcs) throws EarlyReturn {
+                                                                String funcName, ImmutableCollection<FuncLink> funcs) {
         ImmutableList.Builder<FuncLink> funcs3 = ImmutableList.builder();
         for (FuncLink f : funcs) {
             boolean existsMoreSpecific = false;
@@ -175,9 +167,7 @@ public class PossibleFuncDefs {
         ImmutableList<FuncLink> funcs4 = funcs3.build();
         if (funcs4.size() == 0) {
             node.addError("Function " + funcName + " has a wrong receiver type.");
-            throw EarlyReturn.get(Utils.getFirst(funcs));
-        } else if (funcs.size() == 1) {
-            throw EarlyReturn.get(Utils.getFirst(funcs4));
+            return ImmutableList.of(Utils.getFirst(funcs));
         }
         return funcs4;
     }
