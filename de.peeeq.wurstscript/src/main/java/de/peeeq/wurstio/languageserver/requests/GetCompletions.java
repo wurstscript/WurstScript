@@ -70,6 +70,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
     public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        if (cu == null) {
+            return new CompletionList(Collections.emptyList());
+        }
         List<CompletionItem> result = computeCompletionProposals(cu);
         // sort: highest rating first, then sort by label
         if (result != null) {

@@ -5,6 +5,7 @@ import com.google.common.collect.*;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.ModelChangedException;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -33,7 +34,7 @@ public class ModelManagerImpl implements ModelManager {
     private volatile @Nullable WurstModel model;
     private File projectPath;
     // dependency folders (folders mentioned in wurst.dependencies)
-    private final Set<String> dependencies = Sets.newLinkedHashSet();
+    private final Set<File> dependencies = Sets.newLinkedHashSet();
     // private WurstGui gui = new WurstGuiLogger();
     private List<Consumer<PublishDiagnosticsParams>> onCompilationResultListeners = new ArrayList<>();
     // compile errors for each file
@@ -165,7 +166,7 @@ public class ModelManagerImpl implements ModelManager {
                 offset = endOffset;
             }
         }
-
+        WurstCompilerJassImpl.addDependenciesFromFolder(projectPath, dependencies);
     }
 
     private String getCanonicalPath(File f) {
@@ -190,7 +191,7 @@ public class ModelManagerImpl implements ModelManager {
             return;
         }
 
-        dependencies.add(fileName);
+        dependencies.add(new File(fileName));
     }
 
     private List<CompilationUnit> getCompilationUnits(List<WFile> fileNames) {
@@ -331,7 +332,7 @@ public class ModelManagerImpl implements ModelManager {
 
     private WurstCompilerJassImpl getCompiler(WurstGui gui) {
         RunArgs runArgs = RunArgs.defaults();
-        runArgs.addLibs(dependencies);
+        runArgs.addLibDirs(dependencies);
         WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, runArgs);
         comp.setHasCommonJ(true);
         return comp;
@@ -455,6 +456,9 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
+        if (!isInWurstFolder(filename)) {
+            return null;
+        }
         if (fileHashcodes.containsKey(filename)) {
             int oldHash = fileHashcodes.get(filename);
             WLogger.info("oldHash = " + oldHash + " == " + contents.hashCode());
@@ -602,8 +606,8 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public synchronized Set<File> getDependencyWurstFiles() {
         Set<File> result = Sets.newHashSet();
-        for (String dep : dependencies) {
-            addDependencyWurstFiles(result, new File(dep));
+        for (File dep : dependencies) {
+            addDependencyWurstFiles(result, dep);
         }
         return result;
     }
@@ -621,5 +625,15 @@ public class ModelManagerImpl implements ModelManager {
     private WFile wFile(CompilationUnit cu) {
         return compilationunitFile.computeIfAbsent(cu, c -> WFile.create(cu.getFile()));
     }
+
+    /**
+     * checks if the given file is in the wurst folder or inside a dependency
+     */
+    private boolean isInWurstFolder(WFile file) {
+        return Stream.concat(Stream.of(projectPath), dependencies.stream()).anyMatch(p ->
+                FileUtils.isInDirectoryTrans(file, WFile.create(new File(p, "wurst"))));
+
+    }
+
 
 }

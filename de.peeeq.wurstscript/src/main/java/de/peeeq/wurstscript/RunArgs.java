@@ -254,6 +254,10 @@ public class RunArgs {
         }
     }
 
+    public void addLibDirs(Set<File> dependencies) {
+        libDirs.addAll(dependencies);
+    }
+
     public boolean showHelp() {
         return optionHelp.isSet;
     }

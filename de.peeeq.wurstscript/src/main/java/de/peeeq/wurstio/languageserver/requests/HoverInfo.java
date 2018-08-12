@@ -40,6 +40,9 @@ public class HoverInfo extends UserRequest<Hover> {
     @Override
     public Hover execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        if (cu == null) {
+            return new Hover(Collections.singletonList(Either.forLeft("File " + filename + " is not part of the project. Move it to the wurst folder.")));
+        }
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("hovering over " + Utils.printElement(e));
         Hover res = new Hover(e.match(new Description()));

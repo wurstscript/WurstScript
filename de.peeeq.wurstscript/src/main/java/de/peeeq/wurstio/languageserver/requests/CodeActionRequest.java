@@ -50,6 +50,9 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             return Collections.emptyList();
         }
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        if (cu == null) {
+            return Collections.emptyList();
+        }
         // get element under cursor
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
 

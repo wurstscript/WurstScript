@@ -8,6 +8,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -28,6 +29,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.*;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -143,18 +145,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // import wurst folder if it exists
         File l_mapFile = mapFile;
         if (l_mapFile != null) {
-            File relativeWurstDir = new File(l_mapFile.getParentFile(), "wurst");
+            File projectFolder = l_mapFile.getParentFile();
+            File relativeWurstDir = new File(projectFolder, "wurst");
             if (relativeWurstDir.exists()) {
                 WLogger.info("Importing wurst files from " + relativeWurstDir);
                 loadWurstFilesInDir(relativeWurstDir);
             } else {
                 WLogger.info("No wurst folder found in " + relativeWurstDir);
             }
-            File dependencyFile = new File(l_mapFile.getParentFile(), "wurst.dependencies");
+            File dependencyFile = new File(projectFolder, "wurst.dependencies");
             if (dependencyFile.exists()) {
                 addDependencyFile(dependencyFile);
             }
-
+            addDependenciesFromFolder(projectFolder, dependencies);
         }
 
         // add directories:
@@ -210,6 +213,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         WLogger.info("Compiling compilation units: " + sb);
 
         return merged;
+    }
+
+    /**
+     * Adds dependencies from the _build/dependencies folder
+     */
+    public static void addDependenciesFromFolder(File projectFolder, Collection<File> dependencies) {
+        File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
+        File[] depProjects = dependencyFolder.listFiles();
+        if (depProjects != null) {
+            for (File depFile : depProjects) {
+                if (depFile.isDirectory()
+                        && dependencies.stream().noneMatch(f -> FileUtils.sameFile(f, depFile))) {
+                    dependencies.add(depFile);
+                }
+            }
+        }
     }
 
     /**
