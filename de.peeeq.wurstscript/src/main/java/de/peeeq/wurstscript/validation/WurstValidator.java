@@ -432,7 +432,7 @@ public class WurstValidator {
         if (def != e && def instanceof NativeType) {
             e.addError(
                     "The name '" + name + "' is already used as a native type in " + Utils.printPos(def.getSource()));
-        } else {
+        } else if (!e.attrSource().getFile().endsWith(".j")) {{
             switch (name) {
                 case "int":
                 case "integer":
