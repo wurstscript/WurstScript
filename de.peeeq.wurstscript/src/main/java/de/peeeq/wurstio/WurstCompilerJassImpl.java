@@ -393,8 +393,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
         }
 
-        printDebugImProg("./test-output/test_opt.im");
-
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
         getImProg().flatten(imTranslator2);
@@ -423,6 +421,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(10, "local optimizations");
             optimizer.localOptimizations();
         }
+
+        printDebugImProg("./test-output/im " + stage++ + "_afterlocalopts.im");
 
         if (runArgs.isNullsetting()) {
             beginPhase(11, "null setting");

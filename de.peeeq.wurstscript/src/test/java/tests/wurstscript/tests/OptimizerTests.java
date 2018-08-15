@@ -720,6 +720,22 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
-
+    @Test
+    public void optimizeDuplicateNullSets() throws IOException {
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "var x = 100",
+                "init",
+                "	unit u = createUnit(Player(0), 'hfoo', vec2(0,0), angle(0))",
+                "	print(u.getTypeId())",
+                "	print(u.getTypeId() + 1)",
+                "	print(u.getTypeId() + 2)",
+                "	testSuccess()",
+                "	u = null",
+                "	u = null"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_optimizeDuplicateNullSets_opt.j"), Charsets.UTF_8);
+        assertEquals(compiledAndOptimized.indexOf("u = null"), compiledAndOptimized.lastIndexOf("u = null"));
+    }
 
 }

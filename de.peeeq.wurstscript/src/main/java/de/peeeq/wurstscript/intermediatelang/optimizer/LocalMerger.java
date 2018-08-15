@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
@@ -35,12 +36,12 @@ public class LocalMerger implements OptimizerPass {
     }
 
     private void optimizeFunc(ImFunction func) {
-        Multimap<ImStmt, ImVar> livenessInfo = calculateLiveness(func);
+        Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, func);
     }
 
-    private void mergeLocals(Multimap<ImStmt, ImVar> livenessInfo, ImFunction func) {
+    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
         Multimap<ImVar, ImVar> inferenceGraph = calculateInferenceGraph(livenessInfo);
 
         // priority queue, sorted by number of inferring vars
@@ -102,7 +103,7 @@ public class LocalMerger implements OptimizerPass {
         });
     }
 
-    private Multimap<ImVar, ImVar> calculateInferenceGraph(Multimap<ImStmt, ImVar> livenessInfo) {
+    private Multimap<ImVar, ImVar> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
         Multimap<ImVar, ImVar> inferenceGraph = HashMultimap.create();
         for (ImStmt s : livenessInfo.keySet()) {
             Collection<ImVar> live = livenessInfo.get(s);
@@ -117,7 +118,7 @@ public class LocalMerger implements OptimizerPass {
         return inferenceGraph;
     }
 
-    private void eliminateDeadCode(Multimap<@NonNull ImStmt, @NonNull ImVar> livenessInfo) {
+    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
         for (ImStmt s : livenessInfo.keySet()) {
             if (s instanceof ImSet) {
                 ImSet imSet = (ImSet) s;
@@ -136,7 +137,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
 
-    private Multimap<ImStmt, ImVar> calculateLiveness(ImFunction func) {
+    private Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Set<ImVar>> in = new HashMap<>();
         Map<Node, Set<ImVar>> out = new HashMap<>();
@@ -190,11 +191,11 @@ public class LocalMerger implements OptimizerPass {
 //			System.out.println(" // " + out.get(node));
 //		}
 
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
+        Map<ImStmt, Set<ImVar>> result = new HashMap<>();
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
-                result.putAll(stmt, out.get(node));
+                result.put(stmt, ImmutableSet.copyOf(out.get(node)));
             }
         }
         return result;

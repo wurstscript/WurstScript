@@ -387,6 +387,7 @@ public class WurstScriptTest {
         }
 
         JassProg prog = compiler.transformProgToJass();
+        writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {
             throw gui.getErrorList().get(0);
         }
