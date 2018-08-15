@@ -78,7 +78,7 @@ public class TypeNameLinks {
 
     public static ImmutableMultimap<String, TypeLink> calculate(WurstModel model) {
         ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
-        for (CompilationUnit cu : model) {
+        for (CompilationUnit cu : model.attrCompilationUnits()) {
             result.putAll(cu.attrTypeNameLinks());
         }
         return result.build();

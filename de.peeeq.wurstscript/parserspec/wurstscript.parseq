@@ -5,7 +5,15 @@ abstract syntax:
 
 Identifier(de.peeeq.wurstscript.parser.WPos source, String name)
 
-WurstModel * CompilationUnit
+OptIdentifier = Identifier | NoIdentifier()
+
+WurstModel(java.io.File projectRoot, Libraries libraries)
+
+Libraries * Library
+
+Library(String libraryName, java.util.Set<String> dependencies, CompilationUnits compilationUnits)
+
+CompilationUnits * CompilationUnit
 
 CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
 	JassToplevelDeclarations jassDecls, WPackages packages)
@@ -24,7 +32,7 @@ WPackage(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifie
 WImports * WImport
 WEntities * WEntity
 
-WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, boolean isInitLater, Identifier packagenameId)
+WImport(de.peeeq.wurstscript.parser.WPos source, boolean isPublic, boolean isInitLater, OptIdentifier dependencyId, Identifier packagenameId)
 
 WEntity =
 	  TypeDef
@@ -637,12 +645,29 @@ ConstructorDef.attrSuperConstructor
 	returns ConstructorDef
 	implemented by de.peeeq.wurstscript.attributes.SubClasses.getSuperConstructor
 
+WurstModel.attrCompilationUnits()
+    returns java.util.List<CompilationUnit>
+    implemented by de.peeeq.wurstscript.attributes.ModelAttributes.getCompilationUnits
 
+WurstModel.stream()
+    returns java.util.stream.Stream<CompilationUnit>
+    implemented by de.peeeq.wurstscript.attributes.ModelAttributes.getCompilationUnitsStream
+
+WurstModel.contains(CompilationUnit cu)
+    returns boolean
+    implemented by de.peeeq.wurstscript.attributes.ModelAttributes.containsCompilationUnit
 
 WurstModel.attrPackages
-	returns com.google.common.collect.ImmutableMap<String, WPackage>
+	returns com.google.common.collect.ImmutableMultimap<String, WPackage>
 	implemented by de.peeeq.wurstscript.attributes.AttrImportedPackage.getPackages
 
+CompilationUnit.attrLibrary()
+    returns Library
+    implemented by de.peeeq.wurstscript.attributes.ModelAttributes.getLibrary
+
+CompilationUnit.attrLibraryName()
+    returns String
+    implemented by de.peeeq.wurstscript.attributes.ModelAttributes.getLibraryName
 
 Element.getModel()
 	returns WurstModel
@@ -1011,7 +1036,7 @@ NameDef.getName()
 WImport.getPackagename()
 	returns String    
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getPackagename
-	
+
 	
 ExprNewObject.getTypeName()
 	returns String    

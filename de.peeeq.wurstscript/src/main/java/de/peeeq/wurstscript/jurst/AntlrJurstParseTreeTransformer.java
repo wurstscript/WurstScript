@@ -217,7 +217,7 @@ public class AntlrJurstParseTreeTransformer {
         WImports imports = Ast.WImports();
 
         for (IdContext i : p.requires) {
-            imports.add(Ast.WImport(source(i), true, false, text(i)));
+            imports.add(Ast.WImport(source(i), true, false, Ast.NoIdentifier(), text(i)));
         }
 
         for (WImportContext i : p.imports) {
@@ -1255,7 +1255,7 @@ public class AntlrJurstParseTreeTransformer {
     private WImport transformImport(WImportContext i) {
         // TODO initlater
         return Ast.WImport(source(i), i.isPublic != null,
-                i.isInitLater != null, text(i.importedPackage));
+                i.isInitLater != null, Ast.NoIdentifier(), text(i.importedPackage));
     }
 
     private WPos source(ParserRuleContext p) {

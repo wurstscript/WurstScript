@@ -71,6 +71,14 @@ public class AntlrWurstParseTreeTransformer {
         throw error(d, "unhandled case: " + text(d));
     }
 
+
+    private OptIdentifier textOpt(@Nullable Token t) {
+        if (t == null) {
+            return Ast.NoIdentifier();
+        }
+        return Ast.Identifier(source(t), t.getText());
+    }
+
     private Identifier text(@Nullable Token t) {
         if (t == null) {
             return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
@@ -1291,7 +1299,7 @@ public class AntlrWurstParseTreeTransformer {
     private WImport transformImport(WImportContext i) {
         // TODO initlater
         return Ast.WImport(source(i), i.isPublic != null,
-                i.isInitLater != null, text(i.importedPackage));
+                i.isInitLater != null, textOpt(i.dependency), text(i.importedPackage));
     }
 
     private WPos source(ParserRuleContext p) {

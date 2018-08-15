@@ -409,4 +409,8 @@ public class DescriptionHtml {
     public static String description(ModVararg modVararg) {
         return "A varargs modifier";
     }
+
+    public static String description(NoIdentifier noIdentifier) {
+        return "No identifier";
+    }
 }

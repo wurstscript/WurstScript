@@ -95,7 +95,7 @@ wpackage: 'package' name=ID NL
 	;
 
 wImport: 
-    'import' isPublic='public'? isInitLater='initlater'? importedPackage=ID NL 
+    'import' isPublic='public'? isInitLater='initlater'? (dependency=ID '/')?  importedPackage=ID NL
     ;
 
 

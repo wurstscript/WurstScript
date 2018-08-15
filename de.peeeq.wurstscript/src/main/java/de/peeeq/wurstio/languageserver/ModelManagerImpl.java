@@ -54,15 +54,26 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
+        CompilationUnits cus;
         try {
             CompilationUnit commonJ = compileFromJar(gui, "common.j");
             CompilationUnit blizzardJ = compileFromJar(gui, "blizzard.j");
-            return Ast.WurstModel(blizzardJ, commonJ, cu);
+            cus = Ast.CompilationUnits(blizzardJ, commonJ, cu);
         } catch (IOException e) {
             WLogger.severe(e);
-            return Ast.WurstModel(cu);
+            cus = Ast.CompilationUnits(cu);
         }
+        return Ast.WurstModel(projectPath, Ast.Libraries(
+                Ast.Library("root", getDependencyNames(dependencies), cus)
+        ));
     }
+
+    private Set<String> getDependencyNames(Set<File> dependencies) {
+        return dependencies.stream()
+                .map(File::getName)
+                .collect(Collectors.toSet());
+    }
+
 
     @Override
     public boolean removeCompilationUnit(WFile resource) {
@@ -71,13 +82,15 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             return false;
         }
-        ListIterator<CompilationUnit> it = model2.listIterator();
-        while (it.hasNext()) {
-            CompilationUnit cu = it.next();
-            if (wFile(cu).equals(resource)) {
-                clearAttributes(Collections.singletonList(cu));
-                it.remove();
-                return true;
+        for (Library library : model2.getLibraries()) {
+            ListIterator<CompilationUnit> it = library.getCompilationUnits().listIterator();
+            while (it.hasNext()) {
+                CompilationUnit cu = it.next();
+                if (wFile(cu).equals(resource)) {
+                    clearAttributes(Collections.singletonList(cu));
+                    it.remove();
+                    return true;
+                }
             }
         }
         return false;
@@ -228,7 +241,7 @@ public class ModelManagerImpl implements ModelManager {
                 packageNames.add(p.getName());
             }
         }
-        for (CompilationUnit cu : model2) {
+        for (CompilationUnit cu : model2.attrCompilationUnits()) {
             if (imports(cu, packageNames)) {
                 cu.clearAttributes();
                 cleared.add(cu);
@@ -346,7 +359,7 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             model = newModel(cu, gui);
         } else {
-            ListIterator<CompilationUnit> it = model2.listIterator();
+            ListIterator<CompilationUnit> it = model2.attrCompilationUnits().listIterator();
             boolean updated = false;
             while (it.hasNext()) {
                 CompilationUnit c = it.next();

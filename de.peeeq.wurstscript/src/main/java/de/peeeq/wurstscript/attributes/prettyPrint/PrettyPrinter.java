@@ -634,8 +634,8 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(WurstModel wurstModel, Spacer spacer, StringBuilder sb, int indent) {
-        for (CompilationUnit compilationUnit : wurstModel) {
-            compilationUnit.prettyPrint(spacer, sb, indent);
+        for (Library library : wurstModel.getLibraries()) {
+            library.prettyPrint(spacer, sb, indent);
         }
     }
 
@@ -737,5 +737,25 @@ public class PrettyPrinter {
         sb.append("[");
         arrayInitializer.getValues().prettyPrint(spacer, sb, indent);
         sb.append("]");
+    }
+
+    public static void prettyPrint(NoIdentifier noIdentifier, Spacer spacer, StringBuilder sb, int indent) {
+        // nothing to print
+    }
+
+    public static void prettyPrint(Libraries libraries, Spacer spacer, StringBuilder sb, int indent) {
+        for (Library library : libraries) {
+            library.prettyPrint(spacer, sb, indent);
+            sb.append("\n\n");
+        }
+
+    }
+
+    public static void prettyPrint(CompilationUnits cus, Spacer spacer, StringBuilder sb, int indent) {
+        for (CompilationUnit cu : cus) {
+            cu.prettyPrint(spacer, sb, indent);
+            sb.append("\n\n");
+        }
+
     }
 }

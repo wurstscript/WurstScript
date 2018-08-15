@@ -116,7 +116,7 @@ public class ImTranslator {
 
             calculateCompiletimeOrder();
 
-            for (CompilationUnit cu : wurstProg) {
+            for (CompilationUnit cu : wurstProg.attrCompilationUnits()) {
                 translateCompilationUnit(cu);
             }
 
@@ -995,7 +995,7 @@ public class ImTranslator {
 
     private void calculateInterfaceInstances() {
         interfaceInstances = HashMultimap.create();
-        for (CompilationUnit cu : wurstProg) {
+        for (CompilationUnit cu : wurstProg.attrCompilationUnits()) {
             for (ClassDef c : cu.attrGetByType().classes) {
                 for (WurstTypeInterface i : c.attrTypC().transitiveSuperInterfaces()) {
                     interfaceInstances.put(i.getDef(), c);
@@ -1043,7 +1043,7 @@ public class ImTranslator {
      */
     private List<ClassDef> classes() {
         List<ClassDef> result = new ArrayList<>();
-        for (CompilationUnit cu : wurstProg) {
+        for (CompilationUnit cu : wurstProg.attrCompilationUnits()) {
             for (WPackage p : cu.getPackages()) {
                 for (WEntity e : p.getElements()) {
                     if (e instanceof ClassDef) {

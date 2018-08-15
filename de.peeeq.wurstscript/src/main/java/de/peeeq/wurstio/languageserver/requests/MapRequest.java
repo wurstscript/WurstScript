@@ -13,10 +13,7 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WImport;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
@@ -190,7 +187,9 @@ public abstract class MapRequest extends UserRequest<Object> {
                 .filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j")).distinct().collect(Collectors.toSet());
         addImports(imported, imported);
 
-        model.removeIf(cu -> !imported.contains(cu));
+        for (Library lib : model.getLibraries()) {
+            lib.getCompilationUnits().removeIf(cu -> !imported.contains(cu));
+        }
     }
 
     private boolean isInWurstFolder(String file) {

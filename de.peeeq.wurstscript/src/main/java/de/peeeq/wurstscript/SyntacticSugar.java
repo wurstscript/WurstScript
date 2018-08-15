@@ -152,7 +152,7 @@ public class SyntacticSugar {
             }
             WPos source = p.getSource();
             source = source.withRightPos(source.getLeftPos() - 1);
-            p.getImports().add(Ast.WImport(source, false, false, Ast.Identifier(source, "Wurst")));
+            p.getImports().add(Ast.WImport(source, false, false, Ast.NoIdentifier(), Ast.Identifier(source, "Wurst")));
         }
     }
 

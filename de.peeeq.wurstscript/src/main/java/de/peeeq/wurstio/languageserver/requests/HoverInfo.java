@@ -203,6 +203,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_CompilationUnits(CompilationUnits compilationUnits) {
+            return string("compilation units");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ModStatic(ModStatic modStatic) {
             return string("static: This function or variable is just like a function outside of a class. "
                     + "It is not bound to an instance. No dynamic dispatch is used.");
@@ -309,6 +314,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ArrayInitializer(ArrayInitializer arrayInitializer) {
             return string("Initial values for the array.");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_NoIdentifier(NoIdentifier noIdentifier) {
+            return string("No identifier");
         }
 
         @Override
@@ -435,6 +445,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_Library(Library library) {
+            return string("library " + library.getLibraryName());
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_VisibilityPrivate(VisibilityPrivate visibilityPrivate) {
             return string("Modifier private: This element can only be used in the current scope.");
         }
@@ -487,6 +502,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ExprIncomplete(ExprIncomplete exprIncomplete) {
             return string("This expression is incomplete.");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_Libraries(Libraries libraries) {
+            return string("libraries");
         }
 
         @Override
