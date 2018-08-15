@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.*;
 
@@ -24,7 +23,9 @@ public class LocalMerger implements OptimizerPass {
         ImProg prog = trans.getImProg();
         totalLocalsMerged = 0;
         for (ImFunction func : prog.getFunctions()) {
-            optimizeFunc(func);
+            if (!func.isNative() && !func.isBj()) {
+                optimizeFunc(func);
+            }
         }
         return totalLocalsMerged;
     }
