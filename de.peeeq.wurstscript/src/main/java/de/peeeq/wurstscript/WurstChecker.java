@@ -22,7 +22,7 @@ public class WurstChecker {
     public void checkProg(WurstModel root, List<CompilationUnit> toCheck) {
         Preconditions.checkNotNull(root);
         Preconditions.checkNotNull(toCheck);
-        if (root.isEmpty()) {
+        if (root.attrCompilationUnits().isEmpty()) {
             return;
         }
         gui.sendProgress("Checking Files");
@@ -48,13 +48,13 @@ public class WurstChecker {
     }
 
     private void attachErrorHandler(WurstModel root) {
-        for (CompilationUnit cu : root) {
+        for (CompilationUnit cu : root.attrCompilationUnits()) {
             cu.setCuErrorHandler(errorHandler);
         }
     }
 
     private void expandModules(WurstModel root) {
-        for (CompilationUnit cu : root) {
+        for (CompilationUnit cu : root.attrCompilationUnits()) {
             ModuleExpander.expandModules(cu);
         }
     }

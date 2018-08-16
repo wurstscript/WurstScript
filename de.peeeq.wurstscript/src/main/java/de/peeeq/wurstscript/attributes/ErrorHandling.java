@@ -72,7 +72,7 @@ public class ErrorHandling {
     }
 
     public static ErrorHandler getErrorHandler(WurstModel m) {
-        for (CompilationUnit cu : m) {
+        for (CompilationUnit cu : m.attrCompilationUnits()) {
             return cu.getCuErrorHandler();
         }
         throw new Error("Empty model.");

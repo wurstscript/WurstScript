@@ -247,7 +247,7 @@ public class NameLinks {
 
     public static ImmutableMultimap<String, DefLink> calculate(WurstModel model) {
         ImmutableMultimap.Builder<String, DefLink> result = ImmutableSetMultimap.builder();
-        for (CompilationUnit cu : model) {
+        for (CompilationUnit cu : model.attrCompilationUnits()) {
             result.putAll(cu.attrNameLinks());
         }
         return result.build();

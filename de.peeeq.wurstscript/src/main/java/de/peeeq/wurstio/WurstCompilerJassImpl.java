@@ -545,17 +545,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
-        gui.sendProgress("Merging Files");
-        WurstModel result = Ast.WurstModel();
-        for (CompilationUnit compilationUnit : compilationUnits) {
-            // remove from old parent
-            compilationUnit.setParent(null);
-            result.add(compilationUnit);
-        }
-        return result;
-    }
-
     private CompilationUnit processMap(File file) {
         gui.sendProgress("Processing Map " + file.getName());
         if (!file.equals(mapFile)) {

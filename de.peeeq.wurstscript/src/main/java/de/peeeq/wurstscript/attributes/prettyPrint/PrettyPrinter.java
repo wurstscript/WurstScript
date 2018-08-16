@@ -758,4 +758,12 @@ public class PrettyPrinter {
         }
 
     }
+
+    public static void prettyPrint(Library library, Spacer spacer, StringBuilder sb, int indent) {
+        for (CompilationUnit compilationUnit : library.getCompilationUnits()) {
+            compilationUnit.prettyPrint(spacer, sb, indent);
+            sb.append("\n");
+        }
+
+    }
 }

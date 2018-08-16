@@ -53,7 +53,7 @@ public class ModelManagerImpl implements ModelManager {
         this.bufferManager = bufferManager;
     }
 
-    private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
+    private WurstModel newModel(String libraryName, CompilationUnit cu, WurstGui gui) {
         CompilationUnits cus;
         try {
             CompilationUnit commonJ = compileFromJar(gui, "common.j");
@@ -64,7 +64,7 @@ public class ModelManagerImpl implements ModelManager {
             cus = Ast.CompilationUnits(cu);
         }
         return Ast.WurstModel(projectPath, Ast.Libraries(
-                Ast.Library("root", getDependencyNames(dependencies), cus)
+                Ast.Library(libraryName, getDependencyNames(dependencies), cus)
         ));
     }
 
@@ -351,15 +351,17 @@ public class ModelManagerImpl implements ModelManager {
         return comp;
     }
 
-    private void updateModel(CompilationUnit cu, WurstGui gui) {
+    private void updateModel(String libraryName, CompilationUnit cu, WurstGui gui) {
         WLogger.info("update model with " + cu.getFile());
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
         if (model2 == null) {
-            model = newModel(cu, gui);
+            model = newModel(libraryName, cu, gui);
         } else {
-            ListIterator<CompilationUnit> it = model2.attrCompilationUnits().listIterator();
+            Library library = findLibrary(libraryName, model2);
+
+            ListIterator<CompilationUnit> it = library.getCompilationUnits().listIterator();
             boolean updated = false;
             while (it.hasNext()) {
                 CompilationUnit c = it.next();
@@ -372,10 +374,24 @@ public class ModelManagerImpl implements ModelManager {
                 }
             }
             if (!updated) {
-                model2.add(cu);
+                library.getCompilationUnits().add(cu);
             }
         }
         //doTypeCheckPartial(gui, false, ImmutableList.of(cu.getFile()));
+    }
+
+    /**
+     * finds library with the given name or creates a new one
+     */
+    private Library findLibrary(String libraryName, WurstModel model) {
+        for (Library library : model.getLibraries()) {
+            if (library.getLibraryName().equals(libraryName)) {
+                return library;
+            }
+        }
+        Library lib = Ast.Library(libraryName, Collections.emptySet(), Ast.CompilationUnits());
+        model.getLibraries().add(lib);
+        return lib;
     }
 
     private CompilationUnit compileFromJar(WurstGui gui, String filename) throws IOException {
@@ -487,13 +503,27 @@ public class ModelManagerImpl implements ModelManager {
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
         cu.setFile(filename.toString());
-        updateModel(cu, gui);
+        updateModel(getLibraryName(filename), cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
             WLogger.info("found " + gui.getErrorCount() + " errors in file " + filename);
             reportErrors("sync cu " + filename, filename, gui.getErrorsAndWarnings());
         }
         return cu;
+    }
+
+    private String getLibraryName(WFile filename) {
+        WFile wurstDir = WFile.create(new File(projectPath, "wurst"));
+        if (FileUtils.isInDirectoryTrans(filename, wurstDir)) {
+            return projectPath.getName();
+        }
+        for (File dependency : dependencies) {
+            WFile depWurstDir = WFile.create(new File(dependency, "wurst"));
+            if (FileUtils.isInDirectoryTrans(filename, depWurstDir)) {
+                return dependency.getName();
+            }
+        }
+        return "root";
     }
 
     @Override
@@ -583,7 +613,7 @@ public class ModelManagerImpl implements ModelManager {
 
         if (toCheck.stream().anyMatch(cu -> cu.getFile().endsWith(".j"))) {
             // when plain Jass files are changed, everything must be checked again:
-            result.addAll(model);
+            result.addAll(model.attrCompilationUnits());
             return result;
         }
 
@@ -596,7 +626,7 @@ public class ModelManagerImpl implements ModelManager {
 
     private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {
         nextCu:
-        for (CompilationUnit compilationUnit : model2) {
+        for (CompilationUnit compilationUnit : model2.attrCompilationUnits()) {
             if (result.contains(compilationUnit)) {
                 continue;
             }

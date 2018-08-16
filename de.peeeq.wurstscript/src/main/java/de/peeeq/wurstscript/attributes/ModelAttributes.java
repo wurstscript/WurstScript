@@ -99,4 +99,12 @@ public class ModelAttributes {
     public static boolean containsCompilationUnit(WurstModel wurstModel, CompilationUnit cu) {
         return wurstModel.attrCompilationUnits().contains(cu);
     }
+
+    public static Library getLibrary(CompilationUnit cu) {
+        return (Library) cu.getParent().getParent();
+    }
+
+    public static String getLibraryName(CompilationUnit cu) {
+        return cu.attrLibrary().getLibraryName();
+    }
 }

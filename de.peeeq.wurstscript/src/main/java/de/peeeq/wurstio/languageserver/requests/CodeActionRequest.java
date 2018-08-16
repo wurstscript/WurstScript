@@ -93,7 +93,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
             ExprMember m = (ExprMember) nr;
             receiverType = m.getLeft().attrTyp();
         }
-        for (CompilationUnit cu : model) {
+        for (CompilationUnit cu : model.attrCompilationUnits()) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (DefLink nameLink :  wPackage.attrExportedNameLinks().get(funcName)) {
@@ -124,7 +124,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         }
         WurstModel model = modelManager.getModel();
         List<String> possibleImports = new ArrayList<>();
-        for (CompilationUnit cu : model) {
+        for (CompilationUnit cu : model.attrCompilationUnits()) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
@@ -149,7 +149,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
 
         WurstModel model = modelManager.getModel();
         List<String> possibleImports = new ArrayList<>();
-        for (CompilationUnit cu : model) {
+        for (CompilationUnit cu : model.attrCompilationUnits()) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedTypeNameLinks().get(typeName)) {

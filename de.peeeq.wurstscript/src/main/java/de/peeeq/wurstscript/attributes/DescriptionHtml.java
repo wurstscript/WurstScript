@@ -413,4 +413,8 @@ public class DescriptionHtml {
     public static String description(NoIdentifier noIdentifier) {
         return "No identifier";
     }
+
+    public static String description(Library library) {
+        return "library " + library.getLibraryName();
+    }
 }
