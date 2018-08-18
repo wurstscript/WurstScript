@@ -1001,7 +1001,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void ticket709() {
-        testAssertOkLines(false,
+        testAssertOkLinesWithStdLib(false,
                 "package Test",
                 "init",
                 "    var s = \".\"",
