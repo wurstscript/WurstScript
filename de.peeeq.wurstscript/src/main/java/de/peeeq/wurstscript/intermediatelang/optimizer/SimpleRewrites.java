@@ -191,7 +191,7 @@ public class SimpleRewrites implements OptimizerPass {
                 } else {
                     wasViable = false;
                 }
-            } else if (left.structuralEquals(right) && opc.getOp() == WurstOperator.PLUS && !(left instanceof ImStringVal)) {
+            } else if (left.structuralEquals(right) && opc.getOp() == WurstOperator.PLUS && !(left.attrTyp().translateType().equals("string")))  {
                 if (!sideEffectAnalysis.hasSideEffects(left)) {
                     opc.setOp(WurstOperator.MULT);
                     right.replaceBy(JassIm.ImIntVal(2));

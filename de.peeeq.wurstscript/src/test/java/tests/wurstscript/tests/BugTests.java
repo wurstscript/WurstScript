@@ -999,4 +999,16 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void ticket709() {
+        testAssertOkLines(false,
+                "package Test",
+                "init",
+                "    var s = \".\"",
+                "    for i = 1 to 10",
+                "        s += s",
+                "    print(s)"
+        );
+    }
+
 }
