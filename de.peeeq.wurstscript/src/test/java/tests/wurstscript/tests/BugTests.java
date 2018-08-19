@@ -1011,4 +1011,48 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void stringPlusNull1() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = \"a\" + nullString()",
+                "    if s == \"a\"",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void stringPlusNull2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = nullString() + nullString()",
+                "    if s == null",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void stringPlusNull3() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    var s = nullString() + \"a\"",
+                "    if s == \"a\"",
+                "        testSuccess()"
+        );
+    }
+
+
 }

@@ -57,6 +57,17 @@ public class ExprTranslation {
             JassExpr left = e.getArguments().get(0).translate(translator);
             JassExpr right = e.getArguments().get(1).translate(translator);
 
+            if (op == WurstOperator.PLUS) {
+                // special cases for using 'null' as a string constant:
+                // "a" + null gets translated to just "a"
+                if (left instanceof JassExprNull) {
+                    return right;
+                }
+                if (right instanceof JassExprNull) {
+                    return left;
+                }
+            }
+
             if (op == WurstOperator.MOD_REAL) {
                 return JassExprFunctionCall("ModuloReal", JassExprlist(left, right));
             } else if (op == WurstOperator.MOD_INT) {

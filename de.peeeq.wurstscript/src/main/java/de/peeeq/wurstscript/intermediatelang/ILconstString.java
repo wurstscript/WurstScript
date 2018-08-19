@@ -26,6 +26,9 @@ public class ILconstString extends ILconstAbstract implements ILconstAddable {
 
     @Override
     public ILconstAddable add(ILconstAddable other) {
+        if (other instanceof ILconstNull) {
+            return this;
+        }
         return new ILconstString(val + ((ILconstString) other).val);
     }
 

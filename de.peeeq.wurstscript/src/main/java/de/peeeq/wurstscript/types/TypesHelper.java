@@ -7,9 +7,15 @@ public class TypesHelper {
 
     private static final ImSimpleType intType = WurstTypeInt.instance().imTranslateType();
 
+    private static final ImSimpleType realType = WurstTypeReal.instance().imTranslateType();
+
 
     public static ImSimpleType imInt() {
         return intType;
+    }
+
+    public static ImSimpleType imReal() {
+        return realType;
     }
 
     public static ImSimpleType imString() {
