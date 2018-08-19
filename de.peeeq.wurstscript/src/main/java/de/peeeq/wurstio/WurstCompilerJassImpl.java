@@ -21,7 +21,6 @@ import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.utils.LineOffsets;
-import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -174,6 +173,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         WurstModel merged = Ast.WurstModel(projectFolder, Ast.Libraries(
         ));
 
+        loadLibs(merged);
+
 
         for (File dir : dirs) {
             loadWurstFilesInDir(dir);
@@ -183,7 +184,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 
         // parse all the files:
-        List<CompilationUnit> compilationUnits = new NotNullList<>();
 
         for (File file : files) {
             if (file.isDirectory()) {
@@ -191,17 +191,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             } else if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
                 CompilationUnit r = processMap(file);
                 if (r != null) {
-                    compilationUnits.add(r);
+                    addCompilationUnit(merged, "root", r);
                 }
             } else {
                 if (file.getName().endsWith("common.j")) {
                     hasCommonJ = true;
                 }
-                compilationUnits.add(parseFile(file));
+                addCompilationUnit(merged, "root", parseFile(file));
             }
         }
         for (Entry<String, Reader> in : otherInputs.entrySet()) {
-            compilationUnits.add(parse(in.getKey(), in.getValue()));
+            addCompilationUnit(merged, "root", parse(in.getKey(), in.getValue()));
         }
 
 
@@ -264,19 +264,21 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     private void resolveImport(WurstModel model, Set<String> packages, Map<String, WImport> imports, WImport imp) throws CompileError {
         //		WLogger.info("resolving import: " + imp.getPackagename());
-        if (!packages.contains(imp.getPackagename())) {
-            if (getLibs().containsRow(imp.getPackagename())) {
-                List<CompilationUnit> libs = loadLibPackage(model, importLibname(imp), imp.getPackagename());
+        String packageName = imp.getPackagename();
+        if (!packages.contains(packageName)) {
+            if (getLibs().containsRow(packageName)) {
+                List<CompilationUnit> libs = loadLibPackage(model, importLibname(imp), packageName);
 
                 if (libs.isEmpty()) {
-                    gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
+                    gui.sendError(new CompileError(imp.attrErrorPos(), "Could not find lib-package " + packageName + ". Are you missing your wurst.dependencies file?\n" +
+                            "Available libs: " + getLibs().rowKeySet().stream().sorted().collect(Collectors.joining(", "))));
                 }
 
                 for (CompilationUnit lib : libs) {
                     boolean foundPackage = false;
                     for (WPackage p : lib.getPackages()) {
                         packages.add(p.getName());
-                        if (p.getName().equals(imp.getPackagename())) {
+                        if (p.getName().equals(packageName)) {
                             foundPackage = true;
                         }
                         for (WImport i : p.getImports()) {
@@ -284,17 +286,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                         }
                     }
                     if (!foundPackage) {
-                        imp.addError("The import " + imp.getPackagename() + " could not be found in file " + lib.getFile());
+                        imp.addError("The import " + packageName + " could not be found in file " + lib.getFile());
                     }
                 }
             } else {
-                if (imp.getPackagename().equals("Wurst")) {
+                if (packageName.equals("Wurst")) {
                     imp.addError("The standard library could not be imported.");
                 }
-                if (imp.getPackagename().equals("NoWurst")) {
+                if (packageName.equals("NoWurst")) {
                     // ignore this package
                 } else {
-                    imp.addError("The import '" + imp.getPackagename() + "' could not be resolved.\n" + "Available packages: "
+                    imp.addError("The import '" + packageName + "' could not be resolved.\n" + "Available packages: "
                             + Utils.join(getLibs().rowKeySet(), ", "));
                 }
             }
@@ -317,40 +319,49 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         return files.entrySet().stream()
-                .filter(e -> libraryName != null && !libraryName.equals(e.getKey()))
+                .filter(e -> libraryName == null || libraryName.equals(e.getKey()))
                 .map(entry -> {
                     File file = entry.getValue();
                     CompilationUnit cu = parseFile(file);
                     cu.setFile(file.getAbsolutePath());
-                    addCompilationUnit(model, libraryName, cu);
+                    addCompilationUnit(model, entry.getKey(), cu);
                     return cu;
                 })
                 .collect(Collectors.toList());
     }
 
     private void addCompilationUnit(WurstModel model, String libraryName, CompilationUnit cu) {
-        Library lib = model.getLibraries().stream()
+        Optional<Library> libOpt = model.getLibraries().stream()
                 .filter(l -> l.getLibraryName().equals(libraryName))
-                .findFirst()
-                .orElseGet(() -> {
-                    throw new RuntimeException("Library " + libraryName + " not found");
-                });
+                .findFirst();
+        Library lib;
+        if (libOpt.isPresent()) {
+            lib = libOpt.get();
+        } else {
+            if (!libraryName.equals("root")) {
+                throw new RuntimeException("Library " + libraryName + " not found");
+            }
+            lib = Ast.Library(libraryName, Collections.emptySet(), Ast.CompilationUnits());
+            model.getLibraries().add(lib);
+        }
         lib.getCompilationUnits().add(cu);
     }
 
     public Table<String, String, File> getLibs() {
-        Table<String, String, File> lc = libCache;
-        if (lc == null) {
-            lc = HashBasedTable.create();
-            libCache = lc;
-            for (File libDir : runArgs.getAdditionalLibDirs()) {
-                addLibDir(libDir);
-            }
-            for (File libDir : dependencies) {
-                addLibDir(libDir);
-            }
+        if (libCache == null) {
+            throw new IllegalStateException("Libs not calculated");
         }
-        return lc;
+        return libCache;
+    }
+
+    private void loadLibs(WurstModel model) {
+        libCache = HashBasedTable.create();
+        for (File libDir : runArgs.getAdditionalLibDirs()) {
+            addLibDir(libDir);
+        }
+        for (File libDir : dependencies) {
+            addLibDir(libDir);
+        }
     }
 
     private void addLibDir(File libDir) throws Error {

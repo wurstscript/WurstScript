@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.FunctionCall;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.parser.WPos;
@@ -17,7 +18,8 @@ public class PositionTests extends WurstScriptTest {
                 ""
         ));
 
-        FunctionCall c = (FunctionCall) Utils.getAstElementAtPos(model.get(0), 3, 12, false);
+        CompilationUnit cu = model.attrCompilationUnits().get(0);
+        FunctionCall c = (FunctionCall) Utils.getAstElementAtPos(cu, 3, 12, false);
 
         WPos pos = c.attrErrorPos();
         System.out.println("pos = " + pos.getLine());
