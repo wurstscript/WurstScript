@@ -78,8 +78,15 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
                 return handleMissingName(modelManager, nr);
             }
 
+        } else if (e instanceof TypeExprSimple) {
+            TypeExprSimple nr = (TypeExprSimple) e;
+            TypeDef nd = nr.attrTypeDef();
+            if (nd == null) {
+                return handleMissingType(modelManager, nr.getTypeName());
+            }
+
         }
-        // TODO handle NameRef, FuncRef, TypeRef
+        // TODO non simple TypeRef
 
         return Collections.emptyList();
     }
@@ -96,13 +103,13 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         for (CompilationUnit cu : model) {
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
-                for (DefLink nameLink :  wPackage.attrExportedNameLinks().get(funcName)) {
+                for (DefLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
                     if (nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }
                 }
-                for (TypeLink nameLink :  wPackage.attrExportedTypeNameLinks().get(funcName)) {
+                for (TypeLink nameLink : wPackage.attrExportedTypeNameLinks().get(funcName)) {
                     if (nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
@@ -134,6 +141,20 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
                             continue withNextPackage;
                         }
                     }
+                }
+            }
+        }
+
+        return makeImportCommands(possibleImports);
+    }
+
+    private List<Command> handleMissingType(ModelManager modelManager, String typeName) {
+        WurstModel model = modelManager.getModel();
+        List<String> possibleImports = new ArrayList<>();
+        for (CompilationUnit cu : model) {
+            for (WPackage wPackage : cu.getPackages()) {
+                if (!wPackage.attrExportedTypeNameLinks().get(typeName).isEmpty()) {
+                    possibleImports.add(wPackage.getName());
                 }
             }
         }
