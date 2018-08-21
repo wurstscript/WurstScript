@@ -338,6 +338,7 @@ public class WurstValidator {
             cde.printStackTrace();
             Element element = cde.getElement();
             String attr = cde.getAttributeName().replaceFirst("^attr", "");
+            WLogger.info(Utils.printElementWithSource(element) + " depends on itself when evaluating attribute " + attr);
             WLogger.info(cde);
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
