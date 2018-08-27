@@ -19,20 +19,11 @@ public interface ModelManager {
     boolean removeCompilationUnit(WFile filename);
 
     /**
-     * synchronizes with file system
-     *
-     * @throws IOException
-     */
-    void replaceCompilationUnit(WFile filename);
-
-    /**
      * cleans the model
      */
     void clean();
 
     List<CompileError> getParseErrors();
-
-    void updateCompilationUnit(WFile filename, String contents, boolean reportErrors);
 
     void onCompilationResult(Consumer<PublishDiagnosticsParams> f);
 

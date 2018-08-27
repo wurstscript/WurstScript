@@ -71,16 +71,9 @@ public class ModelManagerImpl implements ModelManager {
         if (model2 == null) {
             return false;
         }
-        ListIterator<CompilationUnit> it = model2.listIterator();
-        while (it.hasNext()) {
-            CompilationUnit cu = it.next();
-            if (wFile(cu).equals(resource)) {
-                clearAttributes(Collections.singletonList(cu));
-                it.remove();
-                return true;
-            }
-        }
-        return false;
+
+        syncCompilationUnitContent(resource, "");
+        return model.removeIf(cu -> wFile(cu).equals(resource));
     }
 
     @Override
@@ -413,8 +406,7 @@ public class ModelManagerImpl implements ModelManager {
         }
     }
 
-    @Override
-    public void replaceCompilationUnit(WFile filename) {
+    private void replaceCompilationUnit(WFile filename) {
         File f = filename.getFile();
         if (!f.exists()) {
             removeCompilationUnit(filename);
@@ -435,9 +427,22 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void syncCompilationUnitContent(WFile filename, String contents) {
         WLogger.info("sync contents for " + filename);
+        Set<String> oldPackages = declaredPackages(filename);
         replaceCompilationUnit(filename, contents, true);
         WurstGui gui = new WurstGuiLogger();
-        doTypeCheckPartial(gui, ImmutableList.of(filename));
+        doTypeCheckPartial(gui, ImmutableList.of(filename), oldPackages);
+    }
+
+    private Set<String> declaredPackages(WFile f) {
+        for (CompilationUnit cu : model) {
+            if (wFile(cu).equals(f)) {
+                return cu.getPackages()
+                        .stream()
+                        .map(WPackage::getName)
+                        .collect(Collectors.toSet());
+            }
+        }
+        return Collections.emptySet();
     }
 
     @Override
@@ -449,10 +454,11 @@ public class ModelManagerImpl implements ModelManager {
     @Override
     public void syncCompilationUnit(WFile f) {
         WLogger.info("syncCompilationUnit File " + f);
+        Set<String> oldPackages = declaredPackages(f);
         replaceCompilationUnit(f);
         WLogger.info("replaced file " + f);
         WurstGui gui = new WurstGuiLogger();
-        doTypeCheckPartial(gui, ImmutableList.of(f));
+        doTypeCheckPartial(gui, ImmutableList.of(f), oldPackages);
     }
 
     private CompilationUnit replaceCompilationUnit(WFile filename, String contents, boolean reportErrors) {
@@ -527,16 +533,11 @@ public class ModelManagerImpl implements ModelManager {
 
 
     @Override
-    public void updateCompilationUnit(WFile filename, String contents, boolean reportErrors) {
-        replaceCompilationUnit(filename, contents, reportErrors);
-    }
-
-    @Override
     public void onCompilationResult(Consumer<PublishDiagnosticsParams> f) {
         onCompilationResultListeners.add(f);
     }
 
-    private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames) {
+    private void doTypeCheckPartial(WurstGui gui, List<WFile> toCheckFilenames, Set<String> oldPackages) {
         WLogger.info("do typecheck partial of " + toCheckFilenames);
         WurstCompilerJassImpl comp = getCompiler(gui);
         List<CompilationUnit> toCheck = getCompilationUnits(toCheckFilenames);
@@ -546,7 +547,7 @@ public class ModelManagerImpl implements ModelManager {
             return;
         }
 
-        toCheck = new ArrayList<>(addPackageDependencies(toCheck, model2));
+        toCheck = new ArrayList<>(addPackageDependencies(toCheck, oldPackages, model2));
 
         List<CompilationUnit> clearedCUs = Collections.emptyList();
         try {
@@ -563,7 +564,7 @@ public class ModelManagerImpl implements ModelManager {
         reportErrorsForFiles(fileNames, gui);
     }
 
-    private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, WurstModel model) {
+    private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, Set<String> oldPackages, WurstModel model) {
 
         Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(CompilationUnit::getFile));
         result.addAll(toCheck);
@@ -574,11 +575,23 @@ public class ModelManagerImpl implements ModelManager {
             return result;
         }
 
-        Collection<String> providedPackages = result.stream().flatMap(cu -> cu.getPackages().stream()).map(WPackage::getName).collect(Collectors.toSet());
+        Stream<String> providedPackages = result.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName);
 
-        addImportingPackages(providedPackages, model, result);
+        Set<String> affectedPackages = Stream.concat(providedPackages, oldPackages.stream())
+                .collect(Collectors.toSet());
+
+        addImportingPackages(affectedPackages, model, result);
 
         return result;
+    }
+
+    private Collection<String> providedPackages(Collection<CompilationUnit> result) {
+        return result.stream()
+                .flatMap(cu -> cu.getPackages().stream())
+                .map(WPackage::getName)
+                .collect(Collectors.toSet());
     }
 
     private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {

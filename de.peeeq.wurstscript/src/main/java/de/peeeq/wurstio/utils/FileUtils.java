@@ -13,7 +13,6 @@ import java.io.IOException;
 public class FileUtils {
 
 
-
     public static void write(CharSequence data, File outFile) throws IOException {
         Files.asCharSink(outFile, Charsets.UTF_8).write(data);
     }
@@ -29,5 +28,21 @@ public class FileUtils {
 
     public static boolean isInDirectoryTrans(WFile file, WFile directory) {
         return file.getPath().startsWith(directory.getPath());
+    }
+
+    public static void deleteRecursively(File f) throws IOException {
+        if (!f.exists()) {
+            return;
+        }
+        File[] files = f.listFiles();
+        if (files != null) {
+            for (File child : files) {
+                deleteRecursively(child);
+            }
+        }
+        boolean ok = f.delete();
+        if (!ok) {
+            throw new IOException("Could not delete file " + f);
+        }
     }
 }

@@ -2,9 +2,7 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
@@ -29,11 +27,8 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.*;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import static com.google.common.io.Files.asCharSink;
 
@@ -236,24 +231,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
      */
     public void addImportedLibs(List<CompilationUnit> compilationUnits) {
         Set<String> packages = Sets.newLinkedHashSet();
-        Map<String, WImport> imports = Maps.newLinkedHashMap();
+        Set<WImport> imports = new LinkedHashSet<>();
         for (CompilationUnit c : compilationUnits) {
             c.setCuErrorHandler(errorHandler);
             for (WPackage p : c.getPackages()) {
                 packages.add(p.getName());
-                for (WImport i : p.getImports()) {
-                    imports.put(i.getPackagename(), i);
-                }
+                imports.addAll(p.getImports());
             }
         }
 
-        for (WImport imp : imports.values()) {
-            resolveImport(compilationUnits, packages, imports, imp);
+        for (WImport imp : imports) {
+            resolveImport(compilationUnits, packages, imp);
         }
 
     }
 
-    private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, Map<String, WImport> imports, WImport imp) throws CompileError {
+    private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, WImport imp) throws CompileError {
         //		WLogger.info("resolving import: " + imp.getPackagename());
         if (!packages.contains(imp.getPackagename())) {
             if (getLibs().containsKey(imp.getPackagename())) {
@@ -265,7 +258,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                         foundPackage = true;
                     }
                     for (WImport i : p.getImports()) {
-                        resolveImport(compilationUnits, packages, imports, i);
+                        resolveImport(compilationUnits, packages, i);
                     }
                 }
                 if (!foundPackage) {
