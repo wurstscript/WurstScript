@@ -395,4 +395,46 @@ public class TupleTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void nestedTuple() { // #713
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "@extern native I2S(int x) returns string",
+                "function print(int x)",
+                "    println(I2S(x))",
+                "@extern native GetRandomInt(int x, int y) returns int",
+                "tuple parent(child a, int index)",
+                "function newParent(int i) returns parent",
+                "    return parent(child(0, 0, 0, 0), i)",
+                "tuple child(int a, int b, int c, int d)",
+                "var putCount = 0",
+                "function child.put(int i, int num) returns child",
+                "    putCount += 1",
+                "    if i == 0",
+                "        return child(num, this.b, this.c, this.d)",
+                "    else if i == 1",
+                "        return child(this.a, num, this.b, this.d)",
+                "    else if i == 2",
+                "        return child(this.a, this.b, num, this.d)",
+                "    else",
+                "        return child(this.a, this.b, this.b, num)",
+                "function randomOperations(parent t, int val) returns parent",
+                "    var some = t",
+                "    some.a = some.a.put(t.index, val)",
+                "    return some",
+                "init",
+                "    var t = randomOperations(newParent(GetRandomInt(0, 3)), 100)",
+                "    print(t.a.a)",
+                "    print(t.a.b)",
+                "    print(t.a.c)",
+                "    print(t.a.d)",
+                "    print(putCount)",
+                "    if putCount == 1",
+                "        testSuccess()"
+        );
+    }
+
+
 }

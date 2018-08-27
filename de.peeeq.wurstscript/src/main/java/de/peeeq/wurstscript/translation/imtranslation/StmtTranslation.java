@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -298,10 +299,10 @@ public class StmtTranslation {
 
         ImExpr right = s.getRight().imTranslateExpr(t, f);
 
-        return translateAssignment(s, updated, right);
+        return translateAssignment(s, updated, right, f);
     }
 
-    private static ImStmt translateAssignment(AstElementWithSource s, ImExpr updated, ImExpr right) throws CompileError {
+    private static ImStmt translateAssignment(AstElementWithSource s, ImExpr updated, ImExpr right, ImFunction f) throws CompileError {
         if (updated instanceof ImTupleSelection) {
             ImTupleSelection tupleSelection = (ImTupleSelection) updated;
             ImExpr tupleExpr = tupleSelection.getTupleExpr();
@@ -327,19 +328,25 @@ public class StmtTranslation {
             ImVarArrayMultiAccess va = (ImVarArrayMultiAccess) updated;
             return JassIm.ImSetArrayMulti(s, va.getVar(), JassIm.ImExprs(va.getIndex1().copy(), va.getIndex2().copy()), right);
         } else if (updated instanceof ImTupleExpr) {
-            // TODO this could lead to expressions being evaluated twice
             ImTupleExpr te = (ImTupleExpr) updated;
             ImStmts stmts = JassIm.ImStmts();
+            List<ImExpr> parts = new ArrayList<>();
+            if (right instanceof ImTupleExpr) {
+                parts = ((ImTupleExpr) right).getExprs().removeAll();
+            } else {
+                // first assign to temporary and then select parts:
+                ImVar temp = JassIm.ImVar(s, right.attrTyp(), "tuple_temp", false);
+                f.getLocals().add(temp);
+                stmts.add(JassIm.ImSet(s, temp, right));
+                for (int i = 0; i < te.getExprs().size(); i++) {
+                    parts.add(JassIm.ImTupleSelection(JassIm.ImVarAccess(temp), i));
+                }
+            }
+
             for (int i = 0; i < te.getExprs().size(); i++) {
                 ImExpr l = te.getExprs().get(i).copy();
-                ImExpr r;
-                if (right instanceof ImTupleExpr) {
-                    ImTupleExpr rt = (ImTupleExpr) right;
-                    r = rt.getExprs().get(i).copy();
-                } else {
-                    r = JassIm.ImTupleSelection(right.copy(), i);
-                }
-                stmts.add(translateAssignment(s, l, r));
+                ImExpr r = parts.get(i);
+                stmts.add(translateAssignment(s, l, r, f));
             }
             return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
         } else {
