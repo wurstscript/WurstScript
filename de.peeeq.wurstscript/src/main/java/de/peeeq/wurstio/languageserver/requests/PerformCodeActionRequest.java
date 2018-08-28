@@ -52,7 +52,7 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
 
         if (!cu.getPackages().isEmpty()) {
             WPackage p = cu.getPackages().get(0);
-            int line = p.getNameId().getSource().getLine() + 1;
+            int line = p.getNameId().getSource().getLine();
             for (WImport imp : p.getImports()) {
                 line = Math.max(line, imp.getPackagenameId().getSource().getLine());
             }
