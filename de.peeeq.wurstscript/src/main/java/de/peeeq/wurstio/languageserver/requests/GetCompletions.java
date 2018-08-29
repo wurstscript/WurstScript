@@ -555,11 +555,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private CompletionItem makeFunctionCompletion(FuncLink f) {
         String replacementString = f.getName();
         List<WurstType> params = f.getParameterTypes();
-        if (!isBeforeParenthesis()) {
-            if (params.isEmpty()) {
-                replacementString += "()";
-            }
-        }
+
 
         CompletionItem completion = new CompletionItem(f.getName());
         completion.setKind(CompletionItemKind.Function);
@@ -570,13 +566,21 @@ public class GetCompletions extends UserRequest<CompletionList> {
         // TODO use call signature instead for generics
 //        completion.set
 
-        addParamSnippet(replacementString, f.getParameterNames(), completion);
+        if (!isBeforeParenthesis()) {
+            if (params.isEmpty()) {
+                addParamSnippet(replacementString, f.getParameterNames(), completion);
+            }
+        }
+
 
         return completion;
     }
 
     private void addParamSnippet(String replacementString, List<String> paramNames, CompletionItem completion) {
-        if (!paramNames.isEmpty()) {
+        if (paramNames.isEmpty()) {
+            replacementString += "()";
+            completion.setInsertText(replacementString);
+        } else {
             List<String> paramSnippets = new ArrayList<>();
             for (int i = 0; i < paramNames.size(); i++) {
                 String paramName = paramNames.get(i);

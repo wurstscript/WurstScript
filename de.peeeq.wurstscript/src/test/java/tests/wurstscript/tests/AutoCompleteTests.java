@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 /**
  * tests the autocomplete functionality.
@@ -88,6 +89,25 @@ public class AutoCompleteTests extends WurstScriptTest {
         assertEquals(1, completions.getItems().size());
         CompletionItem c = completions.getItems().get(0);
         assertEquals("CreateGroup", c.getInsertText());
+    }
+
+
+    @Test
+    public void testWithParentheses2() {
+        CompletionTestData testData = input(
+                "package test",
+                "init",
+                "    CreateU|(x,y,z)",
+                ""
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        assertFalse(completions.getItems().isEmpty());
+        CompletionItem comp = completions.getItems().stream()
+                .filter(c -> c.getLabel().equals("CreateUnit"))
+                .findFirst()
+                .get();
+        assertEquals(comp.getInsertText(), "CreateUnit");
     }
 
     @Test
