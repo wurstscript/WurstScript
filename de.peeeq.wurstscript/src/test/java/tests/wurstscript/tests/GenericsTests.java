@@ -955,6 +955,24 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void extensionFunc() { // #718
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "function stringToIndex(string b) returns int",
+                "	return 0",
+                "function stringFromIndex(int i) returns string",
+                "	return \"\"",
+                "public function T.foo<T>() returns T",
+                "	return this",
+                "init",
+                "	let x = \"hello\".foo()",
+                "	if x == \"hello\"",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void strangeFoldl() { // #655
         testAssertOkLines(false,
                 "package test",

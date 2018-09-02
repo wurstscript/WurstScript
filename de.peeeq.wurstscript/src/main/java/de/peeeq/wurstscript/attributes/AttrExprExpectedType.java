@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.Collection;
@@ -87,14 +86,16 @@ public class AttrExprExpectedType {
                 } else {
                     return ie.attrExpectedTypRaw();
                 }
+            } else if (parent instanceof ExprMemberMethod) {
+                ExprMemberMethod m = (ExprMemberMethod) parent;
+                if (m.getLeft() == expr) {
+                    return m.attrFunctionSignature().getReceiverType();
+                }
             }
-//			} else if (parent instanceof ExprMemberMethod) {
-//				ExprMemberMethod m = (ExprMemberMethod) parent;
-//				if (m.getLeft() == expr) {
-//					return m.attrFunctionSignature().getReceiverType();
-//				}
-//            }
-        } catch (CompileError t) {
+        } catch (
+                CompileError t)
+
+        {
             WLogger.info(t);
         }
         return WurstTypeUnknown.instance();
