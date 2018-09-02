@@ -1,6 +1,6 @@
 # Contributing
 
-Found a code issue fix, improvement to make or feature to add?
+Found a code issue to fix, improvement to make or feature to add?
 Great! We gladly welcome all contributions to any of the Wurst products!
 
 However it is highly recommended to **contact us prior to starting your contribution** 
