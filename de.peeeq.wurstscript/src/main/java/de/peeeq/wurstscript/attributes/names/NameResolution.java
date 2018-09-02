@@ -112,10 +112,15 @@ public class NameResolution {
         NameLink privateCandidate = null;
         List<NameLink> candidates = Lists.newArrayList();
 
-        WScope scope = node.attrNearestScope();
-        while (scope != null) {
-//			WLogger.info("searching " + receiverType + "." + name + " in scope " + Utils.printElement(scope));
-//			WLogger.info("		" + scope.attrNameLinks());
+        for (WScope scope = node.attrNearestScope(); scope != null; scope = nextScope(scope)) {
+
+            if (scope instanceof LoopStatementWithVarDef) {
+                LoopStatementWithVarDef loop = (LoopStatementWithVarDef) scope;
+                // only consider this scope if node is in the body:
+                if (!Utils.elementContained(node, loop.getBody())) {
+                    continue;
+                }
+            }
 
             if (scope instanceof StructureDef) {
                 StructureDef nearestStructureDef = (StructureDef) scope;
@@ -151,7 +156,6 @@ public class NameResolution {
                 }
                 return candidates.get(0);
             }
-            scope = nextScope(scope);
         }
         if (showErrors) {
             if (privateCandidate == null) {

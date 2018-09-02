@@ -1,12 +1,13 @@
 package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.ImmutableCollection;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.StmtForEach;
+import de.peeeq.wurstscript.ast.StmtForFrom;
+import de.peeeq.wurstscript.ast.StmtForIn;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Optional;
 
@@ -53,7 +54,7 @@ public class AttrForEachStatement {
     }
 
     public static Optional<FuncLink> calcClose(StmtForEach forEach) {
-        if(forEach instanceof StmtForFrom) {
+        if (forEach instanceof StmtForFrom) {
             return Optional.empty();
         }
         WurstType iteratorType = calcItrType(forEach);
@@ -69,21 +70,16 @@ public class AttrForEachStatement {
     }
 
     public static WurstType calcItrType(StmtForEach forEach) {
-        try {
-            WurstType iteratorType = WurstTypeUnknown.instance();
-            if (forEach instanceof StmtForFrom) {
-                iteratorType = forEach.getIn().attrTyp();
-            } else if (forEach instanceof StmtForIn) {
-                Optional<FuncLink> nameLink = calcIterator((StmtForIn) forEach);
-                if (nameLink.isPresent()) {
-                    FuncLink iteratorFunc = nameLink.get();
-                    iteratorType = iteratorFunc.getReturnType().normalize();
-                }
+        WurstType iteratorType = WurstTypeUnknown.instance();
+        if (forEach instanceof StmtForFrom) {
+            iteratorType = forEach.getIn().attrTyp();
+        } else if (forEach instanceof StmtForIn) {
+            Optional<FuncLink> nameLink = calcIterator((StmtForIn) forEach);
+            if (nameLink.isPresent()) {
+                FuncLink iteratorFunc = nameLink.get();
+                iteratorType = iteratorFunc.getReturnType().normalize();
             }
-            return iteratorType;
-        } catch (CyclicDependencyError error) {
-            forEach.addError("Iteration input and target type may not depend on each other.");
         }
-        return WurstTypeUnknown.instance();
+        return iteratorType;
     }
 }

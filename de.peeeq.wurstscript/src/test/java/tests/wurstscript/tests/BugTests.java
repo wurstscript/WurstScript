@@ -928,13 +928,14 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void testCyclicDependencyError() {
-        testAssertErrorsLines(true, "type may not depend on each other",
+        testAssertErrorsLines(true, "For loop target int doesn't provide a iterator() function",
                 "package Test",
                 "native testSuccess()",
                 "function foo() returns bool",
                 "    var x = 0",
+                "    var sum = 0",
                 "    for x in x",
-                "        sum += i",
+                "        sum += x",
                 "    return true",
                 "init",
                 "    if foo()",
@@ -1051,6 +1052,18 @@ public class BugTests extends WurstScriptTest {
                 "    var s = nullString() + \"a\"",
                 "    if s == \"a\"",
                 "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void cyclicForLoop() { // #717
+        testAssertErrorsLines(true, "Could not find variable a",
+                "package Test",
+                "native testSuccess()",
+                "function nullString() returns string",
+                "    return null",
+                "init",
+                "    for a in a"
         );
     }
 
