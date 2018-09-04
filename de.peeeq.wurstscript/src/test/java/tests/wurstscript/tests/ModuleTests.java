@@ -552,4 +552,17 @@ public class ModuleTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void useModuleAsType() { // see #720
+        testAssertErrorsLines(false, "Cannot use module type A in this context.",
+                "package Test",
+                "module A",
+                "    function foo()",
+                "class List<T>",
+                "init",
+                "    let l = new List<A>",
+                "endpackage"
+        );
+    }
 }

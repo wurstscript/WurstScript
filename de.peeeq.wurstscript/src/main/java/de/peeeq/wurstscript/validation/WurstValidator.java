@@ -559,19 +559,62 @@ public class WurstValidator {
         if (e.isModuleUseTypeArg()) {
             return;
         }
+
         TypeDef typeDef = e.attrTypeDef();
+        // check that modules are not used as normal types
+        if (e.attrTypeDef() instanceof ModuleDef) {
+            ModuleDef md = (ModuleDef) e.attrTypeDef();
+            checkModuleTypeUsedCorrectly(e, md);
+        }
+
         if (typeDef instanceof TypeParamDef) { // references a type parameter
             TypeParamDef tp = (TypeParamDef) typeDef;
-            if (tp.isStructureDefTypeParam()) { // typeParamDef is for
-                // structureDef
-                if (tp.attrNearestStructureDef() instanceof ModuleDef) {
-                    // in modules we can also type-params in static contexts
+            checkTypeparamsUsedCorrectly(e, tp);
+        }
+
+    }
+
+    /**
+     *  Checks that module types are only used in valid places
+     */
+    private void checkModuleTypeUsedCorrectly(TypeExpr e, ModuleDef md) {
+        if (e instanceof TypeExprThis) {
+            // thistype is allowed, because it is translated to a real type when used
+            return;
+        }
+        if (e.getParent() instanceof TypeExprThis) {
+            TypeExprThis parent = (TypeExprThis) e.getParent();
+            if (parent.getScopeType() == e) {
+                // ModuleName.thistype is allowed
+                // TODO (maybe check here that it is a parent)
+                return;
+            }
+        }
+        if (e instanceof TypeExprSimple) {
+            TypeExprSimple tes = (TypeExprSimple) e;
+            if (tes.getScopeType() instanceof TypeExpr) {
+                TypeExpr scopeType = (TypeExpr) tes.getScopeType();
+                if (scopeType instanceof TypeExprThis
+                        || scopeType.attrTypeDef() instanceof ModuleDef) {
+                    // thistype.A etc. is allowed
                     return;
                 }
+            }
+        }
+        e.addError("Cannot use module type " + md.getName() + " in this context.");
+    }
 
-                if (!e.attrIsDynamicContext()) {
-                    e.addError("Type variables must not be used in static contexts.");
-                }
+    /** check that type parameters are used in correct contexts: */
+    private void checkTypeparamsUsedCorrectly(TypeExpr e, TypeParamDef tp) {
+        if (tp.isStructureDefTypeParam()) { // typeParamDef is for
+            // structureDef
+            if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+                // in modules we can also type-params in static contexts
+                return;
+            }
+
+            if (!e.attrIsDynamicContext()) {
+                e.addError("Type variables must not be used in static contexts.");
             }
         }
     }
