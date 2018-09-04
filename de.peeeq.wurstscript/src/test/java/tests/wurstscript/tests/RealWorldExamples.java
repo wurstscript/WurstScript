@@ -44,7 +44,16 @@ public class RealWorldExamples extends WurstScriptTest {
         boolean executeTests = true;
         //
         //testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
-        testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, true);
+
+        new TestConfig(name)
+                .withStdLib(withStdLib)
+                .executeTests(executeTests)
+                .executeProgOnlyAfterTransforms(true)
+                .executeProg(executeProg)
+                .withInputFiles(inputFiles)
+                .withInputs(inputs)
+                .run()
+                .getModel();
         //super.testAssertOkFileWithStdLib(new File(BUG_DIR + "LinkedHashMap.wurst"), true);
     }
 
@@ -150,7 +159,15 @@ public class RealWorldExamples extends WurstScriptTest {
             WLogger.info("Adding file: " + f);
             inputs.add(f);
         }
-        testScript(inputs, null, "stdlib", false, true, true, false);
+
+        new TestConfig("stdlib")
+                .withStdLib(true)
+                .executeTests(true)
+                .executeProgOnlyAfterTransforms(false)
+                .executeProg(false)
+                .withInputFiles(inputs)
+                .run()
+                .getModel();
 
     }
 

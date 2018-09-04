@@ -216,7 +216,16 @@ public class JurstTests extends WurstScriptTest {
                 "example.j", jass,
                 "test.jurst", jurst
         );
-        testScript(Collections.emptyList(), inputs, "JurstJassTest", executeProg, withStdLib, false, false);
+
+        new TestConfig("JurstJassTest")
+                .withStdLib(withStdLib)
+                .executeTests(false)
+                .executeProgOnlyAfterTransforms(false)
+                .executeProg(executeProg)
+                .withInputFiles(Collections.emptyList())
+                .withInputs(inputs)
+                .run()
+                .getModel();
     }
 
     private void testJurst(boolean executeProg, boolean withStdLib, String jurst) {

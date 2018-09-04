@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstscript.attributes.CompileError;
 import org.testng.annotations.Test;
 
 public class InterfaceTests extends WurstScriptTest {
@@ -531,5 +532,23 @@ public class InterfaceTests extends WurstScriptTest {
                 "			testSuccess()",
                 "endpackage"
         );
+    }
+
+    @Test
+    public void testEmptyImplements() {
+        CompilationResult res = test().executeProg(false)
+                .setStopOnFirstError(false)
+                .lines(
+                        "package test",
+                        "native testSuccess()",
+                        "class A implements",
+                        "init"
+                );
+        System.out.println("errors: " + res.getGui().getErrorCount());
+        System.out.println("warnings: " + res.getGui().getWarningList().size());
+        for (CompileError compileError : res.getGui().getErrorList()) {
+            compileError.printStackTrace();
+        }
+
     }
 }

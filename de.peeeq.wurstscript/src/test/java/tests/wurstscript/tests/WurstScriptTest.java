@@ -1,6 +1,5 @@
 package tests.wurstscript.tests;
 
-import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
@@ -34,7 +33,6 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import static com.google.common.io.Files.asCharSink;
 import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
@@ -59,6 +57,7 @@ public class WurstScriptTest {
         private String expectedError;
         private List<File> inputFiles = new ArrayList<>();
         private List<CU> additionalCompilationUnits = new ArrayList<>();
+        private boolean stopOnFirstError = true;
 
         TestConfig(String name) {
             this.name = name;
@@ -84,6 +83,11 @@ public class WurstScriptTest {
             return this;
         }
 
+        public TestConfig executeTests(boolean b) {
+            this.executeTests = b;
+            return this;
+        }
+
         TestConfig executeProg(boolean b) {
             this.executeProg = b;
             return this;
@@ -91,6 +95,11 @@ public class WurstScriptTest {
 
         public TestConfig executeProgOnlyAfterTransforms() {
             this.executeProgOnlyAfterTransforms = true;
+            return this;
+        }
+
+        public TestConfig executeProgOnlyAfterTransforms(boolean b) {
+            this.executeProgOnlyAfterTransforms = b;
             return this;
         }
 
@@ -111,15 +120,23 @@ public class WurstScriptTest {
         }
 
         CompilationResult run() {
-            Map<String, String> inputs = additionalCompilationUnits.stream()
-                    .collect(Collectors.toMap(cu -> cu.name, cu -> cu.content));
-
             try {
-                WurstModel model = testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, executeProgOnlyAfterTransforms);
+                CompilationResult res = testScript();
                 if (expectedError != null) {
-                    fail("No errors were discovered");
+                    if (res.getGui().getErrorCount() == 0) {
+                        fail("No errors were discovered");
+                    } else {
+                        List<CompileError> errors = res.getGui().getErrorList();
+                        if (errors.stream()
+                                .noneMatch(e -> e.getMessage().toLowerCase().contains(expectedError.toLowerCase()))) {
+                            for (CompileError error : errors) {
+                                System.err.println("Unexpected error:" + error);
+                            }
+                            throw new RuntimeException("Unexpected error", errors.get(0));
+                        }
+                    }
                 }
-                return new CompilationResult(model);
+                return res;
             } catch (CompileError e) {
                 if (expectedError != null) {
                     if (!e.getMessage().toLowerCase().contains(expectedError.toLowerCase())) {
@@ -129,7 +146,54 @@ public class WurstScriptTest {
                 }
                 throw e;
             }
+        }
 
+        private CompilationResult testScript() {
+            RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
+            WurstGui gui = new WurstGuiCliImpl();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
+            if (stopOnFirstError) {
+                compiler.getErrorHandler().enableUnitTestMode();
+            }
+
+
+            WurstModel model = parseFiles(inputFiles, additionalCompilationUnits, withStdLib, compiler);
+
+
+            if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
+                throw gui.getErrorList().get(0);
+            }
+
+
+            // check prog
+            compiler.checkProg(model);
+            if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
+                throw gui.getErrorList().get(0);
+            }
+
+
+            if (stopOnFirstError && name.toLowerCase().contains("warning") && !gui.getWarningList().isEmpty()) {
+                // report warnings based on naming convention
+                throw gui.getWarningList().get(0);
+            }
+
+            // translate with different options:
+
+            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+
+            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+
+            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+
+            testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+
+            if (testLua && !withStdLib) {
+                // test lua translation
+                compiler.setRunArgs(new RunArgs("-lua"));
+                translateAndTestLua(name, executeProg, gui, model);
+            }
+
+            return new CompilationResult(model, gui);
         }
 
         public void file(File file) throws IOException {
@@ -142,18 +206,43 @@ public class WurstScriptTest {
             additionalCompilationUnits.add(cu);
             return this;
         }
+
+        public TestConfig setStopOnFirstError(boolean b) {
+            stopOnFirstError = b;
+            return this;
+        }
+
+        public TestConfig withInputFiles(Iterable<File> inputFiles) {
+            for (File f : inputFiles) {
+                this.inputFiles.add(f);
+            }
+            return this;
+        }
+
+        public TestConfig withInputs(Map<String, String> inputs) {
+            for (Entry<String, String> e : inputs.entrySet()) {
+                additionalCompilationUnits.add(new CU(e.getKey(), e.getValue()));
+            }
+            return this;
+        }
     }
 
     static class CompilationResult {
         private final WurstModel model;
+        private final WurstGui gui;
 
-        public CompilationResult(WurstModel model) {
+        public CompilationResult(WurstModel model, WurstGui gui) {
 
             this.model = model;
+            this.gui = gui;
         }
 
         public WurstModel getModel() {
             return model;
+        }
+
+        public WurstGui getGui() {
+            return gui;
         }
     }
 
@@ -219,55 +308,6 @@ public class WurstScriptTest {
         return test().executeProg(executeProg).lines(prog).getModel();
     }
 
-    WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-        return test().executeProg(executeProg).withStdLib(withStdLib).withCu(compilationUnit(inputName, name)).run().getModel();
-    }
-
-
-    WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean
-            executeTests, boolean executeProgOnlyAfterTransforms) {
-        RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
-        WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
-        compiler.getErrorHandler().enableUnitTestMode();
-        WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
-
-
-        if (!gui.getErrorList().isEmpty()) {
-            throw gui.getErrorList().get(0);
-        }
-
-
-        // check prog
-        compiler.checkProg(model);
-        if (!gui.getErrorList().isEmpty()) {
-            throw gui.getErrorList().get(0);
-        }
-
-
-        if (name.toLowerCase().contains("warning") && !gui.getWarningList().isEmpty()) {
-            // report warnings based on naming convention
-            throw gui.getWarningList().get(0);
-        }
-
-        // translate with different options:
-
-        testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        if (testLua && !withStdLib) {
-            // test lua translation
-            compiler.setRunArgs(new RunArgs("-lua"));
-            translateAndTestLua(name, executeProg, gui, model);
-        }
-        return model;
-
-    }
 
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
                                                   WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
@@ -422,11 +462,20 @@ public class WurstScriptTest {
     WurstModel parseFiles(Iterable<File> inputFiles,
                           Map<String, String> inputs, boolean withStdLib,
                           WurstCompilerJassImpl compiler) {
+        List<CU> inputList = inputs.entrySet().stream()
+                .map(e -> new CU(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        return parseFiles(inputFiles, inputList, withStdLib, compiler);
+    }
+
+    WurstModel parseFiles(Iterable<File> inputFiles,
+                          List<CU> inputs, boolean withStdLib,
+                          WurstCompilerJassImpl compiler) {
         if (inputFiles == null) {
             inputFiles = Collections.emptyList();
         }
         if (inputs == null) {
-            inputs = Collections.emptyMap();
+            inputs = Collections.emptyList();
         }
 
         if (withStdLib) {
@@ -435,8 +484,8 @@ public class WurstScriptTest {
         for (File input : inputFiles) {
             compiler.loadFiles(input);
         }
-        for (Entry<String, String> input : inputs.entrySet()) {
-            compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
+        for (CU input : inputs) {
+            compiler.loadReader(input.name, new StringReader(input.content));
         }
         return compiler.parseFiles();
     }
