@@ -177,6 +177,11 @@ public class WurstScriptTest {
                 throw gui.getWarningList().get(0);
             }
 
+            if (!gui.getErrorList().isEmpty()) {
+                // errors in type-checker -> return
+                return new CompilationResult(model, gui);
+            }
+
             // translate with different options:
 
             testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
