@@ -1067,5 +1067,15 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void implementNothing() { // #719
+        testAssertErrorsLines(false, "mismatched input '\\n' expecting {'thistype', ID}",
+                "package Test",
+                "class A implements",
+                "init",
+                "    new A()"
+        );
+    }
+
 
 }
