@@ -176,21 +176,20 @@ public class ImInliner {
             return Double.MAX_VALUE;
         }
 
-        double size = getFuncSize(f);
-        if (size < 20) {
-            // always inline small functions
-            return 1;
-        }
-
         for (FunctionFlag flag : f.getFlags()) {
             if (flag instanceof FunctionFlagAnnotation) {
-
                 if (((FunctionFlagAnnotation) flag).getAnnotation().equals(FORCEINLINE)) {
                     return 1;
                 } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals(NOINLINE)) {
                     return Double.MAX_VALUE;
                 }
             }
+        }
+
+        double size = getFuncSize(f);
+        if (size < 20) {
+            // always inline small functions
+            return 1;
         }
 
 

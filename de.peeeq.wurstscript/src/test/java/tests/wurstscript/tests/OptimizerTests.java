@@ -761,15 +761,23 @@ public class OptimizerTests extends WurstScriptTest {
                 "function foo()",
                 "	over9000(141, true and true, 12315.233)",
                 "	over9001(141, true and true, 12315.233)",
+                "function bar()",
+                "	print(\"end\")",
+                "@noinline function noot()",
+                "	print(\"end\")",
                 "init",
                 "	over9000(12412411, true and true, 12315.233)",
                 "	over9001(12412411, true and true, 12315.233)",
-                "	foo()"
+                "	foo()",
+                "	bar()",
+                "	noot()"
 
         );
         String inlined = Files.toString(new File("test-output/OptimizerTests_testInlineAnnotation_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("function bar"));
         assertFalse(inlined.contains("function over9000"));
         assertTrue(inlined.contains("function over9001"));
+        assertTrue(inlined.contains("function noot"));
     }
 
 }
