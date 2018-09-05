@@ -1,7 +1,7 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.BufferManager;
+import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
@@ -45,8 +45,7 @@ public class HoverInfo extends UserRequest<Hover> {
         }
         Element e = Utils.getAstElementAtPos(cu, line, column, false);
         WLogger.info("hovering over " + Utils.printElement(e));
-        Hover res = new Hover(e.match(new Description()));
-        return res;
+        return new Hover(e.match(new Description()));
     }
 
     private static List<Either<String, MarkedString>> description(Element n) {
@@ -106,8 +105,7 @@ public class HoverInfo extends UserRequest<Hover> {
                 descrhtml.append(type(p.attrTyp())).append(" ").append(p.getName());
                 first = false;
             }
-            String params = descrhtml.toString();
-            return params;
+            return descrhtml.toString();
         }
 
         private static String nearestScopeName(Element n) {
@@ -144,14 +142,17 @@ public class HoverInfo extends UserRequest<Hover> {
             String params = getParameterString(f);
             String functionDescription = "";
 
-            String className = f.attrNearestClassOrModule().getName();
-            functionDescription += className + "(" + params + ") ";
+            ClassOrModule classOrModule = f.attrNearestClassOrModule();
+            if (classOrModule != null) {
+                functionDescription += classOrModule.getName();
+            }
+            functionDescription += "(" + params + ") ";
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
             result.add(Either.forLeft("defined in " + nearestScopeName(f)));
             return result;
         }
 
-        public  List<Either<String, MarkedString>> description(NameRef nr) {
+        public List<Either<String, MarkedString>> description(NameRef nr) {
             NameLink nameDef = nr.attrNameLink();
             if (nameDef == null) {
                 return string(nr.getVarName() + " is not defined yet.");
@@ -159,7 +160,7 @@ public class HoverInfo extends UserRequest<Hover> {
             return nameDef.getDef().match(this);
         }
 
-        public  List<Either<String, MarkedString>> description(FuncRef fr) {
+        public List<Either<String, MarkedString>> description(FuncRef fr) {
             FuncLink def = fr.attrFuncLink();
             if (def == null) {
                 return string(fr.getFuncName() + " is not defined yet.");
@@ -265,13 +266,13 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ConstructorDef(ConstructorDef constr) {
             List<Either<String, MarkedString>> result = new ArrayList<>();
-            ClassDef c = constr.attrNearestClassDef();
+            NamedScope c = constr.attrNearestNamedScope();
             String comment = constr.attrComment();
             result.add(Either.forLeft(comment));
 
 
             String descr = "construct(" + getParameterString(constr) + ") "
-                     + "defined in class " + c.getName();
+                    + "defined in " + Utils.printElement(c);
             result.add(Either.forRight(new MarkedString("wurst", descr)));
             return result;
         }
@@ -394,7 +395,6 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
 
-
         @Override
         public List<Either<String, MarkedString>> case_ExprFunctionCall(ExprFunctionCall exprFunctionCall) {
             return description(exprFunctionCall);
@@ -515,7 +515,6 @@ public class HoverInfo extends UserRequest<Hover> {
         public List<Either<String, MarkedString>> case_TypeExprArray(TypeExprArray t) {
             return typeExpr(t);
         }
-
 
 
         @Override
