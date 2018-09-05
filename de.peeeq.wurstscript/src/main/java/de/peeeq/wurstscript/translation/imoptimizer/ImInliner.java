@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 
@@ -100,7 +99,6 @@ public class ImInliner {
     }
 
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
-        WLogger.info("inlineCall() " + f.getName() + " call: " + call);
         ImFunction called = call.getFunc();
         if (called == f) {
             throw new Error("cannot inline self.");
@@ -215,10 +213,10 @@ public class ImInliner {
             return false;
         }
 
-        double treshold = inlineTreshold;
+        double threshold = inlineTreshold;
         for (ImExpr arg : call.getArguments()) {
             if (arg instanceof ImConst) {
-                treshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
+                threshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
                 break;
             }
         }
@@ -226,7 +224,7 @@ public class ImInliner {
 //		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
 //		WLogger.info("	rating: " + getRating(f));
         return inlinableFunctions.contains(f)
-                && getRating(f) < treshold
+                && getRating(f) < threshold
                 && !isRecursive(f);
     }
 
