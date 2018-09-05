@@ -192,7 +192,6 @@ public class ImInliner {
             return 1;
         }
 
-
         double callCount = getCallCount(f);
         double rating = size * (callCount - 1);
         return rating;
