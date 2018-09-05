@@ -567,9 +567,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 //        completion.set
 
         if (!isBeforeParenthesis()) {
-            if (params.isEmpty()) {
-                addParamSnippet(replacementString, f.getParameterNames(), completion);
-            }
+            addParamSnippet(replacementString, f.getParameterNames(), completion);
         }
 
 

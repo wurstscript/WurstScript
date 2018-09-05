@@ -85,7 +85,6 @@ public class AutoCompleteTests extends WurstScriptTest {
         );
 
         CompletionList completions = calculateCompletions(testData);
-        System.out.println("completions = " + completions);
         assertEquals(1, completions.getItems().size());
         CompletionItem c = completions.getItems().get(0);
         assertEquals("CreateGroup", c.getInsertText());
@@ -120,10 +119,28 @@ public class AutoCompleteTests extends WurstScriptTest {
         );
 
         CompletionList completions = calculateCompletions(testData);
-        System.out.println("completions = " + completions);
         assertEquals(1, completions.getItems().size());
         CompletionItem c = completions.getItems().get(0);
         assertEquals("CreateGroup()", c.getInsertText());
+    }
+
+
+    @Test
+    public void testWithoutParentheses2() {
+        CompletionTestData testData = input(
+                "package test",
+                "	init",
+                "		CreateU|",
+                "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        assertFalse(completions.getItems().isEmpty());
+        CompletionItem comp = completions.getItems().stream()
+                .filter(c -> c.getLabel().equals("CreateUnit"))
+                .findFirst()
+                .get();
+        assertEquals(comp.getInsertText(), "CreateUnit(${1:id}, ${2:unitid}, ${3:x}, ${4:y}, ${5:face})");
     }
 
 
@@ -371,9 +388,6 @@ public class AutoCompleteTests extends WurstScriptTest {
     private void testCompletions(CompletionTestData testData, List<String> expectedCompletions) {
 
         CompletionList result = calculateCompletions(testData);
-
-        // debug output:
-//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
 
         List<String> completionLabels = result.getItems().stream()
                 .sorted(Comparator.comparing(i -> i.getSortText()))
