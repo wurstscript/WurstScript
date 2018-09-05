@@ -3,10 +3,9 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 
 import java.util.*;
 
@@ -24,9 +23,10 @@ public class ImInliner {
     private Set<ImFunction> done = Sets.newLinkedHashSet();
     private double inlineTreshold = 50;
 
-    static  {
+    static {
         dontInline.add("SetPlayerAllianceStateAllyBJ");
         dontInline.add("InitBlizzard");
+        dontInline.add("error");
     }
 
     public ImInliner(ImTranslator translator) {
@@ -37,7 +37,7 @@ public class ImInliner {
     public void doInlining() {
         prog.flatten(translator);
         collectInlinableFunctions();
-        rateInitalizableFunctions();
+        rateInlinableFunctions();
         inlineFunctions();
     }
 
@@ -66,7 +66,7 @@ public class ImInliner {
         if (e instanceof ImFunctionCall) {
             ImFunctionCall call = (ImFunctionCall) e;
             ImFunction called = call.getFunc();
-            if (f != called && shouldInline(called)) {
+            if (f != called && shouldInline(call, called)) {
                 if (alreadyInlined.getOrDefault(called, 0) < 5) { // check maximum to ensure termination
                     inlineCall(f, parent, parentI, call);
 //					translator.removeCallRelation(f, called); // XXX is it safe to remove this call relation?
@@ -96,6 +96,7 @@ public class ImInliner {
     }
 
     private void inlineCall(ImFunction f, Element parent, int parentI, ImFunctionCall call) {
+        WLogger.info("inlineCall() " + f.getName() + " call: " + call);
         ImFunction called = call.getFunc();
         if (called == f) {
             throw new Error("cannot inline self.");
@@ -158,9 +159,9 @@ public class ImInliner {
 
     }
 
-    private void rateInitalizableFunctions() {
-        for (ImFunction f : translator.getCalledFunctions().values()) {
-            incCallCount(f);
+    private void rateInlinableFunctions() {
+        for (Map.Entry<ImFunction, ImFunction> f : translator.getCalledFunctions().entries()) {
+            incCallCount(f.getKey());
         }
         for (ImFunction f : inlinableFunctions) {
             int size = estimateSize(f);
@@ -179,8 +180,22 @@ public class ImInliner {
             return 1;
         }
 
+        for (FunctionFlag flag : f.getFlags()) {
+            if (flag instanceof FunctionFlagAnnotation) {
+                if (((FunctionFlagAnnotation) flag).getAnnotation().equals("@forceinline")) {
+                    return 1;
+                } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals("@noinline")) {
+                    return Double.MAX_VALUE;
+                }
+            }
+        }
+
+
         double callCount = getCallCount(f);
         double rating = size * (callCount - 1);
+        if (f.getName().equals("printLog")) {
+            WLogger.info("getRating() " + f.getName() + " size: " + size + " callCount: " + callCount + "rating:  " + rating);
+        }
         return rating;
     }
 
@@ -193,15 +208,23 @@ public class ImInliner {
         }
     }
 
-    private boolean shouldInline(ImFunction f) {
+    private boolean shouldInline(ImFunctionCall call, ImFunction f) {
         if (f.isNative()) {
             return false;
+        }
+
+        double treshold = inlineTreshold;
+        for (ImExpr arg : call.getArguments()) {
+            if (arg instanceof ImConst) {
+                treshold *= 2;
+                break;
+            }
         }
 //		WLogger.info("Should I inline function " + f.getName() + "?");
 //		WLogger.info("	ininable: " + inlinableFunctions.contains(f));
 //		WLogger.info("	rating: " + getRating(f));
         return inlinableFunctions.contains(f)
-                && getRating(f) < inlineTreshold
+                && getRating(f) < treshold
                 && !isRecursive(f);
     }
 
