@@ -13,6 +13,10 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 
 public class ImInliner {
+    private static final String FORCEINLINE = "@forceinline";
+    private static final String NOINLINE = "@noinline";
+
+    private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;
 
     private static final Set<String> dontInline = Sets.newLinkedHashSet();
     private ImTranslator translator;
@@ -182,9 +186,10 @@ public class ImInliner {
 
         for (FunctionFlag flag : f.getFlags()) {
             if (flag instanceof FunctionFlagAnnotation) {
-                if (((FunctionFlagAnnotation) flag).getAnnotation().equals("@forceinline")) {
+
+                if (((FunctionFlagAnnotation) flag).getAnnotation().equals(FORCEINLINE)) {
                     return 1;
-                } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals("@noinline")) {
+                } else if (((FunctionFlagAnnotation) flag).getAnnotation().equals(NOINLINE)) {
                     return Double.MAX_VALUE;
                 }
             }
@@ -193,9 +198,6 @@ public class ImInliner {
 
         double callCount = getCallCount(f);
         double rating = size * (callCount - 1);
-        if (f.getName().equals("printLog")) {
-            WLogger.info("getRating() " + f.getName() + " size: " + size + " callCount: " + callCount + "rating:  " + rating);
-        }
         return rating;
     }
 
@@ -216,7 +218,7 @@ public class ImInliner {
         double treshold = inlineTreshold;
         for (ImExpr arg : call.getArguments()) {
             if (arg instanceof ImConst) {
-                treshold *= 2;
+                treshold *= THRESHOLD_MODIFIER_CONSTANT_ARG;
                 break;
             }
         }
