@@ -12,7 +12,7 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImStatementExpr;
 import static de.peeeq.wurstscript.jassIm.JassIm.ImStmts;
 
 public class ImInliner {
-    private static final String FORCEINLINE = "@forceinline";
+    private static final String FORCEINLINE = "@inline";
     private static final String NOINLINE = "@noinline";
 
     private static final double THRESHOLD_MODIFIER_CONSTANT_ARG = 2;

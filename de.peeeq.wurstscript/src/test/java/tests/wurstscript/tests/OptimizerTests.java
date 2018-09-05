@@ -742,7 +742,7 @@ public class OptimizerTests extends WurstScriptTest {
     public void testInlineAnnotation() throws IOException {
         testAssertOkLinesWithStdLib(false,
                 "package Test",
-                "@forceinline function over9000(int i, boolean b, real r)",
+                "@inline function over9000(int i, boolean b, real r)",
                 "	var s = \"\"",
                 "	s += r.toString()",
                 "	s += i.toString()",
