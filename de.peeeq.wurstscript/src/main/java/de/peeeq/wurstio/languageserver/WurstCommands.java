@@ -34,11 +34,7 @@ public class WurstCommands {
 
     static List<String> providedCommands() {
         return Arrays.asList(
-                WURST_CLEAN,
-                WURST_STARTMAP,
-                WURST_BUILDMAP,
-                WURST_TESTS,
-                WURST_PERFORM_CODE_ACTION
+                WURST_CLEAN
         );
     }
 

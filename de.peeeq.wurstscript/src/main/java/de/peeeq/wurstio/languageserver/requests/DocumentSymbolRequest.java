@@ -2,12 +2,14 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
-import org.eclipse.lsp4j.SymbolInformation;
-import org.eclipse.lsp4j.SymbolKind;
-import org.eclipse.lsp4j.WorkspaceSymbolParams;
+import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,48 +17,58 @@ import java.util.stream.Collectors;
 /**
  *
  */
-public class SymbolInformationRequest extends UserRequest<List<? extends SymbolInformation>> {
+public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInformation, DocumentSymbol>>> {
 
-    private String query;
+    private TextDocumentIdentifier textDocument;
 
-    public SymbolInformationRequest(WorkspaceSymbolParams params) {
-        query = params.getQuery().toLowerCase();
+    public DocumentSymbolRequest(DocumentSymbolParams params) {
+        textDocument = params.getTextDocument();
     }
+
 
     @Override
-    public List<SymbolInformation> execute(ModelManager modelManager) {
-        return symbolsFromModel(modelManager.getModel());
-    }
-
-    private List<SymbolInformation> symbolsFromModel(WurstModel model) {
-        return model.stream()
-                .flatMap(cu -> symbolsFromCu(cu).stream())
-                .filter(si -> (si.getContainerName() + "." + si.getName()).toLowerCase().contains(query))
+    public List<Either<SymbolInformation, DocumentSymbol>> execute(ModelManager modelManager) {
+        CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument.getUri()));
+        return symbolsFromCu(cu)
+                .stream()
+                .map(Either::<SymbolInformation, DocumentSymbol>forRight)
                 .collect(Collectors.toList());
     }
 
-    private List<SymbolInformation> symbolsFromCu(CompilationUnit cu) {
+    private List<DocumentSymbol> symbolsFromCu(CompilationUnit cu) {
         if (cu == null) {
             return Collections.emptyList();
         }
-        List<SymbolInformation> result = new ArrayList<>();
+        List<DocumentSymbol> result = new ArrayList<>();
         for (WPackage p : cu.getPackages()) {
             addSymbolsForPackage(result, p);
         }
+        System.err.println(result);
         return result;
     }
 
-    private void addSymbolsForPackage(List<SymbolInformation> result, WPackage p) {
-        result.add(new SymbolInformation(p.getName(), SymbolKind.Package, Convert.errorLocation(p), ""));
+    private void addSymbolsForPackage(List<DocumentSymbol> result, WPackage p) {
+        List<DocumentSymbol> children = new ArrayList<>();
+        String name = p.getName();
+        result.add(makeDocumentSymbol(p, SymbolKind.Package, name, children));
         for (WEntity e : p.getElements()) {
-            addSymbolsForEntity(result, p.getName(), e);
+            addSymbolsForEntity(children, name, e);
         }
     }
 
-    private void addSymbolsForEntity(List<SymbolInformation> result, String containerName, WEntity e) {
+    @NotNull
+    private DocumentSymbol makeDocumentSymbol(Element p, SymbolKind kind, String name, List<DocumentSymbol> children) {
+        return new DocumentSymbol(name, kind, Convert.range(p), Convert.errorRange(p), "detail", children);
+    }
+
+    private void addSymbolsForEntity(List<DocumentSymbol> result, String containerName, WEntity e) {
         e.match(new WEntity.MatcherVoid() {
             private void add(String name, SymbolKind kind) {
-                result.add(new SymbolInformation(name, kind, Convert.errorLocation(e), containerName));
+                result.add(makeDocumentSymbol(e, kind, name, Collections.emptyList()));
+            }
+
+            private void add(String name, SymbolKind kind, List<DocumentSymbol> children) {
+                result.add(makeDocumentSymbol(e, kind, name, children));
             }
 
             @Override
@@ -66,28 +78,19 @@ public class SymbolInformationRequest extends UserRequest<List<? extends SymbolI
 
             @Override
             public void case_ClassDef(ClassDef classDef) {
-                String name = classDef.getName();
-                add(name, SymbolKind.Class);
-                for (ClassDef c : classDef.getInnerClasses()) {
-                    addSymbolsForEntity(result, containerName + "." + name, c);
-                }
-                for (FuncDef f : classDef.getMethods()) {
-                    addSymbolsForEntity(result, containerName + "." + name, f);
-                }
-                for (GlobalVarDef v : classDef.getVars()) {
-                    addSymbolsForEntity(result, containerName + "." + name, v);
-                }
+                case_ClassOrModule(classDef);
             }
 
             @Override
             public void case_InterfaceDef(InterfaceDef interfaceDef) {
                 String name = interfaceDef.getName();
-                add(name, SymbolKind.Interface);
+                List<DocumentSymbol> children = new ArrayList<>();
+                add(name, SymbolKind.Interface, children);
                 for (FuncDef f : interfaceDef.getMethods()) {
-                    addSymbolsForEntity(result, containerName + "." + name, f);
+                    addSymbolsForEntity(children, containerName + "." + name, f);
                 }
                 for (GlobalVarDef v : interfaceDef.getVars()) {
-                    addSymbolsForEntity(result, containerName + "." + name, v);
+                    addSymbolsForEntity(children, containerName + "." + name, v);
                 }
             }
 
@@ -140,19 +143,23 @@ public class SymbolInformationRequest extends UserRequest<List<? extends SymbolI
 
             @Override
             public void case_ModuleDef(ModuleDef moduleDef) {
-                String name = moduleDef.getName();
-                add(name, SymbolKind.Class);
-                for (ClassDef c : moduleDef.getInnerClasses()) {
-                    addSymbolsForEntity(result, containerName + "." + name, c);
-                }
-                for (FuncDef f : moduleDef.getMethods()) {
-                    addSymbolsForEntity(result, containerName + "." + name, f);
-                }
-                for (GlobalVarDef v : moduleDef.getVars()) {
-                    addSymbolsForEntity(result, containerName + "." + name, v);
-                }
+                case_ClassOrModule(moduleDef);
             }
 
+            public void case_ClassOrModule(ClassOrModule moduleDef) {
+                String name = moduleDef.getName();
+                List<DocumentSymbol> children = new ArrayList<>();
+                add(name, SymbolKind.Class, children);
+                for (ClassDef c : moduleDef.getInnerClasses()) {
+                    addSymbolsForEntity(children, containerName + "." + name, c);
+                }
+                for (FuncDef f : moduleDef.getMethods()) {
+                    addSymbolsForEntity(children, containerName + "." + name, f);
+                }
+                for (GlobalVarDef v : moduleDef.getVars()) {
+                    addSymbolsForEntity(children, containerName + "." + name, v);
+                }
+            }
 
         });
     }

@@ -72,12 +72,12 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
-        return worker.handle(new SymbolInformationRequest(params));
+    public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
+        return worker.handle(new DocumentSymbolRequest(params));
     }
 
     @Override
-    public CompletableFuture<List<? extends Command>> codeAction(CodeActionParams params) {
+    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
         WLogger.info("codeAction");
         return worker.handle(new CodeActionRequest(params, worker.getBufferManager()));
     }

@@ -11,9 +11,11 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CodeActionParams;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,7 +27,7 @@ import static de.peeeq.wurstio.languageserver.WurstCommands.WURST_PERFORM_CODE_A
 /**
  *
  */
-public class CodeActionRequest extends UserRequest<List<? extends Command>> {
+public class CodeActionRequest extends UserRequest<List<Either<Command, CodeAction>>> {
     private final CodeActionParams params;
     private final WFile filename;
     private final String buffer;
@@ -43,7 +45,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
     }
 
     @Override
-    public List<Command> execute(ModelManager modelManager) {
+    public List<Either<Command, CodeAction>> execute(ModelManager modelManager) {
         if (params.getContext().getDiagnostics().isEmpty()) {
             // if there are no compilation errors in this line,
             // we don't have to compute possible code actions
@@ -91,7 +93,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         return Collections.emptyList();
     }
 
-    private List<Command> handleMissingName(ModelManager modelManager, NameRef nr) {
+    private List<Either<Command, CodeAction>> handleMissingName(ModelManager modelManager, NameRef nr) {
         String funcName = nr.getVarName();
         WurstModel model = modelManager.getModel();
         List<String> possibleImports = new ArrayList<>();
@@ -122,7 +124,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
 
     }
 
-    private List<Command> handleMissingFunction(ModelManager modelManager, FuncRef fr) {
+    private List<Either<Command, CodeAction>> handleMissingFunction(ModelManager modelManager, FuncRef fr) {
         String funcName = fr.getFuncName();
         WurstType receiverType = null;
         if (fr instanceof ExprMember) {
@@ -148,7 +150,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         return makeImportCommands(possibleImports);
     }
 
-    private List<Command> handleMissingType(ModelManager modelManager, String typeName) {
+    private List<Either<Command, CodeAction>> handleMissingType(ModelManager modelManager, String typeName) {
         WurstModel model = modelManager.getModel();
         List<String> possibleImports = new ArrayList<>();
         for (CompilationUnit cu : model) {
@@ -162,7 +164,7 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         return makeImportCommands(possibleImports);
     }
 
-    private List<Command> handleMissingClass(ModelManager modelManager, String typeName) {
+    private List<Either<Command, CodeAction>> handleMissingClass(ModelManager modelManager, String typeName) {
         // TODO this is not optimal yet: We are only looking in the current model,
         // which only includes files which are in the current project or already imported
         // in the current project. So this will for example miss packages from the standard library
@@ -185,20 +187,20 @@ public class CodeActionRequest extends UserRequest<List<? extends Command>> {
         return makeImportCommands(possibleImports);
     }
 
-    private List<Command> makeImportCommands(List<String> possibleImports) {
+    private List<Either<Command, CodeAction>> makeImportCommands(List<String> possibleImports) {
         return possibleImports.stream()
                 .map(this::makeImportCommand)
                 .collect(Collectors.toList());
     }
 
 
-    private Command makeImportCommand(String imp) {
+    private Either<Command, CodeAction> makeImportCommand(String imp) {
         String title = "Import package " + imp;
         List<Object> arguments = Collections.singletonList(
                 PerformCodeActionRequest.importPackageAction(
                         filename.getUriString(),
                         imp)
         );
-        return new Command(title, WURST_PERFORM_CODE_ACTION, arguments);
+        return Either.forLeft(new Command(title, WURST_PERFORM_CODE_ACTION, arguments));
     }
 }
