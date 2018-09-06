@@ -4,6 +4,7 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.NotNull;
@@ -47,11 +48,10 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
     }
 
     private void addSymbolsForPackage(List<DocumentSymbol> result, WPackage p) {
-        List<DocumentSymbol> children = new ArrayList<>();
         String name = p.getName();
-        result.add(makeDocumentSymbol(p, SymbolKind.Package, name, children));
+        result.add(makeDocumentSymbol(p.getNameId(), SymbolKind.Package, name, null));
         for (WEntity e : p.getElements()) {
-            addSymbolsForEntity(children, e);
+            addSymbolsForEntity(result, e);
         }
     }
 
@@ -78,7 +78,7 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
 
             @Override
             public void case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
-                add(extensionFuncDef.getName(), SymbolKind.Function);
+                add(Utils.printTypeExpr(extensionFuncDef.getExtendedType()) + "." + extensionFuncDef.getName(), SymbolKind.Function);
             }
 
             @Override

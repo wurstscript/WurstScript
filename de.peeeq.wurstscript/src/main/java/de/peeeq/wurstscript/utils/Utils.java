@@ -11,6 +11,8 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.awt.event.MouseAdapter;
@@ -982,5 +984,16 @@ public class Utils {
         sb.append(e.attrSource().getFile()).append(":").append(e.attrSource().getLine()).append(": ");
         e.prettyPrint(new DefaultSpacer(), sb, 4);
         return sb.toString();
+    }
+
+    public static String printTypeExpr(TypeExpr t) {
+        WurstType wt = t.attrTyp();
+        if (wt instanceof WurstTypeUnknown) {
+            if (t instanceof TypeExprSimple) {
+                return ((TypeExprSimple) t).getTypeName();
+            }
+            return "???";
+        }
+        return wt.toString();
     }
 }
