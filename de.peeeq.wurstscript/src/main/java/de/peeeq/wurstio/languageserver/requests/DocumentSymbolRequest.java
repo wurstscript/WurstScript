@@ -9,7 +9,6 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -52,23 +51,29 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
         String name = p.getName();
         result.add(makeDocumentSymbol(p, SymbolKind.Package, name, children));
         for (WEntity e : p.getElements()) {
-            addSymbolsForEntity(children, name, e);
+            addSymbolsForEntity(children, e);
         }
     }
 
     @NotNull
     private DocumentSymbol makeDocumentSymbol(Element p, SymbolKind kind, String name, List<DocumentSymbol> children) {
-        return new DocumentSymbol(name, kind, Convert.range(p), Convert.errorRange(p), "detail", children);
+        String detail = null;
+        if (p instanceof AstElementWithParameters) {
+            detail = "(" + HoverInfo.getParameterString((AstElementWithParameters) p) + ")";
+        }
+        return new DocumentSymbol(name, kind, Convert.range(p), Convert.errorRange(p), detail, children);
     }
 
-    private void addSymbolsForEntity(List<DocumentSymbol> result, String containerName, WEntity e) {
+    private void addSymbolsForEntity(List<DocumentSymbol> result, WEntity e) {
         e.match(new WEntity.MatcherVoid() {
             private void add(String name, SymbolKind kind) {
-                result.add(makeDocumentSymbol(e, kind, name, Collections.emptyList()));
+                add(name, kind, Collections.emptyList());
             }
 
             private void add(String name, SymbolKind kind, List<DocumentSymbol> children) {
-                result.add(makeDocumentSymbol(e, kind, name, children));
+                if (!e.attrSource().isArtificial()) {
+                    result.add(makeDocumentSymbol(e, kind, name, children));
+                }
             }
 
             @Override
@@ -87,10 +92,10 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
                 List<DocumentSymbol> children = new ArrayList<>();
                 add(name, SymbolKind.Interface, children);
                 for (FuncDef f : interfaceDef.getMethods()) {
-                    addSymbolsForEntity(children, containerName + "." + name, f);
+                    addSymbolsForEntity(children, f);
                 }
                 for (GlobalVarDef v : interfaceDef.getVars()) {
-                    addSymbolsForEntity(children, containerName + "." + name, v);
+                    addSymbolsForEntity(children, v);
                 }
             }
 
@@ -146,19 +151,25 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
                 case_ClassOrModule(moduleDef);
             }
 
-            public void case_ClassOrModule(ClassOrModule moduleDef) {
-                String name = moduleDef.getName();
+            public void case_ClassOrModule(ClassOrModule def) {
+                String name = def.getName();
                 List<DocumentSymbol> children = new ArrayList<>();
                 add(name, SymbolKind.Class, children);
-                for (ClassDef c : moduleDef.getInnerClasses()) {
-                    addSymbolsForEntity(children, containerName + "." + name, c);
+                for (ClassDef c : def.getInnerClasses()) {
+                    addSymbolsForEntity(children, c);
                 }
-                for (FuncDef f : moduleDef.getMethods()) {
-                    addSymbolsForEntity(children, containerName + "." + name, f);
+                for (FuncDef f : def.getMethods()) {
+                    addSymbolsForEntity(children, f);
                 }
-                for (GlobalVarDef v : moduleDef.getVars()) {
-                    addSymbolsForEntity(children, containerName + "." + name, v);
+                for (GlobalVarDef v : def.getVars()) {
+                    addSymbolsForEntity(children, v);
                 }
+                for (ConstructorDef c : def.getConstructors()) {
+                    if (!c.attrSource().isArtificial()) {
+                        children.add(makeDocumentSymbol(c, SymbolKind.Constructor, "construct", Collections.emptyList()));
+                    }
+                }
+
             }
 
         });

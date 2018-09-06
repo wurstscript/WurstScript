@@ -66,6 +66,23 @@ public class HoverInfo extends UserRequest<Hover> {
         return res.toString().trim();
     }
 
+    public static String getParameterString(AstElementWithParameters f) {
+        StringBuilder descrhtml = new StringBuilder();
+        boolean first = true;
+        for (WParameter p : f.getParameters()) {
+            if (!first) {
+                descrhtml.append(", ");
+            }
+            descrhtml.append(type(p.attrTyp())).append(" ").append(p.getName());
+            first = false;
+        }
+        return descrhtml.toString();
+    }
+
+    private static String type(WurstType wurstType) {
+        return wurstType.toString();
+    }
+
     static class Description implements Element.Matcher<List<Either<String, MarkedString>>> {
 
         public List<Either<String, MarkedString>> description(FunctionDefinition f) {
@@ -93,19 +110,6 @@ public class HoverInfo extends UserRequest<Hover> {
             result.add(Either.forRight(new MarkedString("wurst", functionDescription)));
             result.add(Either.forLeft("defined in " + nearestScopeName(f)));
             return result;
-        }
-
-        public String getParameterString(AstElementWithParameters f) {
-            StringBuilder descrhtml = new StringBuilder();
-            boolean first = true;
-            for (WParameter p : f.getParameters()) {
-                if (!first) {
-                    descrhtml.append(", ");
-                }
-                descrhtml.append(type(p.attrTyp())).append(" ").append(p.getName());
-                first = false;
-            }
-            return descrhtml.toString();
         }
 
         private static String nearestScopeName(Element n) {
@@ -324,10 +328,6 @@ public class HoverInfo extends UserRequest<Hover> {
 
         private List<Either<String, MarkedString>> string(String s) {
             return Collections.singletonList(Either.forLeft(s));
-        }
-
-        private String type(WurstType wurstType) {
-            return wurstType.toString();
         }
 
         @Override
