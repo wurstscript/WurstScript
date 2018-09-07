@@ -43,7 +43,6 @@ public class DocumentSymbolRequest extends UserRequest<List<Either<SymbolInforma
         for (WPackage p : cu.getPackages()) {
             addSymbolsForPackage(result, p);
         }
-        System.err.println(result);
         return result;
     }
 
