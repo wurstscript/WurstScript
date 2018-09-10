@@ -1,5 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
+import org.eclipse.lsp4j.TextDocumentIdentifier;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -54,6 +56,10 @@ public class WFile {
         } catch (InvalidPathException e2) {
             throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
         }
+    }
+
+    public static WFile create(TextDocumentIdentifier textDocument) {
+        return create(textDocument.getUri());
     }
 
     public File getFile() {

@@ -52,6 +52,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         capabilities.setCodeActionProvider(true);
         capabilities.setDocumentSymbolProvider(true);
         capabilities.setWorkspaceSymbolProvider(true);
+        capabilities.setColorProvider(true);
 
 
         InitializeResult res = new InitializeResult(capabilities);

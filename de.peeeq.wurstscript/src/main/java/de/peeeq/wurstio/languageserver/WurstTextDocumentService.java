@@ -142,4 +142,14 @@ public class WurstTextDocumentService implements TextDocumentService {
         WLogger.info("didSave");
 
     }
+
+    @Override
+    public CompletableFuture<List<ColorInformation>> documentColor(DocumentColorParams params) {
+        return worker.handle(new Colors.DocumentColorRequest(params));
+    }
+
+    @Override
+    public CompletableFuture<List<ColorPresentation>> colorPresentation(ColorPresentationParams params) {
+        return worker.handle(new Colors.ColorPresentationRequest(params));
+    }
 }
