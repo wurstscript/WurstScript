@@ -4,20 +4,24 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  *
  */
 public class Colors {
+
+    private static final Pattern colorPattern = Pattern.compile("\\|c([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})");
+
 
     public static class DocumentColorRequest extends UserRequest<List<ColorInformation>> {
 
@@ -31,6 +35,10 @@ public class Colors {
         @Override
         public List<ColorInformation> execute(ModelManager modelManager) throws IOException {
             CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument));
+            if (cu == null) {
+                return Collections.emptyList();
+            }
+
             List<ColorInformation> result = new ArrayList<>();
             cu.accept(new Element.DefaultVisitor() {
                 @Override
@@ -41,9 +49,9 @@ public class Colors {
                             && args.size() == 3) {
                         if (args.stream()
                                 .allMatch(a -> a instanceof ExprIntVal)) {
-                            double red = ((ExprIntVal) args.get(0)).getValI()/255.;
-                            double green = ((ExprIntVal) args.get(1)).getValI()/255.;
-                            double blue = ((ExprIntVal) args.get(2)).getValI()/255.;
+                            double red = ((ExprIntVal) args.get(0)).getValI() / 255.;
+                            double green = ((ExprIntVal) args.get(1)).getValI() / 255.;
+                            double blue = ((ExprIntVal) args.get(2)).getValI() / 255.;
                             double alpha = 1.;
                             Color color = new Color(red, green, blue, alpha);
                             result.add(new ColorInformation(Convert.range(call), color));
@@ -53,16 +61,25 @@ public class Colors {
                             && args.size() == 4) {
                         if (args.stream()
                                 .allMatch(a -> a instanceof ExprIntVal)) {
-                            double red = ((ExprIntVal) args.get(0)).getValI()/255.;
-                            double green = ((ExprIntVal) args.get(1)).getValI()/255.;
-                            double blue = ((ExprIntVal) args.get(2)).getValI()/255.;
-                            double alpha = ((ExprIntVal) args.get(3)).getValI()/255.;
+                            double red = ((ExprIntVal) args.get(0)).getValI() / 255.;
+                            double green = ((ExprIntVal) args.get(1)).getValI() / 255.;
+                            double blue = ((ExprIntVal) args.get(2)).getValI() / 255.;
+                            double alpha = ((ExprIntVal) args.get(3)).getValI() / 255.;
                             Color color = new Color(red, green, blue, alpha);
                             result.add(new ColorInformation(Convert.range(call), color));
                             return;
                         }
                     }
                     super.visit(call);
+                }
+
+                @Override
+                public void visit(ExprStringVal e) {
+                    String s = e.getValS();
+                    Range loc = Convert.range(e);
+                    int line = loc.getStart().getLine();
+                    int col = loc.getStart().getCharacter() + 1;
+                    collectStringColors(s, result, line, col);
                 }
             });
             return result;
@@ -82,35 +99,77 @@ public class Colors {
         }
 
         @Override
-        public List<ColorPresentation> execute(ModelManager modelManager) throws IOException {
+        public List<ColorPresentation> execute(ModelManager modelManager) {
             CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument));
-            Element elem = Utils.getAstElementAtPos(cu, range.getStart().getLine(), range.getStart().getCharacter() + 1, false);
+            if (cu == null) {
+                return Collections.emptyList();
+            }
+            Element elem = Utils.getAstElementAtPos(cu, range.getStart().getLine() + 1, range.getStart().getCharacter() + 2, false);
 
-            boolean isColorA = false;
+            if (elem instanceof ExprIntVal
+                    && elem.getParent() != null) {
+                elem = elem.getParent();
+            }
+            if (elem instanceof Arguments
+                    && elem.getParent() != null) {
+                elem = elem.getParent();
+            }
+
+
             if (elem instanceof ExprFunctionCall) {
                 ExprFunctionCall fc = (ExprFunctionCall) elem;
-                isColorA = fc.getFuncName().equals("colorA");
+                boolean isColorA = fc.getFuncName().equals("colorA");
+
+                int red = (int) (255 * color.getRed());
+                int green = (int) (255 * color.getGreen());
+                int blue = (int) (255 * color.getBlue());
+                int alpha = (int) (255 * color.getAlpha());
+
+                if (alpha != 255) {
+                    isColorA = true;
+                }
+
+                String label;
+                if (isColorA) {
+                    label = "colorA(" + red + ", " + green + ", " + blue + ", " + alpha + ")";
+                } else {
+                    label = "color(" + red + ", " + green + ", " + blue + ")";
+                }
+
+                return Collections.singletonList(
+                        new ColorPresentation(label)
+                );
+            } else if (elem instanceof ExprStringVal) {
+                return Collections.singletonList(
+                        new ColorPresentation("|c" + toHex(color))
+                );
             }
-
-            int red = (int) (255*color.getRed());
-            int green = (int) (255*color.getGreen());
-            int blue = (int) (255*color.getBlue());
-            int alpha = (int) (255*color.getAlpha());
-
-            if (alpha != 255) {
-                isColorA = true;
-            }
-
-            String label;
-            if (isColorA) {
-                label = "colorA(" + red + ", " + green + ", " + blue + ", " + alpha + ")";
-            } else {
-                label = "color(" + red + ", " + green + ", " + blue + ")";
-            }
-
-            return Collections.singletonList(
-                    new ColorPresentation(label)
-            );
+            return Collections.emptyList();
         }
+    }
+
+    public static void collectStringColors(String s, List<ColorInformation> result, int line, int col) {
+        Matcher matcher = colorPattern.matcher(s);
+
+        for (int i = 0; matcher.find(); i++) {
+            double red = Integer.parseInt(matcher.group(2), 16) / 255.;
+            double green = Integer.parseInt(matcher.group(3), 16) / 255.;
+            double blue = Integer.parseInt(matcher.group(4), 16) / 255.;
+            double alpha = Integer.parseInt(matcher.group(1), 16) / 255.;
+            Color color = new Color(red, green, blue, alpha);
+            Range range = new Range(
+                    new Position(line, col + matcher.start(0)),
+                    new Position(line, col + matcher.end(0))
+            );
+            result.add(new ColorInformation(range, color));
+        }
+    }
+
+    public static String toHex(Color color) {
+        String r = String.format("%02x", (int) (color.getRed() * 255));
+        String g = String.format("%02x", (int) (color.getGreen() * 255));
+        String b = String.format("%02x", (int) (color.getBlue() * 255));
+        String a = String.format("%02x", (int) (color.getAlpha() * 255));
+        return a + r + g + b;
     }
 }
