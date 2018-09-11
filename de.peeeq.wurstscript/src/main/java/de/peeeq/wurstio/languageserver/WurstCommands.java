@@ -26,6 +26,7 @@ public class WurstCommands {
     public static final String WURST_CLEAN = "wurst.clean";
     public static final String WURST_STARTMAP = "wurst.startmap";
     public static final String WURST_BUILDMAP = "wurst.buildmap";
+    public static final String WURST_BROWSE_TEXTURE = "wurst.browseTexture";
     public static final String WURST_STARTLAST = "wurst.startlast";
     public static final String WURST_TESTS = "wurst.tests";
     public static final String WURST_TESTS_FILE = "wurst.tests_file";
@@ -50,9 +51,16 @@ public class WurstCommands {
                 return server.worker().handle(new PerformCodeActionRequest(server, params));
             case WURST_BUILDMAP:
                 return buildmap(server, params);
+            case WURST_BROWSE_TEXTURE:
+                return browseTexture(server, params);
         }
         WLogger.info("unhandled command: " + params.getCommand());
         throw new RuntimeException("unhandled command: " + params.getCommand());
+    }
+
+    private static CompletableFuture<Object> browseTexture(WurstLanguageServer server, ExecuteCommandParams params) {
+        WLogger.info("browse texture");
+        return null;
     }
 
 
@@ -108,7 +116,6 @@ public class WurstCommands {
             if (Files.exists(configFile)) {
                 return Files.lines(configFile).filter(s -> s.startsWith("-")).collect(Collectors.toList());
             } else {
-
                 String cfg = String.join("\n", defaultArgs) + "\n";
                 Files.write(configFile, cfg.getBytes(Charsets.UTF_8));
                 return defaultArgs;

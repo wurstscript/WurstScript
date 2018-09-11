@@ -85,7 +85,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<? extends CodeLens>> codeLens(CodeLensParams params) {
         WLogger.info("codeLens");
-        return null;
+        return worker.handle(new CodeLensRequest(params));
     }
 
     @Override
