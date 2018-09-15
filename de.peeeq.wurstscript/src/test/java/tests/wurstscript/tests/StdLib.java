@@ -51,9 +51,7 @@ public class StdLib {
                 System.out.println("Wrong version '" + revision + "', executing git pull to get '" + version + "'");
                 Utils.exec(stdLibFolder, "git", "checkout", "master");
                 Utils.exec(stdLibFolder, "git", "pull");
-                Utils.exec(stdLibFolder, "git", "clean", "-fdx");
-                Utils.exec(stdLibFolder, "git", "checkout", ".");
-                Utils.exec(stdLibFolder, "git", "checkout", version);
+                Utils.exec(stdLibFolder, "git", "checkout", version, "-f");
             }
 
             // reset all possible changes
