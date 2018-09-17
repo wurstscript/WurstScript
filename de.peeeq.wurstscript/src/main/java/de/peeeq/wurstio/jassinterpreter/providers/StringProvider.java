@@ -86,9 +86,10 @@ public class StringProvider extends Provider {
         return new ILconstInt(string.getVal().length());
     }
 
-    public ILconstString SubString(ILconstString s, ILconstInt start, ILconstInt end) {
-        String str = s.getVal();
-        if (start.getVal() < 0) {
+    public ILconstString SubString(ILconstString istr, ILconstInt start, ILconstInt end) {
+        String str = istr.getVal();
+        int s = start.getVal();
+        if (s < 0) {
             // I am not gonna emulate the WC3 bug for negative indexes here ...
             throw new RuntimeException("SubString called with negative start index: " + start);
         }
@@ -97,7 +98,12 @@ public class StringProvider extends Provider {
             // Warcraft does no bound checking here:
             e = str.length();
         }
-        return new ILconstString(str.substring(start.getVal(), e));
+        if (s >= str.length()) {
+            // not sure what wc3 does in this case, but truncating
+            // seems like something wc3 might do
+            s = str.length();
+        }
+        return new ILconstString(str.substring(s, e));
     }
 
     public ILconstString StringCase(ILconstString string, ILconstBool upperCase) {

@@ -1077,5 +1077,16 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void subStringError() { // #728
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@extern native SubString(string s, int s, int e) returns string",
+                "init",
+                "    if SubString(\"blubber\", 1000, 1002) == \"\"",
+                "        testSuccess()"
+        );
+    }
 
 }
