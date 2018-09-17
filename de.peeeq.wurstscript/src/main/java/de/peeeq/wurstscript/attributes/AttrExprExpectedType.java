@@ -34,15 +34,13 @@ public class AttrExprExpectedType {
             } else if (parent instanceof StmtSet) {
                 StmtSet stmtSet = (StmtSet) parent;
                 if (stmtSet.getRight() == expr) {
-                    WurstType leftType = stmtSet.getUpdatedExpr().attrTyp();
-                    return leftType;
+                    return stmtSet.getUpdatedExpr().attrTyp();
                 } else if (stmtSet.getUpdatedExpr() == expr) {
                     return WurstTypeUnknown.instance();
                 }
             } else if (parent instanceof VarDef) {
                 VarDef varDef = (VarDef) parent;
-                WurstType leftType = varDef.attrTyp();
-                return leftType;
+                return varDef.attrTyp();
             } else if (parent instanceof ExprBinary) {
                 ExprBinary exprBinary = (ExprBinary) parent;
                 WurstType leftType = exprBinary.getLeft().attrTyp();
@@ -104,14 +102,17 @@ public class AttrExprExpectedType {
     private static WurstType expectedTypeSuperCall(ConstructorDef constr, Expr expr) {
         ClassDef c = constr.attrNearestClassDef();
         if (c == null) {
-            return null;
+            return WurstTypeUnknown.instance();
         }
         WurstTypeClass superClass = c.attrTypC().extendedClass();
         if (superClass == null) {
-            return null;
+            return WurstTypeUnknown.instance();
         }
         // call super constructor
         ClassDef superClassDef = superClass.getDef();
+        if (superClassDef == null) {
+            return WurstTypeUnknown.instance();
+        }
         ConstructorDefs constructors = superClassDef.getConstructors();
 
 
