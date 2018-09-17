@@ -86,6 +86,8 @@ public class ReflectionNativeProvider implements NativesProvider {
         } catch (IllegalAccessException | InvocationTargetException e) {
             if (e.getCause() instanceof Error) {
                 throw (Error) e.getCause();
+            } else if (e.getCause() instanceof InterpreterException) {
+                throw (InterpreterException) e.getCause();
             }
             throw new Error(e.getCause());
         }
