@@ -97,7 +97,7 @@ public class MultiArrayEliminator {
         ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "instanceId", false);
         ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "arrayIndex", false);
         ImVar value = JassIm.ImVar(aVar.getTrace(), JassIm.ImSimpleType(mtype.getTypename()), "value", false);
-        ImStmts thenBlock = JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Index out of Bounds")));
+        ImStmts thenBlock = JassIm.ImStmts(translator.imError(aVar.getTrace(), JassIm.ImStringVal("Index out of Bounds")));
         ImStmts elseBlock = JassIm.ImStmts();
         generateBinSearchSet(elseBlock, instanceId, arrayIndex, value, newArrays, 0, newArrays.size() - 1);
         ImExpr highCond = JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(JassIm.ImVarAccess(arrayIndex), JassIm.ImIntVal(mtype.getArraySize().get(0))));
@@ -137,7 +137,7 @@ public class MultiArrayEliminator {
         ImVars locals = JassIm.ImVars(returnVal);
         ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index1", false);
         ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index2", false);
-        ImStmts thenBlock = JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Index out of Bounds")));
+        ImStmts thenBlock = JassIm.ImStmts(translator.imError(aVar.getTrace(), JassIm.ImStringVal("Index out of Bounds")));
         ImStmts elseBlock = JassIm.ImStmts();
         generateBinSearchGet(elseBlock, instanceId, arrayIndex, returnVal, newArrays, 0, newArrays.size() - 1);
         ImExpr highCond = JassIm.ImOperatorCall(WurstOperator.GREATER_EQ, JassIm.ImExprs(JassIm.ImVarAccess(arrayIndex), JassIm.ImIntVal(mtype.getArraySize().get(0))));

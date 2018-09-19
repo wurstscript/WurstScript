@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -1328,14 +1327,14 @@ public class ImTranslator {
     }
 
 
-    public ImExpr imError(ImExpr message) {
+    public ImExpr imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
         ImFunction ef = errorFunc;
         if (ef == null) {
             Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);
             ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
         }
         ImExprs arguments = JassIm.ImExprs(message);
-        return JassIm.ImFunctionCall(message.attrTrace(), ef, arguments, false, CallType.NORMAL);
+        return JassIm.ImFunctionCall(trace, ef, arguments, false, CallType.NORMAL);
     }
 
     private ImFunction makeDefaultErrorFunc() {

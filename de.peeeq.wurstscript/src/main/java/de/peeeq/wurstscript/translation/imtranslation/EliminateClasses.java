@@ -3,13 +3,13 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -112,6 +112,7 @@ public class EliminateClasses {
 
         // ckeck if destroyed or nullpointer
         if (checkedDispatch) {
+            Element trace = m.attrTrace();
             df.getBody().add(
                     // if typeId[this] == 0
                     JassIm.ImIf(
@@ -124,10 +125,10 @@ public class EliminateClasses {
                                     JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)
                                     )),
                                     // then error(NPE)
-                                    JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
+                                    JassIm.ImStmts(translator.imError(trace, JassIm.ImStringVal("Nullpointer exception when calling " + c.getName() + "." + m.getName())))
                                     ,
                                     // else error(unallocated)
-                                    JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
+                                    JassIm.ImStmts(translator.imError(trace, JassIm.ImStringVal("Called " + c.getName() + "." + m.getName() + " on invalid object.")))
                             ))
 
                             , JassIm.ImStmts())
