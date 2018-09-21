@@ -751,5 +751,38 @@ public class ClosureTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void testOverloadingFuncClosureUse() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface ABC",
+                "        function foo() returns int",
+                "    class B",
+                "    function foo(ABC a) returns int",
+                "        return a.foo()",
+                "    function foo(B a) returns int",
+                "        return 13",
+                "    init",
+                "        if foo(() -> 42) == 42",
+                "            testSuccess()");
+    }
+
+    @Test
+    public void testOverloadingConstructorClosureUse() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface ABC",
+                "        function foo() returns int",
+                "    class B",
+                "    class A",
+                "        construct(ABC a)",
+                "            testSuccess()",
+                "        construct(B a)",
+                "    init",
+                "        new A(() -> 42)"
+        );
+    }
 
 }
