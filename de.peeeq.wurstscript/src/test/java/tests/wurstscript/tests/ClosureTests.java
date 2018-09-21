@@ -751,21 +751,5 @@ public class ClosureTests extends WurstScriptTest {
     }
 
 
-    @Test
-    public void testErrorMessage() {
-        testAssertOkLines(true,
-                "package A",
-                "    native testSuccess()",
-                "    interface F",
-                "        function apply(int x, int y) returns int",
-                "    function blub(F f) returns int",
-                "        return f.apply(3, 4)",
-                "    init",
-                "        int x = blub(x -> x)",
-                "        if x == 6",
-                "            testSuccess()");
-
-    }
-
 
 }
