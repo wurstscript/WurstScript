@@ -6,7 +6,7 @@ abstract syntax:
 ImProg(ImVars globals, 
 	ImFunctions functions, 
 	ImClasses classes, 
-	java.util.Map<ImVar, ImExpr> globalInits)
+	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction

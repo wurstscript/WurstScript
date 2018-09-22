@@ -58,6 +58,7 @@ public class WurstScriptTest {
         private List<File> inputFiles = new ArrayList<>();
         private List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
+        private boolean runCompiletimeFunctions;
 
         TestConfig(String name) {
             this.name = name;
@@ -149,7 +150,14 @@ public class WurstScriptTest {
         }
 
         private CompilationResult testScript() {
-            RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
+            RunArgs runArgs = new RunArgs();
+            if (withStdLib) {
+                runArgs = runArgs.with("-lib", StdLib.getLib());
+            }
+            if (runCompiletimeFunctions) {
+                runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+
             WurstGui gui = new WurstGuiCliImpl();
             WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
             if (stopOnFirstError) {
@@ -184,13 +192,13 @@ public class WurstScriptTest {
 
             // translate with different options:
 
-            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+            testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
             if (testLua && !withStdLib) {
                 // test lua translation
@@ -228,6 +236,11 @@ public class WurstScriptTest {
             for (Entry<String, String> e : inputs.entrySet()) {
                 additionalCompilationUnits.add(new CU(e.getKey(), e.getValue()));
             }
+            return this;
+        }
+
+        public TestConfig runCompiletimeFunctions(boolean b) {
+            this.runCompiletimeFunctions = b;
             return this;
         }
     }
@@ -315,29 +328,31 @@ public class WurstScriptTest {
 
 
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
-        compiler.setRunArgs(new RunArgs("-inline", "-localOptimizations"));
+        compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations"));
         translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
-    private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+    private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui
+            , WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms
+            , RunArgs runArgs) throws Error {
         // test with inlining
-        compiler.setRunArgs(new RunArgs("-inline"));
+        compiler.setRunArgs(runArgs.with("-inline"));
         translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                            WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+                                            WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with local optimization
-        compiler.setRunArgs(new RunArgs("-localOptimizations"));
+        compiler.setRunArgs(runArgs.with("-localOptimizations"));
         translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
-                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms)
+                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs)
             throws Error {
+        compiler.setRunArgs(runArgs);
         // test without inlining and optimization
         translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -431,6 +446,7 @@ public class WurstScriptTest {
             }
         }
 
+        compiler.runCompiletime();
         JassProg prog = compiler.transformProgToJass();
         writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {

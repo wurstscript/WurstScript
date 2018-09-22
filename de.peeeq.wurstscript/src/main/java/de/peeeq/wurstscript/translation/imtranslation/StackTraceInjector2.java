@@ -13,11 +13,8 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 
 /**
  * Takes a program and inserts stack traces at error messages
@@ -66,7 +63,7 @@ public class StackTraceInjector2 {
         prog.getGlobals().add(stackSize);
         stack = JassIm.ImVar(trace, JassIm.ImArrayType("string"), "wurst_stack", false);
         prog.getGlobals().add(stack);
-        prog.getGlobalInits().put(stackSize, JassIm.ImIntVal(0));
+        prog.getGlobalInits().put(stackSize, Collections.singletonList(JassIm.ImIntVal(0)));
 
         Multimap<ImFunction, ImFunction> callRelationTr = Utils.transientClosure(callRelation);
 
