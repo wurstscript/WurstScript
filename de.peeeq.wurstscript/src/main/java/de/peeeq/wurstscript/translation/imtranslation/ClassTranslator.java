@@ -366,7 +366,7 @@ public class ClassTranslator {
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, thisVar, JassIm.ImAlloc(imClass)));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClass)));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);

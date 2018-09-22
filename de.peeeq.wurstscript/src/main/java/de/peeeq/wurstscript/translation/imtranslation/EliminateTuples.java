@@ -7,9 +7,12 @@ import de.peeeq.datastructures.ImmutableTree;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.stream.Collectors;
 
 /**
  * a rewrite would return a combination of
@@ -110,7 +113,7 @@ public class EliminateTuples {
         while (it.hasNext()) {
             ImVar v = it.next();
             Preconditions.checkNotNull(v.getParent(), "null parent: " + v);
-            if (v.getType() instanceof ImTupleType || v.getType() instanceof ImTupleArrayType) {
+            if (TypesHelper.typeContainsTuples(v.getType())) {
                 ImmutableTree<ImVar> varsForTuple = translator.getVarsForTuple(v);
                 it.remove();
                 for (ImVar nv : varsForTuple.allValues()) {
@@ -119,7 +122,7 @@ public class EliminateTuples {
             }
         }
         for (ImVar v : vars) {
-            if (v.getType() instanceof ImTupleType || v.getType() instanceof ImTupleArrayType) {
+            if (v.getType() instanceof ImTupleType) {
                 throw new Error("still contains a bad var: " + v + " in: \n" + v.getParent().getParent());
             }
         }
@@ -187,19 +190,14 @@ public class EliminateTuples {
         if (vars.size() == 0) {
             // void expression, only keep right hand side
             return copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
-        } if (vars.size() == 1) { // TODO do this only if it is a leaf
+        }
+        if (vars.size() == 1) { // TODO do this only if it is a leaf
             ImExpr newExpr = copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
             newExpr = elimStatementExpr(statements, newExpr, translator, f);
-            if (newExpr instanceof ImTupleExpr) {
-                ImTupleExpr te = (ImTupleExpr) newExpr;
-                if (te.getExprs().size() > 1) {
-                    throw new Error();
-                }
-                newExpr = te.getExprs().remove(0);
-            }
+            newExpr = removeTupleWrapper(newExpr);
 
             if (statements.size() > 0) {
-                statements.add(JassIm.ImSet(e.getTrace(), vars.getOnlyEment(), copyExpr(newExpr)));
+                statements.add(JassIm.ImSet(e.getTrace(), JassIm.ImVarAccess(vars.getOnlyEment()), copyExpr(newExpr)));
                 return JassIm.ImStatementExpr(statements, JassIm.ImNull());
             } else {
                 e.setLeft(vars.getOnlyEment());
@@ -230,11 +228,11 @@ public class EliminateTuples {
             f.getLocals().addAll(tempVars);
 
             for (int i = 0; i < varsSize; i++) {
-                statements.add(JassIm.ImSet(e.getTrace(), tempVars.get(i), copyExpr(exprs.get(i))));
+                statements.add(JassIm.ImSet(e.getTrace(), JassIm.ImVarAccess(tempVars.get(i)), copyExpr(exprs.get(i))));
             }
 
             for (int i = 0; i < tempVars.size(); i++) {
-                statements.add(JassIm.ImSet(e.getTrace(), varsList.get(i), JassIm.ImVarAccess(tempVars.get(i))));
+                statements.add(JassIm.ImSet(e.getTrace(), JassIm.ImVarAccess(varsList.get(i)), JassIm.ImVarAccess(tempVars.get(i))));
             }
         } else {
             throw new Error("unhandled case: " + right1.getClass());
@@ -242,6 +240,9 @@ public class EliminateTuples {
         return JassIm.ImStatementExpr(statements, JassIm.ImNull());
     }
 
+    /**
+     * makes a smart copy -- only copies if e currently has no parent
+     */
     private static ImExpr copyExpr(ImExpr e) {
         if (e.getParent() == null) {
             return e;
@@ -257,13 +258,7 @@ public class EliminateTuples {
         if (vars.size() == 1) {
             ImExpr newExpr = copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
             newExpr = elimStatementExpr(statements, newExpr, translator, f);
-            if (newExpr instanceof ImTupleExpr) {
-                ImTupleExpr te = (ImTupleExpr) newExpr;
-                if (te.getExprs().size() > 1) {
-                    throw new Error();
-                }
-                newExpr = te.getExprs().remove(0);
-            }
+            newExpr = removeTupleWrapper(newExpr);
 
             ImExpr indexExpr = copyExpr(e.getIndex().eliminateTuplesExpr(translator, f));
             if (statements.size() > 0) {
@@ -280,7 +275,7 @@ public class EliminateTuples {
             }
         }
         // assign index to temporary variable
-        ImVar tempIndex = JassIm.ImVar(e.getTrace(), JassIm.ImSimpleType("integer"), "tempIndex", false);
+        ImVar tempIndex = JassIm.ImVar(e.getTrace(), TypesHelper.imInt(), "tempIndex", false);
         f.getLocals().add(tempIndex);
         statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
 
@@ -305,6 +300,20 @@ public class EliminateTuples {
             throw new Error("unhandled case: " + right1);
         }
         return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+    }
+
+    /**
+     * If the expression is wrapped in a tuple, only keep the single expression
+     */
+    private static ImExpr removeTupleWrapper(ImExpr newExpr) {
+        if (newExpr instanceof ImTupleExpr) {
+            ImTupleExpr te = (ImTupleExpr) newExpr;
+            if (te.getExprs().size() > 1) {
+                throw new Error();
+            }
+            newExpr = te.getExprs().remove(0);
+        }
+        return newExpr;
     }
 
     private static ImExpr elimStatementExpr(ImStmts statements, ImExpr expr,
@@ -364,12 +373,12 @@ public class EliminateTuples {
         // TODO use tuple index
         ImStmts statements = JassIm.ImStmts();
         // assign index to temporary variable
-        ImVar tempIndex = JassIm.ImVar(e.getTrace(), JassIm.ImSimpleType("integer"), "tempIndex", false);
+        ImVar tempIndex = JassIm.ImVar(e.getTrace(), TypesHelper.imInt(), "tempIndex", false);
         f.getLocals().add(tempIndex);
         statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
 
         ImVar left = e.getLeft();
-        IntRange range = getTupleIndexRange((ImTupleArrayType) left.getType(), e.getTupleIndex());
+        IntRange range = getTupleIndexRange((ImTupleType) ((ImArrayType) left.getType()).getEntryType(), e.getTupleIndex());
         ImmutableTree<ImVar> vars = translator.getVarsForTuple(left);
         ImmutableList<ImVar> allVars = vars.allValues();
 
@@ -400,6 +409,52 @@ public class EliminateTuples {
         }
         return JassIm.ImStatementExpr(statements, JassIm.ImNull());
     }
+
+    public static ImStmt eliminateTuples(ImSetArrayTupleMulti e, ImTranslator translator, ImFunction f) {
+        ImStmts statements = JassIm.ImStmts();
+        // assign indices to temporary variables
+        List<ImVar> tempIndexes = new ArrayList<>();
+        for (ImExpr ie : e.getIndices()) {
+            ImVar tempIndex = JassIm.ImVar(e.getTrace(), TypesHelper.imInt(), "tempIndex", false);
+            f.getLocals().add(tempIndex);
+            statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(ie.eliminateTuplesExpr(translator, f))));
+            tempIndexes.add(tempIndex);
+        }
+
+
+        ImVar left = e.getLeft();
+        IntRange range = getTupleIndexRange((ImTupleType) ((ImArrayTypeMulti) left.getType()).getEntryType(), e.getTupleIndex());
+        ImmutableTree<ImVar> vars = translator.getVarsForTuple(left);
+        ImmutableList<ImVar> allVars = vars.allValues();
+
+        ImExpr expr = e.getRight().eliminateTuplesExpr(translator, f);
+        expr = elimStatementExpr(statements, expr, translator, f);
+        int rangeSize = range.size();
+        if (expr instanceof ImTupleExpr) {
+            ImTupleExpr tupleExpr = (ImTupleExpr) expr;
+            ImExprs exprs = tupleExpr.getExprs();
+            int exprsSize = exprs.size();
+            if (exprsSize != rangeSize) {
+                throw new Error(exprsSize + " != " + rangeSize);
+            }
+            for (int i : range) {
+                statements.add(JassIm.ImSetArrayMulti(e.attrTrace(),
+                        allVars.get(i),
+                        readVariables(tempIndexes),
+                        exprs.get(i - range.start)));
+            }
+        } else {
+            if (rangeSize > 1) {
+                throw new Error("range size was " + rangeSize);
+            }
+            statements.add(JassIm.ImSetArrayMulti(e.attrTrace(),
+                    allVars.get(range.start),
+                    readVariables(tempIndexes),
+                    copyExpr(expr)));
+        }
+        return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+    }
+
 
     public static ImExprOpt eliminateTuplesExpr(ImNoExpr e, ImTranslator translator, ImFunction f) {
         return e;
@@ -482,7 +537,7 @@ public class EliminateTuples {
 
         ImStmts statements = JassIm.ImStmts();
         statements.add(
-                JassIm.ImSet(tupleExpr.attrTrace(), tempVar, copyExpr(tupleExpr))
+                JassIm.ImSet(tupleExpr.attrTrace(), JassIm.ImVarAccess(tempVar), copyExpr(tupleExpr))
                         .eliminateTuples(translator, f)
         );
 
@@ -517,15 +572,6 @@ public class EliminateTuples {
     private static int getTypeSize(ImType imType) {
         return imType.match(new ImType.Matcher<Integer>() {
 
-            @Override
-            public Integer case_ImTupleArrayType(
-                    ImTupleArrayType tt) {
-                int sum = 0;
-                for (ImType t : tt.getTypes()) {
-                    sum += getTypeSize(t);
-                }
-                return sum;
-            }
 
             @Override
             public Integer case_ImSimpleType(ImSimpleType t) {
@@ -590,7 +636,7 @@ public class EliminateTuples {
             ImVar tempIndex = JassIm.ImVar(e.attrTrace(), e.getIndex().attrTyp(), "tempIndex", false);
             f.getLocals().add(tempIndex);
 
-            ImStmts statements = JassIm.ImStmts(JassIm.ImSet(e.attrTrace(), tempIndex, copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
+            ImStmts statements = JassIm.ImStmts(JassIm.ImSet(e.attrTrace(), JassIm.ImVarAccess(tempIndex), copyExpr(e.getIndex().eliminateTuplesExpr(translator, f))));
             ImExpr tupleExpr = makeArrayAccessToTuple(varsForTuple, tempIndex);
             return JassIm.ImStatementExpr(statements, tupleExpr);
         }
@@ -604,6 +650,18 @@ public class EliminateTuples {
             ImExprs exprs = JassIm.ImExprs();
             for (ImmutableTree<ImVar> t : varsForTuple) {
                 exprs.add(makeArrayAccessToTuple(t, tempIndex));
+            }
+            return JassIm.ImTupleExpr(exprs);
+        }
+    }
+
+    private static ImExpr makeMultiArrayAccessToTuple(ImmutableTree<ImVar> varsForTuple, ImVar tempIndex1, ImVar tempIndex2) {
+        if (varsForTuple.isLeaf()) {
+            return JassIm.ImVarArrayMultiAccess(varsForTuple.getOnlyEment(), JassIm.ImVarAccess(tempIndex1), JassIm.ImVarAccess(tempIndex2));
+        } else {
+            ImExprs exprs = JassIm.ImExprs();
+            for (ImmutableTree<ImVar> t : varsForTuple) {
+                exprs.add(makeMultiArrayAccessToTuple(t, tempIndex1, tempIndex2));
             }
             return JassIm.ImTupleExpr(exprs);
         }
@@ -714,9 +772,7 @@ public class EliminateTuples {
                 result = copyExpr(te.getExprs().get(0));
             } else {
                 for (int i = 0; i < tempReturnVars.size(); i++) {
-                    statements.add(JassIm.ImSet(e.getTrace(),
-                            tempReturnVars.get(i),
-                            copyExpr(te.getExprs().get(i))));
+                    statements.add(JassIm.ImSet(e.getTrace(), JassIm.ImVarAccess(tempReturnVars.get(i)), copyExpr(te.getExprs().get(i))));
                 }
                 result = JassIm.ImVarAccess(tempReturnVars.get(0));
             }
@@ -734,16 +790,91 @@ public class EliminateTuples {
     }
 
 
-    public static ImStmt eliminateTuples(ImSetArrayMulti imSetArrayMulti,
+    public static ImStmt eliminateTuples(ImSetArrayMulti e,
                                          ImTranslator translator, ImFunction f) {
-        throw new Error("not implemented");
+        ImStmts statements = JassIm.ImStmts();
+
+        ImmutableTree<ImVar> vars = translator.getVarsForTuple(e.getLeft());
+        if (vars.size() == 1) {
+            ImExpr newExpr = copyExpr(e.getRight().eliminateTuplesExpr(translator, f));
+            newExpr = elimStatementExpr(statements, newExpr, translator, f);
+            newExpr = removeTupleWrapper(newExpr);
+
+            ImExprs newIndices = e.getIndices().stream()
+                    .map(ie -> copyExpr(ie.eliminateTuplesExpr(translator, f)))
+                    .collect(Collectors.toCollection(JassIm::ImExprs));
+            if (statements.size() > 0) {
+                statements.add(JassIm.ImSetArrayMulti(e.getTrace(),
+                        vars.getOnlyEment(),
+                        newIndices,
+                        copyExpr(newExpr)));
+                return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+            } else {
+                e.setLeft(vars.getOnlyEment());
+                e.setRight(copyExpr(newExpr));
+                e.setIndices(newIndices);
+                return e;
+            }
+        }
+        // assign indices to temporary variables
+        List<ImVar> tempIndexes = new ArrayList<>();
+        for (ImExpr ie : e.getIndices()) {
+            ImVar tempIndex = JassIm.ImVar(e.getTrace(), TypesHelper.imInt(), "tempIndex", false);
+            f.getLocals().add(tempIndex);
+            statements.add(JassIm.ImSet(e.getTrace(), tempIndex, copyExpr(ie.eliminateTuplesExpr(translator, f))));
+            tempIndexes.add(tempIndex);
+        }
+
+        ImExpr right1 = e.getRight().eliminateTuplesExpr(translator, f);
+        right1 = elimStatementExpr(statements, right1, translator, f);
+        if (right1 instanceof ImTupleExpr) {
+            ImTupleExpr right = (ImTupleExpr) right1;
+            ImExprs exprs = right.getExprs();
+            int exprsSize = exprs.size();
+            int varsSize = vars.size();
+            ImmutableList<ImVar> allVars = vars.allValues();
+            if (exprsSize != varsSize) {
+                throw new Error(exprsSize + " != " + varsSize);
+            }
+            for (int i = 0; i < varsSize; i++) {
+                statements.add(JassIm.ImSetArrayMulti(e.getTrace(), allVars.get(i),
+                        readVariables(tempIndexes),
+                        copyExpr(exprs.get(i))));
+            }
+        } else {
+            throw new Error("unhandled case: " + right1);
+        }
+        return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+    }
+
+    private static ImExprs readVariables(List<ImVar> tempIndexes) {
+        return tempIndexes.stream()
+                .map(JassIm::ImVarAccess)
+                .collect(Collectors.toCollection(JassIm::ImExprs));
     }
 
 
     public static ImExpr eliminateTuplesExpr(
-            ImVarArrayMultiAccess imVarArrayMultiAccess,
+            ImVarArrayMultiAccess e,
             ImTranslator translator, ImFunction f) {
-        throw new Error("not implemented");
+        ImVar v = e.getVar();
+        ImmutableTree<ImVar> varsForTuple = translator.getVarsForTuple(v);
+        if (varsForTuple.size() > 1 || varsForTuple.getOnlyEment() != v) {
+
+
+            ImVar tempIndex1 = JassIm.ImVar(e.attrTrace(), e.getIndex1().attrTyp(), "tempIndexA", false);
+            f.getLocals().add(tempIndex1);
+            ImVar tempIndex2 = JassIm.ImVar(e.attrTrace(), e.getIndex2().attrTyp(), "tempIndexB", false);
+            f.getLocals().add(tempIndex2);
+
+            ImStmts statements = JassIm.ImStmts(
+                    JassIm.ImSet(e.attrTrace(), tempIndex1, copyExpr(e.getIndex1().eliminateTuplesExpr(translator, f))),
+                    JassIm.ImSet(e.attrTrace(), tempIndex2, copyExpr(e.getIndex2().eliminateTuplesExpr(translator, f)))
+            );
+            ImExpr tupleExpr = makeMultiArrayAccessToTuple(varsForTuple, tempIndex1, tempIndex2);
+            return JassIm.ImStatementExpr(statements, tupleExpr);
+        }
+        return eliminateTuples2(e, translator, f);
     }
 
 

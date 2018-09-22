@@ -51,7 +51,7 @@ public class EliminateClasses {
         // for each field, create a global array variable
         for (ImVar f : c.getFields()) {
             ImVar v = JassIm
-                    .ImVar(f.getTrace(), toArrayType(f.getType()), f.getName(), false);
+                    .ImVar(f.getTrace(), JassIm.ImArrayType(f.getType()), f.getName(), false);
             prog.getGlobals().add(v);
             fieldToArray.put(f, v);
         }
@@ -172,7 +172,7 @@ public class EliminateClasses {
             if (resultVar == null) {
                 stmts.add(call);
             } else {
-                stmts.add(JassIm.ImSet(df.getTrace(), resultVar, call));
+                stmts.add(JassIm.ImSet(df.getTrace(), JassIm.ImVarAccess(resultVar), call));
             }
         } else {
             int mid = (start + end) / 2;
@@ -368,7 +368,7 @@ public class EliminateClasses {
         }
         if (useTempVar) {
             newExpr = JassIm.ImStatementExpr(JassIm.ImStmts(
-                    JassIm.ImSet(f.getTrace(), tempVar, objTypeId)
+                    JassIm.ImSet(f.getTrace(), JassIm.ImVarAccess(tempVar), objTypeId)
             ), newExpr);
         }
         e.replaceBy(newExpr);
@@ -440,16 +440,6 @@ public class EliminateClasses {
         ma.replaceBy(JassIm.ImVarArrayAccess(fieldToArray.get(ma.getVar()),
                 receiver));
 
-    }
-
-    private ImType toArrayType(ImType t) {
-        if (t instanceof ImSimpleType) {
-            return JassIm.ImArrayType(((ImSimpleType) t).getTypename());
-        } else if (t instanceof ImTupleType) {
-            return JassIm.ImTupleArrayType(((ImTupleType) t).getTypes(),
-                    ((ImTupleType) t).getNames());
-        }
-        throw new RuntimeException("unhandled case: " + t.getClass());
     }
 
 }

@@ -42,7 +42,7 @@ public class StmtTranslation {
         f.getLocals().add(v);
         if (s.getInitialExpr() instanceof Expr) {
             Expr inital = (Expr) s.getInitialExpr();
-            return ImSet(s, v, inital.imTranslateExpr(t, f));
+            return ImSet(s, ImVarAccess(v), inital.imTranslateExpr(t, f));
         } else if (s.getInitialExpr() instanceof ArrayInitializer) {
             ArrayInitializer ai = (ArrayInitializer) s.getInitialExpr();
             ImStmts stmts = ImStmts();
@@ -93,7 +93,7 @@ public class StmtTranslation {
                 ImExpr iterationTargetTr = iterationTarget.imTranslateExpr(t, f);
                 ImVar fromVar = ImVar(s, iterationTargetTr.attrTyp(), "from", false);
                 f.getLocals().add(fromVar);
-                result.add(ImSet(s, fromVar, iterationTargetTr));
+                result.add(ImSet(s, ImVarAccess(fromVar), iterationTargetTr));
                 fromTarget = JassIm.ImExprs(ImVarAccess(fromVar));
             }
 
@@ -108,7 +108,7 @@ public class StmtTranslation {
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
 
-            imBody.add(JassIm.ImSet(s, t.getVarFor(s.getLoopVar()), nextCallWrapped));
+            imBody.add(ImSet(s, ImVarAccess(t.getVarFor(s.getLoopVar())), nextCallWrapped));
 
             imBody.addAll(t.translateStatements(f, s.getBody()));
 
@@ -161,7 +161,7 @@ public class StmtTranslation {
             f.getLocals().add(t.getVarFor(forIn.getLoopVar()));
             // create code for initializing iterator:
 
-            ImSet setIterator = JassIm.ImSet(forIn, iteratorVar, iteratorCall);
+            ImSet setIterator = ImSet(forIn, ImVarAccess(iteratorVar), iteratorCall);
 
             result.add(setIterator);
 
@@ -176,7 +176,7 @@ public class StmtTranslation {
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(forIn, t, nextCall, nextReturn, loopVarType);
 
-            imBody.add(JassIm.ImSet(forIn, t.getVarFor(forIn.getLoopVar()), nextCallWrapped));
+            imBody.add(ImSet(forIn, ImVarAccess(t.getVarFor(forIn.getLoopVar())), nextCallWrapped));
 
             imBody.addAll(t.translateStatements(f, forIn.getBody()));
 
@@ -241,7 +241,7 @@ public class StmtTranslation {
         Expr from = (Expr) loopVar.getInitialExpr();
         ImExpr fromExpr = from.imTranslateExpr(t, f);
         List<ImStmt> result = Lists.newArrayList();
-        result.add(ImSet(loopVar, imLoopVar, fromExpr));
+        result.add(ImSet(loopVar, ImVarAccess(imLoopVar), fromExpr));
 
         ImExpr toExpr = addCacheVariableSmart(t, f, result, to, TypesHelper.imInt());
         ImExpr stepExpr = addCacheVariableSmart(t, f, result, step, TypesHelper.imInt());
@@ -252,7 +252,7 @@ public class StmtTranslation {
         // loop body:
         imBody.addAll(t.translateStatements(f, body));
         // set imLoopVar = imLoopVar + stepExpr
-        imBody.add(ImSet(trace, imLoopVar, ImOperatorCall(opStep, ImExprs(ImVarAccess(imLoopVar), stepExpr))));
+        imBody.add(ImSet(trace, ImVarAccess(imLoopVar), ImOperatorCall(opStep, ImExprs(ImVarAccess(imLoopVar), stepExpr))));
         result.add(ImLoop(trace, imBody));
         return ImStatementExpr(ImStmts(result), ImNull());
     }
@@ -265,7 +265,7 @@ public class StmtTranslation {
         }
         ImVar tempVar = JassIm.ImVar(toCache, type, "temp", false);
         f.getLocals().add(tempVar);
-        result.add(ImSet(toCache, tempVar, r));
+        result.add(ImSet(toCache, ImVarAccess(tempVar), r));
         return ImVarAccess(tempVar);
     }
 
@@ -315,12 +315,16 @@ public class StmtTranslation {
                 // case: tuple array var
                 ImVarArrayAccess va = (ImVarArrayAccess) tupleExpr;
                 return ImSetArrayTuple(s, va.getVar(), va.getIndex().copy(), tupleSelection.getTupleIndex(), right);
+            } else if (tupleExpr instanceof ImVarArrayMultiAccess) {
+                ImVarArrayMultiAccess va = (ImVarArrayMultiAccess) tupleExpr;
+                ImExprs indices = JassIm.ImExprs(va.getIndex1().copy(), va.getIndex2().copy());
+                return JassIm.ImSetArrayTupleMulti(s, va.getVar(), indices, tupleSelection.getTupleIndex(), right);
             } else {
-                throw new CompileError(s.getSource(), "Cannot translate tuple access");
+                throw new CompileError(s.getSource(), "Cannot translate tuple access " + tupleExpr);
             }
         } else if (updated instanceof ImVarAccess) {
             ImVarAccess va = (ImVarAccess) updated;
-            return ImSet(s, va.getVar(), right);
+            return ImSet(s, ImVarAccess(va.getVar()), right);
         } else if (updated instanceof ImVarArrayAccess) {
             ImVarArrayAccess va = (ImVarArrayAccess) updated;
             return ImSetArray(s, va.getVar(), va.getIndex().copy(), right);
@@ -337,7 +341,7 @@ public class StmtTranslation {
                 // first assign to temporary and then select parts:
                 ImVar temp = JassIm.ImVar(s, right.attrTyp(), "tuple_temp", false);
                 f.getLocals().add(temp);
-                stmts.add(JassIm.ImSet(s, temp, right));
+                stmts.add(ImSet(s, ImVarAccess(temp), right));
                 for (int i = 0; i < te.getExprs().size(); i++) {
                     parts.add(JassIm.ImTupleSelection(JassIm.ImVarAccess(temp), i));
                 }

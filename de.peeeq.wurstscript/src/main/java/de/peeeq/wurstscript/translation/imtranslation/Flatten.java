@@ -1,10 +1,12 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
+import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
@@ -14,10 +16,6 @@ import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSetArray;
-import de.peeeq.wurstscript.jassIm.ImSetArrayMulti;
-import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
-import de.peeeq.wurstscript.jassIm.ImSetTuple;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
@@ -25,7 +23,6 @@ import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.jassIm.ImVarArrayAccess;
-import de.peeeq.wurstscript.jassIm.ImVarArrayMultiAccess;
 import de.peeeq.wurstscript.jassIm.ImVarargLoop;
 import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
 import de.peeeq.wurstscript.types.WurstTypeBool;
@@ -202,26 +199,6 @@ public class Flatten {
     }
 
 
-    public static Result flatten(ImSetTuple s, ImTranslator t, ImFunction f) {
-        Result e = s.getRight().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(e.stmts);
-        stmts.add(ImSetTuple(s.getTrace(), s.getLeft(), s.getTupleIndex(), e.expr));
-        return new Result(stmts);
-    }
-
-    public static Result flatten(ImSetArray s, ImTranslator t, ImFunction f) {
-        MultiResult res = flattenExprs(t, f, s.getIndex(), s.getRight());
-        res.stmts.add(JassIm.ImSetArray(s.getTrace(), s.getLeft(), res.expr(0), res.expr(1)));
-        return new Result(res.stmts);
-    }
-
-    public static Result flatten(ImSetArrayTuple s, ImTranslator t, ImFunction f) {
-        MultiResult res = flattenExprs(t, f, s.getIndex(), s.getRight());
-        res.stmts.add(JassIm.ImSetArrayTuple(s.getTrace(), s.getLeft(), res.expr(0), s.getTupleIndex(), res.expr(1)));
-        return new Result(res.stmts);
-    }
-
-
     public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getArguments());
         return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
@@ -244,9 +221,9 @@ public class Flatten {
                     ImStmts thenBlock = JassIm.ImStmts();
                     // if left is true then check right
                     thenBlock.addAll(right.stmts);
-                    thenBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+                    thenBlock.add(ImSet(trace, ImVarAccess(tempVar), right.expr));
                     // else the result is false
-                    ImStmts elseBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(false)));
+                    ImStmts elseBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(false)));
                     stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
                     return new Result(stmts, JassIm.ImVarAccess(tempVar));
                 }
@@ -262,11 +239,11 @@ public class Flatten {
                     ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
                     f.getLocals().add(tempVar);
                     // if left is true then result is ture
-                    ImStmts thenBlock = JassIm.ImStmts(JassIm.ImSet(trace, tempVar, JassIm.ImBoolVal(true)));
+                    ImStmts thenBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(true)));
                     // else check right
                     ImStmts elseBlock = JassIm.ImStmts();
                     elseBlock.addAll(right.stmts);
-                    elseBlock.add(JassIm.ImSet(trace, tempVar, right.expr));
+                    elseBlock.add(ImSet(trace, ImVarAccess(tempVar), right.expr));
                     stmts.add(ImIf(trace, left.expr, thenBlock, elseBlock));
                     return new Result(stmts, JassIm.ImVarAccess(tempVar));
                 }
@@ -312,8 +289,8 @@ public class Flatten {
 
 
     public static Result flatten(ImVarArrayAccess e, ImTranslator t, ImFunction f) {
-        Result index = e.getIndex().flatten(t, f);
-        return new Result(index.stmts, ImVarArrayAccess(e.getVar(), index.expr));
+        MultiResult indexes = flattenExprs(t, f, e.getIndexes());
+        return new Result(indexes.stmts, ImVarArrayAccess(e.getVar(), ImExprs(indexes.exprs)));
     }
 
 
@@ -362,7 +339,7 @@ public class Flatten {
             } else {
                 ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
                 f.getLocals().add(tempVar);
-                stmts.add(JassIm.ImSet(e.attrTrace(), tempVar, r.expr));
+                stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));
             }
         }
@@ -373,18 +350,6 @@ public class Flatten {
     public static Result flatten(ImClassRelatedExpr e,
                                  ImTranslator translator, ImFunction f) {
         throw new RuntimeException("Eliminate method calls before calling flatten.");
-    }
-
-
-    public static Result flatten(ImSetArrayMulti imSetArrayMulti,
-                                 ImTranslator translator, ImFunction f) {
-        throw new Error("not implemented");
-    }
-
-
-    public static Result flatten(ImVarArrayMultiAccess imVarArrayMultiAccess,
-                                 ImTranslator translator, ImFunction f) {
-        throw new Error("not implemented");
     }
 
 

@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.translation.imtojass.DefaultValue;
 
 public class RunStatement {
 
@@ -122,6 +123,41 @@ public class RunStatement {
             }
         }
         ar.set(indicesT.tail(), right);
+    }
+
+
+
+    public static void run(ImSetArrayTupleMulti s, ProgramState globalState, LocalState localState) {
+        ImVar v = s.getLeft();
+        int[] indices = new int[s.getIndices().size()];
+
+        for (int i = 0; i < indices.length; i++) {
+            ILconstInt index = (ILconstInt) s.getIndices().get(i).evaluate(globalState, localState);
+            indices[i] = index.getVal();
+        }
+        IntTuple indicesT = IntTuple.of(indices);
+        ILconst right = s.getRight().evaluate(globalState, localState);
+        ILconstMultiArray ar;
+        if (v.isGlobal()) {
+            ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
+            if (ar == null) {
+                ar = new ILconstMultiArray();
+                globalState.setArrayVal(v, indicesT.head(), ar);
+            }
+        } else {
+            ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
+            if (ar == null) {
+                ar = new ILconstMultiArray();
+                globalState.setArrayVal(v, indicesT.head(), ar);
+            }
+        }
+        ILconstTuple oldVal = (ILconstTuple) ar.get(indicesT.tail());
+        if (oldVal == null) {
+            oldVal = (ILconstTuple) s.getLeft().getType().defaultValue();
+        }
+        ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
+        ar.set(indicesT.tail(), newVal);
+
     }
 
     public static void run(ImSetTuple s, ProgramState globalState, LocalState localState) {

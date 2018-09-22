@@ -53,19 +53,11 @@ public class ImPrinter {
     }
 
     public static void print(ImArrayType t, StringBuilder sb, int indent) {
-        sb.append("array ").append(t.getTypename());
+        sb.append("array(");
+        t.getEntryType().print(sb, indent);
+        sb.append(")");
     }
 
-    public static void print(ImTupleArrayType p, StringBuilder sb, int indent) {
-        sb.append("array<");
-        boolean first = true;
-        for (ImType t : p.getTypes()) {
-            if (!first) sb.append(", ");
-            t.print(sb, indent);
-            first = false;
-        }
-        sb.append(">");
-    }
 
     public static void print(ImTupleType p, StringBuilder sb, int indent) {
         sb.append("<");
@@ -172,6 +164,18 @@ public class ImPrinter {
         p.getRight().print(sb, indent);
     }
 
+    public static void print(ImSetArrayTupleMulti p, StringBuilder sb, int indent) {
+        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft()));
+        for (ImExpr ie : p.getIndices()) {
+            sb.append("[");
+            ie.print(sb, indent);
+            sb.append("]");
+        }
+        sb.append(" #").append(p.getTupleIndex());
+        sb.append(" = ");
+        p.getRight().print(sb, indent);
+    }
+
     public static void print(ImNoExpr p, StringBuilder sb, int indent) {
         sb.append("%nothing%");
     }
@@ -208,7 +212,7 @@ public class ImPrinter {
 
 
     public static void print(ImVarAccess p, StringBuilder sb, int indent) {
-        sb.append(p.getVar().getName()).append(smallHash(p.getVar()));
+        printVar(sb, p.getVar());
 
     }
 
@@ -286,7 +290,7 @@ public class ImPrinter {
     public static void print(ImVar v, StringBuilder sb, int indent) {
         v.getType().print(sb, indent);
         sb.append(" ");
-        sb.append(v.getName()).append(smallHash(v));
+        printVar(sb, v);
     }
 
 
@@ -379,29 +383,41 @@ public class ImPrinter {
 
     public static void print(ImArrayTypeMulti imArrayTypeMulti,
                              StringBuilder sb, int indent) {
-        sb.append("array ").append(imArrayTypeMulti.getTypename()).append(" size: ").append(imArrayTypeMulti.getArraySize());
+        sb.append("multiarray(");
+        imArrayTypeMulti.getEntryType().print(sb, indent);
+        sb.append(", ").append(imArrayTypeMulti.getArraySize()).append(")");
 
     }
 
 
-    public static void print(ImSetArrayMulti imSetArrayMulti, StringBuilder sb,
+    public static void print(ImSetArrayMulti s, StringBuilder sb,
                              int indent) {
-        sb.append(imSetArrayMulti.getLeft().getName()).append(smallHash(imSetArrayMulti.getLeft())).append("[");
-        imSetArrayMulti.getIndices().get(0).print(sb, indent);
-        sb.append("]");
-        sb.append("[");
-        imSetArrayMulti.getIndices().get(1).print(sb, indent);
-        sb.append("]");
+        printVar(sb, s.getLeft());
+        for (ImExpr ie : s.getIndices()) {
+            sb.append("[");
+            ie.print(sb, indent);
+            sb.append("]");
+        }
         sb.append(" = ");
-        imSetArrayMulti.getRight().print(sb, indent);
+        s.getRight().print(sb, indent);
 
     }
 
+    private static void printVar(StringBuilder sb, ImVar v) {
+        sb.append(v.getName()).append(smallHash(v));
+    }
 
-    public static void print(ImVarArrayMultiAccess imVarArrayMultiAccess,
+
+    public static void print(ImVarArrayMultiAccess e,
                              StringBuilder sb, int indent) {
-        sb.append(imVarArrayMultiAccess.getVar().getName()).append(smallHash(imVarArrayMultiAccess.getVar()));
-
+        ImVar v = e.getVar();
+        sb.append(v.getName());
+        sb.append(smallHash(v));
+        sb.append("[");
+        e.getIndex1().print(sb, indent);
+        sb.append("][");
+        e.getIndex2().print(sb, indent);
+        sb.append("]");
     }
 
 

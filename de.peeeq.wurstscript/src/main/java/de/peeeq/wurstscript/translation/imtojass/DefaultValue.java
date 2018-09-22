@@ -10,7 +10,7 @@ import java.util.List;
 public class DefaultValue {
 
     public static ILconst get(ImArrayType t) {
-        return JassIm.ImSimpleType(t.getTypename()).defaultValue();
+        return t.getEntryType().defaultValue();
     }
 
     public static ILconst get(ImSimpleType t) {
@@ -21,14 +21,6 @@ public class DefaultValue {
         if (typename.equals("boolean")) return ILconstBool.FALSE;
         WLogger.info("could not get default value for " + typename);
         return ILconstNull.instance();
-    }
-
-    public static ILconst get(ImTupleArrayType tt) {
-        List<ILconst> values = Lists.newArrayList();
-        for (ImType t : tt.getTypes()) {
-            values.add(t.defaultValue());
-        }
-        return new ILconstTuple(values.toArray(new ILconst[0]));
     }
 
     public static ILconst get(ImTupleType tt) {
@@ -43,8 +35,8 @@ public class DefaultValue {
         throw new Error("Could not get default value for void variable.");
     }
 
-    public static ILconst get(ImArrayTypeMulti imArrayTypeMulti) {
-        return JassIm.ImSimpleType(imArrayTypeMulti.getTypename()).defaultValue();
+    public static ILconst get(ImArrayTypeMulti t) {
+        return t.getEntryType().defaultValue();
     }
 
 }

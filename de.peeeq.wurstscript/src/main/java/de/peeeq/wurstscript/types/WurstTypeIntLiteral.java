@@ -39,7 +39,7 @@ public class WurstTypeIntLiteral extends WurstTypePrimitive {
 
     @Override
     public ImSimpleType imTranslateType() {
-        return JassIm.ImSimpleType("integer");
+        return TypesHelper.imInt();
     }
 
 

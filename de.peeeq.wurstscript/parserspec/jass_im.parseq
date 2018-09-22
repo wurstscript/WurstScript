@@ -16,10 +16,9 @@ ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type
 
 ImType = 
 	  ImSimpleType(String typename)
-	| ImArrayType(String typename)
-	| ImArrayTypeMulti(String typename, java.util.List<Integer> arraySize)
+	| ImArrayType(ref ImType entryType)
+	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
-	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
@@ -52,11 +51,7 @@ ImStmt =
 	| ImLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body)
 	| ImExitwhen(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition)
 	| ImReturn(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
-	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr right)
-	| ImSetTuple(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, int tupleIndex, ImExpr right)
-	| ImSetArray(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, ImExpr right)
-	| ImSetArrayMulti(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExprs indices, ImExpr right)
-	| ImSetArrayTuple(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, int tupleIndex, ImExpr right)
+	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImLExpr left, ImExpr right)
 	| ImExpr
 	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ref ImVar loopVar)
 	
@@ -77,16 +72,21 @@ ImExpr =
 
 ImFlatExpr = 
 	  ImCall
-	| ImVarAccess(ref ImVar var)
-	| ImVarArrayAccess(ref ImVar var, ImExpr index)
-	| ImVarArrayMultiAccess(ref ImVar var, ImExpr index1, ImExpr index2)
 	| ImTupleExpr(ImExprs exprs)
-	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
-	
+    | ImLExpr
+
+// an expression which can be used on the left hand side of an assignment
+ImLExpr =
+      ImVarAccess(ref ImVar var)
+    | ImVarArrayAccess(ref ImVar var, ImExprs indexes)
+    | ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
+    | ImMemberAccess
+
+
 ImClassRelatedExpr = 
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
 	| ImAlloc(ref ImClass clazz)
@@ -120,8 +120,6 @@ ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImE
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
-
-ElementWithLeft = ImSet| ImSetTuple| ImSetArray| ImSetArrayMulti| ImSetArrayTuple
 
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 

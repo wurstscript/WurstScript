@@ -67,4 +67,8 @@ public class StmtTranslation {
     public static void translate(ImVarargLoop imVarargLoop, List<LuaStatement> res, LuaTranslator tr) {
         throw new Error("not implemented");
     }
+
+    public static void translate(ImSetArrayTupleMulti imSetArrayTupleMulti, List<LuaStatement> res, LuaTranslator tr) {
+        throw new Error("not implemented");
+    }
 }

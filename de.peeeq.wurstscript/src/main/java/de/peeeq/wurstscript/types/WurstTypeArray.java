@@ -112,27 +112,18 @@ public class WurstTypeArray extends WurstType {
     public ImType imTranslateType() {
         initSizes();
         ImType bt = baseType.imTranslateType();
-
-        if (bt instanceof ImSimpleType) {
-            String typename = ((ImSimpleType) bt).getTypename();
-            if (sizes.length > 0) {
-                if (sizes[0] == 0) {
-                    return JassIm.ImArrayType(typename);
-                }
-                List<Integer> nsizes = Lists.<Integer>newArrayList();
-                for (int size : sizes) {
-                    nsizes.add(size);
-                }
-
-                return JassIm.ImArrayTypeMulti(typename, nsizes);
+        if (sizes.length > 0) {
+            if (sizes[0] == 0) {
+                return JassIm.ImArrayType(bt);
             }
-            return JassIm.ImArrayType(typename);
-        } else if (bt instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) bt;
-            return JassIm.ImTupleArrayType(tt.getTypes(), tt.getNames());
-        } else {
-            throw new Error("cannot translate array type " + getName() + "  " + bt);
+            List<Integer> nsizes = Lists.newArrayList();
+            for (int size : sizes) {
+                nsizes.add(size);
+            }
+
+            return JassIm.ImArrayTypeMulti(bt, nsizes);
         }
+        return JassIm.ImArrayType(bt);
     }
 
 

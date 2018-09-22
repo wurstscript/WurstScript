@@ -26,7 +26,6 @@ import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
 import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleArrayType;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
@@ -42,6 +41,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -347,8 +347,7 @@ public class ImTranslator {
         // initTrigVar = CreateTrigger()
         ImFunction createTrigger = getNativeFunc("CreateTrigger");
         if (createTrigger != null) {
-            getMainFunc().getBody().add(JassIm.ImSet(getMainFunc().getTrace(), initTrigVar,
-                    JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
+            getMainFunc().getBody().add(ImSet(getMainFunc().getTrace(), ImVarAccess(initTrigVar), JassIm.ImFunctionCall(getMainFunc().getTrace(), getNativeFunc("CreateTrigger"), JassIm.ImExprs(), false, CallType.NORMAL)));
         }
         return initTrigVar;
     }
@@ -480,7 +479,7 @@ public class ImTranslator {
             if (!v.getIsBJ()) {
                 // add init statement for non-bj vars
                 // bj-vars are already initalized by blizzard
-                f.getBody().add(ImSet(trace, v, translated));
+                f.getBody().add(ImSet(trace, ImVarAccess(v), translated));
             }
             imProg.getGlobalInits().put(v, translated);
         } else if (initialExpr instanceof ArrayInitializer) {
@@ -503,7 +502,7 @@ public class ImTranslator {
 
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
-        getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), g, initial));
+        getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
         imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
     }
 
@@ -1094,53 +1093,87 @@ public class ImTranslator {
 
         ImmutableTree<ImVar> result = varsForTupleVar.get(v);
         if (result == null) {
-            if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
-                result = ImmutableTree.leaf(v);
+            if (TypesHelper.typeContainsTuples(v.getType())) {
+                result = createVarsForType(v.getName(), v.getType(), Function.identity(), v.getTrace());
             } else {
-                result = createVarsForType(v.getName(), v.getType(), false, v.getTrace());
+                result = ImmutableTree.leaf(v);
             }
-
-//			if (v.getType() instanceof ImArrayType || v.getType() instanceof ImSimpleType) {
-//				result = ImmutableTree.leaf(v);
-//			} else {
-//				result = Lists.newArrayList();
-//				addVarsForType(result, v.getName(), v.getType(), false, v.getTrace());
-//			}
             varsForTupleVar.put(v, result);
         }
         return result;
     }
 
-    private ImmutableTree<ImVar> createVarsForType(String name, ImType type, boolean array, de.peeeq.wurstscript.ast.Element tr) {
-        if (type instanceof ImTupleType) {
-            ImTupleType tt = (ImTupleType) type;
-            int i = 0;
-            Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();
-            for (ImType t : tt.getTypes()) {
-                ts.add(createVarsForType(name + "_" + tt.getNames().get(i), t, array, tr));
-                i++;
+
+    /**
+     * Creates variables for the given type, eliminating tuple types
+     *
+     * @param name base name for the variables
+     * @param type the type for which to create variables
+     * @param typeConstructor how the types are constructed (creating an array or multi-array, just returning the type)
+     * @param tr trace for the variables
+     * @return
+     */
+    private ImmutableTree<ImVar> createVarsForType(String name, final ImType type, Function<ImType, ImType> typeConstructor, de.peeeq.wurstscript.ast.Element tr) {
+        return type.match(new ImType.Matcher<ImmutableTree<ImVar>>() {
+            @Override
+            public ImmutableTree<ImVar> case_ImArrayType(ImArrayType at) {
+                if (at.getEntryType() instanceof ImTupleType) {
+                    // if it is an array of tuples, create multiple array variables:
+                    ImTupleType tt = (ImTupleType) at.getEntryType();
+                    Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();
+                    int i = 0;
+                    for (ImType t : tt.getTypes()) {
+                        ts.add(createVarsForType(name + "_" + tt.getNames().get(i), t, JassIm::ImArrayType, tr));
+                        i++;
+                    }
+                    return ImmutableTree.node(ts.build());
+                }
+                // otherwise just create the array variable
+                return ImmutableTree.leaf(JassIm.ImVar(tr, type, name, false));
             }
-            return ImmutableTree.node(ts.build());
-        } else if (type instanceof ImTupleArrayType) {
-            ImTupleArrayType tt = (ImTupleArrayType) type;
-            Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();
-            for (ImType t : tt.getTypes()) {
-                ts.add(createVarsForType(name, t, true, tr));
+
+            @Override
+            public ImmutableTree<ImVar> case_ImArrayTypeMulti(ImArrayTypeMulti at) {
+                if (at.getEntryType() instanceof ImTupleType) {
+                    // if it is an array of tuples, create multiple array variables:
+                    ImTupleType tt = (ImTupleType) at.getEntryType();
+                    Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();
+                    for (ImType t : tt.getTypes()) {
+                        ts.add(createVarsForType(name, t, et -> JassIm.ImArrayTypeMulti(et, new ArrayList<>(at.getArraySize())), tr));
+                    }
+                    return ImmutableTree.node(ts.build());
+                }
+                // otherwise just create the array variable
+                ImVar v = JassIm.ImVar(tr, type, name, false);
+                return ImmutableTree.leaf(v);
             }
-            return ImmutableTree.node(ts.build());
-        } else if (type instanceof ImVoid) {
-            return ImmutableTree.empty();
-        } else {
-            if (array && type instanceof ImSimpleType) {
-                ImSimpleType st = (ImSimpleType) type;
-                type = JassIm.ImArrayType(st.getTypename());
+
+            @Override
+            public ImmutableTree<ImVar> case_ImVoid(ImVoid imVoid) {
+                return ImmutableTree.empty();
             }
-            return ImmutableTree.leaf(JassIm.ImVar(tr, type, name, false));
-        }
+
+            @Override
+            public ImmutableTree<ImVar> case_ImSimpleType(ImSimpleType st) {
+                ImType type = typeConstructor.apply(st);
+                return ImmutableTree.leaf(JassIm.ImVar(tr, type, name, false));
+            }
+
+            @Override
+            public ImmutableTree<ImVar> case_ImTupleType(ImTupleType tt) {
+                int i = 0;
+                Builder<ImmutableTree<ImVar>> ts = ImmutableList.builder();
+                for (ImType t : tt.getTypes()) {
+                    ts.add(createVarsForType(name + "_" + tt.getNames().get(i), t, typeConstructor, tr));
+                    i++;
+                }
+                return ImmutableTree.node(ts.build());
+            }
+        });
     }
 
 
-    private void addVarsForType(List<ImVar> result, String name, ImType type, boolean array, de.peeeq.wurstscript.ast.Element tr) {
+    private void addVarsForType(List<ImVar> result, String name, ImType type, de.peeeq.wurstscript.ast.Element tr) {
         Preconditions.checkNotNull(type);
         Preconditions.checkNotNull(result);
         // TODO handle names
@@ -1148,21 +1181,12 @@ public class ImTranslator {
             ImTupleType tt = (ImTupleType) type;
             int i = 0;
             for (ImType t : tt.getTypes()) {
-                addVarsForType(result, name + "_" + tt.getNames().get(i), t, false, tr);
+                addVarsForType(result, name + "_" + tt.getNames().get(i), t, tr);
                 i++;
             }
-        } else if (type instanceof ImTupleArrayType) {
-            ImTupleArrayType tt = (ImTupleArrayType) type;
-            for (ImType t : tt.getTypes()) {
-                addVarsForType(result, name, t, true, tr);
-            }
         } else if (type instanceof ImVoid) {
-
+            // nothing to add
         } else {
-            if (array && type instanceof ImSimpleType) {
-                ImSimpleType st = (ImSimpleType) type;
-                type = JassIm.ImArrayType(st.getTypename());
-            }
             result.add(JassIm.ImVar(tr, type, name, false));
         }
 
@@ -1174,7 +1198,7 @@ public class ImTranslator {
         List<ImVar> result = tempReturnVars.get(f);
         if (result == null) {
             result = Lists.newArrayList();
-            addVarsForType(result, f.getName() + "_return", getOriginalReturnValue(f), false, f.getTrace());
+            addVarsForType(result, f.getName() + "_return", getOriginalReturnValue(f), f.getTrace());
             if (result.size() > 1) {
                 imProg.getGlobals().addAll(result);
                 // if we only have one return var it will never get used
@@ -1215,8 +1239,7 @@ public class ImTranslator {
             }
             if (e instanceof ImVar) {
                 ImVar v = (ImVar) e;
-                if (v.getType() instanceof ImTupleType
-                        || v.getType() instanceof ImTupleArrayType) {
+                if (TypesHelper.typeContainsTuples(v.getType())) {
                     throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
                 }
             }
@@ -1233,11 +1256,11 @@ public class ImTranslator {
 
     private void checkVar(ImVar left, Set<AssertProperty> properties) {
         if (left.getParent() == null) {
+            System.out.println(imProg);
             throw new Error("var not attached: " + left);
         }
         if (properties.contains(AssertProperty.NOTUPLES)) {
-            if (left.getType() instanceof ImTupleType
-                    || left.getType() instanceof ImTupleArrayType) {
+            if (TypesHelper.typeContainsTuples(left.getType())) {
                 throw new Error("program contains tuple var " + left);
             }
         }

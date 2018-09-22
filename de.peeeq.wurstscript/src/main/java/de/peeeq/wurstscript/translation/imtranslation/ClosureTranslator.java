@@ -40,7 +40,7 @@ public class ClosureTranslator {
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
-            stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
+            stmts.add(JassIm.ImSet(e, JassIm.ImVarAccess(clVar), JassIm.ImAlloc(c)));
             callSuperConstructor(clVar, stmts, c);
             // set closure vars
             for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
@@ -220,23 +220,11 @@ public class ClosureTranslator {
     private ImVar getClosureVarFor(ImVar var) {
         ImVar v = closureVars.get(var);
         if (v == null) {
-            v = JassIm.ImVar(e, arrayType(var.getType()), var.getName(), false);
+            v = JassIm.ImVar(e, JassIm.ImArrayType(var.getType()), var.getName(), false);
             tr.imProg().getGlobals().add(v);
             closureVars.put(var, v);
         }
         return v;
-    }
-
-
-    private ImType arrayType(ImType type) {
-        if (type instanceof ImSimpleType) {
-            ImSimpleType t = (ImSimpleType) type;
-            return JassIm.ImArrayType(t.getTypename());
-        } else if (type instanceof ImTupleType) {
-            ImTupleType t = (ImTupleType) type;
-            return JassIm.ImTupleArrayType(t.getTypes(), t.getNames());
-        }
-        throw new CompileError(e.getSource(), "Closure references array variable.");
     }
 
 

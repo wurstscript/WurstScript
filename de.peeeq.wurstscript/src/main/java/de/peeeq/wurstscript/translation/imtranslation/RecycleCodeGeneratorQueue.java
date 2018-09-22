@@ -38,23 +38,22 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                 JassIm.ImOperatorCall(WurstOperator.LESS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(maxSize))),
                 ifEnoughMemory, ifNotEnoughMemory));
         //         maxIndex = maxIndex + 1
-        ifEnoughMemory.add(JassIm.ImSet(tr, mVars.maxIndex,
-                JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
+        ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.maxIndex), JassIm.ImIntVal(1)))));
         // 		   this = maxIndex
-        ifEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarAccess(mVars.maxIndex)));
+        ifEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImVarAccess(mVars.maxIndex)));
         //	       typeId[this] = ...
         ifEnoughMemory.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
         //     else:
         //         error("out of memory")
         ifNotEnoughMemory.add(translator.imError(c.getTrace(), JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
         //         this = 0
-        ifNotEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImIntVal(0)));
+        ifNotEnoughMemory.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0)));
         // else:
         //     freeCount = freeCount - 1
-        elseBlock.add(JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm
+        elseBlock.add(JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImOperatorCall(WurstOperator.MINUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount), JassIm
                 .ImIntVal(1)))));
         //     this = free[freeCount]
-        elseBlock.add(JassIm.ImSet(tr, thisVar, JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
+        elseBlock.add(JassIm.ImSet(tr, JassIm.ImVarAccess(thisVar), JassIm.ImVarArrayAccess(mVars.free, JassIm.ImVarAccess(mVars.freeCount))));
         //     typeId[this] = ...
         elseBlock.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
         // endif
@@ -87,7 +86,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                         // free[freeCount] = this
                         JassIm.ImSetArray(tr, mVars.free, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImVarAccess(thisVar)),
                         // freeCount++
-                        JassIm.ImSet(tr, mVars.freeCount, JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount),
+                        JassIm.ImSet(tr, JassIm.ImVarAccess(mVars.freeCount), JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImVarAccess(mVars.freeCount),
                                 JassIm.ImIntVal(1)))),
                         // typeId[this] = 0
                         JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(0))

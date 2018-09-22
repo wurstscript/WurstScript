@@ -186,7 +186,7 @@ public class ImToJassTranslator {
     JassVar getJassVarFor(ImVar v) {
         JassVar result = jassVars.get(v);
         if (result == null) {
-            boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
+            boolean isArray = v.getType() instanceof ImArrayType;
             String type = v.getType().translateType();
             String name = v.getName();
             if (v.getNearestFunc() != null) {

@@ -437,4 +437,45 @@ public class TupleTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void tupleArrayInClass() { // see #572
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    angle array[2] ang",
+                "tuple angle(real rad)",
+                "init",
+                "    let c = new C",
+                "    c.ang[0] = angle(4.)",
+                "    c.ang[1] = angle(2.)",
+                "    if c.ang[0].rad == 4. and c.ang[1].rad == 2",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleArrayInClass2() { // see #572
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native R2S(real r) returns string",
+                "native println(string s)",
+                "class C",
+                "    vec array[5] v",
+                "tuple vec(real x, real y, real z)",
+                "init",
+                "    let c = new C",
+                "    c.v[0] = vec(1,2,3)",
+                "    c.v[1].x = 5",
+                "    c.v[1].y = 6",
+                "    c.v[1].z = 7",
+                "    println(R2S(c.v[0].x))",
+                "    println(R2S(c.v[0].z))",
+                "    println(R2S(c.v[1].y))",
+                "    if c.v[0].x == 1 and c.v[0].z == 3 and c.v[1].y == 6",
+                "        testSuccess()"
+        );
+    }
+
 }

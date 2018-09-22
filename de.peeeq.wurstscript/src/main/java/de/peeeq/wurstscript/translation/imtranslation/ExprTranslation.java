@@ -6,8 +6,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -334,7 +332,7 @@ public class ExprTranslation {
                     // TODO use temporary var
                     exprs.add(ImTupleSelection(JassIm.ImVarAccess(temp), tupleIndex + i));
                 }
-                return JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImSet(expr, temp, exprTr)), ImTupleExpr(exprs));
+                return JassIm.ImStatementExpr(JassIm.ImStmts(ImSet(expr, ImVarAccess(temp), exprTr)), ImTupleExpr(exprs));
             }
         } else {
             return ImTupleSelection(exprTr, tupleIndex);
@@ -458,7 +456,7 @@ public class ExprTranslation {
                 throw new Error("impossible");
             tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(), "receiver", false);
             f.getLocals().add(tempVar);
-            stmts = JassIm.ImStmts(JassIm.ImSet(e, tempVar, receiver));
+            stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
         }
 
@@ -617,10 +615,10 @@ public class ExprTranslation {
                 ImStmts(
                         ImIf(e, e.getCond().imTranslateExpr(t, f),
                                 ImStmts(
-                                        ImSet(e.getIfTrue(), res, ifTrue)
+                                        ImSet(e.getIfTrue(), ImVarAccess(res), ifTrue)
                                 ),
                                 ImStmts(
-                                        ImSet(e.getIfFalse(), res, ifFalse)
+                                        ImSet(e.getIfFalse(), ImVarAccess(res), ifFalse)
                                 ))
                 ),
                 JassIm.ImVarAccess(res)
