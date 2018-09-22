@@ -4,6 +4,8 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
+import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -25,12 +27,14 @@ import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
 
 import static com.google.common.io.Files.asCharSink;
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
@@ -77,6 +81,32 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         gui.sendProgress("Loading Files");
         for (File file : files) {
             loadFile(file);
+        }
+    }
+
+    @Override
+    public void runCompiletime() {
+        if (runArgs.runCompiletimeFunctions()) {
+            // compile & inject object-editor data
+            // TODO run optimizations later?
+            gui.sendProgress("Running compiletime functions");
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+                    CompiletimeFunctions);
+            ctr.setInjectObjects(runArgs.isInjectObjects());
+            ctr.setOutputStream(new PrintStream(System.err));
+            ctr.run();
+        }
+
+        if (gui.getErrorCount() > 0) {
+            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
+                    .getErrorList().get(0));
+        }
+
+
+        if (runArgs.isInjectObjects()) {
+            Preconditions.checkNotNull(mapFileMpq);
+            // add the imports
+            ImportFile.importFilesFromImportDirectory(mapFile, mapFileMpq);
         }
     }
 
@@ -338,11 +368,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         checker.checkProg(model, toCheck);
-    }
-
-    public @Nullable JassProg translateProg(WurstModel root) {
-        translateProgToIm(root);
-        return transformProgToJass();
     }
 
     public @Nullable JassProg transformProgToJass() {

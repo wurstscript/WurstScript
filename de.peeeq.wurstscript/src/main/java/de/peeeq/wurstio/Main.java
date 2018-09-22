@@ -394,20 +394,7 @@ public class Main {
             System.out.println("Finished running tests");
         }
 
-        if (runArgs.runCompiletimeFunctions()) {
-
-            // compiletime functions
-            gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, CompiletimeFunctions);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.run();
-        }
-
-        if (runArgs.isInjectObjects()) {
-            Preconditions.checkNotNull(mpqEditor);
-            // add the imports
-            ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()), mpqEditor);
-        }
+        compiler.runCompiletime();
 
         JassProg jassProg = compiler.transformProgToJass();
 

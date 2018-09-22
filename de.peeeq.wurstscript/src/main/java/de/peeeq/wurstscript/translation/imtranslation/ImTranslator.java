@@ -484,19 +484,15 @@ public class ImTranslator {
             imProg.getGlobalInits().put(v, translated);
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+            List<ImExpr> translatedExprs = arInit.getValues().stream()
+                    .map(expr -> expr.imTranslateExpr(this, f))
+                    .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
-                Expr expr = arInit.getValues().get(i);
-                ImExpr translated = expr.imTranslateExpr(this, f);
+                ImExpr translated = translatedExprs.get(i);
                 f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
             }
-            // abusing tuples to store multiple expressions for globalInit
-            imProg.getGlobalInits().put(v, JassIm.ImTupleExpr(
-                    JassIm.ImExprs(
-                            arInit.getValues().stream()
-                                    .map(expr -> expr.imTranslateExpr(this, f))
-                                    .collect(Collectors.toList())
-                    )
-            ));
+            // add list of init-values to translatedExprs
+            imProg.getGlobalInits().put(v, translatedExprs);
         }
     }
 

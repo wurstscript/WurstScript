@@ -132,29 +132,8 @@ public abstract class MapRequest extends UserRequest<Object> {
                 throw new RequestFailedException(MessageType.Error, "Could not compile project (error in translation): " + gui.getErrorList().get(0));
             }
 
-            if (runArgs.runCompiletimeFunctions()) {
-                print("running compiletime functions ... ");
-                // compile & inject object-editor data
-                // TODO run optimizations later?
-                gui.sendProgress("Running compiletime functions");
-                CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), compiler.getMapFile(), compiler.getMapfileMpqEditor(), gui,
-                        CompiletimeFunctions);
-                ctr.setInjectObjects(runArgs.isInjectObjects());
-                ctr.setOutputStream(new PrintStream(System.err));
-                ctr.run();
-            }
 
-            if (gui.getErrorCount() > 0) {
-                throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
-                        .getErrorList().get(0));
-            }
-
-
-            if (runArgs.isInjectObjects()) {
-                Preconditions.checkNotNull(mpqEditor);
-                // add the imports
-                ImportFile.importFilesFromImportDirectory(origMap, mpqEditor);
-            }
+            compiler.runCompiletime();
 
             print("translating program to jass ... ");
             compiler.transformProgToJass();

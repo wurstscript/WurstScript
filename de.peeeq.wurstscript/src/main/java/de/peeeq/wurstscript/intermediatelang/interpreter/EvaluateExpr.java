@@ -101,9 +101,9 @@ public class EvaluateExpr {
 
             ILconst r = globalState.getVal(var);
             if (r == null) {
-                ImExpr initExpr = globalState.getProg().getGlobalInits().get(var);
+                List<ImExpr> initExpr = globalState.getProg().getGlobalInits().get(var);
                 if (initExpr != null) {
-                    r = initExpr.evaluate(globalState, localState);
+                    r = initExpr.get(0).evaluate(globalState, localState);
                 } else {
                     throw new InterpreterException(globalState, "Variable " + var.getName() + " is not initialized.");
                 }
