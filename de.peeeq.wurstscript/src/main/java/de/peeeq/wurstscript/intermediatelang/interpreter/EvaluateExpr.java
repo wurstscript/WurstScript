@@ -13,8 +13,10 @@ import de.peeeq.wurstscript.jassIm.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class EvaluateExpr {
 
@@ -144,11 +146,14 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
-        ILconstInt index = (ILconstInt) e.getIndex().evaluate(globalState, localState);
+        List<Integer> indexes = e.getIndexes().stream()
+                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+                .collect(Collectors.toList());
+
         if (e.getVar().isGlobal()) {
-            return notNull(globalState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
         } else {
-            return notNull(localState.getArrayVal(e.getVar(), index.getVal()), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
+            return notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
         }
     }
 
@@ -184,7 +189,7 @@ public class EvaluateExpr {
         if (receiver.getVal() == 0) {
             throw new RuntimeException("Null pointer dereference");
         }
-        return notNull(globalState.getArrayVal(ma.getVar(), receiver.getVal()), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
+        return notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
     }
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
@@ -216,31 +221,6 @@ public class EvaluateExpr {
         return new ILconstInt(globalState.getTypeId(obj.getVal(), e.attrTrace()));
     }
 
-    public static ILconst eval(ImVarArrayMultiAccess s,
-                               ProgramState globalState, LocalState localState) {
-        ImVar v = s.getVar();
-        int[] indices = {
-                ((ILconstInt) s.getIndex1().evaluate(globalState, localState)).getVal(),
-                ((ILconstInt) s.getIndex2().evaluate(globalState, localState)).getVal()
-        };
-
-        IntTuple indicesT = IntTuple.of(indices);
-        ILconstMultiArray ar;
-        if (v.isGlobal()) {
-            ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
-            if (ar == null) {
-                ar = new ILconstMultiArray();
-                globalState.setArrayVal(v, indicesT.head(), ar);
-            }
-        } else {
-            ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
-            if (ar == null) {
-                ar = new ILconstMultiArray();
-                globalState.setArrayVal(v, indicesT.head(), ar);
-            }
-        }
-        return ar.get(indicesT.tail());
-    }
 
     public static ILconst eval(ImGetStackTrace e, ProgramState globalState,
                                LocalState localState) {

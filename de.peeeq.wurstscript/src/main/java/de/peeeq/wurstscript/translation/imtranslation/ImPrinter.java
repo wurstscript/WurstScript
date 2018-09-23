@@ -137,44 +137,11 @@ public class ImPrinter {
     }
 
     public static void print(ImSet p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append(" = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetTuple p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append(" #").append(p.getTupleIndex());
+        p.getLeft().print(sb, indent);
         sb.append(" = ");
         p.getRight().print(sb, indent);
     }
 
-    public static void print(ImSetArray p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append("[");
-        p.getIndex().print(sb, indent);
-        sb.append("]");
-        sb.append(" = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetArrayTuple p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft())).append("[");
-        p.getIndex().print(sb, indent);
-        sb.append("]");
-        sb.append(" #").append(p.getTupleIndex());
-        sb.append(" = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetArrayTupleMulti p, StringBuilder sb, int indent) {
-        sb.append(p.getLeft().getName()).append(smallHash(p.getLeft()));
-        for (ImExpr ie : p.getIndices()) {
-            sb.append("[");
-            ie.print(sb, indent);
-            sb.append("]");
-        }
-        sb.append(" #").append(p.getTupleIndex());
-        sb.append(" = ");
-        p.getRight().print(sb, indent);
-    }
 
     public static void print(ImNoExpr p, StringBuilder sb, int indent) {
         sb.append("%nothing%");
@@ -222,9 +189,12 @@ public class ImPrinter {
     }
 
     public static void print(ImVarArrayAccess p, StringBuilder sb, int indent) {
-        sb.append(p.getVar().getName()).append(smallHash(p.getVar())).append("[");
-        p.getIndex().print(sb, indent);
-        sb.append("]");
+        sb.append(p.getVar().getName()).append(smallHash(p.getVar()));
+        for (ImExpr ie : p.getIndexes()) {
+            sb.append("[");
+            ie.print(sb, indent);
+            sb.append("]");
+        }
     }
 
 
@@ -390,34 +360,8 @@ public class ImPrinter {
     }
 
 
-    public static void print(ImSetArrayMulti s, StringBuilder sb,
-                             int indent) {
-        printVar(sb, s.getLeft());
-        for (ImExpr ie : s.getIndices()) {
-            sb.append("[");
-            ie.print(sb, indent);
-            sb.append("]");
-        }
-        sb.append(" = ");
-        s.getRight().print(sb, indent);
-
-    }
-
     private static void printVar(StringBuilder sb, ImVar v) {
         sb.append(v.getName()).append(smallHash(v));
-    }
-
-
-    public static void print(ImVarArrayMultiAccess e,
-                             StringBuilder sb, int indent) {
-        ImVar v = e.getVar();
-        sb.append(v.getName());
-        sb.append(smallHash(v));
-        sb.append("[");
-        e.getIndex1().print(sb, indent);
-        sb.append("][");
-        e.getIndex2().print(sb, indent);
-        sb.append("]");
     }
 
 

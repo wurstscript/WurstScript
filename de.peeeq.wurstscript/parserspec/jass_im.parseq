@@ -265,6 +265,13 @@ ImExpr.evaluate(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState g
 	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.eval
 
+ImLExpr.evaluateLvalue(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
+	returns de.peeeq.wurstscript.intermediatelang.ILaddress
+	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.evaluateLvalue
+
+
+
 ImCompiletimeExpr.evaluationResult
     returns java.util.concurrent.atomic.AtomicReference<de.peeeq.wurstscript.intermediatelang.ILconst>
     implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.compiletimeEvaluationResult

@@ -6,6 +6,7 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -146,12 +147,6 @@ public class SideEffectAnalyzer {
             }
 
             @Override
-            public void visit(ImVarArrayMultiAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
             public void visit(ImMemberAccess va) {
                 super.visit(va);
                 imVars.add(va.getVar());
@@ -160,19 +155,9 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImSet va) {
                 super.visit(va);
-                imVars.add(va.getLeft());
-            }
+                ImLExpr assignable = va.getLeft();
+                collectVars(imVars, assignable);
 
-            @Override
-            public void visit(ImSetTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
             }
 
             @Override
@@ -184,6 +169,33 @@ public class SideEffectAnalyzer {
         });
         return imVars;
     }
+
+    private void collectVars(Collection<ImVar> imVars, ImLExpr assignable) {
+        assignable.match(new ImLExpr.MatcherVoid() {
+            @Override
+            public void case_ImVarAccess(ImVarAccess v) {
+                imVars.add(v.getVar());
+            }
+
+            @Override
+            public void case_ImTupleSelection(ImTupleSelection v) {
+                if (v.getTupleExpr() instanceof ImLExpr) {
+                    collectVars(imVars, ((ImLExpr) v.getTupleExpr()));
+                }
+            }
+
+            @Override
+            public void case_ImVarArrayAccess(ImVarArrayAccess v) {
+                imVars.add(v.getVar());
+            }
+
+            @Override
+            public void case_ImMemberAccess(ImMemberAccess v) {
+                throw new RuntimeException("Should run after objects");
+            }
+        });
+    }
+
 
     /**
      * Variables directly used in e
@@ -200,12 +212,6 @@ public class SideEffectAnalyzer {
 
             @Override
             public void visit(ImVarArrayAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImVarArrayMultiAccess va) {
                 super.visit(va);
                 imVars.add(va.getVar());
             }
@@ -230,19 +236,7 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImSet va) {
                 super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
+                collectVars(imVars, va.getLeft());
             }
 
             @Override
