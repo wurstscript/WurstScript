@@ -171,7 +171,7 @@ public class ParserTests extends WurstScriptTest {
 
     private CompilationUnit parse(String input) {
         WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, new RunArgs());
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, new RunArgs());
         compiler.getErrorHandler().enableUnitTestMode();
         return compiler.parse("test", new StringReader(input));
     }

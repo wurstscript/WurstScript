@@ -445,7 +445,7 @@ public class AutoCompleteTests extends WurstScriptTest {
         String input = String.join("\n", lines);
         WurstGui gui = new WurstGuiLogger();
         RunArgs runArgs = new RunArgs();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         compiler.getErrorHandler().enableUnitTestMode();
         Map<String, String> inputMap = ImmutableMap.of("test", input);
         return parseFiles(Collections.<File>emptyList(), inputMap, false, compiler);

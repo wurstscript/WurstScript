@@ -159,7 +159,7 @@ public class WurstScriptTest {
             }
 
             WurstGui gui = new WurstGuiCliImpl();
-            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
             if (stopOnFirstError) {
                 compiler.getErrorHandler().enableUnitTestMode();
             }
