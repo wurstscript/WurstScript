@@ -110,34 +110,14 @@ public class ImOptimizer {
                     @Override
                     public void visit(ImSet e) {
                         super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
+                        if (e.getLeft() instanceof ImVarAccess) {
+                            ImVarAccess va = (ImVarAccess) e.getLeft();
+                            if (!trans.getReadVariables().contains(va.getVar())) {
+                                replacements.add(Pair.create(e, e.getRight()));
+                            }
                         }
                     }
 
-                    @Override
-                    public void visit(ImSetArrayTuple e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
-
-                    @Override
-                    public void visit(ImSetArray e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
-
-                    @Override
-                    public void visit(ImSetTuple e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
                 });
                 for (Pair<ImStmt, ImStmt> pair : replacements) {
                     changes = true;

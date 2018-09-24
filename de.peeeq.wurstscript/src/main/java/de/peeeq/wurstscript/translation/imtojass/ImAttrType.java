@@ -144,14 +144,6 @@ public class ImAttrType {
         return TypesHelper.imInt();
     }
 
-    public static ImType getType(ImVarArrayMultiAccess e) {
-        ImType vt = e.getVar().getType();
-        if (vt instanceof ImArrayTypeMulti) {
-            ImArrayTypeMulti mt = (ImArrayTypeMulti) vt;
-            return mt.getEntryType();
-        }
-        throw new Error("not implemented: " + e + " with variable of type " + vt);
-    }
 
     public static ImType getType(ImGetStackTrace imGetStackTrace) {
         return TypesHelper.imString();

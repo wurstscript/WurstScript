@@ -27,27 +27,38 @@ public class VariableUses {
         imProg.accept(new ImProg.DefaultVisitor() {
             @Override
             public void visit(ImSet imSet) {
-                super.visit(imSet);
-                result.addWrite(imSet.getLeft(), imSet);
+                Element.DefaultVisitor thiz = this;
+
+                imSet.getRight().accept(this);
+                imSet.getLeft().match(new ImLExpr.MatcherVoid() {
+                    @Override
+                    public void case_ImVarAccess(ImVarAccess e) {
+                        result.addWrite(e.getVar(), imSet);
+                    }
+
+                    @Override
+                    public void case_ImTupleSelection(ImTupleSelection e) {
+                        if (e.getTupleExpr() instanceof ImLExpr) {
+                            ((ImLExpr) e.getTupleExpr()).match(this);
+                        } else {
+                            e.getTupleExpr().accept(thiz);
+                        }
+                    }
+
+                    @Override
+                    public void case_ImVarArrayAccess(ImVarArrayAccess e) {
+                        result.addWrite(e.getVar(), imSet);
+                        e.getIndexes().accept(thiz);
+                    }
+
+                    @Override
+                    public void case_ImMemberAccess(ImMemberAccess e) {
+                        e.getReceiver().accept(thiz);
+                        result.addWrite(e.getVar(), imSet);
+                    }
+                });
             }
 
-            @Override
-            public void visit(ImSetArray imSet) {
-                super.visit(imSet);
-                result.addWrite(imSet.getLeft(), imSet);
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple imSet) {
-                super.visit(imSet);
-                result.addWrite(imSet.getLeft(), imSet);
-            }
-
-            @Override
-            public void visit(ImSetTuple imSet) {
-                super.visit(imSet);
-                result.addWrite(imSet.getLeft(), imSet);
-            }
 
             @Override
             public void visit(ImVarAccess r) {

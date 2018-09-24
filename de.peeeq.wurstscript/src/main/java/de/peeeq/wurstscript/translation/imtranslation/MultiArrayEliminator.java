@@ -113,7 +113,7 @@ public class MultiArrayEliminator {
     private void generateBinSearchSet(ImStmts stmts, ImVar indexVar1, ImVar indexVar2, ImVar value, List<ImVar> newArrays, int start,
                                       int end) {
         if (start == end) {
-            stmts.add(JassIm.ImSetArray(value.getTrace(), newArrays.get(start), JassIm.ImVarAccess(indexVar1), JassIm.ImVarAccess(value)));
+            stmts.add(JassIm.ImSet(value.getTrace(), JassIm.ImVarArrayAccess(newArrays.get(start), JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(indexVar1))), JassIm.ImVarAccess(value)));
         } else {
             int mid = (start + end) / 2;
             ImStmts thenBlock = JassIm.ImStmts();
@@ -154,7 +154,7 @@ public class MultiArrayEliminator {
     private void generateBinSearchGet(ImStmts stmts, ImVar indexVar1, ImVar indexVar2, ImVar resultVar, List<ImVar> newArrays, int start,
                                       int end) {
         if (start == end) {
-            stmts.add(JassIm.ImSet(resultVar.getTrace(), JassIm.ImVarAccess(resultVar), JassIm.ImVarArrayAccess(newArrays.get(start), JassIm.ImVarAccess(indexVar1))));
+            stmts.add(JassIm.ImSet(resultVar.getTrace(), JassIm.ImVarAccess(resultVar), JassIm.ImVarArrayAccess(newArrays.get(start), JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(indexVar1)))));
         } else {
             int mid = (start + end) / 2;
             ImStmts thenBlock = JassIm.ImStmts();

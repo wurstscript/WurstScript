@@ -69,43 +69,7 @@ public class ImHelper {
     }
 
     abstract static class VarReplaceVisitor extends ImStmt.DefaultVisitor {
-
         abstract ImVar getReplaceVar(ImVar v);
-
-        @Override
-        public void visit(ImSetTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArray e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArrayTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImVars imVars) {
-            super.visit(imVars);
-            // TODO ?
-        }
-
 
         @Override
         public void visit(ImVarArrayAccess e) {
@@ -126,33 +90,6 @@ public class ImHelper {
                 e.setVar(newVar);
             }
         }
-
-
-        @Override
-        public void visit(ImSet e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImStringVal imStringVal) {
-            super.visit(imStringVal);
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void visit(ImNoExpr imNoExpr) {
-            super.visit(imNoExpr);
-            // TODO Auto-generated method stub
-
-        }
-
-
     }
 
     public static void replaceElem(Element oldElem, Element newElement) {

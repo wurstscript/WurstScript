@@ -242,4 +242,22 @@ public class EvaluateExpr {
     public static AtomicReference<ILconst> compiletimeEvaluationResult(ImCompiletimeExpr imCompiletimeExpr) {
         return new AtomicReference<>();
     }
+
+    public static ILaddress evaluateLvalue(ImVarAccess va, ProgramState globalState, LocalState localState) {
+        ImVar v = va.getVar();
+        State state;
+        state = v.isGlobal() ? globalState : localState;
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                state.setVal(v, value);
+            }
+
+            @Override
+            public ILconst get() {
+                return state.getVal(v);
+            }
+        };
+
+    }
 }

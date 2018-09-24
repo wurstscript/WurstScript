@@ -481,7 +481,7 @@ public class ImTranslator {
                 // bj-vars are already initalized by blizzard
                 f.getBody().add(ImSet(trace, ImVarAccess(v), translated));
             }
-            imProg.getGlobalInits().put(v, translated);
+            imProg.getGlobalInits().put(v, Collections.singletonList(translated));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
             List<ImExpr> translatedExprs = arInit.getValues().stream()
@@ -489,7 +489,7 @@ public class ImTranslator {
                     .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
-                f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
+                f.getBody().add(ImSet(trace, ImVarArrayAccess(v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
             }
             // add list of init-values to translatedExprs
             imProg.getGlobalInits().put(v, translatedExprs);
@@ -499,7 +499,7 @@ public class ImTranslator {
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
         getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
-        imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
+        imProg.getGlobalInits().put(g, Collections.singletonList((ImExpr) initial.copy()));
     }
 
 
@@ -1221,9 +1221,6 @@ public class ImTranslator {
     }
 
     private void assertProperties(Set<AssertProperty> properties, Element e) {
-        if (e instanceof ElementWithLeft) {
-            checkVar(((ElementWithLeft) e).getLeft(), properties);
-        }
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }

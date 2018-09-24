@@ -109,8 +109,7 @@ public class EliminateClasses {
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
         ImVar thisVar = df.getParameters().get(0);
-        ImExpr typeId = JassIm.ImVarArrayAccess(mVars.typeId,
-                JassIm.ImVarAccess(thisVar));
+        ImExpr typeId = JassIm.ImVarArrayAccess(mVars.typeId, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(thisVar)));
 
         // ckeck if destroyed or nullpointer
         if (checkedDispatch) {
@@ -333,7 +332,7 @@ public class EliminateClasses {
         ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
         ImExpr obj = e.getObj();
         obj.setParent(null);
-        e.replaceBy(JassIm.ImVarArrayAccess(typeIdVar, obj));
+        e.replaceBy(JassIm.ImVarArrayAccess(typeIdVar, JassIm.ImExprs(obj)));
     }
 
     private void replaceTypeIdOfClass(ImTypeIdOfClass e) {
@@ -351,7 +350,7 @@ public class EliminateClasses {
         obj.setParent(null);
         ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
 
-        ImExpr objTypeId = JassIm.ImVarArrayAccess(typeIdVar, obj);
+        ImExpr objTypeId = JassIm.ImVarArrayAccess(typeIdVar, JassIm.ImExprs(obj));
 
         boolean useTempVar = idRanges.size() >= 2 || idRanges.get(0).start < idRanges.get(0).end;
         ImVar tempVar = null;
@@ -437,8 +436,7 @@ public class EliminateClasses {
         ImExpr receiver = ma.getReceiver();
         receiver.setParent(null);
 
-        ma.replaceBy(JassIm.ImVarArrayAccess(fieldToArray.get(ma.getVar()),
-                receiver));
+        ma.replaceBy(JassIm.ImVarArrayAccess(fieldToArray.get(ma.getVar()), JassIm.ImExprs(receiver)));
 
     }
 
