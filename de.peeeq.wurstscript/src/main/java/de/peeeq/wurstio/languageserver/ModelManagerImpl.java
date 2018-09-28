@@ -494,7 +494,6 @@ public class ModelManagerImpl implements ModelManager {
         List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
         if (matches.isEmpty()) {
             WLogger.info("compilation unit not found: " + filename);
-            WLogger.info("available: " + model.stream().map(CompilationUnit::getFile).collect(Collectors.joining(", ")));
             return null;
         }
         return matches.get(0);
