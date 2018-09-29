@@ -128,7 +128,9 @@ public class TempMerger implements OptimizerPass {
         }
         if (elem instanceof ImVarAccess) {
             ImVarAccess va = (ImVarAccess) elem;
-            return kn.getReplacementIfPossible(va);
+            if (!va.isUsedAsLValue()) {
+                return kn.getReplacementIfPossible(va);
+            }
         } else if (elem instanceof ImLoop) {
             return null;
         } else if (elem instanceof ImIf) {

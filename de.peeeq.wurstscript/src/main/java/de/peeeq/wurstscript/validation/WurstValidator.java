@@ -799,8 +799,8 @@ public class WurstValidator {
         return false;
     }
 
-    private void checkIfAssigningToConstant(final NameRef left) {
-        left.match(new NameRef.MatcherVoid() {
+    private void checkIfAssigningToConstant(final LExpr left) {
+        left.match(new LExpr.MatcherVoid() {
 
             @Override
             public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
@@ -809,7 +809,7 @@ public class WurstValidator {
 
             @Override
             public void case_ExprVarAccess(ExprVarAccess e) {
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override
@@ -826,7 +826,7 @@ public class WurstValidator {
                                 "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
                     }
                 }
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override

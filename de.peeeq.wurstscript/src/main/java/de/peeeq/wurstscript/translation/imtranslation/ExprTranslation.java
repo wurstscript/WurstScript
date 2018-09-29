@@ -21,6 +21,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -278,6 +279,7 @@ public class ExprTranslation {
         }
     }
 
+
     private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
         List<WParameter> indexes = new ArrayList<>();
 
@@ -316,10 +318,11 @@ public class ExprTranslation {
             // if the result is a tuple, create it:
             int tupleSize = tupleSize(resultTupleType);
 
-            if (exprTr.attrPurity() instanceof Pure || exprTr.attrPurity() instanceof ReadsGlobals) {
+            if (exprTr instanceof ImLExpr
+                    && (exprTr.attrPurity() instanceof Pure || exprTr.attrPurity() instanceof ReadsGlobals)) {
                 ImExprs exprs = JassIm.ImExprs();
                 for (int i = 0; i < tupleSize; i++) {
-                    exprs.add(ImTupleSelection((ImExpr) exprTr.copy(), tupleIndex + i));
+                    exprs.add(ImTupleSelection((ImLExpr) exprTr.copy(), tupleIndex + i));
                 }
                 return ImTupleExpr(exprs);
             } else {
@@ -335,9 +338,21 @@ public class ExprTranslation {
                 return JassIm.ImStatementExpr(JassIm.ImStmts(ImSet(expr, ImVarAccess(temp), exprTr)), ImTupleExpr(exprs));
             }
         } else {
-            return ImTupleSelection(exprTr, tupleIndex);
+            if (exprTr instanceof ImLExpr) {
+                return ImTupleSelection((ImLExpr) exprTr, tupleIndex);
+            } else {
+                // if tupleExpr is not an l-value (e.g. foo().x)
+                // store result in intermediate variable first:
+                ImVar v = ImVar(exprTr.attrTrace(), exprTr.attrTyp(), "temp_tuple", false);
+                f.getLocals().add(v);
+                return JassIm.ImStatementExpr(
+                        JassIm.ImStmts(
+                                ImSet(exprTr.attrTrace(), ImVarAccess(v), exprTr)
+                        ),
+                        ImTupleSelection(ImVarAccess(v), tupleIndex)
+                );
+            }
         }
-
     }
 
     /**
@@ -567,13 +582,10 @@ public class ExprTranslation {
             statements.add(translated);
         }
 
-        ImExprOpt expr = null;
         StmtReturn r = e.getReturnStmt();
         if (r != null && r.getReturnedObj() instanceof Expr) {
-            expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
-        }
-        if (expr instanceof ImExpr) {
-            return JassIm.ImStatementExpr(statements, (ImExpr) expr);
+            ImExpr expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
+            return JassIm.ImStatementExpr(statements, expr);
         } else {
             return JassIm.ImStatementExpr(statements, JassIm.ImNull());
         }
@@ -625,21 +637,93 @@ public class ExprTranslation {
         );
     }
 
-    public static ImLExpr translateLvalue(ExprVarAccess e, ImTranslator translator, ImFunction f) {
-        // TODO fill out from above
-        throw new RuntimeException("TODO");
+    public static ImLExpr translateLvalue(LExpr e, ImTranslator t, ImFunction f) {
+        NameDef decl = e.attrNameDef();
+        if (decl == null) {
+            // should only happen with gg_ variables
+            throw new CompileError(e.getSource(), "Translation Error: Could not find definition of " + e.getVarName() + ".");
+        }
+        if (decl instanceof VarDef) {
+            VarDef varDef = (VarDef) decl;
+
+            ImVar v = t.getVarFor(varDef);
+
+            if (e.attrImplicitParameter() instanceof Expr) {
+                // we have implicit parameter
+                // e.g. "someObject.someField"
+                Expr implicitParam = (Expr) e.attrImplicitParameter();
+
+                if (implicitParam.attrTyp() instanceof WurstTypeTuple) {
+                    WurstTypeTuple tupleType = (WurstTypeTuple) implicitParam.attrTyp();
+                    if (e instanceof ExprMemberVar && ((ExprMemberVar) e).getLeft() instanceof LExpr) {
+                        ExprMemberVar emv = (ExprMemberVar) e;
+                        LExpr left = (LExpr) emv.getLeft();
+                        ImLExpr lt = left.imTranslateExprLvalue(t, f);
+                        return JassIm.ImTupleSelection(lt, tupleType.getTupleIndex(varDef));
+                    } else {
+                        throw new CompileError(e.getSource(), "Cannot create tuple access");
+                    }
+                }
+
+                if (e instanceof AstElementWithIndexes) {
+                    ImExpr index1 = implicitParam.imTranslateExpr(t, f);
+                    ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
+                    return JassIm.ImVarArrayAccess(v, JassIm.ImExprs(index1, index2));
+
+                } else {
+                    ImExpr index = implicitParam.imTranslateExpr(t, f);
+                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                }
+            } else {
+                // direct var access
+                if (e instanceof AstElementWithIndexes) {
+                    // direct access array var
+                    AstElementWithIndexes withIndexes = (AstElementWithIndexes) e;
+                    if (withIndexes.getIndexes().size() > 1) {
+                        throw new CompileError(e.getSource(), "More than one index is not supported.");
+                    }
+                    ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
+                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                } else {
+                    // not an array var
+                    return ImVarAccess(v);
+
+                }
+            }
+        } else {
+            throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
+        }
     }
 
-    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("TODO");
-    }
+//    public static ImLExpr translateLvalue(ExprVarArrayAccess e, ImTranslator translator, ImFunction f) {
+//        NameDef nameDef = e.tryGetNameDef();
+//        if (nameDef instanceof VarDef) {
+//            VarDef varDef = (VarDef) nameDef;
+//            ImVar v = translator.getVarFor(varDef);
+//            ImExprs indexes = e.getIndexes().stream()
+//                    .map(ie -> ie.imTranslateExpr(translator, f))
+//                    .collect(Collectors.toCollection(JassIm::ImExprs));
+//            return JassIm.ImVarArrayAccess(v, indexes);
+//        }
+//        throw new RuntimeException("TODO");
+//
+//    }
+//
+//    public static ImLExpr translateLvalue(ExprMemberVar e, ImTranslator translator, ImFunction f) {
+//        ImExpr receiver = e.getLeft().imTranslateExpr(translator, f);
+//        NameDef nameDef = e.tryGetNameDef();
+//        if (nameDef instanceof VarDef) {
+//            VarDef v = (VarDef) nameDef;
+//            ImVar imVar = translator.getVarFor(v);
+//            return JassIm.ImMemberAccess(receiver, imVar);
+//        }
+//        throw new RuntimeException("TODO");
+//    }
+//
+//    public static ImLExpr translateLvalue(ExprMemberArrayVar e, ImTranslator translator, ImFunction f) {
+//        throw new RuntimeException("TODO");
+//    }
 
-    public static ImLExpr translateLvalue(ExprMemberVar e, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("TODO");
-    }
 
-    public static ImLExpr translateLvalue(ExprMemberArrayVar e, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("TODO");
-    }
 
 }

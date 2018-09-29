@@ -2,11 +2,11 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TupleDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -79,5 +79,14 @@ public class WurstTypeTuple extends WurstType {
             exprs.add((ImExpr) p.attrTyp().getDefaultValue());
         }
         return JassIm.ImTupleExpr(exprs);
+    }
+
+    public int getTupleIndex(VarDef varDef) {
+        WParameter v = (WParameter) varDef;
+        int index = tupleDef.getParameters().indexOf(v);
+        if (index < 0) {
+            throw new CompileError(varDef.getSource(), "Could not determine tuple index of " + Utils.printElementWithSource(varDef) + " in tuple " + this);
+        }
+        return index;
     }
 }

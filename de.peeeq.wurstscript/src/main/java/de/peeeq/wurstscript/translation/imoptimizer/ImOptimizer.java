@@ -8,8 +8,10 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ImOptimizer {
     private int totalFunctionsRemoved = 0;
@@ -105,7 +107,7 @@ public class ImOptimizer {
             totalFunctionsRemoved += functionsRemoved;
             for (ImFunction f : prog.getFunctions()) {
                 // remove set statements to unread variables
-                final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();
+                final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
                 f.accept(new ImFunction.DefaultVisitor() {
                     @Override
                     public void visit(ImSet e) {
@@ -113,16 +115,37 @@ public class ImOptimizer {
                         if (e.getLeft() instanceof ImVarAccess) {
                             ImVarAccess va = (ImVarAccess) e.getLeft();
                             if (!trans.getReadVariables().contains(va.getVar())) {
-                                replacements.add(Pair.create(e, e.getRight()));
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                            }
+                        } else if (e.getLeft() instanceof ImVarArrayAccess) {
+                            ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
+                            if (!trans.getReadVariables().contains(va.getVar())) {
+                                // TODO indexes might have side effects that we need to keep
+                                List<ImExpr> exprs = va.getIndexes().removeAll();
+                                exprs.add(e.getRight());
+                                replacements.add(Pair.create(e, exprs));
                             }
                         }
                     }
 
                 });
-                for (Pair<ImStmt, ImStmt> pair : replacements) {
+                for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
-                    pair.getB().setParent(null);
-                    pair.getA().replaceBy(pair.getB());
+                    ImExpr r;
+                    if (pair.getB().size() == 1) {
+                        r = pair.getB().get(0);
+                        r.setParent(null);
+                    } else {
+                        List<ImStmt> exprs = Collections.unmodifiableList(pair.getB());
+                        for (ImStmt expr : exprs) {
+                            expr.setParent(null);
+                        }
+                        r = JassIm.ImStatementExpr(
+                                JassIm.ImStmts(exprs),
+                                JassIm.ImNull()
+                        );
+                    }
+                    pair.getA().replaceBy(r);
                 }
 
                 // keep only read local variables

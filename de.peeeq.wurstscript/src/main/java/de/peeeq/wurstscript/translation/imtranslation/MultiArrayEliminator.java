@@ -62,31 +62,45 @@ public class MultiArrayEliminator {
     }
 
     private void replaceVars(Element e, Map<ImVar, GetSetPair> oldToNewVar) {
+
+
+        if (e instanceof ImSet) {
+            ImSet set = (ImSet) e;
+            if (set.getLeft() instanceof ImVarArrayAccess) {
+                ImVarArrayAccess va = (ImVarArrayAccess) set.getLeft();
+                if (va.getIndexes().size() > 1) {
+                    if (getSetMap.containsKey(va.getVar())) {
+                        // process children (but not the updatedExpr):
+                        replaceVars(va.getIndexes(), oldToNewVar);
+                        replaceVars(set.getRight(), oldToNewVar);
+                        ImExprs args = JassIm.ImExprs();
+                        for (ImExpr val : va.getIndexes()) {
+                            args.add(val.copy());
+                        }
+                        args.add(set.getRight().copy());
+
+                        set.replaceBy(JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, args, false, CallType.NORMAL));
+                        return;
+                    }
+                }
+            }
+        }
         // process children
         for (int i = 0; i < e.size(); i++) {
             replaceVars(e.get(i), oldToNewVar);
         }
 
-        if (e instanceof ImSetArrayMulti) {
-            ImSetArrayMulti sm = (ImSetArrayMulti) e;
-            ImExprs args = JassIm.ImExprs();
-            for (ImExpr val : sm.getIndices()) {
-                args.add((ImExpr) val.copy());
+        if (e instanceof ImVarArrayAccess) {
+            ImVarArrayAccess am = (ImVarArrayAccess) e;
+            if (am.getIndexes().size() > 1) {
+                ImExprs args = JassIm.ImExprs();
+                for (ImExpr val : am.getIndexes()) {
+                    args.add(val.copy());
+                }
+                if (getSetMap.containsKey(am.getVar())) {
+                    am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, args, false, CallType.NORMAL));
+                }
             }
-            args.add((ImExpr) ((ImSetArrayMulti) e).getRight().copy());
-            if (getSetMap.containsKey(sm.getLeft())) {
-                sm.replaceBy(JassIm.ImFunctionCall(sm.getTrace(), getSetMap.get(sm.getLeft()).setter, args, false, CallType.NORMAL));
-            }
-
-        } else if (e instanceof ImVarArrayMultiAccess) {
-            ImVarArrayMultiAccess am = (ImVarArrayMultiAccess) e;
-            ImExprs args = JassIm.ImExprs();
-            args.add((ImExpr) am.getIndex1().copy());
-            args.add((ImExpr) am.getIndex2().copy());
-            if (getSetMap.containsKey(am.getVar())) {
-                am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, args, false, CallType.NORMAL));
-            }
-
         }
 
     }

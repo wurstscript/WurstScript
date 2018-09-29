@@ -192,9 +192,11 @@ public class Flatten {
 
 
     public static Result flatten(ImSet s, ImTranslator t, ImFunction f) {
-        Result e = s.getRight().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(e.stmts);
-        stmts.add(JassIm.ImSet(s.getTrace(), s.getLeft(), e.expr));
+        Result r = s.getRight().flatten(t, f);
+        Result l = s.getLeft().flatten(t, f);
+        List<ImStmt> stmts = Lists.newArrayList(r.stmts);
+        stmts.addAll(l.stmts);
+        stmts.add(JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr));
         return new Result(stmts);
     }
 
@@ -278,7 +280,21 @@ public class Flatten {
 
     public static Result flatten(ImTupleSelection e, ImTranslator t, ImFunction f) {
         Result r = e.getTupleExpr().flatten(t, f);
-        return new Result(r.stmts, JassIm.ImTupleSelection(r.expr, e.getTupleIndex()));
+        ImLExpr tupleExpr;
+        List<ImStmt> stmts;
+        if (r.expr instanceof ImLExpr) {
+            tupleExpr = (ImLExpr) r.expr;
+            stmts = r.stmts;
+        } else {
+            // in the unlikely event that this is not an l-value (e.g. foo().x)
+            // we create a temporary variable and store the result there
+            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "tuple_temp", false);
+            f.getLocals().add(v);
+            stmts = new ArrayList<>(r.stmts);
+            stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));
+            tupleExpr = JassIm.ImVarAccess(v);
+        }
+        return new Result(stmts, JassIm.ImTupleSelection(tupleExpr, e.getTupleIndex()));
     }
 
 

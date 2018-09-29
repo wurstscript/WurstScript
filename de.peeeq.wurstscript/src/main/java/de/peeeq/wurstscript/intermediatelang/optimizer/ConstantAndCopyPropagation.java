@@ -100,9 +100,27 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             }
             Knowledge kn = knowledge.get(node);
             stmt.accept(new ImStmt.DefaultVisitor() {
+
+                @Override
+                public void visit(ImSet imSet) {
+                    ImLExpr e = imSet.getLeft();
+                    if (e instanceof ImMemberAccess) {
+                        ImMemberAccess ma = (ImMemberAccess) e;
+                        ma.accept(this);
+                    } else if (e instanceof ImVarArrayAccess) {
+                        ImVarArrayAccess vaa = (ImVarArrayAccess) e;
+                        for (ImExpr ie : vaa.getIndexes()) {
+                            ie.accept(this);
+                        }
+                    }
+                    imSet.getRight().accept(this);
+                }
+
                 @Override
                 public void visit(ImVarAccess va) {
-                    super.visit(va);
+                    if (va.isUsedAsLValue()) {
+                        return;
+                    }
                     Value val = kn.varKnowledge.get(va.getVar());
                     if (val == null) {
                         return;
@@ -119,6 +137,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             });
 
         }
+
     }
 
     private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg) {

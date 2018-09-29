@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.collect.Lists;
-import de.peeeq.datastructures.IntTuple;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
@@ -258,6 +257,50 @@ public class EvaluateExpr {
                 return state.getVal(v);
             }
         };
+    }
 
+
+    public static ILaddress evaluateLvalue(ImVarArrayAccess va, ProgramState globalState, LocalState localState) {
+        ImVar v = va.getVar();
+        State state;
+        state = v.isGlobal() ? globalState : localState;
+        List<Integer> indexes = va.getIndexes().stream()
+                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+                .collect(Collectors.toList());
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                state.setArrayVal(v, indexes, value);
+            }
+
+            @Override
+            public ILconst get() {
+                return state.getArrayVal(v, indexes);
+            }
+        };
+    }
+
+    public static ILaddress evaluateLvalue(ImTupleSelection ts, ProgramState globalState, LocalState localState) {
+        ILaddress addr = ts.getTupleExpr().evaluateLvalue(globalState, localState);
+        int tupleIndex = ts.getTupleIndex();
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                ILconstTuple tuple = (ILconstTuple) addr.get();
+                ILconstTuple updated = tuple.updated(tupleIndex, value);
+                addr.set(updated);
+            }
+
+            @Override
+            public ILconst get() {
+                ILconstTuple tuple = (ILconstTuple) addr.get();
+                return tuple.getValue(tupleIndex);
+            }
+        };
+    }
+
+    public static ILaddress evaluateLvalue(ImMemberAccess e, ProgramState globalState, LocalState localState) {
+        ILconst r = e.getReceiver().evaluate(globalState, localState);
+        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + r);
     }
 }

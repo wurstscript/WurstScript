@@ -436,7 +436,7 @@ FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
-NameRef.attrImplicitParameter
+LExpr.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
@@ -773,11 +773,11 @@ FunctionLike.attrHasEmptyBody()
 
 // Naming:
 
-NameRef.attrNameLink
+LExpr.attrNameLink
 	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
-NameRef.attrNameDef
+LExpr.attrNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculateDef
 
@@ -1027,7 +1027,7 @@ ExprNewObject.getTypeName()
 	returns String    
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getTypeName	
 
-NameRef.getVarName()
+LExpr.getVarName()
 	returns String    
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getVarName
 
