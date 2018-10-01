@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
@@ -578,9 +579,9 @@ public class WurstScriptTest {
         File outputFile = new File(TEST_OUTPUT_PATH + name + ".jim");
         new File(TEST_OUTPUT_PATH).mkdirs();
         try {
-            StringBuilder sb = new StringBuilder();
-            prog.print(sb, 0);
-            FileUtils.write(sb, outputFile);
+            try (Writer w = Files.newWriter(outputFile, Charsets.UTF_8)) {
+                prog.print(w, 0);
+            }
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
