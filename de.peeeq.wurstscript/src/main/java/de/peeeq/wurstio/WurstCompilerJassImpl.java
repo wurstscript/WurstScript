@@ -531,7 +531,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
-            asCharSink(file, Charsets.UTF_8).write(sb.toString());
+            asCharSink(file, Charsets.UTF_8).write(sb);
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
