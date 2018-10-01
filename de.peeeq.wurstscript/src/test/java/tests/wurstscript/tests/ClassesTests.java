@@ -572,7 +572,8 @@ public class ClassesTests extends WurstScriptTest {
                 "			return 7",
                 "	init",
                 "		A a = new A()",
-                "		destroy a",
+                "		let b = a",
+                "		destroy b",
                 "		if a.foo() == 7",
                 "			testSuccess()",
                 "endpackage");
