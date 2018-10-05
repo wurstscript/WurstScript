@@ -1,0 +1,129 @@
+package Hello
+
+import Table
+
+enum HashType
+    INTEGER
+    REAL
+    STRING
+    BOOLEAN
+
+function HashType.toString() returns string
+    string result
+    switch this
+        case INTEGER
+            result = "integer"
+        case REAL
+            result = "real"
+        case STRING
+            result = "string"
+        default
+            result = "boolean"
+    return result
+
+public class HashReader
+    private Table data = new Table
+
+    private var integerReadIndex = 0
+    private var realReadIndex = 0
+    private var stringReadIndex = 0
+    private var booleanReadIndex = 0
+
+    private var integerCount = 0
+    private var realCount = 0
+    private var stringCount = 0
+    private var booleanCount = 0
+
+    construct()
+
+    @inline
+    function hasRemainingData(HashType t) returns boolean
+        boolean result
+        switch t
+            case INTEGER
+                result = integerCount > integerReadIndex
+            case REAL
+                result = realCount > realReadIndex
+            case STRING
+                result = stringCount > stringReadIndex
+            default
+                result = booleanCount > booleanReadIndex
+        return result
+
+    @inline
+    function getReadIndex(HashType t) returns int
+        int result
+        switch t
+            case INTEGER
+                result = integerReadIndex
+            case REAL
+                result = realReadIndex
+            case STRING
+                result = stringReadIndex
+            default
+                result = booleanReadIndex
+        return result
+
+    @inline
+    function getCount(HashType t) returns int
+        int result
+        switch t
+            case INTEGER
+                result = integerCount
+            case REAL
+                result = realCount
+            case STRING
+                result = stringCount
+            default
+                result = booleanCount
+        return result
+
+    // when checked dispatch is disabled and all opts are on, this will compile down to very simple checks
+    @inline
+    function validateType(HashType t)
+        if not hasRemainingData(t)
+            print("trying to read " + t.toString() + " at position " + getReadIndex(t).toString() + " out of " + getCount(t).toString())
+
+    @inline
+    function readInt() returns int
+        validateType(HashType.INTEGER)
+        return readIntUnchecked()
+
+    @inline
+    function readIntUnchecked() returns int
+        let temp = data.loadInt(integerReadIndex)
+        integerReadIndex++
+        return temp
+
+@noinline
+function inline_remainingData(HashReader test)
+    print("remaining data (int): " + test.hasRemainingData(HashType.INTEGER).toString())
+
+@noinline
+function inline_readIndex(HashReader test)
+    print("readIndex (int): " + test.getReadIndex(HashType.INTEGER).toString())
+
+@noinline
+function inline_getCount(HashReader test)
+    print("getCount(int): " + test.getCount(HashType.INTEGER).toString())
+
+@noinline
+function inline_validateType(HashReader test)
+    print("validateType(int)")
+    test.validateType(HashType.INTEGER)
+
+@noinline
+function inline_readInt(HashReader test)
+    print("readInt: " + test.readInt().toString())
+
+@noinline
+function inlineTests()
+    let test = new HashReader()
+
+    inline_remainingData(test)
+    inline_readIndex(test)
+    inline_getCount(test)
+    inline_validateType(test)
+    inline_readInt(test)
+init
+    inlineTests()

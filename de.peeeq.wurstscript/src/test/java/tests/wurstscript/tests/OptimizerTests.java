@@ -13,6 +13,7 @@ import static org.testng.AssertJUnit.*;
 
 public class OptimizerTests extends WurstScriptTest {
 
+    private static final String TEST_DIR = "./testscripts/valid/optimizer/";
 
     @Test
     public void test_number_shortening() {
@@ -777,6 +778,13 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(inlined.contains("function over9000"));
         assertTrue(inlined.contains("function over9001"));
         assertTrue(inlined.contains("function noot"));
+    }
+
+
+    @Test
+    public void arrayindex() throws IOException {
+        // see issue #731
+        super.testAssertOkFileWithStdLib(new File(TEST_DIR + "dispatch.wurst"), false);
     }
 
 }
