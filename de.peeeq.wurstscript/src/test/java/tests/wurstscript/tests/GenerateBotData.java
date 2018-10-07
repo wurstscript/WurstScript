@@ -73,7 +73,7 @@ public class GenerateBotData {
         // TODO set config
         RunArgs runArgs = RunArgs.defaults();
         runArgs.addLibs(Sets.newHashSet(StdLib.getLib()));
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(new WurstGuiCliImpl(), null, runArgs);
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(null, new WurstGuiCliImpl(), null, runArgs);
 
         comp.loadFiles("common.j");
         comp.loadFiles("blizzard.j");

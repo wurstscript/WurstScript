@@ -105,15 +105,21 @@ public class ILInterpreter implements AbstractInterpreter {
             throw new InterpreterException("function " + f.getName() + " did not return any value...");
         } catch (InterpreterException e) {
             String msg = buildStacktrace(globalState, e);
-            throw e.withStacktrace(msg);
+            e.setStacktrace(msg);
+            e.setTrace(getTrace(globalState, f));
+            throw e;
         } catch (TestSuccessException | TestFailException | DebugPrintError e) {
             throw e;
         } catch (Throwable e) {
             String msg = buildStacktrace(globalState, e);
-            Element lastStatement = globalState.getLastStatement();
-            de.peeeq.wurstscript.ast.Element trace = lastStatement == null ? f.attrTrace() : lastStatement.attrTrace();
-            throw new InterpreterException(trace, "You encountered a bug in the interpreter: " + e, e).withStacktrace(msg);
+            de.peeeq.wurstscript.ast.Element trace = getTrace(globalState, f);
+            throw new InterpreterException(trace, "You encountered a bug in the interpreter: " + e, e).setStacktrace(msg);
         }
+    }
+
+    private static de.peeeq.wurstscript.ast.Element getTrace(ProgramState globalState, ImFunction f) {
+        Element lastStatement = globalState.getLastStatement();
+        return lastStatement == null ? f.attrTrace() : lastStatement.attrTrace();
     }
 
     private static String buildStacktrace(ProgramState globalState, Throwable e) {

@@ -46,7 +46,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ifEnoughMemory.add(JassIm.ImSetArray(tr, mVars.typeId, JassIm.ImVarAccess(thisVar), JassIm.ImIntVal(c.attrTypeId())));
         //     else:
         //         error("out of memory")
-        ifNotEnoughMemory.add(translator.imError(JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
+        ifNotEnoughMemory.add(translator.imError(c.getTrace(), JassIm.ImStringVal("Out of memory: Could not create " + c.getName() + ".")));
         //         this = 0
         ifNotEnoughMemory.add(JassIm.ImSet(tr, thisVar, JassIm.ImIntVal(0)));
         // else:
@@ -81,7 +81,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
                         JassIm.ImExprs(JassIm.ImVarArrayAccess(mVars.typeId, JassIm.ImVarAccess(thisVar)), JassIm.ImIntVal(0))),
                 // then
                 // error
-                JassIm.ImStmts(translator.imError(JassIm.ImStringVal("Double free: object of type " + c.getName()))),
+                JassIm.ImStmts(translator.imError(c.getTrace(), JassIm.ImStringVal("Double free: object of type " + c.getName()))),
                 // else
                 JassIm.ImStmts(
                         // free[freeCount] = this

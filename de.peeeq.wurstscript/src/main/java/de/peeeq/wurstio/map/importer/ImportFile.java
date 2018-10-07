@@ -30,7 +30,8 @@ public class ImportFile {
         }
 
         try {
-            File importDirectory = getImportDirectory(mapFile);
+            File projectFolder = mapFile.getParentFile();
+            File importDirectory = getImportDirectory(projectFolder);
             File tempMap = getCopyOfMap(mapFile);
 
             extractImportsFrom(importDirectory, tempMap, runArgs);
@@ -176,11 +177,11 @@ public class ImportFile {
         mpq.insertFile("war3map.imp", byteOut.toByteArray());
     }
 
-    public static void importFilesFromImportDirectory(File mapFile, MpqEditor ed) {
-        File importDirectory = getImportDirectory(mapFile);
+    public static void importFilesFromImportDirectory(File projectFolder, MpqEditor ed) {
+        File importDirectory = getImportDirectory(projectFolder);
         if (importDirectory.exists() && importDirectory.isDirectory()) {
             WLogger.info("importing from: " + importDirectory.getAbsolutePath());
-            WLogger.info("mapfile: " + mapFile.getAbsolutePath());
+            WLogger.info("projectFolder: " + projectFolder.getAbsolutePath());
             try {
                 insertImportedFiles(ed, importDirectory);
             } catch (Exception e) {
@@ -197,8 +198,8 @@ public class ImportFile {
         return mapTemp;
     }
 
-    private static File getImportDirectory(File mapFile) {
-        return new File(mapFile.getParentFile(), "imports");
+    private static File getImportDirectory(File projectFolder) {
+        return new File(projectFolder, "imports");
     }
 
 }

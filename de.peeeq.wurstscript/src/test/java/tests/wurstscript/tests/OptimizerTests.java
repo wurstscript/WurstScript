@@ -540,10 +540,9 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_unreachableCodeRemover() throws IOException {
-        test().lines(
+        test().withStdLib().lines(
                 "package test",
                 "	import MagicFunctions",
-                "	native testSuccess()",
                 "	function foo()",
                 "		if not false",
                 "			return",

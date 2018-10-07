@@ -235,7 +235,7 @@ public class RunMap extends MapRequest {
             model = ModelManager.copy(model);
         }
 
-        return compileMap(gui, mapCopy, origMap, runArgs, model);
+        return compileMap(modelManager.getProjectPath(), gui, mapCopy, origMap, runArgs, model);
     }
 
 

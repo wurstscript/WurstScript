@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
-import de.peeeq.wurstscript.attributes.names.TypeLink;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
@@ -334,7 +333,7 @@ public class ImTranslator {
         }
 
         ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
-        if(native_DestroyTrigger != null) {
+        if (native_DestroyTrigger != null) {
             getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger,
                     JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
         }
@@ -377,7 +376,7 @@ public class ImTranslator {
         if (initFunc == null) {
             return;
         }
-        if(initFunc.getBody().size() == 0) {
+        if (initFunc.getBody().size() == 0) {
             return;
         }
         boolean successful = createInitFuncCall(p, initTrigVar, initFunc);
@@ -483,29 +482,25 @@ public class ImTranslator {
                 // bj-vars are already initalized by blizzard
                 f.getBody().add(ImSet(trace, v, translated));
             }
-            imProg.getGlobalInits().put(v, translated);
+            imProg.getGlobalInits().put(v, Collections.singletonList(translated));
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
+            List<ImExpr> translatedExprs = arInit.getValues().stream()
+                    .map(expr -> expr.imTranslateExpr(this, f))
+                    .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
-                Expr expr = arInit.getValues().get(i);
-                ImExpr translated = expr.imTranslateExpr(this, f);
+                ImExpr translated = translatedExprs.get(i);
                 f.getBody().add(ImSetArray(trace, v, JassIm.ImIntVal(i), translated));
             }
-            // abusing tuples to store multiple expressions for globalInit
-            imProg.getGlobalInits().put(v, JassIm.ImTupleExpr(
-                    JassIm.ImExprs(
-                            arInit.getValues().stream()
-                                    .map(expr -> expr.imTranslateExpr(this, f))
-                                    .collect(Collectors.toList())
-                    )
-            ));
+            // add list of init-values to translatedExprs
+            imProg.getGlobalInits().put(v, translatedExprs);
         }
     }
 
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
         getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), g, initial));
-        imProg.getGlobalInits().put(g, (ImExpr) initial.copy());
+        imProg.getGlobalInits().put(g, Collections.singletonList(initial));
     }
 
 
@@ -1328,14 +1323,14 @@ public class ImTranslator {
     }
 
 
-    public ImExpr imError(ImExpr message) {
+    public ImExpr imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
         ImFunction ef = errorFunc;
         if (ef == null) {
             Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);
             ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
         }
         ImExprs arguments = JassIm.ImExprs(message);
-        return JassIm.ImFunctionCall(message.attrTrace(), ef, arguments, false, CallType.NORMAL);
+        return JassIm.ImFunctionCall(trace, ef, arguments, false, CallType.NORMAL);
     }
 
     private ImFunction makeDefaultErrorFunc() {

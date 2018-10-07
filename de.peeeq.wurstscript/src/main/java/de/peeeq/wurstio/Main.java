@@ -335,7 +335,7 @@ public class Main {
     }
 
     private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, mpqEditor, runArgs);
         gui.sendProgress("Check input map");
         if (mpqEditor != null && !mpqEditor.canWrite()) {
             WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
@@ -394,20 +394,7 @@ public class Main {
             System.out.println("Finished running tests");
         }
 
-        if (runArgs.runCompiletimeFunctions()) {
-
-            // compiletime functions
-            gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(compiler.getImProg(), mapFile, mpqEditor, gui, CompiletimeFunctions);
-            ctr.setInjectObjects(runArgs.isInjectObjects());
-            ctr.run();
-        }
-
-        if (runArgs.isInjectObjects()) {
-            Preconditions.checkNotNull(mpqEditor);
-            // add the imports
-            ImportFile.importFilesFromImportDirectory(new File(runArgs.getMapFile()), mpqEditor);
-        }
+        compiler.runCompiletime();
 
         JassProg jassProg = compiler.transformProgToJass();
 

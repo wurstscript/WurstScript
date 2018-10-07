@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.ClassDef;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -1077,5 +1078,16 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test(expectedExceptions = {InterpreterException.class})
+    public void subStringError() { // #728
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@extern native SubString(string s, int s, int e) returns string",
+                "init",
+                "    if SubString(\"blubber\", 1000, 1002) == null",
+                "        testSuccess()"
+        );
+    }
 
 }

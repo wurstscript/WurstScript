@@ -117,7 +117,7 @@ public class AttrFuncDef {
     }
 
 
-    public static List<WurstType> argumentTypes(FunctionCall node) {
+    public static List<WurstType> argumentTypes(StmtCall node) {
         List<WurstType> result = Lists.newArrayList();
         for (Expr arg : node.getArgs()) {
             WurstType argType;

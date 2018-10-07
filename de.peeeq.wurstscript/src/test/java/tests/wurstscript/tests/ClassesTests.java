@@ -1137,5 +1137,45 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void protectedInOtherPackage() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    public class A",
+                "        protected function show()",
+                "            testSuccess()",
+                "endpackage",
+                "package B",
+                "    import A",
+                "    class B extends A",
+                "        override protected function show()",
+                "            super.show()",
+                "    init",
+                "        new B().show()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void protectedInOtherPackage2() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    public class A",
+                "        protected function show()",
+                "            testSuccess()",
+                "endpackage",
+                "package B",
+                "    import A",
+                "    class B extends A",
+                "        function blub()",
+                "            show()",
+                "    init",
+                "        new B().blub()",
+                "endpackage"
+        );
+    }
+
 
 }

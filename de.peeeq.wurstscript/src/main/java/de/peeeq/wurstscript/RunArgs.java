@@ -8,10 +8,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class RunArgs {
 
 
+    private final String[] args;
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
@@ -41,6 +43,11 @@ public class RunArgs {
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
 
+    public RunArgs with(String... additionalArgs) {
+        return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
+                .toArray(String[]::new));
+    }
+
     private class RunOption {
         final String name;
         final String descr;
@@ -66,6 +73,7 @@ public class RunArgs {
     }
 
     public RunArgs(String... args) {
+        this.args = args;
         // interpreter
         optionRuntests = addOption("runtests", "Run all test functions found in the scripts.");
         optionRunCompileTimeFunctions = addOption("runcompiletimefunctions", "Run all compiletime functions found in the scripts.");
