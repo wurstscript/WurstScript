@@ -38,11 +38,7 @@ public class VariableUses {
 
                     @Override
                     public void case_ImTupleSelection(ImTupleSelection e) {
-                        if (e.getTupleExpr() instanceof ImLExpr) {
-                            ((ImLExpr) e.getTupleExpr()).match(this);
-                        } else {
-                            e.getTupleExpr().accept(thiz);
-                        }
+                        e.getTupleExpr().match(this);
                     }
 
                     @Override
@@ -55,6 +51,13 @@ public class VariableUses {
                     public void case_ImMemberAccess(ImMemberAccess e) {
                         e.getReceiver().accept(thiz);
                         result.addWrite(e.getVar(), imSet);
+                    }
+
+                    @Override
+                    public void case_ImTupleLExpr(ImTupleLExpr te) {
+                        for (ImLExpr lexpr : te.getLexprs()) {
+                            lexpr.match(this);
+                        }
                     }
                 });
             }

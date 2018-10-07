@@ -1228,7 +1228,7 @@ public class ImTranslator {
             if (e instanceof ImTupleExpr
                     || e instanceof ImTupleSelection
                     ) {
-                throw new Error("contains tuple expr " + e);
+                throw new Error("contains tuple exprs " + e);
             }
             if (e instanceof ImVar) {
                 ImVar v = (ImVar) e;

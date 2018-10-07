@@ -1,12 +1,10 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImExitwhen;
-import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
@@ -62,9 +60,9 @@ public class Flatten {
         final List<ImStmt> stmts;
         final ImExpr expr;
 
-        public Result(List<ImStmt> stmts, ImExpr epxr) {
+        public Result(List<ImStmt> stmts, ImExpr expr) {
             this.stmts = stmts;
-            this.expr = epxr;
+            this.expr = expr;
         }
 
         public Result(ImExpr epxr) {
@@ -82,6 +80,32 @@ public class Flatten {
             exprToStatements(result, expr, t, f);
         }
 
+        public List<ImStmt> getStmts() {
+            return stmts;
+        }
+
+        public ImExpr getExpr() {
+            return expr;
+        }
+
+        public ImStatementExpr toStatementExpr() {
+            return JassIm.ImStatementExpr(JassIm.ImStmts(stmts), expr);
+        }
+    }
+
+    public static class ResultL extends Result {
+        public ResultL(List<ImStmt> stmts, ImLExpr expr) {
+            super(stmts, expr);
+        }
+
+        public ResultL(ImLExpr expr) {
+            super(expr);
+        }
+
+        @Override
+        public ImLExpr getExpr() {
+            return (ImLExpr) super.getExpr();
+        }
     }
 
     public static class MultiResult {
@@ -297,16 +321,19 @@ public class Flatten {
         return new Result(stmts, JassIm.ImTupleSelection(tupleExpr, e.getTupleIndex()));
     }
 
-
-    public static Result flatten(ImVarAccess e, ImTranslator t, ImFunction f) {
+    public static ResultL flattenL(ImVarAccess e, ImTranslator t, ImFunction f) {
         e.setParent(null);
-        return new Result(e);
+        return new ResultL(e);
     }
 
 
-    public static Result flatten(ImVarArrayAccess e, ImTranslator t, ImFunction f) {
+    public static ResultL flatten(ImLExpr e, ImTranslator t, ImFunction f) {
+        return e.flattenL(t, f);
+    }
+
+    public static ResultL flattenL(ImVarArrayAccess e, ImTranslator t, ImFunction f) {
         MultiResult indexes = flattenExprs(t, f, e.getIndexes());
-        return new Result(indexes.stmts, ImVarArrayAccess(e.getVar(), ImExprs(indexes.exprs)));
+        return new ResultL(indexes.stmts, ImVarArrayAccess(e.getVar(), ImExprs(indexes.exprs)));
     }
 
 
@@ -364,6 +391,16 @@ public class Flatten {
 
 
     public static Result flatten(ImClassRelatedExpr e,
+                                 ImTranslator translator, ImFunction f) {
+        throw new RuntimeException("Eliminate method calls before calling flatten.");
+    }
+
+    public static Result flatten(ImMemberAccess e,
+                                 ImTranslator translator, ImFunction f) {
+        throw new RuntimeException("Eliminate method calls before calling flatten.");
+    }
+
+    public static ResultL flattenL(ImMemberAccess e,
                                  ImTranslator translator, ImFunction f) {
         throw new RuntimeException("Eliminate method calls before calling flatten.");
     }
