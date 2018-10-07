@@ -44,4 +44,28 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void testCompiletimeHashtable() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("type agent extends handle",
+                        "type hashtable extends agent",
+                        "package Test",
+                        "native testSuccess()",
+                        "@extern native InitHashtable() returns hashtable",
+                        "@extern native LoadInteger(hashtable h, int p, int c) returns int",
+                        "@extern native SaveInteger(hashtable h, int p, int c, int i)",
+                        "function compiletime(hashtable h) returns hashtable",
+                        "    return h",
+                        "let h = compiletime(InitHashtable())",
+                        "@compiletime",
+                        "function foo()",
+                        "    SaveInteger(h, 2, 3, 42)",
+                        "init",
+                        "    if LoadInteger(h, 2, 3) == 42",
+                        "        testSuccess()");
+    }
+
+
 }

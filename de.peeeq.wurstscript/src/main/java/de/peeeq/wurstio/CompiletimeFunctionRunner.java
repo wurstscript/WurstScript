@@ -1,12 +1,14 @@
 package de.peeeq.wurstio;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.intermediateLang.interpreter.CompiletimeNatives;
 import de.peeeq.wurstio.intermediateLang.interpreter.ProgramStateIO;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
+import de.peeeq.wurstio.jassinterpreter.providers.HashtableProvider;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
@@ -19,12 +21,15 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
+import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagCompiletime;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -44,6 +49,7 @@ public class CompiletimeFunctionRunner {
     private final Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> failTests = Maps.newLinkedHashMap();
     private final ProgramStateIO globalState;
     private boolean injectObjects;
+    private final List<Runnable> delayedActions = new ArrayList<>();
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -101,6 +107,8 @@ public class CompiletimeFunctionRunner {
             if (functionFlag == FunctionFlagToRun.CompiletimeFunctions) {
                 interpreter.writebackGlobalState(isInjectObjects());
             }
+            runDelayedActions();
+
         } catch (Throwable e) {
             WLogger.severe(e);
             de.peeeq.wurstscript.jassIm.Element s = interpreter.getLastStatement();
@@ -118,6 +126,15 @@ public class CompiletimeFunctionRunner {
             }
         }
 
+    }
+
+    /**
+     * Run actions that must be run after all other code
+     */
+    private void runDelayedActions() {
+        for (Runnable delayedAction : delayedActions) {
+            delayedAction.run();
+        }
     }
 
     private void execute(List<Either<ImCompiletimeExpr, ImFunction>> es) {
@@ -177,6 +194,7 @@ public class CompiletimeFunctionRunner {
     }
 
     private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
+        Element trace = cte.attrTrace();
         if (value instanceof ILconstBool) {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
         } else if (value instanceof ILconstInt) {
@@ -191,9 +209,75 @@ public class CompiletimeFunctionRunner {
                                     .collect(Collectors.toList())
                     )
             );
-        } else {
-            throw new InterpreterException(cte.attrTrace(), "Compiletime expression returned unsupported value " + value);
+        } else if (value instanceof IlConstHandle) {
+            IlConstHandle h = (IlConstHandle) value;
+            Object obj = h.getObj();
+            if (obj instanceof ArrayListMultimap) {
+                // a hashtable
+                @SuppressWarnings("unchecked")
+                ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
+                return constantToExprHashtable(cte, trace, map);
+            }
         }
+        throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
+
+    }
+
+    /**
+     * Stores a hashtable value in a compiletime expression
+     * by generating the respective native calls
+     */
+    private ImExpr constantToExprHashtable(ImCompiletimeExpr cte, Element trace, ArrayListMultimap<HashtableProvider.KeyPair, Object> map) {
+        ImFunction f = cte.getNearestFunc();
+        ImVar htVar = JassIm.ImVar(trace, cte.attrTyp(), "ht", false);
+        f.getLocals().add(htVar);
+
+
+        WPos errorPos = trace.attrErrorPos();
+        ImFunction initHashtable = findNative("InitHashtable", errorPos);
+        ImStmts stmts = JassIm.ImStmts(
+                JassIm.ImSet(trace, htVar, JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImExprs(), false, CallType.NORMAL))
+        );
+
+        // we have to collect all values after all compiletime functions have run, so use delayedActions
+        delayedActions.add(() -> {
+            for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
+                HashtableProvider.KeyPair key = entry.getKey();
+                Object v = entry.getValue();
+                if (v instanceof ILconstInt) {
+                    ILconstInt iv = (ILconstInt) v;
+                    ImFunction SaveInteger = findNative("SaveInteger", errorPos);
+                    stmts.add(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(key.getParentkey()),
+                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImIntVal(iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else {
+                    throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
+                }
+
+
+            }
+        });
+
+        // we already return the expr and fill out stmts in delayedActions (see above)
+        return JassIm.ImStatementExpr(
+                stmts,
+                JassIm.ImVarAccess(htVar)
+        );
+    }
+
+    @NotNull
+    private ImFunction findNative(String funcName, WPos trace) {
+        return imProg.getFunctions()
+                .stream()
+                .filter(ImFunction::isNative)
+                .filter(func -> func.getName().equals(funcName))
+                .findFirst()
+                .orElseGet(() -> {
+                    throw new CompileError(trace, "Could not find native 'InitHashtable'");
+                });
     }
 
 

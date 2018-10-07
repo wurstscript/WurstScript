@@ -527,11 +527,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         try {
             // TODO remove test output
-            StringBuilder sb = new StringBuilder();
-            getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
-            asCharSink(file, Charsets.UTF_8).write(sb.toString());
+            try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {
+                getImProg().print(w, 0);
+            }
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
