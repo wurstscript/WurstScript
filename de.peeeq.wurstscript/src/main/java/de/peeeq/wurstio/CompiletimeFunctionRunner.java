@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
+import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -109,23 +110,30 @@ public class CompiletimeFunctionRunner {
             }
             runDelayedActions();
 
+        } catch (InterpreterException e) {
+            Element origin = e.getTrace();
+            sendErrors(origin, e.getMessage());
         } catch (Throwable e) {
             WLogger.severe(e);
             de.peeeq.wurstscript.jassIm.Element s = interpreter.getLastStatement();
             Element origin = s == null ? null : s.attrTrace();
             if (origin != null) {
-                gui.sendError(new CompileError(origin.attrSource(), e.getMessage()));
-
-                // stackframe messages ...
-                for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
-                    gui.sendError(sf.makeCompileError());
-                }
-
+                String msg = e.getMessage();
+                sendErrors(origin, msg);
             } else {
                 throw new Error("could not get origin", e);
             }
         }
 
+    }
+
+    private void sendErrors(Element origin, String msg) {
+        gui.sendError(new CompileError(origin.attrSource(), msg));
+
+        // stackframe messages ...
+        for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {
+            gui.sendError(sf.makeCompileError());
+        }
     }
 
     /**
@@ -187,10 +195,21 @@ public class CompiletimeFunctionRunner {
 
 
     private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
-        LocalState localState = new LocalState();
-        ILconst value = cte.evaluate(interpreter.getGlobalState(), localState);
-        ImExpr newExpr = constantToExpr(cte, value);
-        cte.replaceBy(newExpr);
+        try {
+            ProgramState globalState = interpreter.getGlobalState();
+            globalState.setLastStatement(cte);
+            globalState.resetStackframes();
+            globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
+            LocalState localState = new LocalState();
+            ILconst value = cte.evaluate(globalState, localState);
+            ImExpr newExpr = constantToExpr(cte, value);
+            cte.replaceBy(newExpr);
+        } catch (InterpreterException e) {
+            String msg = ILInterpreter.buildStacktrace(globalState, e);
+            e.setStacktrace(msg);
+            e.setTrace(cte.attrTrace());
+            throw e;
+        }
     }
 
     private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
