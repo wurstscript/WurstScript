@@ -141,6 +141,15 @@ public class ProgramState extends State {
         lastStatements.push(stmt);
     }
 
+    public void pushStackframe(ImCompiletimeExpr f, WPos trace) {
+        stackFrames.push(new ILStackFrame(f, trace));
+        de.peeeq.wurstscript.jassIm.Element stmt = this.lastStatement;
+        if (stmt == null) {
+            stmt = f;
+        }
+        lastStatements.push(stmt);
+    }
+
     public void popStackframe() {
         if (!stackFrames.isEmpty()) {
             stackFrames.pop();
