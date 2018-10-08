@@ -301,8 +301,11 @@ public class Flatten {
         return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
     }
 
-
     public static Result flatten(ImTupleSelection e, ImTranslator t, ImFunction f) {
+        return flattenL(e, t, f);
+    }
+
+    public static ResultL flattenL(ImTupleSelection e, ImTranslator t, ImFunction f) {
         Result r = e.getTupleExpr().flatten(t, f);
         ImLExpr tupleExpr;
         List<ImStmt> stmts;
@@ -318,7 +321,7 @@ public class Flatten {
             stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));
             tupleExpr = JassIm.ImVarAccess(v);
         }
-        return new Result(stmts, JassIm.ImTupleSelection(tupleExpr, e.getTupleIndex()));
+        return new ResultL(stmts, JassIm.ImTupleSelection(tupleExpr, e.getTupleIndex()));
     }
 
     public static ResultL flattenL(ImVarAccess e, ImTranslator t, ImFunction f) {

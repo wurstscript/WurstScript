@@ -1,10 +1,10 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import de.peeeq.datastructures.ImmutableTree;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.NoExpr;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
@@ -217,6 +217,17 @@ public class EliminateTuples {
         return e;
     }
 
+    public static Result eliminateTuples2Result(ImExpr e, ImTranslator translator, ImFunction f) {
+        for (int i = 0; i < e.size(); i++) {
+            Element c = e.get(i);
+            Element newC = eliminateTuplesDispatch(c, translator, f);
+            if (newC != c) {
+                e.set(i, newC);
+            }
+        }
+        return new Result(e);
+    }
+
     private static Element eliminateTuplesDispatch(Element e, ImTranslator translator, ImFunction f) {
         if (e instanceof ImExprOpt) {
             ImExprOpt imExprOpt = (ImExprOpt) e;
@@ -241,19 +252,82 @@ public class EliminateTuples {
         return new Result(Collections.emptyList(), exprs);
     }
 
+    public static Result eliminateTuplesExpr(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
+        return eliminateTuples2Result(e, translator, f);
+    }
+
+    public static ResultL eliminateTuplesExprL(ImVarArrayAccess v, ImTranslator translator, ImFunction f) {
+        List<ImStmt> stmts = new ArrayList<>();
+        for (int i = 0; i < v.getIndexes().size(); i++) {
+            ImExpr index = v.getIndexes().get(i);
+            Result ir = index.eliminateTuplesExpr(translator, f);
+            stmts.addAll(ir.stmts);
+            v.getIndexes().set(i, ir.getOnlyExpr());
+        }
+        ImmutableTree<ImVar> vars = translator.getVarsForTuple(v.getVar());
+        if (vars.isLeaf()) {
+            v.setParent(null);
+            return new ResultL(stmts, Collections.singletonList(v));
+        } else {
+            // store indexes to temporary variables:
+            List<ImVar> indexVars = new ArrayList<>();
+            for (ImExpr index : v.getIndexes()) {
+                index.setParent(null);
+                ImVar tempIndex = JassIm.ImVar(v.attrTrace(), index.attrTyp(), "temp_index", false);
+                indexVars.add(tempIndex);
+                stmts.add(JassIm.ImSet(v.attrTrace(), JassIm.ImVarAccess(tempIndex), index));
+            }
+            f.getLocals().addAll(indexVars);
+
+            List<ImLExpr> exprs = new ArrayList<>();
+            for (ImmutableTree<ImVar> var : vars) {
+                ImExprs indexes = indexVars.stream()
+                        .map(JassIm::ImVarAccess)
+                        .collect(Collectors.toCollection(JassIm::ImExprs));
+                exprs.add(JassIm.ImVarArrayAccess(var.getOnlyEment(), indexes));
+            }
+            return new ResultL(stmts, exprs);
+        }
+    }
+
+    public static ResultL eliminateTuplesExprL(ImTupleSelection e, ImTranslator translator, ImFunction f) {
+        return null;
+    }
+
+    public static Result eliminateTuplesExpr(ImFunctionCall e, ImTranslator translator, ImFunction f) {
+        ImFunction calledFunc = e.getFunc();
+        List<ImStmt> stmts = new ArrayList<>();
+        for (ImExpr arg : e.getArguments()) {
+            Result argR = arg.eliminateTuplesExpr(translator, f);
+            stmts.addAll(argR.stmts);
+        }
+        List<ImVar> tupleReturnVars = translator.getTupleTempReturnVarsFor(calledFunc);
+        if (tupleReturnVars.isEmpty()) {
+
+        }
+
+
+        return null;
+    }
+
     public static class Result {
 
         private final List<ImStmt> stmts;
         private final List<ImExpr> exprs;
 
         public Result(List<ImStmt> stmts, List<ImExpr> exprs) {
+            Preconditions.checkNotNull(stmts);
+            Preconditions.checkNotNull(exprs);
+            for (ImExpr expr : exprs) {
+                Preconditions.checkArgument(expr.getParent() == null, "expression parent must be null");
+                Preconditions.checkArgument(SideEffectAnalyzer.quickcheckNoSideeffects(expr), "expression must have no side effects");
+            }
             this.stmts = stmts;
             this.exprs = exprs;
         }
 
         public Result(ImExpr epxr) {
-            this.stmts = Collections.emptyList();
-            this.exprs = Collections.singletonList(epxr);
+            this(Collections.emptyList(), Collections.singletonList(epxr));
         }
 
         public Result(List<ImStmt> stmts) {
@@ -298,6 +372,11 @@ public class EliminateTuples {
                 }
                 list.add(e);
             }
+        }
+
+        public ImExpr getOnlyExpr() {
+            Preconditions.checkArgument(exprs.size() == 1);
+            return exprs.get(0);
         }
     }
 

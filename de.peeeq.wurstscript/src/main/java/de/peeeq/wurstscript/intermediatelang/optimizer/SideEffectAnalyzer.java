@@ -30,6 +30,129 @@ public class SideEffectAnalyzer {
     }
 
     /**
+     * checks if this expression might have side effects
+     * (does not do a deep analysis, all function calls and statements are considered to have side effects)
+     */
+    public static boolean quickcheckNoSideeffects(ImExpr expr) {
+        return expr.match(new ImExpr.Matcher<Boolean>() {
+            @Override
+            public Boolean case_ImFunctionCall(ImFunctionCall imFunctionCall) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImTypeIdOfClass(ImTypeIdOfClass imTypeIdOfClass) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImVarArrayAccess(ImVarArrayAccess e) {
+                return e.getIndexes().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImRealVal(ImRealVal imRealVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTupleLExpr(ImTupleLExpr e) {
+                return e.getLexprs().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImTupleSelection(ImTupleSelection e) {
+                return quickcheckNoSideeffects(e.getTupleExpr());
+            }
+
+            @Override
+            public Boolean case_ImInstanceof(ImInstanceof e) {
+                return quickcheckNoSideeffects(e.getObj());
+            }
+
+            @Override
+            public Boolean case_ImDealloc(ImDealloc imDealloc) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImMemberAccess(ImMemberAccess e) {
+                return quickcheckNoSideeffects(e.getReceiver());
+            }
+
+            @Override
+            public Boolean case_ImBoolVal(ImBoolVal imBoolVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTupleExpr(ImTupleExpr e) {
+                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImNull(ImNull imNull) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImGetStackTrace(ImGetStackTrace imGetStackTrace) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImOperatorCall(ImOperatorCall e) {
+                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImStringVal(ImStringVal imStringVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImMethodCall(ImMethodCall imMethodCall) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImAlloc(ImAlloc imAlloc) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImCompiletimeExpr(ImCompiletimeExpr imCompiletimeExpr) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImTypeIdOfObj(ImTypeIdOfObj e) {
+                return quickcheckNoSideeffects(e.getObj());
+            }
+
+            @Override
+            public Boolean case_ImVarAccess(ImVarAccess imVarAccess) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImIntVal(ImIntVal imIntVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImFuncRef(ImFuncRef imFuncRef) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImStatementExpr(ImStatementExpr imStatementExpr) {
+                return true;
+            }
+        });
+    }
+
+    /**
      * @return f -> set of functions directly called by f
      */
     public Multimap<ImFunction, ImFunction> getCallRelation() {
@@ -192,6 +315,13 @@ public class SideEffectAnalyzer {
             @Override
             public void case_ImMemberAccess(ImMemberAccess v) {
                 throw new RuntimeException("Should run after objects");
+            }
+
+            @Override
+            public void case_ImTupleLExpr(ImTupleLExpr te) {
+                for (ImLExpr e : te.getLexprs()) {
+                    e.match(this);
+                }
             }
         });
     }

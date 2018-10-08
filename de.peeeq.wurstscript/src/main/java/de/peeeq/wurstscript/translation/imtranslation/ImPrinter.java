@@ -209,6 +209,18 @@ public class ImPrinter {
         sb.append(">");
     }
 
+    public static void print(ImTupleLExpr p, StringBuilder sb, int indent) {
+        sb.append("<");
+        boolean first = true;
+        for (ImLExpr e : p.getLexprs()) {
+            if (!first) sb.append(", ");
+            e.print(sb, indent);
+            first = false;
+        }
+        sb.append(">");
+
+    }
+
 
     public static void print(ImTupleSelection p, StringBuilder sb, int indent) {
         p.getTupleExpr().print(sb, indent);

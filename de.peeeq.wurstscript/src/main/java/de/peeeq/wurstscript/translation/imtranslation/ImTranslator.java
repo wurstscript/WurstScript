@@ -1086,7 +1086,7 @@ public class ImTranslator {
     }
 
     public ImmutableTree<ImVar> getVarsForTuple(ImVar v) {
-
+        // TODO use list instead of tree
         ImmutableTree<ImVar> result = varsForTupleVar.get(v);
         if (result == null) {
             if (TypesHelper.typeContainsTuples(v.getType())) {

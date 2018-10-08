@@ -57,6 +57,13 @@ public class UsedVariables {
                     public void case_ImMemberAccess(ImMemberAccess e) {
                         e.getReceiver().accept(thiz);
                     }
+
+                    @Override
+                    public void case_ImTupleLExpr(ImTupleLExpr e) {
+                        for (ImLExpr ie : e.getLexprs()) {
+                            ie.match(this);
+                        }
+                    }
                 });
                 e.getRight().accept(this);
             }
