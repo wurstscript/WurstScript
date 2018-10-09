@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
+import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
 import de.peeeq.wurstscript.ast.Element;
@@ -116,6 +117,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
     private <T> void modifyObject(ObjectDefinition od, ILconstString modification, VariableType<T> variableType, int level, int datapointer, T value) {
         String modificationId = modification.getVal();
+        Preconditions.checkArgument(modificationId.length() == 4, "Modification id '%s' should have exactly 4 characters", modificationId);
         for (ObjectModification<?> m : od.getModifications()) {
             if (m.getModificationId().equals(modificationId) && m.getLevelCount() == level) {
                 ObjectModification<T> m2 = m.castTo(value);
