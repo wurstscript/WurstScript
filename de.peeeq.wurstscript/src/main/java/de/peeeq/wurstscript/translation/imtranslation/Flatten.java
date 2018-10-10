@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
@@ -123,6 +124,22 @@ public class Flatten {
             return exprs.get(i);
         }
 
+    }
+
+    public static class MultiResultL extends MultiResult {
+
+        public MultiResultL(List<ImStmt> stmts, List<ImLExpr> exprs) {
+            super(stmts, ImmutableList.copyOf(exprs));
+        }
+
+        public ImLExpr expr(int i) {
+            return (ImLExpr) super.expr(i);
+        }
+
+        public List<ImLExpr> getLExprs() {
+            //noinspection unchecked,rawtypes
+            return (List) exprs;
+        }
 
     }
 
@@ -301,6 +318,12 @@ public class Flatten {
         return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
     }
 
+    public static ResultL flattenL(ImTupleLExpr e, ImTranslator t, ImFunction f) {
+        MultiResultL r = flattenExprsL(t, f, e.getLexprs());
+        return new ResultL(r.stmts, JassIm.ImTupleLExpr(ImLExprs(r.getLExprs())));
+    }
+
+
     public static Result flatten(ImTupleSelection e, ImTranslator t, ImFunction f) {
         return flattenL(e, t, f);
     }
@@ -392,6 +415,37 @@ public class Flatten {
         return new MultiResult(stmts, newExprs);
     }
 
+    private static MultiResultL flattenExprsL(ImTranslator t, ImFunction f, List<ImLExpr> exprs) {
+        // TODO optimize this function to use less temporary variables
+        List<ImStmt> stmts = Lists.newArrayList();
+        List<ImLExpr> newExprs = Lists.newArrayList();
+        List<ResultL> results = Lists.newArrayList();
+        int withStmts = -1;
+        for (int i = 0; i < exprs.size(); i++) {
+            ResultL r = exprs.get(i).flattenL(t, f);
+            results.add(r);
+            if (!r.stmts.isEmpty()) {
+                withStmts = i;
+            }
+        }
+        for (int i = 0; i < exprs.size(); i++) {
+            ImExpr e = exprs.get(i);
+            ResultL r = results.get(i);
+
+            stmts.addAll(r.stmts);
+            if (r.expr.attrPurity() instanceof Pure
+                    || i >= withStmts) {
+                newExprs.add(r.getExpr());
+            } else {
+                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
+                f.getLocals().add(tempVar);
+                stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
+                newExprs.add(JassIm.ImVarAccess(tempVar));
+            }
+        }
+        return new MultiResultL(stmts, newExprs);
+    }
+
 
     public static Result flatten(ImClassRelatedExpr e,
                                  ImTranslator translator, ImFunction f) {
@@ -420,4 +474,7 @@ public class Flatten {
         return new Result(Collections.singletonList(
                 JassIm.ImVarargLoop(s.getTrace(), flattenStatements(s.getBody(), translator, f), s.getLoopVar())));
     }
+
+
+
 }

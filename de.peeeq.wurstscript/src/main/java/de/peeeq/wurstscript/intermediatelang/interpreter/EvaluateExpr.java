@@ -303,4 +303,34 @@ public class EvaluateExpr {
         ILconst r = e.getReceiver().evaluate(globalState, localState);
         throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + r);
     }
+
+    public static ILconst eval(ImTupleLExpr e, ProgramState globalState, LocalState localState) {
+        throw new InterpreterException(e.attrTrace(), "Cannot evaluate L-expression as R-value");
+    }
+
+    public static ILaddress evaluateLvalue(ImTupleLExpr e, ProgramState globalState, LocalState localState) {
+        List<ILaddress> addresses = new ArrayList<>();
+        for (ImLExpr lexpr : e.getLexprs()) {
+            ILaddress addr = lexpr.evaluateLvalue(globalState, localState);
+            addresses.add(addr);
+        }
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                if (value instanceof ILconstTuple) {
+                    ILconstTuple te = (ILconstTuple) value;
+                    for (int i = 0; i < addresses.size(); i++) {
+                        addresses.get(i).set(te.getValue(i));
+                    }
+                }
+            }
+
+            @Override
+            public ILconst get() {
+                return new ILconstTuple(addresses.stream()
+                        .map(ILaddress::get)
+                        .toArray(ILconst[]::new));
+            }
+        };
+    }
 }

@@ -8,10 +8,7 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
@@ -23,6 +20,38 @@ import static de.peeeq.wurstscript.jassIm.JassIm.ImVarAccess;
  * for expressions, returned expressions would never have a parent
  */
 public class EliminateTuples {
+
+    /*
+    TODO this could be simplified:
+
+    Visit and rewrite only the expressions that must be changed:
+
+    1. replace tuples with tuple-expression
+
+    - Variable access
+        a --> <a_1, a_2, a_3>
+    - Function calls
+        f() --> <f(), temp_return1, temp_return2>
+    - Tuple selections
+        <e_1, e_2, e_3>.2 --> {e_1; temp = e_2; e_3 >> temp}
+        <e_1, e_2, e_3>.3 --> {e_1; e_2 >> e_3}
+    - ...
+
+    2. Normalize Tuples in statement-expressions (move to first tuple param)
+
+        Normalize
+        {stmts >> <e1,e2,e3>}
+        becomes <{stmts >> e1}, e2, e3}
+
+
+    3. Remove tuple expressions
+
+
+      - In parameters: Just flatten
+      - Assignments: Become several assignments
+      -
+
+     */
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
 
@@ -186,6 +215,7 @@ public class EliminateTuples {
     }
 
     public static Result eliminateTuplesExpr(ImConst e, ImTranslator translator, ImFunction f) {
+        e.setParent(null);
         // constants cannot contain tuples and thus do not change
         return new Result(e);
     }
@@ -252,6 +282,17 @@ public class EliminateTuples {
         return new Result(Collections.emptyList(), exprs);
     }
 
+    public static ResultL eliminateTuplesExprL(ImTupleLExpr te, ImTranslator translator, ImFunction f) {
+        List<ImLExpr> exprs = new ArrayList<>();
+        List<ImStmt> stmts = new ArrayList<>();
+        for (ImLExpr e : te.getLexprs()) {
+            ResultL er = e.eliminateTuplesExprL(translator, f);
+            stmts.addAll(er.getStmts());
+            exprs.addAll(er.getLExprs());
+        }
+        return new ResultL(stmts, exprs);
+    }
+
     public static Result eliminateTuplesExpr(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
         return eliminateTuples2Result(e, translator, f);
     }
@@ -291,24 +332,77 @@ public class EliminateTuples {
     }
 
     public static ResultL eliminateTuplesExprL(ImTupleSelection e, ImTranslator translator, ImFunction f) {
-        return null;
+        // TODO does this translate nested tuples correctly?
+        ResultL resultL = e.getTupleExpr().eliminateTuplesExprL(translator, f);
+        return new ResultL(resultL.getStmts(), Collections.singletonList(resultL.get(e.getTupleIndex())));
     }
 
     public static Result eliminateTuplesExpr(ImFunctionCall e, ImTranslator translator, ImFunction f) {
         ImFunction calledFunc = e.getFunc();
         List<ImStmt> stmts = new ArrayList<>();
-        for (ImExpr arg : e.getArguments()) {
+        ListIterator<ImExpr> it = e.getArguments().listIterator();
+        while (it.hasNext()) {
+            ImExpr arg = it.next();
+            it.remove();
             Result argR = arg.eliminateTuplesExpr(translator, f);
             stmts.addAll(argR.stmts);
+            argR.getExprs().forEach(it::add);
         }
         List<ImVar> tupleReturnVars = translator.getTupleTempReturnVarsFor(calledFunc);
+        e.setParent(null);
         if (tupleReturnVars.isEmpty()) {
-
+            return new Result(stmts, Collections.singletonList(e));
+        } else {
+            List<ImExpr> exprs = new ArrayList<>();
+            exprs.add(e);
+            for (int i = 1; i < tupleReturnVars.size(); i++) {
+                exprs.add(JassIm.ImVarAccess(tupleReturnVars.get(i)));
+            }
+            return new Result(stmts, exprs);
         }
-
-
-        return null;
     }
+
+    public static Result eliminateTuplesExpr(ImNoExpr imNoExpr, ImTranslator translator, ImFunction f) {
+        return new Result(Collections.emptyList(), Collections.emptyList());
+    }
+
+    public static Result eliminateTuplesExpr(ImStatementExpr se, ImTranslator translator, ImFunction f) {
+        List<ImStmt> stmts = new ArrayList<>();
+        for (ImStmt s : se.getStatements()) {
+            ImStmt sr = s.eliminateTuples(translator, f);
+            stmts.add(sr);
+        }
+        Result r = se.getExpr().eliminateTuplesExpr(translator, f);
+        stmts.addAll(r.stmts);
+        return new Result(stmts, r.exprs);
+    }
+
+    public static ImStmt eliminateTuples(ImVarargLoop loop, ImTranslator translator, ImFunction f) {
+        return eliminateTuples2(loop, translator, f);
+    }
+
+    public static ImStmt eliminateTuples(ImSet set, ImTranslator translator, ImFunction f) {
+        ResultL resultL = set.getLeft().eliminateTuplesExprL(translator, f);
+        Result resultR = set.getRight().eliminateTuplesExpr(translator, f);
+        List<ImStmt> stmts = new ArrayList<>();
+        stmts.addAll(resultL.getStmts());
+        stmts.addAll(resultR.getStmts());
+        for (int i = 0; i < resultL.exprCount(); i++) {
+            ImLExpr l = resultL.get(i);
+            ImExpr r = resultR.get(i);
+            stmts.add(JassIm.ImSet(set.getTrace(), l , r));
+        }
+        if (stmts.size() == 1) {
+            return stmts.get(0);
+        } else {
+            return JassIm.ImStatementExpr(
+                    JassIm.ImStmts(stmts),
+                    JassIm.ImNull()
+            );
+        }
+    }
+
+
 
     public static class Result {
 
@@ -320,7 +414,7 @@ public class EliminateTuples {
             Preconditions.checkNotNull(exprs);
             for (ImExpr expr : exprs) {
                 Preconditions.checkArgument(expr.getParent() == null, "expression parent must be null");
-                Preconditions.checkArgument(SideEffectAnalyzer.quickcheckNoSideeffects(expr), "expression must have no side effects");
+                Preconditions.checkArgument(!SideEffectAnalyzer.quickcheckHasSideeffects(expr), "expression must have no side effects", expr);
             }
             this.stmts = stmts;
             this.exprs = exprs;
@@ -395,6 +489,10 @@ public class EliminateTuples {
             return (ImLExpr) getExprs().get(i);
         }
 
+        public List<ImLExpr> getLExprs() {
+            //noinspection unchecked,rawtypes
+            return (List) getExprs();
+        }
     }
 
     public static Result eliminateTuplesExpr(ImOperatorCall e, ImTranslator translator, ImFunction f) {

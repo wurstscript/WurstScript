@@ -33,7 +33,7 @@ public class SideEffectAnalyzer {
      * checks if this expression might have side effects
      * (does not do a deep analysis, all function calls and statements are considered to have side effects)
      */
-    public static boolean quickcheckNoSideeffects(ImExpr expr) {
+    public static boolean quickcheckHasSideeffects(ImExpr expr) {
         return expr.match(new ImExpr.Matcher<Boolean>() {
             @Override
             public Boolean case_ImFunctionCall(ImFunctionCall imFunctionCall) {
@@ -47,7 +47,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImVarArrayAccess(ImVarArrayAccess e) {
-                return e.getIndexes().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+                return e.getIndexes().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
             }
 
             @Override
@@ -57,17 +57,17 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImTupleLExpr(ImTupleLExpr e) {
-                return e.getLexprs().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+                return e.getLexprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
             }
 
             @Override
             public Boolean case_ImTupleSelection(ImTupleSelection e) {
-                return quickcheckNoSideeffects(e.getTupleExpr());
+                return quickcheckHasSideeffects(e.getTupleExpr());
             }
 
             @Override
             public Boolean case_ImInstanceof(ImInstanceof e) {
-                return quickcheckNoSideeffects(e.getObj());
+                return quickcheckHasSideeffects(e.getObj());
             }
 
             @Override
@@ -77,7 +77,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImMemberAccess(ImMemberAccess e) {
-                return quickcheckNoSideeffects(e.getReceiver());
+                return quickcheckHasSideeffects(e.getReceiver());
             }
 
             @Override
@@ -87,7 +87,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImTupleExpr(ImTupleExpr e) {
-                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
             }
 
             @Override
@@ -102,7 +102,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImOperatorCall(ImOperatorCall e) {
-                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckNoSideeffects);
+                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
             }
 
             @Override
@@ -127,7 +127,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImTypeIdOfObj(ImTypeIdOfObj e) {
-                return quickcheckNoSideeffects(e.getObj());
+                return quickcheckHasSideeffects(e.getObj());
             }
 
             @Override

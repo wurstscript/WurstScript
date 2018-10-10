@@ -116,6 +116,18 @@ public class ImAttrType {
         return JassIm.ImTupleType(types, names);
     }
 
+
+    public static ImType getType(ImTupleLExpr imTupleExpr) {
+        List<ImType> types = Lists.newArrayList();
+        List<String> names = Lists.newArrayList();
+        int i = 1;
+        for (ImExpr e : imTupleExpr.getLexprs()) {
+            types.add(e.attrTyp());
+            names.add("" + i++);
+        }
+        return JassIm.ImTupleType(types, names);
+    }
+
     public static ImType getType(ImMethodCall mc) {
         return mc.getMethod().getImplementation().getReturnType();
     }
