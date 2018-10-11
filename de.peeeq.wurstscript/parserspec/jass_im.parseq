@@ -67,12 +67,7 @@ ImFlatExprOpt =
 ImExprs * ImExpr
 	
 ImExpr = 
-	  ImStatementExpr(ImStmts statements, ImExpr expr)
-	| ImFlatExpr
-
-ImFlatExpr = 
 	  ImCall
-	| ImTupleExpr(ImExprs exprs)
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
@@ -85,9 +80,9 @@ ImLExpr =
     | ImVarArrayAccess(ref ImVar var, ImExprs indexes)
     | ImTupleSelection(ImLExpr tupleExpr, int tupleIndex)
     | ImMemberAccess
-    | ImTupleLExpr(ImLExprs lexprs)
+    | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
+    | ImStatementExpr(ImStmts statements, ImExpr expr)  // can only be used as L-value if expr only contains l-exprs
 
-ImLExprs * ImLExpr
 
 
 ImClassRelatedExpr = 
@@ -173,43 +168,6 @@ ImStmt.attrPurity
 	returns de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevel
 	implemented by de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevels.calculate
 
-ImProg.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
-	returns void
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesProg
-
-ImFunction.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
-	returns void
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesFunc
-	
-ImStmt.eliminateTuples(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImStmt
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuples
-	
-ImExpr.eliminateTuplesExpr(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.Result
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
-
-ImLExpr.eliminateTuplesExprL(
-        de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
-        de.peeeq.wurstscript.jassIm.ImFunction f
-    )
-    returns de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.ResultL
-    implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExprL
-
-ImExprOpt.eliminateTuplesExprOpt(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.Result
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
-	
-	
 ImStmts.translate(
 		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,
 		de.peeeq.wurstscript.jassAst.JassFunction f,

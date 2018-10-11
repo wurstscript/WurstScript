@@ -414,7 +414,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
         getImProg().flatten(imTranslator2);
-        getImProg().eliminateTuples(imTranslator2);
+        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");

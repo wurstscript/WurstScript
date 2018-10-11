@@ -56,11 +56,6 @@ public class SideEffectAnalyzer {
             }
 
             @Override
-            public Boolean case_ImTupleLExpr(ImTupleLExpr e) {
-                return e.getLexprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
-            }
-
-            @Override
             public Boolean case_ImTupleSelection(ImTupleSelection e) {
                 return quickcheckHasSideeffects(e.getTupleExpr());
             }
@@ -301,10 +296,13 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public void case_ImStatementExpr(ImStatementExpr imStatementExpr) {
+                throw new RuntimeException("TODO"); // TODO
+            }
+
+            @Override
             public void case_ImTupleSelection(ImTupleSelection v) {
-                if (v.getTupleExpr() instanceof ImLExpr) {
-                    collectVars(imVars, ((ImLExpr) v.getTupleExpr()));
-                }
+                collectVars(imVars, v.getTupleExpr());
             }
 
             @Override
@@ -318,9 +316,9 @@ public class SideEffectAnalyzer {
             }
 
             @Override
-            public void case_ImTupleLExpr(ImTupleLExpr te) {
-                for (ImLExpr e : te.getLexprs()) {
-                    e.match(this);
+            public void case_ImTupleExpr(ImTupleExpr te) {
+                for (ImExpr e : te.getExprs()) {
+                    ((ImLExpr) e).match(this);
                 }
             }
         });

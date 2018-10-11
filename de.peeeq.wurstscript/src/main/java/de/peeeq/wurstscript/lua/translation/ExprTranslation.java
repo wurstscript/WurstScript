@@ -171,7 +171,4 @@ public class ExprTranslation {
         throw new Error("not implemented");
     }
 
-    public static LuaExpr translate(ImTupleLExpr imTupleLExpr, LuaTranslator tr) {
-        throw new Error("not implemented");
-    }
 }

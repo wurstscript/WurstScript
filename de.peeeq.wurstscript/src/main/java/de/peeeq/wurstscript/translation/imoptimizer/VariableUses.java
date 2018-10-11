@@ -37,8 +37,21 @@ public class VariableUses {
                     }
 
                     @Override
+                    public void case_ImStatementExpr(ImStatementExpr e) {
+                        e.getStatements().accept(thiz);
+                        ((ImLExpr) e.getExpr()).match(this);
+                    }
+
+                    @Override
                     public void case_ImTupleSelection(ImTupleSelection e) {
                         e.getTupleExpr().match(this);
+                    }
+
+                    @Override
+                    public void case_ImTupleExpr(ImTupleExpr e) {
+                        for (ImExpr expr : e.getExprs()) {
+                            ((ImLExpr) expr).match(this);
+                        }
                     }
 
                     @Override
@@ -53,12 +66,6 @@ public class VariableUses {
                         result.addWrite(e.getVar(), imSet);
                     }
 
-                    @Override
-                    public void case_ImTupleLExpr(ImTupleLExpr te) {
-                        for (ImLExpr lexpr : te.getLexprs()) {
-                            lexpr.match(this);
-                        }
-                    }
                 });
             }
 

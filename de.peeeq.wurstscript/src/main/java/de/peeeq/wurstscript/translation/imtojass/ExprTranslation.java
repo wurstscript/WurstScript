@@ -134,7 +134,4 @@ public class ExprTranslation {
                 "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
     }
 
-    public static JassExpr translate(ImTupleLExpr imTupleLExpr, ImToJassTranslator translator) {
-        throw new RuntimeException("Tuples should be eliminated before translating to jass");
-    }
 }

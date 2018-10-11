@@ -40,12 +40,14 @@ public class UsedVariables {
                     }
 
                     @Override
+                    public void case_ImStatementExpr(ImStatementExpr e) {
+                        e.getStatements().accept(thiz);
+                        ((ImLExpr) e.getExpr()).match(this);
+                    }
+
+                    @Override
                     public void case_ImTupleSelection(ImTupleSelection e) {
-                        if (e.getTupleExpr() instanceof ImLExpr) {
-                            ((ImLExpr) e.getTupleExpr()).match(this);
-                        } else {
-                            e.getTupleExpr().accept(thiz);
-                        }
+                        e.getTupleExpr().match(this);
                     }
 
                     @Override
@@ -59,9 +61,9 @@ public class UsedVariables {
                     }
 
                     @Override
-                    public void case_ImTupleLExpr(ImTupleLExpr e) {
-                        for (ImLExpr ie : e.getLexprs()) {
-                            ie.match(this);
+                    public void case_ImTupleExpr(ImTupleExpr e) {
+                        for (ImExpr ie : e.getExprs()) {
+                            ((ImLExpr) ie).match(this);
                         }
                     }
                 });

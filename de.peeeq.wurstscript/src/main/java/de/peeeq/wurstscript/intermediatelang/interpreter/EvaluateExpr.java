@@ -72,6 +72,11 @@ public class EvaluateExpr {
         return e.getExpr().evaluate(globalState, localState);
     }
 
+    public static ILaddress evaluateLvalue(ImStatementExpr e, ProgramState globalState, LocalState localState) {
+        e.getStatements().runStatements(globalState, localState);
+        return ((ImLExpr) e.getExpr()).evaluateLvalue(globalState, localState);
+    }
+
     public static ILconst eval(ImStringVal e, ProgramState globalState, LocalState localState) {
         return new ILconstString(e.getValS());
     }
@@ -304,14 +309,11 @@ public class EvaluateExpr {
         throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + r);
     }
 
-    public static ILconst eval(ImTupleLExpr e, ProgramState globalState, LocalState localState) {
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate L-expression as R-value");
-    }
 
-    public static ILaddress evaluateLvalue(ImTupleLExpr e, ProgramState globalState, LocalState localState) {
+    public static ILaddress evaluateLvalue(ImTupleExpr e, ProgramState globalState, LocalState localState) {
         List<ILaddress> addresses = new ArrayList<>();
-        for (ImLExpr lexpr : e.getLexprs()) {
-            ILaddress addr = lexpr.evaluateLvalue(globalState, localState);
+        for (ImExpr lexpr : e.getExprs()) {
+            ILaddress addr = ((ImLExpr) lexpr).evaluateLvalue(globalState, localState);
             addresses.add(addr);
         }
         return new ILaddress() {
@@ -333,4 +335,6 @@ public class EvaluateExpr {
             }
         };
     }
+
+
 }

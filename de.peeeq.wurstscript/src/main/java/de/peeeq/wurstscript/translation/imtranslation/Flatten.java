@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImGetStackTrace;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImLoop;
+import de.peeeq.wurstscript.jassIm.ImMemberAccess;
 import de.peeeq.wurstscript.jassIm.ImOperatorCall;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
@@ -312,15 +313,27 @@ public class Flatten {
         return new Result(stmts, r.expr);
     }
 
+    public static ResultL flattenL(ImStatementExpr e, ImTranslator t, ImFunction f) {
+        List<ImStmt> stmts = Lists.newArrayList();
+        flattenStatementsInto(stmts, e.getStatements(), t, f);
+        ResultL r = ((ImLExpr) e.getExpr()).flattenL(t, f);
+        stmts.addAll(r.stmts);
+        return new ResultL(stmts, r.getExpr());
+    }
+
 
     public static Result flatten(ImTupleExpr e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getExprs());
         return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
     }
 
-    public static ResultL flattenL(ImTupleLExpr e, ImTranslator t, ImFunction f) {
-        MultiResultL r = flattenExprsL(t, f, e.getLexprs());
-        return new ResultL(r.stmts, JassIm.ImTupleLExpr(ImLExprs(r.getLExprs())));
+    public static ResultL flattenL(ImTupleExpr e, ImTranslator t, ImFunction f) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        List<ImLExpr> exprs = (List) e.getExprs();
+        MultiResultL r = flattenExprsL(t, f, exprs);
+        ImExprs newExprs = ImExprs();
+        newExprs.addAll(r.getLExprs());
+        return new ResultL(r.stmts, JassIm.ImTupleExpr(newExprs));
     }
 
 
@@ -458,7 +471,7 @@ public class Flatten {
     }
 
     public static ResultL flattenL(ImMemberAccess e,
-                                 ImTranslator translator, ImFunction f) {
+                                   ImTranslator translator, ImFunction f) {
         throw new RuntimeException("Eliminate method calls before calling flatten.");
     }
 
