@@ -438,6 +438,34 @@ public class TupleTests extends WurstScriptTest {
 
 
     @Test
+    public void nestedTuple2() { // #713
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "@extern native I2S(int x) returns string",
+                "function print(int x)",
+                "    println(I2S(x))",
+                "tuple parent(child a, child b)",
+                "tuple child(int x, int y, int z)",
+                "init",
+                "    var t = parent(child(1,2,3), child(4,5,6))",
+                "    print(t.a.x)",
+                "    print(t.a.y)",
+                "    print(t.a.z)",
+                "    print(t.b.x)",
+                "    print(t.b.y)",
+                "    print(t.b.z)",
+                "    t.a = child(7,8,9)",
+                "    print(t.a.x)",
+                "    print(t.a.y)",
+                "    print(t.a.z)",
+                "    if t.a == child(7, 8, 9)",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
     public void tupleArrayInClass() { // see #572
         testAssertOkLines(true,
                 "package test",

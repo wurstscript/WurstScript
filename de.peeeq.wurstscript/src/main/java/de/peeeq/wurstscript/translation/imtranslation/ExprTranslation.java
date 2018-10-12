@@ -12,16 +12,11 @@ import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.translation.imtranslation.purity.Pure;
-import de.peeeq.wurstscript.translation.imtranslation.purity.ReadsGlobals;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -279,7 +274,28 @@ public class ExprTranslation {
         }
     }
 
+    private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
+        ImExpr left = mv.getLeft().imTranslateExpr(t, f);
+        WParameter tupleParam = (WParameter) mv.attrNameDef();
+        WParameters tupleParams = (WParameters) tupleParam.getParent();
+        int tupleIndex = tupleParams.indexOf(tupleParam);
+        if (left instanceof ImLExpr) {
+            return ImTupleSelection((ImLExpr) left, tupleIndex);
+        } else {
+            // if tupleExpr is not an l-value (e.g. foo().x)
+            // store result in intermediate variable first:
+            ImVar v = ImVar(left.attrTrace(), left.attrTyp(), "temp_tuple", false);
+            f.getLocals().add(v);
+            return JassIm.ImStatementExpr(
+                    JassIm.ImStmts(
+                            ImSet(left.attrTrace(), ImVarAccess(v), left)
+                    ),
+                    ImTupleSelection(ImVarAccess(v), tupleIndex)
+            );
+        }
+    }
 
+    /*
     private static ImExpr translateTupleSelection(ImTranslator t, ImFunction f, ExprMemberVar mv) {
         List<WParameter> indexes = new ArrayList<>();
 
@@ -354,6 +370,7 @@ public class ExprTranslation {
             }
         }
     }
+    */
 
     /**
      * counts the components of a tuple (including nested)
@@ -459,9 +476,7 @@ public class ExprTranslation {
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
-            ImExprs tupleArgs = JassIm.ImExprs();
-            flattenTupleArgs(tupleArgs, imArgs);
-            return ImTupleExpr(tupleArgs);
+            return ImTupleExpr(imArgs);
         }
 
         ImStmts stmts = null;
@@ -495,18 +510,6 @@ public class ExprTranslation {
         } else {
             return call;
         }
-    }
-
-    private static void flattenTupleArgs(ImExprs tupleArgs, ImExprs imArgs) {
-        for (ImExpr e : imArgs.removeAll()) {
-            if (e instanceof ImTupleExpr) {
-                ImTupleExpr te = (ImTupleExpr) e;
-                flattenTupleArgs(tupleArgs, te.getExprs());
-            } else {
-                tupleArgs.add(e);
-            }
-        }
-
     }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
@@ -723,7 +726,6 @@ public class ExprTranslation {
 //    public static ImLExpr translateLvalue(ExprMemberArrayVar e, ImTranslator translator, ImFunction f) {
 //        throw new RuntimeException("TODO");
 //    }
-
 
 
 }

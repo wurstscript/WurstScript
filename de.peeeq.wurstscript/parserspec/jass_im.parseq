@@ -164,7 +164,7 @@ ImLExpr.flattenL(
        	returns de.peeeq.wurstscript.translation.imtranslation.Flatten.ResultL
        	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenL
 
-ImStmt.attrPurity
+ImStmt.attrPurity()
 	returns de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevel
 	implemented by de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevels.calculate
 
@@ -194,7 +194,7 @@ ImConst.equalValue(ImConst other)
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.Equality.equalValue
 	
-ImExpr.attrTyp
+ImExpr.attrTyp()
 	returns ImType
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrType.getType
 
@@ -210,7 +210,7 @@ ImType.translateType()
 	returns String
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateType
 	
-ImVar.isGlobal
+ImVar.isGlobal()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
 

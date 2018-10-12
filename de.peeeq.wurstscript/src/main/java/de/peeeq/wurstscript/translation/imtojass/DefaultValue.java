@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 public class DefaultValue {
 
@@ -36,7 +37,14 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImArrayTypeMulti t) {
-        return t.getEntryType().defaultValue();
+        return new ILconstArray(makeSupplier(t.getArraySize().size(), t.getEntryType()));
+    }
+
+    private static Supplier<ILconst> makeSupplier(int depth, ImType entryType) {
+        if (depth <= 1) {
+            return entryType::defaultValue;
+        }
+        return () -> new ILconstArray(makeSupplier(depth - 1, entryType));
     }
 
 }

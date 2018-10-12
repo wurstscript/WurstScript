@@ -2,8 +2,8 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -57,17 +57,8 @@ public class WurstTypeTuple extends WurstType {
         List<String> names = Lists.newArrayList();
         for (WParameter p : tupleDef.getParameters()) {
             ImType pt = p.attrTyp().imTranslateType();
-            if (pt instanceof ImTupleType) {
-                ImTupleType ptt = (ImTupleType) pt;
-                // add flattened
-                for (int i = 0; i < ptt.getTypes().size(); i++) {
-                    types.add(ptt.getTypes().get(i));
-                    names.add(p.getName() + "_" + ptt.getNames().get(i));
-                }
-            } else {
-                types.add(pt);
-                names.add(p.getName());
-            }
+            types.add(pt);
+            names.add(p.getName());
         }
         return JassIm.ImTupleType(types, names);
     }

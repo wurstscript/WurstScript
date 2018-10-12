@@ -131,6 +131,10 @@ public class Utils {
         return sb.toString();
     }
 
+    public static String printSep(String sep, List<?> args) {
+        return args.stream().map(Object::toString).collect(Collectors.joining(sep));
+    }
+
     /**
      * is a piece of code jass code?
      */
@@ -1004,6 +1008,9 @@ public class Utils {
      * Replaces oldElement with newElement in parent
      */
     public static void replace(de.peeeq.wurstscript.jassIm.Element parent, de.peeeq.wurstscript.jassIm.Element oldElement, de.peeeq.wurstscript.jassIm.Element newElement) {
+        if (oldElement == newElement) {
+            return;
+        }
         for (int i=0; i<parent.size(); i++) {
             if (parent.get(i) == oldElement) {
                 parent.set(i, newElement);
