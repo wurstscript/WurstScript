@@ -47,7 +47,7 @@ public class UsedVariables {
 
                     @Override
                     public void case_ImTupleSelection(ImTupleSelection e) {
-                        e.getTupleExpr().match(this);
+                        ((ImLExpr) e.getTupleExpr()).match(this);
                     }
 
                     @Override

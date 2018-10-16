@@ -63,7 +63,6 @@ public class MultiArrayEliminator {
 
     private void replaceVars(Element e, Map<ImVar, GetSetPair> oldToNewVar) {
 
-
         if (e instanceof ImSet) {
             ImSet set = (ImSet) e;
             if (set.getLeft() instanceof ImVarArrayAccess) {

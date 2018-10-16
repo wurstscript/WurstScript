@@ -81,6 +81,10 @@ public class EliminateTuples {
             public void visit(ImTupleSelection ts) {
                 super.visit(ts);
 
+                if (!(ts.getTupleExpr() instanceof ImTupleExpr)) {
+                    throw new CompileError(ts.attrTrace().attrSource(), "Wrong tuple selection: " + ts);
+                }
+
                 ImTupleExpr tupleExpr = (ImTupleExpr) ts.getTupleExpr();
 
                 int ti = ts.getTupleIndex();
@@ -105,8 +109,13 @@ public class EliminateTuples {
                     }
                 }
                 assert result != null;
-                ImLExpr replacement = normalizeStatementExpr(JassIm.ImStatementExpr(stmts, result), tr);
-                ts.replaceBy(replacement);
+                ImStatementExpr replacement1 = JassIm.ImStatementExpr(stmts, result);
+                ImLExpr replacement2 = normalizeStatementExpr(replacement1, tr);
+                if (replacement2 == null) {
+                    ts.replaceBy(replacement1);
+                } else {
+                    ts.replaceBy(replacement2);
+                }
             }
         });
     }
@@ -252,15 +261,16 @@ public class EliminateTuples {
             @Override
             public void visit(ImStatementExpr se) {
                 super.visit(se);
-                ImLExpr newExpr = normalizeStatementExpr(se, translator);
-                if (newExpr != se) {
+                ImTupleExpr newExpr = normalizeStatementExpr(se, translator);
+                if (newExpr != null) {
                     se.replaceBy(newExpr);
+                    newExpr.getExprs().get(0).accept(this);
                 }
             }
         });
     }
 
-    private static ImLExpr normalizeStatementExpr(ImStatementExpr se, ImTranslator translator) {
+    private static ImTupleExpr normalizeStatementExpr(ImStatementExpr se, ImTranslator translator) {
         if (se.getExpr() instanceof ImTupleExpr) {
             ImTupleExpr te = (ImTupleExpr) se.getExpr();
             translator.assertProperties(Collections.emptySet(), te);
@@ -273,7 +283,7 @@ public class EliminateTuples {
             translator.assertProperties(Collections.emptySet(), te.getExprs());
             return te;
         }
-        return se;
+        return null;
     }
 
     /**

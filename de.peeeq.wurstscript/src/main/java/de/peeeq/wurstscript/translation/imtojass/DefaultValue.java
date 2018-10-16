@@ -37,7 +37,7 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImArrayTypeMulti t) {
-        return new ILconstArray(makeSupplier(t.getArraySize().size(), t.getEntryType()));
+        return new ILconstArray(makeSupplier(t.getArraySize().size() - 1, t.getEntryType()));
     }
 
     private static Supplier<ILconst> makeSupplier(int depth, ImType entryType) {

@@ -78,7 +78,7 @@ ImExpr =
 ImLExpr =
       ImVarAccess(ref ImVar var)
     | ImVarArrayAccess(ref ImVar var, ImExprs indexes)
-    | ImTupleSelection(ImLExpr tupleExpr, int tupleIndex)
+    | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
     | ImMemberAccess
     | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
     | ImStatementExpr(ImStmts statements, ImExpr expr)  // can only be used as L-value if expr only contains l-exprs

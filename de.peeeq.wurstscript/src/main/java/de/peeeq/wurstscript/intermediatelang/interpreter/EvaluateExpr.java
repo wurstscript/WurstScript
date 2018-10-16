@@ -286,22 +286,39 @@ public class EvaluateExpr {
     }
 
     public static ILaddress evaluateLvalue(ImTupleSelection ts, ProgramState globalState, LocalState localState) {
-        ILaddress addr = ts.getTupleExpr().evaluateLvalue(globalState, localState);
+        ImExpr tupleExpr = ts.getTupleExpr();
         int tupleIndex = ts.getTupleIndex();
-        return new ILaddress() {
-            @Override
-            public void set(ILconst value) {
-                ILconstTuple tuple = (ILconstTuple) addr.get();
-                ILconstTuple updated = tuple.updated(tupleIndex, value);
-                addr.set(updated);
-            }
+        if (tupleExpr instanceof ImLExpr) {
+            ILaddress addr = ((ImLExpr) tupleExpr).evaluateLvalue(globalState, localState);
+            return new ILaddress() {
+                @Override
+                public void set(ILconst value) {
+                    ILconst val = addr.get();
+                    ILconstTuple tuple = (ILconstTuple) val;
+                    ILconstTuple updated = tuple.updated(tupleIndex, value);
+                    addr.set(updated);
+                }
 
-            @Override
-            public ILconst get() {
-                ILconstTuple tuple = (ILconstTuple) addr.get();
-                return tuple.getValue(tupleIndex);
-            }
-        };
+                @Override
+                public ILconst get() {
+                    ILconstTuple tuple = (ILconstTuple) addr.get();
+                    return tuple.getValue(tupleIndex);
+                }
+            };
+        } else {
+            ILconstTuple tupleValue = (ILconstTuple) tupleExpr.evaluate(globalState, localState);
+            return new ILaddress() {
+                @Override
+                public void set(ILconst value) {
+                    throw new InterpreterException(ts.attrTrace(), "Not a valid L-value in tuple-selection");
+                }
+
+                @Override
+                public ILconst get() {
+                    return tupleValue.getValue(tupleIndex);
+                }
+            };
+        }
     }
 
     public static ILaddress evaluateLvalue(ImMemberAccess e, ProgramState globalState, LocalState localState) {

@@ -302,7 +302,7 @@ public class SideEffectAnalyzer {
 
             @Override
             public void case_ImTupleSelection(ImTupleSelection v) {
-                collectVars(imVars, v.getTupleExpr());
+                collectVars(imVars, (ImLExpr) v.getTupleExpr());
             }
 
             @Override
