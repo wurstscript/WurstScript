@@ -35,7 +35,7 @@ public class AttrClosureCapturedVariables {
             NameRef nr = (NameRef) e;
             NameLink def = nr.attrNameLink();
 
-            if (def != null && (def.getDef() instanceof LocalVarDef || def.getDef() instanceof WParameter)) {
+            if (def != null && isLocalVariable(def.getDef())) {
                 VarDef v = (VarDef) def.getDef();
                 if (v.attrNearestExprClosure() != closure) {
                     result.put(nr, v);
@@ -59,6 +59,12 @@ public class AttrClosureCapturedVariables {
         for (int i = 0; i < e.size(); i++) {
             collect(result, closure, e.get(i));
         }
+    }
+
+    private static boolean isLocalVariable(NameDef def) {
+        return def instanceof LocalVarDef
+                || def instanceof WParameter && !(def.getParent().getParent() instanceof TupleDef);
+
     }
 
     private static LocalVarDef dummyThisVar(ExprClosure closure) {

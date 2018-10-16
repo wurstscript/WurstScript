@@ -326,7 +326,7 @@ public class ModelManagerImpl implements ModelManager {
     private WurstCompilerJassImpl getCompiler(WurstGui gui) {
         RunArgs runArgs = RunArgs.defaults();
         runArgs.addLibDirs(dependencies);
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, runArgs);
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, runArgs);
         comp.setHasCommonJ(true);
         return comp;
     }
@@ -379,7 +379,7 @@ public class ModelManagerImpl implements ModelManager {
             }
         }
 
-        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(gui, null, RunArgs.defaults());
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
 
         try (InputStreamReader reader = new FileReader(sourceFile)) {
             CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
@@ -494,7 +494,6 @@ public class ModelManagerImpl implements ModelManager {
         List<CompilationUnit> matches = getCompilationUnits(Collections.singletonList(filename));
         if (matches.isEmpty()) {
             WLogger.info("compilation unit not found: " + filename);
-            WLogger.info("available: " + model.stream().map(CompilationUnit::getFile).collect(Collectors.joining(", ")));
             return null;
         }
         return matches.get(0);
@@ -649,4 +648,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
 
+    public File getProjectPath() {
+        return projectPath;
+    }
 }

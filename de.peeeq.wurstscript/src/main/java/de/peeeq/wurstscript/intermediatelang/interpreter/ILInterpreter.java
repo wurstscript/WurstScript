@@ -117,12 +117,12 @@ public class ILInterpreter implements AbstractInterpreter {
         }
     }
 
-    private static de.peeeq.wurstscript.ast.Element getTrace(ProgramState globalState, ImFunction f) {
+    public static de.peeeq.wurstscript.ast.Element getTrace(ProgramState globalState, ImFunction f) {
         Element lastStatement = globalState.getLastStatement();
         return lastStatement == null ? f.attrTrace() : lastStatement.attrTrace();
     }
 
-    private static String buildStacktrace(ProgramState globalState, Throwable e) {
+    public static String buildStacktrace(ProgramState globalState, Throwable e) {
         StringBuilder err = new StringBuilder();
         try {
             WPos src = globalState.getLastStatement().attrTrace().attrSource();

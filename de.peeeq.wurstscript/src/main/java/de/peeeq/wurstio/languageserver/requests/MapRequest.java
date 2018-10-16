@@ -1,14 +1,11 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
-import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstscript.RunArgs;
@@ -29,7 +26,6 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -39,8 +35,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-
-import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 public abstract class MapRequest extends UserRequest<Object> {
     protected final File map;
@@ -106,7 +100,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         modelManager.syncCompilationUnit(WFile.create(existingScript));
     }
 
-    protected File compileMap(WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) {
+    protected File compileMap(File projectFolder, WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) {
         try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             //WurstGui gui = new WurstGuiLogger();
             if (!mpqEditor.canWrite()) {
@@ -114,7 +108,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                         "Please supply a valid .w3x input map that can be opened in the world editor.");
                 throw new NonWritableChannelException();
             }
-            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, mpqEditor, runArgs);
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(projectFolder, gui, mpqEditor, runArgs);
             compiler.setMapFile(mapCopy);
             purgeUnimportedFiles(model);
 

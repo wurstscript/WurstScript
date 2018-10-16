@@ -58,4 +58,6 @@ public interface ModelManager {
         });
         return m;
     }
+
+    File getProjectPath();
 }

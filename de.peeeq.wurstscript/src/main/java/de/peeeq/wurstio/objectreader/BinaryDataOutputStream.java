@@ -50,7 +50,8 @@ public class BinaryDataOutputStream implements Closeable {
 
     public void writeString(String s, int len) throws IOException {
         byte[] bytes = new byte[len];
-        System.arraycopy(s.getBytes(), 0, bytes, 0, len);
+        byte[] s_bytes = s.getBytes();
+        System.arraycopy(s_bytes, 0, bytes, 0, Math.min(len, s_bytes.length));
         out.write(bytes);
     }
 

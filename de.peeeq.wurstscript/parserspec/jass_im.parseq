@@ -133,7 +133,7 @@ ImType.defaultValue
 	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.translation.imtojass.DefaultValue.get
 
-ImPrintable.print(java.lang.StringBuilder sb, int indent)
+ImPrintable.print(java.lang.Appendable sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 

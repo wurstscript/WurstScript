@@ -426,6 +426,31 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void code_anonfuncTuple() {
+        testAssertOkLines(true,
+                "type trigger extends handle",
+                "package test",
+                "@extern native CreateTrigger() returns trigger",
+                "@extern native TriggerAddAction(trigger t, code c)",
+                "@extern native TriggerEvaluate(trigger t)",
+                "native testSuccess()",
+                "tuple test (int a, int b, int c)",
+                "let x = test(1, 2, 3)",
+                "function foo(code c)",
+                "    let t = CreateTrigger()",
+                "    TriggerAddAction(t, c)",
+                "    TriggerEvaluate(t)",
+                "function bar(int x)",
+                "init",
+                "    foo() ->",
+                "        let y = x.b",
+                "        if y == 2",
+                "            testSuccess()"
+        );
+    }
+
     @Test
     public void tryCaptureArray() {
         testAssertErrorsLines(true, "cannot capture local array",

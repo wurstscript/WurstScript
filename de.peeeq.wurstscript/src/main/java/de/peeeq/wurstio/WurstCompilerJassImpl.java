@@ -45,6 +45,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private @Nullable File mapFile;
+    private @Nullable File projectFolder;
     private ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
     private @Nullable ImProg imProg;
@@ -55,7 +56,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
 
-    public WurstCompilerJassImpl(WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+    public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+        this.projectFolder = projectFolder;
         this.gui = gui;
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
@@ -105,8 +107,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         if (runArgs.isInjectObjects()) {
             Preconditions.checkNotNull(mapFileMpq);
+            Preconditions.checkNotNull(projectFolder);
             // add the imports
-            ImportFile.importFilesFromImportDirectory(mapFile, mapFileMpq);
+            ImportFile.importFilesFromImportDirectory(projectFolder, mapFileMpq);
         }
     }
 
@@ -164,13 +167,22 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         for (File file : files) {
             if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
                 mapFile = file;
+            } else if (file.isDirectory()) {
+                if (projectFolder != null) {
+                    throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to " + projectFolder);
+                }
+                projectFolder = file;
             }
         }
+
+
 
         // import wurst folder if it exists
         File l_mapFile = mapFile;
         if (l_mapFile != null) {
-            File projectFolder = l_mapFile.getParentFile();
+            if (projectFolder == null) {
+                projectFolder = l_mapFile.getParentFile();
+            }
             File relativeWurstDir = new File(projectFolder, "wurst");
             if (relativeWurstDir.exists()) {
                 WLogger.info("Importing wurst files from " + relativeWurstDir);
@@ -515,11 +527,11 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         try {
             // TODO remove test output
-            StringBuilder sb = new StringBuilder();
-            getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
-            asCharSink(file, Charsets.UTF_8).write(sb.toString());
+            try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {
+                getImProg().print(w, 0);
+            }
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }

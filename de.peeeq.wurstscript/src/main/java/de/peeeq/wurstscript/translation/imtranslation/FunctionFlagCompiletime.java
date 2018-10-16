@@ -15,4 +15,9 @@ public class FunctionFlagCompiletime implements FunctionFlag {
     public int getOrderIndex() {
         return index;
     }
+
+    @Override
+    public String toString() {
+        return "@compiletime(" + index + ")";
+    }
 }
