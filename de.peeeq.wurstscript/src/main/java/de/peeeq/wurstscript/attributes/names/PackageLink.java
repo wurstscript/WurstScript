@@ -8,6 +8,7 @@ import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 
 public class PackageLink extends DefLink {
@@ -77,4 +78,16 @@ public class PackageLink extends DefLink {
         return (PackageLink) super.hidingPrivateAndProtected();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PackageLink that = (PackageLink) o;
+        return Objects.equals(def, that.def);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(def);
+    }
 }

@@ -9,6 +9,7 @@ import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 
 public class TypeLink extends NameLink {
@@ -81,4 +82,16 @@ public class TypeLink extends NameLink {
         return (TypeLink) super.hidingPrivateAndProtected();
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        TypeLink typeLink = (TypeLink) o;
+        return Objects.equals(def, typeLink.def);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(def);
+    }
 }
