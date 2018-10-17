@@ -166,7 +166,6 @@ public class ClosureTranslator {
 
     private void transformTranslated(ImExpr t) {
         final List<ImVarAccess> vas = Lists.newArrayList();
-        final List<ImSet> sets = Lists.newArrayList();
         t.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -176,26 +175,12 @@ public class ClosureTranslator {
                 }
             }
 
-            @Override
-            public void visit(ImSet s) {
-                super.visit(s);
-                if (isLocalToOtherFunc(s.getLeft())) {
-                    sets.add(s);
-                }
-            }
 
         });
 
         for (ImVarAccess va : vas) {
             ImVar v = getClosureVarFor(va.getVar());
             va.replaceBy(JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())));
-        }
-        for (ImSet s : sets) {
-            System.out.println("closure translate: " + s);
-            ImVar v = getClosureVarFor(s.getLeft());
-            ImExpr right = s.getRight();
-            right.setParent(null);
-            s.replaceBy(JassIm.ImSet(e, JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())), right));
         }
     }
 
@@ -212,16 +197,6 @@ public class ClosureTranslator {
             closureVars.put(var, v);
         }
         return v;
-    }
-
-    private ImVar getClosureVarFor(ImLExpr e) {
-        if (e instanceof ImVarAccess) {
-            return getClosureVarFor(((ImVarAccess) e).getVar());
-        } else if (e instanceof ImTupleSelection) {
-            ImTupleSelection ts = (ImTupleSelection) e;
-            return getClosureVarFor((ImLExpr) ts.getTupleExpr());
-        }
-        throw new CompileError(e.attrTrace().attrSource(), "Could not get closure var for " + e);
     }
 
 
