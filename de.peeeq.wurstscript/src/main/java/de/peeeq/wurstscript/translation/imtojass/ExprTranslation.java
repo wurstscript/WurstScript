@@ -89,7 +89,7 @@ public class ExprTranslation {
     }
 
     public static JassExpr translate(ImStatementExpr e, ImToJassTranslator translator) {
-        throw new Error("this expr should have been flattened: " + e);
+        throw new Error("this expr should have been flattened: " + e + "\n\n" + e.getNearestFunc());
     }
 
     public static JassExpr translate(ImStringVal e, ImToJassTranslator translator) {

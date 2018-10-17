@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.List;
 import java.util.Map;
@@ -192,6 +191,7 @@ public class ClosureTranslator {
             va.replaceBy(JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())));
         }
         for (ImSet s : sets) {
+            System.out.println("closure translate: " + s);
             ImVar v = getClosureVarFor(s.getLeft());
             ImExpr right = s.getRight();
             right.setParent(null);
@@ -213,19 +213,18 @@ public class ClosureTranslator {
         }
         return v;
     }
-    
+
     private ImVar getClosureVarFor(ImLExpr e) {
         if (e instanceof ImVarAccess) {
-        	return getClosureVarFor(((ImVarAccess) e).getVar());
+            return getClosureVarFor(((ImVarAccess) e).getVar());
         } else if (e instanceof ImTupleSelection) {
-        	ImTupleSelection ts = (ImTupleSelection) e;
-			return getClosureVarFor((ImVar) ts.getTupleExpr());
+            ImTupleSelection ts = (ImTupleSelection) e;
+            return getClosureVarFor((ImLExpr) ts.getTupleExpr());
         }
-        
-        return null;
+        throw new CompileError(e.attrTrace().attrSource(), "Could not get closure var for " + e);
     }
 
-    
+
     private boolean isLocalToOtherFunc(ImVar v) {
         if (v.getParent() == null
                 || v.getParent().getParent() == null) {
@@ -239,13 +238,13 @@ public class ClosureTranslator {
     }
 
     private boolean isLocalToOtherFunc(ImLExpr e) {
-    	if (e instanceof ImVarAccess) {
-    		return isLocalToOtherFunc(((ImVarAccess) e).getVar());
-    	} else if (e instanceof ImTupleSelection) {
-			ImTupleSelection ts = (ImTupleSelection) e;
-			return isLocalToOtherFunc((ImLExpr) ts.getTupleExpr());
-    	}
-    	return false;
+        if (e instanceof ImVarAccess) {
+            return isLocalToOtherFunc(((ImVarAccess) e).getVar());
+        } else if (e instanceof ImTupleSelection) {
+            ImTupleSelection ts = (ImTupleSelection) e;
+            return isLocalToOtherFunc((ImLExpr) ts.getTupleExpr());
+        }
+        return false;
     }
 
 

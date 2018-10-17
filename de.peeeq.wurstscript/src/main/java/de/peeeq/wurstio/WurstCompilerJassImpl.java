@@ -471,10 +471,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(12, "froptimize");
             optimizer.optimize();
 
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
             printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
         }
 
-        optimizer.removeGarbage();
+
 
         // translate flattened intermediate lang to jass:
 
