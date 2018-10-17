@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImLExpr;
-import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImTupleSelection;
+import de.peeeq.wurstscript.jassIm.*;
 
 /**
  *
@@ -18,6 +15,9 @@ public class LValues {
             } else if (parent instanceof ImSet) {
                 ImSet set = (ImSet) parent;
                 return set.getLeft() == e;
+            } else if (parent instanceof ImStatementExpr) {
+                ImStatementExpr se = (ImStatementExpr) parent;
+                return isUsedAsLValue(se);
             }
         }
         return false;

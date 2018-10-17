@@ -1011,9 +1011,12 @@ public class Utils {
         if (oldElement == newElement) {
             return;
         }
+        de.peeeq.wurstscript.jassIm.Element oldElementParent = oldElement.getParent();
         for (int i=0; i<parent.size(); i++) {
             if (parent.get(i) == oldElement) {
                 parent.set(i, newElement);
+                // reset parent, because might be changed
+                oldElement.setParent(oldElementParent);
                 return;
             }
         }

@@ -243,11 +243,11 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImVarArrayAccess(v, JassIm.ImExprs(index1, index2));
+                    return JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(index1, index2));
 
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
                 }
             } else {
                 // direct var access
@@ -258,7 +258,7 @@ public class ExprTranslation {
                         throw new CompileError(e.getSource(), "More than one index is not supported.");
                     }
                     ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
                 } else {
                     // not an array var
                     return ImVarAccess(v);
@@ -671,11 +671,11 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImVarArrayAccess(v, JassIm.ImExprs(index1, index2));
+                    return JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(index1, index2));
 
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
                 }
             } else {
                 // direct var access
@@ -686,7 +686,7 @@ public class ExprTranslation {
                         throw new CompileError(e.getSource(), "More than one index is not supported.");
                     }
                     ImExpr index = withIndexes.getIndexes().get(0).imTranslateExpr(t, f);
-                    return ImVarArrayAccess(v, JassIm.ImExprs(index));
+                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
                 } else {
                     // not an array var
                     return ImVarAccess(v);

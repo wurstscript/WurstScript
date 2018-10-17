@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -117,7 +118,7 @@ public class EvaluateExpr {
             }
             return r;
         } else {
-            return notNull(localState.getVal(var), var.getType(), "Local variable " + var.getName() + " is null.", true);
+            return notNull(localState.getVal(var), var.getType(), "Local variable " + var + " is null.", true);
         }
     }
 

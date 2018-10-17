@@ -47,7 +47,7 @@ public class ClosureTranslator {
             for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
                 ImVar orig = entry.getKey();
                 ImVar v = entry.getValue();
-                stmts.add(JassIm.ImSet(e, JassIm.ImVarArrayAccess(v, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(clVar))), JassIm.ImVarAccess(orig)));
+                stmts.add(JassIm.ImSet(e, JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(clVar))), JassIm.ImVarAccess(orig)));
             }
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
         }
@@ -189,13 +189,13 @@ public class ClosureTranslator {
 
         for (ImVarAccess va : vas) {
             ImVar v = getClosureVarFor(va.getVar());
-            va.replaceBy(JassIm.ImVarArrayAccess(v, JassIm.ImExprs(closureThis())));
+            va.replaceBy(JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())));
         }
         for (ImSet s : sets) {
             ImVar v = getClosureVarFor(s.getLeft());
             ImExpr right = s.getRight();
             right.setParent(null);
-            s.replaceBy(JassIm.ImSet(e, JassIm.ImVarArrayAccess(v, JassIm.ImExprs(closureThis())), right));
+            s.replaceBy(JassIm.ImSet(e, JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())), right));
         }
     }
 

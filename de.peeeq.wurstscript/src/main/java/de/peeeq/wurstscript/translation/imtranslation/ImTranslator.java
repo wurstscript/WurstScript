@@ -490,7 +490,7 @@ public class ImTranslator {
                     .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
-                f.getBody().add(ImSet(trace, ImVarArrayAccess(v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
+                f.getBody().add(ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
             }
             // add list of init-values to translatedExprs
             imProg.getGlobalInits().put(v, translatedExprs);
@@ -1201,14 +1201,15 @@ public class ImTranslator {
                     // if it is an array of tuples, create multiple array variables:
                     ImTupleType tt = (ImTupleType) at.getEntryType();
                     Builder<VarsForTupleResult> ts = ImmutableList.builder();
+                    int i = 0;
                     for (ImType t : tt.getTypes()) {
-                        ts.add(createVarsForType(name, t, et -> JassIm.ImArrayTypeMulti(et, new ArrayList<>(at.getArraySize())), tr));
+                        ts.add(createVarsForType(name + "_" + tt.getNames().get(i), t, et -> JassIm.ImArrayTypeMulti(et, new ArrayList<>(at.getArraySize())), tr));
+                        i++;
                     }
                     return new TupleResult(ts.build());
                 }
                 // otherwise just create the array variable
-                ImVar v = JassIm.ImVar(tr, type, name, false);
-                return new SingleVarResult(v);
+                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
             }
 
             @Override

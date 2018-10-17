@@ -3,9 +3,11 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator.VarsForTupleResult;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
@@ -47,25 +49,26 @@ public class EliminateTuples {
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
 
-        transformVars(imProg.getGlobals(), translator);
+        Runnable removeOldGlobals = transformVars(imProg.getGlobals(), translator);
         for (ImFunction f : imProg.getFunctions()) {
             transformFunctionReturnsAndParameters(f, translator);
         }
         for (ImFunction f : imProg.getFunctions()) {
             eliminateTuplesFunc(f, translator);
         }
+        removeOldGlobals.run();
         translator.assertProperties(AssertProperty.NOTUPLES);
     }
 
     private static void transformFunctionReturnsAndParameters(ImFunction f, ImTranslator translator) {
-        transformVars(f.getParameters(), translator);
+        transformVars(f.getParameters(), translator).run();
         translator.setOriginalReturnValue(f, f.getReturnType());
         f.setReturnType(getFirstType(f.getReturnType()));
     }
 
 
     private static void eliminateTuplesFunc(ImFunction f, final ImTranslator translator) {
-        transformVars(f.getLocals(), translator);
+        transformVars(f.getLocals(), translator).run();
 
         tryStep(f, translator, EliminateTuples::toTupleExpressions);
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
@@ -102,9 +105,9 @@ public class EliminateTuples {
                     te.setParent(null);
                     if (i != ti) {
                         // if not the thing we want to return, just keep it in statements for side-effects
-                        stmts.add(te);
+                        extractSideEffect(te, stmts);
                     } else { // if it is the part we want to return ...
-                        result = te;
+                        result = extractSideEffect(te, stmts);
                         // TODO in this and all the following remove side effects and add them to stmts
                     }
                 }
@@ -128,7 +131,7 @@ public class EliminateTuples {
         String before = f.toString();
         try {
             step.apply(f.getBody(), translator, f);
-            translator.assertProperties(Collections.emptySet(), f.getBody());
+//            translator.assertProperties(Collections.emptySet(), f.getBody());
         } catch (Throwable t) {
             throw new RuntimeException("\n//// Before -----------\n" + before
                     + "\n\n// After -------------------\n" + f, t);
@@ -137,24 +140,21 @@ public class EliminateTuples {
     }
 
 
-    private static void transformVars(ImVars vars, ImTranslator translator) {
+    private static Runnable transformVars(ImVars vars, ImTranslator translator) {
+        List<ImVar> varsToRemove = new ArrayList<>();
         ListIterator<ImVar> it = vars.listIterator();
         while (it.hasNext()) {
             ImVar v = it.next();
             Preconditions.checkNotNull(v.getParent(), "null parent: " + v);
             if (TypesHelper.typeContainsTuples(v.getType())) {
                 VarsForTupleResult varsForTuple = translator.getVarsForTuple(v);
-                it.remove();
+                varsToRemove.add(v);
                 for (ImVar nv : varsForTuple.allValues()) {
                     it.add(nv);
                 }
             }
         }
-        for (ImVar v : vars) {
-            if (v.getType() instanceof ImTupleType) {
-                throw new Error("still contains a bad var: " + v + " in: \n" + v.getParent().getParent());
-            }
-        }
+        return () -> vars.removeAll(varsToRemove);
     }
 
 
@@ -199,14 +199,21 @@ public class EliminateTuples {
                 super.visit(va);
                 if (va.attrTyp() instanceof ImTupleType) {
                     ImExprs indexes = va.getIndexes();
-                    List<ImVar> tempIndexes = new ArrayList<>();
+                    ImExprs indexExprs = JassIm.ImExprs();
                     ImStmts stmts = JassIm.ImStmts();
+                    boolean sideEffects = indexes.stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
                     for (ImExpr ie : indexes) {
-                        ImVar tempIndex = JassIm.ImVar(ie.attrTrace(), TypesHelper.imInt(), "tempIndex", false);
-                        tempIndexes.add(tempIndex);
-                        f.getLocals().add(tempIndex);
-                        ie.setParent(null);
-                        stmts.add(JassIm.ImSet(va.attrTrace(), JassIm.ImVarAccess(tempIndex), ie));
+                        if (sideEffects) {
+                            // use temp variables if there are side effects
+                            ImVar tempIndex = JassIm.ImVar(ie.attrTrace(), TypesHelper.imInt(), "tempIndex", false);
+                            indexExprs.add(JassIm.ImVarAccess(tempIndex));
+                            f.getLocals().add(tempIndex);
+                            ie.setParent(null);
+                            stmts.add(JassIm.ImSet(va.attrTrace(), JassIm.ImVarAccess(tempIndex), ie));
+                        } else {
+                            ie.setParent(null);
+                            indexExprs.add(ie);
+                        }
                     }
 
                     ImVar v = va.getVar();
@@ -214,11 +221,15 @@ public class EliminateTuples {
                     ImExpr expr = vars.<ImExpr>map(
                             parts -> JassIm.ImTupleExpr(
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
-                            var -> JassIm.ImVarArrayAccess(var, accessVars(tempIndexes))
+                            var -> JassIm.ImVarArrayAccess(va.getTrace(), var, indexExprs.copy())
                     );
-                    va.replaceBy(
-                            JassIm.ImStatementExpr(stmts,
-                                    expr));
+                    if (stmts.isEmpty()) {
+                        va.replaceBy(expr);
+                    } else {
+                        va.replaceBy(
+                                JassIm.ImStatementExpr(stmts,
+                                        expr));
+                    }
                 }
             }
 
@@ -455,7 +466,7 @@ public class EliminateTuples {
                         // use the current expression as result.
                         // This assumes that the expression te cannot be influenced by subsequent expressions
                         // TODO maybe this assumption should be validated ...
-                        result = te;
+                        result = extractSideEffect(te, stmts);
                     } else {
                         ImVar temp = JassIm.ImVar(trace, te.attrTyp(), "tupleSelection", false);
                         f.getLocals().add(temp);
@@ -468,6 +479,23 @@ public class EliminateTuples {
         assert result != null;
 
         return JassIm.ImStatementExpr(stmts, result);
+    }
+
+    /**
+     * extracts all side effects into the list of statements
+     */
+    private static ImExpr extractSideEffect(ImExpr e, List<ImStmt> into) {
+        if (e instanceof ImStatementExpr) {
+            ImStatementExpr se = (ImStatementExpr) e;
+            for (ImStmt s : se.getStatements()) {
+                s.setParent(null);
+                into.add(s);
+            }
+            ImExpr expr = se.getExpr();
+            expr.setParent(null);
+            return extractSideEffect(expr, into);
+        }
+        return e;
     }
 
 

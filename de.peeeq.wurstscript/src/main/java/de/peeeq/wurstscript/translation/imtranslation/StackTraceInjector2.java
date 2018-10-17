@@ -94,7 +94,7 @@ public class StackTraceInjector2 {
             ImStmts stmts = f.getBody();
             de.peeeq.wurstscript.ast.Element trace = f.getTrace();
             stmts.add(0, increment(trace, stackSize));
-            stmts.add(0, JassIm.ImSet(trace, JassIm.ImVarArrayAccess(stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(stackSize))), getStackPosVar(f)));
+            stmts.add(0, JassIm.ImSet(trace, JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(stackSize))), getStackPosVar(f)));
         }
     }
 
@@ -307,7 +307,7 @@ public class StackTraceInjector2 {
             loopBody.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImOperatorCall(WurstOperator.PLUS,
                     JassIm.ImExprs(JassIm.ImVarAccess(traceStr),
                             JassIm.ImOperatorCall(WurstOperator.PLUS, JassIm.ImExprs(JassIm.ImStringVal("\n   "),
-                                    JassIm.ImVarArrayAccess(stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(traceI)))))))));
+                                    JassIm.ImVarArrayAccess(trace, stack, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(traceI)))))))));
 
             s.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(traceStr)));
         }

@@ -43,7 +43,7 @@ public class StmtTranslation {
             for (int i = 0; i < ai.getValues().size(); i++) {
                 Expr expr = ai.getValues().get(i);
                 ImExpr translatedExpr = expr.imTranslateExpr(t, f);
-                stmts.add(ImSet(s, ImVarArrayAccess(v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translatedExpr));
+                stmts.add(ImSet(s, ImVarArrayAccess(s, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translatedExpr));
             }
             return JassIm.ImStatementExpr(stmts, ImNull());
         } else {

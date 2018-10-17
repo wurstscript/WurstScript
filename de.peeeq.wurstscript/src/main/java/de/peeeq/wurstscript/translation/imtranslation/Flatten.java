@@ -372,7 +372,7 @@ public class Flatten {
 
     public static ResultL flattenL(ImVarArrayAccess e, ImTranslator t, ImFunction f) {
         MultiResult indexes = flattenExprs(t, f, e.getIndexes());
-        return new ResultL(indexes.stmts, ImVarArrayAccess(e.getVar(), ImExprs(indexes.exprs)));
+        return new ResultL(indexes.stmts, ImVarArrayAccess(e.getTrace(), e.getVar(), ImExprs(indexes.exprs)));
     }
 
 

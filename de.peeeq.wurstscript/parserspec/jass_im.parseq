@@ -77,7 +77,7 @@ ImExpr =
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =
       ImVarAccess(ref ImVar var)
-    | ImVarArrayAccess(ref ImVar var, ImExprs indexes)
+    | ImVarArrayAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
     | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
     | ImMemberAccess
     | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
@@ -89,7 +89,7 @@ ImClassRelatedExpr =
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
 	| ImAlloc(ref ImClass clazz)
 	| ImDealloc(ref ImClass clazz, ImExpr obj)
-	| ImMemberAccess(ImExpr receiver, ref ImVar var)
+	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var)
 	| ImInstanceof(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfClass(ref ImClass clazz)
@@ -115,7 +115,7 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
- | ImMethodCall | ImFunctionCall | ImCompiletimeExpr
+ | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 

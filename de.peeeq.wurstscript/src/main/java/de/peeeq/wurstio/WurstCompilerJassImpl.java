@@ -394,8 +394,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         new EliminateClasses(imTranslator2, imProg2, !runArgs.isUncheckedDispatch()).eliminateClasses();
         imTranslator2.assertProperties();
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
-        new MultiArrayEliminator(imProg2, imTranslator2).run();
-        imTranslator2.assertProperties();
 
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
@@ -430,6 +428,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
+
+        new MultiArrayEliminator(imProg2, imTranslator2).run();
+        printDebugImProg("./test-output/im " + stage++ + "_withoutmultiarrays.im");
+        imTranslator2.assertProperties();
 
         beginPhase(7, "remove func refs");
         new FuncRefRemover(imProg2, imTranslator2).run();

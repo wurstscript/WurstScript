@@ -101,6 +101,9 @@ public class ImAttrType {
         if (ar instanceof ImArrayType) {
             ImArrayType t = (ImArrayType) ar;
             return t.getEntryType();
+        } else if (ar instanceof ImArrayTypeMulti) {
+            ImArrayTypeMulti t = (ImArrayTypeMulti) ar;
+            return t.getEntryType();
         }
         return ar;
     }

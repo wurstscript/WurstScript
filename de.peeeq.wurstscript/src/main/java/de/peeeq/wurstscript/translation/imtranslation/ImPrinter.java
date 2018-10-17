@@ -176,7 +176,7 @@ public class ImPrinter {
         p.getStatements().print(sb, indent + 1);
         indent(sb, indent + 1);
         append(sb, ">>>  ");
-        p.getExpr().print(sb, indent);
+        p.getExpr().print(sb, indent + 1);
         append(sb, "}");
     }
 
@@ -204,6 +204,7 @@ public class ImPrinter {
 
     public static void print(ImVarAccess p, Appendable sb, int indent) {
         append(sb, p.getVar().getName());
+        append(sb, "_");
         append(sb, smallHash(p.getVar()));
 
     }
@@ -215,6 +216,7 @@ public class ImPrinter {
 
     public static void print(ImVarArrayAccess p, Appendable sb, int indent) {
         append(sb, p.getVar().getName());
+        append(sb, "_");
         append(sb, smallHash(p.getVar()));
         for (ImExpr ie : p.getIndexes()) {
             append(sb, "[");
