@@ -1311,7 +1311,7 @@ public class ImTranslator {
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
             if (child.getParent() == null) {
-                throw new Error("Child " + i + " (" + child + ") of " + e + " not attached to tree");
+                throw new Error("Child " + i + " (" + child.getClass().getSimpleName() + " " + child + ") of " + e + " not attached to tree");
             }
             assertProperties(properties, child);
         }

@@ -62,10 +62,10 @@ public class UsedVariables {
 
                     @Override
                     public void case_ImTupleExpr(ImTupleExpr e) {
-                        for (ImExpr ie : e.getExprs()) {
-                            ((ImLExpr) ie).match(this);
-                        }
+                        e.getStatements().accept(thiz);
+                        e.getIndexes().accept(thiz);
                     }
+
                 });
                 e.getRight().accept(this);
             }

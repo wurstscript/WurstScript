@@ -80,10 +80,14 @@ ImLExpr =
     | ImVarArrayAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
     | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
     | ImMemberAccess
-    | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
+    | ImTupleExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts statements, ImTupleVarsList tupleVars, ImExprs indexes)
     | ImStatementExpr(ImStmts statements, ImExpr expr)  // can only be used as L-value if expr only contains l-exprs
 
+ImTupleOrVars =
+      ImTupleVarsList
+    | ImVarAccess
 
+ImTupleVarsList * ImTupleOrVars
 
 ImClassRelatedExpr = 
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
@@ -122,7 +126,7 @@ ElementWithTypes = ImTupleType | ImTupleArrayType
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
 
-ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
+ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImTupleOrVars
 
 ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
 ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess

@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImStmts;
+import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -476,7 +477,7 @@ public class ExprTranslation {
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
-            return ImTupleExpr(imArgs);
+            return makeTuple(e, imArgs, f);
         }
 
         ImStmts stmts = null;
@@ -510,6 +511,28 @@ public class ExprTranslation {
         } else {
             return call;
         }
+    }
+
+    public static ImTupleExpr makeTuple(Element trace, ImExprs args, ImFunction f) {
+        return makeTuple(trace, args, JassIm.ImExprs(), f);
+    }
+
+    public static ImTupleExpr makeTuple(Element trace, List<ImExpr> args, ImExprs indexes, ImFunction f) {
+        ImStmts stmts = ImStmts();
+        ImTupleVarsList tupleVars = ImTupleVarsList();
+        for (ImExpr arg : args) {
+            ImVar v = JassIm.ImVar(trace, arg.attrTyp(), "makeTuple_temp", false);
+            f.getLocals().add(v);
+            arg.setParent(null);
+            stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(v), arg));
+            tupleVars.add(JassIm.ImVarAccess(v));
+        }
+        return JassIm.ImTupleExpr(
+                trace,
+                stmts,
+                tupleVars,
+                indexes
+        );
     }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {

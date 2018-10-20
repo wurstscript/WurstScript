@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ExprTranslation;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
@@ -69,7 +70,7 @@ public class WurstTypeTuple extends WurstType {
         for (WParameter p : tupleDef.getParameters()) {
             exprs.add((ImExpr) p.attrTyp().getDefaultValue());
         }
-        return JassIm.ImTupleExpr(exprs);
+        return ExprTranslation.makeTuple(tupleDef, exprs, null);
     }
 
     public int getTupleIndex(VarDef varDef) {

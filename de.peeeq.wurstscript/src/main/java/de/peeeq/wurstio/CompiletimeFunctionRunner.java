@@ -38,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class CompiletimeFunctionRunner {
 
@@ -149,7 +148,7 @@ public class CompiletimeFunctionRunner {
         for (Either<ImCompiletimeExpr, ImFunction> e : es) {
             if (e.isLeft()) {
                 ImCompiletimeExpr cte = e.getLeft();
-                executeCompiletimeExpr(cte);
+                executeCompiletimeExpr(cte, cte.getNearestFunc());
             } else {
                 ImFunction f = e.getRight();
                 executeCompiletimeFunction(f);
@@ -194,7 +193,7 @@ public class CompiletimeFunctionRunner {
     }
 
 
-    private void executeCompiletimeExpr(ImCompiletimeExpr cte) {
+    private void executeCompiletimeExpr(ImCompiletimeExpr cte, ImFunction f) {
         try {
             ProgramState globalState = interpreter.getGlobalState();
             globalState.setLastStatement(cte);
@@ -202,7 +201,7 @@ public class CompiletimeFunctionRunner {
             globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
-            ImExpr newExpr = constantToExpr(cte, value);
+            ImExpr newExpr = constantToExpr(cte, value, f);
             cte.replaceBy(newExpr);
         } catch (InterpreterException e) {
             String msg = ILInterpreter.buildStacktrace(globalState, e);
@@ -212,7 +211,7 @@ public class CompiletimeFunctionRunner {
         }
     }
 
-    private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
+    private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value, ImFunction f) {
         Element trace = cte.attrTrace();
         if (value instanceof ILconstBool) {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
@@ -221,13 +220,21 @@ public class CompiletimeFunctionRunner {
         } else if (value instanceof ILconstString) {
             return JassIm.ImStringVal(((ILconstString) value).getVal());
         } else if (value instanceof ILconstTuple) {
+            ILconstTuple tupleValue = (ILconstTuple) value;
+            ImStmts stmts = JassIm.ImStmts();
+            ImTupleVarsList tupleVars = JassIm.ImTupleVarsList();
+            for (ILconst c : tupleValue.values()) {
+                ImExpr cv = constantToExpr(cte, c, f);
+                ImVar v = JassIm.ImVar(cte.getTrace(), cv.attrTyp(), "tupleValue", false);
+                f.getLocals().add(v);
+                stmts.add(JassIm.ImSet(cte.getTrace(), JassIm.ImVarAccess(v), cv));
+                tupleVars.add(JassIm.ImVarAccess(v));
+            }
             return JassIm.ImTupleExpr(
-                    JassIm.ImExprs(
-                            ((ILconstTuple) value).values().stream()
-                                    .map(e -> constantToExpr(cte, e))
-                                    .collect(Collectors.toList())
-                    )
-            );
+                    cte.getTrace(),
+                    stmts,
+                    tupleVars,
+                    JassIm.ImExprs());
         } else if (value instanceof IlConstHandle) {
             IlConstHandle h = (IlConstHandle) value;
             Object obj = h.getObj();

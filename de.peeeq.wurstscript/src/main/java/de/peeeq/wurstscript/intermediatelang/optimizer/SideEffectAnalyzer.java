@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -33,10 +34,15 @@ public class SideEffectAnalyzer {
      * checks if this expression might have side effects
      * (does not do a deep analysis, all function calls and statements are considered to have side effects)
      */
-    public static boolean quickcheckHasSideeffects(ImExpr expr) {
-        return expr.match(new ImExpr.Matcher<Boolean>() {
+    public static boolean quickcheckHasSideeffects(ImStmt expr) {
+        return expr.match(new ImStmt.Matcher<Boolean>() {
             @Override
             public Boolean case_ImFunctionCall(ImFunctionCall imFunctionCall) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImExitwhen(ImExitwhen imExitwhen) {
                 return true;
             }
 
@@ -81,8 +87,14 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImVarargLoop(ImVarargLoop imVarargLoop) {
+                return true;
+            }
+
+            @Override
             public Boolean case_ImTupleExpr(ImTupleExpr e) {
-                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+                return quickcheckHasSideeffects(e.getStatements())
+                        || quickcheckHasSideeffects(e.getIndexes());
             }
 
             @Override
@@ -92,6 +104,11 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImGetStackTrace(ImGetStackTrace imGetStackTrace) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImLoop(ImLoop imLoop) {
                 return true;
             }
 
@@ -121,6 +138,16 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImReturn(ImReturn imReturn) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImSet(ImSet imSet) {
+                return true;
+            }
+
+            @Override
             public Boolean case_ImTypeIdOfObj(ImTypeIdOfObj e) {
                 return quickcheckHasSideeffects(e.getObj());
             }
@@ -128,6 +155,11 @@ public class SideEffectAnalyzer {
             @Override
             public Boolean case_ImVarAccess(ImVarAccess imVarAccess) {
                 return false;
+            }
+
+            @Override
+            public Boolean case_ImIf(ImIf imIf) {
+                return true;
             }
 
             @Override
@@ -145,6 +177,10 @@ public class SideEffectAnalyzer {
                 return true;
             }
         });
+    }
+
+    private static boolean quickcheckHasSideeffects(List<? extends ImStmt> exprs) {
+        return exprs.stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
     }
 
     /**
@@ -317,9 +353,23 @@ public class SideEffectAnalyzer {
 
             @Override
             public void case_ImTupleExpr(ImTupleExpr te) {
-                for (ImExpr e : te.getExprs()) {
-                    ((ImLExpr) e).match(this);
-                }
+                collectTVars(te.getTupleVars());
+            }
+
+            private void collectTVars(ImTupleOrVars tupleVars) {
+                tupleVars.match(new ImTupleOrVars.MatcherVoid() {
+                    @Override
+                    public void case_ImVarAccess(ImVarAccess v) {
+                        imVars.add(v.getVar());
+                    }
+
+                    @Override
+                    public void case_ImTupleVarsList(ImTupleVarsList list) {
+                        for (ImTupleOrVars tv : list) {
+                            collectTVars(tv);
+                        }
+                    }
+                });
             }
         });
     }

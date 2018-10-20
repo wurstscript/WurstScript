@@ -9,8 +9,8 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,12 +83,11 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImTupleExpr e, ProgramState globalState, LocalState localState) {
-        ILconst[] values = new ILconst[e.getExprs().size()];
-        for (int i = 0; i < e.getExprs().size(); i++) {
-            values[i] = e.getExprs().get(i).evaluate(globalState, localState);
-        }
-        return new ILconstTuple(values);
+        return e.evaluateLvalue(globalState, localState).get();
+
     }
+
+
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
         ILconstTuple t = (ILconstTuple) e.getTupleExpr().evaluate(globalState, localState);
@@ -151,15 +150,20 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
-        List<Integer> indexes = e.getIndexes().stream()
-                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-                .collect(Collectors.toList());
+        List<Integer> indexes = evaluateIndexes(globalState, localState, e.getIndexes());
 
         if (e.getVar().isGlobal()) {
             return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
         } else {
             return notNull(localState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
         }
+    }
+
+    @NotNull
+    private static List<Integer> evaluateIndexes(ProgramState globalState, LocalState localState, ImExprs indexExprs) {
+        return indexExprs.stream()
+                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+                .collect(Collectors.toList());
     }
 
     public static @Nullable ILconst eval(ImMethodCall mc,
@@ -269,10 +273,14 @@ public class EvaluateExpr {
     public static ILaddress evaluateLvalue(ImVarArrayAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
         State state;
+        List<Integer> indexes = evaluateIndexes(globalState, localState, va.getIndexes());
+        return makeArrayAddress(v, indexes, localState, globalState);
+    }
+
+    @NotNull
+    private static ILaddress makeArrayAddress(ImVar v, List<Integer> indexes, LocalState localState, ProgramState globalState) {
+        State state;
         state = v.isGlobal() ? globalState : localState;
-        List<Integer> indexes = va.getIndexes().stream()
-                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-                .collect(Collectors.toList());
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
@@ -329,29 +337,50 @@ public class EvaluateExpr {
 
 
     public static ILaddress evaluateLvalue(ImTupleExpr e, ProgramState globalState, LocalState localState) {
-        List<ILaddress> addresses = new ArrayList<>();
-        for (ImExpr lexpr : e.getExprs()) {
-            ILaddress addr = ((ImLExpr) lexpr).evaluateLvalue(globalState, localState);
-            addresses.add(addr);
-        }
-        return new ILaddress() {
+        e.getStatements().runStatements(globalState, localState);
+        List<Integer> indexes = evaluateIndexes(globalState, localState, e.getIndexes());
+
+        return makeTuple(e.getTupleVars(), indexes, globalState, localState);
+    }
+
+    private static ILaddress makeTuple(ImTupleOrVars tupleVars, List<Integer> indexes, ProgramState globalState, LocalState localState) {
+        return tupleVars.match(new ImTupleOrVars.Matcher<ILaddress>() {
             @Override
-            public void set(ILconst value) {
-                if (value instanceof ILconstTuple) {
-                    ILconstTuple te = (ILconstTuple) value;
-                    for (int i = 0; i < addresses.size(); i++) {
-                        addresses.get(i).set(te.getValue(i));
-                    }
+            public ILaddress case_ImVarAccess(ImVarAccess v) {
+                if (indexes.isEmpty()) {
+                    return JassIm.ImVarAccess(v.getVar()).evaluateLvalue(globalState, localState);
+                } else {
+                    return makeArrayAddress(v.getVar(), indexes, localState, globalState);
                 }
             }
 
             @Override
-            public ILconst get() {
-                return new ILconstTuple(addresses.stream()
-                        .map(ILaddress::get)
-                        .toArray(ILconst[]::new));
+            public ILaddress case_ImTupleVarsList(ImTupleVarsList list) {
+                List<ILaddress> addresses = list.stream()
+                        .map(e -> makeTuple(e, indexes, globalState, localState))
+                        .collect(Collectors.toList());
+                return new ILaddress() {
+                    @Override
+                    public void set(ILconst value) {
+                        ILconstTuple tuple = (ILconstTuple) value;
+                        for (int i = 0; i < tuple.values().size(); i++) {
+                            ILconst v = tuple.getValue(i);
+                            addresses.get(i).set(v);
+                        }
+                    }
+
+                    @Override
+                    public ILconst get() {
+                        ILconst[] values = new ILconst[addresses.size()];
+                        for (int i = 0; i < addresses.size(); i++) {
+                            ILaddress tv = addresses.get(i);
+                            values[i] = tv.get();
+                        }
+                        return new ILconstTuple(values);
+                    }
+                };
             }
-        };
+        });
     }
 
 

@@ -109,14 +109,28 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImTupleExpr imTupleExpr) {
-        List<ImType> types = Lists.newArrayList();
-        List<String> names = Lists.newArrayList();
-        int i = 1;
-        for (ImExpr e : imTupleExpr.getExprs()) {
-            types.add(e.attrTyp());
-            names.add("" + i++);
-        }
-        return JassIm.ImTupleType(types, names);
+        return tupleType(imTupleExpr.getTupleVars());
+    }
+
+    private static ImType tupleType(ImTupleOrVars tupleVars) {
+        return tupleVars.match(new ImTupleOrVars.Matcher<ImType>() {
+            @Override
+            public ImType case_ImVarAccess(ImVarAccess v) {
+                return v.getVar().getType();
+            }
+
+            @Override
+            public ImType case_ImTupleVarsList(ImTupleVarsList list) {
+                List<ImType> types = Lists.newArrayList();
+                List<String> names = Lists.newArrayList();
+                int i = 1;
+                for (ImTupleOrVars e : list) {
+                    types.add(tupleType(e));
+                    names.add("" + i++);
+                }
+                return JassIm.ImTupleType(types, names);
+            }
+        });
     }
 
 

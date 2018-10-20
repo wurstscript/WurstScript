@@ -323,17 +323,18 @@ public class Flatten {
 
 
     public static Result flatten(ImTupleExpr e, ImTranslator t, ImFunction f) {
-        MultiResult r = flattenExprs(t, f, e.getExprs());
-        return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
+        return flattenL(e, t, f);
     }
 
     public static ResultL flattenL(ImTupleExpr e, ImTranslator t, ImFunction f) {
-        @SuppressWarnings({"unchecked", "rawtypes"})
-        List<ImLExpr> exprs = (List) e.getExprs();
-        MultiResultL r = flattenExprsL(t, f, exprs);
-        ImExprs newExprs = ImExprs();
-        newExprs.addAll(r.getLExprs());
-        return new ResultL(r.stmts, JassIm.ImTupleExpr(newExprs));
+        ImStmts stmts = flattenStatements(e.getStatements(), t, f);
+        MultiResult indexes = flattenExprs(t, f, e.getIndexes());
+        List<ImStmt> stmts2 = stmts.removeAll();
+        stmts2.addAll(indexes.stmts);
+        ImTupleVarsList tupleVars = e.getTupleVars();
+        tupleVars.setParent(null);
+        return new ResultL(stmts2, JassIm.ImTupleExpr(e.getTrace(),
+                JassIm.ImStmts(), tupleVars, JassIm.ImExprs(indexes.exprs)));
     }
 
 
@@ -351,7 +352,7 @@ public class Flatten {
         } else {
             // in the unlikely event that this is not an l-value (e.g. foo().x)
             // we create a temporary variable and store the result there
-            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "tuple_temp", false);
+            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "flattenL_tuple_temp", false);
             f.getLocals().add(v);
             stmts = new ArrayList<>(r.stmts);
             stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));

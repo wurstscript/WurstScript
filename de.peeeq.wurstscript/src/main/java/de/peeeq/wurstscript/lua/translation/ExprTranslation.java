@@ -131,11 +131,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTupleExpr e, LuaTranslator tr) {
-        LuaTableFields tableFields = LuaAst.LuaTableFields();
-        for (ImExpr te : e.getExprs()) {
-            tableFields.add(LuaAst.LuaTableSingleField(te.translateToLua(tr)));
-        }
-        return LuaAst.LuaTableConstructor(tableFields);
+        throw new RuntimeException("not implemented");
     }
 
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {

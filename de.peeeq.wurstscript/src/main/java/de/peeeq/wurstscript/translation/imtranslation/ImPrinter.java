@@ -228,12 +228,11 @@ public class ImPrinter {
 
     public static void print(ImTupleExpr p, Appendable sb, int indent) {
         append(sb, "<");
-        boolean first = true;
-        for (ImExpr e : p.getExprs()) {
-            if (!first) append(sb, ", ");
-            e.print(sb, indent);
-            first = false;
+        p.getStatements().print(sb, indent + 1);
+        if (!p.getStatements().isEmpty()) {
+            append(sb, " || ");
         }
+        p.getTupleVars().print(sb, indent + 1);
         append(sb, ">");
     }
 
@@ -419,5 +418,18 @@ public class ImPrinter {
         append(sb, "}");
     }
 
+
+    public static void print(ImTupleVarsList list, Appendable sb, int indent) {
+        append(sb, "<");
+        boolean first = true;
+        for (ImTupleOrVars vars : list) {
+            if (!first) {
+                append(sb, ", ");
+            }
+            vars.print(sb, indent);
+            first = false;
+        }
+        append(sb, ">");
+    }
 
 }

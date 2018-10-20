@@ -49,9 +49,25 @@ public class VariableUses {
 
                     @Override
                     public void case_ImTupleExpr(ImTupleExpr e) {
-                        for (ImExpr expr : e.getExprs()) {
-                            ((ImLExpr) expr).match(this);
-                        }
+                        e.getStatements().accept(thiz);
+                        e.getIndexes().accept(thiz);
+                        collectWrites(e.getTupleVars());
+                    }
+
+                    private void collectWrites(ImTupleOrVars tupleVars) {
+                        tupleVars.match(new ImTupleOrVars.MatcherVoid() {
+                            @Override
+                            public void case_ImVarAccess(ImVarAccess v) {
+                                result.addWrite(v.getVar(), imSet);
+                            }
+
+                            @Override
+                            public void case_ImTupleVarsList(ImTupleVarsList list) {
+                                for (ImTupleOrVars t : list) {
+                                    collectWrites(t);
+                                }
+                            }
+                        });
                     }
 
                     @Override
