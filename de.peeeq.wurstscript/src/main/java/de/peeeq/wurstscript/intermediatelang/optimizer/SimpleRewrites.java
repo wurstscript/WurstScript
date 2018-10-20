@@ -571,8 +571,18 @@ public class SimpleRewrites implements OptimizerPass {
      * like code that is created by the branch merger
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
-        ImVar leftVar1 = imSet1.getLeft();
-        ImVar leftVar2 = imSet2.getLeft();
+        ImVar leftVar1;
+        if (imSet1.getLeft() instanceof ImVarAccess) {
+            leftVar1 = ((ImVarAccess) imSet1.getLeft()).getVar();
+        } else {
+            return;
+        }
+        ImVar leftVar2;
+        if (imSet2.getLeft() instanceof ImVarAccess) {
+            leftVar2 = ((ImVarAccess) imSet2.getLeft()).getVar();
+        } else {
+            return;
+        }
 
         ImExpr rightExpr1 = imSet1.getRight();
         ImExpr rightExpr2 = imSet2.getRight();

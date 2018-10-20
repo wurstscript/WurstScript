@@ -13,14 +13,7 @@ public class ILconstTuple extends ILconstAbstract {
     private final ILconst[] values;
 
     public ILconstTuple(ILconst... values) {
-        this.values = Arrays.stream(values)
-                .flatMap(c -> {
-                    if (c instanceof ILconstTuple) {
-                        return Arrays.stream(((ILconstTuple) c).values);
-                    } else {
-                        return Stream.of(c);
-                    }
-                }).toArray(ILconst[]::new);
+        this.values = values;
     }
 
 

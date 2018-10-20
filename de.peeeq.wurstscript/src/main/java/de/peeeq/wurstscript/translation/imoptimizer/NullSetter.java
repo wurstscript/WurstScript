@@ -50,7 +50,7 @@ public class NullSetter {
         final List<ImStmt> nullSetStmts = Lists.newArrayList();
         final de.peeeq.wurstscript.ast.Element trace = f.getTrace();
         for (ImVar local : handleVars) {
-            nullSetStmts.add(JassIm.ImSet(trace, local, JassIm.ImNull()));
+            nullSetStmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(local), JassIm.ImNull()));
         }
         boolean returns = optimizeChildren(f, handleVars, nullSetStmts, trace, f.getBody());
 
@@ -124,7 +124,7 @@ public class NullSetter {
                 }
 
                 imReturn.setReturnValue(JassIm.ImVarAccess(tempReturn));
-                parent2.add(parentIndex, JassIm.ImSet(trace, tempReturn, returnExpr));
+                parent2.add(parentIndex, JassIm.ImSet(trace, JassIm.ImVarAccess(tempReturn), returnExpr));
             }
 
         } else { // normal return

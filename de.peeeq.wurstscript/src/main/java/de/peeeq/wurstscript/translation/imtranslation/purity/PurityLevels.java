@@ -29,18 +29,6 @@ public class PurityLevels {
         return mergeWithChildren(s, WritesGlobals.instance);
     }
 
-    public static PurityLevel calculate(ImSetArray s) {
-        return mergeWithChildren(s, WritesGlobals.instance);
-    }
-
-    public static PurityLevel calculate(ImSetTuple s) {
-        return mergeWithChildren(s, WritesGlobals.instance);
-    }
-
-    public static PurityLevel calculate(ImSetArrayTuple s) {
-        return mergeWithChildren(s, WritesGlobals.instance);
-    }
-
     public static PurityLevel calculate(ImVarAccess s) {
         return mergeWithChildren(s, ReadsGlobals.instance);
     }

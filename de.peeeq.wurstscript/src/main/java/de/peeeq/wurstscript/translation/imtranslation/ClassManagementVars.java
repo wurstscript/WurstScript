@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.lang.reflect.Type;
+
 public class ClassManagementVars {
     /**
      * array, nextFree[x] is the element which comes next in the queue
@@ -31,7 +33,7 @@ public class ClassManagementVars {
     public ClassManagementVars(ImClass repClass, ImTranslator translator) {
         Element tr = repClass.getTrace();
         ImProg prog = translator.getImProg();
-        free = JassIm.ImVar(tr, JassIm.ImArrayType("integer"), repClass.getName() + "_nextFree", false);
+        free = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_nextFree", false);
         prog.getGlobals().add(free);
 
         freeCount = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
@@ -40,7 +42,7 @@ public class ClassManagementVars {
         maxIndex = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
         translator.addGlobalWithInitalizer(maxIndex, JassIm.ImIntVal(0));
 
-        typeId = JassIm.ImVar(tr, JassIm.ImArrayType("integer"), repClass.getName() + "_typeId", false);
+        typeId = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_typeId", false);
         prog.getGlobals().add(typeId);
     }
 

@@ -213,7 +213,7 @@ public class CyclicFunctionRemover {
             ImExprOpt returnValue = r.getReturnValue();
             returnValue.setParent(null);
             ImStmts stmts = JassIm.ImStmts(
-                    JassIm.ImSet(r.getTrace(), getTempReturnVar(returnType), (ImExpr) returnValue),
+                    JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(getTempReturnVar(returnType)), (ImExpr) returnValue),
                     JassIm.ImReturn(r.getTrace(), JassIm.ImNoExpr())
             );
             r.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));

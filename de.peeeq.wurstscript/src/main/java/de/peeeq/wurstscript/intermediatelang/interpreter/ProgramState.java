@@ -8,11 +8,11 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstArray;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -234,17 +234,17 @@ public class ProgramState extends State {
         return isCompiletime;
     }
 
-    protected Map<Integer, ILconst> getArray(ImVar v) {
-        Map<Integer, ILconst> r = arrayValues.get(v);
+    protected ILconstArray getArray(ImVar v) {
+        ILconstArray r = arrayValues.get(v);
         if (r == null) {
-            r = Maps.newLinkedHashMap();
+            r = new ILconstArray(v.getType()::defaultValue);
             arrayValues.put(v, r);
             List<ImExpr> e = prog.getGlobalInits().get(v);
             if (e != null) {
                 LocalState ls = new LocalState();
                 for (int i = 0; i < e.size(); i++) {
                     ILconst val = e.get(i).evaluate(this, ls);
-                    r.put(i, val);
+                    r.set(i, val);
                 }
             }
         }

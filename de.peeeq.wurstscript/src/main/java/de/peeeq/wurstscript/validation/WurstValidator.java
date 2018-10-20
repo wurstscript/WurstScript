@@ -799,8 +799,8 @@ public class WurstValidator {
         return false;
     }
 
-    private void checkIfAssigningToConstant(final NameRef left) {
-        left.match(new NameRef.MatcherVoid() {
+    private void checkIfAssigningToConstant(final LExpr left) {
+        left.match(new LExpr.MatcherVoid() {
 
             @Override
             public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
@@ -809,7 +809,7 @@ public class WurstValidator {
 
             @Override
             public void case_ExprVarAccess(ExprVarAccess e) {
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override
@@ -826,7 +826,7 @@ public class WurstValidator {
                                 "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
                     }
                 }
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override
@@ -1941,9 +1941,9 @@ public class WurstValidator {
             for (SwitchCase c : s.getCases()) {
                 // if ( i > 0 ) {
                 // for( int j = 0; j<i; j++) {
-                // WLogger.info(">>>>>>>>>>>>>>>>"+c.getExpr());
-                // WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
-                // if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr())
+                // WLogger.info(">>>>>>>>>>>>>>>>"+c.getExprs());
+                // WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExprs());
+                // if ( c.getExprs().attrN.equals(s.getCases().get(j).getExprs())
                 // )
                 // c.addError("Case " + j + " and " + i + " are the same.");
                 // }

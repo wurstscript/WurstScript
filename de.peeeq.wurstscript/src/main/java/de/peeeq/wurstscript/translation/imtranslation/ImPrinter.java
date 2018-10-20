@@ -79,18 +79,7 @@ public class ImPrinter {
 
     public static void print(ImArrayType t, Appendable sb, int indent) {
         append(sb, "array ");
-        append(sb, t.getTypename());
-    }
-
-    public static void print(ImTupleArrayType p, Appendable sb, int indent) {
-        append(sb, "array<");
-        boolean first = true;
-        for (ImType t : p.getTypes()) {
-            if (!first) append(sb, ", ");
-            t.print(sb, indent);
-            first = false;
-        }
-        append(sb, ">");
+        t.getEntryType().print(sb, indent);
     }
 
     public static void print(ImTupleType p, Appendable sb, int indent) {
@@ -173,39 +162,7 @@ public class ImPrinter {
     }
 
     public static void print(ImSet p, Appendable sb, int indent) {
-        append(sb, p.getLeft().getName());
-        append(sb, smallHash(p.getLeft()));
-        append(sb, " = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetTuple p, Appendable sb, int indent) {
-        append(sb, p.getLeft().getName());
-        append(sb, smallHash(p.getLeft()));
-        append(sb, " #");
-        append(sb, p.getTupleIndex());
-        append(sb, " = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetArray p, Appendable sb, int indent) {
-        append(sb, p.getLeft().getName());
-        append(sb, smallHash(p.getLeft()));
-        append(sb, "[");
-        p.getIndex().print(sb, indent);
-        append(sb, "]");
-        append(sb, " = ");
-        p.getRight().print(sb, indent);
-    }
-
-    public static void print(ImSetArrayTuple p, Appendable sb, int indent) {
-        append(sb, p.getLeft().getName());
-        append(sb, smallHash(p.getLeft()));
-        append(sb, "[");
-        p.getIndex().print(sb, indent);
-        append(sb, "]");
-        append(sb, " #");
-        append(sb, p.getTupleIndex());
+        p.getLeft().print(sb, indent);
         append(sb, " = ");
         p.getRight().print(sb, indent);
     }
@@ -219,7 +176,7 @@ public class ImPrinter {
         p.getStatements().print(sb, indent + 1);
         indent(sb, indent + 1);
         append(sb, ">>>  ");
-        p.getExpr().print(sb, indent);
+        p.getExpr().print(sb, indent + 1);
         append(sb, "}");
     }
 
@@ -247,6 +204,7 @@ public class ImPrinter {
 
     public static void print(ImVarAccess p, Appendable sb, int indent) {
         append(sb, p.getVar().getName());
+        append(sb, "_");
         append(sb, smallHash(p.getVar()));
 
     }
@@ -258,10 +216,13 @@ public class ImPrinter {
 
     public static void print(ImVarArrayAccess p, Appendable sb, int indent) {
         append(sb, p.getVar().getName());
+        append(sb, "_");
         append(sb, smallHash(p.getVar()));
-        append(sb, "[");
-        p.getIndex().print(sb, indent);
-        append(sb, "]");
+        for (ImExpr ie : p.getIndexes()) {
+            append(sb, "[");
+            ie.print(sb, indent + 1);
+            append(sb, "]");
+        }
     }
 
 
@@ -430,35 +391,12 @@ public class ImPrinter {
     public static void print(ImArrayTypeMulti imArrayTypeMulti,
                              Appendable sb, int indent) {
         append(sb, "array ");
-        append(sb, imArrayTypeMulti.getTypename());
+        imArrayTypeMulti.getEntryType().print(sb, indent);
         append(sb, " size: ");
         append(sb, imArrayTypeMulti.getArraySize());
 
     }
 
-
-    public static void print(ImSetArrayMulti imSetArrayMulti, Appendable sb,
-                             int indent) {
-        append(sb, imSetArrayMulti.getLeft().getName());
-        append(sb, smallHash(imSetArrayMulti.getLeft()));
-        append(sb, "[");
-        imSetArrayMulti.getIndices().get(0).print(sb, indent);
-        append(sb, "]");
-        append(sb, "[");
-        imSetArrayMulti.getIndices().get(1).print(sb, indent);
-        append(sb, "]");
-        append(sb, " = ");
-        imSetArrayMulti.getRight().print(sb, indent);
-
-    }
-
-
-    public static void print(ImVarArrayMultiAccess imVarArrayMultiAccess,
-                             Appendable sb, int indent) {
-        append(sb, imVarArrayMultiAccess.getVar().getName());
-        append(sb, smallHash(imVarArrayMultiAccess.getVar()));
-
-    }
 
 
     public static void print(ImGetStackTrace e, Appendable sb, int indent) {

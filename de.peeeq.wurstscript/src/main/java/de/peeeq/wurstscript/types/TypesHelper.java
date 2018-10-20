@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.*;
 
 public class TypesHelper {
 
@@ -29,6 +28,20 @@ public class TypesHelper {
 
     public static ImType imBool() {
         return WurstTypeBool.instance().imTranslateType();
+    }
+
+    public static ImArrayType imIntArray() {
+        return JassIm.ImArrayType(imInt());
+    }
+
+    public static ImArrayType imStringArray() {
+        return JassIm.ImArrayType(imString());
+    }
+
+    public static boolean typeContainsTuples(ImType vt) {
+        return vt instanceof ImTupleType
+                || vt instanceof ImArrayType && typeContainsTuples(((ImArrayType) vt).getEntryType())
+                || vt instanceof ImArrayTypeMulti && typeContainsTuples(((ImArrayTypeMulti) vt).getEntryType());
     }
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {

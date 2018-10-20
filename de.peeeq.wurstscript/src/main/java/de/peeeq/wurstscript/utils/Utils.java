@@ -7,8 +7,11 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -126,6 +129,10 @@ public class Utils {
         StringBuilder sb = new StringBuilder();
         printSep(sb, sep, args);
         return sb.toString();
+    }
+
+    public static String printSep(String sep, List<?> args) {
+        return args.stream().map(Object::toString).collect(Collectors.joining(sep));
     }
 
     /**
@@ -995,5 +1002,24 @@ public class Utils {
             return "???";
         }
         return wt.toString();
+    }
+
+    /**
+     * Replaces oldElement with newElement in parent
+     */
+    public static void replace(de.peeeq.wurstscript.jassIm.Element parent, de.peeeq.wurstscript.jassIm.Element oldElement, de.peeeq.wurstscript.jassIm.Element newElement) {
+        if (oldElement == newElement) {
+            return;
+        }
+        de.peeeq.wurstscript.jassIm.Element oldElementParent = oldElement.getParent();
+        for (int i=0; i<parent.size(); i++) {
+            if (parent.get(i) == oldElement) {
+                parent.set(i, newElement);
+                // reset parent, because might be changed
+                oldElement.setParent(oldElementParent);
+                return;
+            }
+        }
+        throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
     }
 }

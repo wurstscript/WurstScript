@@ -96,9 +96,11 @@ public class LocalMerger implements OptimizerPass {
             @Override
             public void visit(ImSet set) {
                 super.visit(set);
-                ImVar v = set.getLeft();
-                if (merges.containsKey(v)) {
-                    set.setLeft(merges.get(v));
+                if (set.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) set.getLeft()).getVar();
+                    if (merges.containsKey(v)) {
+                        set.setLeft(JassIm.ImVarAccess(merges.get(v)));
+                    }
                 }
             }
         });
@@ -123,10 +125,16 @@ public class LocalMerger implements OptimizerPass {
         for (ImStmt s : livenessInfo.keySet()) {
             if (s instanceof ImSet) {
                 ImSet imSet = (ImSet) s;
-                if (imSet.getLeft().isGlobal()) {
+                if (!(imSet.getLeft() instanceof ImVarAccess)) {
                     continue;
                 }
-                if (!livenessInfo.get(s).contains(imSet.getLeft())) {
+                ImVarAccess va = (ImVarAccess) imSet.getLeft();
+                ImVar v = va.getVar();
+                if (v.isGlobal()) {
+                    continue;
+                }
+
+                if (!livenessInfo.get(s).contains(v)) {
                     // write to a variable which is not live
                     // --> only keep side effects
                     ImExpr right = imSet.getRight();
@@ -227,8 +235,11 @@ public class LocalMerger implements OptimizerPass {
             ImStmt stmt = node.getStmt();
             if (stmt instanceof ImSet) {
                 ImSet imSet = (ImSet) stmt;
-                if (!imSet.getLeft().isGlobal()) {
-                    result.put(node, imSet.getLeft());
+                if (imSet.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) imSet.getLeft()).getVar();
+                    if (!v.isGlobal()) {
+                        result.put(node, v);
+                    }
                 }
             }
         }

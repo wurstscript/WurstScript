@@ -37,34 +37,12 @@ public class StmtTranslation {
     }
 
     public static void translate(ImSet s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(s.getLeft())), s.getRight().translateToLua(tr)));
+        res.add(LuaAst.LuaAssignment(s.getLeft().translateToLua(tr), s.getRight().translateToLua(tr)));
     }
 
-    public static void translate(ImSetArray s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(s.getLeft())), LuaAst.LuaExprlist(s.getIndex().translateToLua(tr))),
-                s.getRight().translateToLua(tr)));
-    }
-
-    public static void translate(ImSetArrayMulti s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(s.getLeft())), tr.translateExprList(s.getIndices())),
-                s.getRight().translateToLua(tr)));
-    }
-
-    public static void translate(ImSetArrayTuple s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(s.getLeft())), LuaAst.LuaExprlist(s.getIndex().translateToLua(tr), LuaAst.LuaExprIntVal("" + s.getTupleIndex()))),
-                s.getRight().translateToLua(tr)));
-    }
-
-    public static void translate(ImSetTuple s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(
-                LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(s.getLeft())), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + s.getTupleIndex()))),
-                s.getRight().translateToLua(tr)));
-    }
 
     public static void translate(ImVarargLoop imVarargLoop, List<LuaStatement> res, LuaTranslator tr) {
         throw new Error("not implemented");
     }
+
 }

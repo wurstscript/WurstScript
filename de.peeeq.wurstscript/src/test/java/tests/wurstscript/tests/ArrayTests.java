@@ -119,6 +119,21 @@ public class ArrayTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void multiArrayDefaultValue() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[5] v",
+                "init",
+                "    let c = new C",
+                "    c.v[2] = c.v[3] + 1",
+                "    if c.v[2] == 1",
+                "        testSuccess()"
+        );
+    }
+
 
     public void assertOk(boolean executeProg, String... input) {
         String prog = "package test\n" +

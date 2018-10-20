@@ -255,7 +255,7 @@ public class CompiletimeFunctionRunner {
         WPos errorPos = trace.attrErrorPos();
         ImFunction initHashtable = findNative("InitHashtable", errorPos);
         ImStmts stmts = JassIm.ImStmts(
-                JassIm.ImSet(trace, htVar, JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImExprs(), false, CallType.NORMAL))
+                JassIm.ImSet(trace, JassIm.ImVarAccess(htVar), JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImExprs(), false, CallType.NORMAL))
         );
 
         // we have to collect all values after all compiletime functions have run, so use delayedActions

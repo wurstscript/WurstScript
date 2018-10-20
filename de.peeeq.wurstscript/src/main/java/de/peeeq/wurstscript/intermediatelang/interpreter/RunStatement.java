@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
+import de.peeeq.wurstscript.translation.imtojass.DefaultValue;
 
 public class RunStatement {
 
@@ -56,94 +57,11 @@ public class RunStatement {
     }
 
     public static void run(ImSet s, ProgramState globalState, LocalState localState) {
-        ImVar v = s.getLeft();
+        ILaddress v = s.getLeft().evaluateLvalue(globalState, localState);
         ILconst right = s.getRight().evaluate(globalState, localState);
-        if (v.isGlobal()) {
-            globalState.setVal(v, right);
-        } else {
-            localState.setVal(v, right);
-        }
+        v.set(right);
     }
 
-    public static void run(ImSetArray s, ProgramState globalState, LocalState localState) {
-        ImVar v = s.getLeft();
-        ILconstInt index = (ILconstInt) s.getIndex().evaluate(globalState, localState);
-        ILconst right = s.getRight().evaluate(globalState, localState);
-        if (v.isGlobal()) {
-            globalState.setArrayVal(v, index.getVal(), right);
-        } else {
-            localState.setArrayVal(v, index.getVal(), right);
-        }
-    }
-
-    public static void run(ImSetArrayTuple s, ProgramState globalState, LocalState localState) {
-        ImVar v = s.getLeft();
-        ILconstInt index = (ILconstInt) s.getIndex().evaluate(globalState, localState);
-        ILconst right = s.getRight().evaluate(globalState, localState);
-        if (v.isGlobal()) {
-            ILconstTuple oldVal = (ILconstTuple) globalState.getArrayVal(v, index.getVal());
-            if (oldVal == null) {
-                throw new Error("Tuple not initialized");
-            }
-            ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
-            globalState.setArrayVal(v, index.getVal(), newVal);
-        } else {
-            ILconstTuple oldVal = (ILconstTuple) localState.getArrayVal(v, index.getVal());
-            if (oldVal == null) {
-                throw new Error("Tuple not initialized");
-            }
-            ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
-            localState.setArrayVal(v, index.getVal(), newVal);
-        }
-    }
-
-    public static void run(ImSetArrayMulti s, ProgramState globalState, LocalState localState) {
-        ImVar v = s.getLeft();
-        int[] indices = new int[s.getIndices().size()];
-
-        for (int i = 0; i < indices.length; i++) {
-            ILconstInt index = (ILconstInt) s.getIndices().get(i).evaluate(globalState, localState);
-            indices[i] = index.getVal();
-        }
-        IntTuple indicesT = IntTuple.of(indices);
-        ILconst right = s.getRight().evaluate(globalState, localState);
-        ILconstMultiArray ar;
-        if (v.isGlobal()) {
-            ar = (ILconstMultiArray) globalState.getArrayVal(v, indicesT.head());
-            if (ar == null) {
-                ar = new ILconstMultiArray();
-                globalState.setArrayVal(v, indicesT.head(), ar);
-            }
-        } else {
-            ar = (ILconstMultiArray) localState.getArrayVal(v, indicesT.head());
-            if (ar == null) {
-                ar = new ILconstMultiArray();
-                globalState.setArrayVal(v, indicesT.head(), ar);
-            }
-        }
-        ar.set(indicesT.tail(), right);
-    }
-
-    public static void run(ImSetTuple s, ProgramState globalState, LocalState localState) {
-        ImVar v = s.getLeft();
-        ILconst right = s.getRight().evaluate(globalState, localState);
-        if (v.isGlobal()) {
-            ILconstTuple oldVal = (ILconstTuple) globalState.getVal(v);
-            if (oldVal == null) {
-                throw new Error("Tuple not initialized");
-            }
-            ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
-            globalState.setVal(v, newVal);
-        } else {
-            ILconstTuple oldVal = (ILconstTuple) localState.getVal(v);
-            if (oldVal == null) {
-                throw new Error("Tuple not initialized");
-            }
-            ILconstTuple newVal = oldVal.updated(s.getTupleIndex(), right);
-            localState.setVal(v, newVal);
-        }
-
-    }
 
     public static void run(ImStmts stmts, ProgramState globalState, LocalState localState) {
         for (ImStmt s : stmts) {
