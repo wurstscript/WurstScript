@@ -779,4 +779,46 @@ public class OptimizerTests extends WurstScriptTest {
         assertTrue(inlined.contains("function noot"));
     }
 
+
+    @Test
+    public void moveTowardsBug() { // see #737
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native SquareRoot(real x) returns real",
+                "@extern native R2S(real x) returns string",
+                "native println(string s)",
+                "tuple vec3(real x, real y, real z)",
+                "public function vec3.length() returns real",
+                "    return SquareRoot(this.x * this.x + this.y * this.y + this.z * this.z)",
+                "public function vec3.op_plus(vec3 v)	returns vec3",
+                "    return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
+                "public function vec3.op_minus(vec3 v)	returns vec3",
+                "    return vec3(this.x - v.x, this.y - v.y, this.z - v.z)",
+                "public function vec3.op_mult(real factor) returns vec3",
+                "    return vec3(this.x * factor, this.y * factor, this.z * factor)",
+                "public function real.op_mult(vec3 v) returns vec3",
+                "    return vec3(v.x * this, v.y * this, v.z * this)",
+                "public function vec3.normalizedPointerTo(vec3 target) returns vec3",
+                "    vec3 diff = target - this",
+                "    real len = diff.length()",
+                "    if len > 0",
+                "        diff = diff * (1. / len)",
+                "    else",
+                "        diff = vec3(1, 0, 0)",
+                "    return diff",
+                "function vec3.moveTowards(vec3 target, real dist) returns vec3",
+                "    return this + dist*this.normalizedPointerTo(target)",
+                "function vec3.approxEq(vec3 o) returns bool",
+                "    return this.x - 0.01 < o.x and o.x < this.x + 0.01",
+                "       and this.y - 0.01 < o.y and o.y < this.y + 0.01",
+                "       and this.z - 0.01 < o.z and o.z < this.z + 0.01",
+                "init",
+                "    let a = vec3(0,0,0).moveTowards(vec3(1,2,3), 10)",
+                "    let b = vec3(0,0,0).moveTowards(vec3(6,5,4), 10)",
+                "    if a.approxEq(vec3(2.673, 5.345, 8.018)) and b.approxEq(vec3(6.838, 5.698, 4.558))",
+                "        testSuccess()",
+                "endpackage");
+    }
+
 }

@@ -10,7 +10,10 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 public class TempMerger implements OptimizerPass {
@@ -27,9 +30,6 @@ public class TempMerger implements OptimizerPass {
      */
     @Override
     public int optimize(ImTranslator trans) {
-        containsFuncCall.clear();
-        readsVar.clear();
-        readsGlobal.clear();
         ImProg prog = trans.getImProg();
         totalMerged = 0;
         trans.assertProperties(AssertProperty.FLAT, AssertProperty.NOTUPLES);
@@ -163,69 +163,55 @@ public class TempMerger implements OptimizerPass {
         return null;
     }
 
-    private HashMap<Element, Boolean> containsFuncCall = new HashMap<>();
 
     private boolean containsFuncCall(Element elem) {
-        if (!containsFuncCall.containsKey(elem)) {
-            if (elem instanceof ImFunctionCall) {
-                containsFuncCall.put(elem, true);
+        if (elem instanceof ImFunctionCall) {
+            return true;
+        }
+        // process children
+        boolean r = false;
+        for (int i = 0; i < elem.size(); i++) {
+            r = containsFuncCall(elem.get(i));
+            if (r) {
                 return true;
             }
-            // process children
-            boolean r = false;
-            for (int i = 0; i < elem.size(); i++) {
-                r = containsFuncCall(elem.get(i));
-                if (r) break;
-            }
-            containsFuncCall.put(elem, r);
-
         }
-        return containsFuncCall.get(elem);
+        return false;
     }
 
-    private HashMap<Element, Boolean> readsVar = new HashMap<>();
 
     private boolean readsVar(Element elem, ImVar left) {
-        if (!readsVar.containsKey(elem)) {
-            if (elem instanceof ImVarRead) {
-                ImVarRead va = (ImVarRead) elem;
-                if (va.getVar() == left) {
-                    readsVar.put(elem, true);
-                    return true;
-                }
+        if (elem instanceof ImVarRead) {
+            ImVarRead va = (ImVarRead) elem;
+            if (va.getVar() == left) {
+                return true;
             }
-            boolean r = false;
-            // process children
-            for (int i = 0; i < elem.size(); i++) {
-                r = readsVar(elem.get(i), left);
-                if (r) break;
-            }
-            readsVar.put(elem, r);
         }
-        return readsVar.get(elem);
+        // process children
+        for (int i = 0; i < elem.size(); i++) {
+            if (readsVar(elem.get(i), left)) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    private HashMap<Element, Boolean> readsGlobal = new HashMap<>();
 
     private boolean readsGlobal(Element elem) {
-        if (!readsGlobal.containsKey(elem)) {
-            if (elem instanceof ImVarRead) {
-                ImVarRead va = (ImVarRead) elem;
-                if (va.getVar().isGlobal()) {
-                    readsGlobal.put(elem, true);
-                    return true;
-                }
+        if (elem instanceof ImVarRead) {
+            ImVarRead va = (ImVarRead) elem;
+            if (va.getVar().isGlobal()) {
+                return true;
             }
-            boolean r = false;
-            // process children
-            for (int i = 0; i < elem.size(); i++) {
-                r = readsGlobal(elem.get(i));
-                if (r) break;
+        }
+        // process children
+        for (int i = 0; i < elem.size(); i++) {
+            if (readsGlobal(elem.get(i))) {
+                return true;
             }
-            readsGlobal.put(elem, r);
         }
 
-        return readsGlobal.get(elem);
+        return false;
     }
 
     class Replacement {
