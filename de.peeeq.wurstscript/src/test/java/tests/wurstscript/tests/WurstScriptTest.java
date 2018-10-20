@@ -193,11 +193,11 @@ public class WurstScriptTest {
 
             // translate with different options:
 
-//            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
-//
-//            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
-//
-//            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
             testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
