@@ -934,6 +934,14 @@ public class WurstValidator {
             if (arT.getDimensions() > 1) {
                 def.addError("Array initializer can only be used with one-dimensional arrays.");
             }
+            if (arT.getDimensions() == 1) {
+                int initialValues = arInit.getValues().size();
+                int size = arT.getSize(0);
+                if (size > 0 && size != initialValues) {
+                    def.addError("Array variable " + def.getName() + " is an array of size " + size + ", but is initialized with " + initialValues + " values here.");
+                }
+
+            }
             WurstType baseType = arT.getBaseType();
             for (Expr expr : arInit.getValues()) {
                 if (!expr.attrTyp().isSubtypeOf(baseType, expr)) {

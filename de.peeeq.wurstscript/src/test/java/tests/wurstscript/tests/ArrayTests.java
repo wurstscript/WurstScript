@@ -134,6 +134,29 @@ public class ArrayTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void multiArrayInit() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[3] v = [7, 8, 9]",
+                "init",
+                "    let c = new C",
+                "    if c.v[0] == 7 and c.v[1] == 8 and c.v[2] == 9",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiArrayWrongSize() {
+        testAssertErrorsLines(true, "Array variable v is an array of size 3, but is initialized with 4 values here.",
+                "package test",
+                "class C",
+                "    int array[3] v = [7, 8, 9, 10]"
+        );
+    }
+
 
     public void assertOk(boolean executeProg, String... input) {
         String prog = "package test\n" +
