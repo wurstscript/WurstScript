@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.intermediatelang.optimizer.SideEffectAnalyzer;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator.VarsForTupleResult;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayList;
@@ -24,28 +23,7 @@ import java.util.stream.Collectors;
  */
 public class EliminateTuples {
 
-    /*
-    TODO this could be simplified:
 
-    Visit and rewrite only the expressions that must be changed:
-
-
-
-    2. Normalize Tuples in statement-expressions (move to first tuple param)
-
-        Normalize
-        {stmts >> <e1,e2,e3>}
-        becomes <{stmts >> e1}, e2, e3}
-
-
-    3. Remove tuple expressions
-
-
-      - In parameters: Just flatten
-      - Assignments: Become several assignments
-      - In Return: Use temp returns
-
-     */
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
 
@@ -108,7 +86,6 @@ public class EliminateTuples {
                         extractSideEffect(te, stmts);
                     } else { // if it is the part we want to return ...
                         result = extractSideEffect(te, stmts);
-                        // TODO in this and all the following remove side effects and add them to stmts
                     }
                 }
                 assert result != null;
@@ -404,8 +381,16 @@ public class EliminateTuples {
         ImTupleExpr right = (ImTupleExpr) imSet.getRight();
 
         ImStmts stmts = JassIm.ImStmts();
+
+        // 1) extract side effects from left expressions
+        List<ImExpr> leftExprs = new ArrayList<>();
+        for (ImExpr expr : left.getExprs()) {
+            leftExprs.add(extractSideEffect(expr, stmts));
+        }
+
+
         List<ImVar> tempVars = new ArrayList<>();
-        // first assign right hand side to temporary variables:
+        // 2) assign right hand side to temporary variables:
         for (ImExpr expr : right.getExprs()) {
             ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_temp", false);
             expr.setParent(null);
@@ -414,9 +399,8 @@ public class EliminateTuples {
             f.getLocals().add(temp);
         }
         // then assign right vars
-        // TODO side effects from left expressions should come before side effects on right
-        for (int i = 0; i < left.getExprs().size(); i++) {
-            ImLExpr leftE = (ImLExpr) left.getExprs().get(i);
+        for (int i = 0; i < leftExprs.size(); i++) {
+            ImLExpr leftE = (ImLExpr) leftExprs.get(i);
             leftE.setParent(null);
             stmts.add(JassIm.ImSet(imSet.getTrace(), leftE, JassIm.ImVarAccess(tempVars.get(i))));
         }

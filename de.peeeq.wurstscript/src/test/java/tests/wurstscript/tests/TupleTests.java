@@ -506,4 +506,25 @@ public class TupleTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void tupleArraySideEvaluationOrder() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "int x = 1",
+                "tuple p(int x, int y)",
+                "p array ar",
+                "function foo() returns int",
+                "    x = x * 2",
+                "    return 1",
+                "function bar() returns int",
+                "    x = x + 1",
+                "    return 1",
+                "init",
+                "    ar[foo()] = p(bar(), 7)",
+                "    if x == 3 and ar[1].x == 1 and ar[1].y == 7",
+                "        testSuccess()"
+        );
+    }
+
 }

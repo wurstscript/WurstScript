@@ -234,10 +234,10 @@ public class Flatten {
 
 
     public static Result flatten(ImSet s, ImTranslator t, ImFunction f) {
-        Result r = s.getRight().flatten(t, f);
         Result l = s.getLeft().flatten(t, f);
-        List<ImStmt> stmts = Lists.newArrayList(r.stmts);
-        stmts.addAll(l.stmts);
+        Result r = s.getRight().flatten(t, f);
+        List<ImStmt> stmts = Lists.newArrayList(l.stmts);
+        stmts.addAll(r.stmts);
         stmts.add(JassIm.ImSet(s.getTrace(), (ImLExpr) l.expr, r.expr));
         return new Result(stmts);
     }
