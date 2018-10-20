@@ -1108,14 +1108,19 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
-    @Ignore // Bug https://github.com/wurstscript/WurstScript/issues/572
-    public void tupleArrayMember() {
-        testAssertErrorsLines(false, "cannot access",
+    public void tupleArrayMember() { // See #572
+        testAssertOkLines(true,
                 "package test",
-                "   tuple t(int i)",
-                "   class A",
-                "       t array[2] b",
-                "endpackage"
+                "native testSuccess()",
+                "tuple t(int i)",
+                "class A",
+                "    t array[2] b",
+                "init",
+                "    let a = new A()",
+                "    a.b[0] = t(4)",
+                "    a.b[1] = t(5)",
+                "    if a.b[0] == t(4) and a.b[1] == t(5)",
+                "        testSuccess()"
         );
     }
 
