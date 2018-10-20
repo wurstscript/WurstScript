@@ -579,7 +579,7 @@ public class SimpleRewrites implements OptimizerPass {
         }
         ImVar leftVar2;
         if (imSet2.getLeft() instanceof ImVarAccess) {
-            leftVar2 = ((ImVarAccess) imSet1.getLeft()).getVar();
+            leftVar2 = ((ImVarAccess) imSet2.getLeft()).getVar();
         } else {
             return;
         }
