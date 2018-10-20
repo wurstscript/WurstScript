@@ -157,6 +157,16 @@ public class ArrayTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void conditionalWithArray() { // see #631
+        testAssertOkLines(false,
+                "bool cond = true",
+                "class TestClass",
+                "    int array[3] zzzz",
+                "function ffff() returns int",
+                "    return cond ? zzzz[1] : 0");
+    }
+
 
     public void assertOk(boolean executeProg, String... input) {
         String prog = "package test\n" +
