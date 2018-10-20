@@ -1712,6 +1712,9 @@ public class WurstValidator {
                         if(f.getParameters().size() > 0) {
                             f.addError("Functions annotated '@compiletime' may not take parameters." +
                                     "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
+                        } else if (f.attrIsDynamicClassMember()) {
+                            f.addError("Functions annotated '@compiletime' must be static." +
+                                    "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
                         }
                     }
                 }

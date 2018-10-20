@@ -67,5 +67,23 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
+    @Test
+    public void checkCompiletimeAnnotation1() {
+        testAssertErrorsLines(false, "Functions annotated '@compiletime' may not take parameters.",
+                "package test",
+                "@compiletime",
+                "function foo(int x)");
+    }
+
+    @Test
+    public void checkCompiletimeAnnotation2() {
+        testAssertErrorsLines(false, "Functions annotated '@compiletime' must be static.",
+                "package test",
+                "class C",
+                "    @compiletime",
+                "    function foo()");
+
+    }
+
 
 }
