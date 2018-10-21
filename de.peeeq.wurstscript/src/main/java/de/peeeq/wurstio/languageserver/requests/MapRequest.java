@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
@@ -145,6 +146,17 @@ public abstract class MapRequest extends UserRequest<Object> {
             File buildDir = getBuildDir();
             File outFile = new File(buildDir, "compiled.j.txt");
             Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
+
+            if (!runArgs.isDisablePjass()) {
+                Pjass.Result pJassResult = Pjass.runPjass(outFile);
+                WLogger.info(pJassResult.getMessage());
+                if (!pJassResult.isOk()) {
+                    for (CompileError err : pJassResult.getErrors()) {
+                        gui.sendError(err);
+                    }
+                    return null;
+                }
+            }
             return outFile;
         } catch (Exception e) {
             throw new RuntimeException(e);
