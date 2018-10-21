@@ -25,6 +25,7 @@ public class StackTraceInjector2 {
     private ImProg prog;
     private ImVar stackSize;
     private ImVar stack;
+    private ImGetStackTrace dummyGetStackTrace = JassIm.ImGetStackTrace();
 
     public StackTraceInjector2(ImProg prog, ImTranslator imTranslator2) {
         this.prog = prog;
@@ -41,6 +42,14 @@ public class StackTraceInjector2 {
             public void visit(ImGetStackTrace e) {
                 super.visit(e);
                 stackTraceGets.put(e.getNearestFunc(), e);
+            }
+
+            @Override
+            public void visit(ImVarArrayAccess va) {
+                super.visit(va);
+                if (va.getIndexes().size() > 1) {
+                    stackTraceGets.put(va.getNearestFunc(), dummyGetStackTrace);
+                }
             }
 
             @Override
@@ -218,7 +227,7 @@ public class StackTraceInjector2 {
         return f.getName();
     }
 
-    private String getCallPos(WPos source) {
+    public static String getCallPos(WPos source) {
         String callPos;
         if (source.getFile().startsWith("<")) {
             callPos = "";
@@ -279,6 +288,9 @@ public class StackTraceInjector2 {
         for (Entry<ImFunction, ImGetStackTrace> e : stackTraceGets.entries()) {
             ImFunction f = e.getKey();
             ImGetStackTrace s = e.getValue();
+            if (s == dummyGetStackTrace) {
+                continue;
+            }
 
             de.peeeq.wurstscript.ast.Element trace = s.attrTrace();
             ImVar traceStr = JassIm.ImVar(trace, TypesHelper.imString(), "stacktraceStr", false);

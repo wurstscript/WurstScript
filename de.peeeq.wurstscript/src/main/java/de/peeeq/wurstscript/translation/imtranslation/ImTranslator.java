@@ -1412,7 +1412,7 @@ public class ImTranslator {
     }
 
 
-    public ImExpr imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
+    public ImFunctionCall imError(de.peeeq.wurstscript.ast.Element trace, ImExpr message) {
         ImFunction ef = errorFunc;
         if (ef == null) {
             Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);

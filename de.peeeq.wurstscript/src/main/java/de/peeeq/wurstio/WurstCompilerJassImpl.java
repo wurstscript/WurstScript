@@ -429,7 +429,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
 
-        new MultiArrayEliminator(imProg2, imTranslator2).run();
+        new MultiArrayEliminator(imProg2, imTranslator2, runArgs.isIncludeStacktraces() && !runArgs.isNoDebugMessages()).run();
         printDebugImProg("./test-output/im " + stage++ + "_withoutmultiarrays.im");
         imTranslator2.assertProperties();
 
