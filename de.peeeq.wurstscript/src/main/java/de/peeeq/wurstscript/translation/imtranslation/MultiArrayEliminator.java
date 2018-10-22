@@ -95,7 +95,6 @@ public class MultiArrayEliminator {
             }
 
 
-
             if (left instanceof ImVarArrayAccess) {
                 ImVarArrayAccess va = (ImVarArrayAccess) left;
                 if (va.getIndexes().size() > 1) {
@@ -165,7 +164,9 @@ public class MultiArrayEliminator {
         if (generateStacktraces) {
             ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
             setFunc.getParameters().add(stackPos);
-            error.getArguments().add(JassIm.ImVarAccess(stackPos));
+            if (error.getFunc().getParameters().size() == 2) {
+                error.getArguments().add(JassIm.ImVarAccess(stackPos));
+            }
         }
         return setFunc;
     }
@@ -216,7 +217,9 @@ public class MultiArrayEliminator {
         if (generateStacktraces) {
             ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
             getFunc.getParameters().add(stackPos);
-            error.getArguments().add(JassIm.ImVarAccess(stackPos));
+            if (error.getFunc().getParameters().size() == 2) {
+                error.getArguments().add(JassIm.ImVarAccess(stackPos));
+            }
         }
         return getFunc;
     }

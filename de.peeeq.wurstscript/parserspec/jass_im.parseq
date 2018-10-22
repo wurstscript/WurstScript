@@ -3,7 +3,9 @@ package de.peeeq.wurstscript.jassIm
 
 abstract syntax:
 	
-ImProg(ImVars globals, 
+ImProg(
+    @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    ImVars globals,
 	ImFunctions functions, 
 	ImClasses classes, 
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
@@ -116,6 +118,7 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
+ | ImProg
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 

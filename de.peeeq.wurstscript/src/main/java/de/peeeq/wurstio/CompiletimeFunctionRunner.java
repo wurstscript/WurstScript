@@ -13,6 +13,7 @@ import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
@@ -34,10 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class CompiletimeFunctionRunner {
@@ -113,6 +111,9 @@ public class CompiletimeFunctionRunner {
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
             sendErrors(origin, e.getMessage());
+            if (isUnitTestMode()) {
+                throw e;
+            }
         } catch (Throwable e) {
             WLogger.severe(e);
             de.peeeq.wurstscript.jassIm.Element s = interpreter.getLastStatement();
@@ -123,8 +124,19 @@ public class CompiletimeFunctionRunner {
             } else {
                 throw new Error("could not get origin", e);
             }
+            if (isUnitTestMode()) {
+                throw e;
+            }
         }
 
+    }
+
+    private boolean isUnitTestMode() {
+        return Optional.ofNullable(imProg)
+                .map(ImProg::attrTrace)
+                .map(Element::getErrorHandler)
+                .map(ErrorHandler::isUnitTestMode)
+                .orElse(false);
     }
 
     private void sendErrors(Element origin, String msg) {
