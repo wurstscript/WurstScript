@@ -55,8 +55,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private @Nullable ImTranslator imTranslator;
     private List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
+    private TimeTaker timeTaker;
 
     public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+        this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
+    }
+
+    public WurstCompilerJassImpl(TimeTaker timeTaker, @Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+        this.timeTaker = timeTaker;
         this.projectFolder = projectFolder;
         this.gui = gui;
         this.runArgs = runArgs;
@@ -382,7 +388,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         checker.checkProg(model, toCheck);
     }
 
-    public @Nullable JassProg transformProgToJass() {
+    public JassProg transformProgToJass() {
         ImTranslator imTranslator2 = getImTranslator();
         ImProg imProg2 = getImProg();
         imTranslator2.assertProperties();
@@ -410,7 +416,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         imTranslator2.assertProperties();
 
-        ImOptimizer optimizer = new ImOptimizer(imTranslator2);
+        ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
 
         // inliner
         if (runArgs.isInline()) {
@@ -488,6 +494,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (errorHandler.getErrorCount() > 0) {
             prog = null;
         }
+        timeTaker.endPhase();
         return prog;
     }
 
@@ -517,11 +524,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imProg = getImTranslator().translateProg();
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");
+        timeTaker.endPhase();
         return imProg;
     }
 
     private void beginPhase(int phase, String description) {
         errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
+        timeTaker.beginPhase(description);
     }
 
     private void printDebugImProg(String debugFile) {

@@ -42,6 +42,7 @@ public class RunArgs {
     private RunOption optionCopyMap;
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
+    private RunOption optionMeasureTimes;
 
     public RunArgs with(String... additionalArgs) {
         return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
@@ -88,6 +89,7 @@ public class RunArgs {
         uncheckedDispatch = addOption("uncheckedDispatch", "(dangerous) Removes checks from method-dispatch code. With unchecked dispatch "
                 + "some programming errors like null-pointer-dereferences or accessing of destroyed objects can no longer be detected. "
                 + "It is strongly recommended to not use this option, but it can give some performance benefits.");
+        optionMeasureTimes = addOption("measure", "Measure how long each step of the translation process takes.");
         // tools
         optionAbout = addOption("-about", "Show the 'about' window.");
         optionFixInstall = addOption("-fixInstallation", "Checks your wc3 installation and applies compatibility fixes");
@@ -302,5 +304,8 @@ public class RunArgs {
         return optionRuntests.isSet;
     }
 
+    public boolean isMeasureTimes() {
+        return optionMeasureTimes.isSet;
+    }
 
 }
