@@ -4,13 +4,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
-import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Removes cyclic functions from a program
@@ -30,19 +28,12 @@ public class CyclicFunctionRemover {
     }
 
     public void work() {
-        boolean repeat = true;
-        while (repeat) {
-            // TODO optimize, it is not really necessary to completely recalculate the call relations every time
-            //      instead, we could just keep track of the changes
-            tr.calculateCallRelationsAndUsedVariables();
-            Set<Set<ImFunction>> components = graph.findStronglyConnectedComponents(prog.getFunctions());
+        tr.calculateCallRelationsAndUsedVariables();
+        Set<Set<ImFunction>> components = graph.findStronglyConnectedComponents(prog.getFunctions());
 
-            repeat = false;
-            for (Set<ImFunction> component : components) {
-                if (component.size() > 1) {
-                    removeCycle(ImmutableList.copyOf(component));
-                    repeat = true;
-                }
+        for (Set<ImFunction> component : components) {
+            if (component.size() > 1) {
+                removeCycle(ImmutableList.copyOf(component));
             }
         }
     }
