@@ -1,11 +1,14 @@
 package tests.utils;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import de.peeeq.datastructures.GraphInterpreter;
 import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertTrue;
@@ -69,6 +72,51 @@ public class GraphInterpreterTests {
     }
 
 
+    @Test
+    public void testStronglyConnectedComponents() {
+        // example from https://en.wikipedia.org/wiki/Strongly_connected_component
+        // https://en.wikipedia.org/wiki/File:Scc.png
+
+        GraphInterpreter<Node> gi = new GraphInterpreter<Node>() {
+            @Override
+            protected List<Node> getIncidentNodes(Node n) {
+                return n.nextNodes;
+            }
+        };
+
+        Node a = new Node("a");
+        Node b = new Node("b");
+        Node c = new Node("c");
+        Node d = new Node("d");
+        Node e = new Node("e");
+        Node f = new Node("f");
+        Node g = new Node("g");
+        Node h = new Node("h");
+
+        List<Node> nodes = Lists.newArrayList(a, b, c, d, e, f, g, h);
+
+        a.add(b);
+        b.add(e, f);
+        c.add(d, g);
+        d.add(c, h);
+        e.add(a, f);
+        f.add(g);
+        g.add(f);
+        h.add(g, d);
+
+
+        Set<Set<Node>> components = gi.findStronglyConnectedComponents(nodes);
+
+        Set<Set<Node>> expected = ImmutableSet.of(
+                ImmutableSet.of(a, b, e),
+                ImmutableSet.of(f, g),
+                ImmutableSet.of(c, d, h)
+        );
+
+        assertEquals(components, expected);
+    }
+
+
     class Node {
         final String val;
         final List<Node> nextNodes;
@@ -84,9 +132,7 @@ public class GraphInterpreterTests {
         }
 
         void add(Node... next) {
-            for (Node n : next) {
-                nextNodes.add(n);
-            }
+            Collections.addAll(nextNodes, next);
         }
 
         @Override

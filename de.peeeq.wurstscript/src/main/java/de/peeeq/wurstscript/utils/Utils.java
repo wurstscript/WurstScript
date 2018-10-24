@@ -528,9 +528,17 @@ public class Utils {
     }
 
     public static <T, S> Multimap<T, S> inverse(Multimap<S, T> orig) {
-        Multimap<T, S> result = HashMultimap.create();
+        Multimap<T, S> result = LinkedHashMultimap.create();
         for (Entry<S, T> e : orig.entries()) {
             result.put(e.getValue(), e.getKey());
+        }
+        return result;
+    }
+
+    public static <T extends Comparable<? extends T>, S> TreeMap<T, Set<S>> inverseMapToSet(Map<S, T> orig) {
+        TreeMap<T, Set<S>> result = new TreeMap<>();
+        for (Entry<S, T> e : orig.entrySet()) {
+            result.computeIfAbsent(e.getValue(), x -> new LinkedHashSet<>()).add(e.getKey());
         }
         return result;
     }

@@ -821,4 +821,32 @@ public class OptimizerTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void cyclicFunctionRemover() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(int x) returns int",
+                "	if x > 1000",
+                "		return g(x)",
+                "	if x > 100",
+                "		return h(x)",
+                "	if x > 10",
+                "		return i(x)",
+                "	return x",
+                "function g(int x) returns int",
+                "	return foo(x div 1000)",
+                "function h(int x) returns int",
+                "	return foo(x div 100)",
+                "function i(int x) returns int",
+                "	return foo(x div 10)",
+                "init",
+                "	if foo(7531) == 7",
+                "		testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        assertFalse(compiled.contains("cyc_cyc"));
+    }
+
 }
