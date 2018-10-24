@@ -218,6 +218,7 @@ public abstract class WurstType {
                 || this instanceof WurstTypeIntLiteral
                 || this instanceof WurstTypeNamedScope
                 || this instanceof WurstTypeTypeParam
+                || this instanceof WurstTypeNull
                 || this instanceof WurstTypeBoundTypeParam; //  WurstTypeBoundTypeParam overrides this method
     }
 
