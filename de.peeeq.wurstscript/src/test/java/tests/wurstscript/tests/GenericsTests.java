@@ -1078,7 +1078,7 @@ public class GenericsTests extends WurstScriptTest {
                 "	if t == null",
                 "		testSuccess()",
                 "init",
-                "	foo(\"hi\")"
+                "	foo(null)"
         );
     }
 
