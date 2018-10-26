@@ -4,6 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
+import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -1000,14 +1001,14 @@ public class ImTranslator {
     }
 
 
-    private Multimap<ClassDef, ClassDef> subclasses = null;
+    private TransitiveClosure<ClassDef> subclasses = null;
     private Multimap<ClassDef, ClassDef> directSubclasses = null;
 
     private boolean isEclipseMode = false;
 
-    public Collection<ClassDef> getSubClasses(ClassDef classDef) {
+    public List<ClassDef> getSubClasses(ClassDef classDef) {
         calculateSubclasses();
-        return subclasses.get(classDef);
+        return subclasses.getAsList(classDef);
     }
 
     private void calculateSubclasses() {
@@ -1015,7 +1016,7 @@ public class ImTranslator {
             return;
         }
         calculateDirectSubclasses();
-        subclasses = Utils.transientClosure(directSubclasses);
+        subclasses = new TransitiveClosure<>(directSubclasses);
     }
 
 
@@ -1027,7 +1028,7 @@ public class ImTranslator {
         for (ClassDef c : classes()) {
             WurstTypeClass extendedClass = c.attrTypC().extendedClass();
             if (extendedClass != null) {
-                directSubclasses.put(((ClassDef) extendedClass.getDef()), c);
+                directSubclasses.put(extendedClass.getDef(), c);
             }
         }
     }
