@@ -2536,6 +2536,7 @@ native BlzGetUnitAbilityCooldown                   takes unit whichUnit, integer
 native BlzGetUnitAbilityCooldownRemaining          takes unit whichUnit, integer abilId returns real
 native BlzEndUnitAbilityCooldown                   takes unit whichUnit, integer abilCode returns nothing
 native BlzGetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level returns integer
+native BlzSetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level, integer manaCost returns nothing
 native BlzGetLocalUnitZ                            takes unit whichUnit returns real    
 native BlzDecPlayerTechResearched                  takes player whichPlayer, integer techid, integer levels returns nothing
 native BlzSetEventDamage                           takes real damage returns nothing
