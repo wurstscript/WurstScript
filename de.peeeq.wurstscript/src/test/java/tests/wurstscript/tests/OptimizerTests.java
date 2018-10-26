@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -510,6 +511,35 @@ public class OptimizerTests extends WurstScriptTest {
                 "		if i == 5",
                 "			testSuccess()",
                 "endpackage");
+    }
+
+    @Test
+    @Ignore // test for #747
+    public void test_localVarMerger3() throws IOException {
+        test().lines(
+                "package test",
+                "native testSuccess()",
+                "native testFail(string s)",
+                "native sideEffects()",
+                "@extern native Sin(real r) returns real",
+                "int g = 0",
+                "int h = 0",
+                "function f(int x)",
+                "	sideEffects()",
+                "function foo(int x)",
+                "	int a = g",
+                "	if h == 10",
+                "		f(a)",
+                "function initVars()",
+                "	g = 7",
+                "	h = 10",
+                "init",
+                "	initVars()",
+                "	foo(3)",
+                "	testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_localVarMerger3_opt.j"), Charsets.UTF_8);
+        assertTrue(compiledAndOptimized.contains("call f(test_g)"));
     }
 
     @Test

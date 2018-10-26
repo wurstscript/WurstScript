@@ -106,8 +106,8 @@ public class TempMerger implements OptimizerPass {
         }
         if (s instanceof ImSet) {
             ImSet imSet = (ImSet) s;
-            if (imSet.getLeft() instanceof ImVarRead) {
-                ImVarRead va = (ImVarRead) imSet.getLeft();
+            if (imSet.getLeft() instanceof ImVarAccess) {
+                ImVarAccess va = (ImVarAccess) imSet.getLeft();
                 // update the knowledge with the new set statement
                 kn.update(va.getVar(), imSet);
             } else if (imSet.getLeft() instanceof ImVarArrayAccess) {
