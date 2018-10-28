@@ -12,6 +12,7 @@ import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 
@@ -260,5 +261,18 @@ public class FuncLink extends DefLink {
 
     public boolean isStatic() {
         return def.attrIsStatic();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FuncLink funcLink = (FuncLink) o;
+        return Objects.equals(def, funcLink.def);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(def);
     }
 }

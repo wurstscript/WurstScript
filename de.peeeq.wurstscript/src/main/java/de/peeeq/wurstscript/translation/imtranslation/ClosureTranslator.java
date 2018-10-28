@@ -40,13 +40,13 @@ public class ClosureTranslator {
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
-            stmts.add(JassIm.ImSet(e, clVar, JassIm.ImAlloc(c)));
+            stmts.add(JassIm.ImSet(e, JassIm.ImVarAccess(clVar), JassIm.ImAlloc(c)));
             callSuperConstructor(clVar, stmts, c);
             // set closure vars
             for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
                 ImVar orig = entry.getKey();
                 ImVar v = entry.getValue();
-                stmts.add(JassIm.ImSetArray(e, v, JassIm.ImVarAccess(clVar), JassIm.ImVarAccess(orig)));
+                stmts.add(JassIm.ImSet(e, JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(clVar))), JassIm.ImVarAccess(orig)));
             }
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
         }
@@ -112,7 +112,7 @@ public class ClosureTranslator {
             public void visit(ImSet s) {
                 super.visit(s);
                 if (isLocalToOtherFunc(s.getLeft())) {
-                    throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft().getName());
+                    throw new CompileError(s.attrTrace().attrSource(), "Anonymous functions used as 'code' cannot capture variables. Captured " + s.getLeft());
                 }
             }
         });
@@ -166,8 +166,6 @@ public class ClosureTranslator {
 
     private void transformTranslated(ImExpr t) {
         final List<ImVarAccess> vas = Lists.newArrayList();
-        final List<ImSet> sets = Lists.newArrayList();
-        final List<ImSetTuple> tupleSets = Lists.newArrayList();
         t.accept(new ImExpr.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -177,38 +175,12 @@ public class ClosureTranslator {
                 }
             }
 
-            @Override
-            public void visit(ImSet s) {
-                super.visit(s);
-                if (isLocalToOtherFunc(s.getLeft())) {
-                    sets.add(s);
-                }
-            }
 
-            @Override
-            public void visit(ImSetTuple s) {
-                super.visit(s);
-                if (isLocalToOtherFunc(s.getLeft())) {
-                    tupleSets.add(s);
-                }
-            }
         });
 
         for (ImVarAccess va : vas) {
             ImVar v = getClosureVarFor(va.getVar());
-            va.replaceBy(JassIm.ImVarArrayAccess(v, closureThis()));
-        }
-        for (ImSet s : sets) {
-            ImVar v = getClosureVarFor(s.getLeft());
-            ImExpr right = s.getRight();
-            right.setParent(null);
-            s.replaceBy(JassIm.ImSetArray(e, v, closureThis(), right));
-        }
-        for (ImSetTuple s : tupleSets) {
-            ImVar v = getClosureVarFor(s.getLeft());
-            ImExpr right = s.getRight();
-            right.setParent(null);
-            s.replaceBy(JassIm.ImSetArrayTuple(e, v, closureThis(), s.getTupleIndex(), right));
+            va.replaceBy(JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())));
         }
     }
 
@@ -220,7 +192,7 @@ public class ClosureTranslator {
     private ImVar getClosureVarFor(ImVar var) {
         ImVar v = closureVars.get(var);
         if (v == null) {
-            v = JassIm.ImVar(e, arrayType(var.getType()), var.getName(), false);
+            v = JassIm.ImVar(e, JassIm.ImArrayType(var.getType()), var.getName(), false);
             tr.imProg().getGlobals().add(v);
             closureVars.put(var, v);
         }
@@ -228,26 +200,24 @@ public class ClosureTranslator {
     }
 
 
-    private ImType arrayType(ImType type) {
-        if (type instanceof ImSimpleType) {
-            ImSimpleType t = (ImSimpleType) type;
-            return JassIm.ImArrayType(t.getTypename());
-        } else if (type instanceof ImTupleType) {
-            ImTupleType t = (ImTupleType) type;
-            return JassIm.ImTupleArrayType(t.getTypes(), t.getNames());
-        }
-        throw new CompileError(e.getSource(), "Closure references array variable.");
-    }
-
-
-    private boolean isLocalToOtherFunc(ImVar imVar) {
-        if (imVar.getParent() == null
-                || imVar.getParent().getParent() == null) {
+    private boolean isLocalToOtherFunc(ImVar v) {
+        if (v.getParent() == null
+                || v.getParent().getParent() == null) {
             return false;
         }
-        if (imVar.getParent().getParent() instanceof ImFunction) {
-            boolean r = imVar.getParent().getParent() != impl;
+        if (v.getParent().getParent() instanceof ImFunction) {
+            boolean r = v.getParent().getParent() != impl;
             return r;
+        }
+        return false;
+    }
+
+    private boolean isLocalToOtherFunc(ImLExpr e) {
+        if (e instanceof ImVarAccess) {
+            return isLocalToOtherFunc(((ImVarAccess) e).getVar());
+        } else if (e instanceof ImTupleSelection) {
+            ImTupleSelection ts = (ImTupleSelection) e;
+            return isLocalToOtherFunc((ImLExpr) ts.getTupleExpr());
         }
         return false;
     }

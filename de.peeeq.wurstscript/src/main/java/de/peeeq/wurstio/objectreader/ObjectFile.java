@@ -24,7 +24,7 @@ public class ObjectFile {
     }
 
     @SuppressWarnings("resource") // closed in constructor
-    public ObjectFile(File file, ObjectFileType fileType) throws FileNotFoundException {
+    public ObjectFile(File file, ObjectFileType fileType) throws IOException {
         this(new BinaryDataInputStream(file, true), fileType);
     }
 

@@ -9,7 +9,7 @@ import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -21,8 +21,6 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
-import de.peeeq.wurstscript.attributes.names.VarLink;
 
 /**
  * this class validates a wurstscript program
@@ -80,6 +78,7 @@ public class WurstValidator {
     private void postChecks(List<CompilationUnit> toCheck) {
         checkUnusedImports(toCheck);
         ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
+        ValidateClassMemberUsage.checkClassMembers(toCheck);
     }
 
     private void checkUnusedImports(List<CompilationUnit> toCheck) {
@@ -339,6 +338,7 @@ public class WurstValidator {
             cde.printStackTrace();
             Element element = cde.getElement();
             String attr = cde.getAttributeName().replaceFirst("^attr", "");
+            WLogger.info(Utils.printElementWithSource(element) + " depends on itself when evaluating attribute " + attr);
             WLogger.info(cde);
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
@@ -433,7 +433,7 @@ public class WurstValidator {
         if (def != e && def instanceof NativeType) {
             e.addError(
                     "The name '" + name + "' is already used as a native type in " + Utils.printPos(def.getSource()));
-        } else {
+        } else if (!e.attrSource().getFile().endsWith(".j")) {
             switch (name) {
                 case "int":
                 case "integer":
@@ -559,19 +559,62 @@ public class WurstValidator {
         if (e.isModuleUseTypeArg()) {
             return;
         }
+
         TypeDef typeDef = e.attrTypeDef();
+        // check that modules are not used as normal types
+        if (e.attrTypeDef() instanceof ModuleDef) {
+            ModuleDef md = (ModuleDef) e.attrTypeDef();
+            checkModuleTypeUsedCorrectly(e, md);
+        }
+
         if (typeDef instanceof TypeParamDef) { // references a type parameter
             TypeParamDef tp = (TypeParamDef) typeDef;
-            if (tp.isStructureDefTypeParam()) { // typeParamDef is for
-                // structureDef
-                if (tp.attrNearestStructureDef() instanceof ModuleDef) {
-                    // in modules we can also type-params in static contexts
+            checkTypeparamsUsedCorrectly(e, tp);
+        }
+
+    }
+
+    /**
+     *  Checks that module types are only used in valid places
+     */
+    private void checkModuleTypeUsedCorrectly(TypeExpr e, ModuleDef md) {
+        if (e instanceof TypeExprThis) {
+            // thistype is allowed, because it is translated to a real type when used
+            return;
+        }
+        if (e.getParent() instanceof TypeExprThis) {
+            TypeExprThis parent = (TypeExprThis) e.getParent();
+            if (parent.getScopeType() == e) {
+                // ModuleName.thistype is allowed
+                // TODO (maybe check here that it is a parent)
+                return;
+            }
+        }
+        if (e instanceof TypeExprSimple) {
+            TypeExprSimple tes = (TypeExprSimple) e;
+            if (tes.getScopeType() instanceof TypeExpr) {
+                TypeExpr scopeType = (TypeExpr) tes.getScopeType();
+                if (scopeType instanceof TypeExprThis
+                        || scopeType.attrTypeDef() instanceof ModuleDef) {
+                    // thistype.A etc. is allowed
                     return;
                 }
+            }
+        }
+        e.addError("Cannot use module type " + md.getName() + " in this context.");
+    }
 
-                if (!e.attrIsDynamicContext()) {
-                    e.addError("Type variables must not be used in static contexts.");
-                }
+    /** check that type parameters are used in correct contexts: */
+    private void checkTypeparamsUsedCorrectly(TypeExpr e, TypeParamDef tp) {
+        if (tp.isStructureDefTypeParam()) { // typeParamDef is for
+            // structureDef
+            if (tp.attrNearestStructureDef() instanceof ModuleDef) {
+                // in modules we can also type-params in static contexts
+                return;
+            }
+
+            if (!e.attrIsDynamicContext()) {
+                e.addError("Type variables must not be used in static contexts.");
             }
         }
     }
@@ -756,8 +799,8 @@ public class WurstValidator {
         return false;
     }
 
-    private void checkIfAssigningToConstant(final NameRef left) {
-        left.match(new NameRef.MatcherVoid() {
+    private void checkIfAssigningToConstant(final LExpr left) {
+        left.match(new LExpr.MatcherVoid() {
 
             @Override
             public void case_ExprVarArrayAccess(ExprVarArrayAccess e) {
@@ -766,7 +809,7 @@ public class WurstValidator {
 
             @Override
             public void case_ExprVarAccess(ExprVarAccess e) {
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override
@@ -783,7 +826,7 @@ public class WurstValidator {
                                 "Ok, so you are trying to assign something to the return value of a function. This wont do nothing. Tuples are not classes.");
                     }
                 }
-                checkVarNotConstant(left, e.attrNameLink());
+                checkVarNotConstant(e, e.attrNameLink());
             }
 
             @Override
@@ -890,6 +933,14 @@ public class WurstValidator {
             WurstTypeArray arT = (WurstTypeArray) leftType;
             if (arT.getDimensions() > 1) {
                 def.addError("Array initializer can only be used with one-dimensional arrays.");
+            }
+            if (arT.getDimensions() == 1) {
+                int initialValues = arInit.getValues().size();
+                int size = arT.getSize(0);
+                if (size > 0 && size != initialValues) {
+                    def.addError("Array variable " + def.getName() + " is an array of size " + size + ", but is initialized with " + initialValues + " values here.");
+                }
+
             }
             WurstType baseType = arT.getBaseType();
             for (Expr expr : arInit.getValues()) {
@@ -1265,6 +1316,9 @@ public class WurstValidator {
 
     private void visit(ClassDef classDef) {
         checkTypeName(classDef, classDef.getName());
+        if (!(classDef.getExtendedClass() instanceof NoTypeExpr) && !(classDef.getExtendedClass().attrTyp() instanceof WurstTypeClass)) {
+            classDef.getExtendedClass().addError("Classes may only extend other classes.");
+        }
         if (classDef.isInnerClass() && !classDef.attrIsStatic()) {
             classDef.addError("At the moment only static inner classes are supported.");
         }
@@ -1658,6 +1712,9 @@ public class WurstValidator {
                         if(f.getParameters().size() > 0) {
                             f.addError("Functions annotated '@compiletime' may not take parameters." +
                                     "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
+                        } else if (f.attrIsDynamicClassMember()) {
+                            f.addError("Functions annotated '@compiletime' must be static." +
+                                    "\nNote: The annotation marks functions to be executed by wurst at compiletime.");
                         }
                     }
                 }
@@ -1754,7 +1811,12 @@ public class WurstValidator {
                     for (WParameter p : sc.getParameters()) {
                         paramTypes.add(p.attrTyp());
                     }
-                    checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
+                    if(!sc.getIsExplicit() && paramTypes.size() > 0 && d.getSuperArgs().size() == 0) {
+                        c.addError("The extended class <" + ct.extendedClass().getName() + "> does not expose a no-arg constructor. " +
+                                "You must define a constructor that calls super(..) appropriately, in this class.");
+                    } else {
+                        checkParams(d, "Incorrect call to super constructor: ", d.getSuperArgs(), paramTypes);
+                    }
                 }
             }
         } else {
@@ -1764,86 +1826,6 @@ public class WurstValidator {
         }
     }
 
-    /*
-    private void checkInstanceDef(ClassDef classDef) {
-        if (classDef.attrIsAbstract()) {
-            // only concrete classes have to be checked
-            return;
-        }
-        WurstTypeClass classT = classDef.attrTypC();
-        for (WurstTypeInterface interfaceType : classT.implementedInterfaces()) {
-            InterfaceDef interfaceDef = interfaceType.getInterfaceDef();
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping = interfaceType.getTypeArgBinding();
-            // TODO check type mapping
-
-            nextFunction:
-            for (FuncDef i_funcDef : interfaceDef.getMethods()) {
-                Collection<DefLink> c_funcDefs = classDef.attrNameLinks().get(i_funcDef.getName());
-
-                Map<FuncDef, String> errors = new LinkedHashMap<>();
-                for (NameLink nameLink : c_funcDefs) {
-                    NameDef c_nameDef = nameLink.getDef();
-                    if (c_nameDef instanceof FuncDef) {
-                        FuncDef c_funcDef = (FuncDef) c_nameDef;
-                        if (c_funcDef.attrIsAbstract()) {
-                            continue;
-                        }
-
-                        Optional<String> err = CheckHelper.checkIfIsRefinement(typeParamMapping, c_funcDef, i_funcDef,
-                                "Cannot implement interface " + interfaceDef.getName() + " because of function ");
-                        if (err.isPresent()) {
-                            if (c_funcDef.attrIsOverride()) {
-                                c_funcDef.addError(err.get());
-                                continue nextFunction;
-                            }
-                            errors.put(c_funcDef, err.get());
-                        } else {
-                            continue nextFunction;
-                        }
-                    }
-                }
-
-                if (i_funcDef.attrHasEmptyBody()) {
-                    if (errors.isEmpty()) {
-                        classDef.addError("The class " + classDef.getName() + " must implement the function "
-                                + i_funcDef.getName() + ".");
-                    } else {
-                        for (Entry<FuncDef, String> entry : errors.entrySet()) {
-                            entry.getKey().addError(entry.getValue());
-                        }
-                    }
-                }
-            }
-        }
-
-
-        if (!classDef.attrIsAbstract() && classT.extendedClass() != null) {
-            // TODO getClassDef().attrNameLinks() --> directly get name links from classtype
-            for (Entry<String, DefLink> e : classT.extendedClass().getClassDef().attrNameLinks().entries()) {
-                if (e.getValue().getDef() instanceof FuncDef) {
-                    FuncDef f = (FuncDef) e.getValue().getDef();
-                    if (f.attrIsAbstract()) {
-                        boolean implemented = false;
-                        Collection<DefLink> c_funcDefs = classDef.attrNameLinks().get(f.getName());
-                        for (NameLink c_nameDefLink : c_funcDefs) {
-                            NameDef c_nameDef = c_nameDefLink.getDef();
-                            if (c_nameDef instanceof FuncDef) {
-                                FuncDef f2 = (FuncDef) c_nameDef;
-                                if (!f2.attrIsAbstract()) {
-                                    implemented = true;
-                                }
-                            }
-                        }
-                        if (!implemented) {
-                            classDef.addError("Class " + classDef.getName() + " must implement the abstract function "
-                                    + f.getName() + " from class " + f.attrNearestClassDef().getName());
-                        }
-                    }
-                }
-            }
-        }
-    }
-    */
 
     private void checkArrayAccess(ExprVarArrayAccess ea) {
         checkNameRefDeprecated(ea, ea.tryGetNameDef());
@@ -1884,18 +1866,6 @@ public class WurstValidator {
         // checkIfTypeDefExists(n, p);
         // }
     }
-
-    // private void checkIfTypeDefExists(NameDef n, PackageOrGlobal p) {
-    // if (n instanceof WPackage) {
-    // // TODO check that there is no other package with same name?
-    // return;
-    // }
-    // TypeDef def = p.lookupType(n.getName());
-    // if (def != null) {
-    // n.addError("The definition for "+Utils.printElement(n)+" defines the same
-    // name as the type definition " + Utils.printElement(def));
-    // }
-    // }
 
     private void checkMemberVar(ExprMemberVar e) {
         if (e.getVarName().length() == 0) {
@@ -1982,9 +1952,9 @@ public class WurstValidator {
             for (SwitchCase c : s.getCases()) {
                 // if ( i > 0 ) {
                 // for( int j = 0; j<i; j++) {
-                // WLogger.info(">>>>>>>>>>>>>>>>"+c.getExpr());
-                // WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExpr());
-                // if ( c.getExpr().attrN.equals(s.getCases().get(j).getExpr())
+                // WLogger.info(">>>>>>>>>>>>>>>>"+c.getExprs());
+                // WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExprs());
+                // if ( c.getExprs().attrN.equals(s.getCases().get(j).getExprs())
                 // )
                 // c.addError("Case " + j + " and " + i + " are the same.");
                 // }
@@ -2037,39 +2007,6 @@ public class WurstValidator {
                 e.addError("Code arrays are not supported. Try using an array of triggers or conditionfuncs.");
             }
 
-        }
-    }
-
-
-    /**
-     * @param funcs          the functions for which to search overrides
-     * @param type           where to search for overrides
-     * @param overrideErrors for each FuncLink in supertypes, store a reason why the function cannot
-     * @return a mapping from func to overridden functions
-     */
-    private Multimap<FuncLink, FuncLink> calcOverrides(List<FuncLink> funcs, WurstTypeClassOrInterface type, Multimap<FuncLink, String> overrideErrors) {
-        Multimap<FuncLink, FuncLink> overridesMap = HashMultimap.create();
-        collectOverrides(type, funcs, overridesMap, overrideErrors);
-        return overridesMap;
-    }
-
-    private void collectOverrides(WurstTypeClassOrInterface type, List<FuncLink> funcs, Multimap<FuncLink, FuncLink> overridesMap, Multimap<FuncLink, String> overrideErrors) {
-        for (WurstTypeClassOrInterface superType : type.directSupertypes()) {
-            ImmutableMultimap<String, DefLink> superNameLinks = superType.nameLinks();
-            for (FuncLink func : funcs) {
-                for (DefLink superDef : superNameLinks.get(func.getName())) {
-                    if (superDef instanceof FuncLink && superDef.getVisibility().isInherited()) {
-                        FuncLink superFunc = (FuncLink) superDef;
-                        String error = checkOverride(func, superFunc, false);
-                        if (error == null) {
-                            overridesMap.put(func, superFunc);
-                        } else {
-                            overrideErrors.put(func, error);
-                        }
-                    }
-                }
-            }
-            collectOverrides(superType, funcs, overridesMap, overrideErrors);
         }
     }
 
@@ -2129,27 +2066,6 @@ public class WurstValidator {
         }
         // no error
         return null;
-    }
-
-    /**
-     * only keep functions and remove everything else from the list also removes
-     * private methods from other scopes
-     */
-    private List<FuncLink> keepFunctions(Collection<DefLink> funcs) {
-        return funcs.stream()
-                .filter(nl -> nl instanceof FuncLink)
-                .filter(nl -> nl.getVisibility() != Visibility.PRIVATE_OTHER)
-                .map(nl -> (FuncLink) nl)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * sorts the funcs by their level (lowest level first)
-     *
-     * @param funcs
-     */
-    private void sortByLevel(List<? extends NameLink> funcs) {
-        funcs.sort(Comparator.comparingInt(NameLink::getLevel));
     }
 
     private void checkForDuplicateNames(WScope scope) {

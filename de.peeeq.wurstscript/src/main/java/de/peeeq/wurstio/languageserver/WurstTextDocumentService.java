@@ -42,7 +42,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams position) {
         WLogger.info("signatureHelp");
-        return worker.handle(new SignatureInfo(position, worker.getBufferManager()));
+        return worker.handle(new SignatureInfo(position));
     }
 
     @Override
@@ -72,12 +72,12 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends SymbolInformation>> documentSymbol(DocumentSymbolParams params) {
-        return worker.handle(new SymbolInformationRequest(params));
+    public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(DocumentSymbolParams params) {
+        return worker.handle(new DocumentSymbolRequest(params));
     }
 
     @Override
-    public CompletableFuture<List<? extends Command>> codeAction(CodeActionParams params) {
+    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
         WLogger.info("codeAction");
         return worker.handle(new CodeActionRequest(params, worker.getBufferManager()));
     }
@@ -141,5 +141,15 @@ public class WurstTextDocumentService implements TextDocumentService {
     public void didSave(DidSaveTextDocumentParams params) {
         WLogger.info("didSave");
 
+    }
+
+    @Override
+    public CompletableFuture<List<ColorInformation>> documentColor(DocumentColorParams params) {
+        return worker.handle(new Colors.DocumentColorRequest(params));
+    }
+
+    @Override
+    public CompletableFuture<List<ColorPresentation>> colorPresentation(ColorPresentationParams params) {
+        return worker.handle(new Colors.ColorPresentationRequest(params));
     }
 }

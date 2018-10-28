@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -217,6 +218,7 @@ public abstract class WurstType {
                 || this instanceof WurstTypeIntLiteral
                 || this instanceof WurstTypeNamedScope
                 || this instanceof WurstTypeTypeParam
+                || this instanceof WurstTypeNull
                 || this instanceof WurstTypeBoundTypeParam; //  WurstTypeBoundTypeParam overrides this method
     }
 

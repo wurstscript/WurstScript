@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.jassAst.JassVars;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.translation.imoptimizer.RestrictedCompressedNames;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.utils.Utils;
@@ -29,7 +30,6 @@ public class ImToJassTranslator {
     private Stack<ImFunction> translatingFunctions = new Stack<>();
     private Set<ImFunction> translatedFunctions = Sets.newLinkedHashSet();
     private Set<String> usedNames = Sets.newLinkedHashSet();
-    private static ImmutableSet<String> restrictedNames = ImmutableSet.of("loop", "endif", "endfunction", "endloop", "globals", "endglobals", "local", "call");
     private Multimap<ImFunction, String> usedLocalNames = HashMultimap.create();
 
     public ImToJassTranslator(ImProg imProg, Multimap<ImFunction, ImFunction> calledFunctions,
@@ -186,7 +186,7 @@ public class ImToJassTranslator {
     JassVar getJassVarFor(ImVar v) {
         JassVar result = jassVars.get(v);
         if (result == null) {
-            boolean isArray = v.getType() instanceof ImArrayType || v.getType() instanceof ImTupleArrayType;
+            boolean isArray = v.getType() instanceof ImArrayType;
             String type = v.getType().translateType();
             String name = v.getName();
             if (v.getNearestFunc() != null) {
@@ -213,7 +213,7 @@ public class ImToJassTranslator {
     }
 
     private String jassifyName(String name) {
-        if (restrictedNames.contains(name) || name.startsWith("_")) {
+        if (RestrictedCompressedNames.contains(name) || name.startsWith("_")) {
             name = "w" + name;
         }
         if (name.endsWith("_")) {

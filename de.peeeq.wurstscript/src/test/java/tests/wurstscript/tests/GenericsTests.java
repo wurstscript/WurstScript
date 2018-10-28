@@ -955,6 +955,24 @@ public class GenericsTests extends WurstScriptTest {
     }
 
     @Test
+    public void extensionFunc() { // #718
+        testAssertOkLines(false,
+                "package test",
+                "native testSuccess()",
+                "function stringToIndex(string b) returns int",
+                "	return 0",
+                "function stringFromIndex(int i) returns string",
+                "	return \"\"",
+                "public function T.foo<T>() returns T",
+                "	return this",
+                "init",
+                "	let x = \"hello\".foo()",
+                "	if x == \"hello\"",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void strangeFoldl() { // #655
         testAssertOkLines(false,
                 "package test",
@@ -1002,5 +1020,66 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void inheritField() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	int someInt",
+                "class B extends A<int>",
+                "	construct()",
+                "		someInt = 1",
+                "init",
+                "	if new B().someInt == 1",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void inheritField2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	int someInt",
+                "class B<K> extends A<K>",
+                "	construct()",
+                "		someInt = 1",
+                "init",
+                "	if new B().someInt == 1",
+                "		testSuccess()"
+        );
+    }
+
+
+    @Test
+    public void inheritMethod() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class A<T>",
+                "	function someInt()",
+                "		testSuccess()",
+                "class B extends A<int>",
+                "	construct()",
+                "		someInt()",
+                "init",
+                "	new B()"
+        );
+    }
+
+    @Test
+    public void nullWithGeneric() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function foo<T>(T t)",
+                "	if t == null",
+                "		testSuccess()",
+                "init",
+                "	foo(null)"
+        );
+    }
 
 }

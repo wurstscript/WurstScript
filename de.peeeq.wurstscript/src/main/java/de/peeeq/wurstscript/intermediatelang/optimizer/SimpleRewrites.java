@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -191,7 +192,10 @@ public class SimpleRewrites implements OptimizerPass {
                 } else {
                     wasViable = false;
                 }
-            } else if (left.structuralEquals(right) && opc.getOp() == WurstOperator.PLUS && !(left instanceof ImStringVal)) {
+            } else if (opc.getOp() == WurstOperator.PLUS
+                    && (left.attrTyp().equalsType(TypesHelper.imInt()) || left.attrTyp().equalsType(TypesHelper.imReal()))
+                    && left.structuralEquals(right)) {
+                // x + x ---> 2*x
                 if (!sideEffectAnalysis.hasSideEffects(left)) {
                     opc.setOp(WurstOperator.MULT);
                     right.replaceBy(JassIm.ImIntVal(2));
@@ -567,8 +571,18 @@ public class SimpleRewrites implements OptimizerPass {
      * like code that is created by the branch merger
      */
     private void optimizeConsecutiveSet(ImSet imSet1, ImSet imSet2) {
-        ImVar leftVar1 = imSet1.getLeft();
-        ImVar leftVar2 = imSet2.getLeft();
+        ImVar leftVar1;
+        if (imSet1.getLeft() instanceof ImVarAccess) {
+            leftVar1 = ((ImVarAccess) imSet1.getLeft()).getVar();
+        } else {
+            return;
+        }
+        ImVar leftVar2;
+        if (imSet2.getLeft() instanceof ImVarAccess) {
+            leftVar2 = ((ImVarAccess) imSet2.getLeft()).getVar();
+        } else {
+            return;
+        }
 
         ImExpr rightExpr1 = imSet1.getRight();
         ImExpr rightExpr2 = imSet2.getRight();

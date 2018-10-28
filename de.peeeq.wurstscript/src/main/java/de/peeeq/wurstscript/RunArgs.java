@@ -8,10 +8,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class RunArgs {
 
 
+    private final String[] args;
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
@@ -40,6 +42,12 @@ public class RunArgs {
     private RunOption optionCopyMap;
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
+    private RunOption optionMeasureTimes;
+
+    public RunArgs with(String... additionalArgs) {
+        return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
+                .toArray(String[]::new));
+    }
 
     private class RunOption {
         final String name;
@@ -66,6 +74,7 @@ public class RunArgs {
     }
 
     public RunArgs(String... args) {
+        this.args = args;
         // interpreter
         optionRuntests = addOption("runtests", "Run all test functions found in the scripts.");
         optionRunCompileTimeFunctions = addOption("runcompiletimefunctions", "Run all compiletime functions found in the scripts.");
@@ -80,6 +89,7 @@ public class RunArgs {
         uncheckedDispatch = addOption("uncheckedDispatch", "(dangerous) Removes checks from method-dispatch code. With unchecked dispatch "
                 + "some programming errors like null-pointer-dereferences or accessing of destroyed objects can no longer be detected. "
                 + "It is strongly recommended to not use this option, but it can give some performance benefits.");
+        optionMeasureTimes = addOption("measure", "Measure how long each step of the translation process takes.");
         // tools
         optionAbout = addOption("-about", "Show the 'about' window.");
         optionFixInstall = addOption("-fixInstallation", "Checks your wc3 installation and applies compatibility fixes");
@@ -254,6 +264,10 @@ public class RunArgs {
         }
     }
 
+    public void addLibDirs(Set<File> dependencies) {
+        libDirs.addAll(dependencies);
+    }
+
     public boolean showHelp() {
         return optionHelp.isSet;
     }
@@ -290,5 +304,8 @@ public class RunArgs {
         return optionRuntests.isSet;
     }
 
+    public boolean isMeasureTimes() {
+        return optionMeasureTimes.isSet;
+    }
 
 }

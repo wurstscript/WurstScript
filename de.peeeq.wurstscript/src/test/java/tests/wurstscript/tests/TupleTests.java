@@ -395,4 +395,136 @@ public class TupleTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void nestedTuple() { // #713
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "@extern native I2S(int x) returns string",
+                "function print(int x)",
+                "    println(I2S(x))",
+                "@extern native GetRandomInt(int x, int y) returns int",
+                "tuple parent(child a, int index)",
+                "function newParent(int i) returns parent",
+                "    return parent(child(0, 0, 0, 0), i)",
+                "tuple child(int a, int b, int c, int d)",
+                "var putCount = 0",
+                "function child.put(int i, int num) returns child",
+                "    putCount += 1",
+                "    if i == 0",
+                "        return child(num, this.b, this.c, this.d)",
+                "    else if i == 1",
+                "        return child(this.a, num, this.b, this.d)",
+                "    else if i == 2",
+                "        return child(this.a, this.b, num, this.d)",
+                "    else",
+                "        return child(this.a, this.b, this.b, num)",
+                "function randomOperations(parent t, int val) returns parent",
+                "    var some = t",
+                "    some.a = some.a.put(t.index, val)",
+                "    return some",
+                "init",
+                "    var t = randomOperations(newParent(GetRandomInt(0, 3)), 100)",
+                "    print(t.a.a)",
+                "    print(t.a.b)",
+                "    print(t.a.c)",
+                "    print(t.a.d)",
+                "    print(putCount)",
+                "    if putCount == 1",
+                "        testSuccess()"
+        );
+    }
+
+
+    @Test
+    public void nestedTuple2() { // #713
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "@extern native I2S(int x) returns string",
+                "function print(int x)",
+                "    println(I2S(x))",
+                "tuple parent(child a, child b)",
+                "tuple child(int x, int y, int z)",
+                "init",
+                "    var t = parent(child(1,2,3), child(4,5,6))",
+                "    print(t.a.x)",
+                "    print(t.a.y)",
+                "    print(t.a.z)",
+                "    print(t.b.x)",
+                "    print(t.b.y)",
+                "    print(t.b.z)",
+                "    t.a = child(7,8,9)",
+                "    print(t.a.x)",
+                "    print(t.a.y)",
+                "    print(t.a.z)",
+                "    if t.a == child(7, 8, 9)",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleArrayInClass() { // see #572
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    angle array[2] ang",
+                "tuple angle(real rad)",
+                "init",
+                "    let c = new C",
+                "    c.ang[0] = angle(4.)",
+                "    c.ang[1] = angle(2.)",
+                "    if c.ang[0].rad == 4. and c.ang[1].rad == 2",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleArrayInClass2() { // see #572
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native R2S(real r) returns string",
+                "native println(string s)",
+                "class C",
+                "    vec array[5] v",
+                "tuple vec(real x, real y, real z)",
+                "init",
+                "    let c = new C",
+                "    c.v[0] = vec(1,2,3)",
+                "    c.v[1].x = 5",
+                "    c.v[1].y = 6",
+                "    c.v[1].z = 7",
+                "    println(R2S(c.v[0].x))",
+                "    println(R2S(c.v[0].z))",
+                "    println(R2S(c.v[1].y))",
+                "    if c.v[0].x == 1 and c.v[0].z == 3 and c.v[1].y == 6",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void tupleArraySideEvaluationOrder() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "int x = 1",
+                "tuple p(int x, int y)",
+                "p array ar",
+                "function foo() returns int",
+                "    x = x * 2",
+                "    return 1",
+                "function bar() returns int",
+                "    x = x + 1",
+                "    return 1",
+                "init",
+                "    ar[foo()] = p(bar(), 7)",
+                "    if x == 3 and ar[1].x == 1 and ar[1].y == 7",
+                "        testSuccess()"
+        );
+    }
+
 }

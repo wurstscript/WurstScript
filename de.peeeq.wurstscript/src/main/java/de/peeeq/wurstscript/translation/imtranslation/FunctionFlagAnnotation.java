@@ -39,7 +39,7 @@ public class FunctionFlagAnnotation implements FunctionFlag {
 
     @Override
     public String toString() {
-        return "FunctionFlagAnnotation [annotation=" + annotation + "]";
+        return annotation;
     }
 
 

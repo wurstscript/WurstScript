@@ -13,9 +13,9 @@ public class HashtableProvider extends Provider {
         super(interpreter);
     }
 
-    static class KeyPair {
-        int parentkey;
-        int childkey;
+    public static class KeyPair {
+        private final int parentkey;
+        private final int childkey;
 
         KeyPair(int parentkey, int childkey) {
             this.parentkey = parentkey;
@@ -34,6 +34,14 @@ public class HashtableProvider extends Provider {
         @Override
         public int hashCode() {
             return Objects.hash(parentkey, childkey);
+        }
+
+        public int getParentkey() {
+            return parentkey;
+        }
+
+        public int getChildkey() {
+            return childkey;
         }
     }
 

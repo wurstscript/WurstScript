@@ -257,7 +257,7 @@ public class LanguageWorker implements Runnable {
                 Iterator<UserRequest<?>> it = userRequests.iterator();
                 while (it.hasNext()) {
                     UserRequest<?> o = it.next();
-                    if (it.getClass().equals(request.getClass())) {
+                    if (o.getClass().equals(request.getClass())) {
                         o.cancel();
                         it.remove();
                     }

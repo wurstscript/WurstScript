@@ -7,17 +7,15 @@ import org.mozilla.intl.chardet.nsPSMDetector;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 public class FileReading {
 
     /**
      * get a reader for a file
      */
-    public static Reader getFileReader(File file, Charset cs)
-            throws FileNotFoundException {
-        FileInputStream fis = new FileInputStream(file);
-        InputStreamReader ir = new InputStreamReader(fis, cs);
-        return ir;
+    private static Reader getFileReader(File file, Charset cs) throws IOException {
+        return Files.newBufferedReader(file.toPath(), cs);
     }
 
     /**
@@ -25,7 +23,7 @@ public class FileReading {
      * http://jchardet.sourceforge.net/
      */
     public static Reader getFileReader(File file) throws IOException {
-        try (FileInputStream fis = new FileInputStream(file);
+        try (InputStream fis = Files.newInputStream(file.toPath());
              BufferedInputStream imp = new BufferedInputStream(fis)) {
 
             nsDetector det = new nsDetector(nsPSMDetector.ALL);
@@ -69,30 +67,5 @@ public class FileReading {
             }
         }
     }
-
-    // /**
-    // * get a reader for a file and guess the charset
-    // * using juniversalchardet http://code.google.com/p/juniversalchardet/
-    // * (seems not to work so well...)
-    // */
-    // public static Reader getFileReader(File file) throws IOException {
-    // FileInputStream fis = new FileInputStream(file);
-    // byte[] buf = new byte[4096];
-    //
-    // UniversalDetector detector = new UniversalDetector(null);
-    // int nread;
-    // while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
-    // detector.handleData(buf, 0, nread);
-    // }
-    // detector.dataEnd();
-    // String encoding = detector.getDetectedCharset();
-    // if (encoding == null) {
-    // throw new IOException("Could not get encoding for " +
-    // file.getAbsolutePath());
-    // } else {
-    // WLogger.info("encoding = " + encoding);
-    // return getFileReader(file, Charset.forName(encoding));
-    // }
-    // }
 
 }

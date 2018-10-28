@@ -100,9 +100,27 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             }
             Knowledge kn = knowledge.get(node);
             stmt.accept(new ImStmt.DefaultVisitor() {
+
+                @Override
+                public void visit(ImSet imSet) {
+                    ImLExpr e = imSet.getLeft();
+                    if (e instanceof ImMemberAccess) {
+                        ImMemberAccess ma = (ImMemberAccess) e;
+                        ma.accept(this);
+                    } else if (e instanceof ImVarArrayAccess) {
+                        ImVarArrayAccess vaa = (ImVarArrayAccess) e;
+                        for (ImExpr ie : vaa.getIndexes()) {
+                            ie.accept(this);
+                        }
+                    }
+                    imSet.getRight().accept(this);
+                }
+
                 @Override
                 public void visit(ImVarAccess va) {
-                    super.visit(va);
+                    if (va.isUsedAsLValue()) {
+                        return;
+                    }
                     Value val = kn.varKnowledge.get(va.getVar());
                     if (val == null) {
                         return;
@@ -119,6 +137,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             });
 
         }
+
     }
 
     private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg) {
@@ -165,30 +184,32 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             ImStmt stmt = n.getStmt();
             if (stmt instanceof ImSet) {
                 ImSet imSet = (ImSet) stmt;
-                ImVar var = imSet.getLeft();
-                if (!var.isGlobal()) {
-                    Value newValue = null;
-                    if (imSet.getRight() instanceof ImConst) {
-                        ImConst imConst = (ImConst) imSet.getRight();
-                        newValue = new Value(imConst);
-                    } else if (imSet.getRight() instanceof ImVarAccess) {
-                        ImVarAccess imVarAccess = (ImVarAccess) imSet.getRight();
-                        if (!imVarAccess.getVar().isGlobal()) {
-                            newValue = new Value(imVarAccess.getVar());
+                if (imSet.getLeft() instanceof ImVarAccess) {
+                    ImVar var = ((ImVarAccess) imSet.getLeft()).getVar();
+                    if (!var.isGlobal()) {
+                        Value newValue = null;
+                        if (imSet.getRight() instanceof ImConst) {
+                            ImConst imConst = (ImConst) imSet.getRight();
+                            newValue = new Value(imConst);
+                        } else if (imSet.getRight() instanceof ImVarAccess) {
+                            ImVarAccess imVarAccess = (ImVarAccess) imSet.getRight();
+                            if (!imVarAccess.getVar().isGlobal()) {
+                                newValue = new Value(imVarAccess.getVar());
+                            }
                         }
+                        if (newValue == null) {
+                            // invalidate old value
+                            newOut.remove(var);
+                        } else {
+                            newOut.put(var, newValue);
+                        }
+                        // invalidate copies of the lhs
+                        // for example:
+                        // x = a; [x->a]
+                        // y = b; [x->a, y->b]
+                        // a = 5; [y->b, a->5] // here [x->a] has been invalidated
+                        newOut.entrySet().removeIf(entry -> entry.getValue().equalValue(new Value(var)));
                     }
-                    if (newValue == null) {
-                        // invalidate old value
-                        newOut.remove(var);
-                    } else {
-                        newOut.put(var, newValue);
-                    }
-                    // invalidate copies of the lhs
-                    // for example:
-                    // x = a; [x->a]
-                    // y = b; [x->a, y->b]
-                    // a = 5; [y->b, a->5] // here [x->a] has been invalidated
-                    newOut.entrySet().removeIf(entry -> entry.getValue().equalValue(new Value(var)));
                 }
             }
 

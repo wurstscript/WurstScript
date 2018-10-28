@@ -1,9 +1,7 @@
 package tests.wurstscript.tests;
 
 import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.CompiletimeFunctionRunner;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.UtilsIO;
@@ -11,6 +9,7 @@ import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.jassinterpreter.JassInterpreter;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -19,16 +18,13 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.Assert;
 
@@ -38,17 +34,19 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Tests;
 import static org.testng.Assert.fail;
 
 public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
     private static final boolean testLua = false;
-    private Map<String, String> inputs = Maps.newLinkedHashMap();
 
     protected boolean testOptimizer() {
         return true;
+    }
+
+    protected boolean printDebugScripts() {
+        return false;
     }
 
     class TestConfig {
@@ -60,6 +58,8 @@ public class WurstScriptTest {
         private String expectedError;
         private List<File> inputFiles = new ArrayList<>();
         private List<CU> additionalCompilationUnits = new ArrayList<>();
+        private boolean stopOnFirstError = true;
+        private boolean runCompiletimeFunctions;
 
         TestConfig(String name) {
             this.name = name;
@@ -85,6 +85,11 @@ public class WurstScriptTest {
             return this;
         }
 
+        public TestConfig executeTests(boolean b) {
+            this.executeTests = b;
+            return this;
+        }
+
         TestConfig executeProg(boolean b) {
             this.executeProg = b;
             return this;
@@ -92,6 +97,11 @@ public class WurstScriptTest {
 
         public TestConfig executeProgOnlyAfterTransforms() {
             this.executeProgOnlyAfterTransforms = true;
+            return this;
+        }
+
+        public TestConfig executeProgOnlyAfterTransforms(boolean b) {
+            this.executeProgOnlyAfterTransforms = b;
             return this;
         }
 
@@ -112,15 +122,23 @@ public class WurstScriptTest {
         }
 
         CompilationResult run() {
-            Map<String, String> inputs = additionalCompilationUnits.stream()
-                    .collect(Collectors.toMap(cu -> cu.name, cu -> cu.content));
-
             try {
-                WurstModel model = testScript(inputFiles, inputs, name, executeProg, withStdLib, executeTests, executeProgOnlyAfterTransforms);
+                CompilationResult res = testScript();
                 if (expectedError != null) {
-                    fail("No errors were discovered");
+                    if (res.getGui().getErrorCount() == 0) {
+                        fail("No errors were discovered");
+                    } else {
+                        List<CompileError> errors = res.getGui().getErrorList();
+                        if (errors.stream()
+                                .noneMatch(e -> e.getMessage().toLowerCase().contains(expectedError.toLowerCase()))) {
+                            for (CompileError error : errors) {
+                                System.err.println("Unexpected error:" + error);
+                            }
+                            throw new RuntimeException("Unexpected error", errors.get(0));
+                        }
+                    }
                 }
-                return new CompilationResult(model);
+                return res;
             } catch (CompileError e) {
                 if (expectedError != null) {
                     if (!e.getMessage().toLowerCase().contains(expectedError.toLowerCase())) {
@@ -130,7 +148,68 @@ public class WurstScriptTest {
                 }
                 throw e;
             }
+        }
 
+        private CompilationResult testScript() {
+            RunArgs runArgs = new RunArgs();
+            if (withStdLib) {
+                runArgs = runArgs.with("-lib", StdLib.getLib());
+            }
+            if (runCompiletimeFunctions) {
+                runArgs = runArgs.with("-runcompiletimefunctions");
+            }
+
+            WurstGui gui = new WurstGuiCliImpl();
+            WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
+            if (stopOnFirstError) {
+                compiler.getErrorHandler().enableUnitTestMode();
+            }
+
+
+            WurstModel model = parseFiles(inputFiles, additionalCompilationUnits, withStdLib, compiler);
+
+
+            if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
+                throw gui.getErrorList().get(0);
+            }
+
+
+            // check prog
+            compiler.checkProg(model);
+            if (stopOnFirstError && !gui.getErrorList().isEmpty()) {
+                throw gui.getErrorList().get(0);
+            }
+
+
+            if (stopOnFirstError && name.toLowerCase().contains("warning") && !gui.getWarningList().isEmpty()) {
+                // report warnings based on naming convention
+                throw gui.getWarningList().get(0);
+            }
+
+            if (!gui.getErrorList().isEmpty()) {
+                // errors in type-checker -> return
+                return new CompilationResult(model, gui);
+            }
+
+            // translate with different options:
+
+            testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
+            if (testLua && !withStdLib) {
+                // test lua translation
+                compiler.setRunArgs(new RunArgs("-lua"));
+                translateAndTestLua(name, executeProg, gui, model);
+            }
+
+            return new CompilationResult(model, gui);
         }
 
         public void file(File file) throws IOException {
@@ -143,18 +222,48 @@ public class WurstScriptTest {
             additionalCompilationUnits.add(cu);
             return this;
         }
+
+        public TestConfig setStopOnFirstError(boolean b) {
+            stopOnFirstError = b;
+            return this;
+        }
+
+        public TestConfig withInputFiles(Iterable<File> inputFiles) {
+            for (File f : inputFiles) {
+                this.inputFiles.add(f);
+            }
+            return this;
+        }
+
+        public TestConfig withInputs(Map<String, String> inputs) {
+            for (Entry<String, String> e : inputs.entrySet()) {
+                additionalCompilationUnits.add(new CU(e.getKey(), e.getValue()));
+            }
+            return this;
+        }
+
+        public TestConfig runCompiletimeFunctions(boolean b) {
+            this.runCompiletimeFunctions = b;
+            return this;
+        }
     }
 
     static class CompilationResult {
         private final WurstModel model;
+        private final WurstGui gui;
 
-        public CompilationResult(WurstModel model) {
+        public CompilationResult(WurstModel model, WurstGui gui) {
 
             this.model = model;
+            this.gui = gui;
         }
 
         public WurstModel getModel() {
             return model;
+        }
+
+        public WurstGui getGui() {
+            return gui;
         }
     }
 
@@ -220,80 +329,40 @@ public class WurstScriptTest {
         return test().executeProg(executeProg).lines(prog).getModel();
     }
 
-    WurstModel testScript(String inputName, String input, String name, boolean executeProg, boolean withStdLib) {
-        return test().executeProg(executeProg).withStdLib(withStdLib).withCu(compilationUnit(inputName, name)).run().getModel();
-    }
-
-
-    WurstModel testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean
-            executeTests, boolean executeProgOnlyAfterTransforms) {
-        RunArgs runArgs = new RunArgs("-lib", StdLib.getLib());
-        WurstGui gui = new WurstGuiCliImpl();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
-        compiler.getErrorHandler().enableUnitTestMode();
-        WurstModel model = parseFiles(inputFiles, inputs, withStdLib, compiler);
-
-
-        if (!gui.getErrorList().isEmpty()) {
-            throw gui.getErrorList().get(0);
-        }
-
-
-        // check prog
-        compiler.checkProg(model);
-        if (!gui.getErrorList().isEmpty()) {
-            throw gui.getErrorList().get(0);
-        }
-
-
-        if (name.toLowerCase().contains("warning") && !gui.getWarningList().isEmpty()) {
-            // report warnings based on naming convention
-            throw gui.getWarningList().get(0);
-        }
-
-        // translate with different options:
-
-        testWithoutInliningAndOptimization(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithLocalOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithInlining(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
-
-        if (testLua && !withStdLib) {
-            // test lua translation
-            compiler.setRunArgs(new RunArgs("-lua"));
-            translateAndTestLua(name, executeProg, gui, model);
-        }
-        return model;
-
-    }
 
     private void testWithInliningAndOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
-        compiler.setRunArgs(new RunArgs("-inline", "-localOptimizations"));
+        compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations"));
         translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
-    private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+    private void testWithInliningAndOptimizationsAndStacktraces(String name, boolean executeProg, boolean executeTests, WurstGui gui,
+                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
+        // test with inlining and local optimization
+        compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations", "-stacktraces"));
+        translateAndTest(name + "_stacktraceinlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+    }
+
+    private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui
+            , WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms
+            , RunArgs runArgs) throws Error {
         // test with inlining
-        compiler.setRunArgs(new RunArgs("-inline"));
+        compiler.setRunArgs(runArgs.with("-inline"));
         translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithLocalOptimizations(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                            WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+                                            WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with local optimization
-        compiler.setRunArgs(new RunArgs("-localOptimizations"));
+        compiler.setRunArgs(runArgs.with("-localOptimizations"));
         translateAndTest(name + "_opt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
-                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms)
+                                                    WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs)
             throws Error {
+        compiler.setRunArgs(runArgs);
         // test without inlining and optimization
         translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
@@ -317,7 +386,7 @@ public class WurstScriptTest {
 
             // replace builtin lua functions
 
-            Files.write(luaScript, luaFile, Charsets.UTF_8);
+            FileUtils.write(luaScript, luaFile);
 
             // run with lua -l SimpleStatementTests_testIf1 -e 'main()'
 
@@ -387,8 +456,9 @@ public class WurstScriptTest {
             }
         }
 
-
+        compiler.runCompiletime();
         JassProg prog = compiler.transformProgToJass();
+        writeJassImProg(name, gui, imProg);
         if (gui.getErrorCount() > 0) {
             throw gui.getErrorList().get(0);
         }
@@ -423,11 +493,20 @@ public class WurstScriptTest {
     WurstModel parseFiles(Iterable<File> inputFiles,
                           Map<String, String> inputs, boolean withStdLib,
                           WurstCompilerJassImpl compiler) {
+        List<CU> inputList = inputs.entrySet().stream()
+                .map(e -> new CU(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        return parseFiles(inputFiles, inputList, withStdLib, compiler);
+    }
+
+    WurstModel parseFiles(Iterable<File> inputFiles,
+                          List<CU> inputs, boolean withStdLib,
+                          WurstCompilerJassImpl compiler) {
         if (inputFiles == null) {
             inputFiles = Collections.emptyList();
         }
         if (inputs == null) {
-            inputs = Collections.emptyMap();
+            inputs = Collections.emptyList();
         }
 
         if (withStdLib) {
@@ -436,8 +515,8 @@ public class WurstScriptTest {
         for (File input : inputFiles) {
             compiler.loadFiles(input);
         }
-        for (Entry<String, String> input : inputs.entrySet()) {
-            compiler.loadReader(input.getKey(), new StringReader(input.getValue()));
+        for (CU input : inputs) {
+            compiler.loadReader(input.name, new StringReader(input.content));
         }
         return compiler.parseFiles();
     }
@@ -456,7 +535,6 @@ public class WurstScriptTest {
             // run the interpreter on the intermediate language
             ILInterpreter interpreter = new ILInterpreter(imProg, gui, null, false);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
-//				interpreter.addNativeProvider(new CompiletimeNatives((ProgramStateIO) interpreter.getGlobalState()));
             interpreter.executeFunction("main", null);
         } catch (TestSuccessException e) {
             return;
@@ -482,7 +560,8 @@ public class WurstScriptTest {
         RunTests runTests = new RunTests(null, 0, 0);
         RunTests.TestResult res = runTests.runTests(imProg, null, null);
         if (res.getPassedTests() < res.getTotalTests()) {
-            throw new Error("tests failed");
+            throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
+                    gui.getErrors());
         }
     }
 
@@ -496,7 +575,7 @@ public class WurstScriptTest {
             StringBuilder sb = new StringBuilder();
             new JassPrinter(true, prog).printProg(sb);
 
-            Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+            FileUtils.write(sb, outputFile);
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }
@@ -510,10 +589,9 @@ public class WurstScriptTest {
         File outputFile = new File(TEST_OUTPUT_PATH + name + ".jim");
         new File(TEST_OUTPUT_PATH).mkdirs();
         try {
-            StringBuilder sb = new StringBuilder();
-            prog.print(sb, 0);
-
-            Files.write(sb.toString(), outputFile, Charsets.UTF_8);
+            try (Writer w = Files.newWriter(outputFile, Charsets.UTF_8)) {
+                prog.print(w, 0);
+            }
         } catch (IOException e) {
             throw new Error("IOException, could not write jass file " + outputFile + "\n" + gui.getErrors());
         }

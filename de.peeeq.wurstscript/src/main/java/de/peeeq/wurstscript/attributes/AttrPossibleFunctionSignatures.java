@@ -43,8 +43,11 @@ public class AttrPossibleFunctionSignatures {
 
             resultBuilder.add(sig);
         }
+        return findBestSignature(fc, resultBuilder.build());
+    }
+
+    private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc, ImmutableCollection<FunctionSignature> res) {
         ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
-        ImmutableCollection<FunctionSignature> res = resultBuilder.build();
         List<WurstType> argTypes = AttrFuncDef.argumentTypes(fc);
         for (FunctionSignature sig : res) {
             FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
@@ -77,20 +80,6 @@ public class AttrPossibleFunctionSignatures {
         }
     }
 
-    private static boolean paramTypesCanMatch(List<WurstType> paramTypes, List<WurstType> argTypes, Element location) {
-        if (argTypes.size() > paramTypes.size()) {
-            return false;
-        }
-        for (int i = 0; i < argTypes.size(); i++) {
-            if (!argTypes.get(i).isSubtypeOf(paramTypes.get(i), location)) {
-                if (!(argTypes.get(i) instanceof WurstTypeUnknown)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
         TypeDef typeDef = fc.attrTypeDef();
         if (!(typeDef instanceof ClassDef)) {
@@ -115,7 +104,7 @@ public class AttrPossibleFunctionSignatures {
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);
         }
-        return res.build();
+        return findBestSignature(fc, res.build());
     }
 
 }

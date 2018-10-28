@@ -7,10 +7,15 @@ import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.jassIm.ImExpr;
+import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.awt.event.MouseAdapter;
@@ -65,15 +70,15 @@ public class Utils {
         return result;
 
     }
-
-    // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
-    // func) {
-    // p = p.postOrderStart();
-    // while (p != null) {
-    // func.apply(p);
+    // }
+    // }
     // p = p.postOrder();
-    // }
-    // }
+    // func.apply(p);
+    // while (p != null) {
+    // p = p.postOrderStart();
+    // func) {
+    // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
+
 
 
     public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
@@ -126,6 +131,10 @@ public class Utils {
         return sb.toString();
     }
 
+    public static String printSep(String sep, List<?> args) {
+        return args.stream().map(Object::toString).collect(Collectors.joining(sep));
+    }
+
     /**
      * is a piece of code jass code?
      */
@@ -141,29 +150,29 @@ public class Utils {
 
 
     public static <T> String join(Iterable<T> hints, String seperator) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : hints) {
             if (!first) {
-                result.append(seperator);
+                builder.append(seperator);
             }
-            result.append(s);
+            builder.append(s);
             first = false;
         }
-        return result.toString();
+        return builder.toString();
     }
 
     public static <T> String join(T[] arguments, String seperator) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (T s : arguments) {
             if (!first) {
-                result.append(seperator);
+                builder.append(seperator);
             }
-            result.append(s);
+            builder.append(s);
             first = false;
         }
-        return result.toString();
+        return builder.toString();
     }
 
 
@@ -289,15 +298,16 @@ public class Utils {
             if (t.getTypeArgs().size() > 0) {
                 name += "{";
                 boolean first = true;
-                StringBuilder nameBuilder = new StringBuilder(name);
+                StringBuilder builder = new StringBuilder();
+                builder.append(name);
                 for (TypeExpr ta : t.getTypeArgs()) {
                     if (!first) {
-                        nameBuilder.append(", ");
+                        builder.append(", ");
                     }
-                    nameBuilder.append(printElement(ta));
+                    builder.append(printElement(ta));
                     first = false;
                 }
-                name = nameBuilder.toString();
+                name = builder.toString();
                 name += "}";
             }
             type = "type";
@@ -320,54 +330,32 @@ public class Utils {
     }
 
     public static String printStackTrace(StackTraceElement[] stackTrace) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
         for (StackTraceElement s : stackTrace) {
-            sb.append(s.toString());
-            sb.append("\n");
+            builder.append(s.toString());
+            builder.append("\n");
         }
-        return sb.toString();
+        return builder.toString();
     }
 
     public static String printExceptionWithStackTrace(Throwable t) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(t);
-        sb.append("\n");
+        StringBuilder builder = new StringBuilder();
+        builder.append(t);
+        builder.append("\n");
         for (; ; ) {
             for (StackTraceElement s : t.getStackTrace()) {
-                sb.append(s.toString());
-                sb.append("\n");
+                builder.append(s.toString());
+                builder.append("\n");
             }
             t = t.getCause();
             if (t == null) {
                 break;
             }
-            sb.append("Caused by: ").append(t.toString()).append("\n");
+            builder.append("Caused by: ").append(t.toString()).append("\n");
         }
-        return sb.toString();
+        return builder.toString();
     }
 
-
-    /**
-     * calculates the transient closure of a multimap
-     */
-    public static <T> Multimap<T, T> transientClosure(Multimap<T, T> start) {
-        Multimap<T, T> result = HashMultimap.create();
-        result.putAll(start);
-        Multimap<T, T> changes = HashMultimap.create();
-        boolean changed;
-        do {
-            changes.clear();
-            for (Entry<T, T> e1 : result.entries()) {
-                for (T t : result.get(e1.getValue())) {
-                    changes.put(e1.getKey(), t);
-                }
-            }
-            changed = result.putAll(changes);
-
-        } while (changed);
-
-        return result;
-    }
 
     public static Element getAstElementAtPos(Element elem,
                                              int caretPosition, boolean usesMouse) {
@@ -518,9 +506,17 @@ public class Utils {
     }
 
     public static <T, S> Multimap<T, S> inverse(Multimap<S, T> orig) {
-        Multimap<T, S> result = HashMultimap.create();
+        Multimap<T, S> result = LinkedHashMultimap.create();
         for (Entry<S, T> e : orig.entries()) {
             result.put(e.getValue(), e.getKey());
+        }
+        return result;
+    }
+
+    public static <T extends Comparable<? extends T>, S> TreeMap<T, Set<S>> inverseMapToSet(Map<S, T> orig) {
+        TreeMap<T, Set<S>> result = new TreeMap<>();
+        for (Entry<S, T> e : orig.entrySet()) {
+            result.computeIfAbsent(e.getValue(), x -> new LinkedHashSet<>()).add(e.getKey());
         }
         return result;
     }
@@ -604,32 +600,32 @@ public class Utils {
     }
 
     public static String escapeString(String v) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("\"");
+        StringBuilder builder = new StringBuilder();
+        builder.append("\"");
         for (int i = 0; i < v.length(); i++) {
             char c = v.charAt(i);
             switch (c) {
                 case '\n':
-                    sb.append("\\n");
+                    builder.append("\\n");
                     break;
                 case '\r':
-                    sb.append("\\r");
+                    builder.append("\\r");
                     break;
                 case '\"':
-                    sb.append("\\\"");
+                    builder.append("\\\"");
                     break;
                 case '\t':
-                    sb.append("\\t");
+                    builder.append("\\t");
                     break;
                 case '\\':
-                    sb.append("\\\\");
+                    builder.append("\\\\");
                     break;
                 default:
-                    sb.append(c);
+                    builder.append(c);
             }
         }
-        sb.append("\"");
-        return sb.toString();
+        builder.append("\"");
+        return builder.toString();
     }
 
     public static String escapeHtml(String s) {
@@ -981,5 +977,35 @@ public class Utils {
         sb.append(e.attrSource().getFile()).append(":").append(e.attrSource().getLine()).append(": ");
         e.prettyPrint(new DefaultSpacer(), sb, 4);
         return sb.toString();
+    }
+
+    public static String printTypeExpr(TypeExpr t) {
+        WurstType wt = t.attrTyp();
+        if (wt instanceof WurstTypeUnknown) {
+            if (t instanceof TypeExprSimple) {
+                return ((TypeExprSimple) t).getTypeName();
+            }
+            return "???";
+        }
+        return wt.toString();
+    }
+
+    /**
+     * Replaces oldElement with newElement in parent
+     */
+    public static void replace(de.peeeq.wurstscript.jassIm.Element parent, de.peeeq.wurstscript.jassIm.Element oldElement, de.peeeq.wurstscript.jassIm.Element newElement) {
+        if (oldElement == newElement) {
+            return;
+        }
+        de.peeeq.wurstscript.jassIm.Element oldElementParent = oldElement.getParent();
+        for (int i=0; i<parent.size(); i++) {
+            if (parent.get(i) == oldElement) {
+                parent.set(i, newElement);
+                // reset parent, because might be changed
+                oldElement.setParent(oldElementParent);
+                return;
+            }
+        }
+        throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
     }
 }

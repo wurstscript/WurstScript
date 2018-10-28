@@ -20,6 +20,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 /**
  * tests the autocomplete functionality.
@@ -84,10 +85,28 @@ public class AutoCompleteTests extends WurstScriptTest {
         );
 
         CompletionList completions = calculateCompletions(testData);
-        System.out.println("completions = " + completions);
         assertEquals(1, completions.getItems().size());
         CompletionItem c = completions.getItems().get(0);
         assertEquals("CreateGroup", c.getInsertText());
+    }
+
+
+    @Test
+    public void testWithParentheses2() {
+        CompletionTestData testData = input(
+                "package test",
+                "init",
+                "    CreateU|(x,y,z)",
+                ""
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        assertFalse(completions.getItems().isEmpty());
+        CompletionItem comp = completions.getItems().stream()
+                .filter(c -> c.getLabel().equals("CreateUnit"))
+                .findFirst()
+                .get();
+        assertEquals(comp.getInsertText(), "CreateUnit");
     }
 
     @Test
@@ -100,10 +119,28 @@ public class AutoCompleteTests extends WurstScriptTest {
         );
 
         CompletionList completions = calculateCompletions(testData);
-        System.out.println("completions = " + completions);
         assertEquals(1, completions.getItems().size());
         CompletionItem c = completions.getItems().get(0);
         assertEquals("CreateGroup()", c.getInsertText());
+    }
+
+
+    @Test
+    public void testWithoutParentheses2() {
+        CompletionTestData testData = input(
+                "package test",
+                "	init",
+                "		CreateU|",
+                "endpackage"
+        );
+
+        CompletionList completions = calculateCompletions(testData);
+        assertFalse(completions.getItems().isEmpty());
+        CompletionItem comp = completions.getItems().stream()
+                .filter(c -> c.getLabel().equals("CreateUnit"))
+                .findFirst()
+                .get();
+        assertEquals(comp.getInsertText(), "CreateUnit(${1:id}, ${2:unitid}, ${3:x}, ${4:y}, ${5:face})");
     }
 
 
@@ -255,6 +292,80 @@ public class AutoCompleteTests extends WurstScriptTest {
         testCompletions(testData, "bar", "foo");
     }
 
+    @Test
+    public void testPrivateMethod() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    private function fuu() returns bool",
+                "        return true",
+                "function test()",
+                "    let a = new A()",
+                "    a.f|"
+        );
+
+        testCompletions(testData, "foo");
+    }
+
+    @Test
+    public void testPrivateMethod2() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    private function fuu() returns bool",
+                "        return true",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+    @Test
+    public void testProtectedMethod() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    protected function fuu() returns bool",
+                "        return true",
+                "package test2",
+                "import test",
+                "class B extends A",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+
+        testCompletions(testData, "foo", "fuu");
+    }
+
+    @Test
+    public void testProtectedMethod2() {
+        CompletionTestData testData = input(true,
+                "package test",
+                "class A",
+                "    function foo() returns int",
+                "        return 1",
+                "    protected function fuu() returns bool",
+                "        return true",
+                "package test2",
+                "import test",
+                "class B",
+                "    static function test()",
+                "        let a = new A()",
+                "        a.f|"
+        );
+
+        testCompletions(testData, "foo");
+    }
 
 
     static class CompletionTestData {
@@ -278,9 +389,6 @@ public class AutoCompleteTests extends WurstScriptTest {
 
         CompletionList result = calculateCompletions(testData);
 
-        // debug output:
-//        System.out.println(new GsonBuilder().setPrettyPrinting().create().toJson(result));
-
         List<String> completionLabels = result.getItems().stream()
                 .sorted(Comparator.comparing(i -> i.getSortText()))
                 .map(completion -> completion.getLabel())
@@ -292,8 +400,9 @@ public class AutoCompleteTests extends WurstScriptTest {
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
         BufferManager bufferManager = new BufferManager();
-        ModelManager modelManager = new ModelManagerImpl(new File("."), bufferManager);
-        String uri = "file:///tmp/test.wurst";
+        File projectPath = new File("./test-output").getAbsoluteFile();
+        ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
+        String uri = projectPath.toURI().toString() + "/wurst/test.wurst";
         bufferManager.updateFile(WFile.create(uri), testData.buffer);
         TextDocumentIdentifier textDocument = new TextDocumentIdentifier(uri);
         Position pos = new Position(testData.line, testData.column);
@@ -336,7 +445,7 @@ public class AutoCompleteTests extends WurstScriptTest {
         String input = String.join("\n", lines);
         WurstGui gui = new WurstGuiLogger();
         RunArgs runArgs = new RunArgs();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(gui, null, runArgs);
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
         compiler.getErrorHandler().enableUnitTestMode();
         Map<String, String> inputMap = ImmutableMap.of("test", input);
         return parseFiles(Collections.<File>emptyList(), inputMap, false, compiler);

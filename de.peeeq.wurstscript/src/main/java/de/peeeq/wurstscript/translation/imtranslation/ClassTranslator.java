@@ -6,27 +6,25 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.Element.DefaultVisitor;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImSetArray;
-import de.peeeq.wurstscript.jassIm.ImSetArrayTuple;
-import de.peeeq.wurstscript.jassIm.ImSetTuple;
-import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import fj.data.TreeMap;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+
 public class ClassTranslator {
 
     private ClassDef classDef;
@@ -69,7 +67,7 @@ public class ClassTranslator {
 
         addSuperClasses();
 
-        List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
+        List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
         translateMethods(classDef, subClasses);
@@ -185,37 +183,6 @@ public class ClassTranslator {
                 }
             }
 
-            @Override
-            public void visit(ImSet v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArray v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetTuple v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple v) {
-                super.visit(v);
-                if (v.getLeft() == oldThis) {
-                    v.setLeft(newThis);
-                }
-            }
         };
         for (ImStmt s : stmts) {
             s.accept(replacer);
@@ -367,7 +334,7 @@ public class ClassTranslator {
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, thisVar, JassIm.ImAlloc(imClass)));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClass)));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);
@@ -403,13 +370,13 @@ public class ClassTranslator {
             ImVar v = i.getA();
             if (i.getB() instanceof Expr) {
                 Expr e = (Expr) i.getB();
-                ImStmt s = ImSetArray(trace, v, ImVarAccess(thisVar), e.imTranslateExpr(translator, f));
+                ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) ImVarAccess(thisVar))), e.imTranslateExpr(translator, f));
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
                 ArrayInitializer ai = (ArrayInitializer) i.getB();
                 int index = 0;
                 for (Expr e : ai.getValues()) {
-                    ImStmt s = ImSetArrayMulti(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index)), e.imTranslateExpr(translator, f));
+                    ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
                     f.getBody().add(s);
                     index++;
                 }

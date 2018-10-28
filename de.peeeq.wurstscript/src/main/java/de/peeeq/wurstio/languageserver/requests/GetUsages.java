@@ -10,10 +10,7 @@ import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 
 public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
 
@@ -37,6 +34,9 @@ public class GetUsages extends UserRequest<List<GetUsages.UsagesData>> {
     @Override
     public List<UsagesData> execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, buffer, false);
+        if (cu == null) {
+            return Collections.emptyList();
+        }
         Element astElem = Utils.getAstElementAtPos(cu, line, column, false);
         NameDef nameDef = astElem.tryGetNameDef();
         List<UsagesData> usages = new ArrayList<>();

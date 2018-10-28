@@ -14,4 +14,5 @@ public interface WurstCompiler {
 
     void loadFiles(File... files);
 
+    void runCompiletime();
 }

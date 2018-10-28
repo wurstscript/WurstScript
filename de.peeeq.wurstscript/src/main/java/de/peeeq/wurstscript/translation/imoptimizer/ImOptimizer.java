@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -8,6 +9,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -29,9 +31,11 @@ public class ImOptimizer {
     }
 
 
+    private final TimeTaker timeTaker;
     ImTranslator trans;
 
-    public ImOptimizer(ImTranslator trans) {
+    public ImOptimizer(TimeTaker timeTaker, ImTranslator trans) {
+        this.timeTaker = timeTaker;
         this.trans = trans;
     }
 
@@ -60,12 +64,12 @@ public class ImOptimizer {
         removeGarbage();
 
         int finalItr = 0;
-        for (int i = 0; i <= 10 && optCount > 0; i++) {
+        for (int i = 1; i <= 10 && optCount > 0; i++) {
             optCount = 0;
             localPasses.forEach(pass -> {
-                int count = pass.optimize(trans);
+                int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
                 optCount += count;
-                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + optCount);
+                totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
             });
             trans.getImProg().flatten(trans);
             removeGarbage();
@@ -105,44 +109,45 @@ public class ImOptimizer {
             totalFunctionsRemoved += functionsRemoved;
             for (ImFunction f : prog.getFunctions()) {
                 // remove set statements to unread variables
-                final List<Pair<ImStmt, ImStmt>> replacements = Lists.newArrayList();
+                final List<Pair<ImStmt, List<ImExpr>>> replacements = Lists.newArrayList();
                 f.accept(new ImFunction.DefaultVisitor() {
                     @Override
                     public void visit(ImSet e) {
                         super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
+                        if (e.getLeft() instanceof ImVarAccess) {
+                            ImVarAccess va = (ImVarAccess) e.getLeft();
+                            if (!trans.getReadVariables().contains(va.getVar())) {
+                                replacements.add(Pair.create(e, Collections.singletonList(e.getRight())));
+                            }
+                        } else if (e.getLeft() instanceof ImVarArrayAccess) {
+                            ImVarArrayAccess va = (ImVarArrayAccess) e.getLeft();
+                            if (!trans.getReadVariables().contains(va.getVar())) {
+                                // TODO indexes might have side effects that we need to keep
+                                List<ImExpr> exprs = va.getIndexes().removeAll();
+                                exprs.add(e.getRight());
+                                replacements.add(Pair.create(e, exprs));
+                            }
                         }
                     }
 
-                    @Override
-                    public void visit(ImSetArrayTuple e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
-
-                    @Override
-                    public void visit(ImSetArray e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
-
-                    @Override
-                    public void visit(ImSetTuple e) {
-                        super.visit(e);
-                        if (!trans.getReadVariables().contains(e.getLeft())) {
-                            replacements.add(Pair.<ImStmt, ImStmt>create(e, e.getRight()));
-                        }
-                    }
                 });
-                for (Pair<ImStmt, ImStmt> pair : replacements) {
+                for (Pair<ImStmt, List<ImExpr>> pair : replacements) {
                     changes = true;
-                    pair.getB().setParent(null);
-                    pair.getA().replaceBy(pair.getB());
+                    ImExpr r;
+                    if (pair.getB().size() == 1) {
+                        r = pair.getB().get(0);
+                        r.setParent(null);
+                    } else {
+                        List<ImStmt> exprs = Collections.unmodifiableList(pair.getB());
+                        for (ImStmt expr : exprs) {
+                            expr.setParent(null);
+                        }
+                        r = JassIm.ImStatementExpr(
+                                JassIm.ImStmts(exprs),
+                                JassIm.ImNull()
+                        );
+                    }
+                    pair.getA().replaceBy(r);
                 }
 
                 // keep only read local variables

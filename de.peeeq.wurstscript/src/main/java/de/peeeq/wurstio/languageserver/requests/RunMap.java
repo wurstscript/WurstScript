@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 
 import javax.swing.filechooser.FileSystemView;
@@ -21,6 +22,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
+
+import static net.moonlightflower.wc3libs.bin.GameExe.VERSION_1_29;
 
 /**
  * Created by peter on 16.05.16.
@@ -31,10 +34,7 @@ public class RunMap extends MapRequest {
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
      */
     private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
-    /**
-     * The patch version as double, e.g. 1.27, 1.28
-     */
-    private double patchVersion;
+
     private File customTarget = null;
 
     enum SafetyLevel {
@@ -53,12 +53,14 @@ public class RunMap extends MapRequest {
         }
 
         // TODO use normal compiler for this, avoid code duplication
-        WLogger.info("runMap " + map.getAbsolutePath() + " " + compileArgs);
+        WLogger.info("received runMap command: map=" + map.getAbsolutePath() + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
             if (wc3Path != null) {
                 W3Utils.parsePatchVersion(new File(wc3Path));
-                patchVersion = W3Utils.getWc3PatchVersion();
+            }
+            if (W3Utils.getWc3PatchVersion() == null) {
+                throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
             }
             File gameExe = findGameExecutable();
 
@@ -133,7 +135,7 @@ public class RunMap extends MapRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        return (W3Utils.getWc3PatchVersion() < 1.29 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
+        return (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_29) < 0 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
                 Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
                 .map(exe -> new File(wc3Path, exe))
                 .filter(File::exists)
@@ -163,21 +165,22 @@ public class RunMap extends MapRequest {
                 return testMapName;
             }
         }
-        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
+        File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
+        String documentPath = myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III";
         if (!new File(documentPath).exists()) {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");
             // Try wine default:
             documentPath = System.getProperty("user.home")
                     + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
             if (!new File(documentPath).exists()) {
-                WLogger.severe("Wine Warcraft folder " + documentPath + " does not exist.");
+                WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
             }
         }
 
 
-        if (patchVersion <= 1.27) {
+        if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27.9")) <= 0) {
             // 1.27 and lower compat
-            print("Version 1.27 or lower detected, changing file location");
+            WLogger.info("Version 1.27 or lower detected, changing file location");
             documentPath = wc3Path;
         } else {
             // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
@@ -232,7 +235,7 @@ public class RunMap extends MapRequest {
             model = ModelManager.copy(model);
         }
 
-        return compileMap(gui, mapCopy, origMap, runArgs, model);
+        return compileMap(modelManager.getProjectPath(), gui, mapCopy, origMap, runArgs, model);
     }
 
 

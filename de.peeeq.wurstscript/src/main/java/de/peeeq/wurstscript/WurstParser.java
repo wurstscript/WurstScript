@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import de.peeeq.wurstscript.antlr.JassParser;
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
@@ -7,6 +8,8 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
+import de.peeeq.wurstscript.jass.ExtendedJassLexer;
 import de.peeeq.wurstscript.jurst.AntlrJurstParseTreeTransformer;
 import de.peeeq.wurstscript.jurst.ExtendedJurstLexer;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
@@ -180,6 +183,74 @@ public class WurstParser {
 
             de.peeeq.wurstscript.jurst.antlr.JurstParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
             CompilationUnit root = new AntlrJurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
+            removeSyntacticSugar(root, hasCommonJ);
+            return root;
+
+        } catch (IOException e) {
+            WLogger.severe(e);
+            throw new Error(e);
+        } catch (TooManyErrorsException e) {
+            WLogger.info("Stopped parsing file " + source + ", too many errors");
+            return emptyCompilationUnit();
+        }
+    }
+
+    public CompilationUnit parseJass(Reader reader, String source, boolean hasCommonJ) {
+        return parseJassAntlr(reader, source, hasCommonJ);
+    }
+
+    private CompilationUnit parseJassAntlr(Reader reader, final String source, boolean hasCommonJ) {
+        try {
+            CharStream input = CharStreams.fromReader(reader);
+            // create a lexer that feeds off of input CharStream
+            final ExtendedJassLexer lexer = new ExtendedJassLexer(input);
+            // create a buffer of tokens pulled from the lexer
+            TokenStream tokens = new CommonTokenStream(lexer);
+            // create a parser that feeds off the tokens buffer
+            JassParser parser = new JassParser(tokens);
+            ANTLRErrorListener l = new BaseErrorListener() {
+
+                int errorCount = 0;
+
+                @Override
+                public void syntaxError(@SuppressWarnings("null") Recognizer<?, ?> recognizer, @SuppressWarnings("null") Object offendingSymbol, int line,
+                                        int charPositionInLine,
+                                        @SuppressWarnings("null") String msg, @SuppressWarnings("null") RecognitionException e) {
+
+                    LineOffsets offsets = lexer.getLineOffsets();
+                    int pos;
+                    int posStop;
+                    if (offendingSymbol instanceof Token) {
+                        Token token = (Token) offendingSymbol;
+                        pos = token.getStartIndex();
+                        posStop = token.getStopIndex() + 1;
+                    } else {
+                        pos = offsets.get(line) + charPositionInLine;
+                        posStop = pos + 1;
+                    }
+
+                    msg = "line " + line + ": " + msg;
+
+                    while (pos > 0 && input.getText(new Interval(pos, posStop)).matches("\\s*")) {
+                        pos--;
+                    }
+                    CompileError err = new CompileError(new WPos(source, offsets, pos, posStop), msg);
+                    gui.sendError(err);
+
+
+                    errorCount++;
+                    if (errorCount > MAX_SYNTAX_ERRORS) {
+                        throw new TooManyErrorsException();
+                    }
+                }
+
+            };
+            lexer.addErrorListener(l);
+            parser.removeErrorListeners();
+            parser.addErrorListener(l);
+
+            JassParser.CompilationUnitContext cu = parser.compilationUnit(); // begin parsing at init rule
+            CompilationUnit root = new AntlrJassParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
             removeSyntacticSugar(root, hasCommonJ);
             return root;
 

@@ -136,8 +136,7 @@ public class LuaTranslator {
     private void translateGlobal(ImVar v) {
         LuaVariable lv = luaVar.getFor(v);
         if (v.getType() instanceof ImArrayType
-                || v.getType() instanceof ImArrayTypeMulti
-                || v.getType() instanceof ImTupleArrayType) {
+                || v.getType() instanceof ImArrayTypeMulti) {
             lv.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
         luaModel.add(lv);

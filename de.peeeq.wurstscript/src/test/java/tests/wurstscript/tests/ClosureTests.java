@@ -426,6 +426,31 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void code_anonfuncTuple() {
+        testAssertOkLines(true,
+                "type trigger extends handle",
+                "package test",
+                "@extern native CreateTrigger() returns trigger",
+                "@extern native TriggerAddAction(trigger t, code c)",
+                "@extern native TriggerEvaluate(trigger t)",
+                "native testSuccess()",
+                "tuple test (int a, int b, int c)",
+                "let x = test(1, 2, 3)",
+                "function foo(code c)",
+                "    let t = CreateTrigger()",
+                "    TriggerAddAction(t, c)",
+                "    TriggerEvaluate(t)",
+                "function bar(int x)",
+                "init",
+                "    foo() ->",
+                "        let y = x.b",
+                "        if y == 2",
+                "            testSuccess()"
+        );
+    }
+
     @Test
     public void tryCaptureArray() {
         testAssertErrorsLines(true, "cannot capture local array",
@@ -751,5 +776,38 @@ public class ClosureTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void testOverloadingFuncClosureUse() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface ABC",
+                "        function foo() returns int",
+                "    class B",
+                "    function foo(ABC a) returns int",
+                "        return a.foo()",
+                "    function foo(B a) returns int",
+                "        return 13",
+                "    init",
+                "        if foo(() -> 42) == 42",
+                "            testSuccess()");
+    }
+
+    @Test
+    public void testOverloadingConstructorClosureUse() {
+        testAssertOkLines(true,
+                "package A",
+                "    native testSuccess()",
+                "    interface ABC",
+                "        function foo() returns int",
+                "    class B",
+                "    class A",
+                "        construct(ABC a)",
+                "            testSuccess()",
+                "        construct(B a)",
+                "    init",
+                "        new A(() -> 42)"
+        );
+    }
 
 }

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 
+import com.google.common.base.Preconditions;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassAst.*;
@@ -57,6 +58,17 @@ public class ExprTranslation {
             JassExpr left = e.getArguments().get(0).translate(translator);
             JassExpr right = e.getArguments().get(1).translate(translator);
 
+            if (op == WurstOperator.PLUS) {
+                // special cases for using 'null' as a string constant:
+                // "a" + null gets translated to just "a"
+                if (left instanceof JassExprNull) {
+                    return right;
+                }
+                if (right instanceof JassExprNull) {
+                    return left;
+                }
+            }
+
             if (op == WurstOperator.MOD_REAL) {
                 return JassExprFunctionCall("ModuloReal", JassExprlist(left, right));
             } else if (op == WurstOperator.MOD_INT) {
@@ -77,7 +89,7 @@ public class ExprTranslation {
     }
 
     public static JassExpr translate(ImStatementExpr e, ImToJassTranslator translator) {
-        throw new Error("this expr should have been flattened: " + e);
+        throw new Error("this expr should have been flattened: " + e + "\n\n" + e.getNearestFunc());
     }
 
     public static JassExpr translate(ImStringVal e, ImToJassTranslator translator) {
@@ -99,7 +111,10 @@ public class ExprTranslation {
 
     public static JassExprVarArrayAccess translate(ImVarArrayAccess e, ImToJassTranslator translator) {
         JassVar v = translator.getJassVarFor(e.getVar());
-        return JassExprVarArrayAccess(v.getName(), e.getIndex().translate(translator));
+        if (e.getIndexes().size() != 1) {
+            throw new CompileError(e.attrTrace().attrSource(), "Only one array index allowed.");
+        }
+        return JassExprVarArrayAccess(v.getName(), e.getIndexes().get(0).translate(translator));
     }
 
     public static JassExpr translate(ImClassRelatedExpr e,
@@ -107,11 +122,6 @@ public class ExprTranslation {
         throw new RuntimeException("Eliminate method calls before translating to jass");
     }
 
-    public static JassExpr translate(
-            ImVarArrayMultiAccess imVarArrayMultiAccess,
-            ImToJassTranslator translator) {
-        throw new Error("not implemented");
-    }
 
     public static JassExpr translate(ImGetStackTrace imGetStackTrace, ImToJassTranslator translator) {
         return JassAst.JassExprStringVal("");
@@ -123,4 +133,5 @@ public class ExprTranslation {
                 "Compiletime expression must be evaluated before translation. " +
                 "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
     }
+
 }

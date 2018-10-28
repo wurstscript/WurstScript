@@ -1,7 +1,6 @@
 package de.peeeq.wurstio.languageserver.requests;
 
 import de.peeeq.wurstio.languageserver.ModelManager;
-import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
@@ -22,7 +21,7 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 	private final int column;
 
 
-	public SignatureInfo(TextDocumentPositionParams position, BufferManager bufferManager) {
+	public SignatureInfo(TextDocumentPositionParams position) {
 		this.filename = WFile.create(position.getTextDocument().getUri());
 		this.line = position.getPosition().getLine() + 1;
 		this.column = position.getPosition().getCharacter() + 1;
@@ -84,27 +83,5 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
 		help.getSignatures().add(info);
 		return help;
 	}
-
-//	private static class SignatureHelp {
-//		List<SignatureInformation> signatures = new ArrayList<>();
-//		int activeSignature = 0;
-//		int activeParameter = 0;
-//	}
-
-//	private static class SignatureInformation {
-//		String label;
-//		String documentation = "";
-//		List<ParameterInformation> parameters = new ArrayList<>();
-//	}
-//
-//	private static class ParameterInformation {
-//		String label;
-//		String documentation = "";
-//
-//		public ParameterInformation(String label, String documentation) {
-//			this.label = label;
-//			this.documentation = documentation;
-//		}
-//	}
 
 }

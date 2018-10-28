@@ -19,7 +19,7 @@ public class ImAttributes {
 
 
     public static String translateType(ImArrayType t) {
-        return t.getTypename();
+        return t.getEntryType().translateType();
     }
 
     public static String translateType(ImArrayTypeMulti imArrayTypeMulti) {
@@ -39,11 +39,6 @@ public class ImAttributes {
 
     public static String translateType(ImVoid t) {
         return "nothing";
-    }
-
-
-    public static String translateType(ImTupleArrayType t) {
-        throw new Error("tuples should be eliminated in earlier phase");
     }
 
 

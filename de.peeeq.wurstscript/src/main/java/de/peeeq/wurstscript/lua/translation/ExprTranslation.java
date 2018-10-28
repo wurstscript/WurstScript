@@ -155,16 +155,11 @@ public class ExprTranslation {
         return LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar()));
     }
 
-    public static LuaExpr translate(ImVarArrayMultiAccess e, LuaTranslator tr) {
-        LuaExprlist indexes = LuaAst.LuaExprlist();
-        indexes.add(e.getIndex1().translateToLua(tr));
-        indexes.add(e.getIndex2().translateToLua(tr));
-        return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
-    }
-
     public static LuaExpr translate(ImVarArrayAccess e, LuaTranslator tr) {
         LuaExprlist indexes = LuaAst.LuaExprlist();
-        indexes.add(e.getIndex().translateToLua(tr));
+        for (ImExpr ie : e.getIndexes()) {
+            indexes.add(ie.translateToLua(tr));
+        }
         return LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(tr.luaVar.getFor(e.getVar())), indexes);
     }
 
@@ -175,4 +170,5 @@ public class ExprTranslation {
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {
         throw new Error("not implemented");
     }
+
 }

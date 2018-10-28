@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconstBool;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
@@ -86,18 +87,24 @@ public class StringProvider extends Provider {
         return new ILconstInt(string.getVal().length());
     }
 
-    public ILconstString SubString(ILconstString s, ILconstInt start, ILconstInt end) {
-        String str = s.getVal();
-        if (start.getVal() < 0) {
+    public ILconstString SubString(ILconstString istr, ILconstInt start, ILconstInt end) {
+        String str = istr.getVal();
+        int s = start.getVal();
+        if (s < 0) {
             // I am not gonna emulate the WC3 bug for negative indexes here ...
-            throw new RuntimeException("SubString called with negative start index: " + start);
+            throw new InterpreterException("SubString called with negative start index: " + start);
         }
         int e = end.getVal();
         if (e >= str.length()) {
             // Warcraft does no bound checking here:
             e = str.length();
         }
-        return new ILconstString(str.substring(start.getVal(), e));
+        if (s > str.length()) {
+            // if start is above string length, wc3 will return null
+            // since this is most likely a bug in your code, the interpreter will throw an exception instead:
+            throw new InterpreterException("SubString called with start index " + start + " greater than string length " + str.length());
+        }
+        return new ILconstString(str.substring(s, e));
     }
 
     public ILconstString StringCase(ILconstString string, ILconstBool upperCase) {

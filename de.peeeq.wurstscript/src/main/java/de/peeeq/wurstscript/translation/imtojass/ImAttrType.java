@@ -100,10 +100,10 @@ public class ImAttrType {
         ImType ar = e.getVar().getType();
         if (ar instanceof ImArrayType) {
             ImArrayType t = (ImArrayType) ar;
-            return JassIm.ImSimpleType(t.getTypename());
-        } else if (ar instanceof ImTupleArrayType) {
-            ImTupleArrayType t = (ImTupleArrayType) ar;
-            return JassIm.ImTupleType(t.getTypes(), t.getNames());
+            return t.getEntryType();
+        } else if (ar instanceof ImArrayTypeMulti) {
+            ImArrayTypeMulti t = (ImArrayTypeMulti) ar;
+            return t.getEntryType();
         }
         return ar;
     }
@@ -118,6 +118,7 @@ public class ImAttrType {
         }
         return JassIm.ImTupleType(types, names);
     }
+
 
     public static ImType getType(ImMethodCall mc) {
         return mc.getMethod().getImplementation().getReturnType();
@@ -147,9 +148,6 @@ public class ImAttrType {
         return TypesHelper.imInt();
     }
 
-    public static ImType getType(ImVarArrayMultiAccess imVarArrayMultiAccess) {
-        throw new Error("not implemented");
-    }
 
     public static ImType getType(ImGetStackTrace imGetStackTrace) {
         return TypesHelper.imString();

@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -513,6 +514,35 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore // test for #747
+    public void test_localVarMerger3() throws IOException {
+        test().lines(
+                "package test",
+                "native testSuccess()",
+                "native testFail(string s)",
+                "native sideEffects()",
+                "@extern native Sin(real r) returns real",
+                "int g = 0",
+                "int h = 0",
+                "function f(int x)",
+                "	sideEffects()",
+                "function foo(int x)",
+                "	int a = g",
+                "	if h == 10",
+                "		f(a)",
+                "function initVars()",
+                "	g = 7",
+                "	h = 10",
+                "init",
+                "	initVars()",
+                "	foo(3)",
+                "	testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_localVarMerger3_opt.j"), Charsets.UTF_8);
+        assertTrue(compiledAndOptimized.contains("call f(test_g)"));
+    }
+
+    @Test
     public void test_unused_func_remover() throws IOException {
         test().executeProg().lines(
                 "package test",
@@ -540,10 +570,9 @@ public class OptimizerTests extends WurstScriptTest {
 
     @Test
     public void test_unreachableCodeRemover() throws IOException {
-        test().lines(
+        test().withStdLib().lines(
                 "package test",
                 "	import MagicFunctions",
-                "	native testSuccess()",
                 "	function foo()",
                 "		if not false",
                 "			return",
@@ -720,6 +749,134 @@ public class OptimizerTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void optimizeDuplicateNullSets() throws IOException {
+        testAssertOkLinesWithStdLib(true,
+                "package Test",
+                "var x = 100",
+                "init",
+                "	unit u = createUnit(Player(0), 'hfoo', vec2(0,0), angle(0))",
+                "	print(u.getTypeId())",
+                "	print(u.getTypeId() + 1)",
+                "	print(u.getTypeId() + 2)",
+                "	testSuccess()",
+                "	u = null",
+                "	u = null"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_optimizeDuplicateNullSets_opt.j"), Charsets.UTF_8);
+        assertEquals(compiledAndOptimized.indexOf("u = null"), compiledAndOptimized.lastIndexOf("u = null"));
+    }
 
+    @Test
+    public void testInlineAnnotation() throws IOException {
+        testAssertOkLinesWithStdLib(false,
+                "package Test",
+                "@inline function over9000(int i, boolean b, real r)",
+                "	var s = \"\"",
+                "	s += r.toString()",
+                "	s += i.toString()",
+                "	s += b.toString()",
+                "	if s.length() > 5",
+                "		print(s)",
+                "	print(\"end\")",
+                "function over9001(int i, boolean b, real r)",
+                "	var s = \"\"",
+                "	s += r.toString()",
+                "	s += i.toString()",
+                "	s += b.toString()",
+                "	if s.length() > 5",
+                "		print(s)",
+                "	print(\"end\")",
+                "function foo()",
+                "	over9000(141, true and true, 12315.233)",
+                "	over9001(141, true and true, 12315.233)",
+                "function bar()",
+                "	print(\"end\")",
+                "@noinline function noot()",
+                "	print(\"end\")",
+                "init",
+                "	over9000(12412411, true and true, 12315.233)",
+                "	over9001(12412411, true and true, 12315.233)",
+                "	foo()",
+                "	bar()",
+                "	noot()"
+
+        );
+        String inlined = Files.toString(new File("test-output/OptimizerTests_testInlineAnnotation_inl.j"), Charsets.UTF_8);
+        assertFalse(inlined.contains("function bar"));
+        assertFalse(inlined.contains("function over9000"));
+        assertTrue(inlined.contains("function over9001"));
+        assertTrue(inlined.contains("function noot"));
+    }
+
+
+    @Test
+    public void moveTowardsBug() { // see #737
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native SquareRoot(real x) returns real",
+                "@extern native R2S(real x) returns string",
+                "native println(string s)",
+                "tuple vec3(real x, real y, real z)",
+                "public function vec3.length() returns real",
+                "    return SquareRoot(this.x * this.x + this.y * this.y + this.z * this.z)",
+                "public function vec3.op_plus(vec3 v)	returns vec3",
+                "    return vec3(this.x + v.x, this.y + v.y, this.z + v.z)",
+                "public function vec3.op_minus(vec3 v)	returns vec3",
+                "    return vec3(this.x - v.x, this.y - v.y, this.z - v.z)",
+                "public function vec3.op_mult(real factor) returns vec3",
+                "    return vec3(this.x * factor, this.y * factor, this.z * factor)",
+                "public function real.op_mult(vec3 v) returns vec3",
+                "    return vec3(v.x * this, v.y * this, v.z * this)",
+                "public function vec3.normalizedPointerTo(vec3 target) returns vec3",
+                "    vec3 diff = target - this",
+                "    real len = diff.length()",
+                "    if len > 0",
+                "        diff = diff * (1. / len)",
+                "    else",
+                "        diff = vec3(1, 0, 0)",
+                "    return diff",
+                "function vec3.moveTowards(vec3 target, real dist) returns vec3",
+                "    return this + dist*this.normalizedPointerTo(target)",
+                "function vec3.approxEq(vec3 o) returns bool",
+                "    return this.x - 0.01 < o.x and o.x < this.x + 0.01",
+                "       and this.y - 0.01 < o.y and o.y < this.y + 0.01",
+                "       and this.z - 0.01 < o.z and o.z < this.z + 0.01",
+                "init",
+                "    let a = vec3(0,0,0).moveTowards(vec3(1,2,3), 10)",
+                "    let b = vec3(0,0,0).moveTowards(vec3(6,5,4), 10)",
+                "    if a.approxEq(vec3(2.673, 5.345, 8.018)) and b.approxEq(vec3(6.838, 5.698, 4.558))",
+                "        testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void cyclicFunctionRemover() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(int x) returns int",
+                "	if x > 1000",
+                "		return g(x)",
+                "	if x > 100",
+                "		return h(x)",
+                "	if x > 10",
+                "		return i(x)",
+                "	return x",
+                "function g(int x) returns int",
+                "	return foo(x div 1000)",
+                "function h(int x) returns int",
+                "	return foo(x div 100)",
+                "function i(int x) returns int",
+                "	return foo(x div 10)",
+                "init",
+                "	if foo(7531) == 7",
+                "		testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        assertFalse(compiled.contains("cyc_cyc"));
+    }
 
 }

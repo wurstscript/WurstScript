@@ -42,9 +42,19 @@ public class StatementTranslation {
     }
 
     public static void translate(ImSet imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-        JassVar vars = translator.getJassVarFor(imSet.getLeft());
-        JassExpr exprs = imSet.getRight().translate(translator);
-        stmts.add(JassStmtSet(vars.getName(), exprs));
+        ImLExpr updatedExpr = imSet.getLeft();
+        if (updatedExpr instanceof ImVarAccess) {
+            ImVarAccess va = (ImVarAccess) updatedExpr;
+            JassVar var = translator.getJassVarFor(va.getVar());
+            JassExpr exprs = imSet.getRight().translate(translator);
+            stmts.add(JassStmtSet(var.getName(), exprs));
+        } else if (updatedExpr instanceof ImVarArrayAccess) {
+            ImVarArrayAccess vaa = (ImVarArrayAccess) updatedExpr;
+            JassVar var = translator.getJassVarFor(vaa.getVar());
+            JassExpr indexes = vaa.getIndexes().get(0).translate(translator);
+            JassExpr exprs = imSet.getRight().translate(translator);
+            stmts.add(JassStmtSetArray(var.getName(), indexes, exprs));
+        }
     }
 
     public static void translate(ImExpr imExpr, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
@@ -66,20 +76,6 @@ public class StatementTranslation {
         }
     }
 
-    public static void translate(ImSetArray imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-        JassVar leftVar = translator.getJassVarFor(imSet.getLeft());
-        JassExpr right = imSet.getRight().translate(translator);
-        stmts.add(JassAst.JassStmtSetArray(leftVar.getName(), imSet.getIndex().translate(translator), right));
-    }
-
-    public static void translate(ImSetArrayTuple imSet, List<JassStatement> stmts, JassFunction f,
-                                 ImToJassTranslator translator) {
-        throw new Error("tuples should be eliminated in earlier phase");
-    }
-
-    public static void translate(ImSetTuple imSet, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
-        throw new Error("tuples should be eliminated in earlier phase");
-    }
 
     public static void translate(ImStmts imStmts, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
         for (ImStmt s : imStmts) {
@@ -87,15 +83,9 @@ public class StatementTranslation {
         }
     }
 
-    public static void translate(ImSetArrayMulti imSetArrayMulti,
-                                 List<JassStatement> stmts, JassFunction f,
-                                 ImToJassTranslator translator) {
-        throw new Error("not implemented");
-
-    }
-
 
     public static void translate(ImVarargLoop imVarargLoop, List<JassStatement> stmts, JassFunction f, ImToJassTranslator translator) {
         throw new Error("not implemented");
     }
+
 }

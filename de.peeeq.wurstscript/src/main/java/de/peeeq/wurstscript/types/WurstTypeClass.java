@@ -61,7 +61,18 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     public ImmutableList<WurstTypeInterface> implementedInterfaces() {
+        classDef.getImplementsList().stream().forEach(i -> {
+            if(!(i.attrTyp() instanceof WurstTypeInterface)) {
+                @Nullable NameDef nameDef = i.tryGetNameDef();
+                if(nameDef != null) {
+                    i.addError("<" + nameDef.getName() + "> is not an interface.");
+                } else {
+                    classDef.getNameId().addError("Expecting interface name after `implements`");
+                }
+            }
+        });
         return classDef.getImplementsList().stream()
+                .filter(i -> i != null && i.attrTyp() instanceof WurstTypeInterface)
                 .map(i -> (WurstTypeInterface) i.attrTyp().setTypeArgs(getTypeArgBinding()))
                 .filter(i -> i.level() < level())
                 .collect(ImmutableList.toImmutableList());

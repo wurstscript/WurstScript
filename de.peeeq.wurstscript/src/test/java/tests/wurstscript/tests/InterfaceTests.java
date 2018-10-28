@@ -1,6 +1,12 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstscript.attributes.CompileError;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.testng.annotations.Test;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class InterfaceTests extends WurstScriptTest {
 
@@ -531,5 +537,25 @@ public class InterfaceTests extends WurstScriptTest {
                 "			testSuccess()",
                 "endpackage"
         );
+    }
+
+    @Test
+    public void testEmptyImplements() {
+        CompilationResult res = test().executeProg(false)
+                .setStopOnFirstError(false)
+                .lines(
+                        "package test",
+                        "native testSuccess()",
+                        "class A implements",
+                        "init"
+                );
+        for (CompileError compileError : res.getGui().getErrorList()) {
+            System.err.println("" + compileError);
+        }
+        assertThat(res.getGui().getErrorList(), CoreMatchers.hasItem(
+                ExtraMatchers.get("getMessage",
+                        CoreMatchers.containsString("Expecting interface name after `implements`"))));
+
+
     }
 }

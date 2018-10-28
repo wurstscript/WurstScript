@@ -13,6 +13,7 @@ import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -144,7 +145,7 @@ public class VarLink extends DefLink {
         Deferred<WurstType> newType = type.map(oldType -> oldType.setTypeArgs(binding));
         boolean changed = newType != type;
         WurstType newReceiverType = getReceiverType().setTypeArgs(binding);
-        changed |= newReceiverType == getReceiverType();
+        changed |= newReceiverType != getReceiverType();
 
 
         if (changed) {
@@ -197,4 +198,16 @@ public class VarLink extends DefLink {
     }
 
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VarLink varLink = (VarLink) o;
+        return Objects.equals(def, varLink.def);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(def);
+    }
 }

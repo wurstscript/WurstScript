@@ -3,7 +3,6 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.Random;
 
@@ -26,15 +25,23 @@ public class MathProvider extends Provider {
         return new ILconstReal(Math.sin(r.getVal()));
     }
 
+    public ILconstReal Asin(ILconstReal r) {
+        return new ILconstReal(Math.asin(r.getVal()));
+    }
+
     public ILconstReal Cos(ILconstReal r) {
         return new ILconstReal(Math.cos(r.getVal()));
+    }
+
+    public ILconstReal Acos(ILconstReal r) {
+        return new ILconstReal(Math.acos(r.getVal()));
     }
 
     public ILconstReal Tan(ILconstReal r) {
         return new ILconstReal(Math.tan(r.getVal()));
     }
 
-    public ILconstReal ATan(ILconstReal r) {
+    public ILconstReal Atan(ILconstReal r) {
         return new ILconstReal(Math.atan(r.getVal()));
     }
 

@@ -97,10 +97,6 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return res;
     }
 
-    private WurstTypeBoundTypeParam normalizeType(WurstTypeBoundTypeParam bt, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> b) {
-        return bt.setTypeArgs(b);
-    }
-
     @Override
     public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
         List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();
@@ -188,8 +184,20 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (DefLink defLink : nameLinks(name)) {
             if (defLink instanceof FuncLink) {
                 FuncLink f = (FuncLink) defLink;
-//                result.add(f.hidingPrivateAndProtected());
                 if (f.getVisibility().isPublic()) {
+                    result.add(f);
+                } else if (f.getVisibility().isInherited()) {
+                    // for protected members:
+                    NamedScope def = getDef();
+                    if (def != null && node.attrNearestPackage() != def.attrNearestPackage()) {
+                        // if in different package, check if we are in a subclass:
+                        ClassDef nearestClass = node.attrNearestClassDef();
+                        if (nearestClass == null
+                                || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
+                            // if not in a subclass, change to not visible
+                            f = f.withVisibility(Visibility.PROTECTED_OTHER);
+                        }
+                    }
                     result.add(f);
                 }
             }

@@ -2,12 +2,13 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.io.Files;
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
+import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileReading;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -26,12 +27,14 @@ import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+
+import static com.google.common.io.Files.asCharSink;
+import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
 
@@ -42,6 +45,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private boolean hasCommonJ;
     private RunArgs runArgs;
     private @Nullable File mapFile;
+    private @Nullable File projectFolder;
     private ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
     private @Nullable ImProg imProg;
@@ -51,8 +55,15 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private @Nullable ImTranslator imTranslator;
     private List<File> dependencies = Lists.newArrayList();
     private final @Nullable MpqEditor mapFileMpq;
+    private TimeTaker timeTaker;
 
-    public WurstCompilerJassImpl(WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+    public WurstCompilerJassImpl(@Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+        this(new TimeTaker.Default(), projectFolder, gui, mapFileMpq, runArgs);
+    }
+
+    public WurstCompilerJassImpl(TimeTaker timeTaker, @Nullable File projectFolder, WurstGui gui, @Nullable MpqEditor mapFileMpq, RunArgs runArgs) {
+        this.timeTaker = timeTaker;
+        this.projectFolder = projectFolder;
         this.gui = gui;
         this.runArgs = runArgs;
         this.errorHandler = new ErrorHandler(gui);
@@ -78,6 +89,33 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         gui.sendProgress("Loading Files");
         for (File file : files) {
             loadFile(file);
+        }
+    }
+
+    @Override
+    public void runCompiletime() {
+        if (runArgs.runCompiletimeFunctions()) {
+            // compile & inject object-editor data
+            // TODO run optimizations later?
+            gui.sendProgress("Running compiletime functions");
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+                    CompiletimeFunctions);
+            ctr.setInjectObjects(runArgs.isInjectObjects());
+            ctr.setOutputStream(new PrintStream(System.err));
+            ctr.run();
+        }
+
+        if (gui.getErrorCount() > 0) {
+            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
+                    .getErrorList().get(0));
+        }
+
+
+        if (runArgs.isInjectObjects()) {
+            Preconditions.checkNotNull(mapFileMpq);
+            Preconditions.checkNotNull(projectFolder);
+            // add the imports
+            ImportFile.importFilesFromImportDirectory(projectFolder, mapFileMpq);
         }
     }
 
@@ -135,24 +173,34 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         for (File file : files) {
             if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
                 mapFile = file;
+            } else if (file.isDirectory()) {
+                if (projectFolder != null) {
+                    throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to " + projectFolder);
+                }
+                projectFolder = file;
             }
         }
+
+
 
         // import wurst folder if it exists
         File l_mapFile = mapFile;
         if (l_mapFile != null) {
-            File relativeWurstDir = new File(l_mapFile.getParentFile(), "wurst");
+            if (projectFolder == null) {
+                projectFolder = l_mapFile.getParentFile();
+            }
+            File relativeWurstDir = new File(projectFolder, "wurst");
             if (relativeWurstDir.exists()) {
                 WLogger.info("Importing wurst files from " + relativeWurstDir);
                 loadWurstFilesInDir(relativeWurstDir);
             } else {
                 WLogger.info("No wurst folder found in " + relativeWurstDir);
             }
-            File dependencyFile = new File(l_mapFile.getParentFile(), "wurst.dependencies");
+            File dependencyFile = new File(projectFolder, "wurst.dependencies");
             if (dependencyFile.exists()) {
                 addDependencyFile(dependencyFile);
             }
-
+            addDependenciesFromFolder(projectFolder, dependencies);
         }
 
         // add directories:
@@ -211,28 +259,42 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     /**
+     * Adds dependencies from the _build/dependencies folder
+     */
+    public static void addDependenciesFromFolder(File projectFolder, Collection<File> dependencies) {
+        File dependencyFolder = new File(new File(projectFolder, "_build"), "dependencies");
+        File[] depProjects = dependencyFolder.listFiles();
+        if (depProjects != null) {
+            for (File depFile : depProjects) {
+                if (depFile.isDirectory()
+                        && dependencies.stream().noneMatch(f -> FileUtils.sameFile(f, depFile))) {
+                    dependencies.add(depFile);
+                }
+            }
+        }
+    }
+
+    /**
      * this method scans for unsatisfied imports and tries to find them in the lib-path
      */
     public void addImportedLibs(List<CompilationUnit> compilationUnits) {
         Set<String> packages = Sets.newLinkedHashSet();
-        Map<String, WImport> imports = Maps.newLinkedHashMap();
+        Set<WImport> imports = new LinkedHashSet<>();
         for (CompilationUnit c : compilationUnits) {
             c.setCuErrorHandler(errorHandler);
             for (WPackage p : c.getPackages()) {
                 packages.add(p.getName());
-                for (WImport i : p.getImports()) {
-                    imports.put(i.getPackagename(), i);
-                }
+                imports.addAll(p.getImports());
             }
         }
 
-        for (WImport imp : imports.values()) {
-            resolveImport(compilationUnits, packages, imports, imp);
+        for (WImport imp : imports) {
+            resolveImport(compilationUnits, packages, imp);
         }
 
     }
 
-    private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, Map<String, WImport> imports, WImport imp) throws CompileError {
+    private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, WImport imp) throws CompileError {
         //		WLogger.info("resolving import: " + imp.getPackagename());
         if (!packages.contains(imp.getPackagename())) {
             if (getLibs().containsKey(imp.getPackagename())) {
@@ -244,7 +306,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                         foundPackage = true;
                     }
                     for (WImport i : p.getImports()) {
-                        resolveImport(compilationUnits, packages, imports, i);
+                        resolveImport(compilationUnits, packages, i);
                     }
                 }
                 if (!foundPackage) {
@@ -326,12 +388,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         checker.checkProg(model, toCheck);
     }
 
-    public @Nullable JassProg translateProg(WurstModel root) {
-        translateProgToIm(root);
-        return transformProgToJass();
-    }
-
-    public @Nullable JassProg transformProgToJass() {
+    public JassProg transformProgToJass() {
         ImTranslator imTranslator2 = getImTranslator();
         ImProg imProg2 = getImProg();
         imTranslator2.assertProperties();
@@ -343,8 +400,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         new EliminateClasses(imTranslator2, imProg2, !runArgs.isUncheckedDispatch()).eliminateClasses();
         imTranslator2.assertProperties();
         printDebugImProg("./test-output/im " + stage++ + "_classesEliminated.im");
-        new MultiArrayEliminator(imProg2, imTranslator2).run();
-        imTranslator2.assertProperties();
 
         new VarargEliminator(imProg2).run();
         printDebugImProg("./test-output/im " + stage++ + "_varargEliminated.im");
@@ -356,12 +411,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // debug: add stacktraces
             if (runArgs.isIncludeStacktraces()) {
                 beginPhase(4, "add stack traces");
-                new StackTraceInjector2(imProg2).transform();
+                new StackTraceInjector2(imProg2, imTranslator2).transform(timeTaker);
             }
         }
         imTranslator2.assertProperties();
 
-        ImOptimizer optimizer = new ImOptimizer(imTranslator2);
+        ImOptimizer optimizer = new ImOptimizer(timeTaker, imTranslator2);
 
         // inliner
         if (runArgs.isInline()) {
@@ -372,15 +427,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             printDebugImProg("./test-output/im " + stage++ + "_afterinline.im");
         }
 
-        printDebugImProg("./test-output/test_opt.im");
-
         // eliminate tuples
         beginPhase(6, "eliminate tuples");
         getImProg().flatten(imTranslator2);
-        getImProg().eliminateTuples(imTranslator2);
+        EliminateTuples.eliminateTuplesProg(getImProg(), imTranslator2);
         getImTranslator().assertProperties(AssertProperty.NOTUPLES);
 
         printDebugImProg("./test-output/im " + stage++ + "_withouttuples.im");
+
+        new MultiArrayEliminator(imProg2, imTranslator2, runArgs.isIncludeStacktraces() && !runArgs.isNoDebugMessages()).run();
+        printDebugImProg("./test-output/im " + stage++ + "_withoutmultiarrays.im");
+        imTranslator2.assertProperties();
 
         beginPhase(7, "remove func refs");
         new FuncRefRemover(imProg2, imTranslator2).run();
@@ -403,6 +460,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             optimizer.localOptimizations();
         }
 
+        printDebugImProg("./test-output/im " + stage++ + "_afterlocalopts.im");
+
         if (runArgs.isNullsetting()) {
             beginPhase(11, "null setting");
             optimizer.doNullsetting();
@@ -418,10 +477,12 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             beginPhase(12, "froptimize");
             optimizer.optimize();
 
+            optimizer.removeGarbage();
+            imProg.flatten(imTranslator);
             printDebugImProg("./test-output/im " + stage++ + "_afteroptimize.im");
         }
 
-        optimizer.removeGarbage();
+
 
         // translate flattened intermediate lang to jass:
 
@@ -433,6 +494,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (errorHandler.getErrorCount() > 0) {
             prog = null;
         }
+        timeTaker.endPhase();
         return prog;
     }
 
@@ -462,44 +524,31 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         imProg = getImTranslator().translateProg();
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");
+        timeTaker.endPhase();
         return imProg;
     }
 
     private void beginPhase(int phase, String description) {
         errorHandler.setProgress("Translating wurst. Phase " + phase + ": " + description, 0.6 + 0.01 * phase);
+        timeTaker.beginPhase(description);
     }
 
     private void printDebugImProg(String debugFile) {
-        if (!errorHandler.isUnitTestMode()) {
+        if (!errorHandler.isUnitTestMode() ) {
             // output only in unit test mode
             return;
         }
         try {
             // TODO remove test output
-            StringBuilder sb = new StringBuilder();
-            getImProg().print(sb, 0);
             File file = new File(debugFile);
             file.getParentFile().mkdirs();
-            Files.write(sb.toString(), file, Charsets.UTF_8);
+            try (Writer w = Files.newWriter(file, Charsets.UTF_8)) {
+                getImProg().print(w, 0);
+            }
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
     }
-
-    //	private List<ModuleDef> getAllModules(CompilationUnit root) {
-    //		List<ModuleDef> result = Lists.newArrayList();
-    //		for (TopLevelDeclaration t : root) {
-    //			if (t instanceof WPackage) {
-    //				WPackage p = (WPackage) t;
-    //				for (WEntity e : p.getElements()) {
-    //					if (e instanceof ModuleDef) {
-    //						result.add((ModuleDef) e);
-    //					}
-    //				}
-    //			}
-    //		}
-    //		return result;
-    //	}
 
     private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {
         gui.sendProgress("Merging Files");
@@ -584,7 +633,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         gui.sendProgress("Parsing File " + file.getName());
         String source = file.getAbsolutePath();
-        try (Reader reader = FileReading.getFileReader(file)){
+        try (Reader reader = FileReading.getFileReader(file)) {
             // scanning
             return parse(source, reader);
 
@@ -600,11 +649,14 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public CompilationUnit parse(String source, Reader reader) {
-        if (source.endsWith(".jurst") || source.endsWith(".j")) {
-            return parser.parseJurst(reader, source, hasCommonJ);
+    public CompilationUnit parse(String fileName, Reader reader) {
+        if (fileName.endsWith(".j")) {
+            return parser.parseJass(reader, fileName, hasCommonJ);
         }
-        return parser.parse(reader, source, hasCommonJ);
+        if (fileName.endsWith(".jurst")) {
+            return parser.parseJurst(reader, fileName, hasCommonJ);
+        }
+        return parser.parse(reader, fileName, hasCommonJ);
     }
 
     private CompilationUnit emptyCompilationUnit() {

@@ -12,10 +12,8 @@ import java.io.File;
 import java.io.IOException;
 
 public class MpqTest {
-
     private static final String TEST_W3X = "./testscripts/mpq/test_temp.w3x";
     private static final String TEST_W3X_ORIG = "./testscripts/mpq/test.w3x";
-    private static final String TEST_OUTPUT_PATH = "./test-output/";
 
     @BeforeClass
     public void before() throws IOException {
@@ -36,31 +34,10 @@ public class MpqTest {
     public void test_extract() throws Exception {
         try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
             byte[] f = edit.extractFile("war3map.j");
-            // edit.insertFile(new File("./testscripts/mpq/test.w3x"), "war3map.j",
-            // f);
             Assert.assertTrue(f.length > 5);
-            // bnlub
         }
 
     }
-
-    // @Test
-    // public void test_extract_w3u() {
-    // try {
-    // MpqEditorFactory.setFilepath("./lib/mpqedit/mpqeditor.exe");
-    // MpqEditorFactory.setTempfolder(TEST_OUTPUT_PATH);
-    // LadikMpq edit = MpqEditorFactory.getEditor();
-    // File f = edit.extractFile(new File("./testscripts/mpq/objtest.w3x"),
-    // "war3map.w3u");
-    // Assert.assertTrue(f.exists());
-    // f.delete();
-    // //bnlub
-    // } catch (Exception e) {
-    // // TODO Auto-generated catch block
-    // e.printStackTrace();
-    // }
-    //
-    // }
 
     @Test
     public void test_insert() throws Exception {

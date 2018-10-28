@@ -119,6 +119,54 @@ public class ArrayTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void multiArrayDefaultValue() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[5] v",
+                "init",
+                "    let c = new C",
+                "    c.v[2] = c.v[3] + 1",
+                "    if c.v[2] == 1",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiArrayInit() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C",
+                "    int array[3] v = [7, 8, 9]",
+                "init",
+                "    let c = new C",
+                "    if c.v[0] == 7 and c.v[1] == 8 and c.v[2] == 9",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void multiArrayWrongSize() {
+        testAssertErrorsLines(true, "Array variable v is an array of size 3, but is initialized with 4 values here.",
+                "package test",
+                "class C",
+                "    int array[3] v = [7, 8, 9, 10]"
+        );
+    }
+
+    @Test
+    public void conditionalWithArray() { // see #631
+        testAssertOkLines(false,
+                "bool cond = true",
+                "class TestClass",
+                "    int array[3] zzzz",
+                "function ffff() returns int",
+                "    return cond ? zzzz[1] : 0");
+    }
+
 
     public void assertOk(boolean executeProg, String... input) {
         String prog = "package test\n" +

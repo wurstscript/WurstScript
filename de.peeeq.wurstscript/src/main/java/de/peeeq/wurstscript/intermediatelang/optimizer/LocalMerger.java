@@ -1,12 +1,12 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.*;
 
@@ -23,7 +23,9 @@ public class LocalMerger implements OptimizerPass {
         ImProg prog = trans.getImProg();
         totalLocalsMerged = 0;
         for (ImFunction func : prog.getFunctions()) {
-            optimizeFunc(func);
+            if (!func.isNative() && !func.isBj()) {
+                optimizeFunc(func);
+            }
         }
         return totalLocalsMerged;
     }
@@ -35,12 +37,12 @@ public class LocalMerger implements OptimizerPass {
     }
 
     private void optimizeFunc(ImFunction func) {
-        Multimap<ImStmt, ImVar> livenessInfo = calculateLiveness(func);
+        Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, func);
     }
 
-    private void mergeLocals(Multimap<ImStmt, ImVar> livenessInfo, ImFunction func) {
+    private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
         Multimap<ImVar, ImVar> inferenceGraph = calculateInferenceGraph(livenessInfo);
 
         // priority queue, sorted by number of inferring vars
@@ -94,15 +96,17 @@ public class LocalMerger implements OptimizerPass {
             @Override
             public void visit(ImSet set) {
                 super.visit(set);
-                ImVar v = set.getLeft();
-                if (merges.containsKey(v)) {
-                    set.setLeft(merges.get(v));
+                if (set.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) set.getLeft()).getVar();
+                    if (merges.containsKey(v)) {
+                        set.setLeft(JassIm.ImVarAccess(merges.get(v)));
+                    }
                 }
             }
         });
     }
 
-    private Multimap<ImVar, ImVar> calculateInferenceGraph(Multimap<ImStmt, ImVar> livenessInfo) {
+    private Multimap<ImVar, ImVar> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
         Multimap<ImVar, ImVar> inferenceGraph = HashMultimap.create();
         for (ImStmt s : livenessInfo.keySet()) {
             Collection<ImVar> live = livenessInfo.get(s);
@@ -117,14 +121,20 @@ public class LocalMerger implements OptimizerPass {
         return inferenceGraph;
     }
 
-    private void eliminateDeadCode(Multimap<@NonNull ImStmt, @NonNull ImVar> livenessInfo) {
+    private void eliminateDeadCode(Map<ImStmt, Set<ImVar>> livenessInfo) {
         for (ImStmt s : livenessInfo.keySet()) {
             if (s instanceof ImSet) {
                 ImSet imSet = (ImSet) s;
-                if (imSet.getLeft().isGlobal()) {
+                if (!(imSet.getLeft() instanceof ImVarAccess)) {
                     continue;
                 }
-                if (!livenessInfo.get(s).contains(imSet.getLeft())) {
+                ImVarAccess va = (ImVarAccess) imSet.getLeft();
+                ImVar v = va.getVar();
+                if (v.isGlobal()) {
+                    continue;
+                }
+
+                if (!livenessInfo.get(s).contains(v)) {
                     // write to a variable which is not live
                     // --> only keep side effects
                     ImExpr right = imSet.getRight();
@@ -136,70 +146,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
 
-    private Multimap<ImStmt, ImVar> calculateLiveness_old(ImFunction func) {
-        ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
-        Map<Node, Set<ImVar>> in = new HashMap<>();
-        Map<Node, Set<ImVar>> out = new HashMap<>();
-        // init in and out with empty sets
-        List<Node> nodes = new ArrayList<>(cfg.getNodes());
-        // go through list in reverse order, because liveness flows backwards
-        Collections.reverse(nodes);
-
-
-        for (Node node : nodes) {
-            in.put(node, Collections.emptySet());
-            out.put(node, Collections.emptySet());
-        }
-        // calculate def- and use- sets for each node
-        Multimap<Node, ImVar> def = calculateDefs(nodes);
-        Multimap<Node, ImVar> use = calculateUses(nodes);
-        boolean changes = true;
-        int iterations = 0;
-        while (changes) {
-            iterations++;
-            changes = false;
-            for (Node node : nodes) {
-                // in[n] = use[n] + (out[n] - def[n])
-                Set<ImVar> newIn = new HashSet<>(out.get(node));
-                newIn.removeAll(def.get(node));
-                newIn.addAll(use.get(node));
-
-                // out[n] = union s in succ[n]: in[s]
-                Set<ImVar> newOut = new HashSet<>();
-                for (Node s : node.getSuccessors()) {
-                    newOut.addAll(in.get(s));
-                }
-
-                if (!newIn.equals(in.get(node))) {
-                    changes = true;
-                    in.put(node, newIn);
-                }
-                if (!newOut.equals(out.get(node))) {
-                    changes = true;
-                    out.put(node, newOut);
-                }
-            }
-        }
-//		System.out.println("result after " + iterations + " iterations with " + nodes.size() + " nodes in func " + func.getName());
-
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
-//		System.out.println("//#########################################");
-//		System.out.println("// liveness for " + func.getName());
-//		for (Node node : nodes) {
-//			System.out.println(" // " + in.get(node));
-//			System.out.println(node);
-//			System.out.println(" // " + out.get(node));
-//		}
-        for (Node node : nodes) {
-            ImStmt stmt = node.getStmt();
-            if (stmt != null) {
-                result.putAll(stmt, out.get(node));
-            }
-        }
-        return result;
-    }
-
-    private Multimap<ImStmt, ImVar> calculateLiveness(ImFunction func) {
+    private Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Set<ImVar>> in = new HashMap<>();
         Map<Node, Set<ImVar>> out = new HashMap<>();
@@ -215,11 +162,11 @@ public class LocalMerger implements OptimizerPass {
         // calculate def- and use- sets for each node
         Multimap<Node, ImVar> def = calculateDefs(cfg.getNodes());
         Multimap<Node, ImVar> use = calculateUses(cfg.getNodes());
-        boolean changes = true;
-        int iterations = 0;
+//        boolean changes = true;
+//        int iterations = 0;
         while (!todo.isEmpty()) {
             Node node = todo.poll();
-            iterations++;
+//            iterations++;
             // in[n] = use[n] + (out[n] - def[n])
             Set<ImVar> newIn = new HashSet<>(out.get(node));
             newIn.removeAll(def.get(node));
@@ -245,8 +192,6 @@ public class LocalMerger implements OptimizerPass {
             }
         }
 //		System.out.println("result after " + iterations + " iterations in func " + func.getName());
-
-        Multimap<ImStmt, ImVar> result = HashMultimap.create();
 //		System.out.println("//#########################################");
 //		System.out.println("// liveness for " + func.getName());
 //		for (Node node : nodes) {
@@ -254,10 +199,12 @@ public class LocalMerger implements OptimizerPass {
 //			System.out.println(node);
 //			System.out.println(" // " + out.get(node));
 //		}
+
+        Map<ImStmt, Set<ImVar>> result = new HashMap<>();
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
-                result.putAll(stmt, out.get(node));
+                result.put(stmt, ImmutableSet.copyOf(out.get(node)));
             }
         }
         return result;
@@ -288,8 +235,11 @@ public class LocalMerger implements OptimizerPass {
             ImStmt stmt = node.getStmt();
             if (stmt instanceof ImSet) {
                 ImSet imSet = (ImSet) stmt;
-                if (!imSet.getLeft().isGlobal()) {
-                    result.put(node, imSet.getLeft());
+                if (imSet.getLeft() instanceof ImVarAccess) {
+                    ImVar v = ((ImVarAccess) imSet.getLeft()).getVar();
+                    if (!v.isGlobal()) {
+                        result.put(node, v);
+                    }
                 }
             }
         }

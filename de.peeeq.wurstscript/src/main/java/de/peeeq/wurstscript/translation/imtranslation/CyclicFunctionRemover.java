@@ -1,17 +1,14 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.datastructures.GraphInterpreter;
-import de.peeeq.datastructures.GraphInterpreter.TopsortResult;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Removes cyclic functions from a program
@@ -31,16 +28,12 @@ public class CyclicFunctionRemover {
     }
 
     public void work() {
-        for (; ; ) {
-            // TODO optimize, it is not really necessary to completely recalculate the call relations every time
-            //      instead, we could just keep track of the changes
-            tr.calculateCallRelationsAndUsedVariables();
-            TopsortResult<ImFunction> r = graph.topSort(prog.getFunctions());
-            if (r.isCycle()) {
-                removeCycle(r.getResult());
-            } else {
-                // finished
-                return;
+        tr.calculateCallRelationsAndUsedVariables();
+        Set<Set<ImFunction>> components = graph.findStronglyConnectedComponents(prog.getFunctions());
+
+        for (Set<ImFunction> component : components) {
+            if (component.size() > 1) {
+                removeCycle(ImmutableList.copyOf(component));
             }
         }
     }
@@ -213,7 +206,7 @@ public class CyclicFunctionRemover {
             ImExprOpt returnValue = r.getReturnValue();
             returnValue.setParent(null);
             ImStmts stmts = JassIm.ImStmts(
-                    JassIm.ImSet(r.getTrace(), getTempReturnVar(returnType), (ImExpr) returnValue),
+                    JassIm.ImSet(r.getTrace(), JassIm.ImVarAccess(getTempReturnVar(returnType)), (ImExpr) returnValue),
                     JassIm.ImReturn(r.getTrace(), JassIm.ImNoExpr())
             );
             r.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));

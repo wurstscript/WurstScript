@@ -3,9 +3,11 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -20,12 +22,130 @@ public class SideEffectAnalyzer {
     // f -> set of functions directly called by f
     private Multimap<ImFunction, ImFunction> callRelation;
     // f -> set of functions directly and transitively called by f
-    private Multimap<ImFunction, ImFunction> callRelationTr;
+    private TransitiveClosure<ImFunction> callRelationTr;
     // f -> global variables directly used in f
     private Multimap<ImFunction, ImVar> usedGlobals;
 
     public SideEffectAnalyzer(ImProg prog) {
         this.prog = prog;
+    }
+
+    /**
+     * checks if this expression might have side effects
+     * (does not do a deep analysis, all function calls and statements are considered to have side effects)
+     */
+    public static boolean quickcheckHasSideeffects(ImExpr expr) {
+        return expr.match(new ImExpr.Matcher<Boolean>() {
+            @Override
+            public Boolean case_ImFunctionCall(ImFunctionCall imFunctionCall) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImTypeIdOfClass(ImTypeIdOfClass imTypeIdOfClass) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImVarArrayAccess(ImVarArrayAccess e) {
+                return e.getIndexes().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImRealVal(ImRealVal imRealVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTupleSelection(ImTupleSelection e) {
+                return quickcheckHasSideeffects(e.getTupleExpr());
+            }
+
+            @Override
+            public Boolean case_ImInstanceof(ImInstanceof e) {
+                return quickcheckHasSideeffects(e.getObj());
+            }
+
+            @Override
+            public Boolean case_ImDealloc(ImDealloc imDealloc) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImMemberAccess(ImMemberAccess e) {
+                return quickcheckHasSideeffects(e.getReceiver());
+            }
+
+            @Override
+            public Boolean case_ImBoolVal(ImBoolVal imBoolVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTupleExpr(ImTupleExpr e) {
+                return e.getExprs().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImNull(ImNull imNull) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImGetStackTrace(ImGetStackTrace imGetStackTrace) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImOperatorCall(ImOperatorCall e) {
+                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+            }
+
+            @Override
+            public Boolean case_ImStringVal(ImStringVal imStringVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImMethodCall(ImMethodCall imMethodCall) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImAlloc(ImAlloc imAlloc) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImCompiletimeExpr(ImCompiletimeExpr imCompiletimeExpr) {
+                return true;
+            }
+
+            @Override
+            public Boolean case_ImTypeIdOfObj(ImTypeIdOfObj e) {
+                return quickcheckHasSideeffects(e.getObj());
+            }
+
+            @Override
+            public Boolean case_ImVarAccess(ImVarAccess imVarAccess) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImIntVal(ImIntVal imIntVal) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImFuncRef(ImFuncRef imFuncRef) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImStatementExpr(ImStatementExpr imStatementExpr) {
+                return true;
+            }
+        });
     }
 
     /**
@@ -45,11 +165,11 @@ public class SideEffectAnalyzer {
     /**
      * @return f -> set of functions directly and transitively called by f
      */
-    public Multimap<ImFunction, ImFunction> getCallRelationTr() {
+    public TransitiveClosure<ImFunction> getCallRelationTr() {
         if (callRelationTr != null) {
             return callRelationTr;
         }
-        callRelationTr = Utils.transientClosure(getCallRelation());
+        callRelationTr = new TransitiveClosure<>(getCallRelation());
         return callRelationTr;
     }
 
@@ -85,7 +205,7 @@ public class SideEffectAnalyzer {
      */
     private Stream<ImFunction> calledFunctionsStream(Element e) {
         return directlyCalledFunctions(e).stream()
-                .flatMap(f -> Stream.concat(Stream.of(f), getCallRelationTr().get(f).stream()));
+                .flatMap(f -> Stream.concat(Stream.of(f), getCallRelationTr().get(f)));
     }
 
     /**
@@ -146,12 +266,6 @@ public class SideEffectAnalyzer {
             }
 
             @Override
-            public void visit(ImVarArrayMultiAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
             public void visit(ImMemberAccess va) {
                 super.visit(va);
                 imVars.add(va.getVar());
@@ -160,19 +274,9 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImSet va) {
                 super.visit(va);
-                imVars.add(va.getLeft());
-            }
+                ImLExpr assignable = va.getLeft();
+                collectVars(imVars, assignable);
 
-            @Override
-            public void visit(ImSetTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
             }
 
             @Override
@@ -184,6 +288,43 @@ public class SideEffectAnalyzer {
         });
         return imVars;
     }
+
+    private void collectVars(Collection<ImVar> imVars, ImLExpr assignable) {
+        assignable.match(new ImLExpr.MatcherVoid() {
+            @Override
+            public void case_ImVarAccess(ImVarAccess v) {
+                imVars.add(v.getVar());
+            }
+
+            @Override
+            public void case_ImStatementExpr(ImStatementExpr imStatementExpr) {
+                throw new RuntimeException("TODO"); // TODO
+            }
+
+            @Override
+            public void case_ImTupleSelection(ImTupleSelection v) {
+                collectVars(imVars, (ImLExpr) v.getTupleExpr());
+            }
+
+            @Override
+            public void case_ImVarArrayAccess(ImVarArrayAccess v) {
+                imVars.add(v.getVar());
+            }
+
+            @Override
+            public void case_ImMemberAccess(ImMemberAccess v) {
+                throw new RuntimeException("Should run after objects");
+            }
+
+            @Override
+            public void case_ImTupleExpr(ImTupleExpr te) {
+                for (ImExpr e : te.getExprs()) {
+                    ((ImLExpr) e).match(this);
+                }
+            }
+        });
+    }
+
 
     /**
      * Variables directly used in e
@@ -200,12 +341,6 @@ public class SideEffectAnalyzer {
 
             @Override
             public void visit(ImVarArrayAccess va) {
-                super.visit(va);
-                imVars.add(va.getVar());
-            }
-
-            @Override
-            public void visit(ImVarArrayMultiAccess va) {
                 super.visit(va);
                 imVars.add(va.getVar());
             }
@@ -230,19 +365,7 @@ public class SideEffectAnalyzer {
             @Override
             public void visit(ImSet va) {
                 super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
-            }
-
-            @Override
-            public void visit(ImSetArrayTuple va) {
-                super.visit(va);
-                imVars.add(va.getLeft());
+                collectVars(imVars, va.getLeft());
             }
 
             @Override
@@ -259,7 +382,7 @@ public class SideEffectAnalyzer {
     /**
      * Checks if two statements might affect each other.
      * When this returns true, it is certain that it does not matter whether stmt1 or stmt2 are called first
-     *
+     * <p>
      * The only difference between executing stmt1; stmt2 vs stmt2; stmt1 would be if one of the statement
      * crashes and thus the second statement would not be executed.
      * But for optimizations, we assume the program already is correct and thus we can ignore crashes.
@@ -282,11 +405,13 @@ public class SideEffectAnalyzer {
      */
     public boolean cannotUseVar(ImStmt s, ImVar v) {
         if (v.isGlobal()) {
-            return !usedVariables(s).contains(v)
-                    && calledNatives(s).isEmpty();
+            Set<ImVar> imVars = usedVariables(s);
+            Set<ImFunction> imFunctions = calledNatives(s);
+            return !imVars.contains(v) && imFunctions.isEmpty();
         } else {
             // local variables
-            return directlyUsedVariables(s).contains(v);
+            Set<ImVar> imVars = directlyUsedVariables(s);
+            return !imVars.contains(v);
         }
     }
 

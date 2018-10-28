@@ -129,7 +129,7 @@ WStatement = ActionStatement | ControlflowStatement | EndFunctionStatement(de.pe
 ActionStatement =
 	  StmtSkip(de.peeeq.wurstscript.parser.WPos source)
 	| LocalVarDef
-	| StmtSet(de.peeeq.wurstscript.parser.WPos source, NameRef updatedExpr, Expr right)
+	| StmtSet(de.peeeq.wurstscript.parser.WPos source, LExpr updatedExpr, Expr right)
 	| StmtCall
 	| StmtErr(de.peeeq.wurstscript.parser.WPos source)
 	| ExprMemberVar
@@ -166,7 +166,7 @@ StmtForRange =
 	| StmtForRangeDown(de.peeeq.wurstscript.parser.WPos source, LocalVarDef loopVar, Expr to, Expr step, WStatements body)
 
 Expr =
-	  NameRef
+	  LExpr
 	| FunctionCall
 	| ExprBinary(de.peeeq.wurstscript.parser.WPos source, Expr left, de.peeeq.wurstscript.WurstOperator op, Expr right)
 	| ExprUnary(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.WurstOperator opU, Expr right)
@@ -231,6 +231,9 @@ IdentifierWithTypeParamDefs(de.peeeq.wurstscript.parser.WPos source, Identifier 
 
 // a reference to a variable, needs a varName:String attribute
 NameRef = ExprVarArrayAccess | ExprVarAccess | ExprMemberVar | ExprMemberArrayVar
+
+// an expression that can be used on the left-hand side of an assignment
+LExpr = NameRef
 
 VarDef =
 	  GlobalOrLocalVarDef
@@ -433,7 +436,7 @@ FunctionCall.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
-NameRef.attrImplicitParameter
+LExpr.attrImplicitParameter
 	returns OptExpr
 	implemented by de.peeeq.wurstscript.attributes.AttrImplicitParameter.getImplicitParameter
 
@@ -712,6 +715,13 @@ StmtForEach.attrCloseFunc
 		returns void
 		implemented by de.peeeq.wurstscript.translation.imtranslation.TLDTranslation.translate
 
+    LExpr.imTranslateExprLvalue(
+         			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
+         			de.peeeq.wurstscript.jassIm.ImFunction f
+         		)
+         		returns de.peeeq.wurstscript.jassIm.ImLExpr
+         		implemented by de.peeeq.wurstscript.translation.imtranslation.ExprTranslation.translateLvalue
+
 	Expr.imTranslateExpr(
 			de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
 			de.peeeq.wurstscript.jassIm.ImFunction f
@@ -763,11 +773,11 @@ FunctionLike.attrHasEmptyBody()
 
 // Naming:
 
-NameRef.attrNameLink
+LExpr.attrNameLink
 	returns de.peeeq.wurstscript.attributes.names.NameLink
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculate
 
-NameRef.attrNameDef
+LExpr.attrNameDef
 	returns NameDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNameDef.calculateDef
 
@@ -1017,7 +1027,7 @@ ExprNewObject.getTypeName()
 	returns String    
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getTypeName	
 
-NameRef.getVarName()
+LExpr.getVarName()
 	returns String    
 	implemented by de.peeeq.wurstscript.attributes.SmallHelpers.getVarName
 

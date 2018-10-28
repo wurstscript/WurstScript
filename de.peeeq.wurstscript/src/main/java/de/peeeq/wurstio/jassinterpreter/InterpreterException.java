@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.parser.WPos;
 public class InterpreterException extends RuntimeException {
     private static final long serialVersionUID = 3387292080655779808L;
 
-    private final Element trace;
+    private Element trace;
 
     private String stackTrace;
 
@@ -42,11 +42,25 @@ public class InterpreterException extends RuntimeException {
     }
 
 
-    public InterpreterException withStacktrace(String msg) {
+    public InterpreterException setStacktrace(String msg) {
         if (this.stackTrace == null) {
             this.stackTrace = msg;
         }
         return this;
     }
 
+    public InterpreterException setTrace(Element trace) {
+        if (this.trace == null) {
+            this.trace = trace;
+        }
+        return null;
+    }
+
+    public Element getTrace() {
+        return trace;
+    }
+
+    public String getWurstStackTrace() {
+        return stackTrace;
+    }
 }

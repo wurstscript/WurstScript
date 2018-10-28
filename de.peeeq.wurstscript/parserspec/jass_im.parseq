@@ -3,10 +3,12 @@ package de.peeeq.wurstscript.jassIm
 
 abstract syntax:
 	
-ImProg(ImVars globals, 
+ImProg(
+    @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    ImVars globals,
 	ImFunctions functions, 
 	ImClasses classes, 
-	java.util.Map<ImVar, ImExpr> globalInits)
+	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
@@ -16,10 +18,9 @@ ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type
 
 ImType = 
 	  ImSimpleType(String typename)
-	| ImArrayType(String typename)
-	| ImArrayTypeMulti(String typename, java.util.List<Integer> arraySize)
+	| ImArrayType(ref ImType entryType)
+	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
-	| ImTupleArrayType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
@@ -52,11 +53,7 @@ ImStmt =
 	| ImLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body)
 	| ImExitwhen(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr condition)
 	| ImReturn(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExprOpt returnValue)
-	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr right)
-	| ImSetTuple(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, int tupleIndex, ImExpr right)
-	| ImSetArray(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, ImExpr right)
-	| ImSetArrayMulti(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExprs indices, ImExpr right)
-	| ImSetArrayTuple(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar left, ImExpr index, int tupleIndex, ImExpr right)
+	| ImSet(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImLExpr left, ImExpr right)
 	| ImExpr
 	| ImVarargLoop(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImStmts body, ref ImVar loopVar)
 	
@@ -72,26 +69,29 @@ ImFlatExprOpt =
 ImExprs * ImExpr
 	
 ImExpr = 
-	  ImStatementExpr(ImStmts statements, ImExpr expr)
-	| ImFlatExpr
-
-ImFlatExpr = 
 	  ImCall
-	| ImVarAccess(ref ImVar var)
-	| ImVarArrayAccess(ref ImVar var, ImExpr index)
-	| ImVarArrayMultiAccess(ref ImVar var, ImExpr index1, ImExpr index2)
-	| ImTupleExpr(ImExprs exprs)
-	| ImTupleSelection(ImExpr tupleExpr, int tupleIndex)
 	| ImClassRelatedExpr
 	| ImConst
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
-	
+    | ImLExpr
+
+// an expression which can be used on the left hand side of an assignment
+ImLExpr =
+      ImVarAccess(ref ImVar var)
+    | ImVarArrayAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
+    | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
+    | ImMemberAccess
+    | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
+    | ImStatementExpr(ImStmts statements, ImExpr expr)  // can only be used as L-value if expr only contains l-exprs
+
+
+
 ImClassRelatedExpr = 
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
 	| ImAlloc(ref ImClass clazz)
 	| ImDealloc(ref ImClass clazz, ImExpr obj)
-	| ImMemberAccess(ImExpr receiver, ref ImVar var)
+	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var)
 	| ImInstanceof(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfClass(ref ImClass clazz)
@@ -117,11 +117,10 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
- | ImMethodCall | ImFunctionCall | ImCompiletimeExpr
+ | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
+ | ImProg
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
-
-ElementWithLeft = ImSet| ImSetTuple| ImSetArray| ImSetArrayMulti| ImSetArrayTuple
 
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
@@ -137,7 +136,7 @@ ImType.defaultValue
 	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.translation.imtojass.DefaultValue.get
 
-ImPrintable.print(java.lang.StringBuilder sb, int indent)
+ImPrintable.print(java.lang.Appendable sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
@@ -160,41 +159,18 @@ ImStmt.flatten(
 	)
 	returns de.peeeq.wurstscript.translation.imtranslation.Flatten.Result
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flatten
-	
-ImStmt.attrPurity
+
+ImLExpr.flattenL(
+       		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator,
+       		de.peeeq.wurstscript.jassIm.ImFunction f
+       	)
+       	returns de.peeeq.wurstscript.translation.imtranslation.Flatten.ResultL
+       	implemented by de.peeeq.wurstscript.translation.imtranslation.Flatten.flattenL
+
+ImStmt.attrPurity()
 	returns de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevel
 	implemented by de.peeeq.wurstscript.translation.imtranslation.purity.PurityLevels.calculate
 
-ImProg.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
-	returns void
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesProg
-
-ImFunction.eliminateTuples(de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator)
-	returns void
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesFunc
-	
-ImStmt.eliminateTuples(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImStmt
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuples
-	
-ImExpr.eliminateTuplesExpr(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImExpr
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
-	
-ImExprOpt.eliminateTuplesExprOpt(
-		de.peeeq.wurstscript.translation.imtranslation.ImTranslator translator, 
-		de.peeeq.wurstscript.jassIm.ImFunction f	
-	)
-	returns ImExprOpt
-	implemented by de.peeeq.wurstscript.translation.imtranslation.EliminateTuples.eliminateTuplesExpr
-	
-	
 ImStmts.translate(
 		java.util.List<de.peeeq.wurstscript.jassAst.JassStatement> stmts,
 		de.peeeq.wurstscript.jassAst.JassFunction f,
@@ -221,7 +197,7 @@ ImConst.equalValue(ImConst other)
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.Equality.equalValue
 	
-ImExpr.attrTyp
+ImExpr.attrTyp()
 	returns ImType
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrType.getType
 
@@ -237,7 +213,7 @@ ImType.translateType()
 	returns String
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.translateType
 	
-ImVar.isGlobal
+ImVar.isGlobal()
 	returns boolean
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
 
@@ -266,6 +242,13 @@ ImExpr.evaluate(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState g
 		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
 	returns de.peeeq.wurstscript.intermediatelang.ILconst
 	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.eval
+
+ImLExpr.evaluateLvalue(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
+		, de.peeeq.wurstscript.intermediatelang.interpreter.LocalState localState)
+	returns de.peeeq.wurstscript.intermediatelang.ILaddress
+	implemented by de.peeeq.wurstscript.intermediatelang.interpreter.EvaluateExpr.evaluateLvalue
+
+
 
 ImCompiletimeExpr.evaluationResult
     returns java.util.concurrent.atomic.AtomicReference<de.peeeq.wurstscript.intermediatelang.ILconst>
@@ -352,5 +335,7 @@ ImProg.attrSubclasses
 	returns com.google.common.collect.Multimap<ImClass, ImClass>
 	implemented by de.peeeq.wurstscript.translation.imtranslation.Subclasses.calculate
 		
-		
+ImLExpr.isUsedAsLValue()
+    returns boolean
+    implemented by de.peeeq.wurstscript.translation.imtranslation.LValues.isUsedAsLValue
 		

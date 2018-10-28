@@ -264,11 +264,11 @@ public class FunctionSignature {
         int badness = 0;
         if (!isValidParameterNumber(argTypes.size())) {
             if (argTypes.size() > getMaxNumParams()) {
-                errors.add(new CompileError(location.attrSource(), "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
+                errors.add(new CompileError(location.attrErrorPos(), "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
                         " expected."));
                 badness += argTypes.size() - getMaxNumParams();
             } else if (argTypes.size() < getMinNumParams()) {
-                errors.add(new CompileError(location.attrSource(), "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
+                errors.add(new CompileError(location.attrErrorPos(), "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
                 badness += getMinNumParams() - argTypes.size();
             }
         }
@@ -280,7 +280,7 @@ public class FunctionSignature {
             if (mapping2 == null) {
                 WurstType ptBound = pt.setTypeArgs(mapping);
                 Expr arg = args.get(i);
-                errors = errors.add(new CompileError(arg.attrSource(), "Wrong argument for parameter " + getParamName(i) + ": expected " + ptBound + ", but found " + at + "."));
+                errors = errors.add(new CompileError(arg.attrErrorPos(), "Wrong argument for parameter " + getParamName(i) + ": expected " + ptBound + ", but found " + at + "."));
                 badness++;
             } else {
                 mapping = mapping2;

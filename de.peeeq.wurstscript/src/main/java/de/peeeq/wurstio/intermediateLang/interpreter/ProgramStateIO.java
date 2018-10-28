@@ -2,9 +2,9 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
-import com.google.common.io.Files;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.objectreader.*;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
+
+import static com.google.common.io.Files.asCharSink;
 
 public class ProgramStateIO extends ProgramState {
 
@@ -216,7 +218,7 @@ public class ProgramStateIO extends ProgramState {
             byte[] w3u = dataStore.writeToByteArray();
 
             // wurst exported objects
-            Files.write(dataStore.exportToWurst(fileType), new File(folder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"), Charsets.UTF_8);
+            FileUtils.write(dataStore.exportToWurst(fileType), new File(folder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"));
 
             if (inject) {
                 if (mpqEditor == null) {

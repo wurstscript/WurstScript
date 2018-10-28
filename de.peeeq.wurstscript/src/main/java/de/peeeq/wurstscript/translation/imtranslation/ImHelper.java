@@ -24,20 +24,18 @@ public class ImHelper {
     public static ImType toArray(ImType t) {
         if (t instanceof ImSimpleType) {
             ImSimpleType imSimpleType = (ImSimpleType) t;
-            return JassIm.ImArrayType(imSimpleType.getTypename());
-
+            return JassIm.ImArrayType(imSimpleType);
         } else if (t instanceof ImTupleType) {
             ImTupleType imTupleType = (ImTupleType) t;
-            ImType result = JassIm.ImTupleArrayType(imTupleType.getTypes(), imTupleType.getNames());
-            return result;
-        }
-        if (t instanceof ImArrayType) {
-            return JassIm.ImArrayType(((ImArrayType) t).getTypename());
+            return JassIm.ImArrayType(imTupleType);
+        } else if (t instanceof ImArrayType) {
+            // already an array
+            return t;
         } else if (t instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
             nsize.add(8192);
-            return JassIm.ImArrayTypeMulti(mat.getTypename(), nsize);
+            return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
         }
         throw new Error("Can't make array type from " + t);
     }
@@ -71,43 +69,7 @@ public class ImHelper {
     }
 
     abstract static class VarReplaceVisitor extends ImStmt.DefaultVisitor {
-
         abstract ImVar getReplaceVar(ImVar v);
-
-        @Override
-        public void visit(ImSetTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArray e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-        }
-
-        @Override
-        public void visit(ImSetArrayTuple e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImVars imVars) {
-            super.visit(imVars);
-            // TODO ?
-        }
-
 
         @Override
         public void visit(ImVarArrayAccess e) {
@@ -128,33 +90,6 @@ public class ImHelper {
                 e.setVar(newVar);
             }
         }
-
-
-        @Override
-        public void visit(ImSet e) {
-            super.visit(e);
-            ImVar newVar = getReplaceVar(e.getLeft());
-            if (newVar != null) {
-                e.setLeft(newVar);
-            }
-
-        }
-
-        @Override
-        public void visit(ImStringVal imStringVal) {
-            super.visit(imStringVal);
-            // TODO Auto-generated method stub
-
-        }
-
-        @Override
-        public void visit(ImNoExpr imNoExpr) {
-            super.visit(imNoExpr);
-            // TODO Auto-generated method stub
-
-        }
-
-
     }
 
     public static void replaceElem(Element oldElem, Element newElement) {

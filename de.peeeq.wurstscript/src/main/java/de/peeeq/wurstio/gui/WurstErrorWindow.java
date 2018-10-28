@@ -20,10 +20,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
+import javax.swing.text.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -59,6 +56,7 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
 
     private String workspaceRoot;
+    private SimpleAttributeSet attributes = new SimpleAttributeSet();
 
     /**
      * Creates new form WurstErrorWindow
@@ -100,6 +98,26 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
     }
 
+    public void setTabs(JTextPane textPane, float charactersPerTab)   {
+        FontMetrics fm = textPane.getFontMetrics( textPane.getFont() );
+        int charWidth = fm.charWidth( 'w' );
+        int tabWidth = (int) (charWidth * charactersPerTab);
+
+        TabStop[] tabs = new TabStop[10];
+
+        for (int j = 0; j < tabs.length; j++)
+        {
+            int tab = j + 1;
+            tabs[j] = new TabStop( tab * tabWidth );
+        }
+
+        TabSet tabSet = new TabSet(tabs);
+        StyleConstants.setTabSet(attributes, tabSet);
+        int length = textPane.getDocument().getLength();
+        textPane.getStyledDocument().setParagraphAttributes(0, length, attributes, true);
+    }
+
+
     /**
      * This method is called from within the constructor to
      * initialize the form.
@@ -128,7 +146,6 @@ public class WurstErrorWindow extends javax.swing.JFrame {
         });
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-
         codeArea.setEditable(false);
 
         currentStatus.setFont(new java.awt.Font("Tahoma", Font.BOLD, 12));
@@ -240,11 +257,10 @@ public class WurstErrorWindow extends javax.swing.JFrame {
 
             String text = codeArea.getText();
 
-            MutableAttributeSet attrs = codeArea.getInputAttributes();
-            StyleConstants.setUnderline(attrs, false);
-            StyleConstants.setBackground(attrs, new Color(255, 255, 255));
+            StyleConstants.setUnderline(attributes, false);
+            StyleConstants.setBackground(attributes, new Color(255, 255, 255));
             // reset highlighting
-            codeArea.getStyledDocument().setCharacterAttributes(0, text.length() - 1, attrs, true);
+            codeArea.getStyledDocument().setCharacterAttributes(0, text.length() - 1, attributes, true);
 
             int selectionStart = err.getSource().getLeftPos();
             // select at least one character:
@@ -279,14 +295,15 @@ public class WurstErrorWindow extends javax.swing.JFrame {
             selectionEnd = Utils.inBorders(1, selectionEnd, docText.length() - 1);
 
 
-            StyleConstants.setUnderline(attrs, true);
-            StyleConstants.setBackground(attrs, new Color(255, 150, 150));
+            StyleConstants.setUnderline(attributes, true);
+            StyleConstants.setBackground(attributes, new Color(255, 150, 150));
 
 
-            doc.setCharacterAttributes(selectionStart, selectionEnd - selectionStart, attrs, true);
+            doc.setCharacterAttributes(selectionStart, selectionEnd - selectionStart, attributes, true);
 
             codeArea.select(selectionStart, selectionEnd);
 
+            setTabs(codeArea, 4);
         } catch (FileNotFoundException e) {
             codeArea.setText("Could not load file: " + errFile);
         } catch (IOException e) {

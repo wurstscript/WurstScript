@@ -7,7 +7,7 @@ public class TypeEquality {
     public static boolean isEqualType(ImArrayType a, ImType b) {
         if (b instanceof ImArrayType) {
             ImArrayType at = (ImArrayType) b;
-            return at.getTypename().equals(a.getTypename());
+            return at.getEntryType().equalsType(a.getEntryType());
         }
         return false;
     }
@@ -16,7 +16,7 @@ public class TypeEquality {
         if (b instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti at = (ImArrayTypeMulti) b;
             // TODO check dimensions
-            return at.getTypename().equals(a.getTypename());
+            return at.getEntryType().equalsType(a.getEntryType());
         }
         return false;
     }
@@ -30,20 +30,6 @@ public class TypeEquality {
         return false;
     }
 
-    public static boolean isEqualType(ImTupleArrayType a, ImType b) {
-        if (b instanceof ImTupleArrayType) {
-            ImTupleArrayType at = (ImTupleArrayType) b;
-            if (at.getTypes().size() != a.getTypes().size()) {
-                return false;
-            }
-            for (int i = 0; i < a.getTypes().size(); i++) {
-                if (!a.getTypes().get(i).equalsType(at.getTypes().get(i))) {
-                    return false;
-                }
-            }
-        }
-        return false;
-    }
 
     public static boolean isEqualType(ImTupleType a, ImType b) {
         if (b instanceof ImTupleType) {

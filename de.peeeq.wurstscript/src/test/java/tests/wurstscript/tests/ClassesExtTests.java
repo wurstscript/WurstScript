@@ -123,7 +123,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void privateVar() {
-        testAssertErrorsLines(false, "not visible",
+        testAssertErrorsLines(false, "Could not find variable i",
                 "package test",
                 "    native testSuccess()",
                 "    class C",
@@ -172,7 +172,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void constr1() {
-        testAssertErrorsLines(false, "Incorrect call to super constructor",
+        testAssertErrorsLines(false, "The extended class <Pair> does not expose",
                 "package test",
                 "    native testSuccess()",
                 "    class Pair",

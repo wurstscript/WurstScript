@@ -19,7 +19,7 @@ public class StdLib {
     /**
      * version to use for the tests
      */
-    private final static String version = "449a22b54841e70ad3ed260f302de3a540983b80";
+    private final static String version = "1296bd9779bf534184158f7321a5d7c55826d5e1";
 
     /**
      * flag so that initialization in only done once
@@ -51,7 +51,7 @@ public class StdLib {
                 System.out.println("Wrong version '" + revision + "', executing git pull to get '" + version + "'");
                 Utils.exec(stdLibFolder, "git", "checkout", "master");
                 Utils.exec(stdLibFolder, "git", "pull");
-                Utils.exec(stdLibFolder, "git", "checkout", version);
+                Utils.exec(stdLibFolder, "git", "checkout", version, "-f");
             }
 
             // reset all possible changes
