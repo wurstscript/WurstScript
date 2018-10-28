@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.llvm.ast.Prog;
 import de.peeeq.wurstscript.llvm.fromllvm.ExtendedLLvmParser;
+import de.peeeq.wurstscript.llvm.fromllvm.LlvmToIm;
 import de.peeeq.wurstscript.llvm.printer.PrettyPrinter;
 import de.peeeq.wurstscript.llvm.tollvm.LlvmTranslator;
 import org.eclipse.jdt.annotation.Nullable;
@@ -28,11 +29,11 @@ public class LlvmCompiler {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length == 0) {
-            args = new String[]{"testscripts/test.wurst"};
+            args = new String[]{"testscripts/test2.wurst"};
         }
         WurstGui gui = new WurstGuiCliImpl();
         RunArgs runArgs = new RunArgs(args);
-        WurstCompilerJassImpl com = new WurstCompilerJassImpl(gui, null, runArgs);
+        WurstCompilerJassImpl com = new WurstCompilerJassImpl(null, gui, null, runArgs);
         com.loadFiles(runArgs.getFiles().toArray(new String[0]));
         @Nullable WurstModel model = com.parseFiles();
         com.checkProg(model);
@@ -45,6 +46,9 @@ public class LlvmCompiler {
         }
 
         @Nullable ImProg im = com.translateProgToIm(model);
+        if (im == null) {
+            throw new RuntimeException("TODO");
+        }
 
         Files.write(Paths.get("test-output", "test.im"), im.toString().getBytes());
 
@@ -87,6 +91,10 @@ public class LlvmCompiler {
 
         System.out.println("\n\nparsed optimized prog:\n" + parsed);
 
+
+        ImProg imProg = new LlvmToIm(model).transformProg(parsed);
+
+        System.out.println("\n\nnew im prog:\n" + imProg);
 
     }
 

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.llvm.tollvm;
 
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.llvm.ast.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -142,7 +143,7 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
                 tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(args.get(0), Ast.Srem(), args.get(1))));
                 break;
             case NOT:
-                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(Ast.ConstInt(1), Ast.Xor(), args.get(0))));
+                tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(Ast.ConstBool(true), Ast.Xor(), args.get(0))));
                 break;
             case UNARY_MINUS:
                 tr.addInstruction(Ast.Assign(res, Ast.BinaryOperation(Ast.ConstInt(0), Ast.Sub(), args.get(0))));
@@ -166,11 +167,6 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     }
 
     @Override
-    public Operand case_ImVarArrayMultiAccess(ImVarArrayMultiAccess imVarArrayMultiAccess) {
-        throw new RuntimeException("TODO");
-    }
-
-    @Override
     public Operand case_ImIntVal(ImIntVal e) {
         return Ast.ConstInt(e.getValI());
     }
@@ -181,8 +177,9 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     }
 
     @Override
-    public Operand case_ImVarArrayAccess(ImVarArrayAccess imVarArrayAccess) {
-        throw new RuntimeException("TODO");
+    public Operand case_ImVarArrayAccess(ImVarArrayAccess e) {
+        Operand loc = tr.translateExprL(e);
+        return load(loc, e.getVar().getName());
     }
 
     @Override
@@ -198,7 +195,12 @@ public class ExprTranslator implements ImExpr.Matcher<Operand> {
     @Override
     public Operand case_ImVarAccess(ImVarAccess e) {
         Operand loc = tr.getVarLocation(e.getVar());
-        TemporaryVar v = Ast.TemporaryVar(e.getVar().getName());
+        return load(loc, e.getVar().getName());
+    }
+
+    @NotNull
+    private Operand load(Operand loc, String name) {
+        TemporaryVar v = Ast.TemporaryVar(name);
         tr.addInstruction(Ast.Assign(v, Ast.Load(loc)));
         return Ast.VarRef(v);
     }

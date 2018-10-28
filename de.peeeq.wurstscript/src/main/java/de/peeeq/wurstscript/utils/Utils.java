@@ -1008,4 +1008,13 @@ public class Utils {
         }
         throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
     }
+
+    /** computes base to the power of exp */
+    public static int intPow(int base, int exp) {
+        int res = 1;
+        for (int i = 0; i < exp; i++) {
+            res *= base;
+        }
+        return res;
+    }
 }

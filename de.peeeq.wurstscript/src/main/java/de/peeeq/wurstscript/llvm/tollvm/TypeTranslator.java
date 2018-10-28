@@ -34,11 +34,6 @@ public class TypeTranslator implements ImType.Matcher<Type> {
     }
 
     @Override
-    public Type case_ImTupleArrayType(ImTupleArrayType imTupleArrayType) {
-        throw new RuntimeException("TODO");
-    }
-
-    @Override
     public Type case_ImArrayType(ImArrayType imArrayType) {
         throw new RuntimeException("TODO");
     }

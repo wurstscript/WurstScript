@@ -41,6 +41,7 @@ ValueInstruction =
     | Alloca(ref Type type)
     | BinaryOperation(Operand left,
             Operator operator, Operand right)
+    | Select(Operand cond, Operand ifTrue, Operand ifFalse)
     | Bitcast(ref Type type, Operand expr)
     | Call(Operand function, OperandList arguments)
     | GetElementPtr(Operand baseAddress,

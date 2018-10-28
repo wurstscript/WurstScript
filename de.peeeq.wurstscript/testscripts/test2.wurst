@@ -1,0 +1,15 @@
+package Test
+
+native print(string s)
+native I2S(int i) returns string
+native Random() returns int
+
+init
+    var x = Random()
+    while x < 100
+        if x mod 2 == 1
+            x = x + 1
+        else
+            x = x + 2
+    I2S(x)
+    print("hello world")

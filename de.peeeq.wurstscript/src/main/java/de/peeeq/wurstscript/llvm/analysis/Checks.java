@@ -217,6 +217,13 @@ public class Checks {
                     }
 
                     @Override
+                    public void case_Select(Select select) {
+                        if (!(select.getCond().calculateType() instanceof TypeBool)) {
+                            error(select, "Condition must be of type bool");
+                        }
+                    }
+
+                    @Override
                     public void case_Bitcast(Bitcast bitcast) {
                         // no checks done (could do some sanity checks)
                     }

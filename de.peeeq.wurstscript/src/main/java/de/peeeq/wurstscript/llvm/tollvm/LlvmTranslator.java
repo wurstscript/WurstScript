@@ -21,6 +21,7 @@ public class LlvmTranslator {
     private TypeTranslator typeTranslator = new TypeTranslator(this);
     private StmtTranslator stmtTranslator = new StmtTranslator(this);
     private ExprTranslator exprTranslator = new ExprTranslator(this);
+    private ExprLTranslator exprLTranslator = new ExprLTranslator(this);
     private Map<ImVar, Global> globals = new HashMap<>();
     private Map<ImClass, TypeDef> structFor = new HashMap<>();
     private Table<ImClass, ImVar, Integer> fieldIndex = HashBasedTable.create();
@@ -149,6 +150,10 @@ public class LlvmTranslator {
 
     Operand translateExpr(ImExpr e) {
         return e.match(exprTranslator);
+    }
+
+    public Operand translateExprL(ImLExpr e) {
+        return e.match(exprLTranslator);
     }
 
     void addInstruction(Instruction ins) {

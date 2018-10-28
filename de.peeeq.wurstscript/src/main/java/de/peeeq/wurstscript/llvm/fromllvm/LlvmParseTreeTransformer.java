@@ -19,6 +19,7 @@ public class LlvmParseTreeTransformer {
     private Map<String, TypeDef> typeDefs = new LinkedHashMap<>();
     private Map<String, GlobalDef> globalDefs = new LinkedHashMap<>();
     private Map<String, Variable> localVariables = new LinkedHashMap<>();
+    private HashMap<String, BasicBlock> currentBlocks;
 
     public Prog transformModule(LlvmParser.ModuleContext module) {
         TypeDefList typeDefs = Ast.TypeDefList();
@@ -110,6 +111,16 @@ public class LlvmParseTreeTransformer {
 
     private List<BasicBlock> transformFunctionBody(LlvmParser.FunctionBodyContext b) {
         List<BasicBlock> blocks = new ArrayList<>();
+
+        currentBlocks = new HashMap<>();
+
+        for (LlvmParser.BasicBlockContext bb : b.basicBlockList().basicBlock()) {
+            BasicBlock block = Ast.BasicBlock();
+            String name = id(bb.optLabelIdent());
+            block.setName(name);
+            currentBlocks.put(name, block);
+        }
+
         for (LlvmParser.BasicBlockContext bb : b.basicBlockList().basicBlock()) {
             blocks.add(transformBasicBlock(bb));
         }
@@ -117,12 +128,32 @@ public class LlvmParseTreeTransformer {
     }
 
     private BasicBlock transformBasicBlock(LlvmParser.BasicBlockContext bb) {
-        BasicBlock block = Ast.BasicBlock();
-        block.setName(id(bb.optLabelIdent()));
+        BasicBlock block = currentBlocks.get(id(bb.optLabelIdent()));
         for (LlvmParser.InstructionContext ins : bb.instructions().instruction()) {
             block.add(transformInstruction(ins));
         }
+        block.add(transformTerminator(bb.terminator()));
+
         return block;
+    }
+
+    private TerminatingInstruction transformTerminator(LlvmParser.TerminatorContext terminator) {
+        if (terminator.brTerm() != null) {
+            LlvmParser.BrTermContext br = terminator.brTerm();
+            return Ast.Jump(currentBlocks.get(id(br.localIdent())));
+        } else if (terminator.condBrTerm() != null) {
+            LlvmParser.CondBrTermContext br = terminator.condBrTerm();
+            return Ast.Branch(transformValue(br.value()),
+                    currentBlocks.get(id(br.localIdent(0))),
+                    currentBlocks.get(id(br.localIdent(1))));
+        } else if (terminator.retTerm() != null) {
+            LlvmParser.ValueContext val = terminator.retTerm().value();
+            if (val == null) {
+                return Ast.ReturnVoid();
+            }
+            return Ast.ReturnExpr(transformValue(val));
+        }
+        throw new RuntimeException("unhandled case: " + str(terminator));
     }
 
     private Instruction transformInstruction(LlvmParser.InstructionContext ins) {
@@ -136,8 +167,7 @@ public class LlvmParseTreeTransformer {
                 args.setParent(null);
                 return Ast.CallVoid(f, args);
             } else {
-                TemporaryVar v = Ast.TemporaryVar(id(ins.localIdent()));
-                localVariables.put(v.getName(), v);
+                TemporaryVar v = (TemporaryVar) lookupLocal(id(ins.localIdent()));
                 return Ast.Assign(v,
                         vi);
             }
@@ -206,125 +236,35 @@ public class LlvmParseTreeTransformer {
                     throw new RuntimeException("unhandled case: " + str(instr.iPred()));
             }
 
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
+            return Ast.BinaryOperation(left, op, right);
+        } else if (i.sRemInst() != null) {
+            LlvmParser.SRemInstContext instr = i.sRemInst();
             Operand left = transformValue(instr.value().get(0));
             Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
-        } else if (i.addInst() != null) {
-            LlvmParser.AddInstContext instr = i.addInst();
-            Operand left = transformValue(instr.value().get(0));
-            Operand right = transformValue(instr.value().get(1));
-            return Ast.BinaryOperation(left, Ast.Add(), right);
+            return Ast.BinaryOperation(left, Ast.Srem(), right);
+        } else if (i.selectInst() != null) {
+             return transformSelectInstruction(i.selectInst());
+        } else if (i.phiInst() != null) {
+            return transformPhiInstruction(i.phiInst());
         }
 
         throw new RuntimeException("todo " + str(i));
+    }
+
+    private ValueInstruction transformSelectInstruction(LlvmParser.SelectInstContext s) {
+        return Ast.Select(transformValue(s.cond),
+                transformValue(s.ifTrue),
+                transformValue(s.ifFalse));
+    }
+
+    private ValueInstruction transformPhiInstruction(LlvmParser.PhiInstContext phiInst) {
+        Type type = transformType(phiInst.type());
+        PhiNodeChoiceList choices = Ast.PhiNodeChoiceList();
+        for (LlvmParser.IncContext inc : phiInst.incList().inc()) {
+            BasicBlock block = currentBlocks.get(id(inc.localIdent()));
+            choices.add(Ast.PhiNodeChoice(block, transformValue(inc.value())));
+        }
+        return Ast.PhiNode(type, choices);
     }
 
     private Call transformCallInstr(LlvmParser.CallInstContext c) {
@@ -360,7 +300,8 @@ public class LlvmParseTreeTransformer {
     private Variable lookupLocal(String id) {
         Variable v = localVariables.get(id);
         if (v == null) {
-            throw new RuntimeException("Could not find variable " + id + "\n" + localVariables);
+            v = Ast.TemporaryVar(id);
+            localVariables.put(v.getName(), v);
         }
         return v;
     }

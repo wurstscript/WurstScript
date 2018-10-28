@@ -764,6 +764,16 @@ public class PrettyPrinter implements
     }
 
     @Override
+    public void case_Select(Select select) {
+        append("select ");
+        printWithType(select.getCond());
+        append(", ");
+        printWithType(select.getIfTrue());
+        append(", ");
+        printWithType(select.getIfFalse());
+    }
+
+    @Override
     public void case_TypeRef(TypeRef typeRef) {
         append("%" + typeRef.getTypeDef().getName());
     }

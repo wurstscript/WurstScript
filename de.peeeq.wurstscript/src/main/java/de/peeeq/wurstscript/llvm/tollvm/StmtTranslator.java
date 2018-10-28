@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.llvm.ast.Ast;
 import de.peeeq.wurstscript.llvm.ast.BasicBlock;
 import de.peeeq.wurstscript.llvm.ast.Operand;
-import de.peeeq.wurstscript.llvm.ast.TemporaryVar;
 
 /**
  *
@@ -62,11 +61,6 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
 
 
     @Override
-    public void case_ImSetTuple(ImSetTuple e) {
-        throw new RuntimeException("TODO");
-    }
-
-    @Override
     public void case_ImReturn(ImReturn e) {
         if (e.getReturnValue() instanceof ImExpr) {
             ImExpr re = (ImExpr) e.getReturnValue();
@@ -80,32 +74,10 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
 
     @Override
     public void case_ImSet(ImSet imSet) {
-        Operand vl = tr.getVarLocation(imSet.getLeft());
+        Operand vl = tr.translateExprL(imSet.getLeft());
         Operand val = tr.translateExpr(imSet.getRight());
         tr.addInstruction(Ast.Store(vl, val));
     }
-
-
-    @Override
-    public void case_ImSetArrayMulti(ImSetArrayMulti e) {
-        throw new RuntimeException("TODO");
-    }
-
-    @Override
-    public void case_ImSetArrayTuple(ImSetArrayTuple e) {
-        throw new RuntimeException("TODO");
-    }
-
-    @Override
-    public void case_ImSetArray(ImSetArray e) {
-        Operand vl = tr.getVarLocation(e.getLeft());
-        Operand r = tr.translateExpr(e.getRight());
-        Operand index = tr.translateExpr(e.getIndex());
-        TemporaryVar ta = Ast.TemporaryVar("array_address");
-        tr.addInstruction(Ast.Assign(ta, Ast.GetElementPtr(vl, Ast.OperandList(Ast.ConstInt(0), index))));
-        tr.addInstruction(Ast.Store(Ast.VarRef(ta), r));
-    }
-
 
     @Override
     public void case_ImGetStackTrace(ImGetStackTrace e) {
@@ -184,11 +156,6 @@ public class StmtTranslator implements ImStmt.MatcherVoid {
 
     @Override
     public void case_ImTypeIdOfClass(ImTypeIdOfClass e) {
-        tr.translateExpr(e);
-    }
-
-    @Override
-    public void case_ImVarArrayMultiAccess(ImVarArrayMultiAccess e) {
         tr.translateExpr(e);
     }
 

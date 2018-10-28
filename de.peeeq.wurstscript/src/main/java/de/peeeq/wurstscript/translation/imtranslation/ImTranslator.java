@@ -57,15 +57,21 @@ public class ImTranslator {
 
     private static final de.peeeq.wurstscript.ast.Element emptyTrace = Ast.NoExpr();
 
-    private @Nullable Multimap<ImFunction, ImFunction> callRelations = null;
-    private @Nullable Set<ImVar> usedVariables = null;
-    private @Nullable Set<ImVar> readVariables = null;
-    private @Nullable Set<ImFunction> usedFunctions = null;
+    private @Nullable
+    Multimap<ImFunction, ImFunction> callRelations = null;
+    private @Nullable
+    Set<ImVar> usedVariables = null;
+    private @Nullable
+    Set<ImVar> readVariables = null;
+    private @Nullable
+    Set<ImFunction> usedFunctions = null;
 
-    private @Nullable ImFunction debugPrintFunction;
+    private @Nullable
+    ImFunction debugPrintFunction;
 
     private final Map<TranslatedToImFunction, ImFunction> functionMap = new LinkedHashMap<>();
-    private @Nullable ImFunction globalInitFunc;
+    private @Nullable
+    ImFunction globalInitFunc;
 
     private final ImProg imProg;
 
@@ -81,9 +87,11 @@ public class ImTranslator {
 
     private final WurstModel wurstProg;
 
-    private @Nullable ImFunction mainFunc = null;
+    private @Nullable
+    ImFunction mainFunc = null;
 
-    private @Nullable ImFunction configFunc = null;
+    private @Nullable
+    ImFunction configFunc = null;
 
     private final Map<ImVar, VarsForTupleResult> varsForTupleVar = new LinkedHashMap<>();
 
@@ -871,10 +879,12 @@ public class ImTranslator {
     }
 
 
+    @Nullable
     public ImFunction getMainFunc() {
         return mainFunc;
     }
 
+    @Nullable
     public ImFunction getConfFunc() {
         return configFunc;
     }
@@ -1382,7 +1392,8 @@ public class ImTranslator {
 
     private Map<ImClass, ClassManagementVars> classManagementVars = null;
 
-    private @Nullable ImFunction errorFunc;
+    private @Nullable
+    ImFunction errorFunc;
 
     public Map<ImClass, ClassManagementVars> getClassManagementVars() {
         if (classManagementVars != null) {

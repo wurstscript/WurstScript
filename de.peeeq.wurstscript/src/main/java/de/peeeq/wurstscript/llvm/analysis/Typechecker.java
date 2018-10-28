@@ -84,6 +84,11 @@ public class Typechecker {
                 }
 
                 @Override
+                public Type case_Select(Select select) {
+                    return select.getIfTrue().calculateType();
+                }
+
+                @Override
                 public Type case_Bitcast(Bitcast bitcast) {
                     return bitcast.getType();
                 }

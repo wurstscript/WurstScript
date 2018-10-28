@@ -2010,12 +2010,11 @@ phiInst
 ;
 
 incList
-	: inc
-	| incList ',' inc
+	: inc (',' inc)*
 ;
 
 inc
-	: '(' value ',' localIdent ')?'
+	: '[' value ',' localIdent ']'
 ;
 
 // ~~~ ( SELECT )? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2027,7 +2026,7 @@ inc
 //   ::= 'SELECT' typeAndValue ',' typeAndValue ',' typeAndValue
 
 selectInst
-	: 'select' type value ',' type value ',' type value optCommaSepMetadataAttachmentList
+	: 'select' type cond=value ',' type ifTrue=value ',' type ifFalse=value optCommaSepMetadataAttachmentList
 ;
 
 // ~~~ ( CALL )? ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

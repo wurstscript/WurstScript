@@ -104,6 +104,17 @@ public class ExpectedType {
                         }
 
                         @Override
+                        public Type case_Select(Select select) {
+                            if (operand == select.getCond()) {
+                                return Ast.TypeBool();
+                            } else if (operand == select.getIfFalse()){
+                                return select.getIfTrue().calculateType();
+                            }
+                            // otherwise: unknown:
+                            return Ast.TypePointer(Ast.TypeByte());
+                        }
+
+                        @Override
                         public Type case_Alloc(Alloc alloc) {
                             return Ast.TypeInt();
                         }

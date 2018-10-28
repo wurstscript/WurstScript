@@ -130,10 +130,15 @@ public class ImPrinter {
         append(sb, "{\n");
         p.getThenBlock().print(sb, indent + 1);
         indent(sb, indent);
-        append(sb, "} else {\n");
-        p.getElseBlock().print(sb, indent + 1);
-        indent(sb, indent);
-        append(sb, "}");
+        if (p.getElseBlock().size() == 1 && p.getElseBlock().get(0) instanceof ImIf) {
+            append(sb, "} else ");
+            p.getElseBlock().get(0).print(sb, indent);
+        } else {
+            append(sb, "} else {\n");
+            p.getElseBlock().print(sb, indent + 1);
+            indent(sb, indent);
+            append(sb, "}");
+        }
 
     }
 
