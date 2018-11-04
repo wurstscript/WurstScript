@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.DataTypeInfo;
+import net.moonlightflower.wc3libs.dataTypes.app.Controller;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
@@ -174,11 +175,13 @@ public class BuildMap extends MapRequest {
         for (WurstProjectBuildPlayer wplayer : players) {
             W3I.Player player = w3I.addPlayer();
             player.setName(wplayer.getName());
-            try {
-                player.setRace(W3I.Player.UnitRace.valueOf(wplayer.getRace().toString()));
-                player.setType(Controller.valueOf(wplayer.getController().toString()));
-            } catch (DataTypeInfo.CastException e) {
-                e.printStackTrace();
+            W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
+            if (val != null) {
+                player.setRace(val);
+            }
+            Controller val1 = Controller.valueOf(wplayer.getController().toString());
+            if(val1 != null) {
+                player.setType(val1);
             }
             player.setNum(wplayer.getId());
             player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
