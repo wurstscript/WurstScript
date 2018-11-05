@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
-import net.moonlightflower.wc3libs.dataTypes.DataTypeInfo;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
 import org.eclipse.lsp4j.MessageType;
 
@@ -147,8 +146,8 @@ public class BuildMap extends MapRequest {
         w3I.setLoadingScreenModel(scenarioData.getLoadingScreenModel());
         w3I.getLoadingScreen().setTitle(scenarioData.getLoadingScreenTitle());
         w3I.getLoadingScreen().setSubtitle(scenarioData.getLoadingScreenSubTitle());
-        w3I.getLoadingScreen().setText(scenarioData.getDescription());
-
+        w3I.getLoadingScreen().setText(scenarioData.getLoadingScreenText());
+        w3I.setMapDescription(scenarioData.getDescription());
         w3I.setDimensions(projectConfig.getBuildMapData().getMapBoundsX(), projectConfig.getBuildMapData().getMapBoundsY());
     }
 
@@ -164,7 +163,7 @@ public class BuildMap extends MapRequest {
             force.setFlag(W3I.Force.Flags.Flag.SHARED_VISION, wforce.getFlags().getSharedVision());
             force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL, wforce.getFlags().getSharedControl());
             force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL_ADVANCED, wforce.getFlags().getSharedControlAdvanced());
-//                    force.setPlayers(?);
+            force.addPlayerNums(wforce.getPlayerIds());
         }
     }
 
