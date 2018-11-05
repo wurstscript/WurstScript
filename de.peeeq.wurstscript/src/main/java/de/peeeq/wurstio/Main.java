@@ -2,6 +2,7 @@ package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass.Result;
 import de.peeeq.wurstio.compilationserver.WurstServer;
@@ -133,9 +134,11 @@ public class Main {
                     bc.makeBackup(mapFilePath);
                 }
 
+                CompilationProcess compilationProcess = new CompilationProcess(gui, runArgs);
+
                 if (mapFilePath != null) {
                     try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
-                        CharSequence mapScript = doCompilation(gui, mpqEditor, runArgs);
+                        CharSequence mapScript = compilationProcess.doCompilation(mpqEditor);
                         if (mapScript != null) {
                             gui.sendProgress("Writing to map");
                             mpqEditor.deleteFile("war3map.j");
@@ -144,7 +147,7 @@ public class Main {
                         }
                     }
                 } else {
-                    doCompilation(gui, null, runArgs);
+                    compilationProcess.doCompilation(null);
                 }
 
                 gui.sendProgress("Finished!");
@@ -334,104 +337,6 @@ public class Main {
         stormDll = Paths.get(Utils.getResourceFile(folder + "Storm.dll"));
     }
 
-    private static @Nullable CharSequence doCompilation(WurstGui gui, @Nullable MpqEditor mpqEditor, RunArgs runArgs) throws IOException {
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, mpqEditor, runArgs);
-        gui.sendProgress("Check input map");
-        if (mpqEditor != null && !mpqEditor.canWrite()) {
-            WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
-                    "Please supply a valid .w3x input map that can be opened in the world editor.");
-        }
 
-        for (String file : runArgs.getFiles()) {
-            compiler.loadFiles(file);
-        }
-        WurstModel model = compiler.parseFiles();
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-        if (model == null) {
-            return null;
-        }
-
-        compiler.checkProg(model);
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        compiler.translateProgToIm(model);
-
-        if (gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        File mapFile = compiler.getMapFile();
-
-        if (runArgs.isRunTests()) {
-            PrintStream out = System.out;
-            // tests
-            gui.sendProgress("Running tests");
-            System.out.println("Running tests");
-            RunTests runTests = new RunTests(null, 0, 0) {
-                @Override
-                protected void print(String message) {
-                    out.print(message);
-                }
-            };
-            runTests.runTests(compiler.getImProg(), null, null);
-
-            for (RunTests.TestFailure e : runTests.getFailTests()) {
-                gui.sendError(new CompileError(e.getFunction().attrTrace().attrErrorPos(), e.getMessage()));
-                if (runArgs.isGui()) {
-                    // when using graphical user interface, send stack trace to GUI
-                    for (ILStackFrame sf : Utils.iterateReverse(e.getStackTrace().getStackFrames())) {
-                        gui.sendError(sf.makeCompileError());
-                    }
-                }
-            }
-
-            System.out.println("Finished running tests");
-        }
-
-        compiler.runCompiletime();
-
-        JassProg jassProg = compiler.transformProgToJass();
-
-        if (jassProg == null || gui.getErrorCount() > 0) {
-            return null;
-        }
-
-        boolean withSpace;
-        withSpace = !runArgs.isOptimize();
-
-        gui.sendProgress("Printing Jass");
-        JassPrinter printer = new JassPrinter(withSpace, jassProg);
-        CharSequence mapScript = printer.printProg();
-
-        // output to file
-        gui.sendProgress("Writing output file");
-        File outputMapscript;
-        if (runArgs.getOutFile() != null) {
-            outputMapscript = new File(runArgs.getOutFile());
-        } else {
-            //outputMapscript = File.createTempFile("outputMapscript", ".j");
-            outputMapscript = new File("./temp/output.j");
-        }
-        outputMapscript.getParentFile().mkdirs();
-        FileUtils.write(mapScript, outputMapscript);
-
-        if (!runArgs.isDisablePjass()) {
-            Result pJassResult = Pjass.runPjass(outputMapscript);
-            WLogger.info(pJassResult.getMessage());
-            if (!pJassResult.isOk()) {
-                for (CompileError err : pJassResult.getErrors()) {
-                    gui.sendError(err);
-                }
-                return null;
-            }
-        }
-        return mapScript;
-    }
 
 }

@@ -357,28 +357,6 @@ public class Utils {
     }
 
 
-    /**
-     * calculates the transient closure of a multimap
-     */
-    public static <T> Multimap<T, T> transientClosure(Multimap<T, T> start) {
-        Multimap<T, T> result = HashMultimap.create();
-        result.putAll(start);
-        Multimap<T, T> changes = HashMultimap.create();
-        boolean changed;
-        do {
-            changes.clear();
-            for (Entry<T, T> e1 : result.entries()) {
-                for (T t : result.get(e1.getValue())) {
-                    changes.put(e1.getKey(), t);
-                }
-            }
-            changed = result.putAll(changes);
-
-        } while (changed);
-
-        return result;
-    }
-
     public static Element getAstElementAtPos(Element elem,
                                              int caretPosition, boolean usesMouse) {
         List<Element> betterResults = Lists.newArrayList();
@@ -528,9 +506,17 @@ public class Utils {
     }
 
     public static <T, S> Multimap<T, S> inverse(Multimap<S, T> orig) {
-        Multimap<T, S> result = HashMultimap.create();
+        Multimap<T, S> result = LinkedHashMultimap.create();
         for (Entry<S, T> e : orig.entries()) {
             result.put(e.getValue(), e.getKey());
+        }
+        return result;
+    }
+
+    public static <T extends Comparable<? extends T>, S> TreeMap<T, Set<S>> inverseMapToSet(Map<S, T> orig) {
+        TreeMap<T, Set<S>> result = new TreeMap<>();
+        for (Entry<S, T> e : orig.entrySet()) {
+            result.computeIfAbsent(e.getValue(), x -> new LinkedHashSet<>()).add(e.getKey());
         }
         return result;
     }

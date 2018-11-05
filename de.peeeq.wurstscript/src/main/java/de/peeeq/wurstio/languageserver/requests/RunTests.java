@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
@@ -147,6 +148,9 @@ public class RunTests extends UserRequest<Object> {
         cfr.run();
 
         if (gui.getErrorCount() > 0) {
+            for (CompileError compileError : gui.getErrorList()) {
+                println(compileError.toString());
+            }
             println("There were some problem while running compiletime expressions and functions.");
             return new TestResult(0, 1);
         }

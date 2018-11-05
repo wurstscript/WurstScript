@@ -1090,4 +1090,18 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void underlineArray() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "    int array _ar",
+                "    _ar[1] = 2",
+                "    if _ar[1] == 2",
+                "        testSuccess()",
+                "    testSuccess()"
+        );
+    }
+
 }

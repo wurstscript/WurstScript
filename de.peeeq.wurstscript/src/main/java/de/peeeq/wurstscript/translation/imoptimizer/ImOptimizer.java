@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ImOptimizer {
     private int totalFunctionsRemoved = 0;
@@ -31,9 +31,11 @@ public class ImOptimizer {
     }
 
 
+    private final TimeTaker timeTaker;
     ImTranslator trans;
 
-    public ImOptimizer(ImTranslator trans) {
+    public ImOptimizer(TimeTaker timeTaker, ImTranslator trans) {
+        this.timeTaker = timeTaker;
         this.trans = trans;
     }
 
@@ -65,7 +67,7 @@ public class ImOptimizer {
         for (int i = 1; i <= 10 && optCount > 0; i++) {
             optCount = 0;
             localPasses.forEach(pass -> {
-                int count = pass.optimize(trans);
+                int count = timeTaker.measure(pass.getName(), () -> pass.optimize(trans));
                 optCount += count;
                 totalCount.put(pass.getName(), totalCount.getOrDefault(pass.getName(), 0) + count);
             });

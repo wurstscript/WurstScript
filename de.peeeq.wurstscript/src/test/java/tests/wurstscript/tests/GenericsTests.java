@@ -1069,4 +1069,17 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void nullWithGeneric() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "function foo<T>(T t)",
+                "	if t == null",
+                "		testSuccess()",
+                "init",
+                "	foo(null)"
+        );
+    }
+
 }

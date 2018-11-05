@@ -21,6 +21,7 @@ import fj.data.TreeMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -66,7 +67,7 @@ public class ClassTranslator {
 
         addSuperClasses();
 
-        List<ClassDef> subClasses = Lists.newArrayList(translator.getSubClasses(classDef));
+        List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
         translateMethods(classDef, subClasses);

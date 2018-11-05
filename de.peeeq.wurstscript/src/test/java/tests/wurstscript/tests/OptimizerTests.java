@@ -4,6 +4,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstscript.utils.Utils;
+import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -513,6 +514,35 @@ public class OptimizerTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore // test for #747
+    public void test_localVarMerger3() throws IOException {
+        test().lines(
+                "package test",
+                "native testSuccess()",
+                "native testFail(string s)",
+                "native sideEffects()",
+                "@extern native Sin(real r) returns real",
+                "int g = 0",
+                "int h = 0",
+                "function f(int x)",
+                "	sideEffects()",
+                "function foo(int x)",
+                "	int a = g",
+                "	if h == 10",
+                "		f(a)",
+                "function initVars()",
+                "	g = 7",
+                "	h = 10",
+                "init",
+                "	initVars()",
+                "	foo(3)",
+                "	testSuccess()"
+        );
+        String compiledAndOptimized = Files.toString(new File("test-output/OptimizerTests_test_localVarMerger3_opt.j"), Charsets.UTF_8);
+        assertTrue(compiledAndOptimized.contains("call f(test_g)"));
+    }
+
+    @Test
     public void test_unused_func_remover() throws IOException {
         test().executeProg().lines(
                 "package test",
@@ -819,6 +849,34 @@ public class OptimizerTests extends WurstScriptTest {
                 "    if a.approxEq(vec3(2.673, 5.345, 8.018)) and b.approxEq(vec3(6.838, 5.698, 4.558))",
                 "        testSuccess()",
                 "endpackage");
+    }
+
+    @Test
+    public void cyclicFunctionRemover() throws IOException {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "function foo(int x) returns int",
+                "	if x > 1000",
+                "		return g(x)",
+                "	if x > 100",
+                "		return h(x)",
+                "	if x > 10",
+                "		return i(x)",
+                "	return x",
+                "function g(int x) returns int",
+                "	return foo(x div 1000)",
+                "function h(int x) returns int",
+                "	return foo(x div 100)",
+                "function i(int x) returns int",
+                "	return foo(x div 10)",
+                "init",
+                "	if foo(7531) == 7",
+                "		testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_cyclicFunctionRemover.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        assertFalse(compiled.contains("cyc_cyc"));
     }
 
 }

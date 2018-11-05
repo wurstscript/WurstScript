@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
+import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -21,7 +22,7 @@ public class SideEffectAnalyzer {
     // f -> set of functions directly called by f
     private Multimap<ImFunction, ImFunction> callRelation;
     // f -> set of functions directly and transitively called by f
-    private Multimap<ImFunction, ImFunction> callRelationTr;
+    private TransitiveClosure<ImFunction> callRelationTr;
     // f -> global variables directly used in f
     private Multimap<ImFunction, ImVar> usedGlobals;
 
@@ -164,11 +165,11 @@ public class SideEffectAnalyzer {
     /**
      * @return f -> set of functions directly and transitively called by f
      */
-    public Multimap<ImFunction, ImFunction> getCallRelationTr() {
+    public TransitiveClosure<ImFunction> getCallRelationTr() {
         if (callRelationTr != null) {
             return callRelationTr;
         }
-        callRelationTr = Utils.transientClosure(getCallRelation());
+        callRelationTr = new TransitiveClosure<>(getCallRelation());
         return callRelationTr;
     }
 
@@ -204,7 +205,7 @@ public class SideEffectAnalyzer {
      */
     private Stream<ImFunction> calledFunctionsStream(Element e) {
         return directlyCalledFunctions(e).stream()
-                .flatMap(f -> Stream.concat(Stream.of(f), getCallRelationTr().get(f).stream()));
+                .flatMap(f -> Stream.concat(Stream.of(f), getCallRelationTr().get(f)));
     }
 
     /**

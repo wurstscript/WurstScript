@@ -1,13 +1,15 @@
 package de.peeeq.datastructures;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public abstract class GraphInterpreter<T> {
 
@@ -68,6 +70,80 @@ public abstract class GraphInterpreter<T> {
 
         public List<T> getResult() {
             return result;
+        }
+
+
+    }
+
+
+    /**
+     * Like topsort, but will find bigger cycles
+     * <p>
+     * See https://en.wikipedia.org/wiki/Path-based_strong_component_algorithm
+     */
+    public Set<Set<T>> findStronglyConnectedComponents(List<T> nodes) {
+        // Stack S contains all the vertices that have not yet been assigned to a strongly connected component, in the order in which the depth-first search reaches the vertices.
+        Deque<T> s = new ArrayDeque<>();
+        // Stack P contains vertices that have not yet been determined to belong to different strongly connected components from each other
+        Deque<T> p = new ArrayDeque<>();
+        // It also uses a counter C of the number of vertices reached so far, which it uses to compute the preorder numbers of the vertices.
+        AtomicInteger c = new AtomicInteger();
+        Map<T, Integer> preorderNumber = new HashMap<>();
+        Map<T, Integer> component = new HashMap<>();
+
+        for (T v : nodes) {
+            if (!preorderNumber.containsKey(v)) {
+                findStronglyConnectedComponentsRec(v, s, p, c, preorderNumber, component);
+            }
+        }
+        Set<Set<T>> result = new LinkedHashSet<>();
+        return ImmutableSet.copyOf(Utils.inverseMapToSet(component).values());
+    }
+
+
+    private void findStronglyConnectedComponentsRec(T v, Deque<T> s, Deque<T> p, AtomicInteger c, Map<T, Integer> preorderNumber, Map<T, Integer> component) {
+
+
+        // When the depth-first search reaches a vertex v, the algorithm performs the following steps:
+        // 1. Set the preorder number of v to C, and increment C.
+        preorderNumber.put(v, c.getAndIncrement());
+
+        // 2. Push v onto S and also onto P.
+        s.push(v);
+        p.push(v);
+
+        // 3. For each edge from v to a neighboring vertex w:
+        for (T w : getIncidentNodes(v)) {
+            if (!preorderNumber.containsKey(w)) {
+                // If the preorder number of w has not yet been assigned, recursively search w;
+                findStronglyConnectedComponentsRec(w, s, p, c, preorderNumber, component);
+            } else {
+                // Otherwise, if w has not yet been assigned to a strongly connected component:
+                if (!component.containsKey(w)) {
+                    // Repeatedly pop vertices from P until the top element of P has a preorder number less than or equal to the preorder number of w.
+                    do {
+                        if (p.isEmpty()) {
+                            break;
+                        }
+                        p.pop();
+                    } while (preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w));
+                }
+            }
+        }
+        // 4. If v is the top element of P:
+        if (!p.isEmpty() && p.peek() == v) {
+            // Pop vertices from S until v has been popped, and assign the popped vertices to a new component.
+            int newComponent = component.values().stream().mapToInt(x -> x).max().orElse(0) + 1;
+            while (true) {
+                T popped = s.pop();
+                component.put(popped, newComponent);
+                if (popped == v) {
+                    break;
+                }
+            }
+            // Pop v from P.
+            T popped = p.pop();
+            assert popped == v;
         }
 
 

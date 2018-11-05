@@ -201,6 +201,8 @@ public class WurstScriptTest {
 
             testWithInliningAndOptimizations(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
+            testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
+
             if (testLua && !withStdLib) {
                 // test lua translation
                 compiler.setRunArgs(new RunArgs("-lua"));
@@ -333,6 +335,13 @@ public class WurstScriptTest {
         // test with inlining and local optimization
         compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations"));
         translateAndTest(name + "_inlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
+    }
+
+    private void testWithInliningAndOptimizationsAndStacktraces(String name, boolean executeProg, boolean executeTests, WurstGui gui,
+                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
+        // test with inlining and local optimization
+        compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations", "-stacktraces"));
+        translateAndTest(name + "_stacktraceinlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui
@@ -551,7 +560,8 @@ public class WurstScriptTest {
         RunTests runTests = new RunTests(null, 0, 0);
         RunTests.TestResult res = runTests.runTests(imProg, null, null);
         if (res.getPassedTests() < res.getTotalTests()) {
-            throw new Error("tests failed");
+            throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
+                    gui.getErrors());
         }
     }
 

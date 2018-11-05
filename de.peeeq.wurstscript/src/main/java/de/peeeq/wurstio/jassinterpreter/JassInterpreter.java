@@ -87,7 +87,7 @@ public class JassInterpreter implements AbstractInterpreter {
 
 
         if (func.getParams().size() != arguments.length) {
-            throw new Error("Wrong number of parameters: " + func.getParams().size() + " != " + arguments.length);
+            throw new InterpreterException("Wrong number of parameters: " + func.getParams().size() + " != " + arguments.length);
         }
         int i = 0;
         for (JassSimpleVar v : func.getParams()) {
@@ -216,10 +216,10 @@ public class JassInterpreter implements AbstractInterpreter {
 //		} else if (s instanceof ILsetVarArray) {
 //			translateILsetVarArray(localVarMap, (ILsetVarArray) s);
 //		} else if (s instanceof ILerror) {
-//			throw new Error("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
+//			throw new InterpreterException("IL execution error: " + lookupVarValue(localVarMap, ((ILerror) s).msg));
 //		} else {
 //
-//			throw new Error("not implemented " + s);
+//			throw new InterpreterException("not implemented " + s);
 //		}
     }
 
@@ -418,7 +418,7 @@ public class JassInterpreter implements AbstractInterpreter {
         } else if (isGlobal(varName)) {
             globalVarMap.put(varName, s);
         } else {
-            throw new Error("var " + varName + " is neither local nor global?");
+            throw new InterpreterException("var " + varName + " is neither local nor global?");
         }
     }
 
@@ -438,7 +438,7 @@ public class JassInterpreter implements AbstractInterpreter {
         if (value == null) {
             value = globalVarMap.get(name);
             if (value == null) {
-                throw new Error("Variable " + name + " not found.");
+                throw new InterpreterException("Variable " + name + " not found.");
             }
         }
         return value;

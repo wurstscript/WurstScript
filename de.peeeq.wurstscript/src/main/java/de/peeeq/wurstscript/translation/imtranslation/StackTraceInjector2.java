@@ -5,6 +5,8 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import de.peeeq.datastructures.TransitiveClosure;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.jassIm.*;
@@ -25,14 +27,16 @@ public class StackTraceInjector2 {
     private ImProg prog;
     private ImVar stackSize;
     private ImVar stack;
+    private ImGetStackTrace dummyGetStackTrace = JassIm.ImGetStackTrace();
 
     public StackTraceInjector2(ImProg prog, ImTranslator imTranslator2) {
         this.prog = prog;
     }
 
-    public void transform() {
+    public void transform(TimeTaker timeTaker) {
         final Multimap<ImFunction, ImGetStackTrace> stackTraceGets = LinkedListMultimap.create();
         final Multimap<ImFunction, ImFunctionCall> calls = LinkedListMultimap.create();
+        // called function -> calling function
         final Multimap<ImFunction, ImFunction> callRelation = LinkedListMultimap.create();
         final List<ImFuncRef> funcRefs = Lists.newArrayList();
         prog.accept(new ImProg.DefaultVisitor() {
@@ -44,11 +48,19 @@ public class StackTraceInjector2 {
             }
 
             @Override
+            public void visit(ImVarArrayAccess va) {
+                super.visit(va);
+                if (va.getIndexes().size() > 1) {
+                    stackTraceGets.put(va.getNearestFunc(), dummyGetStackTrace);
+                }
+            }
+
+            @Override
             public void visit(ImFunctionCall c) {
                 super.visit(c);
                 calls.put(c.getFunc(), c);
                 ImFunction caller = c.getNearestFunc();
-                callRelation.put(caller, c.getFunc());
+                callRelation.put(c.getFunc(), caller);
             }
 
             @Override
@@ -65,14 +77,13 @@ public class StackTraceInjector2 {
         prog.getGlobals().add(stack);
         prog.getGlobalInits().put(stackSize, Collections.singletonList(JassIm.ImIntVal(0)));
 
-        Multimap<ImFunction, ImFunction> callRelationTr = Utils.transientClosure(callRelation);
+
+        TransitiveClosure<ImFunction> callRelationTr = new TransitiveClosure<>(callRelation);
 
         // find affected functions
         Set<ImFunction> affectedFuncs = Sets.newHashSet(stackTraceGets.keySet());
-        for (Entry<ImFunction, ImFunction> e : callRelationTr.entries()) {
-            if (stackTraceGets.containsKey(e.getValue())) {
-                affectedFuncs.add(e.getKey());
-            }
+        for (ImFunction stackTraceUse : stackTraceGets.keys()) {
+            callRelationTr.get(stackTraceUse).forEach(affectedFuncs::add);
         }
 
         passStacktraceParams(calls, affectedFuncs);
@@ -218,7 +229,7 @@ public class StackTraceInjector2 {
         return f.getName();
     }
 
-    private String getCallPos(WPos source) {
+    public static String getCallPos(WPos source) {
         String callPos;
         if (source.getFile().startsWith("<")) {
             callPos = "";
@@ -279,6 +290,9 @@ public class StackTraceInjector2 {
         for (Entry<ImFunction, ImGetStackTrace> e : stackTraceGets.entries()) {
             ImFunction f = e.getKey();
             ImGetStackTrace s = e.getValue();
+            if (s == dummyGetStackTrace) {
+                continue;
+            }
 
             de.peeeq.wurstscript.ast.Element trace = s.attrTrace();
             ImVar traceStr = JassIm.ImVar(trace, TypesHelper.imString(), "stacktraceStr", false);

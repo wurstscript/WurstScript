@@ -50,7 +50,7 @@ public class StatementTranslation {
             stmts.add(JassStmtSet(var.getName(), exprs));
         } else if (updatedExpr instanceof ImVarArrayAccess) {
             ImVarArrayAccess vaa = (ImVarArrayAccess) updatedExpr;
-            ImVar var = vaa.getVar();
+            JassVar var = translator.getJassVarFor(vaa.getVar());
             JassExpr indexes = vaa.getIndexes().get(0).translate(translator);
             JassExpr exprs = imSet.getRight().translate(translator);
             stmts.add(JassStmtSetArray(var.getName(), indexes, exprs));

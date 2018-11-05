@@ -193,7 +193,12 @@ public class ILInterpreter implements AbstractInterpreter {
 
     public void runVoidFunc(ImFunction f, @Nullable Element trace) {
         globalState.resetStackframes();
-        runFunc(globalState, f, trace);
+        ILconst[] args = {};
+        if (!f.getParameters().isEmpty()) {
+            // this should only happen because of added stacktrace parameter
+            args = new ILconstString[]{new ILconstString("initial call")};
+        }
+        runFunc(globalState, f, trace, args);
     }
 
     public Element getLastStatement() {
