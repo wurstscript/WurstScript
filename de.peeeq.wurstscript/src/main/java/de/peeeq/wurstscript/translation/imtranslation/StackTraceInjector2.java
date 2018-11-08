@@ -150,7 +150,7 @@ public class StackTraceInjector2 {
                 stmts.add(decrement(trace, stackSize));
                 stmts.add(newReturn);
 
-                ret.replaceBy(JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
+                ret.replaceBy(ImHelper.statementExprVoid(stmts));
             }
 
             // also decrement at end of function:

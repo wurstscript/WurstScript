@@ -526,7 +526,7 @@ public class WurstScriptTest {
         Result pJassResult = Pjass.runPjass(outputFile);
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk() && !pJassResult.getMessage().equals("IO Exception")) {
-            throw new Error(pJassResult.getMessage());
+            throw new Error(pJassResult.getMessage() + pJassResult.getErrors());
         }
     }
 

@@ -108,7 +108,7 @@ ImConst =
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
 	| ImFuncRef(ref ImFunction func)
-	| ImNull()
+	| ImNull(ref ImType type)
 
 // helper types:
 

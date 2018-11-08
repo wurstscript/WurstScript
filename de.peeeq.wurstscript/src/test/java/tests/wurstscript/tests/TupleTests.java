@@ -527,4 +527,17 @@ public class TupleTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void nullStringInTuple() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "tuple p(int x, string y)",
+                "constant c = p(1, null)",
+                "init",
+                "    if c.x == 1 and c.y == null",
+                "        testSuccess()"
+        );
+    }
+
 }

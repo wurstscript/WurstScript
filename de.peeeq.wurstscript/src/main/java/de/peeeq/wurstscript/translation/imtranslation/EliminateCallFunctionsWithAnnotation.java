@@ -34,7 +34,7 @@ public class EliminateCallFunctionsWithAnnotation {
         for (ImFunction f : annotatedFunctions.get(calledAnnotation(fc))) {
             statements.add(JassIm.ImFunctionCall(fc.getTrace(), f, JassIm.ImExprs(), false, CallType.NORMAL));
         }
-        fc.replaceBy(JassIm.ImStatementExpr(statements, JassIm.ImNull()));
+        fc.replaceBy(ImHelper.statementExprVoid(statements));
     }
 
     private static Multimap<String, ImFunction> collectAnnotatedFunctions(

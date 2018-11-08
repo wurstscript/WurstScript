@@ -148,7 +148,7 @@ public class VarargEliminator {
     }
 
     private void unrollVarargLoop(ImVarargLoop imLoop, List<ImVar> newParams) {
-        ImStatementExpr stmtExpr = JassIm.ImStatementExpr(JassIm.ImStmts(), JassIm.ImNull());
+        ImStatementExpr stmtExpr = ImHelper.statementExprVoid(JassIm.ImStmts());
 
         for (int i = 0; i < newParams.size(); i++) {
             ImStmts bodyCopy = imLoop.getBody().copy();

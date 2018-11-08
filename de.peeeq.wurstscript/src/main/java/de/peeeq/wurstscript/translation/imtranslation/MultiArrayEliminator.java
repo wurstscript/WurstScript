@@ -91,7 +91,7 @@ public class MultiArrayEliminator {
                 Element setParent = set.getParent();
                 set.setParent(null);
                 stmts.add(set);
-                Utils.replace(setParent, set, JassIm.ImStatementExpr(stmts, JassIm.ImNull()));
+                Utils.replace(setParent, set, ImHelper.statementExprVoid(stmts));
             }
 
 

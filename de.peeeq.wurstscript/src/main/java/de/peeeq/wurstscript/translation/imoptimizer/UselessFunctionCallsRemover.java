@@ -2,7 +2,7 @@ package de.peeeq.wurstscript.translation.imoptimizer;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.Flatten;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.Arrays;
@@ -56,7 +56,7 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
                             // and move to new statements
                             newStmts.add(arg);
                         }
-                        s = JassIm.ImStatementExpr(newStmts, JassIm.ImNull());
+                        s = ImHelper.statementExprVoid(newStmts);
                         it.set(s);
                         totalCallsRemoved++;
                     }

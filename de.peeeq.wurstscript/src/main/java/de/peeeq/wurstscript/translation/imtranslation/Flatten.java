@@ -74,7 +74,7 @@ public class Flatten {
 
         public Result(List<ImStmt> stmts) {
             this.stmts = stmts;
-            this.expr = JassIm.ImNull();
+            this.expr = ImHelper.nullExpr();
         }
 
         public void intoStatements(List<ImStmt> result, ImTranslator t, ImFunction f) {

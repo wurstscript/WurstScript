@@ -32,7 +32,7 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImNull e) {
-        return WurstTypeHandle.instance().imTranslateType();
+        return e.getType();
     }
 
     public static ImType getType(ImOperatorCall e) {
