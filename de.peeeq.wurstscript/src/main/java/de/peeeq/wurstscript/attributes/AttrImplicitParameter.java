@@ -36,14 +36,21 @@ public class AttrImplicitParameter {
 
 
     public static OptExpr getImplicitParameter(ExprFunctionCall e) {
-        return getImplicitParamterCaseNormalFunctionCall(e);
+        return getImplicitParameterCaseNormalFunctionCall(e);
     }
 
     public static OptExpr getImplicitParameter(ExprMemberMethod e) {
         Expr result = getImplicitParameterUsingLeft(e);
         if (result == null) {
-            return getImplicitParamterCaseNormalFunctionCall(e);
+            return getImplicitParameterCaseNormalFunctionCall(e);
         } else {
+            FuncLink calledFunc = e.attrFuncLink();
+            if (calledFunc != null
+                    && !calledFunc.getDef().attrIsDynamicClassMember()
+                    && !(calledFunc.getDef() instanceof ExtensionFuncDef)) {
+                e.addError("Cannot call static method " + e.getFuncName() + " on an object.");
+            }
+
             return result;
         }
     }
@@ -58,7 +65,7 @@ public class AttrImplicitParameter {
         return e.getLeft();
     }
 
-    private static OptExpr getImplicitParamterCaseNormalFunctionCall(FunctionCall e) {
+    private static OptExpr getImplicitParameterCaseNormalFunctionCall(FunctionCall e) {
         FuncLink calledFunc = e.attrFuncLink();
         if (calledFunc == null) {
             return Ast.NoExpr();
@@ -80,6 +87,7 @@ public class AttrImplicitParameter {
                 return Ast.NoExpr();
             }
         } else {
+
             // static function:
             return Ast.NoExpr();
         }

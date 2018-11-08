@@ -1183,5 +1183,17 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void callStaticFunctionFromInit() {
+        testAssertErrorsLines(true, "Cannot call static method f on an object.",
+                "package Test",
+                "public class A",
+                "    static function f()",
+                "init",
+                "    new A().f()",
+                "endpackage"
+        );
+    }
+
 
 }
