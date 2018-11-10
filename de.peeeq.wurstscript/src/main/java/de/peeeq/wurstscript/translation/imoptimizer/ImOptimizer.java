@@ -5,6 +5,7 @@ import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.optimizer.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -142,10 +143,7 @@ public class ImOptimizer {
                         for (ImStmt expr : exprs) {
                             expr.setParent(null);
                         }
-                        r = JassIm.ImStatementExpr(
-                                JassIm.ImStmts(exprs),
-                                JassIm.ImNull()
-                        );
+                        r = ImHelper.statementExprVoid(JassIm.ImStmts(exprs));
                     }
                     pair.getA().replaceBy(r);
                 }

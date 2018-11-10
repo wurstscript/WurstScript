@@ -13,7 +13,6 @@ import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
-import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.TypesHelper;
@@ -45,9 +44,9 @@ public class StmtTranslation {
                 ImExpr translatedExpr = expr.imTranslateExpr(t, f);
                 stmts.add(ImSet(s, ImVarArrayAccess(s, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translatedExpr));
             }
-            return JassIm.ImStatementExpr(stmts, ImNull());
+            return ImHelper.statementExprVoid(stmts);
         } else {
-            return ImNull();
+            return ImHelper.nullExpr();
         }
     }
 
@@ -109,7 +108,7 @@ public class StmtTranslation {
             result.add(ImLoop(s, imBody));
         }
 
-        return ImStatementExpr(ImStmts(result), ImNull());
+        return ImHelper.statementExprVoid(ImStmts(result));
     }
 
 
@@ -182,8 +181,8 @@ public class StmtTranslation {
                     @Override
                     public void visit(ImReturn imReturn) {
                         super.visit(imReturn);
-                        imReturn.replaceBy(JassIm.ImStatementExpr(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), JassIm
-                                .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn.copy()), ImNull()));
+                        imReturn.replaceBy(ImHelper.statementExprVoid(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), JassIm
+                                .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn.copy())));
                     }
 
                 });
@@ -198,7 +197,7 @@ public class StmtTranslation {
         }
 
 
-        return ImStatementExpr(ImStmts(result), ImNull());
+        return ImHelper.statementExprVoid(ImStmts(result));
     }
 
     /**
@@ -212,7 +211,7 @@ public class StmtTranslation {
         result.add(ImVarargLoop(s, ImStmts(t.translateStatements(f, s.getBody())), loopVar));
 
         f.getLocals().add(loopVar);
-        return ImStatementExpr(ImStmts(result), ImNull());
+        return ImHelper.statementExprVoid(ImStmts(result));
     }
 
 
@@ -248,7 +247,7 @@ public class StmtTranslation {
         // set imLoopVar = imLoopVar + stepExpr
         imBody.add(ImSet(trace, ImVarAccess(imLoopVar), ImOperatorCall(opStep, ImExprs(ImVarAccess(imLoopVar), stepExpr))));
         result.add(ImLoop(trace, imBody));
-        return ImStatementExpr(ImStmts(result), ImNull());
+        return ImHelper.statementExprVoid(ImStmts(result));
     }
 
 
@@ -295,7 +294,7 @@ public class StmtTranslation {
     }
 
     public static ImStmt translate(StmtSkip s, ImTranslator translator, ImFunction f) {
-        return JassIm.ImNull();
+        return ImHelper.nullExpr();
     }
 
     public static ImStmt translate(SwitchStmt switchStmt, ImTranslator t, ImFunction f) {
@@ -341,15 +340,15 @@ public class StmtTranslation {
         }
 
 
-        return ImStatementExpr(ImStmts(result), ImNull());
+        return ImHelper.statementExprVoid(ImStmts(result));
     }
 
     public static ImStmt translate(EndFunctionStatement endFunctionStatement, ImTranslator translator, ImFunction f) {
-        return ImNull();
+        return ImHelper.nullExpr();
     }
 
     public static ImStmt translate(StartFunctionStatement startFunctionStatement, ImTranslator translator, ImFunction f) {
-        return ImNull();
+        return ImHelper.nullExpr();
     }
 
     public static ImStmt translate(WBlock block, ImTranslator translator, ImFunction f) {
@@ -357,7 +356,7 @@ public class StmtTranslation {
         for (WStatement s : block.getBody()) {
             stmts.add(s.imTranslateStmt(translator, f));
         }
-        return JassIm.ImStatementExpr(stmts, ImNull());
+        return ImHelper.statementExprVoid(stmts);
     }
 
 

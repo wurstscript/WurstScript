@@ -6,6 +6,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.AssertProperty;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -64,7 +65,7 @@ public class TempMerger implements OptimizerPass {
                         if (left.getVar() == right.getVar()) {
                             // statement has the form 'x = x' so remove it
                             totalMerged++;
-                            imSet.replaceBy(JassIm.ImNull());
+                            imSet.replaceBy(ImHelper.nullExpr());
                             continue;
                         }
                     }
@@ -234,7 +235,7 @@ public class TempMerger implements OptimizerPass {
             if (getAssignedVar().attrReads().size() <= 1) {
                 // make sure that an impure expression is only evaluated once
                 // by removing the assignment
-                set.replaceBy(JassIm.ImNull());
+                set.replaceBy(ImHelper.nullExpr());
 
                 // remove variables which are no longer read
                 for (ImVarRead r : readVariables(set)) {

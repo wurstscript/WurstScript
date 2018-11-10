@@ -508,26 +508,12 @@ public class ImTranslator {
     public ImExpr getDefaultValueForJassType(ImType type) {
         if (type instanceof ImSimpleType) {
             ImSimpleType imSimpleType = (ImSimpleType) type;
-            String typeName = imSimpleType.getTypename();
-            return getDefaultValueForJassTypeName(typeName);
+            return ImHelper.defaultValueForType(imSimpleType);
         } else if (type instanceof ImTupleType) {
             ImTupleType imTupleType = (ImTupleType) type;
             return getDefaultValueForJassType(imTupleType.getTypes().get(0));
         } else {
             throw new IllegalArgumentException("could not get default value for type " + type);
-        }
-    }
-
-    private ImExpr getDefaultValueForJassTypeName(String typeName) {
-        switch (typeName) {
-            case "integer":
-                return ImIntVal(0);
-            case "real":
-                return ImRealVal("0.");
-            case "boolean":
-                return ImBoolVal(false);
-            default:
-                return ImNull();
         }
     }
 

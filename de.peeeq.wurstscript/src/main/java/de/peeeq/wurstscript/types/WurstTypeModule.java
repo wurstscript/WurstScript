@@ -1,12 +1,9 @@
 package de.peeeq.wurstscript.types;
 
-import com.google.common.collect.ImmutableMultimap;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleDef;
 import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -79,7 +76,7 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 
     @Override
     public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+        return JassIm.ImNull(imTranslateType());
     }
 
     @Override

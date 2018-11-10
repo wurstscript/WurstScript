@@ -155,7 +155,7 @@ public class ImInliner {
             }
         }
         if (newExpr == null) {
-            newExpr = JassIm.ImStatementExpr(ImStmts(stmts), JassIm.ImNull());
+            newExpr = ImHelper.statementExprVoid(ImStmts(stmts));
         }
         parent.set(parentI, newExpr);
 

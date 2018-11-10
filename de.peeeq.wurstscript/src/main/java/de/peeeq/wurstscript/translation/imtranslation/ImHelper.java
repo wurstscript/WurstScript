@@ -68,6 +68,18 @@ public class ImHelper {
         });
     }
 
+    public static ImNull nullExpr() {
+        return JassIm.ImNull(JassIm.ImVoid());
+    }
+
+    public static ImStatementExpr statementExprVoid(ImStmts stmts) {
+        return JassIm.ImStatementExpr(stmts, nullExpr());
+    }
+
+    public static ImStatementExpr statementExprVoid(ImStmt... stmts) {
+        return ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
+    }
+
     abstract static class VarReplaceVisitor extends ImStmt.DefaultVisitor {
         abstract ImVar getReplaceVar(ImVar v);
 
@@ -114,7 +126,7 @@ public class ImHelper {
             case "real":
                 return JassIm.ImRealVal("0.");
             default:
-                return JassIm.ImNull();
+                return JassIm.ImNull(t);
         }
     }
 

@@ -404,7 +404,7 @@ public class EliminateTuples {
             leftE.setParent(null);
             stmts.add(JassIm.ImSet(imSet.getTrace(), leftE, JassIm.ImVarAccess(tempVars.get(i))));
         }
-        return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
+        return ImHelper.statementExprVoid(stmts);
     }
 
     private static ImStatementExpr inReturn(ImReturn parent, ImTupleExpr tupleExpr, ImTranslator translator, ImFunction f) {
@@ -420,7 +420,7 @@ public class EliminateTuples {
         }
         stmts.add(JassIm.ImReturn(parent.getTrace(), JassIm.ImVarAccess(returnVars.get(0))));
 
-        return JassIm.ImStatementExpr(stmts, JassIm.ImNull());
+        return ImHelper.statementExprVoid(stmts);
     }
 
 

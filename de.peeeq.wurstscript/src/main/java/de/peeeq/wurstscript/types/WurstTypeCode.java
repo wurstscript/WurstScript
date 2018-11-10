@@ -30,7 +30,7 @@ public class WurstTypeCode extends WurstTypePrimitive {
 
     @Override
     public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull();
+        return JassIm.ImNull(imTranslateType());
     }
 
 

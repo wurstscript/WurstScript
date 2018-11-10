@@ -186,7 +186,7 @@ public class ExprTranslation {
         if (expectedTypeRaw.isTranslatedToInt()) {
             return ImIntVal(0);
         }
-        return ImNull();
+        return ImNull(expectedTypeRaw.imTranslateType());
     }
 
     public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -218,7 +218,7 @@ public class ExprTranslation {
             if (!t.isEclipseMode()) {
                 e.addError("Translation Error: Could not find definition of " + e.getVarName() + ".");
             }
-            return ImNull();
+            return ImHelper.nullExpr();
         }
         if (decl instanceof VarDef) {
             VarDef varDef = (VarDef) decl;
@@ -453,7 +453,7 @@ public class ExprTranslation {
 
         if (calledFunc == null) {
             // this must be an ignored function
-            return ImNull();
+            return ImHelper.nullExpr();
         }
 
         if (useRealFuncDef) {
@@ -590,7 +590,7 @@ public class ExprTranslation {
             ImExpr expr = ((Expr) r.getReturnedObj()).imTranslateExpr(translator, f);
             return JassIm.ImStatementExpr(statements, expr);
         } else {
-            return JassIm.ImStatementExpr(statements, JassIm.ImNull());
+            return ImHelper.statementExprVoid(statements);
         }
     }
 

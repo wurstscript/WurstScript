@@ -59,7 +59,7 @@ public class GlobalsInliner implements OptimizerPass {
                     boolean isDefault = ImHelper.defaultValueForType((ImSimpleType) v.getType()).structuralEquals(v.attrWrites().iterator().next().getRight());
                     if (isDefault) {
                         // Assignment is default value and can be removed
-                        v.attrWrites().iterator().next().replaceBy(JassIm.ImNull());
+                        v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
                     }
                 }
             }
@@ -86,22 +86,22 @@ public class GlobalsInliner implements OptimizerPass {
             ImIntVal val = (ImIntVal) right;
             replacement = (JassIm.ImIntVal(val.getValI()));
             if (obs.getParent() != null)
-                obs.replaceBy(JassIm.ImNull());
+                obs.replaceBy(ImHelper.nullExpr());
         } else if (right instanceof ImRealVal) {
             ImRealVal val = (ImRealVal) right;
             replacement = (JassIm.ImRealVal(val.getValR()));
             if (obs.getParent() != null)
-                obs.replaceBy(JassIm.ImNull());
+                obs.replaceBy(ImHelper.nullExpr());
         } else if (right instanceof ImStringVal) {
             ImStringVal val = (ImStringVal) right;
             replacement = (JassIm.ImStringVal(val.getValS()));
             if (obs.getParent() != null)
-                obs.replaceBy(JassIm.ImNull());
+                obs.replaceBy(ImHelper.nullExpr());
         } else if (right instanceof ImBoolVal) {
             ImBoolVal val = (ImBoolVal) right;
             replacement = (JassIm.ImBoolVal(val.getValB()));
             if (obs.getParent() != null)
-                obs.replaceBy(JassIm.ImNull());
+                obs.replaceBy(ImHelper.nullExpr());
         } else {
             replacement = null;
         }
