@@ -77,7 +77,7 @@ SwitchCase( de.peeeq.wurstscript.parser.WPos source, Expr expr, WStatements stmt
 SwitchDefaultCase = SwitchDefaultCaseStatements(de.peeeq.wurstscript.parser.WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot =
-	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, boolean isExplicit, Arguments superArgs, WStatements body)
+	  ConstructorDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, WParameters parameters, SuperConstructorCall superConstructorCall, WStatements body)
 	| OnDestroyDef(de.peeeq.wurstscript.parser.WPos source, WStatements body)
 	| ModuleUse(de.peeeq.wurstscript.parser.WPos source, Identifier moduleNameId, TypeExprList typeArgs)
 	| ModuleInstanciation(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId,
@@ -91,6 +91,10 @@ ClassMember =
 	| FuncDef
 
 EnumMember(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId)
+
+SuperConstructorCall =
+      SomeSuperConstructorCall(de.peeeq.wurstscript.parser.WPos source, de.peeeq.wurstscript.parser.WPos keywordSource, Arguments superArgs)
+    | NoSuperConstructorCall()
 
 
 GlobalVarDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, OptTypeExpr optTyp, Identifier nameId, VarInitialization initialExpr)
@@ -331,6 +335,7 @@ AstElementWithSource = Identifier | WPackage | WImport | WEntity | TypeExpr | Ty
   | ClassSlot | ClassMember | EnumMember | GlobalVarDef | LocalVarDef | FuncDef | TypeParamDef | WParameter | WShortParameter | WStatement | Expr
   | IdentifierWithTypeArgs | IdentifierWithTypeParamDefs | NameRef | VarDef | FunctionDefinition | NameRef | NameDef
   | Modifier
+  | SomeSuperConstructorCall
 
 AstElementWithIndexes = ExprMemberArrayVar | ExprVarArrayAccess
 

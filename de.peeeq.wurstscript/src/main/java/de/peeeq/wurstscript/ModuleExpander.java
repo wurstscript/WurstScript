@@ -92,8 +92,7 @@ public class ModuleExpander {
                         source,
                         Ast.Modifiers(),
                         Ast.WParameters(),
-                        false,
-                        Ast.Arguments(),
+                        Ast.NoSuperConstructorCall(),
                         Ast.WStatements(
                                 Ast.StartFunctionStatement(source),
                                 Ast.EndFunctionStatement(source)

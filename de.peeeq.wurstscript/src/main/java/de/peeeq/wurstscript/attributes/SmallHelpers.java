@@ -4,6 +4,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 public class SmallHelpers {
@@ -83,6 +85,20 @@ public class SmallHelpers {
 
     public static String getModuleName(ModuleUse m) {
         return m.getModuleNameId().getName();
+    }
+
+    public static List<Expr> superArgs(ConstructorDef constr) {
+        return constr.getSuperConstructorCall().match(new SuperConstructorCall.Matcher<List<Expr>>() {
+            @Override
+            public List<Expr> case_NoSuperConstructorCall(NoSuperConstructorCall s) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<Expr> case_SomeSuperConstructorCall(SomeSuperConstructorCall s) {
+                return s.getSuperArgs();
+            }
+        });
     }
 
 }

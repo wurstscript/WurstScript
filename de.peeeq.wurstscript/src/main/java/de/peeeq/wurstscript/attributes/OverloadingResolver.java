@@ -1,10 +1,7 @@
 package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.Ordering;
-import de.peeeq.wurstscript.ast.ConstructorDef;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.ExprNewObject;
-import de.peeeq.wurstscript.ast.FunctionDefinition;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -147,12 +144,23 @@ public abstract class OverloadingResolver<F extends Element, C> {
 
             @Override
             int getArgumentCount(ConstructorDef c) {
-                return c.getSuperArgs().size();
+                return c.getSuperConstructorCall().match(new SuperConstructorCall.Matcher<Integer>() {
+                    @Override
+                    public Integer case_NoSuperConstructorCall(NoSuperConstructorCall c) {
+                        return 0;
+                    }
+
+                    @Override
+                    public Integer case_SomeSuperConstructorCall(SomeSuperConstructorCall c) {
+                        return c.getSuperArgs().size();
+                    }
+                });
             }
 
             @Override
             WurstType getArgumentType(ConstructorDef c, int i) {
-                return c.getSuperArgs().get(i).attrTyp();
+                SomeSuperConstructorCall sc = (SomeSuperConstructorCall) c.getSuperConstructorCall();
+                return sc.getSuperArgs().get(i).attrTyp();
             }
 
             @Override

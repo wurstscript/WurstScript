@@ -27,8 +27,8 @@ public class AttrExprExpectedType {
                 if (parent2 instanceof StmtCall) {
                     StmtCall stmtCall = (StmtCall) parent2;
                     return expectedType(expr, args, stmtCall);
-                } else if (parent2 instanceof ConstructorDef) {
-                    ConstructorDef constructorDef = (ConstructorDef) parent2;
+                } else if (parent2 instanceof SuperConstructorCall) {
+                    SuperConstructorCall constructorDef = (SuperConstructorCall) parent2;
                     return expectedTypeSuperCall(constructorDef, expr);
                 }
             } else if (parent instanceof StmtSet) {
@@ -99,7 +99,8 @@ public class AttrExprExpectedType {
         return WurstTypeUnknown.instance();
     }
 
-    private static WurstType expectedTypeSuperCall(ConstructorDef constr, Expr expr) {
+    private static WurstType expectedTypeSuperCall(SuperConstructorCall sc, Expr expr) {
+        ConstructorDef constr = (ConstructorDef) sc.getParent();
         ClassDef c = constr.attrNearestClassDef();
         if (c == null) {
             return WurstTypeUnknown.instance();
@@ -118,10 +119,10 @@ public class AttrExprExpectedType {
 
         WurstType res = WurstTypeUnknown.instance();
 
-        int paramIndex = constr.getSuperArgs().indexOf(expr);
+        int paramIndex = SmallHelpers.superArgs(constr).indexOf(expr);
 
         for (ConstructorDef superConstr : constructors) {
-            if (superConstr.getParameters().size() == constr.getSuperArgs().size()) {
+            if (superConstr.getParameters().size() == SmallHelpers.superArgs(constr).size()) {
                 res = res.typeUnion(superConstr.getParameters().get(paramIndex).getTyp().attrTyp(), expr);
             }
         }

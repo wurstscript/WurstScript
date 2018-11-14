@@ -27,7 +27,7 @@ import static org.testng.Assert.assertFalse;
  * <p>
  * the position of the cursor is denoted by a bar "|" in the test cases
  */
-public class AutoCompleteTests extends WurstScriptTest {
+public class AutoCompleteTests extends WurstLanguageServerTest {
 
 
     @Test
@@ -368,18 +368,6 @@ public class AutoCompleteTests extends WurstScriptTest {
     }
 
 
-    static class CompletionTestData {
-        String buffer;
-        int line;
-        int column;
-
-        public CompletionTestData(String buffer, int line, int column) {
-            this.buffer = buffer;
-            this.line = line;
-            this.column = column;
-        }
-    }
-
 
     private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
@@ -395,7 +383,7 @@ public class AutoCompleteTests extends WurstScriptTest {
                 .collect(Collectors.toList());
 
 
-        assertEquals(expectedCompletions, completionLabels);
+        assertEquals(completionLabels, expectedCompletions);
     }
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
@@ -414,42 +402,6 @@ public class AutoCompleteTests extends WurstScriptTest {
         return getCompletions.execute(modelManager);
     }
 
-    private CompletionTestData input(String... lines) {
-        return input(true, lines);
-    }
-
-    private CompletionTestData input(boolean newLineAtEnd, String... lines) {
-        StringBuilder buffer = new StringBuilder();
-        int completionLine = -1;
-        int completionColumn = -1;
-        int lineNr = 0;
-        for (String line : lines) {
-            lineNr++;
-            int cursorIndex = line.indexOf('|');
-            if (cursorIndex >= 0) {
-                completionLine = lineNr;
-                completionColumn = cursorIndex + 1;
-                buffer.append(line.replaceFirst("\\|", ""));
-            } else {
-                buffer.append(line);
-            }
-            if (newLineAtEnd || lineNr < lines.length) {
-                buffer.append("\n");
-            }
-        }
-
-        return new CompletionTestData(buffer.toString(), completionLine - 1, completionColumn - 1);
-    }
-
-    private WurstModel compile(String... lines) {
-        String input = String.join("\n", lines);
-        WurstGui gui = new WurstGuiLogger();
-        RunArgs runArgs = new RunArgs();
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(null, gui, null, runArgs);
-        compiler.getErrorHandler().enableUnitTestMode();
-        Map<String, String> inputMap = ImmutableMap.of("test", input);
-        return parseFiles(Collections.<File>emptyList(), inputMap, false, compiler);
-    }
 
 
 }

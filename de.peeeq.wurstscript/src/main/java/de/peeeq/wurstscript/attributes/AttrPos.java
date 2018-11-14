@@ -85,6 +85,9 @@ public class AttrPos {
         return e.attrSource();
     }
 
+    public static WPos getErrorPos(SomeSuperConstructorCall e) {
+        return e.getKeywordSource();
+    }
 
     public static WPos getErrorPos(WPackage e) {
         return identifierPos(e, e.getNameId());

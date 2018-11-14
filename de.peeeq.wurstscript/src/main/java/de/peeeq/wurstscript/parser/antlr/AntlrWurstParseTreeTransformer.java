@@ -452,10 +452,16 @@ public class AntlrWurstParseTreeTransformer {
         WParameters parameters = transformFormalParameters(
                 c.formalParameters(), true);
         WStatements body = transformStatementList(c.stmts);
-        boolean isExplicit = c.superArgs != null;
-        Arguments superArgs = transformExprs(c.superArgs);
-        return Ast.ConstructorDef(source, modifiers, parameters, isExplicit,
-                superArgs, body);
+        SuperConstructorCall superCall = transformSuperCall(c.superCall());
+        return Ast.ConstructorDef(source, modifiers, parameters,
+                superCall, body);
+    }
+
+    private SuperConstructorCall transformSuperCall(SuperCallContext sc) {
+        if (sc == null) {
+            return Ast.NoSuperConstructorCall();
+        }
+        return Ast.SomeSuperConstructorCall(source(sc), source(sc.superKeyword), transformExprs(sc.superArgs));
     }
 
     private WStatements transformStatementList(List<StatementContext> stmts) {

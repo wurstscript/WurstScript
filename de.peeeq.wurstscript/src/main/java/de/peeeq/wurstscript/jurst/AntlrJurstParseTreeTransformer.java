@@ -448,8 +448,13 @@ public class AntlrJurstParseTreeTransformer {
         WStatements body = transformStatementList(c.stmts);
         boolean isExplicit = c.superArgs != null;
         Arguments superArgs = transformExprs(c.superArgs);
-        return Ast.ConstructorDef(source, modifiers, parameters, isExplicit,
-                superArgs, body);
+        SuperConstructorCall superCall;
+        if (isExplicit) {
+            superCall = Ast.SomeSuperConstructorCall(source(c.superArgs), source(c.superArgs), superArgs);
+        } else {
+            superCall = Ast.NoSuperConstructorCall();
+        }
+        return Ast.ConstructorDef(source, modifiers, parameters, superCall, body);
     }
 
     private WStatements transformStatementList(List<StatementContext> stmts) {

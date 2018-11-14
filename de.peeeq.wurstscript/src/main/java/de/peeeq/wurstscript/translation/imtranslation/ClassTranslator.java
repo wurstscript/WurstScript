@@ -18,11 +18,13 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import fj.data.TreeMap;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ClassTranslator {
@@ -360,7 +362,7 @@ public class ClassTranslator {
             // call super constructor
             ImFunction superConstrFunc = translator.getConstructFunc(superConstr);
             ImExprs arguments = ImExprs(ImVarAccess(thisVar));
-            for (Expr a : constr.getSuperArgs()) {
+            for (Expr a : superArgs(constr)) {
                 arguments.add(a.imTranslateExpr(translator, f));
             }
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
