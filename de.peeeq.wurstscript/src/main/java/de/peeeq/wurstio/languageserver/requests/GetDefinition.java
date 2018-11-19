@@ -71,6 +71,11 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
             ExprBinary eb = (ExprBinary) e;
             FunctionDefinition def = eb.attrFuncDef();
             return linkTo(def);
+        } else if (e instanceof SomeSuperConstructorCall) {
+            SomeSuperConstructorCall sc = (SomeSuperConstructorCall) e;
+            ConstructorDef constructor = (ConstructorDef) sc.getParent();
+            ConstructorDef superConstructor = constructor.attrSuperConstructor();
+            return linkTo(superConstructor);
         }
         return Collections.emptyList();
     }

@@ -322,6 +322,17 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_SomeSuperConstructorCall(SomeSuperConstructorCall sc) {
+            ConstructorDef constr = (ConstructorDef) sc.getParent();
+            ConstructorDef superConstr = constr.attrSuperConstructor();
+            if (superConstr == null) {
+                return string("Calling an unknown super constructor");
+            } else {
+                return description(superConstr);
+            }
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_LocalVarDef(LocalVarDef v) {
             return string("Local Variable " + v.getName() + " of type " + type(v.attrTyp()));
         }
@@ -685,6 +696,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_WurstDoc(WurstDoc wurstDoc) {
             return wurstDoc.getParent().match(this);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_NoSuperConstructorCall(NoSuperConstructorCall noSuperConstructorCall) {
+            return string("no super constructor called");
         }
 
         @Override

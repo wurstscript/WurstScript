@@ -155,12 +155,18 @@ classSlot:
          ;
 
 constructorDef:
-                  modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK 
-					('super' '(' superArgs=exprList ')' NL)?
-					stmts+=statement*
-                  ENDBLOCK)?
-              ;
-       
+                 modifiersWithDoc 'construct' formalParameters NL (STARTBLOCK
+                superCall?
+                stmts+=statement*
+                 ENDBLOCK)?
+             ;
+
+superCall:
+   superKeyword='super' '(' superArgs=exprList ')' NL
+   ;
+
+
+
 moduleUse: 
          modifiersWithDoc 'use' moduleName=ID typeArgs NL
          ;

@@ -409,4 +409,12 @@ public class DescriptionHtml {
     public static String description(ModVararg modVararg) {
         return "A varargs modifier";
     }
+
+    public static String description(NoSuperConstructorCall noSuperConstructorCall) {
+        return "No super constructor called";
+    }
+
+    public static String description(SomeSuperConstructorCall s) {
+        return "Calling the super constructor";
+    }
 }
