@@ -122,10 +122,11 @@ public class BuildMap extends MapRequest {
                 w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
                 WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
                 w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
+                w3I.setMapDescription(scenarioData.getDescription());
 
                 applyPlayers(projectConfig, w3I);
                 applyForces(projectConfig, w3I);
-                applyLoadingScreen(projectConfig, w3I, scenarioData);
+                applyLoadingScreen(w3I, scenarioData);
 
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
@@ -141,14 +142,15 @@ public class BuildMap extends MapRequest {
         applyMapHeader(projectConfig, targetMap);
     }
 
-    private void applyLoadingScreen(WurstProjectConfigData projectConfig, W3I w3I, WurstProjectBuildScenarioData scenarioData) {
+    private void applyLoadingScreen(W3I w3I, WurstProjectBuildScenarioData scenarioData) {
         // Loading Screen
-        w3I.setLoadingScreenModel(scenarioData.getLoadingScreenModel());
-        w3I.getLoadingScreen().setTitle(scenarioData.getLoadingScreenTitle());
-        w3I.getLoadingScreen().setSubtitle(scenarioData.getLoadingScreenSubTitle());
-        w3I.getLoadingScreen().setText(scenarioData.getLoadingScreenText());
-        w3I.setMapDescription(scenarioData.getDescription());
-        w3I.setDimensions(projectConfig.getBuildMapData().getMapBoundsX(), projectConfig.getBuildMapData().getMapBoundsY());
+        WurstProjectBuildLoadingScreenData loadingScreen = scenarioData.getLoadingScreen();
+        if (loadingScreen != null) {
+            w3I.setLoadingScreenModel(loadingScreen.getModel());
+            w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
+            w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
+            w3I.getLoadingScreen().setText(loadingScreen.getText());
+        }
     }
 
     private void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
@@ -189,7 +191,7 @@ public class BuildMap extends MapRequest {
 
     private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
-        mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayerCount());
+        mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
         mapHeader.setMapName(projectConfig.getBuildMapData().getFileName());
         mapHeader.writeToMapFile(targetMap);
     }
