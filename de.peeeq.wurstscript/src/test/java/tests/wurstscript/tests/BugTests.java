@@ -1104,4 +1104,22 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void test_null_in_jass() {
+        testAssertOkLines(false,
+                "function blub takes integer a returns integer",
+                "	if a == null then",
+                "		return 1",
+                "	else",
+                "		return 2",
+                "	endif",
+                "endfunction",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if blub(0) == 1 and blub(42) == 2",
+                "			testSuccess()",
+                "endpackage");
+    }
+
 }
