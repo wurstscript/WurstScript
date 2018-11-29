@@ -149,6 +149,8 @@ public class Colors {
     }
 
     public static void collectStringColors(String s, List<ColorInformation> result, int line, int col) {
+        // PERFORMANCE would probably be better to directly store strings the same way they appear in the source code ...
+        s = Utils.escapeStringWithoutQuotes(s);
         Matcher matcher = colorPattern.matcher(s);
 
         for (int i = 0; matcher.find(); i++) {

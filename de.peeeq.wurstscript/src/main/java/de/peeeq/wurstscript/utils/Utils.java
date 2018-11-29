@@ -599,9 +599,7 @@ public class Utils {
         return getFirst(c);
     }
 
-    public static String escapeString(String v) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("\"");
+    private static void escapeStringParts(String v, StringBuilder builder) {
         for (int i = 0; i < v.length(); i++) {
             char c = v.charAt(i);
             switch (c) {
@@ -624,6 +622,18 @@ public class Utils {
                     builder.append(c);
             }
         }
+    }
+
+    public static String escapeStringWithoutQuotes(String v) {
+        StringBuilder builder = new StringBuilder();
+        escapeStringParts(v, builder);
+        return builder.toString();
+    }
+
+    public static String escapeString(String v) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("\"");
+        escapeStringParts(v, builder);
         builder.append("\"");
         return builder.toString();
     }
