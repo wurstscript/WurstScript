@@ -104,7 +104,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         alreadyEnteredLower = alreadyEntered.toLowerCase();
         WLogger.info("already entered = " + alreadyEntered);
 
-        for (SearchMode mode : SearchMode.values()) {
+        for (SearchMode mode : Collections.singletonList(SearchMode.SUBSEQENCE)) {
             searchMode = mode;
             List<CompletionItem> completions = Lists.newArrayList();
 
