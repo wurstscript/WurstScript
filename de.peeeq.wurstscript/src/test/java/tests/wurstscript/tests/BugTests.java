@@ -1122,4 +1122,47 @@ public class BugTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void testNestedTimerClosure() { // see #765
+        testAssertOkLines(false,
+                "package Hello",
+                "native blub(code c)",
+                "public function doPeriodically(real time, CallbackPeriodic cb) returns CallbackPeriodic",
+                "    cb.start(time)",
+                "    return cb",
+                "",
+                "public tuple dialog_update_fn_res(string name, bool display)",
+                "",
+                "public abstract class PeriodicDialogUpdateFn",
+                "    protected abstract function call(CallbackPeriodic cb) returns dialog_update_fn_res",
+                "",
+                "public abstract class CallbackPeriodic",
+                "    private PeriodicDialogUpdateFn update_fn = null",
+                "",
+                "    protected abstract function call(thistype cb)",
+                "",
+                "    function start(real time)",
+                "        blub(function staticCallback)",
+                "",
+                "    private static function staticCallback()",
+                "        CallbackPeriodic cb = null",
+                "        if cb.update_fn != null",
+                "            cb.update_fn.call(cb)",
+                "",
+                "class X",
+                "",
+                "class LinkedList<X>",
+                "    function forEach(LLItrClosure<X> f)",
+                "",
+                "public interface LLItrClosure<T>",
+                "    function run(T t)",
+                "",
+                "init",
+                "    doPeriodically(1.0) cb ->",
+                "        let clean_queue = new LinkedList<X>()",
+                "        clean_queue.forEach() itr ->",
+                ""
+        );
+    }
+
 }
