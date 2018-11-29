@@ -125,6 +125,9 @@ public class GetCompletions extends UserRequest<CompletionList> {
             //		Collections.sort(completions, c)
 
             if (completions.size() > 0) {
+                if (searchMode != SearchMode.SUBSEQENCE) {
+                    isIncomplete = true;
+                }
                 return completions;
             }
         }
