@@ -256,6 +256,9 @@ globals
 
     // Expansion Orc
     constant integer   bj_MISSION_INDEX_XO00       = bj_CAMPAIGN_OFFSET_XO * 1000 + 0
+    constant integer   bj_MISSION_INDEX_XO01       = bj_CAMPAIGN_OFFSET_XO * 1000 + 1
+    constant integer   bj_MISSION_INDEX_XO02       = bj_CAMPAIGN_OFFSET_XO * 1000 + 2
+    constant integer   bj_MISSION_INDEX_XO03       = bj_CAMPAIGN_OFFSET_XO * 1000 + 3
 
     // Cinematic indexing constants
     constant integer   bj_CINEMATICINDEX_TOP      = 0
