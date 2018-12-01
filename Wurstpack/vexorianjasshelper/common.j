@@ -93,6 +93,8 @@ type soundtype          extends     handle
 type lightning          extends     handle
 type pathingtype        extends     handle
 type mousebuttontype    extends     handle
+type animtype           extends     handle
+type subanimtype        extends     handle
 type image              extends     handle
 type ubersplat          extends     handle
 type hashtable          extends     agent
@@ -142,6 +144,8 @@ constant native ConvertWeaponType           takes integer i returns weapontype
 constant native ConvertSoundType            takes integer i returns soundtype
 constant native ConvertPathingType          takes integer i returns pathingtype
 constant native ConvertMouseButtonType      takes integer i returns mousebuttontype
+constant native ConvertAnimType             takes integer i returns animtype
+constant native ConvertSubAnimType          takes integer i returns subanimtype
 
 constant native OrderId                     takes string  orderIdString     returns integer
 constant native OrderId2String              takes integer orderId           returns string
@@ -295,6 +299,71 @@ globals
     constant mousebuttontype    MOUSE_BUTTON_TYPE_LEFT          = ConvertMouseButtonType(1)
     constant mousebuttontype    MOUSE_BUTTON_TYPE_MIDDLE        = ConvertMouseButtonType(2)
     constant mousebuttontype    MOUSE_BUTTON_TYPE_RIGHT         = ConvertMouseButtonType(3)
+
+    constant animtype           ANIM_TYPE_BIRTH                 = ConvertAnimType(0)
+    constant animtype           ANIM_TYPE_DEATH                 = ConvertAnimType(1)
+    constant animtype           ANIM_TYPE_DECAY                 = ConvertAnimType(2)
+    constant animtype           ANIM_TYPE_DISSIPATE             = ConvertAnimType(3)
+    constant animtype           ANIM_TYPE_STAND                 = ConvertAnimType(4)
+    constant animtype           ANIM_TYPE_WALK                  = ConvertAnimType(5)
+    constant animtype           ANIM_TYPE_ATTACK                = ConvertAnimType(6)
+    constant animtype           ANIM_TYPE_MORPH                 = ConvertAnimType(7)
+    constant animtype           ANIM_TYPE_SLEEP                 = ConvertAnimType(8)
+    constant animtype           ANIM_TYPE_SPELL                 = ConvertAnimType(9)
+    constant animtype           ANIM_TYPE_PORTRAIT              = ConvertAnimType(10)
+
+    constant subanimtype        SUBANIM_TYPE_ROOTED             = ConvertSubAnimType(11)
+    constant subanimtype        SUBANIM_TYPE_ALTERNATE_EX       = ConvertSubAnimType(12)
+    constant subanimtype        SUBANIM_TYPE_LOOPING            = ConvertSubAnimType(13)
+    constant subanimtype        SUBANIM_TYPE_SLAM               = ConvertSubAnimType(14)
+    constant subanimtype        SUBANIM_TYPE_THROW              = ConvertSubAnimType(15)
+    constant subanimtype        SUBANIM_TYPE_SPIKED             = ConvertSubAnimType(16)
+    constant subanimtype        SUBANIM_TYPE_FAST               = ConvertSubAnimType(17)
+    constant subanimtype        SUBANIM_TYPE_SPIN               = ConvertSubAnimType(18)
+    constant subanimtype        SUBANIM_TYPE_READY              = ConvertSubAnimType(19)
+    constant subanimtype        SUBANIM_TYPE_CHANNEL            = ConvertSubAnimType(20)
+    constant subanimtype        SUBANIM_TYPE_DEFEND             = ConvertSubAnimType(21)
+    constant subanimtype        SUBANIM_TYPE_VICTORY            = ConvertSubAnimType(22)
+    constant subanimtype        SUBANIM_TYPE_TURN               = ConvertSubAnimType(23)
+    constant subanimtype        SUBANIM_TYPE_LEFT               = ConvertSubAnimType(24)
+    constant subanimtype        SUBANIM_TYPE_RIGHT              = ConvertSubAnimType(25)
+    constant subanimtype        SUBANIM_TYPE_FIRE               = ConvertSubAnimType(26)
+    constant subanimtype        SUBANIM_TYPE_FLESH              = ConvertSubAnimType(27)
+    constant subanimtype        SUBANIM_TYPE_HIT                = ConvertSubAnimType(28)
+    constant subanimtype        SUBANIM_TYPE_WOUNDED            = ConvertSubAnimType(29)
+    constant subanimtype        SUBANIM_TYPE_LIGHT              = ConvertSubAnimType(30)
+    constant subanimtype        SUBANIM_TYPE_MODERATE           = ConvertSubAnimType(31)
+    constant subanimtype        SUBANIM_TYPE_SEVERE             = ConvertSubAnimType(32)
+    constant subanimtype        SUBANIM_TYPE_CRITICAL           = ConvertSubAnimType(33)
+    constant subanimtype        SUBANIM_TYPE_COMPLETE           = ConvertSubAnimType(34)
+    constant subanimtype        SUBANIM_TYPE_GOLD               = ConvertSubAnimType(35)
+    constant subanimtype        SUBANIM_TYPE_LUMBER             = ConvertSubAnimType(36)
+    constant subanimtype        SUBANIM_TYPE_WORK               = ConvertSubAnimType(37)
+    constant subanimtype        SUBANIM_TYPE_TALK               = ConvertSubAnimType(38)
+    constant subanimtype        SUBANIM_TYPE_FIRST              = ConvertSubAnimType(39)
+    constant subanimtype        SUBANIM_TYPE_SECOND             = ConvertSubAnimType(40)
+    constant subanimtype        SUBANIM_TYPE_THIRD              = ConvertSubAnimType(41)
+    constant subanimtype        SUBANIM_TYPE_FOURTH             = ConvertSubAnimType(42)
+    constant subanimtype        SUBANIM_TYPE_FIFTH              = ConvertSubAnimType(43)
+    constant subanimtype        SUBANIM_TYPE_ONE                = ConvertSubAnimType(44)
+    constant subanimtype        SUBANIM_TYPE_TWO                = ConvertSubAnimType(45)
+    constant subanimtype        SUBANIM_TYPE_THREE              = ConvertSubAnimType(46)
+    constant subanimtype        SUBANIM_TYPE_FOUR               = ConvertSubAnimType(47)
+    constant subanimtype        SUBANIM_TYPE_FIVE               = ConvertSubAnimType(48)
+    constant subanimtype        SUBANIM_TYPE_SMALL              = ConvertSubAnimType(49)
+    constant subanimtype        SUBANIM_TYPE_MEDIUM             = ConvertSubAnimType(50)
+    constant subanimtype        SUBANIM_TYPE_LARGE              = ConvertSubAnimType(51)
+    constant subanimtype        SUBANIM_TYPE_UPGRADE            = ConvertSubAnimType(52)
+    constant subanimtype        SUBANIM_TYPE_DRAIN              = ConvertSubAnimType(53)
+    constant subanimtype        SUBANIM_TYPE_FILL               = ConvertSubAnimType(54)
+    constant subanimtype        SUBANIM_TYPE_CHAINLIGHTNING     = ConvertSubAnimType(55)
+    constant subanimtype        SUBANIM_TYPE_EATTREE            = ConvertSubAnimType(56)
+    constant subanimtype        SUBANIM_TYPE_PUKE               = ConvertSubAnimType(57)
+    constant subanimtype        SUBANIM_TYPE_FLAIL              = ConvertSubAnimType(58)
+    constant subanimtype        SUBANIM_TYPE_OFF                = ConvertSubAnimType(59)
+    constant subanimtype        SUBANIM_TYPE_SWIM               = ConvertSubAnimType(60)
+    constant subanimtype        SUBANIM_TYPE_ENTANGLE           = ConvertSubAnimType(61)
+    constant subanimtype        SUBANIM_TYPE_BERSERK            = ConvertSubAnimType(62)
 
 //===================================================
 // Map Setup Constants    
@@ -635,10 +704,6 @@ globals
     //===================================================
     // Frozen Throne Expansion Events
     // Need to be added here to preserve compat
-    //===================================================
-
-    //===================================================
-    // For use with TriggerRegisterGameEvent    
     //===================================================    
 
     constant gameevent          EVENT_GAME_LOADED                       = ConvertGameEvent(256)
@@ -658,37 +723,37 @@ globals
     constant playerevent        EVENT_PLAYER_ARROW_DOWN_UP              = ConvertPlayerEvent(266)
     constant playerevent        EVENT_PLAYER_ARROW_UP_DOWN              = ConvertPlayerEvent(267)
     constant playerevent        EVENT_PLAYER_ARROW_UP_UP                = ConvertPlayerEvent(268)
-    constant playerevent        EVENT_PLAYER_MOUSE_DOWN                 = ConvertPlayerEvent(269)
-    constant playerevent        EVENT_PLAYER_MOUSE_UP                   = ConvertPlayerEvent(270)
-    constant playerevent        EVENT_PLAYER_MOUSE_MOVE                 = ConvertPlayerEvent(271)
+    constant playerevent        EVENT_PLAYER_MOUSE_DOWN                 = ConvertPlayerEvent(305)
+    constant playerevent        EVENT_PLAYER_MOUSE_UP                   = ConvertPlayerEvent(306)
+    constant playerevent        EVENT_PLAYER_MOUSE_MOVE                 = ConvertPlayerEvent(307)
 
     //===================================================
     // For use with TriggerRegisterPlayerUnitEvent
     //===================================================
 
-    constant playerunitevent    EVENT_PLAYER_UNIT_SELL                  = ConvertPlayerUnitEvent(272)
-    constant playerunitevent    EVENT_PLAYER_UNIT_CHANGE_OWNER          = ConvertPlayerUnitEvent(273)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SELL_ITEM             = ConvertPlayerUnitEvent(274)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CHANNEL         = ConvertPlayerUnitEvent(275)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CAST            = ConvertPlayerUnitEvent(276)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_EFFECT          = ConvertPlayerUnitEvent(277)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_FINISH          = ConvertPlayerUnitEvent(278)
-    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_ENDCAST         = ConvertPlayerUnitEvent(279)
-    constant playerunitevent    EVENT_PLAYER_UNIT_PAWN_ITEM             = ConvertPlayerUnitEvent(280)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SELL                  = ConvertPlayerUnitEvent(269)
+    constant playerunitevent    EVENT_PLAYER_UNIT_CHANGE_OWNER          = ConvertPlayerUnitEvent(270)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SELL_ITEM             = ConvertPlayerUnitEvent(271)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CHANNEL         = ConvertPlayerUnitEvent(272)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_CAST            = ConvertPlayerUnitEvent(273)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_EFFECT          = ConvertPlayerUnitEvent(274)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_FINISH          = ConvertPlayerUnitEvent(275)
+    constant playerunitevent    EVENT_PLAYER_UNIT_SPELL_ENDCAST         = ConvertPlayerUnitEvent(276)
+    constant playerunitevent    EVENT_PLAYER_UNIT_PAWN_ITEM             = ConvertPlayerUnitEvent(277)
 
     //===================================================
     // For use with TriggerRegisterUnitEvent
     //===================================================
 
-    constant unitevent          EVENT_UNIT_SELL                         = ConvertUnitEvent(289)
-    constant unitevent          EVENT_UNIT_CHANGE_OWNER                 = ConvertUnitEvent(290)
-    constant unitevent          EVENT_UNIT_SELL_ITEM                    = ConvertUnitEvent(291)
-    constant unitevent          EVENT_UNIT_SPELL_CHANNEL                = ConvertUnitEvent(292)
-    constant unitevent          EVENT_UNIT_SPELL_CAST                   = ConvertUnitEvent(293)
-    constant unitevent          EVENT_UNIT_SPELL_EFFECT                 = ConvertUnitEvent(294)
-    constant unitevent          EVENT_UNIT_SPELL_FINISH                 = ConvertUnitEvent(295)
-    constant unitevent          EVENT_UNIT_SPELL_ENDCAST                = ConvertUnitEvent(296)
-    constant unitevent          EVENT_UNIT_PAWN_ITEM                    = ConvertUnitEvent(297)
+    constant unitevent          EVENT_UNIT_SELL                         = ConvertUnitEvent(286)
+    constant unitevent          EVENT_UNIT_CHANGE_OWNER                 = ConvertUnitEvent(287)
+    constant unitevent          EVENT_UNIT_SELL_ITEM                    = ConvertUnitEvent(288)
+    constant unitevent          EVENT_UNIT_SPELL_CHANNEL                = ConvertUnitEvent(289)
+    constant unitevent          EVENT_UNIT_SPELL_CAST                   = ConvertUnitEvent(290)
+    constant unitevent          EVENT_UNIT_SPELL_EFFECT                 = ConvertUnitEvent(291)
+    constant unitevent          EVENT_UNIT_SPELL_FINISH                 = ConvertUnitEvent(292)
+    constant unitevent          EVENT_UNIT_SPELL_ENDCAST                = ConvertUnitEvent(293)
+    constant unitevent          EVENT_UNIT_PAWN_ITEM                    = ConvertUnitEvent(294)
 
     //===================================================
     // Limit Event API constants    
@@ -768,6 +833,7 @@ globals
     constant camerafield CAMERA_FIELD_ROLL                  = ConvertCameraField(4)
     constant camerafield CAMERA_FIELD_ROTATION              = ConvertCameraField(5)
     constant camerafield CAMERA_FIELD_ZOFFSET               = ConvertCameraField(6)
+    constant camerafield CAMERA_FIELD_NEARZ                 = ConvertCameraField(7)
 
     constant blendmode   BLEND_MODE_NONE                    = ConvertBlendMode(0)
     constant blendmode   BLEND_MODE_DONT_CARE               = ConvertBlendMode(0)
@@ -2445,8 +2511,10 @@ native PreloadGenEnd    takes string filename returns nothing
 native Preloader        takes string filename returns nothing
 
 // Automation Test
-native AutomationTestStart takes string testName returns nothing
-native AutomationTestEnd takes string testName returns nothing
+native AutomationSetTestType                    takes string testType returns nothing
+native AutomationTestStart                      takes string testName returns nothing
+native AutomationTestEnd                        takes nothing returns nothing
+native AutomationTestingFinished                takes nothing returns nothing
 
 // JAPI Functions
 native BlzGetTriggerPlayerMouseX                   takes nothing returns real
@@ -2455,8 +2523,8 @@ native BlzGetTriggerPlayerMousePosition            takes nothing returns locatio
 native BlzGetTriggerPlayerMouseButton              takes nothing returns mousebuttontype
 native BlzSetAbilityTooltip                        takes integer abilCode, string tooltip, integer level returns nothing
 native BlzSetAbilityActivatedTooltip               takes integer abilCode, string tooltip, integer level returns nothing
-native BlzSetAbilityExtendedTooltip                takes integer abilCode, string ExtendedTooltip, integer level returns nothing
-native BlzSetAbilityActivatedExtendedTooltip       takes integer abilCode, string ExtendedTooltip, integer level returns nothing
+native BlzSetAbilityExtendedTooltip                takes integer abilCode, string extendedTooltip, integer level returns nothing
+native BlzSetAbilityActivatedExtendedTooltip       takes integer abilCode, string extendedTooltip, integer level returns nothing
 native BlzSetAbilityResearchTooltip                takes integer abilCode, string researchTooltip, integer level returns nothing
 native BlzSetAbilityResearchExtendedTooltip        takes integer abilCode, string researchExtendedTooltip, integer level returns nothing
 native BlzGetAbilityTooltip                        takes integer abilCode, integer level returns string
@@ -2481,18 +2549,17 @@ native BlzGetUnitMaxHP                             takes unit whichUnit returns 
 native BlzSetUnitMaxHP                             takes unit whichUnit, integer hp returns nothing
 native BlzGetUnitMaxMana                           takes unit whichUnit returns integer
 native BlzSetUnitMaxMana                           takes unit whichUnit, integer mana returns nothing
-native BlzDeleteHeroAbility                        takes unit whichUnit, integer abilCode returns nothing
 native BlzSetItemName                              takes item whichItem, string name returns nothing
-native BlzSetItemDescription                       takes item whichItem, string name returns nothing
+native BlzSetItemDescription                       takes item whichItem, string description returns nothing
 native BlzGetItemDescription                       takes item whichItem returns string
-native BlzSetItemTooltip                           takes item whichItem, string name returns nothing
+native BlzSetItemTooltip                           takes item whichItem, string tooltip returns nothing
 native BlzGetItemTooltip                           takes item whichItem returns string
-native BlzSetItemExtendedTooltip                   takes item whichItem, string name returns nothing
+native BlzSetItemExtendedTooltip                   takes item whichItem, string extendedTooltip returns nothing
 native BlzGetItemExtendedTooltip                   takes item whichItem returns string
-native BlzSetItemIconPath                          takes item whichItem, string name returns nothing
+native BlzSetItemIconPath                          takes item whichItem, string iconPath returns nothing
 native BlzGetItemIconPath                          takes item whichItem returns string
 native BlzSetUnitName                              takes unit whichUnit, string name returns nothing
-native BlzSetHeroProperName                        takes unit whichUnit, string name returns nothing
+native BlzSetHeroProperName                        takes unit whichUnit, string heroProperName returns nothing
 native BlzGetUnitBaseDamage                        takes unit whichUnit, integer weaponIndex returns integer
 native BlzSetUnitBaseDamage                        takes unit whichUnit, integer baseDamage, integer weaponIndex returns nothing
 native BlzGetUnitDiceNumber                        takes unit whichUnit, integer weaponIndex returns integer
@@ -2520,6 +2587,12 @@ native BlzSetSpecialEffectPositionLoc              takes effect whichEffect, loc
 native BlzGetLocalSpecialEffectX                   takes effect whichEffect returns real
 native BlzGetLocalSpecialEffectY                   takes effect whichEffect returns real
 native BlzGetLocalSpecialEffectZ                   takes effect whichEffect returns real
+native BlzSpecialEffectClearSubAnimations          takes effect whichEffect returns nothing
+native BlzSpecialEffectRemoveSubAnimation          takes effect whichEffect, subanimtype whichSubAnim returns nothing
+native BlzSpecialEffectAddSubAnimation             takes effect whichEffect, subanimtype whichSubAnim returns nothing
+native BlzPlaySpecialEffect                        takes effect whichEffect, animtype whichAnim returns nothing
+native BlzPlaySpecialEffectWithTimeScale           takes effect whichEffect, animtype whichAnim, real timeScale returns nothing
+native BlzGetAnimName                              takes animtype whichAnim returns string
 native BlzGetUnitArmor                             takes unit whichUnit returns real
 native BlzSetUnitArmor                             takes unit whichUnit, real armorAmount returns nothing
 native BlzUnitHideAbility                          takes unit whichUnit, integer abilId, boolean flag returns nothing
@@ -2536,6 +2609,13 @@ native BlzGetUnitAbilityCooldown                   takes unit whichUnit, integer
 native BlzGetUnitAbilityCooldownRemaining          takes unit whichUnit, integer abilId returns real
 native BlzEndUnitAbilityCooldown                   takes unit whichUnit, integer abilCode returns nothing
 native BlzGetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level returns integer
+native BlzSetUnitAbilityManaCost                   takes unit whichUnit, integer abilId, integer level, integer manaCost returns nothing
 native BlzGetLocalUnitZ                            takes unit whichUnit returns real    
 native BlzDecPlayerTechResearched                  takes player whichPlayer, integer techid, integer levels returns nothing
 native BlzSetEventDamage                           takes real damage returns nothing
+native RequestExtraIntegerData                     takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns integer
+native RequestExtraBooleanData                     takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns boolean
+native RequestExtraStringData                      takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns string
+native RequestExtraRealData                        takes integer dataType, player whichPlayer, string param1, string param2, boolean param3, integer param4, integer param5, integer param6 returns real
+// Add this function to follow the style of GetUnitX and GetUnitY, it has the same result as BlzGetLocalUnitZ
+native BlzGetUnitZ                                 takes unit whichUnit returns real
