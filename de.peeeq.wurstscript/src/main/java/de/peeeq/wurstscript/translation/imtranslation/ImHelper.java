@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.ArrayList;
@@ -80,6 +81,8 @@ public class ImHelper {
         return ImHelper.statementExprVoid(JassIm.ImStmts(stmts));
     }
 
+
+
     abstract static class VarReplaceVisitor extends ImStmt.DefaultVisitor {
         abstract ImVar getReplaceVar(ImVar v);
 
@@ -128,6 +131,39 @@ public class ImHelper {
             default:
                 return JassIm.ImNull(t);
         }
+    }
+
+    public static ImExpr defaultValueForComplexType(ImType t) {
+        return t.match(new ImType.Matcher<ImExpr>() {
+            @Override
+            public ImExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImTupleType(ImTupleType tt) {
+                ImExprs res = JassIm.ImExprs();
+                for (ImType it : tt.getTypes()) {
+                    res.add(defaultValueForComplexType(it));
+                }
+                return JassIm.ImTupleExpr(res);
+            }
+
+            @Override
+            public ImExpr case_ImArrayType(ImArrayType imArrayType) {
+                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImVoid(ImVoid imVoid) {
+                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImSimpleType(ImSimpleType st) {
+                return defaultValueForType(st);
+            }
+        });
     }
 
 

@@ -89,20 +89,23 @@ public class EliminateClasses {
         dispatchFuncs.put(m, df);
 
 
+        ImType returnType = df.getReturnType();
         if (ranges.isEmpty()) {
-            if (df.getReturnType() instanceof ImSimpleType) {
-                ImSimpleType t = (ImSimpleType) df.getReturnType();
-                ImExpr rv = ImHelper.defaultValueForType(t);
+            // no implementations for method
+            if (!(returnType instanceof ImVoid)) {
+                // return default value if it is not void
+                ImExpr rv = ImHelper.defaultValueForComplexType(returnType);
                 df.getBody().add(JassIm.ImReturn(df.getTrace(), rv));
             }
             return;
         }
 
+
         ImVar resultVar;
-        if (df.getReturnType() instanceof ImVoid) {
+        if (returnType instanceof ImVoid) {
             resultVar = null;
         } else {
-            resultVar = JassIm.ImVar(df.getTrace(), df.getReturnType(), m.getName()
+            resultVar = JassIm.ImVar(df.getTrace(), returnType, m.getName()
                     + "_result", false);
             df.getLocals().add(resultVar);
         }

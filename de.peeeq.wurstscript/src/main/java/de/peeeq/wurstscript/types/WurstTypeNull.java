@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.utils.Utils;
 import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -31,7 +32,8 @@ public class WurstTypeNull extends WurstTypePrimitive {
                 || other instanceof WurstTypeModule
                 || other instanceof WurstTypeModuleInstanciation
                 || other instanceof WurstTypeTypeParam
-                || other instanceof WurstTypeBoundTypeParam) {
+                || other instanceof WurstTypeBoundTypeParam
+                || Utils.isJassCode(location) && (other instanceof WurstTypeInt || other instanceof WurstTypeIntLiteral)) {
             return mapping;
         }
         return null;

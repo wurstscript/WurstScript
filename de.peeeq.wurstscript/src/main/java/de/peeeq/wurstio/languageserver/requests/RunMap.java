@@ -101,21 +101,28 @@ public class RunMap extends MapRequest {
             }
 
 
-            String testMapName2 = copyToWarcraftMapDir(testMap);
+            File mapCopy = copyToWarcraftMapDir(testMap);
 
             WLogger.info("Starting wc3 ... ");
-
-            String path = customTarget != null ? new File(customTarget, testMapName2).getAbsolutePath() : "Maps\\Test\\" + testMapName2;
-            // now start the map
-            List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
-
-            if (!System.getProperty("os.name").startsWith("Windows")) {
-                // run with wine
-                cmd.add(0, "wine");
+            String path = "";
+            if(customTarget != null) {
+                path = new File(customTarget, testMap.getName()).getAbsolutePath();
+            } else if(mapCopy != null) {
+                path = mapCopy.getAbsolutePath();
             }
 
-            gui.sendProgress("running " + cmd);
-            Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+            if (path.length() > 0) {
+                // now start the map
+                List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+
+                if (!System.getProperty("os.name").startsWith("Windows")) {
+                    // run with wine
+                    cmd.add(0, "wine");
+                }
+
+                gui.sendProgress("running " + cmd);
+                Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+            }
         } catch (CompileError e) {
             throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
         } catch (RuntimeException e) {
@@ -149,7 +156,7 @@ public class RunMap extends MapRequest {
      * <p>
      * This directory depends on warcraft version and whether we are on windows or wine is used.
      */
-    private String copyToWarcraftMapDir(File testMap) throws IOException {
+    private File copyToWarcraftMapDir(File testMap) throws IOException {
         String testMapName = "WurstTestMap.w3x";
         for (String arg : compileArgs) {
             if (arg.startsWith("-runmapTarget")) {
@@ -159,10 +166,10 @@ public class RunMap extends MapRequest {
                 if (customTarget.exists() && customTarget.isDirectory()) {
                     File testMap2 = new File(customTarget, testMapName);
                     Files.copy(testMap, testMap2);
+                    return testMap2;
                 } else {
-                    WLogger.severe("Directory specified via -runmapTarget does not exists or is not a directory");
+                  WLogger.severe("Directory specified via -runmapTarget does not exists or is not a directory");
                 }
-                return testMapName;
             }
         }
         File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
@@ -197,10 +204,11 @@ public class RunMap extends MapRequest {
         if (testFolder.mkdirs() || testFolder.exists()) {
             File testMap2 = new File(testFolder, testMapName);
             Files.copy(testMap, testMap2);
+            return testMap2;
         } else {
             WLogger.severe("Could not create Test folder");
         }
-        return testMapName;
+        return null;
     }
 
 
