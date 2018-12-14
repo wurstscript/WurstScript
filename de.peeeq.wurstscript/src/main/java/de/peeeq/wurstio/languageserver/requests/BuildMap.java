@@ -175,7 +175,10 @@ public class BuildMap extends MapRequest {
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
             W3I.Player player = w3I.addPlayer();
-            player.setName(wplayer.getName());
+            if(! wplayer.getName().equalsIgnoreCase("defaultplayer")) {
+                player.setName(wplayer.getName());
+            }
+
             W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
             if (val != null) {
                 player.setRace(val);
@@ -192,7 +195,7 @@ public class BuildMap extends MapRequest {
     private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
         mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
-        mapHeader.setMapName(projectConfig.getBuildMapData().getFileName());
+        mapHeader.setMapName(projectConfig.getBuildMapData().getName());
         mapHeader.writeToMapFile(targetMap);
     }
 
