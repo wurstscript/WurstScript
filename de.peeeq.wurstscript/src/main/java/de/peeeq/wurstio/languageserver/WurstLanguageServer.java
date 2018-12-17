@@ -33,6 +33,10 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
         } catch (UnsupportedEncodingException e) {
             System.err.println("Your JVM doesn't support UTF-8 encoding. Output defaults to system encoding.");
         }
+        if (params.getRootUri() == null) {
+            System.err.println("Workspace null. Make sure to open a valid project root using File->Open Folder, before opening code files.");
+            return CompletableFuture.completedFuture(null);
+        }
         WLogger.info("initialize " + params.getRootUri());
         rootUri = WFile.create(params.getRootUri());
         languageWorker.setRootPath(rootUri);
