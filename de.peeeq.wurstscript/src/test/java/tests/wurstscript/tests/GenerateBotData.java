@@ -91,7 +91,7 @@ public class GenerateBotData {
                 // inside a StructureDef
 
                 WurstType returnType = struct.attrTyp().dynamic();
-                fj.data.VariableBinding binding2 = VariableBinding.emptyMapping(); // TODO get mapping?
+                VariableBinding binding2 = VariableBinding.emptyMapping(); // TODO get mapping?
                 List<WurstType> paramTypes = Lists.newArrayList();
                 for (WParameter p : f.getParameters()) {
                     paramTypes.add(p.attrTyp().setTypeArgs(binding2));
@@ -128,16 +128,6 @@ public class GenerateBotData {
 
         });
 
-
-        System.out.println("sigs = [");
-        for (Sig sig : sigs) {
-            System.out.print("    ");
-            System.out.print(sig);
-            if (sigs != sigs.get(sigs.size() - 1)) {
-                System.out.println(",");
-            }
-        }
-        System.out.println("]");
 
         List<WurstType> types = new ArrayList<>();
         // collect all types used in signatures
