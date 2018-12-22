@@ -3,15 +3,12 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.AttrConstantValue;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 
@@ -75,10 +72,10 @@ public class WurstTypeArray extends WurstType {
 
 
     @Override
-    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeArray) {
             WurstTypeArray otherArray = (WurstTypeArray) other;
-            mapping = baseType.matchTypes(otherArray.baseType, location, typeParams, mapping);
+            mapping = baseType.matchTypes(otherArray.baseType, location, mapping, VariablePosition.RIGHT);
             if (mapping == null) {
                 return null;
             }

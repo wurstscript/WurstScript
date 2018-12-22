@@ -7,10 +7,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 
@@ -25,7 +23,7 @@ public class WurstTypeTuple extends WurstType {
     }
 
     @Override
-    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeTuple) {
             WurstTypeTuple otherTuple = (WurstTypeTuple) other;
             if (tupleDef == otherTuple.tupleDef) {

@@ -352,6 +352,8 @@ NamedScope = WPackage | StructureDef | InterfaceDef | EnumDef
 
 HasReadVariables = Expr | WStatement | WScope
 
+HasFunctionSignature = FunctionDefinition | ConstructorDef
+
 // Jass types:
 
 

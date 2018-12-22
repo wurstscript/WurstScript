@@ -56,11 +56,11 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
-    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (obj instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
             if (other.getDef() == this.getDef()) {
-                return matchTypeParams(getTypeParameters(), other.getTypeParameters(), location, typeParams, mapping);
+                return matchTypeParams(getTypeParameters(), other.getTypeParameters(), location, mapping, variablePosition);
             }
         }
         return null;
@@ -134,14 +134,15 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
 
-    protected @Nullable VariableBinding matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+    protected VariableBinding matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+
         if (list.size() != list2.size()) {
             return null;
         }
         for (int i = 0; i < list.size(); i++) {
             WurstType thisTp = list.get(i).normalize();
             WurstType otherTp = list2.get(i).normalize();
-            mapping = thisTp.matchTypes(otherTp, location, typeParams, mapping);
+            mapping = thisTp.matchTypes(otherTp, location, mapping, variablePosition);
             if (mapping == null) {
                 return null;
             }

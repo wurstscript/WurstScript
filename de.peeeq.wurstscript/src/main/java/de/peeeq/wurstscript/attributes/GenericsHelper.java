@@ -15,12 +15,16 @@ public class GenericsHelper {
      * Return the type parameter binding given by the user (if any)
      */
     public static VariableBinding givenBinding(AstElementWithTypeArgs e, List<TypeParamDef> typeParams) {
-        VariableBinding res = VariableBinding.emptyMapping();
+        VariableBinding res = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
         TypeExprList typeArgs = e.getTypeArgs();
         for (int i = 0; i < typeArgs.size() && i < typeParams.size(); i++) {
             TypeParamDef tp = typeParams.get(i);
             TypeExpr te = typeArgs.get(i);
             res = res.set(tp, new WurstTypeBoundTypeParam(tp, te.attrTyp().dynamic(), e));
+        }
+        if (typeArgs.size() > typeParams.size()) {
+            res = res.withError(new CompileError(typeArgs.get(typeParams.size()).attrErrorPos(),
+                    "Too many type arguments given"));
         }
         return res;
     }

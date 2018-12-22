@@ -8,8 +8,6 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-
 public class WurstTypeTypeParam extends WurstType {
 
     private TypeParamDef def;
@@ -19,20 +17,23 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
-        Option<WurstTypeBoundTypeParam> binding = mapping.get(def);
-        if (binding.isSome()) {
-            // already bound, use bound type
-            return binding.some().matchAgainstSupertypeIntern(other, location, typeParams, mapping);
-        } else if (other instanceof WurstTypeTypeParam) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        if (variablePosition == VariablePosition.LEFT) {
+            Option<WurstTypeBoundTypeParam> binding = mapping.get(def);
+            if (binding.isSome()) {
+                // already bound, use bound type
+                return binding.some().matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
+            } else if (mapping.isVar(def)) {
+                // not bound -> add mapping
+                return mapping.set(def, new WurstTypeBoundTypeParam(def, other, location));
+            }
+        }
+        if (other instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam other2 = (WurstTypeTypeParam) other;
             if (other2.def == this.def) {
                 // same type parameter, no change and match
                 return mapping;
             }
-        } else if (typeParams.contains(def)) {
-            // not bound -> add mapping
-            return mapping.set(def, new WurstTypeBoundTypeParam(def, other, location));
         }
         return null;
     }
@@ -44,7 +45,7 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     public String getFullName() {
-        return getName() + " (type parameter)";
+        return getName() + " (type parameter line " + def.getSource().getLine() + ")";
     }
 
     public TypeParamDef getDef() {

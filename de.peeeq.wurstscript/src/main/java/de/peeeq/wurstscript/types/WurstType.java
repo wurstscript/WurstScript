@@ -1,18 +1,17 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstscript.types.VariablePosition.NONE;
+import static de.peeeq.wurstscript.types.VariablePosition.RIGHT;
 
 public abstract class WurstType {
 
@@ -22,19 +21,20 @@ public abstract class WurstType {
      * @return is this type a subtype (or equal) to other type?
      */
     public final boolean isSubtypeOf(WurstType other, @Nullable Element location) {
-        return matchAgainstSupertype(other, location, Collections.emptySet(), VariableBinding.emptyMapping()) != null;
+        return matchAgainstSupertype(other, location, VariableBinding.emptyMapping(), RIGHT) != null;
     }
 
     //    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location) {
 //        return this.matchAgainstSupertype(other, location, TreeMap.empty(TypeParamOrd.instance()));
 //    }
 
+
     /**
      * Matches this type against another type.
      * <p>
      * Will try to instantiate type variables from the set typeParams
      */
-    public final @Nullable VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeUnknown || this instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return mapping;
@@ -43,16 +43,28 @@ public abstract class WurstType {
             return mapping;
         } else if (other instanceof WurstTypeBoundTypeParam) {
             WurstTypeBoundTypeParam btp = (WurstTypeBoundTypeParam) other;
-            return matchAgainstSupertype(btp.getBaseType(), location, typeParams, mapping);
+            return matchAgainstSupertype(btp.getBaseType(), location, mapping, NONE);
         } else if (other instanceof WurstTypeUnion) {
             WurstTypeUnion wtu = (WurstTypeUnion) other;
-            mapping = matchAgainstSupertype(wtu.getTypeA(), location, typeParams, mapping);
+            mapping = matchAgainstSupertype(wtu.getTypeA(), location, mapping, variablePosition);
             if (mapping == null) {
                 return null;
             }
-            return matchAgainstSupertype(wtu.getTypeB(), location, typeParams, mapping);
+            return matchAgainstSupertype(wtu.getTypeB(), location, mapping, variablePosition);
         } else if (other instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam tp = (WurstTypeTypeParam) other;
+
+            if (variablePosition == RIGHT) {
+                Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
+                if (bound.isSome()) {
+                    // already bound, use current bound
+                    return matchAgainstSupertype(bound.some(), location, mapping, variablePosition);
+                } else if (mapping.isVar(tp.getDef())) {
+                    // match this type parameter
+                    return mapping.set(tp.getDef(), new WurstTypeBoundTypeParam(tp.getDef(), this, location));
+                }
+            }
+
             if (this instanceof WurstTypeTypeParam) {
                 WurstTypeTypeParam this2 = (WurstTypeTypeParam) this;
                 if (this2.getDef() == tp.getDef()) {
@@ -60,17 +72,8 @@ public abstract class WurstType {
                     return mapping;
                 }
             }
-
-            Option<WurstTypeBoundTypeParam> bound = mapping.get(tp.getDef());
-            if (bound.isSome()) {
-                // already bound, use current bound
-                return matchAgainstSupertype(bound.some(), location, typeParams, mapping);
-            } else if (typeParams.contains(tp.getDef())) {
-                // match this type parameter
-                return mapping.set(tp.getDef(), new WurstTypeBoundTypeParam(tp.getDef(), this, location));
-            }
         }
-        return this.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
+        return this.matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
     }
 
 
@@ -99,7 +102,7 @@ public abstract class WurstType {
      * <p>
      * The given mapping are already mapped type parameters.
      */
-    abstract @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping);
+    abstract VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition);
 
 
     /**
@@ -122,18 +125,18 @@ public abstract class WurstType {
 
 
     public boolean equalsType(WurstType otherType, @Nullable Element location) {
-        return matchTypes(otherType, location, Collections.emptySet(), VariableBinding.emptyMapping()) != null;
+        return matchTypes(otherType, location, VariableBinding.emptyMapping(), RIGHT) != null;
     }
 
     /**
      * Bidirectional matching of types
      */
-    public VariableBinding matchTypes(WurstType otherType, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
-        mapping = this.matchAgainstSupertype(otherType, location, typeParams, mapping);
+    public VariableBinding matchTypes(WurstType otherType, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        mapping = this.matchAgainstSupertype(otherType, location, mapping, variablePosition);
         if (mapping == null) {
             return null;
         }
-        return otherType.matchAgainstSupertype(this, location, typeParams, mapping);
+        return otherType.matchAgainstSupertype(this, location, mapping, variablePosition.inverse());
     }
 
 

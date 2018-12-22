@@ -199,7 +199,7 @@ public class NameResolution {
         if (n_receiverType == null) {
             return null;
         }
-        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, n.getTypeParams(), VariableBinding.emptyMapping());
+        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(n.getTypeParams())), VariablePosition.RIGHT);
         if (mapping == null) {
             return null;
         }

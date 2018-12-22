@@ -6,10 +6,8 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import fj.data.Option;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 
@@ -25,8 +23,8 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
-        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+    VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
         if (superMapping != null) {
             return superMapping;
         }

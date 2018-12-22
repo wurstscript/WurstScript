@@ -25,7 +25,7 @@ public class AttrPossibleFunctionSignatures {
 
             if (fc.attrImplicitParameter() instanceof Expr) {
                 Expr expr = (Expr) fc.attrImplicitParameter();
-                VariableBinding mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getTypeParams(), VariableBinding.emptyMapping());
+                VariableBinding mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getMapping(), VariablePosition.RIGHT);
                 if (mapping == null) {
                     // TODO error message? Or just ignore wrong parameter type?
                     continue;
@@ -34,7 +34,7 @@ public class AttrPossibleFunctionSignatures {
                 }
             } // TODO else check?
 
-            VariableBinding mapping = givenBinding(fc, sig.getTypeParams());
+            VariableBinding mapping = givenBinding(fc, sig.getDefinitionTypeVariables());
             sig = sig.setTypeArgs(fc, mapping);
 
             resultBuilder.add(sig);
@@ -96,7 +96,8 @@ public class AttrPossibleFunctionSignatures {
             }
             List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
             List<TypeParamDef> typeParams = classDef.getTypeParameters();
-            FunctionSignature sig = new FunctionSignature(f, typeParams, null, "construct", paramTypes, pNames, returnType);
+            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
+            FunctionSignature sig = new FunctionSignature(f, mapping, null, "construct", paramTypes, pNames, returnType);
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);
         }

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes.names;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.VariablePosition;
 import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -90,7 +91,7 @@ public abstract class DefLink extends NameLink {
             }
         }
         NameDef def = getDef();
-        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, typeParams, VariableBinding.emptyMapping());
+        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams)), VariablePosition.LEFT);
         if (match == null) {
             return null;
         }

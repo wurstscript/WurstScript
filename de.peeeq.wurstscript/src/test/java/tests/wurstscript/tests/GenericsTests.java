@@ -1151,4 +1151,5 @@ public class GenericsTests extends WurstScriptTest {
         );
     }
 
+
 }
