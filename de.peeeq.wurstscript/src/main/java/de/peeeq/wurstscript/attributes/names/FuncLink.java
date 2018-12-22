@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
@@ -126,7 +127,7 @@ public class FuncLink extends DefLink {
         return NameLinkType.FUNCTION;
     }
 
-    public FuncLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public FuncLink withTypeArgBinding(Element context, VariableBinding binding) {
         if (binding.isEmpty()) {
             return this;
         }
@@ -177,7 +178,7 @@ public class FuncLink extends DefLink {
         return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType());
     }
 
-    private WurstType adjustType(Element context, WurstType t, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    private WurstType adjustType(Element context, WurstType t, VariableBinding binding) {
         if (t == null) {
             return null;
         }

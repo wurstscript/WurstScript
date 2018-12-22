@@ -23,7 +23,7 @@ public class WurstTypeClosure extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (other instanceof WurstTypeClosure) {
             WurstTypeClosure o = (WurstTypeClosure) other;
             if (paramTypes.size() != o.paramTypes.size()) {
@@ -52,8 +52,8 @@ public class WurstTypeClosure extends WurstType {
     }
 
 
-    private @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-                                                                                                     Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    private @Nullable VariableBinding closureImplementsAbstractMethod(FunctionSignature abstractMethod,
+                                                                                                     Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
             return null;
         }

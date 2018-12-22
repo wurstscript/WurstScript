@@ -7,8 +7,8 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.types.FunctionSignature;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.io.File;
@@ -91,7 +91,7 @@ public class GenerateBotData {
                 // inside a StructureDef
 
                 WurstType returnType = struct.attrTyp().dynamic();
-                fj.data.TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = WurstType.emptyMapping(); // TODO get mapping?
+                fj.data.VariableBinding binding2 = VariableBinding.emptyMapping(); // TODO get mapping?
                 List<WurstType> paramTypes = Lists.newArrayList();
                 for (WParameter p : f.getParameters()) {
                     paramTypes.add(p.attrTyp().setTypeArgs(binding2));

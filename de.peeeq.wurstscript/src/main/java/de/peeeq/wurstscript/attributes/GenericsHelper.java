@@ -1,9 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.List;
@@ -15,8 +14,8 @@ public class GenericsHelper {
     /**
      * Return the type parameter binding given by the user (if any)
      */
-    public static TreeMap<TypeParamDef, WurstTypeBoundTypeParam> givenBinding(AstElementWithTypeArgs e, List<TypeParamDef> typeParams) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = WurstType.emptyMapping();
+    public static VariableBinding givenBinding(AstElementWithTypeArgs e, List<TypeParamDef> typeParams) {
+        VariableBinding res = VariableBinding.emptyMapping();
         TypeExprList typeArgs = e.getTypeArgs();
         for (int i = 0; i < typeArgs.size() && i < typeParams.size(); i++) {
             TypeParamDef tp = typeParams.get(i);

@@ -21,7 +21,7 @@ public class WurstTypeInt extends WurstTypePrimitive {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         return (other instanceof WurstTypeInt
                 // in jass code we can use an int where a real is expected
                 || other instanceof WurstTypeReal && Utils.isJassCode(location)) ? mapping : null;

@@ -36,8 +36,8 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
         if (superMapping != null) {
             return superMapping;
         }

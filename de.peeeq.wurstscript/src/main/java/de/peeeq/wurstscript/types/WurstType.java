@@ -2,15 +2,11 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeParamDef;
-import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import fj.data.Option;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -20,23 +16,16 @@ import java.util.stream.Stream;
 
 public abstract class WurstType {
 
-    public static final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> EMPTY_MAPPING = TreeMap.empty(TypeParamOrd.instance());
-
     /**
      * @param other
      * @param location
      * @return is this type a subtype (or equal) to other type?
      */
     public final boolean isSubtypeOf(WurstType other, @Nullable Element location) {
-        return matchAgainstSupertype(other, location, Collections.emptySet(), emptyMapping()) != null;
+        return matchAgainstSupertype(other, location, Collections.emptySet(), VariableBinding.emptyMapping()) != null;
     }
 
-    @NotNull
-    public static TreeMap<TypeParamDef, WurstTypeBoundTypeParam> emptyMapping() {
-        return EMPTY_MAPPING;
-    }
-
-//    public final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location) {
+    //    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location) {
 //        return this.matchAgainstSupertype(other, location, TreeMap.empty(TypeParamOrd.instance()));
 //    }
 
@@ -45,7 +34,7 @@ public abstract class WurstType {
      * <p>
      * Will try to instantiate type variables from the set typeParams
      */
-    public final @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    public final @Nullable VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (other instanceof WurstTypeUnknown || this instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return mapping;
@@ -110,7 +99,7 @@ public abstract class WurstType {
      * <p>
      * The given mapping are already mapped type parameters.
      */
-    abstract @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping);
+    abstract @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping);
 
 
     /**
@@ -133,13 +122,13 @@ public abstract class WurstType {
 
 
     public boolean equalsType(WurstType otherType, @Nullable Element location) {
-        return matchTypes(otherType, location, Collections.emptySet(), emptyMapping()) != null;
+        return matchTypes(otherType, location, Collections.emptySet(), VariableBinding.emptyMapping()) != null;
     }
 
     /**
      * Bidirectional matching of types
      */
-    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchTypes(WurstType otherType, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    public VariableBinding matchTypes(WurstType otherType, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         mapping = this.matchAgainstSupertype(otherType, location, typeParams, mapping);
         if (mapping == null) {
             return null;
@@ -174,13 +163,13 @@ public abstract class WurstType {
     }
 
 
-    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstType setTypeArgs(VariableBinding typeParamMapping) {
         return this;
     }
 
 
-    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        return WurstType.emptyMapping();
+    public VariableBinding getTypeArgBinding() {
+        return VariableBinding.emptyMapping();
     }
 
 

@@ -35,7 +35,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         return baseType.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
     }
 
@@ -141,7 +141,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public WurstTypeBoundTypeParam setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstTypeBoundTypeParam setTypeArgs(VariableBinding typeParamMapping) {
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }
 

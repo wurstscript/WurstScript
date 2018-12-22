@@ -75,7 +75,7 @@ public class WurstTypeArray extends WurstType {
 
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (other instanceof WurstTypeArray) {
             WurstTypeArray otherArray = (WurstTypeArray) other;
             mapping = baseType.matchTypes(otherArray.baseType, location, typeParams, mapping);

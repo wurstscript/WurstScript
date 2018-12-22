@@ -5,7 +5,6 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.*;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -57,7 +56,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (obj instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope other = (WurstTypeNamedScope) obj;
             if (other.getDef() == this.getDef()) {
@@ -89,8 +88,8 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
 
     @Override
-    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> res = emptyMapping();
+    public VariableBinding getTypeArgBinding() {
+        VariableBinding res = VariableBinding.emptyMapping();
         for (WurstTypeBoundTypeParam tp : typeParameters) {
             res = res.set(tp.getTypeParamDef(), tp);
         }
@@ -98,7 +97,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
-    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
+    public WurstType setTypeArgs(VariableBinding typeParamBounds) {
         List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();
         for (WurstTypeBoundTypeParam t : typeParameters) {
             newTypes.add(t.setTypeArgs(typeParamBounds));
@@ -135,7 +134,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
 
-    protected @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    protected @Nullable VariableBinding matchTypeParams(List<WurstTypeBoundTypeParam> list, List<WurstTypeBoundTypeParam> list2, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         if (list.size() != list2.size()) {
             return null;
         }
@@ -162,7 +161,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
      */
     public ImmutableMultimap<String, DefLink> nameLinks() {
         ImmutableMultimap<String, DefLink> res = getDef().attrNameLinks();
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding = getTypeArgBinding();
+        VariableBinding binding = getTypeArgBinding();
         if (!binding.isEmpty()) {
             // OPT maybe cache this
             ImmutableMultimap.Builder<String, DefLink> resBuilder = ImmutableMultimap.builder();

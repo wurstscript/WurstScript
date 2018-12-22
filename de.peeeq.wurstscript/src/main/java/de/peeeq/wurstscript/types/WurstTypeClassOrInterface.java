@@ -112,9 +112,9 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         // direct match
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
         if (superMapping != null) {
             return superMapping;
         }
@@ -122,7 +122,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         // OPT this could be optimized -- only do this if obj is an interface type
         for (WurstTypeClassOrInterface implementedInterface : directSupertypes()) {
 
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertype(obj, location, typeParams, mapping);
+            VariableBinding mapping2 = implementedInterface.matchAgainstSupertype(obj, location, typeParams, mapping);
             if (mapping2 != null) {
                 return mapping2;
             }

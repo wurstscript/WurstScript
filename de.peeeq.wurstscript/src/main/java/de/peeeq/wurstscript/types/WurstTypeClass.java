@@ -25,8 +25,8 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
         if (superMapping != null) {
             return superMapping;
         }
@@ -43,7 +43,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 
     }
 
-    private TreeMap<TypeParamDef, WurstTypeBoundTypeParam> extendMapping(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> m1, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> m2, Element location) {
+    private VariableBinding extendMapping(VariableBinding m1, VariableBinding m2, Element location) {
         for (TypeParamDef t : m2.keys()) {
             Option<WurstTypeBoundTypeParam> currentVal = m1.get(t);
             WurstTypeBoundTypeParam m2Val = m2.get(t).some();

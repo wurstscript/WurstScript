@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.annotation.CheckReturnValue;
@@ -62,7 +61,7 @@ public class FunctionSignature {
     }
 
     @CheckReturnValue
-    public FunctionSignature setTypeArgs(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
+    public FunctionSignature setTypeArgs(Element context, VariableBinding typeArgBinding) {
         if (typeArgBinding.isEmpty()) {
             return this;
         }
@@ -217,7 +216,7 @@ public class FunctionSignature {
         if (!isValidParameterNumber(argTypes.size())) {
             return null;
         }
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        VariableBinding mapping = VariableBinding.emptyMapping();
         for (int i = 0; i < argTypes.size(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
@@ -272,11 +271,11 @@ public class FunctionSignature {
                 badness += getMinNumParams() - argTypes.size();
             }
         }
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        VariableBinding mapping = VariableBinding.emptyMapping();
         for (int i = 0; i < argTypes.size() && i < getMaxNumParams(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = at.matchAgainstSupertype(pt, location, typeParams, mapping);
+            VariableBinding mapping2 = at.matchAgainstSupertype(pt, location, typeParams, mapping);
             if (mapping2 == null) {
                 WurstType ptBound = pt.setTypeArgs(mapping);
                 Expr arg = args.get(i);

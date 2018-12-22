@@ -6,11 +6,9 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import fj.data.Option;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collection;
-import java.util.Collections;
 
 public class WurstTypeTypeParam extends WurstType {
 
@@ -21,7 +19,7 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    @Nullable VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, VariableBinding mapping) {
         Option<WurstTypeBoundTypeParam> binding = mapping.get(def);
         if (binding.isSome()) {
             // already bound, use bound type
@@ -54,12 +52,12 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> getTypeArgBinding() {
-        return WurstType.emptyMapping();
+    public VariableBinding getTypeArgBinding() {
+        return VariableBinding.emptyMapping();
     }
 
     @Override
-    public WurstType setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamBounds) {
+    public WurstType setTypeArgs(VariableBinding typeParamBounds) {
         if (typeParamBounds.contains(def)) {
             return typeParamBounds.get(def).some();
         }

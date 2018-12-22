@@ -1047,7 +1047,7 @@ public class GenericsTests extends WurstScriptTest {
                 "	construct()",
                 "		someInt = 1",
                 "init",
-                "	if new B().someInt == 1",
+                "	if new B<int>().someInt == 1",
                 "		testSuccess()"
         );
     }
@@ -1079,6 +1079,75 @@ public class GenericsTests extends WurstScriptTest {
                 "		testSuccess()",
                 "init",
                 "	foo(null)"
+        );
+    }
+
+    @Test
+    public void missingTypeArgsFunc() {
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+                "package test",
+                "function foo<T>() returns T",
+                "	return null",
+                "init",
+                "	let x = foo()"
+        );
+    }
+
+    @Test
+    public void missingTypeArgsMethod() {
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+                "package test",
+                "class C",
+                "	function foo<T>() returns T",
+                "		return null",
+                "init",
+                "	let c = new C",
+                "	let x = c.foo()"
+        );
+    }
+
+    @Test
+    public void missingTypeArgsConstructor() {
+        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+                "package test",
+                "class C<T>",
+                "init",
+                "	let c = new C"
+        );
+    }
+
+
+    @Test
+    public void tooManyTypeArgsFunc() {
+        testAssertErrorsLines(false, "Too many type arguments given",
+                "package test",
+                "function foo<T>() returns T",
+                "	return null",
+                "init",
+                "	let x = foo<int, int>()"
+        );
+    }
+
+    @Test
+    public void tooManyTypeArgsMethod() {
+        testAssertErrorsLines(false, "Too many type arguments given",
+                "package test",
+                "class C",
+                "	function foo<T>() returns T",
+                "		return null",
+                "init",
+                "	let c = new C",
+                "	let x = c.foo<int, int>()"
+        );
+    }
+
+    @Test
+    public void tooManyTypeArgsConstructor() {
+        testAssertErrorsLines(false, "Too many type arguments given",
+                "package test",
+                "class C<T>",
+                "init",
+                "	let c = new C<int, int>"
         );
     }
 
