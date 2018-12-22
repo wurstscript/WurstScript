@@ -8,12 +8,12 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
+
+import static de.peeeq.wurstscript.types.VariablePosition.NONE;
 
 public class WurstTypeBoundTypeParam extends WurstType {
 
@@ -35,8 +35,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        return baseType.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        return baseType.matchAgainstSupertypeIntern(other, location, mapping, NONE);
     }
 
     @Override
@@ -141,7 +141,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public WurstTypeBoundTypeParam setTypeArgs(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping) {
+    public WurstTypeBoundTypeParam setTypeArgs(VariableBinding typeParamMapping) {
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }
 

@@ -3,10 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.P2;
 import fj.data.TreeMap;
@@ -28,7 +25,7 @@ public class OverrideUtils {
 
         if (expected instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) expected;
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding = t.getTypeArgBinding();
+            VariableBinding typeBinding = t.getTypeArgBinding();
 
             addOverride(tr, superMethod, m.attrClass(), m, e, typeBinding);
         } else {
@@ -44,7 +41,7 @@ public class OverrideUtils {
             ImClass subClass,
             ImMethod subMethod,
             Element e,
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding) {
+            VariableBinding typeBinding) {
         ImMethod superMethodIm = tr.getMethodFor(superMethod);
         boolean needConversion = false;
         List<FuncDef> argFromIndexFuncs = new ArrayList<>();

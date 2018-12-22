@@ -1444,35 +1444,35 @@ public class WurstValidator {
     }
 
     private void checkTypeBinding(HasTypeArgs e) {
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = e.match(new HasTypeArgs.Matcher<TreeMap<TypeParamDef, WurstTypeBoundTypeParam>>() {
+        VariableBinding mapping = e.match(new HasTypeArgs.Matcher<VariableBinding>() {
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprNewObject(ExprNewObject e) {
+            public VariableBinding case_ExprNewObject(ExprNewObject e) {
                 return e.attrTyp().getTypeArgBinding();
             }
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ModuleUse(ModuleUse moduleUse) {
+            public VariableBinding case_ModuleUse(ModuleUse moduleUse) {
                 return null;
             }
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_TypeExprSimple(TypeExprSimple e) {
+            public VariableBinding case_TypeExprSimple(TypeExprSimple e) {
                 return e.attrTyp().getTypeArgBinding();
             }
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprFunctionCall(ExprFunctionCall e) {
+            public VariableBinding case_ExprFunctionCall(ExprFunctionCall e) {
                 return e.attrTyp().getTypeArgBinding();
             }
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprMemberMethodDot(ExprMemberMethodDot e) {
+            public VariableBinding case_ExprMemberMethodDot(ExprMemberMethodDot e) {
                 return e.attrTyp().getTypeArgBinding();
             }
 
             @Override
-            public TreeMap<TypeParamDef, WurstTypeBoundTypeParam> case_ExprMemberMethodDotDot(ExprMemberMethodDotDot e) {
+            public VariableBinding case_ExprMemberMethodDotDot(ExprMemberMethodDotDot e) {
                 return e.attrTyp().getTypeArgBinding();
             }
         });

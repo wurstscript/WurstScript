@@ -4,12 +4,8 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeClassOrInterface;
-import de.peeeq.wurstscript.types.WurstTypeNamedScope;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -203,7 +199,7 @@ public class NameResolution {
         if (n_receiverType == null) {
             return null;
         }
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = receiverType.matchAgainstSupertype(n_receiverType, node, n.getTypeParams(), WurstType.emptyMapping());
+        VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(n.getTypeParams())), VariablePosition.RIGHT);
         if (mapping == null) {
             return null;
         }

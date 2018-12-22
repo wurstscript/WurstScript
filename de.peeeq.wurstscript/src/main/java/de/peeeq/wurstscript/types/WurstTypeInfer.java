@@ -1,13 +1,9 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.Collection;
 
 /**
  * the exact type is not known but it will be whatever you want it to be ;)
@@ -21,7 +17,7 @@ public class WurstTypeInfer extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         return mapping;
     }
 

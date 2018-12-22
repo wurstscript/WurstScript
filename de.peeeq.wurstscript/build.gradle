@@ -77,7 +77,7 @@ dependencies {
     compile 'com.google.guava:guava:26.0-jre'
 
     // Functional data structures:
-    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.7'
+    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.8.1'
 
     // Support for the vscode language server protocol
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.5.0'

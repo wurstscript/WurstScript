@@ -1,23 +1,16 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
 
 public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
@@ -112,9 +105,9 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType obj, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         // direct match
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> superMapping = super.matchAgainstSupertypeIntern(obj, location, typeParams, mapping);
+        VariableBinding superMapping = super.matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
         if (superMapping != null) {
             return superMapping;
         }
@@ -122,7 +115,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         // OPT this could be optimized -- only do this if obj is an interface type
         for (WurstTypeClassOrInterface implementedInterface : directSupertypes()) {
 
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = implementedInterface.matchAgainstSupertype(obj, location, typeParams, mapping);
+            VariableBinding mapping2 = implementedInterface.matchAgainstSupertype(obj, location, mapping, VariablePosition.RIGHT);
             if (mapping2 != null) {
                 return mapping2;
             }

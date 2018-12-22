@@ -5,12 +5,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.types.FunctionSignature;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import fj.data.TreeMap;
 
 import java.util.Collections;
 import java.util.Comparator;
@@ -29,7 +25,7 @@ public class AttrPossibleFunctionSignatures {
 
             if (fc.attrImplicitParameter() instanceof Expr) {
                 Expr expr = (Expr) fc.attrImplicitParameter();
-                TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getTypeParams(), WurstType.emptyMapping());
+                VariableBinding mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getMapping(), VariablePosition.RIGHT);
                 if (mapping == null) {
                     // TODO error message? Or just ignore wrong parameter type?
                     continue;
@@ -38,7 +34,7 @@ public class AttrPossibleFunctionSignatures {
                 }
             } // TODO else check?
 
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = givenBinding(fc, sig.getTypeParams());
+            VariableBinding mapping = givenBinding(fc, sig.getDefinitionTypeVariables());
             sig = sig.setTypeArgs(fc, mapping);
 
             resultBuilder.add(sig);
@@ -93,14 +89,15 @@ public class AttrPossibleFunctionSignatures {
         ImmutableList.Builder<FunctionSignature> res = ImmutableList.builder();
         for (ConstructorDef f : constructors) {
             WurstType returnType = classDef.attrTyp().dynamic();
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding2 = givenBinding(fc, typeParameters(classDef));
+            VariableBinding binding2 = givenBinding(fc, typeParameters(classDef));
             List<WurstType> paramTypes = Lists.newArrayList();
             for (WParameter p : f.getParameters()) {
                 paramTypes.add(p.attrTyp());
             }
             List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
             List<TypeParamDef> typeParams = classDef.getTypeParameters();
-            FunctionSignature sig = new FunctionSignature(f, typeParams, null, "construct", paramTypes, pNames, returnType);
+            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
+            FunctionSignature sig = new FunctionSignature(f, mapping, null, "construct", paramTypes, pNames, returnType);
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);
         }

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.names;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypePackage;
@@ -49,7 +50,7 @@ public class PackageLink extends DefLink {
     }
 
     @Override
-    public PackageLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public PackageLink withTypeArgBinding(Element context, VariableBinding binding) {
         // packages do not have type parameters
         return this;
     }

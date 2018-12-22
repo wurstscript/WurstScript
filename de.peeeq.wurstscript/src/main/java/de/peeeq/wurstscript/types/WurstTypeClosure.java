@@ -1,15 +1,12 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.AttrClosureAbstractMethod;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
 import java.util.List;
 
 public class WurstTypeClosure extends WurstType {
@@ -23,7 +20,7 @@ public class WurstTypeClosure extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeClosure) {
             WurstTypeClosure o = (WurstTypeClosure) other;
             if (paramTypes.size() != o.paramTypes.size()) {
@@ -31,13 +28,13 @@ public class WurstTypeClosure extends WurstType {
             }
             // contravariant parameter types
             for (int i = 0; i < paramTypes.size(); i++) {
-                mapping =  o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, typeParams, mapping);
+                mapping =  o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
                 if (mapping == null) {
                     return null;
                 }
             }
             // covariant return types
-            return returnType.matchAgainstSupertype(o.returnType, location, typeParams, mapping);
+            return returnType.matchAgainstSupertype(o.returnType, location, mapping, variablePosition);
         } else if (other instanceof WurstTypeCode) {
             if (paramTypes.size() == 0) {
                 return mapping;
@@ -45,22 +42,22 @@ public class WurstTypeClosure extends WurstType {
         } else {
             FunctionSignature abstractMethod = AttrClosureAbstractMethod.getAbstractMethodSignature(other);
             if (abstractMethod != null) {
-                return closureImplementsAbstractMethod(abstractMethod, location, typeParams, mapping);
+                return closureImplementsAbstractMethod(abstractMethod, location, mapping, variablePosition);
             }
         }
         return null;
     }
 
 
-    private @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> closureImplementsAbstractMethod(FunctionSignature abstractMethod,
-                                                                                                     Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    private VariableBinding closureImplementsAbstractMethod(FunctionSignature abstractMethod,
+                                                            Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (paramTypes.size() != abstractMethod.getParamTypes().size()) {
             return null;
         }
 
         // contravariant parameter types
         for (int i = 0; i < paramTypes.size(); i++) {
-            mapping = abstractMethod.getParamTypes().get(i).matchAgainstSupertype(paramTypes.get(i), location, typeParams, mapping);
+            mapping = abstractMethod.getParamTypes().get(i).normalize().matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
             if (mapping == null) {
                 return null;
             }
@@ -72,7 +69,7 @@ public class WurstTypeClosure extends WurstType {
         }
 
         // covariant return types
-        return returnType.matchAgainstSupertype(abstractMethod.getReturnType(), location, typeParams, mapping);
+        return returnType.matchAgainstSupertype(abstractMethod.getReturnType().normalize(), location, mapping, variablePosition);
     }
 
 
@@ -95,7 +92,19 @@ public class WurstTypeClosure extends WurstType {
 
     @Override
     public String getFullName() {
-        return getName();
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        boolean first = true;
+        for (WurstType t : paramTypes) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append(t.getFullName());
+            first = false;
+        }
+        sb.append(") -> ");
+        sb.append(returnType.getFullName());
+        return sb.toString();
     }
 
     @Override

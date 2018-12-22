@@ -1,20 +1,12 @@
 package de.peeeq.wurstscript.attributes.names;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Streams;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.VariablePosition;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import de.peeeq.wurstscript.types.WurstTypeVararg;
-import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -99,7 +91,7 @@ public abstract class DefLink extends NameLink {
             }
         }
         NameDef def = getDef();
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> match = this.receiverType.matchAgainstSupertype(receiverType, def, typeParams, WurstType.emptyMapping());
+        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams)), VariablePosition.LEFT);
         if (match == null) {
             return null;
         }
@@ -108,7 +100,7 @@ public abstract class DefLink extends NameLink {
 
 
     @Override
-    public abstract DefLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding);
+    public abstract DefLink withTypeArgBinding(Element context, VariableBinding binding);
 
     public abstract DefLink withGenericTypeParams(List<TypeParamDef> typeParams);
 }
