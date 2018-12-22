@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Collection;
 
@@ -90,12 +91,12 @@ public class AttrExprExpectedType {
                     return m.attrFunctionSignature().getReceiverType();
                 }
             }
-        } catch (
-                CompileError t)
-
-        {
+        } catch (CyclicDependencyError | CompileError t) {
+            WLogger.info("Something went wrong while computing the expected type for " + Utils.printElementWithSource(expr) + "\n" +
+                    "This is probably not a bug, but we are logging it anyway since it might help to improve error messages.");
             WLogger.info(t);
         }
+
         return WurstTypeUnknown.instance();
     }
 
