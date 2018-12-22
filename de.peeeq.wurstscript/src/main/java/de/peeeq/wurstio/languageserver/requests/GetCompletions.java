@@ -12,9 +12,7 @@ import de.peeeq.wurstscript.WurstKeywords;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.AttrExprType;
 import de.peeeq.wurstscript.attributes.names.*;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
-import de.peeeq.wurstscript.types.WurstTypeVoid;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.*;
@@ -147,14 +145,17 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             WurstType leftType = e.getLeft().attrTyp();
 
-            leftType.getMemberMethods(elem).forEach(nameLink -> {
-                if (isSuitableCompletion(nameLink.getName())) {
-                    if (nameLink.getVisibility() == Visibility.PUBLIC) {
+            if (leftType instanceof WurstTypeNamedScope) {
+                WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) leftType;
+                for (DefLink nameLink : ct.nameLinks().values()) {
+                    if (isSuitableCompletion(nameLink.getName())
+                            && nameLink.getReceiverType() != null
+                            && nameLink.getVisibility() == Visibility.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
                         completions.add(completion);
                     }
                 }
-            });
+            }
 
             isMemberAccess = true;
             WScope scope = elem.attrNearestScope();
@@ -225,6 +226,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
         if (!isMemberAccess) {
             addKeywordCompletions(completions);
         }
+
     }
 
     private void addKeywordCompletions(List<CompletionItem> completions) {
@@ -340,7 +342,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 	*/
 
     private boolean isSuitableCompletion(String name) {
-        if(name.endsWith("Tests")) {
+        if (name.endsWith("Tests")) {
             return false;
         }
         switch (searchMode) {
