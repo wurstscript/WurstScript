@@ -355,4 +355,8 @@ public class EvaluateExpr {
     }
 
 
+    public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
+        // TODO store type arguments in localState with the required dispatch functions
+        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
+    }
 }

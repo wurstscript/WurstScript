@@ -287,11 +287,11 @@ public class FunctionSignature {
         int badness = 0;
         if (!isValidParameterNumber(argTypes.size())) {
             if (argTypes.size() > getMaxNumParams()) {
-                errors.add(new CompileError(location.attrErrorPos(), "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
+                errors.add(new CompileError(location, "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
                         " expected."));
                 badness += argTypes.size() - getMaxNumParams();
             } else if (argTypes.size() < getMinNumParams()) {
-                errors.add(new CompileError(location.attrErrorPos(), "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
+                errors.add(new CompileError(location, "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
                 badness += getMinNumParams() - argTypes.size();
             }
         }
@@ -311,7 +311,7 @@ public class FunctionSignature {
         }
 
         if (mapping.hasUnboundTypeVars()) {
-            errors.add(new CompileError(location.attrErrorPos(), "Could not infer type for type variables " + mapping.printUnboundTypeVars()));
+            errors.add(new CompileError(location, "Could not infer type for type variables " + mapping.printUnboundTypeVars()));
         }
         errors.addAll(mapping.getErrors());
 

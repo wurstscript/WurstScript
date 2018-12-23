@@ -97,6 +97,11 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImTypeVarDispatch(ImTypeVarDispatch imTypeVarDispatch) {
+                return true;
+            }
+
+            @Override
             public Boolean case_ImOperatorCall(ImOperatorCall e) {
                 return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
             }

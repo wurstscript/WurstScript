@@ -123,7 +123,7 @@ public class ControlFlowGraph {
                     }
                     e = e.getParent();
                     if (e == null) {
-                        throw new CompileError(s.attrTrace().attrErrorPos(), "exitwhen outside of loop");
+                        throw new CompileError(s, "exitwhen outside of loop");
                     }
                 }
             }

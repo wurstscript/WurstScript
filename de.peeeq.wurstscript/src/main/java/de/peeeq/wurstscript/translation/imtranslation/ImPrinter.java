@@ -420,4 +420,11 @@ public class ImPrinter {
     }
 
 
+    public static void print(ImTypeVarDispatch e, Appendable sb, int indent) {
+        append(sb, "<");
+        append(sb, e.getTypeVariable().getName());
+        append(sb, ">.");
+        append(sb, e.getTypeClassFunc().getName());
+        printArgumentList(sb, indent, e.getArguments());
+    }
 }

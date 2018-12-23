@@ -134,4 +134,7 @@ public class ExprTranslation {
                 "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
     }
 
+    public static JassExpr translate(ImTypeVarDispatch e, ImToJassTranslator translator) {
+        throw new CompileError(e, "Typevar dispatch not eliminated.");
+    }
 }

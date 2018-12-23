@@ -156,4 +156,8 @@ public class ImAttrType {
     public static ImType getType(ImCompiletimeExpr e) {
         return e.getExpr().attrTyp();
     }
+
+    public static ImType getType(ImTypeVarDispatch e) {
+        return e.getTypeClassFunc().getReturnType();
+    }
 }

@@ -137,7 +137,7 @@ public class ImHelper {
         return t.match(new ImType.Matcher<ImExpr>() {
             @Override
             public ImExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
             }
 
             @Override
@@ -151,12 +151,17 @@ public class ImHelper {
 
             @Override
             public ImExpr case_ImArrayType(ImArrayType imArrayType) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
             }
 
             @Override
             public ImExpr case_ImVoid(ImVoid imVoid) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
             }
 
             @Override

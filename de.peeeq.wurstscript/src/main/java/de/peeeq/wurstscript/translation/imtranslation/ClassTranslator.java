@@ -114,9 +114,7 @@ public class ClassTranslator {
         // call ondestroy methods
         ClassDef c = classDef;
         ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
-        f.getBody().add(ImFunctionCall(trace,
-                scOnDestroy,
-                ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+        f.getBody().add(ImFunctionCall(trace, scOnDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 
         // deallocate
         f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
@@ -160,9 +158,7 @@ public class ClassTranslator {
             if (ct.extendedClass() != null) {
                 // call onDestroy of super class
                 ImFunction onDestroy = translator.getFuncFor(ct.extendedClass().getClassDef().getOnDestroy());
-                addTo.add(ImFunctionCall(c,
-                        onDestroy,
-                        ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+                addTo.add(ImFunctionCall(c, onDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
     }
@@ -339,7 +335,7 @@ public class ClassTranslator {
         for (ImVar a : f.getParameters()) {
             arguments.add(ImVarAccess(a));
         }
-        f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false, CallType.NORMAL));
+        f.getBody().add(ImFunctionCall(trace, constrFunc, ImTypeArguments(), arguments, false, CallType.NORMAL));
 
 
         // return this
@@ -360,7 +356,7 @@ public class ClassTranslator {
             for (Expr a : superArgs(constr)) {
                 arguments.add(a.imTranslateExpr(translator, f));
             }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
+            f.getBody().add(ImFunctionCall(trace, superConstrFunc, ImTypeArguments(), arguments, false, CallType.NORMAL));
         }
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
@@ -391,7 +387,7 @@ public class ClassTranslator {
         // call constructors of used modules:
         for (ConstructorDef c : mi.getConstructors()) {
             ImFunction moduleConstr = translator.getConstructFunc(c);
-            f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+            f.getBody().add(ImFunctionCall(c, moduleConstr, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
         }
     }
 

@@ -112,7 +112,7 @@ public class MultiArrayEliminator {
                             args.add(JassIm.ImStringVal("when writing array " + va.getVar().getName() + " in " + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
                         }
 
-                        set.replaceBy(JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, args, false, CallType.NORMAL));
+                        set.replaceBy(JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
                         return;
                     }
                 }
@@ -137,7 +137,7 @@ public class MultiArrayEliminator {
                     args.add(JassIm.ImStringVal("when reading array " + am.getVar().getName() + " in " + StackTraceInjector2.getCallPos(am.getTrace().attrSource())));
                 }
                 if (getSetMap.containsKey(am.getVar())) {
-                    am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, args, false, CallType.NORMAL));
+                    am.replaceBy(JassIm.ImFunctionCall(am.attrTrace(), getSetMap.get(am.getVar()).getter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));
                 }
             }
         }
@@ -160,7 +160,8 @@ public class MultiArrayEliminator {
         ImExpr condition = JassIm.ImOperatorCall(WurstOperator.OR, JassIm.ImExprs(lowCond, highCond));
         ImStmts body = JassIm.ImStmts(JassIm.ImIf(aVar.getTrace(),
                 condition, thenBlock, elseBlock));
-        ImFunction setFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_set", JassIm.ImVars(instanceId, arrayIndex, value), JassIm.ImVoid(), locals, body, Lists.<FunctionFlag>newArrayList());
+
+        ImFunction setFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_set", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex, value), JassIm.ImVoid(), locals, body, Lists.<FunctionFlag>newArrayList());
         if (generateStacktraces) {
             ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
             setFunc.getParameters().add(stackPos);
@@ -213,7 +214,8 @@ public class MultiArrayEliminator {
         ImStmts body = JassIm.ImStmts(JassIm.ImIf(aVar.getTrace(),
                 condition, thenBlock, elseBlock),
                 JassIm.ImReturn(returnVal.getTrace(), JassIm.ImVarAccess(returnVal)));
-        ImFunction getFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_get", JassIm.ImVars(instanceId, arrayIndex), mtype.getEntryType(), locals, body, Lists.<FunctionFlag>newArrayList());
+
+        ImFunction getFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_get", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex), mtype.getEntryType(), locals, body, Lists.<FunctionFlag>newArrayList());
         if (generateStacktraces) {
             ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
             getFunc.getParameters().add(stackPos);

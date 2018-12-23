@@ -7,12 +7,14 @@ ImProg(
     @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
     ImVars globals,
 	ImFunctions functions, 
-	ImClasses classes, 
+	ImClasses classes,
+	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
+ImTypeClassFuncs * ImTypeClassFunc
 
 ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
 
@@ -22,17 +24,31 @@ ImType =
 	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
-	
+	| ImTypeVarRef(ref ImTypeVar typeVariable)
+
+ImTypeVars * ImTypeVar
+
+ImTypeVar(String name)
+
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+	String name,
+	ImTypeVars typeVariables,
 	ImVars parameters, 
 	ref ImType returnType, 
 	ImVars locals, 
 	ImStmts body, 
 	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
+ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+	String name,
+	ImTypeVars typeVariables,
+	ImVars parameters,
+	ref ImType returnType)
+
+
 ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+	String name,
+	ImTypeVars typeVariables,
 	ImVars fields, 
 	ImMethods methods, 
 	java.util.List<ImClass> superClasses)
@@ -40,7 +56,7 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 ImMethods * ImMethod
 
 ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+	String name,
 	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,
 	boolean isAbstract)
@@ -75,6 +91,8 @@ ImExpr =
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
+    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
+                       , ref ImTypeVar typeVariable)
 
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =
@@ -88,7 +106,7 @@ ImLExpr =
 
 
 ImClassRelatedExpr = 
-	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
+	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
 	| ImAlloc(ref ImClass clazz)
 	| ImDealloc(ref ImClass clazz, ImExpr obj)
 	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var)
@@ -98,7 +116,7 @@ ImClassRelatedExpr =
 	
 
 ImCall = 
-	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImExprs arguments
+	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImTypeArguments typeArguments, ImExprs arguments
 	  				, boolean tuplesEliminated, de.peeeq.wurstscript.translation.imtranslation.CallType callType)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
@@ -109,6 +127,10 @@ ImConst =
 	| ImBoolVal(boolean valB)
 	| ImFuncRef(ref ImFunction func)
 	| ImNull(ref ImType type)
+
+ImTypeArguments * ImTypeArgument
+
+ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, fj.data.Either<ImMethod, ImFunction>> typeClassBinding)
 
 // helper types:
 

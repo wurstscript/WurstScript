@@ -73,7 +73,7 @@ public class ClosureTranslator {
     private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c, ConstructorDef constr) {
         ImFunction cn = tr.getConstructFunc(constr);
         ImExprs arguments = JassIm.ImExprs(JassIm.ImVarAccess(clVar));
-        stmts.add(JassIm.ImFunctionCall(e, cn, arguments, false, CallType.NORMAL));
+        stmts.add(JassIm.ImFunctionCall(e, cn, JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL));
     }
 
 
@@ -127,7 +127,7 @@ public class ClosureTranslator {
         ImVars fields = JassIm.ImVars();
         ImMethods methods = JassIm.ImMethods();
         List<ImClass> superClasses = java.util.Collections.singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", fields, methods, superClasses);
+        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, superClasses);
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();

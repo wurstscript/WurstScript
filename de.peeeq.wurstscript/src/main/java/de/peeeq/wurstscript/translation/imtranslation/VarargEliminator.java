@@ -142,8 +142,7 @@ public class VarargEliminator {
 
     private void redirectCall(ImFunctionCall call, ImFunction newFunc) {
         // Redirect call to new function
-        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(),
-                call.getCallType());
+        ImFunctionCall newCall = JassIm.ImFunctionCall(call.getTrace(), newFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(call.getArguments().removeAll()), call.getTuplesEliminated(), call.getCallType());
         call.replaceBy(newCall);
     }
 

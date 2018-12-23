@@ -120,10 +120,10 @@ public class ExprTranslation {
             return translated;
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            return JassIm.ImFunctionCall(trace, fromIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
 //            System.out.println("  --> toIndex");
-            return JassIm.ImFunctionCall(trace, toIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         }
         return translated;
     }
@@ -135,7 +135,7 @@ public class ExprTranslation {
         if (e.attrFuncLink() != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-            return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false, CallType.NORMAL);
+            return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
             if (Utils.isJassCode(e)) {
@@ -415,7 +415,7 @@ public class ExprTranslation {
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
             ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
-            return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
+            return ImFunctionCall(e, executedFunc, ImTypeArguments(), JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
         if (e.getFuncName().equals("compiletime")
@@ -495,13 +495,14 @@ public class ExprTranslation {
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-            call = JassIm.ImMethodCall(e, method, receiver, imArgs, false);
+
+            call = ImMethodCall(e, method, ImTypeArguments(), receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            call = ImFunctionCall(e, calledImFunc, imArgs, false, CallType.NORMAL);
+            call = ImFunctionCall(e, calledImFunc, ImTypeArguments(), imArgs, false, CallType.NORMAL);
         }
 
         if (returnReveiver) {
@@ -539,7 +540,7 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
         ConstructorDef constructorFunc = e.attrConstructorDef();
         ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-        return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        return ImFunctionCall(e, constructorImFunc, ImTypeArguments(), translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
@@ -615,7 +616,8 @@ public class ExprTranslation {
 
     public static ImExpr destroyClass(ExprDestroy s, ImTranslator t, ImFunction f, StructureDef classDef) {
         ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
-        return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+        return ImMethodCall(s, destroyFunc, ImTypeArguments(), s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+
     }
 
     public static ImExpr translate(ExprEmpty s, ImTranslator translator, ImFunction f) {

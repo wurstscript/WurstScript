@@ -156,7 +156,7 @@ public class CompilationProcess {
         runTests.runTests(compiler.getImProg(), null, null);
 
         for (RunTests.TestFailure e : runTests.getFailTests()) {
-            gui.sendError(new CompileError(e.getFunction().attrTrace().attrErrorPos(), e.getMessage()));
+            gui.sendError(new CompileError(e.getFunction(), e.getMessage()));
             if (runArgs.isGui()) {
                 // when using graphical user interface, send stack trace to GUI
                 for (ILStackFrame sf : Utils.iterateReverse(e.getStackTrace().getStackFrames())) {

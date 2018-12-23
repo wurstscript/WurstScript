@@ -81,7 +81,7 @@ public class EliminateClasses {
         }
 
 
-        ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), m
+        ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), JassIm.ImTypeVars(), m
                 .getImplementation().getParameters().copy(), m
                 .getImplementation().getReturnType(), JassIm.ImVars(), JassIm
                 .ImStmts(), flags);
@@ -170,7 +170,7 @@ public class EliminateClasses {
             }
             // only one method, call it
             ImFunctionCall call = JassIm.ImFunctionCall(df.getTrace(), ranges
-                    .get(start).getB().getImplementation(), arguments, false, CallType.NORMAL);
+                    .get(start).getB().getImplementation(), JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL);
             if (resultVar == null) {
                 stmts.add(call);
             } else {
@@ -410,13 +410,13 @@ public class EliminateClasses {
         ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
         ImExpr obj = e.getObj();
         obj.setParent(null);
-        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
+        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(obj), false, CallType.NORMAL));
 
     }
 
     private void replaceAlloc(ImAlloc e) {
         ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
-        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
+        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL));
     }
 
     private void replaceMethodCall(ImMethodCall mc) {
@@ -430,8 +430,7 @@ public class EliminateClasses {
         if (dispatch == null) {
             throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + mc.getMethod().getName());
         }
-        mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(),
-                dispatch, arguments, false, CallType.NORMAL));
+        mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(), dispatch, JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL));
 
     }
 
