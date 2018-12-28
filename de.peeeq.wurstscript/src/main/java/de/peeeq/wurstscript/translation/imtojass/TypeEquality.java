@@ -51,4 +51,11 @@ public class TypeEquality {
     }
 
 
+    public static boolean isEqualType(ImTypeVarRef t, ImType other) {
+        if (other instanceof ImTypeVarRef) {
+            ImTypeVarRef o = (ImTypeVarRef) other;
+            return t.getTypeVariable() == o.getTypeVariable();
+        }
+        return false;
+    }
 }

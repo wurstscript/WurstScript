@@ -427,4 +427,8 @@ public class ImPrinter {
         append(sb, e.getTypeClassFunc().getName());
         printArgumentList(sb, indent, e.getArguments());
     }
+
+    public static void print(ImTypeVarRef e, Appendable sb, int indent) {
+        append(sb, e.getTypeVariable().getName());
+    }
 }
