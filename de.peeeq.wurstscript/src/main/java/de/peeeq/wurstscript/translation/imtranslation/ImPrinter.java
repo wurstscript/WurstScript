@@ -431,4 +431,25 @@ public class ImPrinter {
     public static void print(ImTypeVarRef e, Appendable sb, int indent) {
         append(sb, e.getTypeVariable().getName());
     }
+
+    public static void print(ImClassType ct, Appendable sb, int indent) {
+        append(sb, ct.getClassDef().getName());
+        ImTypeArguments typeArguments = ct.getTypeArguments();
+        printTypeArguments(typeArguments, indent, sb);
+    }
+
+    private static void printTypeArguments(ImTypeArguments typeArguments, int indent, Appendable sb) {
+        if (!typeArguments.isEmpty()) {
+            append(sb, "<");
+            boolean first = true;
+            for (ImTypeArgument ta : typeArguments) {
+                if (!first) {
+                    append(sb, ", ");
+                }
+                ta.getType().print(sb, indent);
+                first = false;
+            }
+            append(sb, ">");
+        }
+    }
 }

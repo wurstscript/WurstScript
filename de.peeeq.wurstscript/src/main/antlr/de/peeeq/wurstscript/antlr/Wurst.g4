@@ -417,9 +417,7 @@ typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
 typeParam: name=ID typeParamConstraints?;
 
-typeParamConstraints: ':' (constraints+=typeParamConstraint ('and' constraints+=typeParamConstraint)*)?;
-
-typeParamConstraint: className=ID;
+typeParamConstraints: ':' (constraints+=typeExpr ('and' constraints+=typeExpr)*)?;
 
 
 stmtForLoop:

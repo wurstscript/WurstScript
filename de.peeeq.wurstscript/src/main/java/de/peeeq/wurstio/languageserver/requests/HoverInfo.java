@@ -569,6 +569,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_NoTypeParamConstraints(NoTypeParamConstraints noTypeParamConstraints) {
+            return string("No type parameter constraints given.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_StmtForRangeUp(StmtForRangeUp stmtForRangeUp) {
             return string("Execute the body several times, counting up");
         }

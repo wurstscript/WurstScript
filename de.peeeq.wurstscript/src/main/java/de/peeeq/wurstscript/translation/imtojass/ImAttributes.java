@@ -105,4 +105,8 @@ public class ImAttributes {
     public static String translateType(ImTypeVarRef t) {
         throw new CompileError(t, "Type variable " + t.getTypeVariable().getName() + " not eliminated.");
     }
+
+    public static String translateType(ImClassType imClassType) {
+        return "integer";
+    }
 }

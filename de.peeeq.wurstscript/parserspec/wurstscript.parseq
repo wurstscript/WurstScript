@@ -115,7 +115,9 @@ ArraySizes * Expr
 
 TypeParamDefs * TypeParamDef
 
-TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId)
+TypeParamDef(de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamConstraints typeParamConstraints)
+
+TypeParamConstraints = NoTypeParamConstraints() | TypeExprList
 
 
 WParameters * WParameter

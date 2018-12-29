@@ -1,11 +1,16 @@
 package de.peeeq.wurstscript.attributes;
 
+import com.google.common.collect.ImmutableMap;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *

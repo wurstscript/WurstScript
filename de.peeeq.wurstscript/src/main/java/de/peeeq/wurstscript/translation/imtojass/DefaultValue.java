@@ -51,4 +51,8 @@ public class DefaultValue {
     public static ILconst get(ImTypeVarRef e) {
         throw new CompileError(e, "Not implemented");
     }
+
+    public static ILconst get(ImClassType ct) {
+        return new ILconstInt(0);
+    }
 }

@@ -165,6 +165,11 @@ public class ImHelper {
             }
 
             @Override
+            public ImExpr case_ImClassType(ImClassType imClassType) {
+                return JassIm.ImIntVal(0);
+            }
+
+            @Override
             public ImExpr case_ImSimpleType(ImSimpleType st) {
                 return defaultValueForType(st);
             }

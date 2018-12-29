@@ -58,4 +58,28 @@ public class TypeEquality {
         }
         return false;
     }
+
+    public static boolean isEqualType(ImClassType c, ImType other) {
+        if (other instanceof ImClassType) {
+            ImClassType oc = (ImClassType) other;
+            if (c.getClassDef() != oc.getClassDef()) {
+                return false;
+            }
+            if (c.getTypeArguments().size() != oc.getTypeArguments().size()) {
+                return false;
+            }
+            for (int i = 0; i < c.getTypeArguments().size(); i++) {
+                ImTypeArgument x = c.getTypeArguments().get(i);
+                ImTypeArgument y = oc.getTypeArguments().get(i);
+                if (!x.getType().equalsType(y.getType())) {
+                    return false;
+                }
+                if (!x.getTypeClassBinding().equals(y.getTypeClassBinding())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
 }

@@ -15,8 +15,12 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.P2;
+import fj.data.Either;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -492,17 +496,20 @@ public class ExprTranslation {
             receiver = JassIm.ImVarAccess(tempVar);
         }
 
+
+
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-
-            call = ImMethodCall(e, method, ImTypeArguments(), receiver, imArgs, false);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            call = ImFunctionCall(e, calledImFunc, ImTypeArguments(), imArgs, false, CallType.NORMAL);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
         if (returnReveiver) {
@@ -513,6 +520,20 @@ public class ExprTranslation {
         } else {
             return call;
         }
+    }
+
+    private static ImTypeArguments getFunctionCallTypeArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables) {
+        ImTypeArguments res = ImTypeArguments();
+        VariableBinding mapping = sig.getMapping();
+        for (ImTypeVar tv : typeVariables) {
+            TypeParamDef tp = tr.getTypeParamDef(tv);
+            WurstTypeBoundTypeParam t = mapping.get(tp).some();
+            ImType type = mapping.get(tp).some().imTranslateType();
+            // TODO handle constraints
+            Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+            res.add(ImTypeArgument(type, typeClassBinding));
+        }
+        return res;
     }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {

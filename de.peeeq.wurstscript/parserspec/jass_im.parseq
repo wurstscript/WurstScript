@@ -24,6 +24,7 @@ ImType =
 	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
+	| ImClassType(ref ImClass classDef, ImTypeArguments typeArguments)
 	| ImTypeVarRef(ref ImTypeVar typeVariable)
 
 ImTypeVars * ImTypeVar

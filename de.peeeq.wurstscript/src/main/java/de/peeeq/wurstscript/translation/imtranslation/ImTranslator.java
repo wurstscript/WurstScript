@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFuncRef;
 import de.peeeq.wurstscript.jassIm.ImFunction;
@@ -30,6 +31,9 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImTypeVar;
+import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
+import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
@@ -558,6 +562,18 @@ public class ImTranslator {
 
     };
 
+    private final Map<ImTypeVar, TypeParamDef> typeVariableReverse = new HashMap<>();
+
+    private final GetAForB<TypeParamDef, ImTypeVar> typeVariable = new GetAForB<TypeParamDef, ImTypeVar>() {
+
+        @Override
+        public ImTypeVar initFor(TypeParamDef a) {
+            ImTypeVar v = JassIm.ImTypeVar(a.getName());
+            typeVariableReverse.put(v, a);
+            return v;
+        }
+    };
+
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
         if (functionMap.containsKey(funcDef)) {
@@ -610,12 +626,78 @@ public class ImTranslator {
             }
         }
 
-        ImFunction f = ImFunction(funcDef, name, ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
+        ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
+        ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
 
         addFunction(f);
         functionMap.put(funcDef, f);
         return f;
+    }
+
+    private ImTypeVars collectTypeVarsForFunction(TranslatedToImFunction funcDef) {
+        ImTypeVars typeVars = ImTypeVars();
+        funcDef.match(new TranslatedToImFunction.MatcherVoid() {
+            @Override
+            public void case_FuncDef(FuncDef funcDef) {
+                if (funcDef.attrIsDynamicClassMember()) {
+                    addTypeParameterFromClass(funcDef.attrNearestStructureDef());
+                }
+                handleTypeParameters(funcDef.getTypeParameters());
+            }
+
+            private void addTypeParameterFromClass(StructureDef s) {
+                if (s instanceof AstElementWithTypeParameters) {
+                    handleTypeParameters(((AstElementWithTypeParameters) s).getTypeParameters());
+                }
+            }
+
+            private void handleTypeParameters(TypeParamDefs tps) {
+                for (TypeParamDef tp : tps) {
+                    handleTypeParameter(tp);
+                }
+            }
+
+            private void handleTypeParameter(TypeParamDef tp) {
+                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                    typeVars.add(typeVariable.getFor(tp));
+                }
+            }
+
+            @Override
+            public void case_ConstructorDef(ConstructorDef constructorDef) {
+                addTypeParameterFromClass(constructorDef.attrNearestStructureDef());
+            }
+
+            @Override
+            public void case_NativeFunc(NativeFunc nativeFunc) {
+            }
+
+            @Override
+            public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
+                addTypeParameterFromClass(onDestroyDef.attrNearestStructureDef());
+            }
+
+            @Override
+            public void case_TupleDef(TupleDef tupleDef) {
+            }
+
+            @Override
+            public void case_ExprClosure(ExprClosure exprClosure) {
+                // TODO where to set closure parameters?
+            }
+
+            @Override
+            public void case_InitBlock(InitBlock initBlock) {
+
+            }
+
+            @Override
+            public void case_ExtensionFuncDef(ExtensionFuncDef funcDef) {
+                handleTypeParameters(funcDef.getTypeParameters());
+            }
+        });
+        return typeVars;
     }
 
 
@@ -1072,6 +1154,10 @@ public class ImTranslator {
         isEclipseMode = enabled;
     }
 
+    public TypeParamDef getTypeParamDef(ImTypeVar tv) {
+        return typeVariableReverse.get(tv);
+    }
+
 
     interface VarsForTupleResult {
 
@@ -1206,6 +1292,12 @@ public class ImTranslator {
             @Override
             public VarsForTupleResult case_ImVoid(ImVoid imVoid) {
                 return new TupleResult(Collections.emptyList());
+            }
+
+            @Override
+            public VarsForTupleResult case_ImClassType(ImClassType st) {
+                ImType type = typeConstructor.apply(st);
+                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
             }
 
             @Override
