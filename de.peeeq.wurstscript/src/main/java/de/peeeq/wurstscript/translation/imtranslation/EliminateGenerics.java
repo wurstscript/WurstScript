@@ -55,7 +55,19 @@ public class EliminateGenerics {
      * creates a specialized version of this function
      */
     private ImFunction specialize(ImFunction f, GenericTypes generics) {
-        ImFunction newF = ModuleExpander.smartCopy(f, Collections.emptyList());
+        ImFunction newF = f.copyWithRefs();
+        // now adjust all occurrences of type variables in newF
+        // this can lead to new generic calls, which we have to add to the queue
+        // cases to handle:
+        // - ImClassType (types can appear in ImNull, ImFunction(params, locals, return))
+        // - ImMethodCall
+        // - ImFunctionCall
+        newF.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImAlloc imAlloc) {
+                super.visit(imAlloc);
+            }
+        });
         return newF;
     }
 
