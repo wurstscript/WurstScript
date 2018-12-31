@@ -44,6 +44,8 @@ public class TypesHelper {
                 || vt instanceof ImArrayTypeMulti && typeContainsTuples(((ImArrayTypeMulti) vt).getEntryType());
     }
 
+
+
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {
 //		if (classParams.size() == 0 && interfaceParams.size() == 0) {
 //			return true;

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -176,7 +177,7 @@ public abstract class WurstType {
     }
 
 
-    public abstract ImType imTranslateType();
+    public abstract ImType imTranslateType(ImTranslator tr);
 
 
     public abstract ImExprOpt getDefaultValue();

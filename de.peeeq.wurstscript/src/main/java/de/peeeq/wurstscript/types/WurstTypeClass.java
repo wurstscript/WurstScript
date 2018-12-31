@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -134,7 +135,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         return TypesHelper.imInt();
     }
 

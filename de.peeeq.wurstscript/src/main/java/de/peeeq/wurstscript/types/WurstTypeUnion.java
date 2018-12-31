@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstTypeUnion extends WurstType {
@@ -44,9 +45,9 @@ public class WurstTypeUnion extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         // TODO union of typeA and typeB
-        return typeA.imTranslateType();
+        return typeA.imTranslateType(tr);
     }
 
     @Override

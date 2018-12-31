@@ -1,10 +1,13 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -66,13 +69,16 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
+        if (def.getTypeParamConstraints() instanceof TypeExprList) {
+            return JassIm.ImTypeVarRef(tr.getTypeVar(def));
+        }
         return TypesHelper.imInt();
     }
 
     @Override
     public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull(imTranslateType());
+        throw new CompileError(def, "Cannot get default value for generic " + def.getName());
     }
 
 

@@ -2,12 +2,10 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import de.peeeq.wurstscript.ModuleExpander;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayDeque;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,7 +32,13 @@ public class EliminateGenerics {
 
         eliminateGenericFunctions();
 
+        removeGenericFunctions();
 
+
+    }
+
+    private void removeGenericFunctions() {
+        prog.getFunctions().removeIf(f -> !f.getTypeVariables().isEmpty());
     }
 
     private void eliminateGenericFunctions() {
@@ -47,7 +51,7 @@ public class EliminateGenerics {
             if (specializedFunc == null) {
                 specializedFunc = specialize(f, generics);
             }
-
+            fc.setFunc(specializedFunc);
         }
     }
 
@@ -56,6 +60,12 @@ public class EliminateGenerics {
      */
     private ImFunction specialize(ImFunction f, GenericTypes generics) {
         ImFunction newF = f.copyWithRefs();
+        specializedFunctions.put(f, generics, newF);
+        prog.getFunctions().add(newF);
+        newF.getTypeVariables().removeAll();
+        List<ImTypeVar> typeVars = f.getTypeVariables();
+
+        newF.setName(f.getName() + "_specialized_" + generics.makeName());
         // now adjust all occurrences of type variables in newF
         // this can lead to new generic calls, which we have to add to the queue
         // cases to handle:
@@ -64,8 +74,82 @@ public class EliminateGenerics {
         // - ImFunctionCall
         newF.accept(new Element.DefaultVisitor() {
             @Override
-            public void visit(ImAlloc imAlloc) {
-                super.visit(imAlloc);
+            public void visit(ImMethodCall mc) {
+                if (!mc.getTypeArguments().isEmpty()) {
+                    genericMethodCalls.add(mc);
+                }
+                super.visit(mc);
+            }
+
+            @Override
+            public void visit(ImFunctionCall fc) {
+                if (!fc.getTypeArguments().isEmpty()) {
+                    genericFunctionCalls.add(fc);
+                }
+                super.visit(fc);
+            }
+
+            @Override
+            public void visit(ImNull e) {
+                e.setType(transformType(e.getType()));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImFunction e) {
+                e.setReturnType(transformType(e.getReturnType()));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImVar e) {
+                e.setType(transformType(e.getType()));
+                super.visit(e);
+            }
+
+            private ImType transformType(ImType type) {
+                return type.match(new ImType.Matcher<ImType>() {
+
+                    @Override
+                    public ImType case_ImVoid(ImVoid t) {
+                        return t;
+                    }
+
+                    @Override
+                    public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
+                        return JassIm.ImArrayTypeMulti(transformType(t.getEntryType()), t.getArraySize());
+                    }
+
+                    @Override
+                    public ImType case_ImTupleType(ImTupleType t) {
+                        return JassIm.ImTupleType(t.getTypes().stream().map(tt -> transformType(tt)).collect(Collectors.toList()), t.getNames());
+                    }
+
+                    @Override
+                    public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                        int index = typeVars.indexOf(t.getTypeVariable());
+                        if (index < 0) {
+                            throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
+                        }
+                        return generics.typeArguments.get(index).getType();
+                    }
+
+                    @Override
+                    public ImType case_ImSimpleType(ImSimpleType t) {
+                        return t;
+                    }
+
+                    @Override
+                    public ImType case_ImArrayType(ImArrayType t) {
+                        return JassIm.ImArrayType(transformType(t.getEntryType()));
+                    }
+
+                    @Override
+                    public ImType case_ImClassType(ImClassType t) {
+                        ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(transformType(ta.getType()), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
+                        return JassIm.ImClassType(t.getClassDef(), args);
+                    }
+                });
             }
         });
         return newF;
@@ -187,6 +271,17 @@ public class EliminateGenerics {
                     return t.getTypeVariable().hashCode();
                 }
             });
+        }
+
+        public String makeName() {
+            StringBuilder sb = new StringBuilder();
+            for (ImTypeArgument ta : typeArguments) {
+                if (sb.length() > 0) {
+                    sb.append("_");
+                }
+                ta.getType().print(sb, 0);
+            }
+            return sb.toString();
         }
     }
 

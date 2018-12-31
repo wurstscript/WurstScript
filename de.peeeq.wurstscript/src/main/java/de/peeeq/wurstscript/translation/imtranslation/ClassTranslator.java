@@ -220,7 +220,7 @@ public class ClassTranslator {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
             // for dynamic class members create an array
-            ImType t = s.attrTyp().imTranslateType();
+            ImType t = s.attrTyp().imTranslateType(translator);
             v.setType(ImHelper.toArray(t));
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
@@ -316,7 +316,7 @@ public class ClassTranslator {
         Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
-            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(), p.getName(), false);
+            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), false);
             varReplacements.put(translator.getVarFor(p), imP);
             f.getParameters().add(imP);
         }

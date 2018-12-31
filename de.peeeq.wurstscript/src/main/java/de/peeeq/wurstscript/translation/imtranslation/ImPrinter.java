@@ -104,6 +104,7 @@ public class ImPrinter {
         }
         append(sb, "function ");
         append(sb, p.getName());
+        printTypeVariables(p.getTypeVariables(), sb, indent);
         append(sb, "(");
         boolean first = true;
         for (ImVar p1 : p.getParameters()) {
@@ -122,6 +123,20 @@ public class ImPrinter {
         }
         p.getBody().print(sb, indent + 1);
         append(sb, "}\n\n");
+    }
+
+    private static void printTypeVariables(ImTypeVars tvs, Appendable sb, int indent) {
+        if (tvs.isEmpty()) {
+            return;
+        }
+        append(sb, "<");
+        for (int i = 0; i < tvs.size(); i++) {
+            if (i > 0) {
+                append(sb, ", ");
+            }
+            append(sb, tvs.get(i).getName());
+        }
+        append(sb, ">");
     }
 
     public static void print(ImIf p, Appendable sb, int indent) {
@@ -183,6 +198,7 @@ public class ImPrinter {
 
     public static void print(ImFunctionCall p, Appendable sb, int indent) {
         append(sb, p.getFunc().getName());
+        printTypeArguments(p.getTypeArguments(), indent, sb);
         printArgumentList(sb, indent, p.getArguments());
     }
 

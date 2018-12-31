@@ -46,7 +46,7 @@ public class CyclicFunctionRemover {
 
         de.peeeq.wurstscript.ast.Element trace = funcs.get(0).getTrace();
 
-        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(), "funcChoice", false);
+        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(tr), "funcChoice", false);
 
         List<FunctionFlag> flags = Lists.newArrayList();
 

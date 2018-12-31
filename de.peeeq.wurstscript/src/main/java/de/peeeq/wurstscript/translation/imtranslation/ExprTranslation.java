@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.P2;
 import fj.data.Either;
 
 import java.util.HashMap;
@@ -192,7 +191,7 @@ public class ExprTranslation {
         } else if (expectedTypeRaw instanceof WurstTypeUnknown) {
             e.addError("Cannot use 'null' in this context.");
         }
-        return ImNull(expectedTypeRaw.imTranslateType());
+        return ImNull(expectedTypeRaw.imTranslateType(t));
     }
 
     public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -490,7 +489,7 @@ public class ExprTranslation {
         if (returnReveiver) {
             if (leftExpr == null)
                 throw new Error("impossible");
-            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(), "receiver", false);
+            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
             f.getLocals().add(tempVar);
             stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
@@ -528,7 +527,7 @@ public class ExprTranslation {
         for (ImTypeVar tv : typeVariables) {
             TypeParamDef tp = tr.getTypeParamDef(tv);
             WurstTypeBoundTypeParam t = mapping.get(tp).some();
-            ImType type = mapping.get(tp).some().imTranslateType();
+            ImType type = mapping.get(tp).some().imTranslateType(tr);
             // TODO handle constraints
             Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
             res.add(ImTypeArgument(type, typeClassBinding));

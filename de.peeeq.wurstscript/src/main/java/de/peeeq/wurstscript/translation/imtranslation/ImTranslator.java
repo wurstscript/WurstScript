@@ -93,7 +93,7 @@ public class ImTranslator {
 
     private boolean isUnitTestMode;
 
-    private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(), "lastInitFunc", false);
+    private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
 
     private int compiletimeOrderCounter = 1;
     private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
@@ -116,7 +116,7 @@ public class ImTranslator {
         try {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
-            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(), "msg",
+            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "msg",
                     false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             calculateCompiletimeOrder();
@@ -414,7 +414,7 @@ public class ImTranslator {
 
 
         // rewrite init func to return boolean true:
-        initFunc.setReturnType(WurstTypeBool.instance().imTranslateType());
+        initFunc.setReturnType(WurstTypeBool.instance().imTranslateType(this));
         initFunc.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImReturn imReturn) {
@@ -824,7 +824,7 @@ public class ImTranslator {
     public ImVar getVarFor(VarDef varDef) {
         ImVar v = varMap.get(varDef);
         if (v == null) {
-            ImType type = varDef.attrTyp().imTranslateType();
+            ImType type = varDef.attrTyp().imTranslateType(this);
             String name = varDef.getName();
             if (isNamedScopeVar(varDef)) {
                 name = getNameFor(varDef.attrNearestNamedScope()) + "_" + name;
@@ -1156,6 +1156,10 @@ public class ImTranslator {
 
     public TypeParamDef getTypeParamDef(ImTypeVar tv) {
         return typeVariableReverse.get(tv);
+    }
+
+    public ImTypeVar getTypeVar(TypeParamDef tv) {
+        return typeVariable.getFor(tv);
     }
 
 
