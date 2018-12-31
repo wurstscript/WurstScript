@@ -82,5 +82,41 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void extensionFunc() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	function boolean.choice<A:>(A x, A y) returns A",
+                "		if this",
+                "			return x",
+                "		return y",
+                "	init",
+                "		int x = true.choice(5, 3)",
+                "		string s = false.choice(\"a\", \"b\")",
+                "		if x == 5 and s == \"b\"",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+
+    @Test
+    public void extensionFuncReceiver() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	function A.choice<A:>(boolean b, A y) returns A",
+                "		if b",
+                "			return this",
+                "		return y",
+                "	init",
+                "		int x = (5).choice(true, 3)",
+                "		string s = \"a\".choice(false, \"b\")",
+                "		if x == 5 and s == \"b\"",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
 
 }

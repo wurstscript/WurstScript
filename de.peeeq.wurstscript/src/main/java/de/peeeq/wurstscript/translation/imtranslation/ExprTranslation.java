@@ -16,6 +16,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import fj.data.Either;
+import fj.data.Option;
 
 import java.util.HashMap;
 import java.util.List;
@@ -526,8 +527,12 @@ public class ExprTranslation {
         VariableBinding mapping = sig.getMapping();
         for (ImTypeVar tv : typeVariables) {
             TypeParamDef tp = tr.getTypeParamDef(tv);
-            WurstTypeBoundTypeParam t = mapping.get(tp).some();
-            ImType type = mapping.get(tp).some().imTranslateType(tr);
+            Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
+            if (to.isNone()) {
+                throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
+            }
+            WurstTypeBoundTypeParam t = to.some();
+            ImType type = t.imTranslateType(tr);
             // TODO handle constraints
             Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
             res.add(ImTypeArgument(type, typeClassBinding));

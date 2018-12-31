@@ -105,7 +105,9 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getDef(), VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(f.getTypeParams())), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        VariableBinding mapping = f.getVariableBinding();
+        mapping = mapping.withTypeVariables(fj.data.List.iterableList(f.getTypeParams()));
+        return new FunctionSignature(f.getDef(), mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 
