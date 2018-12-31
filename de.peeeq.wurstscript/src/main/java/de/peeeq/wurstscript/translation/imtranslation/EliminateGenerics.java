@@ -52,6 +52,7 @@ public class EliminateGenerics {
                 specializedFunc = specialize(f, generics);
             }
             fc.setFunc(specializedFunc);
+            fc.getTypeArguments().removeAll();
         }
     }
 
@@ -73,6 +74,12 @@ public class EliminateGenerics {
         // - ImMethodCall
         // - ImFunctionCall
         newF.accept(new Element.DefaultVisitor() {
+
+            @Override
+            public void visit(ImTypeArgument ta) {
+                ta.setType(transformType(ta.getType()));
+            }
+
             @Override
             public void visit(ImMethodCall mc) {
                 if (!mc.getTypeArguments().isEmpty()) {
