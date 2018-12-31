@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Table;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
@@ -8,6 +9,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -60,6 +62,9 @@ public class EliminateGenerics {
      * creates a specialized version of this function
      */
     private ImFunction specialize(ImFunction f, GenericTypes generics) {
+        if (f.getTypeVariables().isEmpty()) {
+            return f;
+        }
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
         prog.getFunctions().add(newF);
@@ -191,14 +196,14 @@ public class EliminateGenerics {
      * wraps an imType and adds a hashmap and equals method
      */
     static class GenericTypes {
-        private final ImTypeArguments typeArguments;
+        private final List<ImTypeArgument> typeArguments;
 
 
         public GenericTypes(ImTypeArguments typeArguments) {
-            this.typeArguments = typeArguments;
+            this.typeArguments = ImmutableList.copyOf(typeArguments);
         }
 
-        public ImTypeArguments getTypeArguments() {
+        public List<ImTypeArgument> getTypeArguments() {
             return typeArguments;
         }
 
@@ -226,7 +231,7 @@ public class EliminateGenerics {
 
         @Override
         public int hashCode() {
-            int res = 0;
+            int res = 7;
             for (ImTypeArgument it : typeArguments) {
                 res = 131 * res + hashType(it.getType());
             }
@@ -288,6 +293,19 @@ public class EliminateGenerics {
                 }
                 ta.getType().print(sb, 0);
             }
+            return sb.toString();
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder("<");
+            for (ImTypeArgument ta : typeArguments) {
+                if (sb.length() > 1) {
+                    sb.append(", ");
+                }
+                ta.getType().print(sb, 0);
+            }
+            sb.append(">");
             return sb.toString();
         }
     }
