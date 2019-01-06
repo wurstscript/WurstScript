@@ -94,7 +94,10 @@ dependencies {
     // Chardet for guessing the file-encoding of a source-file
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
-    // Water's wc3 libs including Crigges' jmpq
+    // Crigges' jmpq
+    compile group: 'com.github.inwc3', name: 'jmpq3', version: '1.7.7'
+
+    // Water's wc3 libs
     compile 'com.github.inwc3:wc3libs:7fe3b95163'
 
     // The setup tool for wurst.build handling
