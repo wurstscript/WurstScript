@@ -1,15 +1,12 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.NoTypeParamConstraints;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import fj.data.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.HashMap;
@@ -190,5 +187,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     public @Nullable Map<FuncDef, FuncLink> getTypeConstraintFunctions() {
         return typeConstraintFunctions;
+    }
+
+    public boolean isTemplateTypeParameter() {
+        return typeParamDef.getTypeParamConstraints() instanceof TypeExprList;
+    }
+
+    public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
+        ImType t = imTranslateType(tr);
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+        // TODO add type class binding
+        return JassIm.ImTypeArgument(t, typeClassBinding);
     }
 }

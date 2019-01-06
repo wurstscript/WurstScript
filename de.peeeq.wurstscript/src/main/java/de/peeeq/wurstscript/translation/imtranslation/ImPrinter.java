@@ -23,30 +23,32 @@ public class ImPrinter {
             append(sb, "class ");
             append(sb, c.getName());
             append(sb, smallHash(c));
+            printTypeVariables(c.getTypeVariables(), sb, indent);
             append(sb, " extends ");
             for (ImClass sc : c.getSuperClasses()) {
                 append(sb, sc.getName());
                 append(sb, smallHash(sc));
+                printTypeVariables(sc.getTypeVariables(), sb, indent);
                 append(sb, " ");
             }
             append(sb, "{\n");
             for (ImVar f : c.getFields()) {
-                f.print(sb, 1);
+                f.print(sb, indent + 1);
                 append(sb, "\n");
             }
             append(sb, "\n\n");
             for (ImMethod m : c.getMethods()) {
                 if (m.getIsAbstract()) {
-                    append(sb, "	abstract");
+                    append(sb, "    abstract");
                 }
-                append(sb, "	method ");
+                append(sb, "    method ");
                 append(sb, m.getName());
                 append(sb, smallHash(m));
                 append(sb, " implemented by ");
                 append(sb, m.getImplementation().getName());
                 append(sb, "\n");
                 for (ImMethod sm : m.getSubMethods()) {
-                    append(sb, "		sub: ");
+                    append(sb, "        sub: ");
                     append(sb, sm.getName());
                     append(sb, smallHash(sm));
                     append(sb, "\n");
@@ -304,6 +306,7 @@ public class ImPrinter {
 
 
     public static void print(ImVar v, Appendable sb, int indent) {
+        indent(sb, indent);
         v.getType().print(sb, indent);
         append(sb, " ");
         append(sb, v.getName());

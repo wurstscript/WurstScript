@@ -126,8 +126,9 @@ public class ClosureTranslator {
 
         ImVars fields = JassIm.ImVars();
         ImMethods methods = JassIm.ImMethods();
+        ImFunctions functions = JassIm.ImFunctions();
         List<ImClass> superClasses = java.util.Collections.singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, superClasses);
+        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();
@@ -145,6 +146,8 @@ public class ClosureTranslator {
 //		List<FunctionFlag> flags = Collections.emptyList();
 //		ImFunction impl JassIm.ImFunction(e, superMethod.getName(), parameters, returnType, locals, body, flags);
         impl = tr.getFuncFor(e);
+        tr.getImProg().getFunctions().remove(impl);
+        functions.add(impl);
         ImMethod m = JassIm.ImMethod(e, superMethod.getName(), impl, JassIm.ImMethods(), false);
         c.getMethods().add(m);
 

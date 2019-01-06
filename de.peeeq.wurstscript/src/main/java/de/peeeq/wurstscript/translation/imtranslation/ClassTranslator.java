@@ -67,12 +67,20 @@ public class ClassTranslator {
         List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
+        addTypeVariables();
         translateMethods(classDef, subClasses);
         translateVars(classDef);
         translateConstructors();
         createOnDestroyMethod();
         createDestroyMethod(subClasses);
 
+    }
+
+    private void addTypeVariables() {
+        for (TypeParamDef tp : classDef.getTypeParameters()) {
+            ImTypeVar tv = translator.getTypeVar(tp);
+            imClass.getTypeVariables().add(tv);
+        }
     }
 
 
@@ -219,14 +227,13 @@ public class ClassTranslator {
     private void translateVar(GlobalVarDef s) {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
-            // for dynamic class members create an array
-            ImType t = s.attrTyp().imTranslateType(translator);
-            v.setType(ImHelper.toArray(t));
+            // add dynamic class members to the class
+            imClass.getFields().add(v);
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
             translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
+            translator.addGlobal(v);
         }
-        translator.addGlobal(v);
     }
 
     private void translateMethods(ClassOrModuleInstanciation c, List<ClassDef> subClasses) {

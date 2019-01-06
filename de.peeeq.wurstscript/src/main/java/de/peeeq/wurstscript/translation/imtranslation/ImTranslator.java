@@ -453,6 +453,20 @@ public class ImTranslator {
         return true;
     }
 
+    private void addFunction(ImFunction f, StructureDef s) {
+        ImClass c = getClassFor(s);
+        c.getFunctions().add(f);
+    }
+
+    private void addFunction(ImFunction f, TranslatedToImFunction funcDef) {
+        ImClass classForFunc = getClassForFunc(funcDef);
+        if (classForFunc != null) {
+            classForFunc.getFunctions().add(f);
+        } else {
+            addFunction(f);
+        }
+    }
+
     private void addFunction(ImFunction f) {
         imProg.getFunctions().add(f);
     }
@@ -526,7 +540,7 @@ public class ImTranslator {
             ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 
             ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
-            addFunction(f);
+            addFunction(f, classDef);
             return f;
         }
     };
@@ -630,9 +644,59 @@ public class ImTranslator {
         ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
 
-        addFunction(f);
+        addFunction(f, funcDef);
         functionMap.put(funcDef, f);
         return f;
+    }
+
+    private ImClass getClassForFunc(TranslatedToImFunction funcDef) {
+        if (funcDef == null) {
+            return null;
+        }
+        return funcDef.match(new TranslatedToImFunction.Matcher<ImClass>() {
+            @Override
+            public ImClass case_TupleDef(TupleDef tupleDef) {
+                return null;
+            }
+
+            @Override
+            public ImClass case_FuncDef(FuncDef funcDef) {
+                if (funcDef.attrIsDynamicClassMember()) {
+                    return getClassFor(funcDef.attrNearestStructureDef());
+                }
+                return null;
+            }
+
+            @Override
+            public ImClass case_NativeFunc(NativeFunc nativeFunc) {
+                return null;
+            }
+
+            @Override
+            public ImClass case_OnDestroyDef(OnDestroyDef funcDef) {
+                return getClassFor(funcDef.attrNearestStructureDef());
+            }
+
+            @Override
+            public ImClass case_InitBlock(InitBlock initBlock) {
+                return null;
+            }
+
+            @Override
+            public ImClass case_ExtensionFuncDef(ExtensionFuncDef extensionFuncDef) {
+                return null;
+            }
+
+            @Override
+            public ImClass case_ConstructorDef(ConstructorDef funcDef) {
+                return getClassFor(funcDef.attrNearestStructureDef());
+            }
+
+            @Override
+            public ImClass case_ExprClosure(ExprClosure exprClosure) {
+                return null;
+            }
+        });
     }
 
     private ImTypeVars collectTypeVarsForFunction(TranslatedToImFunction funcDef) {
@@ -640,17 +704,9 @@ public class ImTranslator {
         funcDef.match(new TranslatedToImFunction.MatcherVoid() {
             @Override
             public void case_FuncDef(FuncDef funcDef) {
-                if (funcDef.attrIsDynamicClassMember()) {
-                    addTypeParameterFromClass(funcDef.attrNearestStructureDef());
-                }
                 handleTypeParameters(funcDef.getTypeParameters());
             }
 
-            private void addTypeParameterFromClass(StructureDef s) {
-                if (s instanceof AstElementWithTypeParameters) {
-                    handleTypeParameters(((AstElementWithTypeParameters) s).getTypeParameters());
-                }
-            }
 
             private void handleTypeParameters(TypeParamDefs tps) {
                 for (TypeParamDef tp : tps) {
@@ -666,7 +722,6 @@ public class ImTranslator {
 
             @Override
             public void case_ConstructorDef(ConstructorDef constructorDef) {
-                addTypeParameterFromClass(constructorDef.attrNearestStructureDef());
             }
 
             @Override
@@ -675,7 +730,6 @@ public class ImTranslator {
 
             @Override
             public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
-                addTypeParameterFromClass(onDestroyDef.attrNearestStructureDef());
             }
 
             @Override
@@ -1003,7 +1057,7 @@ public class ImTranslator {
             }
 
             f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), flags());
-            addFunction(f);
+            addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
         return f;
@@ -1036,7 +1090,7 @@ public class ImTranslator {
             String name = "new_" + constr.attrNearestClassDef().getName();
 
             f = ImFunction(constr, name, ImTypeVars(), ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), flags());
-            addFunction(f);
+            addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }
         return f;
@@ -1444,8 +1498,7 @@ public class ImTranslator {
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
-        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(),
-                Lists.<ImClass>newArrayList()));
+        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.<ImClass>newArrayList()));
     }
 
 

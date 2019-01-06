@@ -51,7 +51,8 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars fields, 
-	ImMethods methods, 
+	ImMethods methods,
+	ImFunctions functions,
 	java.util.List<ImClass> superClasses)
 
 ImMethods * ImMethod
@@ -110,7 +111,7 @@ ImClassRelatedExpr =
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
 	| ImAlloc(ref ImClass clazz)
 	| ImDealloc(ref ImClass clazz, ImExpr obj)
-	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var)
+	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var, ImExprs indexes)
 	| ImInstanceof(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
 	| ImTypeIdOfClass(ref ImClass clazz)

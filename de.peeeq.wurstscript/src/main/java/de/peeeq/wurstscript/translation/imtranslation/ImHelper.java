@@ -37,8 +37,10 @@ public class ImHelper {
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
             nsize.add(8192);
             return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
+        } else if (t instanceof ImTypeVarRef) {
+            return JassIm.ImArrayType(t);
         }
-        throw new Error("Can't make array type from " + t);
+        throw new Error("Can't make array type from " + t + " -- " + t.getClass());
     }
 
     public static void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {

@@ -61,6 +61,26 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore // TODO
+    public void identityRecTypeCreation() {
+        testAssertErrorsLines(true, "some error message",
+                "package test",
+                "	native testSuccess()",
+                "	class C<T>",
+                "		construct(T t)",
+                "	function blub<A:>(int i, A a) returns int",
+                "		if i <= 0",
+                "			return 0",
+                "		return 1 + blub<C<A>>(i-1, new C(a))",
+                "	init",
+                "		int x = blub(5, 3)",
+                "		if x == 5",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void identityRecMut() {
         testAssertOkLines(true,
                 "package test",
@@ -116,6 +136,23 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "		if x == 5 and s == \"b\"",
                 "			testSuccess()",
                 "endpackage"
+        );
+    }
+
+    @Test
+    public void genericsDispatch() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "class Cell<T:>",
+                "	T o",
+                "init",
+                "	Cell<int> x = new Cell<int>()",
+                "	Cell<string> y = new Cell<string>()",
+                "	x.o = 3",
+                "	y.o = \"a\"",
+                "	if x.o == 3 and y.o == \"a\"",
+                "		testSuccess()"
         );
     }
 

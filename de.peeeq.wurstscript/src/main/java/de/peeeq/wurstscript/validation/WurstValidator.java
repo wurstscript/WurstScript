@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
-import de.peeeq.wurstscript.attributes.SmallHelpers;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -17,7 +16,6 @@ import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
 import fj.P2;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -1483,63 +1481,70 @@ public class WurstValidator {
         for (P2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
             WurstTypeBoundTypeParam boundTyp = t._2();
             WurstType typ = boundTyp.getBaseType();
-            if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
-                String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
-                String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
-                Collection<FuncLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);
-                Collection<FuncLink> fromIndexFuncs = ImplicitFuncs.findFromIndexFuncs(typ, e);
-                if (toIndexFuncs.isEmpty()) {
-                    e.addError("Type parameters can only be bound to ints and class types, but " + "not to " + typ
-                            + ".\n" + "You can provide functions " + toIndexFuncName + " and " + fromIndexFuncName
-                            + " to use this type " + "with generics.");
-                } else if (fromIndexFuncs.isEmpty()) {
-                    e.addError("Could not find function " + fromIndexFuncName + " which is required to use " + typ
-                            + " with generics.");
-                } else {
-                    if (toIndexFuncs.size() > 1) {
-                        e.addError("There is more than one function named " + toIndexFuncName);
-                    }
-                    if (fromIndexFuncs.size() > 1) {
-                        e.addError("There is more than one function named " + fromIndexFuncName);
-                    }
-                    NameDef toIndex = Utils.getFirst(toIndexFuncs).getDef();
-                    if (toIndex instanceof FuncDef) {
-                        FuncDef toIndexF = (FuncDef) toIndex;
 
-                        if (toIndexF.getParameters().size() != 1) {
-                            toIndexF.addError("Must have exactly one parameter");
+            TypeParamDef tp = t._1();
+            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                // new style generics
+            } else { // old style generics
 
-                        } else if (!toIndexF.getParameters().get(0).attrTyp().equalsType(typ, e)) {
-                            toIndexF.addError("Parameter must be of type " + typ);
-                        }
-
-                        WurstType returnType = toIndexF.attrReturnTyp();
-                        if (!returnType.equalsType(WurstTypeInt.instance(), e)) {
-                            toIndexF.addError("Return type must be of type int " + " but was " + returnType);
-                        }
+                if (!typ.isTranslatedToInt() && !(e instanceof ModuleUse)) {
+                    String toIndexFuncName = ImplicitFuncs.toIndexFuncName(typ);
+                    String fromIndexFuncName = ImplicitFuncs.fromIndexFuncName(typ);
+                    Collection<FuncLink> toIndexFuncs = ImplicitFuncs.findToIndexFuncs(typ, e);
+                    Collection<FuncLink> fromIndexFuncs = ImplicitFuncs.findFromIndexFuncs(typ, e);
+                    if (toIndexFuncs.isEmpty()) {
+                        e.addError("Type parameters can only be bound to ints and class types, but " + "not to " + typ
+                                + ".\n" + "You can provide functions " + toIndexFuncName + " and " + fromIndexFuncName
+                                + " to use this type " + "with generics.");
+                    } else if (fromIndexFuncs.isEmpty()) {
+                        e.addError("Could not find function " + fromIndexFuncName + " which is required to use " + typ
+                                + " with generics.");
                     } else {
-                        toIndex.addError("This should be a function.");
-                    }
+                        if (toIndexFuncs.size() > 1) {
+                            e.addError("There is more than one function named " + toIndexFuncName);
+                        }
+                        if (fromIndexFuncs.size() > 1) {
+                            e.addError("There is more than one function named " + fromIndexFuncName);
+                        }
+                        NameDef toIndex = Utils.getFirst(toIndexFuncs).getDef();
+                        if (toIndex instanceof FuncDef) {
+                            FuncDef toIndexF = (FuncDef) toIndex;
 
-                    NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getDef();
-                    if (fromIndex instanceof FuncDef) {
-                        FuncDef fromIndexF = (FuncDef) fromIndex;
+                            if (toIndexF.getParameters().size() != 1) {
+                                toIndexF.addError("Must have exactly one parameter");
 
-                        if (fromIndexF.getParameters().size() != 1) {
-                            fromIndexF.addError("Must have exactly one parameter");
+                            } else if (!toIndexF.getParameters().get(0).attrTyp().equalsType(typ, e)) {
+                                toIndexF.addError("Parameter must be of type " + typ);
+                            }
 
-                        } else if (!fromIndexF.getParameters().get(0).attrTyp()
-                                .equalsType(WurstTypeInt.instance(), e)) {
-                            fromIndexF.addError("Parameter must be of type int");
+                            WurstType returnType = toIndexF.attrReturnTyp();
+                            if (!returnType.equalsType(WurstTypeInt.instance(), e)) {
+                                toIndexF.addError("Return type must be of type int " + " but was " + returnType);
+                            }
+                        } else {
+                            toIndex.addError("This should be a function.");
                         }
 
-                        WurstType returnType = fromIndexF.attrReturnTyp();
-                        if (!returnType.equalsType(typ, e)) {
-                            fromIndexF.addError("Return type must be of type " + typ + " but was " + returnType);
-                        }
+                        NameDef fromIndex = Utils.getFirst(fromIndexFuncs).getDef();
+                        if (fromIndex instanceof FuncDef) {
+                            FuncDef fromIndexF = (FuncDef) fromIndex;
 
-                    } else {
-                        fromIndex.addError("This should be a function.");
+                            if (fromIndexF.getParameters().size() != 1) {
+                                fromIndexF.addError("Must have exactly one parameter");
+
+                            } else if (!fromIndexF.getParameters().get(0).attrTyp()
+                                    .equalsType(WurstTypeInt.instance(), e)) {
+                                fromIndexF.addError("Parameter must be of type int");
+                            }
+
+                            WurstType returnType = fromIndexF.attrReturnTyp();
+                            if (!returnType.equalsType(typ, e)) {
+                                fromIndexF.addError("Return type must be of type " + typ + " but was " + returnType);
+                            }
+
+                        } else {
+                            fromIndex.addError("This should be a function.");
+                        }
                     }
                 }
             }

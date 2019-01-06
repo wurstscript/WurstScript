@@ -2,9 +2,8 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
@@ -136,7 +135,13 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
 
     @Override
     public ImType imTranslateType(ImTranslator tr) {
-        return TypesHelper.imInt();
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
+            if (btp.isTemplateTypeParameter()) {
+                typeArgs.add(btp.imTranslateToTypeArgument(tr));
+            }
+        }
+        return JassIm.ImClassType(tr.getClassFor(classDef), typeArgs);
     }
 
     @Override

@@ -19,6 +19,7 @@ public class EliminateGenerics {
 
     private final ImTranslator translator;
     private final ImProg prog;
+    // TODO only use one queue here with the different cases (add: generic class type, member access)
     private Deque<ImFunctionCall> genericFunctionCalls = new ArrayDeque<>();
     private Deque<ImMethodCall> genericMethodCalls = new ArrayDeque<>();
     private Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
