@@ -3,6 +3,7 @@ package de.peeeq.wurstio.jassinterpreter;
 import de.peeeq.wurstio.jassinterpreter.providers.*;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 
@@ -76,6 +77,11 @@ public class ReflectionNativeProvider implements NativesProvider {
             for (int i = 0; i < args.length; i++) {
                 parameterTypes[i] = "" + args[i];
                 if (!candidate.getMethod().getParameterTypes()[i].isAssignableFrom(args[i].getClass())) {
+                    if (args[i] instanceof ILconstNull) {
+                        // handle null as a special case and pass it to the native as a Java null
+                        args[i] = null;
+                        continue;
+                    }
                     throw new Error("The native <" + funcname + "> expects different parameter " + i + "!" +
                             "\n\tExpected: " + candidate.getMethod().getParameterTypes()[i].getSimpleName() + " Actual: " + parameterTypes[i]);
                 }

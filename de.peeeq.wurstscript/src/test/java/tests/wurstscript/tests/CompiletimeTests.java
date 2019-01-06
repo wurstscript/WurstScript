@@ -86,4 +86,29 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void nullBug() {
+        testAssertOkLinesWithStdLib(true,
+                "package Hello",
+                "import LinkedList",
+                "",
+                "function myFunction(int i) returns string",
+                "	if 0 == i",
+                "		return null // This causes the bug",
+                "	else",
+                "		return \"i=\" + i.toString()",
+                "",
+                "init",
+                "	let original = new LinkedList<int>..add(0, 1, 2)",
+                "	let mapped = original.map(i -> myFunction(i))",
+                "	println(mapped.get(0))",
+                "	println(mapped.get(1))",
+                "	if mapped.get(1) == \"i=1\"",
+                "		testSuccess()");
+
+    }
+
+
+
+
 }
