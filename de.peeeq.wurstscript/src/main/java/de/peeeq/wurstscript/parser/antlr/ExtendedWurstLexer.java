@@ -252,9 +252,6 @@ public class ExtendedWurstLexer implements TokenSource {
         switch (token.getType()) {
             case WurstParser.TAB: return len*4;
             case WurstParser.SPACETAB:
-                if (tabWarning == null && len % 2 == 1) {
-                    tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Use an even number of spaces for indentation.");
-                }
                 return len;
             default: throw new IllegalArgumentException();
         }
@@ -328,6 +325,10 @@ public class ExtendedWurstLexer implements TokenSource {
                 String message = "Inconsistent indentation: Earlier in this file " + spacesPerIndent + " spaces were used for indentation and here it is " + (n - indentationLevels.peek()) + " spaces.";
                 tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), message);
             }
+            if (tabWarning == null && n % 2 == 1) {
+                tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Use an even number of spaces for indentation.");
+            }
+
 
             indentationLevels.push(n);
             nextTokens.add(makeToken(WurstParser.STARTBLOCK, "$begin", start, stop));
