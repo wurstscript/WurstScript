@@ -589,7 +589,8 @@ fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
 
 TAB: [\t]+;
-SPACETAB:' '+;
+SPACETAB:' ' ' '+;
+SPACES: ' ' -> skip;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

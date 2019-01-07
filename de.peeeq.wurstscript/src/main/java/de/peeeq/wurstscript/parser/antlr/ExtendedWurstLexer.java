@@ -251,7 +251,11 @@ public class ExtendedWurstLexer implements TokenSource {
         int len = 1 + token.getStopIndex() - token.getStartIndex();
         switch (token.getType()) {
             case WurstParser.TAB: return len*4;
-            case WurstParser.SPACETAB: return len;
+            case WurstParser.SPACETAB:
+                if (tabWarning == null && len % 2 == 1) {
+                    tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Use an even number of spaces for indentation.");
+                }
+                return len;
             default: throw new IllegalArgumentException();
         }
     }

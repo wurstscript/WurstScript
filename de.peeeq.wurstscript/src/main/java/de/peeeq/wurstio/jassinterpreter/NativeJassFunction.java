@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 public class NativeJassFunction implements ExecutableJassFunction {
 
@@ -17,6 +18,7 @@ public class NativeJassFunction implements ExecutableJassFunction {
 
     @Override
     public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
+        System.out.println("execute " + this.provider + " . " + this.method.getName() + " " + Arrays.toString(arguments));
         try {
             Object result = method.invoke(provider, (Object[]) arguments);
             return (ILconst) result;

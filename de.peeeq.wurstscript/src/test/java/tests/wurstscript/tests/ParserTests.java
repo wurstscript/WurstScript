@@ -80,7 +80,7 @@ public class ParserTests extends WurstScriptTest {
                 "    var x = 1",
                 "    if x > 10",
                 "		x -= 1",
-                "	x += 1");
+                "	 x += 1");
     }
 
     @Test
@@ -93,7 +93,7 @@ public class ParserTests extends WurstScriptTest {
                 "    if x > 10",
                 "        x -= 1",
                 "        y += 1",
-                "	x += 1");
+                "	 x += 1");
     }
 
     @Test
