@@ -588,10 +588,8 @@ INT: [0-9]+ | HexInt | CharInt;
 fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
 
-TAB: [\t];
-SPACETAB:'    ';
-SPACETAB2:'  ';
-WS : (' '|'   ') -> skip ;
+TAB: [\t]+;
+SPACETAB:' '+;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

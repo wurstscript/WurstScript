@@ -5,9 +5,11 @@ import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.StringReader;
+import java.util.Collections;
 
 import static org.testng.Assert.assertEquals;
 
@@ -78,7 +80,7 @@ public class ParserTests extends WurstScriptTest {
                 "    var x = 1",
                 "    if x > 10",
                 "		x -= 1",
-                "	 x += 1");
+                "	x += 1");
     }
 
     @Test
@@ -91,7 +93,7 @@ public class ParserTests extends WurstScriptTest {
                 "    if x > 10",
                 "        x -= 1",
                 "        y += 1",
-                "	 x += 1");
+                "	x += 1");
     }
 
     @Test
@@ -104,6 +106,70 @@ public class ParserTests extends WurstScriptTest {
                 "    bar((']'),'hfoo')",
                 "");
     }
+
+    @Test
+    public void twoSpaces() {
+        testAssertOkLines(false,
+                "package test",
+                "init",
+                "  int x = 1",
+                "  if x > 5",
+                "    x = x + 1",
+                "    if x > 10",
+                "      x = x * 2"
+        );
+    }
+
+    @Test
+    public void twoSpacesMixed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function foo()",
+                "  int x = 1",
+                "  if x > 5",
+                "    x = x + 1",
+                "    if x > 10",
+                "      x = x * 2",
+                "function bar()",
+                "    int x = 1",
+                "    if x > 5",
+                "        x = x + 1",
+                "        if x > 10",
+                "            x = x * 2");
+        Assert.assertTrue(
+                res.getGui()
+                        .getWarningList()
+                        .stream()
+                        .anyMatch(w -> w.getMessage().contains("Inconsistent indentation: Earlier in this file 2 spaces were used for indentation and here it is 4 spaces."))
+        );
+    }
+
+    @Test
+    public void alignWithSpacesAllowed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function int.foo() returns int",
+                "    return this + 1",
+                "function bar(int xyz) returns int",
+                "    return xyz..foo()",
+                "              ..foo()",
+                "               .foo()");
+        Assert.assertEquals(res.getGui().getWarningList().toString(), "[]");
+    }
+
+    @Test
+    public void alignWithTabsAllowed() {
+        CompilationResult res = test().executeProg(false).lines(
+                "package test",
+                "function int.foo() returns int",
+                "	return this + 1",
+                "function bar(int xyz) returns int",
+                "	return xyz..foo()",
+                "			  ..foo()",
+                "			   .foo()");
+        Assert.assertEquals(res.getGui().getWarningList().toString(), "[]");
+    }
+
 
     @Test
     public void positionsNormalLineBreaks() {
