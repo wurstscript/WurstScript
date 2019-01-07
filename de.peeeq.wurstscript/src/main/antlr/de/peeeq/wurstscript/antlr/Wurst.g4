@@ -590,7 +590,8 @@ fragment EscapeSequence: '\\' [abfnrtvz"'\\];
 
 TAB: [\t];
 SPACETAB:'    ';
-WS : (' '|'  '|'   ') -> skip ;
+SPACETAB2:'  ';
+WS : (' '|'   ') -> skip ;
 HOTDOC_COMMENT: '/**' .*? '*/';
 ML_COMMENT: '/*' .*? '*/' -> skip;
 LINE_COMMENT: '//' ~[\r\n]* -> skip;

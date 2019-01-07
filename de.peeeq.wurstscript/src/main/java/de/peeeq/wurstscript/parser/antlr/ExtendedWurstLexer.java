@@ -40,6 +40,7 @@ public class ExtendedWurstLexer implements TokenSource {
     enum TabChoice {
         Unknown(0),
         Spaces(WurstParser.SPACETAB),
+        Spaces2(WurstParser.SPACETAB2),
         Tabs(WurstParser.TAB);
 
         private int symbol;
@@ -50,7 +51,9 @@ public class ExtendedWurstLexer implements TokenSource {
         }
 
         public static TabChoice from(Token token) {
-            if (token.getType() == WurstParser.SPACETAB) {
+            if (token.getType() == WurstParser.SPACETAB2) {
+              return Spaces2;
+            } else if (token.getType() == WurstParser.SPACETAB) {
                 return Spaces;
             } else {
                 return Tabs;
@@ -266,7 +269,8 @@ public class ExtendedWurstLexer implements TokenSource {
 
     private boolean isTab(Token token) {
         return token.getType() == WurstParser.TAB
-                || token.getType() == WurstParser.SPACETAB;
+          || token.getType() == WurstParser.SPACETAB
+          || token.getType() == WurstParser.SPACETAB2;
     }
 
 
