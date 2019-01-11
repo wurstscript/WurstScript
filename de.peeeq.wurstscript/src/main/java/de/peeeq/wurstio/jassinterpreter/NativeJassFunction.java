@@ -1,9 +1,11 @@
 package de.peeeq.wurstio.jassinterpreter;
 
 import de.peeeq.wurstscript.intermediatelang.ILconst;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 public class NativeJassFunction implements ExecutableJassFunction {
 
@@ -18,6 +20,12 @@ public class NativeJassFunction implements ExecutableJassFunction {
     @Override
     public ILconst execute(JassInterpreter jassInterpreter, ILconst[] arguments) {
         try {
+            for (int i = 0; i < arguments.length; i++) {
+                if (arguments[i] instanceof ILconstNull
+                        && !method.getParameterTypes()[i].isAssignableFrom(arguments[i].getClass())) {
+                    arguments[i] = null;
+                }
+            }
             Object result = method.invoke(provider, (Object[]) arguments);
             return (ILconst) result;
         } catch (IllegalArgumentException | IllegalAccessException e) {

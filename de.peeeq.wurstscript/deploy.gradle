@@ -68,7 +68,6 @@ task create_zips {
                     "../downloads/wurstpack.md5"]
         }
     }
-
 }
 create_zips.dependsOn(installDist)
 create_zips.dependsOn(create_zip_wurstpack_complete)

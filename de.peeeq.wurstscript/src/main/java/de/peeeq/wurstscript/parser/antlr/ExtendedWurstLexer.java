@@ -20,6 +20,7 @@ public class ExtendedWurstLexer implements TokenSource {
     private Queue<Token> nextTokens = new LinkedList<>();
     private State state = State.INIT;
     private Stack<Integer> indentationLevels = new Stack<>();
+    private int spacesPerIndent = -1;
     private @Nullable Token eof = null;
     private Token firstNewline;
     private int numberOfTabs;
@@ -38,16 +39,9 @@ public class ExtendedWurstLexer implements TokenSource {
     }
 
     enum TabChoice {
-        Unknown(0),
-        Spaces(WurstParser.SPACETAB),
-        Tabs(WurstParser.TAB);
-
-        private int symbol;
-
-        TabChoice(int symbol) {
-
-            this.symbol = symbol;
-        }
+        Unknown,
+        Spaces,
+        Tabs;
 
         public static TabChoice from(Token token) {
             if (token.getType() == WurstParser.SPACETAB) {
@@ -57,9 +51,6 @@ public class ExtendedWurstLexer implements TokenSource {
             }
         }
 
-        public boolean isConsistentWith(Token token) {
-            return symbol == token.getType();
-        }
     }
 
 
@@ -150,7 +141,7 @@ public class ExtendedWurstLexer implements TokenSource {
                 for (int i = 0; i < token.getText().length(); i++) {
                     char c = token.getText().charAt(i);
                     if (c == '\n') {
-                        lineOffsets.set(token.getLine() + line, token.getStartIndex()+i);
+                        lineOffsets.set(token.getLine() + line, token.getStartIndex() + i);
                         line++;
                     }
                 }
@@ -166,7 +157,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     nextTokens.add(makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex()));
                 }
 
-                lineOffsets.set(token.getLine(), token.getStopIndex()+1);
+                lineOffsets.set(token.getLine(), token.getStopIndex() + 1);
                 // add a single newline
                 return makeToken(WurstParser.NL, "$NL", token.getStartIndex(), token.getStopIndex());
             }
@@ -199,7 +190,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     } else if (isTab(token)) {
                         state(State.BEGIN_LINE);
                         readTabChar(token);
-                        numberOfTabs = 1;
+                        numberOfTabs = tabWidth(token);
                         continue;
                     } else {
                         // no tabs after newline
@@ -232,7 +223,7 @@ public class ExtendedWurstLexer implements TokenSource {
                 case BEGIN_LINE:
                     if (isTab(token)) {
                         readTabChar(token);
-                        numberOfTabs++;
+                        numberOfTabs += tabWidth(token);
                     } else if (token.getType() == WurstParser.NL) {
                         state(State.NEWLINES);
                     } else if (isWrapCharBeginLine(token.getType())) {
@@ -256,11 +247,31 @@ public class ExtendedWurstLexer implements TokenSource {
         }
     }
 
+    private int tabWidth(Token token) {
+        int len = 1 + token.getStopIndex() - token.getStartIndex();
+        switch (token.getType()) {
+            case WurstParser.TAB: return len*4;
+            case WurstParser.SPACETAB:
+                return len;
+            default: throw new IllegalArgumentException();
+        }
+    }
+
     private void readTabChar(Token token) {
         if (tabChoice == TabChoice.Unknown) {
             tabChoice = TabChoice.from(token);
-        } else if (tabWarning == null && !tabChoice.isConsistentWith(token)) {
-            tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
+        } else if (tabWarning == null) {
+            if (token.getType() == WurstParser.TAB) {
+                if (tabChoice == TabChoice.Spaces) {
+                    tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
+                }
+            } else if (token.getType() == WurstParser.SPACETAB
+                    && tabChoice == TabChoice.Tabs) {
+                if (tabWidth(token) > 3) {
+                    // up to 3 spaces is allowed for alignment
+                    tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
+                }
+            }
         }
     }
 
@@ -306,13 +317,19 @@ public class ExtendedWurstLexer implements TokenSource {
         if (!isWurst) {
             return;
         }
-//        Token t = lastToken;
-//        if (t != null) {
-//            start = t.getStopIndex();
-//            stop = t.getStopIndex();
-//        }
         if (debug) WLogger.info("handleIndent " + n + "	 " + indentationLevels);
         if (n > indentationLevels.peek()) {
+            if (spacesPerIndent < 0) {
+                spacesPerIndent = n;
+            } else if (tabWarning == null && n != indentationLevels.peek() + spacesPerIndent) {
+                String message = "Inconsistent indentation: Earlier in this file " + spacesPerIndent + " spaces were used for indentation and here it is " + (n - indentationLevels.peek()) + " spaces.";
+                tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), message);
+            }
+            if (tabWarning == null && n % 2 == 1) {
+                tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Use an even number of spaces for indentation.");
+            }
+
+
             indentationLevels.push(n);
             nextTokens.add(makeToken(WurstParser.STARTBLOCK, "$begin", start, stop));
         } else {
@@ -325,13 +342,15 @@ public class ExtendedWurstLexer implements TokenSource {
                 // all lines must be indented on the same level,
                 // with the exception of the 'end' keyword, which can be on a different line
                 if (token.getType() != WurstParser.END) {
+                    String msg = "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".";
                     for (ANTLRErrorListener el : orig.getErrorListeners()) {
                         int line = lineOffsets.getLine(start);
-                        el.syntaxError(orig, "", line, start - lineOffsets.get(line), "Invalid indentation level. Current indentation is " + expectedIndentation + ", but this is indented by " + n + ".", null);
+                        el.syntaxError(orig, "", line, start - lineOffsets.get(line), msg, null);
                     }
                 }
             }
         }
+
     }
 
 
