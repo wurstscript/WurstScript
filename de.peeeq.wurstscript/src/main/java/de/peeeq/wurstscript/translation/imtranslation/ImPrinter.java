@@ -56,6 +56,10 @@ public class ImPrinter {
                 append(sb, "\n");
             }
 
+            for (ImFunction func : c.getFunctions()) {
+                func.print(sb, indent + 1);
+            }
+
             append(sb, "}\n\n");
         }
 
@@ -100,6 +104,7 @@ public class ImPrinter {
     }
 
     public static void print(ImFunction p, Appendable sb, int indent) {
+        indent(sb, indent);
         for (FunctionFlag flag : p.getFlags()) {
             append(sb, flag);
             append(sb, " ");
@@ -124,6 +129,7 @@ public class ImPrinter {
             append(sb, "\n");
         }
         p.getBody().print(sb, indent + 1);
+        indent(sb, indent);
         append(sb, "}\n\n");
     }
 

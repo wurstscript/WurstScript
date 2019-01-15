@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class EvaluateExpr {
 
@@ -322,9 +323,29 @@ public class EvaluateExpr {
         }
     }
 
-    public static ILaddress evaluateLvalue(ImMemberAccess e, ProgramState globalState, LocalState localState) {
-        ILconst r = e.getReceiver().evaluate(globalState, localState);
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + r);
+    public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
+        ImVar v = va.getVar();
+        int receiver = ((ILconstInt) va.getReceiver().evaluate(globalState, localState)).getVal();
+        State state;
+        state = globalState;
+        List<Integer> indexes =
+                Stream.concat(
+                        Stream.of(receiver),
+                        va.getIndexes().stream()
+                                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+                )
+                .collect(Collectors.toList());
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                state.setArrayVal(v, indexes, value);
+            }
+
+            @Override
+            public ILconst get() {
+                return state.getArrayVal(v, indexes);
+            }
+        };
     }
 
 

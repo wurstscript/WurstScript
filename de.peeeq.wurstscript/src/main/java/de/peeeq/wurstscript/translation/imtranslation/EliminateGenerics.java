@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.jassIm.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -20,8 +19,7 @@ public class EliminateGenerics {
     private final ImTranslator translator;
     private final ImProg prog;
     // TODO only use one queue here with the different cases (add: generic class type, member access)
-    private Deque<ImFunctionCall> genericFunctionCalls = new ArrayDeque<>();
-    private Deque<ImMethodCall> genericMethodCalls = new ArrayDeque<>();
+    private Deque<GenericUse> genericsUses = new ArrayDeque<>();
     private Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
 
     public EliminateGenerics(ImTranslator tr, ImProg prog) {
@@ -45,17 +43,9 @@ public class EliminateGenerics {
     }
 
     private void eliminateGenericFunctions() {
-        while (!genericFunctionCalls.isEmpty()) {
-            ImFunctionCall fc = genericFunctionCalls.removeFirst();
-            ImFunction f = fc.getFunc();
-
-            GenericTypes generics = new GenericTypes(fc.getTypeArguments());
-            ImFunction specializedFunc = specializedFunctions.get(f, generics);
-            if (specializedFunc == null) {
-                specializedFunc = specialize(f, generics);
-            }
-            fc.setFunc(specializedFunc);
-            fc.getTypeArguments().removeAll();
+        while (!genericsUses.isEmpty()) {
+            GenericUse fc = genericsUses.removeFirst();
+            fc.eliminate();
         }
     }
 
@@ -89,7 +79,13 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 if (!mc.getTypeArguments().isEmpty()) {
-                    genericMethodCalls.add(mc);
+                    ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
+                    if (!ct.getTypeArguments().isEmpty()) {
+                        genericsUses.add(new GenericClass(ct));
+                    }
+                    if (!mc.getTypeArguments().isEmpty()) {
+                        genericsUses.add(new GenericMethodCall(mc));
+                    }
                 }
                 super.visit(mc);
             }
@@ -97,7 +93,7 @@ public class EliminateGenerics {
             @Override
             public void visit(ImFunctionCall fc) {
                 if (!fc.getTypeArguments().isEmpty()) {
-                    genericFunctionCalls.add(fc);
+                    genericsUses.add(new GenericImFunctionCall(fc));
                 }
                 super.visit(fc);
             }
@@ -186,7 +182,7 @@ public class EliminateGenerics {
             public void visit(ImFunctionCall f) {
                 super.visit(f);
                 if (!f.getTypeArguments().isEmpty()) {
-                    genericFunctionCalls.add(f);
+                    genericsUses.add(new GenericImFunctionCall(f));
                 }
             }
 
@@ -308,6 +304,60 @@ public class EliminateGenerics {
             }
             sb.append(">");
             return sb.toString();
+        }
+    }
+
+    abstract class GenericUse {
+
+        public abstract void eliminate();
+    }
+
+    class GenericImFunctionCall extends GenericUse {
+        private final ImFunctionCall fc;
+
+        GenericImFunctionCall(ImFunctionCall fc) {
+            this.fc = fc;
+        }
+
+        @Override
+        public void eliminate() {
+            ImFunction f = fc.getFunc();
+
+            GenericTypes generics = new GenericTypes(fc.getTypeArguments());
+            ImFunction specializedFunc = specializedFunctions.get(f, generics);
+            if (specializedFunc == null) {
+                specializedFunc = specialize(f, generics);
+            }
+            fc.setFunc(specializedFunc);
+            fc.getTypeArguments().removeAll();
+        }
+    }
+
+    class GenericMethodCall extends GenericUse {
+        private final ImMethodCall mc;
+
+        GenericMethodCall(ImMethodCall mc) {
+            this.mc = mc;
+        }
+
+        @Override
+        public void eliminate() {
+            throw new RuntimeException("TODO");
+        }
+    }
+
+
+    class GenericClass extends GenericUse {
+
+        private final ImClassType ct;
+
+        public GenericClass(ImClassType ct) {
+            this.ct = ct;
+        }
+
+        @Override
+        public void eliminate() {
+            throw new RuntimeException("TODO");
         }
     }
 
