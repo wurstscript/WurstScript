@@ -146,7 +146,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             WurstType leftType = e.getLeft().attrTyp();
 
             if (leftType instanceof WurstTypeNamedScope) {
-                WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) leftType;
+                WurstTypeNamedScope ct = (WurstTypeNamedScope) leftType;
                 for (DefLink nameLink : ct.nameLinks().values()) {
                     if (isSuitableCompletion(nameLink.getName())
                             && nameLink.getReceiverType() != null
