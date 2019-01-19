@@ -60,6 +60,17 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
         testGetDef(testData, "3:4-3:13");
     }
 
+    @Test
+    public void nonexistantModule() {
+        CompletionTestData testData = input(
+                "package test",
+                "class A",
+                "	use B|lub"
+        );
+
+        testGetDef(testData, Collections.emptyList());
+    }
+
 
     private void testGetDef(CompletionTestData testData, String... expectedPositions) {
         testGetDef(testData, Arrays.asList(expectedPositions));
