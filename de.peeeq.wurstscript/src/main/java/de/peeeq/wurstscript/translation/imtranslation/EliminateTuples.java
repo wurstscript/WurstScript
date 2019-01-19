@@ -478,6 +478,15 @@ public class EliminateTuples {
             ImExpr expr = se.getExpr();
             expr.setParent(null);
             return extractSideEffect(expr, into);
+        } else if (e instanceof ImTupleExpr) {
+            ImTupleExpr te = (ImTupleExpr) e;
+            if (!te.getExprs().isEmpty()) {
+                ImExpr firstExpr = te.getExprs().get(0);
+                ImExpr newFirstExpr = extractSideEffect(firstExpr, into);
+                if (newFirstExpr != firstExpr) {
+                    te.getExprs().set(0, newFirstExpr);
+                }
+            }
         }
         return e;
     }
