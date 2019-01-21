@@ -27,6 +27,9 @@ import java.util.regex.Pattern
 mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.0.0"
 
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
 jacocoTestReport {
     reports {
         xml.enabled true
@@ -77,7 +80,7 @@ dependencies {
     compile 'com.google.guava:guava:26.0-jre'
 
     // Functional data structures:
-    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.7'
+    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.8.1'
 
     // Support for the vscode language server protocol
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.5.0'
@@ -94,7 +97,10 @@ dependencies {
     // Chardet for guessing the file-encoding of a source-file
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
-    // Water's wc3 libs including Crigges' jmpq
+    // Crigges' jmpq
+    compile group: 'com.github.inwc3', name: 'jmpq3', version: '1.7.7'
+
+    // Water's wc3 libs
     compile 'com.github.inwc3:wc3libs:c578098eda'
 
     // The setup tool for wurst.build handling
@@ -211,9 +217,9 @@ clean.doFirst {
     delete genDir
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '2.12'
-}
+//task wrapper(type: Wrapper) {
+//    gradleVersion = '2.12'
+//}
 
 
 

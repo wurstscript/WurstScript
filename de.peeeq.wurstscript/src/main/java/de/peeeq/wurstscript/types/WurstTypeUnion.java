@@ -1,13 +1,9 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.Collection;
 
 public class WurstTypeUnion extends WurstType {
 
@@ -29,12 +25,12 @@ public class WurstTypeUnion extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
-        mapping = typeA.matchAgainstSupertype(other, location, typeParams, mapping);
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+        mapping = typeA.matchAgainstSupertype(other, location, mapping, variablePosition);
         if (mapping == null) {
             return null;
         }
-        return typeB.matchAgainstSupertype(other, location, typeParams, mapping);
+        return typeB.matchAgainstSupertype(other, location, mapping, variablePosition);
     }
 
     @Override

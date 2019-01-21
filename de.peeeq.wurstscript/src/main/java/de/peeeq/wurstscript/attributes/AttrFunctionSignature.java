@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.FunctionSignature;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.Utils;
@@ -14,7 +15,16 @@ public class AttrFunctionSignature {
 
     public static FunctionSignature calculate(StmtCall fc) {
         Collection<FunctionSignature> sigs = fc.attrPossibleFunctionSignatures();
-        return filterSigs(sigs, argTypes(fc), fc);
+        FunctionSignature sig = filterSigs(sigs, argTypes(fc), fc);
+        VariableBinding mapping = sig.getMapping();
+        for (CompileError error : mapping.getErrors()) {
+            fc.getErrorHandler().sendError(error);
+        }
+        if (mapping.hasUnboundTypeVars()) {
+            fc.addError("Cannot infer type for type parameter " + mapping.printUnboundTypeVars());
+        }
+
+        return sig;
     }
 
     private static FunctionSignature filterSigs(

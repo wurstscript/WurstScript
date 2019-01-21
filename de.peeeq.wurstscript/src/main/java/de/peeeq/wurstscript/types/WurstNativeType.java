@@ -1,14 +1,10 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.Collection;
 
 public class WurstNativeType extends WurstType {
 
@@ -19,14 +15,14 @@ public class WurstNativeType extends WurstType {
     }
 
     @Override
-    @Nullable TreeMap<TypeParamDef, WurstTypeBoundTypeParam> matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, Collection<TypeParamDef> typeParams, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping) {
+    VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstNativeType) {
             WurstNativeType nt = (WurstNativeType) other;
             if (nt.name.equals(name)) {
                 return mapping;
             }
         }
-        return superType.matchAgainstSupertypeIntern(other, location, typeParams, mapping);
+        return superType.matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
     }
 
     @Override

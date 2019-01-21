@@ -554,7 +554,7 @@ public class AttrExprType {
 
     public static WurstType calculate(ExprEmpty e) {
         e.addError("Missing expression");
-        return new WurstTypeUnknown("empty expression");
+        return new WurstTypeUnknown("empty");
     }
 
     public static WurstType calculate(ExprIfElse e) {

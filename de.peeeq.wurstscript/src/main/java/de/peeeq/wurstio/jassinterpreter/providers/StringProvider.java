@@ -75,6 +75,9 @@ public class StringProvider extends Provider {
 
 
     public ILconstInt StringHash(ILconstString s) {
+        if (s == null) {
+            return new ILconstInt(0);
+        }
         try {
             return new ILconstInt(StringHash.hash(s.getVal()));
         } catch (UnsupportedEncodingException e) {

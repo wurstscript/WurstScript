@@ -1,22 +1,17 @@
 package tests.wurstscript.tests;
 
-import com.google.common.collect.ImmutableMap;
-import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetCompletions;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.ast.WurstModel;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.*;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
@@ -367,7 +362,25 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         testCompletions(testData, "foo");
     }
 
+    @Test
+    public void testNestedClass() { // see https://github.com/wurstscript/WurstScript/issues/753
+        CompletionTestData testData = input(true,
+                "package test",
+                "public class SchoolSpell",
+                "    static let qinyun   = new QINYUN()",
+                "    static class QINYUN",
+                "        let leiyunjianqi  = '0000'",
+                "        let xuanbinjinqi  = '0000'",
+                "        let zhanguishen   = '0000'",
+                "        let shenjianyulei = '0000'",
+                "init",
+                "    let a = SchoolSpell.qinyun.|",
+                "    let x = 42"
 
+        );
+
+        testCompletions(testData, "leiyunjianqi", "shenjianyulei", "xuanbinjinqi", "zhanguishen");
+    }
 
     private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
@@ -401,7 +414,6 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
 
         return getCompletions.execute(modelManager);
     }
-
 
 
 }

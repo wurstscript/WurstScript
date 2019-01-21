@@ -95,24 +95,32 @@ public class Pjass {
             args.add(Utils.getResourceFile("common.j"));
             args.add(Utils.getResourceFile("blizzard.j"));
             args.add(outputFile.getPath());
-            if (!System.getProperty("os.name").toLowerCase().contains("windows")) {
-                WLogger.info("Operation system " + System.getProperty("os.name") + " detected.");
+            String os = System.getProperty("os.name");
+            if (os.equals("Linux")) {
+                File fileName = Utils.getResourceFileF("pjass");
+                boolean success = fileName.setExecutable(true);
+                if (!success) {
+                    throw new RuntimeException("Could not make pjass executable.");
+                }
+                args.set(0, fileName.getAbsolutePath());
+            } else if (!os.toLowerCase().contains("windows")) {
+                WLogger.info("Operation system " + os + " detected.");
                 WLogger.info("Trying to run with wine ...");
                 // try to run with wine
                 args.add(0, "wine");
             }
+
             p = Runtime.getRuntime().exec(args.toArray(new String[0]));
 
             StringBuilder output = new StringBuilder();
 
-            try(BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+            try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
                 while ((line = input.readLine()) != null) {
                     WLogger.info(line);
                     output.append(line).append("\n");
                 }
             }
-
 
 
             int exitValue = p.waitFor();

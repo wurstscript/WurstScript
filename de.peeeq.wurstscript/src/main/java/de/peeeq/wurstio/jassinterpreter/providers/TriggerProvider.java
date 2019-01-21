@@ -50,4 +50,8 @@ public class TriggerProvider extends Provider {
     public IlConstHandle Condition(ILconstFuncRef code) {
         return new IlConstHandle(NameProvider.getRandomName("conditionfunc"), code);
     }
+
+    public IlConstHandle Filter(ILconstFuncRef code) {
+        return new IlConstHandle(NameProvider.getRandomName("filterfunc"), code);
+    }
 }

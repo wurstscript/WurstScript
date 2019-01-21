@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.ast.WParameter;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import fj.data.TreeMap;
@@ -18,7 +19,7 @@ public class CheckHelper {
      *
      * Returns an error if it is not a refinement
      */
-    public static Optional<String> checkIfIsRefinement(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage) {
+    public static Optional<String> checkIfIsRefinement(VariableBinding typeParamMapping, FunctionDefinition f, FunctionDefinition of, String errorMessage) {
         String funcName = f.getName();
         // check static-ness
         if (f.attrIsStatic() && !of.attrIsStatic()) {
@@ -57,12 +58,12 @@ public class CheckHelper {
         return Optional.empty();
     }
 
-    private static WurstType getRealType(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, WurstType t) {
+    private static WurstType getRealType(Element context, VariableBinding typeParamMapping, WurstType t) {
         return t.setTypeArgs(typeParamMapping);
     }
 
 
-    public static boolean isRefinement(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeParamMapping, FunctionDefinition f, FunctionDefinition of) {
+    public static boolean isRefinement(VariableBinding typeParamMapping, FunctionDefinition f, FunctionDefinition of) {
         return !checkIfIsRefinement(typeParamMapping, f, of, "").isPresent();
     }
 }

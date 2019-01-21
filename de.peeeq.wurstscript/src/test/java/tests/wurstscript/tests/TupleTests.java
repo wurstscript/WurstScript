@@ -539,5 +539,25 @@ public class TupleTests extends WurstScriptTest {
                 "        testSuccess()"
         );
     }
+    @Test
+    public void nestedTupleArray() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "tuple vec2(int x, int y)",
+                "tuple clicks(vec2 left, vec2 middle, vec2 right)",
+                "",
+                "clicks array lastClicks",
+                "function getId(int i) returns int",
+                "	return 0",
+                "public function int.getLastClick() returns vec2",
+                "	return lastClicks[getId(this)].middle",
+                "init",
+                "	lastClicks[0] = clicks(vec2(1,2), vec2(3,4), vec2(5, 6))",
+                "	let p = 0",
+                "	if p.getLastClick() == vec2(3,4)",
+                "		testSuccess()"
+        );
+    }
 
 }

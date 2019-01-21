@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.annotation.CheckReturnValue;
@@ -17,21 +16,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class FunctionSignature {
-    public static final FunctionSignature empty = new FunctionSignature(null, Collections.emptyList(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
-    private final Element trace;
+    public static final FunctionSignature empty = new FunctionSignature(null, VariableBinding.emptyMapping(), null, "?", Collections.emptyList(), Collections.emptyList(), WurstTypeUnknown.instance());
+    private final HasFunctionSignature trace;
     private final @Nullable WurstType receiverType;
     private final List<WurstType> paramTypes;
     private final List<String> paramNames; // optional list of parameter names
     private final WurstType returnType;
-    private final List<TypeParamDef> typeParams;
+    private final VariableBinding mapping;
     private final boolean isVararg;
     private final String name;
 
 
-    public FunctionSignature(Element trace, List<TypeParamDef> typeParams, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
+    public FunctionSignature(HasFunctionSignature trace, VariableBinding mapping, @Nullable WurstType receiverType, String name, List<WurstType> paramTypes, List<String> paramNames, WurstType returnType) {
         this.trace = trace;
+        this.mapping = mapping;
         this.name = name;
-        this.typeParams = typeParams;
         Preconditions.checkNotNull(paramTypes);
         Preconditions.checkNotNull(returnType);
         this.isVararg = hasVarargParam(paramTypes);
@@ -62,20 +61,17 @@ public class FunctionSignature {
     }
 
     @CheckReturnValue
-    public FunctionSignature setTypeArgs(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeArgBinding) {
-        if (typeArgBinding.isEmpty()) {
+    public FunctionSignature setTypeArgs(Element context, VariableBinding newMapping) {
+        if (newMapping.isEmpty()) {
             return this;
         }
 
-        WurstType r2 = returnType.setTypeArgs(typeArgBinding);
+        WurstType r2 = returnType.setTypeArgs(newMapping);
         List<WurstType> pt2 = Lists.newArrayList();
         for (WurstType p : paramTypes) {
-            pt2.add(p.setTypeArgs(typeArgBinding));
+            pt2.add(p.setTypeArgs(newMapping));
         }
-        List<TypeParamDef> typeParams2 = typeParams.stream()
-                .filter(t -> !typeArgBinding.contains(t))
-                .collect(Utils.toImmutableList());
-        return new FunctionSignature(trace, typeParams2, receiverType, name, pt2, paramNames, r2);
+        return new FunctionSignature(trace, newMapping, receiverType, name, pt2, paramNames, r2);
     }
 
 
@@ -97,7 +93,7 @@ public class FunctionSignature {
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
-        return new FunctionSignature(f, typeParams, f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
+        return new FunctionSignature(f, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams)), f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
     }
 
 
@@ -109,7 +105,7 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getDef(), f.getTypeParams(), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        return new FunctionSignature(f.getDef(), VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(f.getTypeParams())), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 
@@ -185,12 +181,8 @@ public class FunctionSignature {
             result.append(receiverType).append(".");
         }
         result.append(name);
-        if (!typeParams.isEmpty()) {
-            result.append("<");
-            result.append(typeParams.stream()
-                    .map(TypeParamDef::getName)
-                    .collect(Collectors.joining(", ")));
-            result.append(">");
+        if (!mapping.isEmpty()) {
+            result.append(mapping);
         }
         result.append("(");
         result.append(getParameterDescription());
@@ -217,11 +209,11 @@ public class FunctionSignature {
         if (!isValidParameterNumber(argTypes.size())) {
             return null;
         }
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        VariableBinding mapping = this.mapping;
         for (int i = 0; i < argTypes.size(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
-            mapping = at.matchAgainstSupertype(pt, location, typeParams, mapping);
+            mapping = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             if (mapping == null) {
                 return null;
             }
@@ -229,6 +221,37 @@ public class FunctionSignature {
         }
 
         return setTypeArgs(location, mapping);
+    }
+
+    public List<TypeParamDef> getDefinitionTypeVariables() {
+        return trace.match(new HasFunctionSignature.Matcher<List<TypeParamDef>>() {
+            @Override
+            public List<TypeParamDef> case_TupleDef(TupleDef tupleDef) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<TypeParamDef> case_NativeFunc(NativeFunc nativeFunc) {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public List<TypeParamDef> case_FuncDef(FuncDef f) {
+                return f.getTypeParameters();
+            }
+
+            @Override
+            public List<TypeParamDef> case_ExtensionFuncDef(ExtensionFuncDef f) {
+                return f.getTypeParameters();
+            }
+
+            @Override
+            public List<TypeParamDef> case_ConstructorDef(ConstructorDef c) {
+                ClassDef classDef = c.attrNearestClassDef();
+                assert classDef != null;
+                return classDef.getTypeParameters();
+            }
+        });
     }
 
     public static class ArgsMatchResult {
@@ -272,25 +295,31 @@ public class FunctionSignature {
                 badness += getMinNumParams() - argTypes.size();
             }
         }
-        TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping = WurstType.emptyMapping();
+        VariableBinding mapping = this.mapping;
         for (int i = 0; i < argTypes.size() && i < getMaxNumParams(); i++) {
             WurstType pt = getParamType(i);
             WurstType at = argTypes.get(i);
-            TreeMap<TypeParamDef, WurstTypeBoundTypeParam> mapping2 = at.matchAgainstSupertype(pt, location, typeParams, mapping);
+            VariableBinding mapping2 = at.matchAgainstSupertype(pt, location, mapping, VariablePosition.RIGHT);
             if (mapping2 == null) {
                 WurstType ptBound = pt.setTypeArgs(mapping);
                 Expr arg = args.get(i);
-                errors = errors.add(new CompileError(arg.attrErrorPos(), "Wrong argument for parameter " + getParamName(i) + ": expected " + ptBound + ", but found " + at + "."));
+                errors.add(new CompileError(arg.attrErrorPos(), "Wrong argument for parameter " + getParamName(i) + ": expected " + ptBound + ", but found " + at + "."));
                 badness++;
             } else {
                 mapping = mapping2;
             }
         }
 
+        if (mapping.hasUnboundTypeVars()) {
+            errors.add(new CompileError(location.attrErrorPos(), "Could not infer type for type variables " + mapping.printUnboundTypeVars()));
+        }
+        errors.addAll(mapping.getErrors());
+
+
         return new ArgsMatchResult(setTypeArgs(location, mapping), errors.build(), badness);
     }
 
-    public List<TypeParamDef> getTypeParams() {
-        return typeParams;
+    public VariableBinding getMapping() {
+        return mapping;
     }
 }

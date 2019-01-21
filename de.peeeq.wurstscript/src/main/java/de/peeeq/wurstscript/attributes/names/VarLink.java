@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import de.peeeq.datastructures.Deferred;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
@@ -138,7 +139,7 @@ public class VarLink extends DefLink {
         return r + Utils.printElementWithSource(def);
     }
 
-    public VarLink withTypeArgBinding(Element context, TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding) {
+    public VarLink withTypeArgBinding(Element context, VariableBinding binding) {
         if (binding.isEmpty()) {
             return this;
         }

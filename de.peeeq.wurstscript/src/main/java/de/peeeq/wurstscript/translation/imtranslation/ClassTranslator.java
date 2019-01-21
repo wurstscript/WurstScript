@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
@@ -11,18 +10,14 @@ import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
-import fj.data.TreeMap;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -264,9 +259,9 @@ public class ClassTranslator {
                 ClassDef subC = subE.getKey();
 
                 WurstTypeClass ct = getExtendedClassType(subC);
-                TreeMap<TypeParamDef, WurstTypeBoundTypeParam> typeBinding;
+                VariableBinding typeBinding;
                 if (ct == null) {
-                    typeBinding = WurstType.emptyMapping();
+                    typeBinding = VariableBinding.emptyMapping();
                 } else {
                     typeBinding = ct.getTypeArgBinding();
                 }
