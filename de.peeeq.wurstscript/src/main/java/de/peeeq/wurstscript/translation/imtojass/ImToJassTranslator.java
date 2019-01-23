@@ -241,7 +241,11 @@ public class ImToJassTranslator {
                     prog.getNatives().add((JassNative) f);
                 }
             } else {
-                String name = getUniqueGlobalName(func.getName());
+                String name = func.getName();
+                // find a unique name, but keep special names 'main' and 'config'
+                if (!name.equals("main") && !name.equals("config")) {
+                    name = getUniqueGlobalName(func.getName());
+                }
                 boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
                 f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
                 if (!func.isBj() && !func.isExtern()) {

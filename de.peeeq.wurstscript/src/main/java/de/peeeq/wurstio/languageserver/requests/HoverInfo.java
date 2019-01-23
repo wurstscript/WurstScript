@@ -121,6 +121,9 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         public List<Either<String, MarkedString>> description(NameDef n) {
+            if (n == null) {
+                return Collections.emptyList();
+            }
             List<Either<String, MarkedString>> result = new ArrayList<>();
             String comment = n.attrComment();
             if (comment != null && !comment.isEmpty()) {

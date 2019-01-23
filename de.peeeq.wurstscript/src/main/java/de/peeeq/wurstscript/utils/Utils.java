@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -931,12 +932,19 @@ public class Utils {
      * Extracts a resource from the jar, stores it in a temp file and returns the abolute path to the tempfile
      */
     public static synchronized String getResourceFile(String name) {
+        return getResourceFileF(name).getAbsolutePath();
+    }
+
+    /**
+     * Extracts a resource from the jar, stores it in a temp file and returns the abolute path to the tempfile
+     */
+    public static synchronized File getResourceFileF(String name) {
         try {
             File f = resourceMap.get(name);
             if (f != null && f.exists()) {
-                return f.getAbsolutePath();
+                return f;
             }
-            String[] parts = name.split("\\.");
+            String[] parts = splitFilename(name);
             f = File.createTempFile(parts[0], parts[1]);
             f.deleteOnExit();
             try (InputStream is = Pjass.class.getClassLoader().getResourceAsStream(name)) {
@@ -946,11 +954,20 @@ public class Utils {
                 byte[] bytes = Utils.convertStreamToBytes(is);
                 Files.write(bytes, f);
                 resourceMap.put(name, f);
-                return f.getAbsolutePath();
+                return f;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @NotNull
+    private static String[] splitFilename(String name) {
+        int dotPos = name.lastIndexOf('.');
+        if (dotPos >= 0) {
+            return new String[] { name.substring(0, dotPos), name.substring(dotPos + 1) };
+        }
+        return new String[] { name, "" };
     }
 
     private static Map<String, File> resourceMap = new HashMap<>();
