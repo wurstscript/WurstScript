@@ -34,7 +34,7 @@ public class EliminateClasses {
     }
 
     public void eliminateClasses() {
-
+        moveFunctionsOutOfClasses();
 
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
@@ -46,6 +46,17 @@ public class EliminateClasses {
 
         prog.getClasses().clear();
     }
+
+
+    /**
+     * Move all the functions out of classes and into the global program
+     */
+    private void moveFunctionsOutOfClasses() {
+        for (ImClass c : prog.getClasses()) {
+            prog.getFunctions().addAll(c.getFunctions().removeAll());
+        }
+    }
+
 
     private void eliminateClass(ImClass c) {
         // for each field, create a global array variable

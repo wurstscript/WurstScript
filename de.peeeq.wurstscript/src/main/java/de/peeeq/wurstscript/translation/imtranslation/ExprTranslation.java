@@ -564,7 +564,11 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
         ConstructorDef constructorFunc = e.attrConstructorDef();
         ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-        return ImFunctionCall(e, constructorImFunc, ImTypeArguments(), translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        FunctionSignature sig = e.attrFunctionSignature();
+        WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
+        ImClass imClass = t.getClassFor(wurstType.getClassDef());
+        ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
+        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

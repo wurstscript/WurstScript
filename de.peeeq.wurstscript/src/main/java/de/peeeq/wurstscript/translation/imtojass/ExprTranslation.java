@@ -119,7 +119,7 @@ public class ExprTranslation {
 
     public static JassExpr translate(ImClassRelatedExpr e,
                                      ImToJassTranslator translator) {
-        throw new RuntimeException("Eliminate method calls before translating to jass");
+        throw new RuntimeException("Eliminate method calls before translating to jass:\n" + e);
     }
 
 

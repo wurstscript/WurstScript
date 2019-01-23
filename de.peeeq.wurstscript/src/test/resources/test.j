@@ -436,7 +436,7 @@ integer array kc
 integer array jc
 integer array xc
 integer array vc
-integer array mc
+integer array ma
 integer array Qc
 integer array Wc
 integer array Ec
@@ -12958,7 +12958,7 @@ call FHw(JTw)
 set Fc[JTw]=vc[PTw]
 set kc[JTw]=DTw
 set jc[JTw]=HTw
-set xc[JTw]=mc[PTw]
+set xc[JTw]=ma[PTw]
 call MDw(JTw,"when calling doSeq in LZW, line 72")
 set Ad=Ad-1
 endfunction
@@ -18722,7 +18722,7 @@ call DEw("file valid")
 set UTw=sUu("when calling alloc_Closure in LZW, line 66")
 call VC(UTw)
 set vc[UTw]=Qc[WTw]
-set mc[UTw]=Wc[WTw]
+set ma[UTw]=Wc[WTw]
 call kX(UTw,"when calling nullTimer in LZW, line 66")
 else
 call tsw("loaded input is invalid","when calling error in LZW, line 89")

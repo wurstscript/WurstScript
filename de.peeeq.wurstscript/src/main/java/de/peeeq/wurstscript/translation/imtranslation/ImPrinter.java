@@ -111,6 +111,7 @@ public class ImPrinter {
         }
         append(sb, "function ");
         append(sb, p.getName());
+        append(sb, smallHash(p));
         printTypeVariables(p.getTypeVariables(), sb, indent);
         append(sb, "(");
         boolean first = true;
@@ -206,6 +207,7 @@ public class ImPrinter {
 
     public static void print(ImFunctionCall p, Appendable sb, int indent) {
         append(sb, p.getFunc().getName());
+        append(sb, smallHash(p.getFunc()));
         printTypeArguments(p.getTypeArguments(), indent, sb);
         printArgumentList(sb, indent, p.getArguments());
     }
@@ -368,6 +370,7 @@ public class ImPrinter {
         e.getReceiver().print(sb, 0);
         append(sb, ".");
         append(sb, e.getVar().getName());
+        append(sb, smallHash(e.getVar()));
     }
 
 
@@ -421,7 +424,6 @@ public class ImPrinter {
         append(sb, imArrayTypeMulti.getArraySize());
 
     }
-
 
 
     public static void print(ImGetStackTrace e, Appendable sb, int indent) {
