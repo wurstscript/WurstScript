@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 /**
@@ -58,19 +59,6 @@ public class EliminateGenerics {
      * creates a specialized version of this function
      */
     private ImFunction specialize(ImFunction f, GenericTypes generics) {
-        Element parent = f.getParent().getParent();
-        if (parent instanceof ImClass) {
-            ImClass clazz = (ImClass) parent;
-            if (!clazz.getTypeVariables().isEmpty()) {
-                // if the function is in a generic class first specialize the class:
-                int n = clazz.getTypeVariables().size();
-                GenericTypes classGenerics = generics.take(n);
-                generics = generics.drop(n);
-                int index = clazz.getFunctions().indexOf(f);
-                ImClass specializedClass = specializeClass(clazz, classGenerics);
-                f = specializedClass.getFunctions().get(index);
-            }
-        }
 
         ImFunction specialized = specializedFunctions.get(f, generics);
         if (specialized != null) {
@@ -115,6 +103,15 @@ public class EliminateGenerics {
             public void visit(ImVar e) {
                 e.setType(transformType(e.getType()));
                 super.visit(e);
+            }
+
+            @Override
+            public void visit(ImClass c) {
+                ListIterator<ImClassType> it = c.getSuperClasses().listIterator();
+                while (it.hasNext()) {
+                    it.set((ImClassType) transformType(it.next()));
+                }
+                super.visit(c);
             }
 
             private ImType transformType(ImType type) {
@@ -208,19 +205,25 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
-                if (!ct.getTypeArguments().isEmpty()
-                        || !mc.getTypeArguments().isEmpty()) {
-                    genericsUses.add(new GenericMethodCall(mc));
+                ImType imType = mc.getReceiver().attrTyp();
+                System.out.println("visit method call " + mc + " on " + imType);
+                if (!(imType instanceof ImClassType)) {
+                    throw new CompileError(mc, "Method call " + mc + " not on class type but on " + imType);
                 }
+                genericsUses.add(new GenericMethodCall(mc));
             }
 
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                ImClassType ct = (ImClassType) ma.getReceiver().attrTyp();
-                if (!ct.getTypeArguments().isEmpty()) {
-                    genericsUses.add(new GenericMemberAccess(ma));
+                ImType receiverType = ma.getReceiver().attrTyp();
+                if (receiverType instanceof ImClassType) {
+                    ImClassType ct = (ImClassType) receiverType;
+                    if (!ct.getTypeArguments().isEmpty()) {
+                        genericsUses.add(new GenericMemberAccess(ma));
+                    }
+                } else {
+                    throw new CompileError(ma, "Cannot handle member access " + ma + " on type " + receiverType);
                 }
 
             }
@@ -236,10 +239,13 @@ public class EliminateGenerics {
             @Override
             public void visit(ImClass c) {
                 if (!c.getTypeVariables().isEmpty()) {
-                    // handle generic functions after they are specialized
+                    // handle generic classes after they are specialized
                     return;
                 }
                 super.visit(c);
+                if (c.getSuperClasses().stream().anyMatch(sc -> !sc.getTypeArguments().isEmpty())) {
+                    genericsUses.add(new GenericSuperClasses(c));
+                }
             }
 
             @Override
@@ -338,6 +344,9 @@ public class EliminateGenerics {
 
         @Override
         public void eliminate() {
+            ImType receiverType = mc.getReceiver().attrTyp();
+
+
             throw new RuntimeException("TODO");
         }
     }
@@ -389,6 +398,24 @@ public class EliminateGenerics {
             mc.setType(specializeType(mc.getType()));
         }
     }
+
+    class GenericSuperClasses extends GenericUse {
+        private final ImClass c;
+
+        GenericSuperClasses(ImClass c) {
+            this.c = c;
+        }
+
+        @Override
+        public void eliminate() {
+            ListIterator<ImClassType> it = c.getSuperClasses().listIterator();
+            while (it.hasNext()) {
+                it.set((ImClassType) specializeType(it.next()));
+            }
+        }
+    }
+
+
 
     private ImType specializeType(ImType type) {
         return type.match(new ImType.Matcher<ImType>() {

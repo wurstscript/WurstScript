@@ -6,7 +6,8 @@ abstract syntax:
 ImProg(
     @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
     ImVars globals,
-	ImFunctions functions, 
+	ImFunctions functions,
+	ImMethods methods,
 	ImClasses classes,
 	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
@@ -51,13 +52,12 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars fields, 
-	ImMethods methods,
-	ImFunctions functions,
-	java.util.List<ImClass> superClasses)
+	java.util.List<ImClassType> superClasses)
 
 ImMethods * ImMethod
 
-ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
+ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    ImClass methodClass,
 	String name,
 	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,

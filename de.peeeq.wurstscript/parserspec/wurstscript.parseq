@@ -345,7 +345,9 @@ AstElementWithIndexes = ExprMemberArrayVar | ExprVarArrayAccess
 
 ClassOrModule = ClassDef | ModuleDef
 
-StructureDef = ClassOrModuleOrModuleInstanciation | InterfaceDef
+StructureDef = ClassOrModuleOrModuleInstanciation | ClassOrInterface
+
+ClassOrInterface = ClassDef | InterfaceDef
 
 ClassOrModuleInstanciation = ClassDef | ModuleInstanciation
 ClassOrModuleOrModuleInstanciation = ClassOrModule | ClassOrModuleInstanciation
@@ -519,6 +521,10 @@ Element.attrCompilationUnit()
 Element.attrNearestClassDef()
 	returns @Nullable ClassDef
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassDef
+
+Element.attrNearestClassOrInterface()
+	returns @Nullable ClassOrInterface
+	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestClassOrInterface
 
 Element.attrNearestClassOrModule()
 	returns @Nullable ClassOrModule

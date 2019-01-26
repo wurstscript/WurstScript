@@ -8,6 +8,10 @@ import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
+import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -121,6 +125,17 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
             }
         }
         return null;
+    }
+
+    @Override
+    public ImType imTranslateType(ImTranslator tr) {
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
+            if (btp.isTemplateTypeParameter()) {
+                typeArgs.add(btp.imTranslateToTypeArgument(tr));
+            }
+        }
+        return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }
 
 }

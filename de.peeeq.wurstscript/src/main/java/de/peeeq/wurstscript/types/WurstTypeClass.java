@@ -134,17 +134,6 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public ImType imTranslateType(ImTranslator tr) {
-        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
-        for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
-            if (btp.isTemplateTypeParameter()) {
-                typeArgs.add(btp.imTranslateToTypeArgument(tr));
-            }
-        }
-        return JassIm.ImClassType(tr.getClassFor(classDef), typeArgs);
-    }
-
-    @Override
     public ImExprOpt getDefaultValue() {
         return JassIm.ImIntVal(0);
     }

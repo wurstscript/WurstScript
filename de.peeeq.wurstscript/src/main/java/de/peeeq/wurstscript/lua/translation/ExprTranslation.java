@@ -12,10 +12,10 @@ public class ExprTranslation {
         LuaTableFields fields = LuaAst.LuaTableFields();
         ImClass clazz = e.getClazz();
         fields.add(LuaAst.LuaTableNamedField("wurst_typeId", LuaAst.LuaExprIntVal("" + clazz.attrTypeId())));
-        for (ImMethod m : clazz.getMethods()) {
-            LuaFunction luaMethod = tr.luaMethod.getFor(m);
-            fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
-        }
+//        for (ImMethod m : clazz.getMethods()) {
+//            LuaFunction luaMethod = tr.luaMethod.getFor(m);
+//            fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
+//        }
         return LuaAst.LuaTableConstructor(fields); // TODO any fields required? typeid?
     }
 

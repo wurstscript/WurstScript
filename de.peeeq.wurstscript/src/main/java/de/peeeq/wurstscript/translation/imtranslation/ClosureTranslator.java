@@ -120,15 +120,13 @@ public class ClosureTranslator {
 
 
     private ImClass createClass() {
-        ImClass superClass = getSuperClass();
+        ImClassType superClass = getSuperClass();
         FuncDef superMethod = getSuperMethod();
 
 
         ImVars fields = JassIm.ImVars();
-        ImMethods methods = JassIm.ImMethods();
-        ImFunctions functions = JassIm.ImFunctions();
-        List<ImClass> superClasses = java.util.Collections.singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
+        List<ImClassType> superClasses = java.util.Collections.singletonList(superClass);
+        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, superClasses);
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();
@@ -147,9 +145,9 @@ public class ClosureTranslator {
 //		ImFunction impl JassIm.ImFunction(e, superMethod.getName(), parameters, returnType, locals, body, flags);
         impl = tr.getFuncFor(e);
         tr.getImProg().getFunctions().remove(impl);
-        functions.add(impl);
-        ImMethod m = JassIm.ImMethod(e, superMethod.getName(), impl, JassIm.ImMethods(), false);
-        c.getMethods().add(m);
+        tr.addFunction(impl);
+        ImMethod m = JassIm.ImMethod(e, c, superMethod.getName(), impl, JassIm.ImMethods(), false);
+        tr.addMethod(m);
 
         OverrideUtils.addOverrideClosure(tr, superMethod, m, e);
 
@@ -232,16 +230,13 @@ public class ClosureTranslator {
     }
 
 
-    private ImClass getSuperClass() {
+    private ImClassType getSuperClass() {
         WurstType t = e.attrExpectedTyp();
-        if (t instanceof WurstTypeInterface) {
-            WurstTypeInterface it = (WurstTypeInterface) t;
-            return tr.getClassFor(it.getDef());
-        } else if (t instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) t;
-            return tr.getClassFor(ct.getDef());
+        ImType imType = t.imTranslateType(tr);
+        if (imType instanceof ImClassType) {
+            return (ImClassType) imType;
         }
-        throw new CompileError(e.getSource(), "Could not get super class for closure");
+        throw new CompileError(e, "Could not get super class for closure");
     }
 
 

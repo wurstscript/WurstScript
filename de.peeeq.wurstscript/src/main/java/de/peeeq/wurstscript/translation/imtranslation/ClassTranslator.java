@@ -15,9 +15,11 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -96,15 +98,13 @@ public class ClassTranslator {
     }
 
     private void addSuperClass(TypeExpr extended) {
-        if (extended.attrTypeDef() instanceof StructureDef) {
-            StructureDef sc = (StructureDef) extended.attrTypeDef();
-            imClass.getSuperClasses().add(translator.getClassFor(sc));
-        }
+        ImType imType = extended.attrTyp().imTranslateType(translator);
+        imClass.getSuperClasses().add((ImClassType) imType);
     }
 
     private void createDestroyMethod(List<ClassDef> subClasses) {
         ImMethod m = translator.destroyMethod.getFor(classDef);
-        imClass.getMethods().add(m);
+        translator.addMethod(m);
         ImFunction f = translator.destroyFunc.getFor(classDef);
 
         // set sub methods
@@ -252,7 +252,7 @@ public class ClassTranslator {
         } else {
             // dynamic method
             ImMethod m = translator.getMethodFor(s);
-            imClass.getMethods().add(m);
+            translator.addMethod(m);
             m.setImplementation(f);
             m.setIsAbstract(s.attrIsAbstract());
             // set sub methods
@@ -329,7 +329,7 @@ public class ClassTranslator {
         }
 
 
-        ImVar thisVar = JassIm.ImVar(constr, TypesHelper.imInt(), "this", false);
+        ImVar thisVar = JassIm.ImVar(constr, translator.thisType(imClass), "this", false);
         varReplacements.put(translator.getThisVar(constr), thisVar);
         f.getLocals().add(thisVar);
 

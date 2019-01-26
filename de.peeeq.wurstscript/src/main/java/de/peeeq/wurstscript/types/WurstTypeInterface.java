@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
@@ -73,11 +74,6 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
                 .collect(ImmutableList.toImmutableList());
     }
 
-
-    @Override
-    public ImType imTranslateType(ImTranslator tr) {
-        return TypesHelper.imInt();
-    }
 
     @Override
     public ImExprOpt getDefaultValue() {
