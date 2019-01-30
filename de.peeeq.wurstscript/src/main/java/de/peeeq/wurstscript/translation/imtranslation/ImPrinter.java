@@ -25,8 +25,10 @@ public class ImPrinter {
             append(sb, smallHash(c));
             printTypeVariables(c.getTypeVariables(), sb, indent);
             append(sb, " extends ");
-            for (ImClassType sc : c.getSuperClasses()) {
-                sc.print(sb, indent);
+            for (ImClass sc : c.getSuperClasses()) {
+                append(sb, sc.getName());
+                append(sb, smallHash(sc));
+                printTypeVariables(sc.getTypeVariables(), sb, indent);
                 append(sb, " ");
             }
             append(sb, "{\n");
@@ -35,33 +37,30 @@ public class ImPrinter {
                 append(sb, "\n");
             }
             append(sb, "\n\n");
-
-            append(sb, "}\n\n");
-        }
-
-        for (ImMethod m : p.getMethods()) {
-            if (m.getIsAbstract()) {
-                append(sb, "    abstract");
-            }
-            append(sb, "    method ");
-            append(sb, m.getMethodClass().getName());
-            append(sb, smallHash(m.getMethodClass()));
-            append(sb, ".");
-            append(sb, m.getName());
-            append(sb, smallHash(m));
-            append(sb, " implemented by ");
-            append(sb, m.getImplementation().getName());
-            append(sb, "\n");
-            for (ImMethod sm : m.getSubMethods()) {
-                append(sb, "        sub: ");
-                append(sb, sm.getMethodClass().getName());
-                append(sb, smallHash(sm.getMethodClass()));
-                append(sb, ".");
-                append(sb, sm.getName());
-                append(sb, smallHash(sm));
+            for (ImMethod m : c.getMethods()) {
+                if (m.getIsAbstract()) {
+                    append(sb, "    abstract");
+                }
+                append(sb, "    method ");
+                append(sb, m.getName());
+                append(sb, smallHash(m));
+                append(sb, " implemented by ");
+                append(sb, m.getImplementation().getName());
+                append(sb, "\n");
+                for (ImMethod sm : m.getSubMethods()) {
+                    append(sb, "        sub: ");
+                    append(sb, sm.getName());
+                    append(sb, smallHash(sm));
+                    append(sb, "\n");
+                }
                 append(sb, "\n");
             }
-            append(sb, "\n");
+
+            for (ImFunction func : c.getFunctions()) {
+                func.print(sb, indent + 1);
+            }
+
+            append(sb, "}\n\n");
         }
 
     }
@@ -362,7 +361,6 @@ public class ImPrinter {
         mc.getReceiver().print(sb, 0);
         append(sb, ".");
         append(sb, mc.getMethod().getName());
-        append(sb, smallHash(mc.getMethod()));
         printArgumentList(sb, 0, mc.getArguments());
     }
 

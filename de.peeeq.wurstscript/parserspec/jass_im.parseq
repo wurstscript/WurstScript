@@ -52,7 +52,9 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars fields, 
-	java.util.List<ImClassType> superClasses)
+	ImMethods methods,
+	ImFunctions functions,
+	java.util.List<ImClass> superClasses)
 
 ImMethods * ImMethod
 

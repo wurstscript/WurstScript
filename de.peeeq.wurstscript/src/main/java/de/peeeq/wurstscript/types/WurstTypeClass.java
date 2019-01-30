@@ -133,6 +133,7 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         return new WurstTypeClass(classDef, newTypes, isStaticRef());
     }
 
+
     @Override
     public ImExprOpt getDefaultValue() {
         return JassIm.ImIntVal(0);

@@ -34,14 +34,10 @@ public class EliminateClasses {
     }
 
     public void eliminateClasses() {
+        moveFunctionsOutOfClasses();
 
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
-        }
-
-        // for each method, create a dispatch function
-        for (ImMethod m : prog.getMethods()) {
-            createDispatchFunc(m);
         }
 
         for (ImFunction f : prog.getFunctions()) {
@@ -49,6 +45,16 @@ public class EliminateClasses {
         }
 
         prog.getClasses().clear();
+    }
+
+
+    /**
+     * Move all the functions out of classes and into the global program
+     */
+    private void moveFunctionsOutOfClasses() {
+        for (ImClass c : prog.getClasses()) {
+            prog.getFunctions().addAll(c.getFunctions().removeAll());
+        }
     }
 
 
@@ -60,6 +66,10 @@ public class EliminateClasses {
             prog.getGlobals().add(v);
             fieldToArray.put(f, v);
         }
+        // for each method, create a dispatch function
+        for (ImMethod m : c.getMethods()) {
+            createDispatchFunc(c, m);
+        }
 
         // create management functions
         recycleCodeGen.createAllocFunc(translator, prog, c);
@@ -67,8 +77,7 @@ public class EliminateClasses {
     }
 
 
-    public void createDispatchFunc(ImMethod m) {
-        ImClass c = m.getMethodClass();
+    public void createDispatchFunc(ImClass c, ImMethod m) {
         List<ImMethod> methods = Lists.newArrayList();
         addSubMethods(m, methods);
 

@@ -120,13 +120,15 @@ public class ClosureTranslator {
 
 
     private ImClass createClass() {
-        ImClassType superClass = getSuperClass();
+        ImClass superClass = getSuperClass();
         FuncDef superMethod = getSuperMethod();
 
 
         ImVars fields = JassIm.ImVars();
-        List<ImClassType> superClasses = java.util.Collections.singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, superClasses);
+        ImMethods methods = JassIm.ImMethods();
+        ImFunctions functions = JassIm.ImFunctions();
+        List<ImClass> superClasses = java.util.Collections.singletonList(superClass);
+        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();
@@ -145,9 +147,9 @@ public class ClosureTranslator {
 //		ImFunction impl JassIm.ImFunction(e, superMethod.getName(), parameters, returnType, locals, body, flags);
         impl = tr.getFuncFor(e);
         tr.getImProg().getFunctions().remove(impl);
-        tr.addFunction(impl);
-        ImMethod m = JassIm.ImMethod(e, c, superMethod.getName(), impl, JassIm.ImMethods(), false);
-        tr.addMethod(m);
+        functions.add(impl);
+        ImMethod m = JassIm.ImMethod(e, superMethod.getName(), impl, JassIm.ImMethods(), false);
+        c.getMethods().add(m);
 
         OverrideUtils.addOverrideClosure(tr, superMethod, m, e);
 
@@ -230,13 +232,16 @@ public class ClosureTranslator {
     }
 
 
-    private ImClassType getSuperClass() {
+    private ImClass getSuperClass() {
         WurstType t = e.attrExpectedTyp();
-        ImType imType = t.imTranslateType(tr);
-        if (imType instanceof ImClassType) {
-            return (ImClassType) imType;
+        if (t instanceof WurstTypeInterface) {
+            WurstTypeInterface it = (WurstTypeInterface) t;
+            return tr.getClassFor(it.getDef());
+        } else if (t instanceof WurstTypeClass) {
+            WurstTypeClass ct = (WurstTypeClass) t;
+            return tr.getClassFor(ct.getDef());
         }
-        throw new CompileError(e, "Could not get super class for closure");
+        throw new CompileError(e.getSource(), "Could not get super class for closure");
     }
 
 

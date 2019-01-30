@@ -27,8 +27,10 @@ public class InterfaceTranslator {
 
         // set super-classes
         for (TypeExpr ext : interfaceDef.getExtendsList()) {
-            ImType imType = ext.attrTyp().imTranslateType(translator);
-            imClass.getSuperClasses().add((ImClassType) imType);
+            if (ext.attrTypeDef() instanceof StructureDef) {
+                StructureDef sup = (StructureDef) ext.attrTypeDef();
+                imClass.getSuperClasses().add(translator.getClassFor(sup));
+            }
         }
 
         // create dispatch methods
@@ -42,7 +44,7 @@ public class InterfaceTranslator {
 
     public void addDestroyMethod() {
         ImMethod m = translator.destroyMethod.getFor(interfaceDef);
-        translator.addMethod(m);
+        imClass.getMethods().add(m);
 
         List<ClassDef> subClasses = Lists.newArrayList(translator.getInterfaceInstances(interfaceDef));
 
@@ -61,7 +63,7 @@ public class InterfaceTranslator {
     private void translateInterfaceFuncDef(FuncDef f) {
         ImMethod imMeth = translator.getMethodFor(f);
         ImFunction imFunc = translator.getFuncFor(f);
-        translator.addMethod(imMeth);
+        imClass.getMethods().add(imMeth);
 
         // translate implementation
         if (f.attrHasEmptyBody()) {

@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -23,10 +22,6 @@ public class TypeId {
     private static final Comparator<ImClass> class_comparator =
             Comparator.comparing(ImClass::getName)
                     .thenComparing(TypeId::packageName);
-
-    // sort classes by name to get deterministic order
-    private static final Comparator<ImClassType> classtype_comparator =
-            Comparator.comparing(ImClassType::getClassDef, class_comparator);
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();
@@ -63,8 +58,8 @@ public class TypeId {
     private static Multimap<ImClass, ImClass> calculateSubclasses(List<ImClass> classes) {
         Multimap<ImClass, ImClass> subClasses = LinkedHashMultimap.create();
         for (ImClass c : classes) {
-            c.getSuperClasses().stream().sorted(classtype_comparator).forEach(superClass ->
-                    subClasses.put(superClass.getClassDef(), c)
+            c.getSuperClasses().stream().sorted(class_comparator).forEach(superClass ->
+                    subClasses.put(superClass, c)
             );
         }
         return subClasses;
@@ -92,8 +87,8 @@ public class TypeId {
         if (c == other) {
             return true;
         }
-        for (ImClassType sc : c.getSuperClasses()) {
-            if (sc.getClassDef().isSubclassOf(other)) {
+        for (ImClass sc : c.getSuperClasses()) {
+            if (sc.isSubclassOf(other)) {
                 return true;
             }
         }

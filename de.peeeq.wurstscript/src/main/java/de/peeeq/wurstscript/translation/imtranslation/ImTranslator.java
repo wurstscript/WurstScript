@@ -31,7 +31,6 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImTupleExpr;
 import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImTypeVars;
@@ -106,7 +105,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
     }
 
 
@@ -199,9 +198,9 @@ public class ImTranslator {
         sortList(imProg.getClasses());
         sortList(imProg.getGlobals());
         sortList(imProg.getFunctions());
-        sortList(imProg.getMethods());
         for (ImClass c : imProg.getClasses()) {
             sortList(c.getFields());
+            sortList(c.getMethods());
         }
     }
 
@@ -455,14 +454,20 @@ public class ImTranslator {
     }
 
     private void addFunction(ImFunction f, StructureDef s) {
-        imProg.getFunctions().add(f);
+        ImClass c = getClassFor(s);
+        c.getFunctions().add(f);
     }
 
     private void addFunction(ImFunction f, TranslatedToImFunction funcDef) {
-        imProg.getFunctions().add(f);
+        ImClass classForFunc = getClassForFunc(funcDef);
+        if (classForFunc != null) {
+            classForFunc.getFunctions().add(f);
+        } else {
+            addFunction(f);
+        }
     }
 
-    void addFunction(ImFunction f) {
+    private void addFunction(ImFunction f) {
         imProg.getFunctions().add(f);
     }
 
@@ -532,7 +537,7 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(StructureDef classDef) {
-            ImVars params = ImVars(JassIm.ImVar(classDef, thisType(classDef), "this", false));
+            ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
 
             ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
             addFunction(f, classDef);
@@ -545,8 +550,7 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            ImClass methodClass = getClassFor(classDef);
-            ImMethod m = JassIm.ImMethod(classDef, methodClass, "destroy" + classDef.getName(),
+            ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(),
                     impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
@@ -831,11 +835,10 @@ public class ImTranslator {
         if (thisVarMap.containsKey(f)) {
             return thisVarMap.get(f);
         }
-        ImVar v = JassIm.ImVar(f, thisType(f.attrNearestClassOrInterface()), "this", false);
+        ImVar v = JassIm.ImVar(f, ImSimpleType("integer"), "this", false);
         thisVarMap.put(f, v);
         return v;
     }
-
 
     public ImVar getThisVar(ImFunction f, ExprThis e) {
         return getThisVarForNode(f, e);
@@ -1213,22 +1216,6 @@ public class ImTranslator {
         return typeVariable.getFor(tv);
     }
 
-    private ImType thisType(StructureDef c) {
-        return thisType(getClassFor(c));
-    }
-
-    public ImType thisType(ImClass imClass) {
-        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
-        for (ImTypeVar imTypeVar : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(imTypeVar), Collections.emptyMap()));
-        }
-        return JassIm.ImClassType(imClass, typeArgs);
-    }
-
-    public void addMethod(ImMethod m) {
-        imProg.getMethods().add(m);
-    }
-
 
     interface VarsForTupleResult {
 
@@ -1511,7 +1498,7 @@ public class ImTranslator {
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
-        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), Lists.newArrayList()));
+        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.<ImClass>newArrayList()));
     }
 
 
@@ -1521,9 +1508,7 @@ public class ImTranslator {
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            ClassOrInterface classOrInterface = f.attrNearestClassOrInterface();
-            ImClass clazz =  getClassFor(classOrInterface);
-            m = JassIm.ImMethod(f, clazz, elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
+            m = JassIm.ImMethod(f, elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;
@@ -1547,8 +1532,8 @@ public class ImTranslator {
         Partitions<ImClass> p = new Partitions<>();
         for (ImClass c : imProg.getClasses()) {
             p.add(c);
-            for (ImClassType sc : c.getSuperClasses()) {
-                p.union(c, sc.getClassDef());
+            for (ImClass sc : c.getSuperClasses()) {
+                p.union(c, sc);
             }
         }
         // generate typeId variables
