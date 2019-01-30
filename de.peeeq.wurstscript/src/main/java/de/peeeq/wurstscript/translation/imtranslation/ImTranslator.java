@@ -105,7 +105,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
     }
 
 
@@ -550,11 +550,24 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            ImMethod m = JassIm.ImMethod(classDef, "destroy" + classDef.getName(),
+            ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
                     impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
     };
+
+    private ImClassType selfType(FuncDef f) {
+        return selfType(f.attrNearestClassOrInterface());
+    }
+
+    private ImClassType selfType(StructureDef classDef) {
+        ImClass imClass = classForStructureDef.get(classDef);
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        return JassIm.ImClassType(imClass, typeArgs);
+    }
 
     public GetAForB<ImClass, ImFunction> allocFunc = new GetAForB<ImClass, ImFunction>() {
 
@@ -1508,7 +1521,7 @@ public class ImTranslator {
         ImMethod m = methodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getFuncFor(f);
-            m = JassIm.ImMethod(f, elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
+            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
             methodForFuncDef.put(f, m);
         }
         return m;

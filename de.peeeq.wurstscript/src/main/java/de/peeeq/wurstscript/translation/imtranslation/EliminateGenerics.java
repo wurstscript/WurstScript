@@ -29,6 +29,8 @@ public class EliminateGenerics {
 
 
     public void transform() {
+        simplifyClasses();
+
         collectGenericUsages();
 
         eliminateGenericUses();
@@ -36,6 +38,15 @@ public class EliminateGenerics {
         removeGenericConstructs();
 
 
+    }
+
+    /**
+     * Removed methods and functions from classes and adds them to the
+     * main program.
+     *
+     */
+    private void simplifyClasses() {
+        throw new RuntimeException("TODO");
     }
 
 

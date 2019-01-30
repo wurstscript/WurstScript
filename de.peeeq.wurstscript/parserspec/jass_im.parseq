@@ -59,7 +59,7 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 ImMethods * ImMethod
 
 ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
-    ImClass methodClass,
+    ref ImClassType methodClass,
 	String name,
 	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,
