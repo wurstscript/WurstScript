@@ -118,6 +118,11 @@ public class WurstTypeClosure extends WurstType {
         return JassIm.ImIntVal(0);
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
     public List<WurstType> getParamTypes() {
         return paramTypes;
     }

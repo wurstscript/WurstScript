@@ -5,9 +5,7 @@ import com.google.common.collect.Table;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -20,6 +18,7 @@ public class EliminateGenerics {
     // TODO only use one queue here with the different cases (add: generic class type, member access)
     private Deque<GenericUse> genericsUses = new ArrayDeque<>();
     private Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
+    private Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
 
     public EliminateGenerics(ImTranslator tr, ImProg prog) {
@@ -37,16 +36,56 @@ public class EliminateGenerics {
 
         removeGenericConstructs();
 
-
+//        recalculateTypeIds();
     }
+
+//    private void recalculateTypeIds() {
+//        Map<ImClass, Integer> typeIds = prog.attrTypeId();
+//        typeIds.clear();
+//        typeIds.putAll(TypeId.calculate(prog));
+//        System.out.println("new type ids: " + typeIds.size());
+//        typeIds.forEach((k,v) -> {
+//            System.out.println(k.getName() + ImPrinter.smallHash(k) + " -> " + v);
+//        });
+//    }
 
     /**
      * Removed methods and functions from classes and adds them to the
      * main program.
-     *
      */
     private void simplifyClasses() {
-        throw new RuntimeException("TODO");
+        for (ImClass c : prog.getClasses()) {
+            simplifyClass(c);
+        }
+    }
+
+    private void simplifyClass(ImClass c) {
+        moveMethodsOutOfClass(c);
+        moveFunctionsOutOfClass(c);
+
+    }
+
+    private void moveMethodsOutOfClass(ImClass c) {
+        List<ImMethod> methods = c.getMethods().removeAll();
+        prog.getMethods().addAll(methods);
+    }
+
+    private void moveFunctionsOutOfClass(ImClass c) {
+        List<ImFunction> functions = c.getFunctions().removeAll();
+        for (ImFunction f : functions) {
+            prog.getFunctions().add(f);
+
+            List<ImTypeVar> newTypeVars = c.getTypeVariables()
+                    .stream()
+                    .map(ImTypeVar::copy)
+                    .collect(Collectors.toList());
+            f.getTypeVariables().addAll(0, newTypeVars);
+            List<ImTypeArgument> typeArgs = newTypeVars
+                    .stream()
+                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
+                    .collect(Collectors.toList());
+            rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
+        }
     }
 
 
@@ -55,6 +94,7 @@ public class EliminateGenerics {
      */
     private void removeGenericConstructs() {
         prog.getFunctions().removeIf(f -> !f.getTypeVariables().isEmpty());
+        prog.getMethods().removeIf(m -> !m.getImplementation().getTypeVariables().isEmpty());
         prog.getClasses().removeIf(c -> !c.getTypeVariables().isEmpty());
     }
 
@@ -68,21 +108,7 @@ public class EliminateGenerics {
     /**
      * creates a specialized version of this function
      */
-    private ImFunction specialize(ImFunction f, GenericTypes generics) {
-        Element parent = f.getParent().getParent();
-        if (parent instanceof ImClass) {
-            ImClass clazz = (ImClass) parent;
-            if (!clazz.getTypeVariables().isEmpty()) {
-                // if the function is in a generic class first specialize the class:
-                int n = clazz.getTypeVariables().size();
-                GenericTypes classGenerics = generics.take(n);
-                generics = generics.drop(n);
-                int index = clazz.getFunctions().indexOf(f);
-                ImClass specializedClass = specializeClass(clazz, classGenerics);
-                f = specializedClass.getFunctions().get(index);
-            }
-        }
-
+    private ImFunction specializeFunction(ImFunction f, GenericTypes generics) {
         ImFunction specialized = specializedFunctions.get(f, generics);
         if (specialized != null) {
             return specialized;
@@ -102,7 +128,37 @@ public class EliminateGenerics {
         return newF;
     }
 
+    /**
+     * creates a specialized version of this method
+     */
+    private ImMethod specializeMethod(ImMethod f, GenericTypes generics) {
+
+        ImMethod specialized = specializedMethods.get(f, generics);
+        if (specialized != null) {
+            return specialized;
+        }
+        ImMethod newF = f.copyWithRefs();
+        specializedMethods.put(f, generics, newF);
+        prog.getMethods().add(newF);
+
+        newF.setName(f.getName() + "_specialized_" + generics.makeName());
+
+        newF.setImplementation(specializeFunction(newF.getImplementation(), generics));
+        newF.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
+
+        return newF;
+    }
+
+    /**
+     * Replaces all uses of the given typeVars with the type arguments given in parameter generics.
+     */
     private void rewriteGenerics(Element element, GenericTypes generics, List<ImTypeVar> typeVars) {
+        if (generics.getTypeArguments().size() != typeVars.size()) {
+            throw new RuntimeException("Rewrite generics with wrong sizes\n" +
+                    "generics: " + generics + "\n" +
+                    "typevars: " + typeVars + "\n" +
+                    "in\n: " + element);
+        }
         element.accept(new Element.DefaultVisitor() {
 
             @Override
@@ -190,6 +246,7 @@ public class EliminateGenerics {
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();
+        newC.getSuperClasses().replaceAll(this::specializeType);
         List<ImTypeVar> typeVars = c.getTypeVariables();
 
         newC.setName(c.getName() + "_specialized_" + generics.makeName());
@@ -219,9 +276,8 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
-                if (!ct.getTypeArguments().isEmpty()
-                        || !mc.getTypeArguments().isEmpty()) {
+//                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
+                if (!mc.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -247,9 +303,12 @@ public class EliminateGenerics {
             @Override
             public void visit(ImClass c) {
                 if (!c.getTypeVariables().isEmpty()) {
-                    // handle generic functions after they are specialized
+                    // handle generic classes after they are specialized
                     return;
                 }
+                genericsUses.add(() ->
+                        c.getSuperClasses().replaceAll(EliminateGenerics.this::specializeType));
+
                 super.visit(c);
             }
 
@@ -266,6 +325,40 @@ public class EliminateGenerics {
                 }
             }
 
+            @Override
+            public void visit(ImAlloc f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
+            @Override
+            public void visit(ImDealloc f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
+            @Override
+            public void visit(ImInstanceof f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
+            @Override
+            public void visit(ImTypeIdOfClass f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
 
         });
     }
@@ -314,12 +407,12 @@ public class EliminateGenerics {
         });
     }
 
-    abstract class GenericUse {
+    interface GenericUse {
 
-        public abstract void eliminate();
+        void eliminate();
     }
 
-    class GenericImFunctionCall extends GenericUse {
+    class GenericImFunctionCall implements GenericUse {
         private final ImFunctionCall fc;
 
         GenericImFunctionCall(ImFunctionCall fc) {
@@ -333,14 +426,14 @@ public class EliminateGenerics {
             GenericTypes generics = new GenericTypes(fc.getTypeArguments());
             ImFunction specializedFunc = specializedFunctions.get(f, generics);
             if (specializedFunc == null) {
-                specializedFunc = specialize(f, generics);
+                specializedFunc = specializeFunction(f, generics);
             }
             fc.setFunc(specializedFunc);
             fc.getTypeArguments().removeAll();
         }
     }
 
-    class GenericMethodCall extends GenericUse {
+    class GenericMethodCall implements GenericUse {
         private final ImMethodCall mc;
 
         GenericMethodCall(ImMethodCall mc) {
@@ -349,11 +442,19 @@ public class EliminateGenerics {
 
         @Override
         public void eliminate() {
-            throw new RuntimeException("TODO");
+            ImMethod f = mc.getMethod();
+
+            GenericTypes generics = new GenericTypes(mc.getTypeArguments());
+            ImMethod specializedMethod = specializedMethods.get(f, generics);
+            if (specializedMethod == null) {
+                specializedMethod = specializeMethod(f, generics);
+            }
+            mc.setMethod(specializedMethod);
+            mc.getTypeArguments().removeAll();
         }
     }
 
-    class GenericMemberAccess extends GenericUse {
+    class GenericMemberAccess implements GenericUse {
         private final ImMemberAccess ma;
 
         GenericMemberAccess(ImMemberAccess ma) {
@@ -374,7 +475,7 @@ public class EliminateGenerics {
     }
 
 
-    class GenericClass extends GenericUse {
+    class GenericClass implements GenericUse {
 
         private final ImClassType ct;
 
@@ -388,7 +489,7 @@ public class EliminateGenerics {
         }
     }
 
-    class GenericVar extends GenericUse {
+    class GenericVar implements GenericUse {
         private final ImVar mc;
 
         GenericVar(ImVar mc) {
@@ -399,6 +500,10 @@ public class EliminateGenerics {
         public void eliminate() {
             mc.setType(specializeType(mc.getType()));
         }
+    }
+
+    private ImClassType specializeType(ImClassType type) {
+        return (ImClassType) specializeType((ImType) type);
     }
 
     private ImType specializeType(ImType type) {
@@ -444,7 +549,7 @@ public class EliminateGenerics {
         });
     }
 
-    class GenericReturnTypeFunc extends GenericUse {
+    class GenericReturnTypeFunc implements GenericUse {
         private final ImFunction mc;
 
         GenericReturnTypeFunc(ImFunction mc) {
@@ -457,7 +562,7 @@ public class EliminateGenerics {
         }
     }
 
-    class GenericReturnTypeMethod extends GenericUse {
+    class GenericReturnTypeMethod implements GenericUse {
         private final ImMethod mc;
 
         GenericReturnTypeMethod(ImMethod mc) {
@@ -470,7 +575,7 @@ public class EliminateGenerics {
         }
     }
 
-    class GenericNull extends GenericUse {
+    class GenericNull implements GenericUse {
         private final ImNull mc;
 
         GenericNull(ImNull mc) {
@@ -483,7 +588,7 @@ public class EliminateGenerics {
         }
     }
 
-    class GenericTypeArgument extends GenericUse {
+    class GenericTypeArgument implements GenericUse {
         private final ImTypeArgument mc;
 
         GenericTypeArgument(ImTypeArgument mc) {
@@ -493,6 +598,20 @@ public class EliminateGenerics {
         @Override
         public void eliminate() {
             throw new RuntimeException("TODO");
+        }
+    }
+
+    private class GenericClazzUse implements GenericUse {
+        private final ImClassRelatedExprWithClass f;
+
+        public GenericClazzUse(ImClassRelatedExprWithClass f) {
+            super();
+            this.f = f;
+        }
+
+        @Override
+        public void eliminate() {
+            f.setClazz(specializeType(f.getClazz()));
         }
     }
 

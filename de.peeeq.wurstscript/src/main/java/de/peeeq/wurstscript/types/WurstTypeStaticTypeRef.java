@@ -43,6 +43,11 @@ public class WurstTypeStaticTypeRef extends WurstType {
     }
 
     @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
+    @Override
     public WurstType dynamic() {
         return base;
     }

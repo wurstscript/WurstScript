@@ -1511,7 +1511,7 @@ public class ImTranslator {
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
-        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.<ImClass>newArrayList()));
+        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
     }
 
 
@@ -1545,8 +1545,8 @@ public class ImTranslator {
         Partitions<ImClass> p = new Partitions<>();
         for (ImClass c : imProg.getClasses()) {
             p.add(c);
-            for (ImClass sc : c.getSuperClasses()) {
-                p.union(c, sc);
+            for (ImClassType sc : c.getSuperClasses()) {
+                p.union(c, sc.getClassDef());
             }
         }
         // generate typeId variables

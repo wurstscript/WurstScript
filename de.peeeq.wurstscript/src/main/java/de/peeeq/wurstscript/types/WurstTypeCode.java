@@ -29,5 +29,10 @@ public class WurstTypeCode extends WurstTypePrimitive {
         return JassIm.ImNull(imTranslateType());
     }
 
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
+
 
 }

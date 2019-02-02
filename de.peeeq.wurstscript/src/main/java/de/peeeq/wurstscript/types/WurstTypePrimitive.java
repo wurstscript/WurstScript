@@ -33,4 +33,8 @@ public abstract class WurstTypePrimitive extends WurstType {
         return imType;
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
 }

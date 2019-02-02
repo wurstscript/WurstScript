@@ -54,7 +54,7 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	ImVars fields, 
 	ImMethods methods,
 	ImFunctions functions,
-	java.util.List<ImClass> superClasses)
+	java.util.List<ImClassType> superClasses)
 
 ImMethods * ImMethod
 
@@ -111,13 +111,18 @@ ImLExpr =
 
 ImClassRelatedExpr = 
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
-	| ImAlloc(ref ImClass clazz)
-	| ImDealloc(ref ImClass clazz, ImExpr obj)
 	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var, ImExprs indexes)
-	| ImInstanceof(ImExpr obj, ref ImClass clazz)
-	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
-	| ImTypeIdOfClass(ref ImClass clazz)
+	| ImClassRelatedExprWithClass
+
+ImClassRelatedExprWithClass =
+	  ImAlloc(ref ImClassType clazz)
+	| ImDealloc(ref ImClassType clazz, ImExpr obj)
+	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
+	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
+	| ImTypeIdOfClass(ref ImClassType clazz)
 	
+
+
 
 ImCall = 
 	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImTypeArguments typeArguments, ImExprs arguments
@@ -151,7 +156,7 @@ ElementWithTypes = ImTupleType | ImTupleArrayType
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
 
-ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
+ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImType | ImTypeVar
 
 ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
 ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
@@ -341,7 +346,7 @@ ImMethod.attrClass()
 	returns ImClass
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.attrClass
 	
-ImClass.attrTypeId
+ImClass.attrTypeId()
 	returns int
 	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.get
 	

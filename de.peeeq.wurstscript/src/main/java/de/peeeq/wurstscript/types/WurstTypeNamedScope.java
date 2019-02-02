@@ -230,5 +230,10 @@ public abstract class WurstTypeNamedScope extends WurstType {
         return false;
     }
 
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
+
 
 }

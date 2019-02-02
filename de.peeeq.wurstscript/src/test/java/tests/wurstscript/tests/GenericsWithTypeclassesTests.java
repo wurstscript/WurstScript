@@ -486,7 +486,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void implicitConversionFailSimple() { // see bug #121
-        testAssertOkLines(false,
+        testAssertErrorsLines(false, "cast expression not defined for expression type int",
                 "type effect extends handle",
                 "package Test",
 
@@ -685,7 +685,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericReturnOverride() {
-        testAssertOkLines(false,
+        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
                 "package Test",
                 "interface I<T:>",
                 "	function f() returns T",
@@ -838,11 +838,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "class Comparison<T:>",
                 "	function leq(T t, T u) returns bool",
                 "		return true",
-                "class Comparison2<U:> extends Comparison<U>",
-                "class BoolComp extends Comparison2<bool>",
+                "class ComparisonX<U:> extends Comparison<U>",
+                "class BoolComp extends ComparisonX<bool>",
                 "	override function leq(bool a, bool b) returns bool",
                 "		return not a or b",
-                "Comparison2<bool> bc = new BoolComp",
+                "ComparisonX<bool> bc = new BoolComp",
                 "init",
                 "	if bc.leq(false, true)",
                 "		testSuccess()"
@@ -866,7 +866,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void genericForIn() {
-        testAssertOkLines(true,
+        testAssertErrorsLines(true, "cast expression not defined for expression type int",
                 "package test",
                 "native testSuccess()",
                 "class C<T:>",
@@ -1012,7 +1012,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "class LinkedList<T:>",
                 "	T x",
                 "	function foldl<Q:, T:>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
-                "		return null",
+                "		return startValue",
                 "interface FoldClosure<T:, Q:>",
                 "	function run(T t, Q q) returns Q",
                 "init",
@@ -1097,7 +1097,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void nullWithGeneric() {
-        testAssertOkLines(true,
+        testAssertErrorsLines(false, "Cannot compare types T with null",
                 "package test",
                 "native testSuccess()",
                 "function foo<T:>(T t)",
@@ -1110,7 +1110,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsFunc() {
-        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1121,7 +1121,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void missingTypeArgsMethod() {
-        testAssertErrorsLines(false, "Cannot infer type for type parameter T",
+        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",
@@ -1145,7 +1145,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsFunc() {
-        testAssertErrorsLines(false, "Too many type arguments given",
+        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
                 "package test",
                 "function foo<T:>() returns T",
                 "	return null",
@@ -1156,7 +1156,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void tooManyTypeArgsMethod() {
-        testAssertErrorsLines(false, "Too many type arguments given",
+        testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
                 "package test",
                 "class C",
                 "	function foo<T:>() returns T",

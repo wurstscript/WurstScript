@@ -40,4 +40,10 @@ public class WurstTypeString extends WurstTypePrimitive {
         return JassIm.ImStringVal("");
     }
 
+
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
+
 }

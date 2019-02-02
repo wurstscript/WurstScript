@@ -71,6 +71,11 @@ public class WurstTypeTuple extends WurstType {
         return JassIm.ImTupleExpr(exprs);
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
     public int getTupleIndex(VarDef varDef) {
         WParameter v = (WParameter) varDef;
         int index = tupleDef.getParameters().indexOf(v);

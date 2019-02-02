@@ -57,4 +57,9 @@ public class WurstTypeUnknown extends WurstType {
         return JassIm.ImNoExpr();
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 }

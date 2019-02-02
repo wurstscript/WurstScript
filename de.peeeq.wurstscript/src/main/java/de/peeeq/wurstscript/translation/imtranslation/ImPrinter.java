@@ -18,6 +18,9 @@ public class ImPrinter {
             f.print(sb, indent);
             append(sb, "\n");
         }
+        for (ImMethod m : p.getMethods()) {
+            printMethod(sb, m, indent);
+        }
         append(sb, "\n\n");
         for (ImClass c : p.getClasses()) {
             append(sb, "class ");
@@ -25,35 +28,20 @@ public class ImPrinter {
             append(sb, smallHash(c));
             printTypeVariables(c.getTypeVariables(), sb, indent);
             append(sb, " extends ");
-            for (ImClass sc : c.getSuperClasses()) {
-                append(sb, sc.getName());
-                append(sb, smallHash(sc));
-                printTypeVariables(sc.getTypeVariables(), sb, indent);
+            for (ImClassType sc : c.getSuperClasses()) {
+                sc.print(sb, indent);
                 append(sb, " ");
             }
             append(sb, "{\n");
             for (ImVar f : c.getFields()) {
+                indent(sb, indent + 1);
                 f.print(sb, indent + 1);
                 append(sb, "\n");
             }
             append(sb, "\n\n");
             for (ImMethod m : c.getMethods()) {
-                if (m.getIsAbstract()) {
-                    append(sb, "    abstract");
-                }
-                append(sb, "    method ");
-                append(sb, m.getName());
-                append(sb, smallHash(m));
-                append(sb, " implemented by ");
-                append(sb, m.getImplementation().getName());
-                append(sb, "\n");
-                for (ImMethod sm : m.getSubMethods()) {
-                    append(sb, "        sub: ");
-                    append(sb, sm.getName());
-                    append(sb, smallHash(sm));
-                    append(sb, "\n");
-                }
-                append(sb, "\n");
+                indent(sb, indent + 1);
+                printMethod(sb, m, indent + 1);
             }
 
             for (ImFunction func : c.getFunctions()) {
@@ -63,6 +51,25 @@ public class ImPrinter {
             append(sb, "}\n\n");
         }
 
+    }
+
+    private static void printMethod(Appendable sb, ImMethod m, int indent) {
+        if (m.getIsAbstract()) {
+            append(sb, "abstract ");
+        }
+        append(sb, "method ");
+        append(sb, m.getName());
+        append(sb, smallHash(m));
+        append(sb, " implemented by ");
+        append(sb, m.getImplementation().getName());
+        append(sb, "\n");
+        for (ImMethod sm : m.getSubMethods()) {
+            append(sb, "        sub: ");
+            append(sb, sm.getName());
+            append(sb, smallHash(sm));
+            append(sb, "\n");
+        }
+        append(sb, "\n");
     }
 
 
@@ -120,9 +127,12 @@ public class ImPrinter {
             p1.print(sb, indent);
             first = false;
         }
-        append(sb, ") returns ");
-        p.getReturnType().print(sb, indent);
-        append(sb, "{ \n");
+        append(sb, ")");
+        if (!(p.getReturnType() instanceof ImVoid)) {
+            append(sb, " returns ");
+            p.getReturnType().print(sb, indent);
+        }
+        append(sb, " { \n");
         for (ImVar v : p.getLocals()) {
             indent(sb, indent + 1);
             append(sb, "local ");
@@ -143,7 +153,7 @@ public class ImPrinter {
             if (i > 0) {
                 append(sb, ", ");
             }
-            append(sb, tvs.get(i).getName());
+            tvs.get(i).print(sb, indent);
         }
         append(sb, ">");
     }
@@ -235,7 +245,7 @@ public class ImPrinter {
 
     }
 
-    private static String smallHash(Object g) {
+    public static String smallHash(Object g) {
         String c = "" + g.hashCode();
         return c.substring(0, Math.min(3, c.length() - 1));
     }
@@ -301,6 +311,11 @@ public class ImPrinter {
 
     public static void print(ImNull p, Appendable sb, int indent) {
         append(sb, "null");
+        if (!(p.getType() instanceof ImVoid)) {
+            append(sb, "<");
+            p.getType().print(sb, indent);
+            append(sb, ">");
+        }
     }
 
 
@@ -314,7 +329,6 @@ public class ImPrinter {
 
 
     public static void print(ImVar v, Appendable sb, int indent) {
-        indent(sb, indent);
         v.getType().print(sb, indent);
         append(sb, " ");
         append(sb, v.getName());
@@ -361,6 +375,8 @@ public class ImPrinter {
         mc.getReceiver().print(sb, 0);
         append(sb, ".");
         append(sb, mc.getMethod().getName());
+        append(sb, smallHash(mc.getMethod()));
+        printTypeArguments(mc.getTypeArguments(), indent, sb);
         printArgumentList(sb, 0, mc.getArguments());
     }
 
@@ -375,16 +391,16 @@ public class ImPrinter {
 
 
     public static void print(ImAlloc e, Appendable sb, int indent) {
-        append(sb, "#alloc(class ");
-        append(sb, e.getClazz().getName());
+        append(sb, "#alloc(");
+        e.getClazz().print(sb, indent);
         append(sb, ")");
 
     }
 
 
     public static void print(ImDealloc e, Appendable sb, int indent) {
-        append(sb, "#dealloc(class ");
-        append(sb, e.getClazz().getName());
+        append(sb, "#dealloc(");
+        e.getClazz().print(sb, indent);
         append(sb, ", ");
         e.getObj().print(sb, 0);
         append(sb, ")");
@@ -395,9 +411,7 @@ public class ImPrinter {
                              int indent) {
         e.getObj().print(sb, 0);
         append(sb, " instanceof ");
-        append(sb, e.getClazz().getName());
-
-
+        e.getClazz().print(sb, indent);
     }
 
 
@@ -457,10 +471,12 @@ public class ImPrinter {
 
     public static void print(ImTypeVarRef e, Appendable sb, int indent) {
         append(sb, e.getTypeVariable().getName());
+        append(sb, smallHash(e.getTypeVariable()));
     }
 
     public static void print(ImClassType ct, Appendable sb, int indent) {
         append(sb, ct.getClassDef().getName());
+        append(sb, smallHash(ct.getClassDef()));
         ImTypeArguments typeArguments = ct.getTypeArguments();
         printTypeArguments(typeArguments, indent, sb);
     }
@@ -478,5 +494,10 @@ public class ImPrinter {
             }
             append(sb, ">");
         }
+    }
+
+    public static void print(ImTypeVar tv, Appendable sb, int indent) {
+        append(sb, tv.getName());
+        append(sb, smallHash(tv));
     }
 }

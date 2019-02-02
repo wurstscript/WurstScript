@@ -57,4 +57,9 @@ public class WurstTypeVoid extends WurstType {
         return true;
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 }

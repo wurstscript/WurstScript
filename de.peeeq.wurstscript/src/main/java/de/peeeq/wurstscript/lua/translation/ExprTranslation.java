@@ -10,7 +10,7 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         LuaTableFields fields = LuaAst.LuaTableFields();
-        ImClass clazz = e.getClazz();
+        ImClass clazz = e.getClazz().getClassDef();
         fields.add(LuaAst.LuaTableNamedField("wurst_typeId", LuaAst.LuaExprIntVal("" + clazz.attrTypeId())));
 //        for (ImMethod m : clazz.getMethods()) {
 //            LuaFunction luaMethod = tr.luaMethod.getFor(m);
@@ -143,7 +143,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
-        int i = tr.typeId.getFor(e.getClazz());
+        int i = tr.typeId.getFor(e.getClazz().getClassDef());
         return LuaAst.LuaExprIntVal("" + i);
     }
 

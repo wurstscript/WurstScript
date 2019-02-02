@@ -151,6 +151,11 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
+    protected boolean isNullable() {
+        return baseType.isNullable();
+    }
+
+    @Override
     public WurstTypeBoundTypeParam setTypeArgs(VariableBinding typeParamMapping) {
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }

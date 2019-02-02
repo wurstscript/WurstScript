@@ -50,6 +50,11 @@ public class WurstTypeVararg extends WurstType {
         throw new Error();
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 
     @Override
     public WurstType setTypeArgs(VariableBinding t) {

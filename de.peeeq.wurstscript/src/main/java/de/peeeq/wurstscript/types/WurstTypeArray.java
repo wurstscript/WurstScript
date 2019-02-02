@@ -130,4 +130,9 @@ public class WurstTypeArray extends WurstType {
         throw new Error();
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 }

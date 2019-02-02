@@ -46,5 +46,10 @@ public class WurstTypeInfer extends WurstType {
         throw new Error("not implemented");
     }
 
+    @Override
+    protected boolean isNullable() {
+        return false;
+    }
+
 
 }

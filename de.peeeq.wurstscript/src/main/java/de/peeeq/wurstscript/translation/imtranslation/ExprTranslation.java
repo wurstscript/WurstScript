@@ -577,27 +577,31 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
         WurstType targetType = e.getTyp().attrTyp();
-        if (targetType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope t = (WurstTypeNamedScope) targetType;
-            ImClass clazz = translator.getClassFor((StructureDef) t.getDef());
-            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), clazz);
+        ImType imTargetType = targetType.imTranslateType(translator);
+        if (imTargetType instanceof ImClassType) {
+            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), (ImClassType) imTargetType);
         }
         throw new Error("Cannot compile instanceof " + targetType);
     }
 
     public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
         WurstType leftType = e.getLeft().attrTyp();
-        if (leftType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
+        ImType imLeftType = leftType.imTranslateType(translator);
+        if (imLeftType instanceof ImClassType) {
+            ImClassType imLeftTypeC = (ImClassType) imLeftType;
+            if (leftType instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
 
-            ImClass c = translator.getClassFor(wtc.getDef());
-            if (wtc.isStaticRef()) {
-                return JassIm.ImTypeIdOfClass(c);
+                if (wtc.isStaticRef()) {
+                    return JassIm.ImTypeIdOfClass(imLeftTypeC);
+                } else {
+                    return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), imLeftTypeC);
+                }
             } else {
-                return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), c);
+                throw new CompileError(e, "not implemented for " + leftType);
             }
         } else {
-            throw new Error("not implemented for " + leftType);
+            throw new CompileError(e, "not implemented for " + leftType);
         }
     }
 

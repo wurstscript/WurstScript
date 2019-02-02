@@ -55,6 +55,11 @@ public class WurstTypeUnion extends WurstType {
         return typeA.getDefaultValue();
     }
 
+    @Override
+    protected boolean isNullable() {
+        return typeA.isNullable() || typeB.isNullable();
+    }
+
     public WurstType getTypeA() {
         return typeA;
     }

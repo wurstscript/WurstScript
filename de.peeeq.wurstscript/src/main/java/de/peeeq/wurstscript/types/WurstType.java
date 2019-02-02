@@ -251,4 +251,5 @@ public abstract class WurstType {
     }
 
 
+    protected abstract boolean isNullable();
 }

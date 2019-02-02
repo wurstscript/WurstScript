@@ -15,9 +15,12 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -96,10 +99,7 @@ public class ClassTranslator {
     }
 
     private void addSuperClass(TypeExpr extended) {
-        if (extended.attrTypeDef() instanceof StructureDef) {
-            StructureDef sc = (StructureDef) extended.attrTypeDef();
-            imClass.getSuperClasses().add(translator.getClassFor(sc));
-        }
+        imClass.getSuperClasses().add((ImClassType) extended.attrTyp().imTranslateType(translator));
     }
 
     private void createDestroyMethod(List<ClassDef> subClasses) {
@@ -125,7 +125,14 @@ public class ClassTranslator {
         f.getBody().add(ImFunctionCall(trace, scOnDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 
         // deallocate
-        f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(imClassType(), JassIm.ImVarAccess(thisVar)));
+    }
+
+    private ImClassType imClassType() {
+        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        return JassIm.ImClassType(imClass, typeArgs);
     }
 
     /**
@@ -334,7 +341,7 @@ public class ClassTranslator {
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClass)));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClassType())));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);

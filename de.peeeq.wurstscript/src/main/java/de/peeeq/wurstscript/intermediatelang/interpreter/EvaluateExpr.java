@@ -200,25 +200,25 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
                                LocalState localState) {
-        return new ILconstInt(globalState.allocate(imAlloc.getClazz(), imAlloc.attrTrace()));
+        return new ILconstInt(globalState.allocate(imAlloc.getClazz().getClassDef(), imAlloc.attrTrace()));
     }
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
                                LocalState localState) {
         ILconstInt obj = (ILconstInt) imDealloc.getObj().evaluate(globalState, localState);
-        globalState.deallocate(obj.getVal(), imDealloc.getClazz(), imDealloc.attrTrace());
+        globalState.deallocate(obj.getVal(), imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
         return ILconstNull.instance();
     }
 
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
         ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
-        return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz(), e.attrTrace()));
+        return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz().getClassDef(), e.attrTrace()));
     }
 
     public static ILconst eval(ImTypeIdOfClass e,
                                ProgramState globalState, LocalState localState) {
-        return new ILconstInt(e.getClazz().attrTypeId());
+        return new ILconstInt(e.getClazz().getClassDef().attrTypeId());
     }
 
     public static ILconst eval(ImTypeIdOfObj e,

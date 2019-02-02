@@ -343,26 +343,26 @@ public class EliminateClasses {
     }
 
     private void replaceTypeIdOfObj(ImTypeIdOfObj e) {
-        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
+        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz().getClassDef()).typeId;
         ImExpr obj = e.getObj();
         obj.setParent(null);
         e.replaceBy(JassIm.ImVarArrayAccess(e.attrTrace(), typeIdVar, JassIm.ImExprs(obj)));
     }
 
     private void replaceTypeIdOfClass(ImTypeIdOfClass e) {
-        e.replaceBy(JassIm.ImIntVal(e.getClazz().attrTypeId()));
+        e.replaceBy(JassIm.ImIntVal(e.getClazz().getClassDef().attrTypeId()));
     }
 
     private void replaceInstanceof(ImInstanceof e) {
         ImFunction f = e.getNearestFunc();
-        List<ImClass> allSubClasses = getAllSubclasses(e.getClazz());
+        List<ImClass> allSubClasses = getAllSubclasses(e.getClazz().getClassDef());
         List<Integer> subClassIds = allSubClasses.stream()
                 .map(ImClass::attrTypeId)
                 .collect(Collectors.toList());
         List<IntRange> idRanges = IntRange.createFromIntList(subClassIds);
         ImExpr obj = e.getObj();
         obj.setParent(null);
-        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
+        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz().getClassDef()).typeId;
 
         ImExpr objTypeId = JassIm.ImVarArrayAccess(e.attrTrace(), typeIdVar, JassIm.ImExprs(obj));
 
@@ -418,7 +418,7 @@ public class EliminateClasses {
     }
 
     private void replaceDealloc(ImDealloc e) {
-        ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
+        ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz().getClassDef());
         ImExpr obj = e.getObj();
         obj.setParent(null);
         e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(obj), false, CallType.NORMAL));
@@ -426,7 +426,7 @@ public class EliminateClasses {
     }
 
     private void replaceAlloc(ImAlloc e) {
-        ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
+        ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz().getClassDef());
         e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL));
     }
 
