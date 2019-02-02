@@ -58,6 +58,8 @@ public class ImPrinter {
             append(sb, "abstract ");
         }
         append(sb, "method ");
+        m.getMethodClass().print(sb, indent);
+        append(sb, ".");
         append(sb, m.getName());
         append(sb, smallHash(m));
         append(sb, " implemented by ");

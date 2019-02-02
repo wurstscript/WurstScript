@@ -249,10 +249,10 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index1, v, JassIm.ImExprs(index2));
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index, v, JassIm.ImExprs());
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                 }
             } else {
                 // direct var access
@@ -707,11 +707,11 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index1, v, JassIm.ImExprs(index2));
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
 
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return JassIm.ImMemberAccess(e, index, v, JassIm.ImExprs());
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                 }
             } else {
                 // direct var access

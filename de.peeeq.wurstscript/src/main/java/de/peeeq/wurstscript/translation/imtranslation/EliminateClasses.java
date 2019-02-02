@@ -40,6 +40,12 @@ public class EliminateClasses {
             eliminateClass(c);
         }
 
+        // for each method, create a dispatch function
+        for (ImMethod m : prog.getMethods()) {
+            ImClass c = m.getMethodClass().getClassDef();
+            createDispatchFunc(c, m);
+        }
+
         for (ImFunction f : prog.getFunctions()) {
             eliminateClassRelatedExprs(f);
         }

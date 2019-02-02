@@ -110,10 +110,7 @@ public class ImAttributes {
 
 
     public static ImClass attrClass(ImMethod m) {
-        if (m.getParent() == null) {
-            throw new CompileError(m.attrTrace().attrSource(), "Method " + m.getName() + " not attached.");
-        }
-        return (ImClass) m.getParent().getParent();
+        return m.getMethodClass().getClassDef();
     }
 
 

@@ -537,7 +537,7 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(StructureDef classDef) {
-            ImVars params = ImVars(JassIm.ImVar(classDef, TypesHelper.imInt(), "this", false));
+            ImVars params = ImVars(JassIm.ImVar(classDef, selfType(classDef), "this", false));
 
             ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
             addFunction(f, classDef);
@@ -560,8 +560,12 @@ public class ImTranslator {
         return selfType(f.attrNearestClassOrInterface());
     }
 
-    private ImClassType selfType(StructureDef classDef) {
-        ImClass imClass = classForStructureDef.get(classDef);
+    public ImClassType selfType(StructureDef classDef) {
+        ImClass imClass = getClassFor(classDef);
+        return selfType(imClass);
+    }
+
+    public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
             typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
@@ -848,7 +852,7 @@ public class ImTranslator {
         if (thisVarMap.containsKey(f)) {
             return thisVarMap.get(f);
         }
-        ImVar v = JassIm.ImVar(f, ImSimpleType("integer"), "this", false);
+        ImVar v = JassIm.ImVar(f, selfType(f.attrNearestClassOrInterface()), "this", false);
         thisVarMap.put(f, v);
         return v;
     }

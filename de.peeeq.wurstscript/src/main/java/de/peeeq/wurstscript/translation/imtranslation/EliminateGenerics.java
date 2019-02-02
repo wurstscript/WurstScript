@@ -30,6 +30,8 @@ public class EliminateGenerics {
     public void transform() {
         simplifyClasses();
 
+        addMemberTypeArguments();
+
         collectGenericUsages();
 
         eliminateGenericUses();
@@ -37,6 +39,26 @@ public class EliminateGenerics {
         removeGenericConstructs();
 
 //        recalculateTypeIds();
+    }
+
+    private void addMemberTypeArguments() {
+        prog.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImMethodCall mc) {
+                super.visit(mc);
+                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
+                List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
+                mc.getTypeArguments().addAll(0, typeArgs);
+            }
+
+            @Override
+            public void visit(ImMemberAccess ma) {
+                super.visit(ma);
+                ImClassType ct = (ImClassType) ma.getReceiver().attrTyp();
+                List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
+                ma.getTypeArguments().addAll(0, typeArgs);
+            }
+        });
     }
 
 //    private void recalculateTypeIds() {
@@ -131,22 +153,27 @@ public class EliminateGenerics {
     /**
      * creates a specialized version of this method
      */
-    private ImMethod specializeMethod(ImMethod f, GenericTypes generics) {
+    private ImMethod specializeMethod(ImMethod m, GenericTypes generics) {
 
-        ImMethod specialized = specializedMethods.get(f, generics);
+        ImMethod specialized = specializedMethods.get(m, generics);
         if (specialized != null) {
             return specialized;
         }
-        ImMethod newF = f.copyWithRefs();
-        specializedMethods.put(f, generics, newF);
-        prog.getMethods().add(newF);
+        ImMethod newM = m.copyWithRefs();
+        specializedMethods.put(m, generics, newM);
+        prog.getMethods().add(newM);
 
-        newF.setName(f.getName() + "_specialized_" + generics.makeName());
+        ImClassType newClassType = newM.getMethodClass().copy();
+        for (int i = 0; i < newClassType.getTypeArguments().size(); i++) {
+            newClassType.getTypeArguments().set(i, generics.getTypeArguments().get(i).copy());
+        }
+        newM.setMethodClass(specializeType(newClassType));
 
-        newF.setImplementation(specializeFunction(newF.getImplementation(), generics));
-        newF.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
+        newM.setName(m.getName() + "_specialized_" + generics.makeName());
+        newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
+        newM.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
 
-        return newF;
+        return newM;
     }
 
     /**
@@ -160,6 +187,12 @@ public class EliminateGenerics {
                     "in\n: " + element);
         }
         element.accept(new Element.DefaultVisitor() {
+
+            @Override
+            public void visit(ImClass c) {
+                c.getSuperClasses().replaceAll(t -> (ImClassType) transformType(t));
+                super.visit(c);
+            }
 
             @Override
             public void visit(ImTypeArgument ta) {
@@ -246,11 +279,11 @@ public class EliminateGenerics {
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();
-        newC.getSuperClasses().replaceAll(this::specializeType);
-        List<ImTypeVar> typeVars = c.getTypeVariables();
 
         newC.setName(c.getName() + "_specialized_" + generics.makeName());
+        List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
+        newC.getSuperClasses().replaceAll(this::specializeType);
         collectGenericUsages(newC);
         return newC;
     }
@@ -263,12 +296,19 @@ public class EliminateGenerics {
         collectGenericUsages(prog);
     }
 
+    /** checks that all the type arguments only have concrete types */
+    private boolean onlyConcreteTypes(ImTypeArguments ta) {
+        return ta.stream()
+                .noneMatch(t -> isGenericType(t.getType()));
+    }
+
     private void collectGenericUsages(Element element) {
         element.accept(new Element.DefaultVisitor() {
             @Override
             public void visit(ImFunctionCall f) {
                 super.visit(f);
-                if (!f.getTypeArguments().isEmpty()) {
+                if (!f.getTypeArguments().isEmpty()
+                        && onlyConcreteTypes(f.getTypeArguments())) {
                     genericsUses.add(new GenericImFunctionCall(f));
                 }
             }
@@ -276,8 +316,8 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-//                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
-                if (!mc.getTypeArguments().isEmpty()) {
+                if (!mc.getTypeArguments().isEmpty()
+                        && onlyConcreteTypes(mc.getTypeArguments())) {
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -285,8 +325,8 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                ImClassType ct = (ImClassType) ma.getReceiver().attrTyp();
-                if (!ct.getTypeArguments().isEmpty()) {
+                if (!ma.getTypeArguments().isEmpty()
+                        && onlyConcreteTypes(ma.getTypeArguments())) {
                     genericsUses.add(new GenericMemberAccess(ma));
                 }
 
@@ -444,6 +484,7 @@ public class EliminateGenerics {
         public void eliminate() {
             ImMethod f = mc.getMethod();
 
+            List<ImTypeArgument> typeArguments = new ArrayList<>();
             GenericTypes generics = new GenericTypes(mc.getTypeArguments());
             ImMethod specializedMethod = specializedMethods.get(f, generics);
             if (specializedMethod == null) {

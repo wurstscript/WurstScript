@@ -336,7 +336,7 @@ public class ClassTranslator {
         }
 
 
-        ImVar thisVar = JassIm.ImVar(constr, TypesHelper.imInt(), "this", false);
+        ImVar thisVar = JassIm.ImVar(constr, imClassType(), "this", false);
         varReplacements.put(translator.getThisVar(constr), thisVar);
         f.getLocals().add(thisVar);
 

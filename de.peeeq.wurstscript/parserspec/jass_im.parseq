@@ -111,7 +111,7 @@ ImLExpr =
 
 ImClassRelatedExpr = 
 	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
-	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var, ImExprs indexes)
+	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ImTypeArguments typeArguments, ref ImVar var, ImExprs indexes)
 	| ImClassRelatedExprWithClass
 
 ImClassRelatedExprWithClass =
