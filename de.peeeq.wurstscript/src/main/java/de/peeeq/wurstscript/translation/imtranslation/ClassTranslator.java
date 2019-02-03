@@ -351,7 +351,11 @@ public class ClassTranslator {
         for (ImVar a : f.getParameters()) {
             arguments.add(ImVarAccess(a));
         }
-        f.getBody().add(ImFunctionCall(trace, constrFunc, ImTypeArguments(), arguments, false, CallType.NORMAL));
+        ImTypeArguments typeArgs = ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        f.getBody().add(ImFunctionCall(trace, constrFunc, typeArgs, arguments, false, CallType.NORMAL));
 
 
         // return this
@@ -372,7 +376,19 @@ public class ClassTranslator {
             for (Expr a : superArgs(constr)) {
                 arguments.add(a.imTranslateExpr(translator, f));
             }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, ImTypeArguments(), arguments, false, CallType.NORMAL));
+            ImTypeArguments typeArgs = ImTypeArguments();
+            ClassDef classDef = constr.attrNearestClassDef();
+            assert classDef != null;
+            WurstType extendedType = classDef.getExtendedClass().attrTyp();
+            if (extendedType instanceof WurstTypeClass) {
+                WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
+                for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
+                    if (bt.isTemplateTypeParameter()) {
+                        typeArgs.add(bt.imTranslateToTypeArgument(translator));
+                    }
+                }
+            }
+            f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {

@@ -4,7 +4,11 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
@@ -32,16 +36,29 @@ public class EliminateGenerics {
 
     public void transform() {
         simplifyClasses();
+        debug("eliminate-1-simplifyClasses");
 
         addMemberTypeArguments();
+        debug("eliminate-2-addMemberTypeArguments");
 
         collectGenericUsages();
+        debug("eliminate-3-collectGenericUsages");
 
         eliminateGenericUses();
+        debug("eliminate-4-eliminateGenericUses");
 
         removeGenericConstructs();
+        debug("eliminate-5-removeGenericConstructs");
 
 //        recalculateTypeIds();
+    }
+
+    private void debug(String name) {
+        try {
+            Files.write(Paths.get("test-output", name + ".im"), prog.toString().getBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void addMemberTypeArguments() {
@@ -116,6 +133,31 @@ public class EliminateGenerics {
             simplifyClass(c);
         }
     }
+
+//    /**
+//     * when a function f living in class C[T] is called, add the type arguments for the class
+//     */
+//    private void addFunctionTypeArguments() {
+//        prog.accept(new Element.DefaultVisitor() {
+//            @Override
+//            public void visit(ImFunctionCall fc) {
+//                Element parent = fc.getFunc().getParent().getParent();
+//                if (parent instanceof ImClass) {
+//                    System.out.println("adapting " + fc);
+//                    ImClass c = (ImClass) parent;
+//                    List<ImTypeArgument> typeArgs =
+//                            c.getTypeVariables().stream()
+//                            .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+//                            .collect(Collectors.toList());
+//                    fc.getTypeArguments().addAll(0, typeArgs);
+//                } else {
+//                    System.out.println("not adapting " + fc + "\n    with parent " + parent.getClass());
+//                }
+//                super.visit(fc);
+//            }
+//        });
+//
+//    }
 
     private void simplifyClass(ImClass c) {
         moveMethodsOutOfClass(c);
@@ -253,52 +295,41 @@ public class EliminateGenerics {
                 super.visit(e);
             }
 
+            @Override
+            public void visit(ImAlloc e) {
+                e.setClazz((ImClassType) transformType(e.getClazz(), generics, typeVars));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImInstanceof e) {
+                e.setClazz((ImClassType) transformType(e.getClazz(), generics, typeVars));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfClass e) {
+                e.setClazz((ImClassType) transformType(e.getClazz(), generics, typeVars));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImTypeIdOfObj e) {
+                e.setClazz((ImClassType) transformType(e.getClazz(), generics, typeVars));
+                super.visit(e);
+            }
+
+            @Override
+            public void visit(ImDealloc e) {
+                e.setClazz((ImClassType) transformType(e.getClazz(), generics, typeVars));
+                super.visit(e);
+            }
+
         });
     }
 
     private ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
-        return type.match(new ImType.Matcher<ImType>() {
-
-            @Override
-            public ImType case_ImVoid(ImVoid t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                return JassIm.ImArrayTypeMulti(transformType(t.getEntryType(), generics, typeVars), t.getArraySize());
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType t) {
-                return JassIm.ImTupleType(t.getTypes().stream().map(tt -> transformType(tt, generics, typeVars)).collect(Collectors.toList()), t.getNames());
-            }
-
-            @Override
-            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                int index = typeVars.indexOf(t.getTypeVariable());
-                if (index < 0) {
-                    throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
-                }
-                return generics.getTypeArguments().get(index).getType();
-            }
-
-            @Override
-            public ImType case_ImSimpleType(ImSimpleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType t) {
-                return JassIm.ImArrayType(transformType(t.getEntryType(), generics, typeVars));
-            }
-
-            @Override
-            public ImType case_ImClassType(ImClassType t) {
-                ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(transformType(ta.getType(), generics, typeVars), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
-                return JassIm.ImClassType(t.getClassDef(), args);
-            }
-        });
+        return ImAttrType.substituteType(type, generics.getTypeArguments(), typeVars);
     }
 
     /**

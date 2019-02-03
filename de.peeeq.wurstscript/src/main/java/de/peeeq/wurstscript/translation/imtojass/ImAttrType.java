@@ -1,10 +1,12 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ImAttrType {
 
@@ -18,6 +20,7 @@ public class ImAttrType {
 
     public static ImType getType(ImFunctionCall e) {
         ImType t = e.getFunc().getReturnType();
+        t = substituteType(t, e.getTypeArguments(), e.getFunc().getTypeVariables());
         if (e.getTuplesEliminated()) {
             if (t instanceof ImTupleType) {
                 ImTupleType tt = (ImTupleType) t;
@@ -26,6 +29,52 @@ public class ImAttrType {
         }
         return t;
     }
+
+    public static ImType substituteType(ImType type, List<ImTypeArgument> generics, List<ImTypeVar> typeVars) {
+        return type.match(new ImType.Matcher<ImType>() {
+
+            @Override
+            public ImType case_ImVoid(ImVoid t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
+                return JassIm.ImArrayTypeMulti(substituteType(t.getEntryType(), generics, typeVars), t.getArraySize());
+            }
+
+            @Override
+            public ImType case_ImTupleType(ImTupleType t) {
+                return JassIm.ImTupleType(t.getTypes().stream().map(tt -> substituteType(tt, generics, typeVars)).collect(Collectors.toList()), t.getNames());
+            }
+
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                int index = typeVars.indexOf(t.getTypeVariable());
+                if (index < 0) {
+                    throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
+                }
+                return generics.get(index).getType();
+            }
+
+            @Override
+            public ImType case_ImSimpleType(ImSimpleType t) {
+                return t;
+            }
+
+            @Override
+            public ImType case_ImArrayType(ImArrayType t) {
+                return JassIm.ImArrayType(substituteType(t.getEntryType(), generics, typeVars));
+            }
+
+            @Override
+            public ImType case_ImClassType(ImClassType t) {
+                ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(substituteType(ta.getType(), generics, typeVars), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
+                return JassIm.ImClassType(t.getClassDef(), args);
+            }
+        });
+    }
+
 
     public static ImType getType(ImIntVal e) {
         return WurstTypeInt.instance().imTranslateType();
@@ -125,7 +174,14 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImMemberAccess e) {
-        return e.getVar().getType();
+        ImType t = e.getVar().getType();
+        ImClassType receiverType = (ImClassType) e.getReceiver().attrTyp();
+        ImTypeArguments typeArgs = e.getTypeArguments();
+        if (typeArgs.isEmpty()) {
+            typeArgs = receiverType.getTypeArguments();
+        }
+        t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+        return t;
     }
 
     public static ImType getType(ImAlloc imAlloc) {

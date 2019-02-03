@@ -16,7 +16,7 @@ class GenericTypes {
 
     public GenericTypes(List<ImTypeArgument> typeArguments) {
         for (ImTypeArgument ta : typeArguments) {
-            Preconditions.checkArgument(!EliminateGenerics.isGenericType(ta.getType()), "Type arguments must not be generic.");
+            Preconditions.checkArgument(!EliminateGenerics.isGenericType(ta.getType()), "Type arguments must not be generic: " + typeArguments);
         }
         this.typeArguments = ImmutableList.copyOf(typeArguments);
     }

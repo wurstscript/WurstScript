@@ -310,7 +310,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "	init",
                 "		Cell<bla> c = new Cell<bla>()",
                 "		c.set(bla(5, 3))",
-                "		if c.get() == bla(5, 2)",
+                "		if c.get() == bla(5, 3)",
                 "			testSuccess()",
                 "endpackage"
         );
@@ -333,7 +333,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "		Cell<bla> c = new Cell<bla>()",
                 "		c.set(bla(5, 3))",
                 "		c.set(c.get())",
-                "		if c.get() == bla(5, 2)",
+                "		if c.get() == bla(5, 3)",
                 "			testSuccess()",
                 "endpackage"
         );
@@ -875,6 +875,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore
     public void genericForFrom() {
         testAssertOkLines(true,
                 "package test",
@@ -950,6 +951,38 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "init",
                 "	let x= new C<int>",
                 "	if x.x == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void simpleFunctionCall() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T:>",
+                "	function foo() returns int",
+                "		return 4",
+                "init",
+                "	let x = new C<int>",
+                "	if x.foo() == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void simpleFunctionCall2() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class C<T:>",
+                "	function foo() returns int",
+                "		return bar()",
+                "	function bar() returns int",
+                "		return 4",
+                "init",
+                "	let x = new C<int>",
+                "	if x.foo() == 4",
                 "		testSuccess()"
         );
     }

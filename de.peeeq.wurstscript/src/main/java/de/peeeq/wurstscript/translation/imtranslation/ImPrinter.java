@@ -389,6 +389,7 @@ public class ImPrinter {
         append(sb, ".");
         append(sb, e.getVar().getName());
         append(sb, smallHash(e.getVar()));
+        printTypeArguments(e.getTypeArguments(), indent, sb);
     }
 
 
