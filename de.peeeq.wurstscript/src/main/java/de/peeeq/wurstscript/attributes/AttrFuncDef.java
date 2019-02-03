@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 /**
@@ -178,6 +179,11 @@ public class AttrFuncDef {
             return Utils.getFirst(funcs);
         }
 
+        funcs = ignoreWithIfNotDefinedAnnotation(node, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
         funcs = useLocalPackageIfPossible(node, funcs);
         if (funcs.size() == 1) {
             return Utils.getFirst(funcs);
@@ -186,6 +192,12 @@ public class AttrFuncDef {
         node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
                 + Utils.printAlternatives(funcs));
         return Utils.getFirst(funcs);
+    }
+
+    private static List<FuncLink> ignoreWithIfNotDefinedAnnotation(FuncRef node, List<FuncLink> funcs) {
+        return funcs.stream()
+                .filter(fl -> !fl.hasIfNotDefinedAnnotation())
+                .collect(Collectors.toList());
     }
 
 

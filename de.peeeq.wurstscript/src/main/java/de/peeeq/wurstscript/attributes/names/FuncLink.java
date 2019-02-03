@@ -276,4 +276,8 @@ public class FuncLink extends DefLink {
     public int hashCode() {
         return Objects.hash(def);
     }
+
+    public boolean hasIfNotDefinedAnnotation() {
+        return def.attrHasAnnotation("ifNotDefined");
+    }
 }

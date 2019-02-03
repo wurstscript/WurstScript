@@ -397,4 +397,44 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void testIfNotDefinedAnnotation1() {
+        testAssertOkLines(true,
+                "function foo takes integer x returns integer",
+                "    return x + 1",
+                "endfunction",
+                "package Test",
+                "native testSuccess()",
+                "@ifNotDefined function foo(int x) returns int",
+                "    return x + 2",
+                "init",
+                "    if foo(3) == 4",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void testIfNotDefinedAnnotation2() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "@ifNotDefined function foo(int x) returns int",
+                "    return x + 2",
+                "init",
+                "    if foo(3) == 5",
+                "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void testIfNotDefinedAnnotationNative() {
+        testAssertOkLines(true,
+                "native testSuccess takes nothing returns nothing",
+                "package Test",
+                "@ifNotDefined native testSuccess()",
+                "init",
+                "    testSuccess()"
+        );
+    }
+
 }
