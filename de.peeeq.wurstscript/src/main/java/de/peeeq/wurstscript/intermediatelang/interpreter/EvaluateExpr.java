@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import org.eclipse.jdt.annotation.Nullable;
 

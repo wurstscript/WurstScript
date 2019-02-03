@@ -2,9 +2,9 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -90,7 +90,7 @@ public class EliminateGenerics {
         });
     }
 
-    private ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
+    private static ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
         if (ct.getClassDef() == owningClass) {
             return ct;
         }
@@ -103,7 +103,7 @@ public class EliminateGenerics {
         return null;
     }
 
-    private Iterable<ImClassType> superTypes(ImClassType ct) {
+    private static Iterable<ImClassType> superTypes(ImClassType ct) {
         GenericTypes generics = new GenericTypes(ct.getTypeArguments());
         List<ImTypeVar> typeVars = ct.getClassDef().getTypeVariables();
         return () ->
@@ -328,7 +328,7 @@ public class EliminateGenerics {
         });
     }
 
-    private ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
+    private static ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
         return ImAttrType.substituteType(type, generics.getTypeArguments(), typeVars);
     }
 
@@ -352,7 +352,8 @@ public class EliminateGenerics {
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
-        collectGenericUsages(newC);
+        // we don't collect generic usages to avoid infinite loops
+        // in cases like class C<T> { C<C<T>> x; }
         return newC;
     }
 
@@ -377,8 +378,7 @@ public class EliminateGenerics {
             @Override
             public void visit(ImFunctionCall f) {
                 super.visit(f);
-                if (!f.getTypeArguments().isEmpty()
-                        && onlyConcreteTypes(f.getTypeArguments())) {
+                if (!f.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericImFunctionCall(f));
                 }
             }
@@ -386,8 +386,7 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                if (!mc.getTypeArguments().isEmpty()
-                        && onlyConcreteTypes(mc.getTypeArguments())) {
+                if (!mc.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericMethodCall(mc));
                 }
             }
@@ -395,8 +394,7 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                if (!ma.getTypeArguments().isEmpty()
-                        && onlyConcreteTypes(ma.getTypeArguments())) {
+                if (!ma.getTypeArguments().isEmpty()) {
                     genericsUses.add(new GenericMemberAccess(ma));
                 }
 
@@ -535,7 +533,7 @@ public class EliminateGenerics {
         public void eliminate() {
             ImFunction f = fc.getFunc();
 
-            GenericTypes generics = new GenericTypes(fc.getTypeArguments());
+            GenericTypes generics = new GenericTypes(specializeTypeArgs(fc.getTypeArguments()));
             ImFunction specializedFunc = specializedFunctions.get(f, generics);
             if (specializedFunc == null) {
                 specializedFunc = specializeFunction(f, generics);
@@ -556,7 +554,7 @@ public class EliminateGenerics {
         public void eliminate() {
             ImMethod f = mc.getMethod();
 
-            GenericTypes generics = new GenericTypes(mc.getTypeArguments());
+            GenericTypes generics = new GenericTypes(specializeTypeArgs(mc.getTypeArguments()));
             ImMethod specializedMethod = specializeMethod(f, generics);
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
@@ -574,7 +572,7 @@ public class EliminateGenerics {
         public void eliminate() {
             ImVar f = ma.getVar();
             ImClass owningClass = (ImClass) f.getParent().getParent();
-            GenericTypes generics = new GenericTypes(ma.getTypeArguments());
+            GenericTypes generics = new GenericTypes(specializeTypeArgs(ma.getTypeArguments()));
             ImClass specializedClass = specializeClass(owningClass, generics);
             int fieldIndex = owningClass.getFields().indexOf(f);
             ma.setVar(specializedClass.getFields().get(fieldIndex));
@@ -628,10 +626,13 @@ public class EliminateGenerics {
 
             @Override
             public ImType case_ImClassType(ImClassType t) {
-                if (t.getTypeArguments().isEmpty()) {
+                ImTypeArguments typeArgs = t.getTypeArguments();
+                if (typeArgs.isEmpty()) {
                     return t;
                 }
-                ImClass specializedClass = specializeClass(t.getClassDef(), new GenericTypes(t.getTypeArguments()));
+                List<ImTypeArgument> newTypeArgs = specializeTypeArgs(typeArgs);
+
+                ImClass specializedClass = specializeClass(t.getClassDef(), new GenericTypes(newTypeArgs));
                 return JassIm.ImClassType(specializedClass, JassIm.ImTypeArguments());
             }
 
@@ -642,7 +643,11 @@ public class EliminateGenerics {
 
             @Override
             public ImType case_ImTupleType(ImTupleType t) {
-                return null;
+                List<ImType> types = t.getTypes()
+                        .stream()
+                        .map(tt -> specializeType(tt))
+                        .collect(Collectors.toList());
+                return JassIm.ImTupleType(types, t.getNames());
             }
 
             @Override
@@ -655,6 +660,14 @@ public class EliminateGenerics {
                 return t;
             }
         });
+    }
+
+    @NotNull
+    private List<ImTypeArgument> specializeTypeArgs(ImTypeArguments typeArgs) {
+        return typeArgs
+                .stream()
+                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding()))
+                .collect(Collectors.toList());
     }
 
     class GenericReturnTypeFunc implements GenericUse {
