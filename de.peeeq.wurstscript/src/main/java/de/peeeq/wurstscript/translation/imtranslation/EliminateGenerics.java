@@ -61,7 +61,8 @@ public class EliminateGenerics {
             private void handle(ImMemberOrMethodAccess ma, ImClass owningClass) {
                 ImType receiverType = ma.getReceiver().attrTyp();
                 if (!(receiverType instanceof ImClassType)) {
-                    throw new CompileError(ma, "invalid member access " + ma + " on " + receiverType);
+                    // using old generics
+                    return;
                 }
                 ImClassType ct = (ImClassType) receiverType;
                 ct = adaptToSuperclass(ct, owningClass);
@@ -384,8 +385,10 @@ public class EliminateGenerics {
                     // handle generic classes after they are specialized
                     return;
                 }
-                genericsUses.add(() ->
-                        c.getSuperClasses().replaceAll(EliminateGenerics.this::specializeType));
+                genericsUses.add(() -> {
+                    List<ImClassType> newSuperClasses = c.getSuperClasses().stream().map(EliminateGenerics.this::specializeType).collect(Collectors.toList());
+                    c.setSuperClasses(newSuperClasses);
+                });
 
                 super.visit(c);
             }

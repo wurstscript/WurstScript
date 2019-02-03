@@ -51,5 +51,8 @@ public class WurstTypeNull extends WurstTypePrimitive {
         return JassIm.ImIntVal(0);
     }
 
-
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
 }

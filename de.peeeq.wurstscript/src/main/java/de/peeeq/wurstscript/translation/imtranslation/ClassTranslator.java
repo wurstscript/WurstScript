@@ -81,8 +81,10 @@ public class ClassTranslator {
 
     private void addTypeVariables() {
         for (TypeParamDef tp : classDef.getTypeParameters()) {
-            ImTypeVar tv = translator.getTypeVar(tp);
-            imClass.getTypeVariables().add(tv);
+            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                ImTypeVar tv = translator.getTypeVar(tp);
+                imClass.getTypeVariables().add(tv);
+            }
         }
     }
 
@@ -377,13 +379,14 @@ public class ClassTranslator {
             ImVar v = i.getA();
             if (i.getB() instanceof Expr) {
                 Expr e = (Expr) i.getB();
-                ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) ImVarAccess(thisVar))), e.imTranslateExpr(translator, f));
+                ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs()), e.imTranslateExpr(translator, f));
+
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
                 ArrayInitializer ai = (ArrayInitializer) i.getB();
                 int index = 0;
                 for (Expr e : ai.getValues()) {
-                    ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
+                    ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs(JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
                     f.getBody().add(s);
                     index++;
                 }

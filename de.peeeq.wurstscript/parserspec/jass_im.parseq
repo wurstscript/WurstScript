@@ -137,7 +137,7 @@ ImConst =
 	| ImRealVal(String valR)
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
-	| ImFuncRef(ref ImFunction func)
+	| ImFuncRef(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func)
 	| ImNull(ref ImType type)
 
 ImTypeArguments * ImTypeArgument
@@ -152,7 +152,7 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
- | ImProg
+ | ImProg | ImFuncRef
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 

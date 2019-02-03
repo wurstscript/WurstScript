@@ -173,7 +173,7 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprFuncRef e, ImTranslator t, ImFunction f) {
         ImFunction func = t.getFuncFor(e.attrFuncDef());
-        return ImFuncRef(func);
+        return ImFuncRef(e, func);
     }
 
     public static ImExpr translateIntern(ExprIntVal e, ImTranslator t, ImFunction f) {

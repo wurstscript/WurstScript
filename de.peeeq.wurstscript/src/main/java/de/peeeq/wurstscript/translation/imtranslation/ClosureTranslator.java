@@ -94,7 +94,7 @@ public class ClosureTranslator {
             impl.getBody().add(translated);
             impl.setReturnType(WurstTypeVoid.instance().imTranslateType(tr));
         }
-        return JassIm.ImFuncRef(impl);
+        return JassIm.ImFuncRef(e, impl);
     }
 
 
@@ -127,11 +127,9 @@ public class ClosureTranslator {
         FuncDef superMethod = getSuperMethod();
 
 
-        ImVars fields = JassIm.ImVars();
-        ImMethods methods = JassIm.ImMethods();
-        ImFunctions functions = JassIm.ImFunctions();
-        List<ImClassType> superClasses = singletonList(superClass);
-        ImClass c = JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
+        ImClass c = tr.getClassForClosure(e);
+        c.setSuperClasses(singletonList(superClass));
+                //JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
         tr.imProg().getClasses().add(c);
 
 //		ImVars parameters = JassIm.ImVars();
@@ -150,7 +148,7 @@ public class ClosureTranslator {
 //		ImFunction impl JassIm.ImFunction(e, superMethod.getName(), parameters, returnType, locals, body, flags);
         impl = tr.getFuncFor(e);
         tr.getImProg().getFunctions().remove(impl);
-        functions.add(impl);
+        c.getFunctions().add(impl);
         ImClassType methodClass = JassIm.ImClassType(c, JassIm.ImTypeArguments());
         ImMethod m = JassIm.ImMethod(e, methodClass, superMethod.getName(), impl, JassIm.ImMethods(), false);
         c.getMethods().add(m);

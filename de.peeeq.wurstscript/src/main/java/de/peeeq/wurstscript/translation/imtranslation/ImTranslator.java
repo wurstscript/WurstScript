@@ -430,7 +430,7 @@ public class ImTranslator {
         mainBody.add(ImFunctionCall(trace, native_TriggerAddCondition, ImTypeArguments(), JassIm.ImExprs(
                 JassIm.ImVarAccess(initTrigVar),
                 ImFunctionCall(trace, native_Condition, ImTypeArguments(), JassIm.ImExprs(
-                        JassIm.ImFuncRef(initFunc)), false, CallType.NORMAL)
+                        JassIm.ImFuncRef(trace, initFunc)), false, CallType.NORMAL)
         ), true, CallType.NORMAL));
         // if not TriggerEvaluate(initTrigVar) ...
         mainBody.add(JassIm.ImIf(trace,
@@ -555,6 +555,50 @@ public class ImTranslator {
             return m;
         }
     };
+
+    private ImType selfType(TranslatedToImFunction f) {
+        return f.match(new TranslatedToImFunction.Matcher<ImType>() {
+            @Override
+            public ImType case_FuncDef(FuncDef f) {
+                return selfType(f);
+            }
+
+            @Override
+            public ImType case_ConstructorDef(ConstructorDef f) {
+                return selfType(f.attrNearestClassOrInterface());
+            }
+
+            @Override
+            public ImType case_NativeFunc(NativeFunc f) {
+                throw new CompileError(f, "Cannot use 'this' here.");
+            }
+
+            @Override
+            public ImType case_OnDestroyDef(OnDestroyDef f) {
+                return selfType(f.attrNearestClassOrInterface());
+            }
+
+            @Override
+            public ImType case_TupleDef(TupleDef f) {
+                throw new CompileError(f, "Cannot use 'this' here.");
+            }
+
+            @Override
+            public ImType case_ExprClosure(ExprClosure f) {
+                return selfType(getClassForClosure(f));
+            }
+
+            @Override
+            public ImType case_InitBlock(InitBlock f) {
+                throw new CompileError(f, "Cannot use 'this' here.");
+            }
+
+            @Override
+            public ImType case_ExtensionFuncDef(ExtensionFuncDef f) {
+                return f.getExtendedType().attrTyp().imTranslateType(ImTranslator.this);
+            }
+        });
+    }
 
     private ImClassType selfType(FuncDef f) {
         return selfType(f.attrNearestClassOrInterface());
@@ -852,7 +896,7 @@ public class ImTranslator {
         if (thisVarMap.containsKey(f)) {
             return thisVarMap.get(f);
         }
-        ImVar v = JassIm.ImVar(f, selfType(f.attrNearestClassOrInterface()), "this", false);
+        ImVar v = JassIm.ImVar(f, selfType(f), "this", false);
         thisVarMap.put(f, v);
         return v;
     }
@@ -1511,10 +1555,18 @@ public class ImTranslator {
         return isUnitTestMode;
     }
 
+    private Map<ExprClosure, ImClass> classForClosure = Maps.newLinkedHashMap();
+
+    public ImClass getClassForClosure(ExprClosure s) {
+        Preconditions.checkNotNull(s);
+        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
+    }
+
 
     Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
     public ImClass getClassFor(StructureDef s) {
+        Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
     }
 

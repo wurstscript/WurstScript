@@ -268,7 +268,7 @@ public class StackTraceInjector2 {
             ImStmts body = bridgeFunc.getBody();
             de.peeeq.wurstscript.ast.Element trace = fr.attrTrace();
             if (trace.getParent() == null) {
-                throw new RuntimeException("no trace");
+                throw new RuntimeException("func ref " + fr + " has no trace: " + trace);
             }
             // reset stack and add information for callback:
             body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0)));
