@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 
@@ -49,7 +48,7 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImTypeVarRef e) {
-        throw new CompileError(e, "Not implemented");
+        return new ILconstUnsafeDefault(e.getTypeVariable());
     }
 
     public static ILconst get(ImClassType ct) {
