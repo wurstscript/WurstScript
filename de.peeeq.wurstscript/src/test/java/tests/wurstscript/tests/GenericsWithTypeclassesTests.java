@@ -1029,10 +1029,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "native testSuccess()",
                 "class LinkedList<T:>",
                 "	T x",
-                "	function foldl<Q:, T:>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+                "	function foldl<Q:, S:>(Q startValue, FoldClosure<S, Q> predicate) returns Q",
                 "		return startValue",
-                "interface FoldClosure<T:, Q:>",
-                "	function run(T t, Q q) returns Q",
+                "interface FoldClosure<X:, Y:>",
+                "	function run(X t, Y q) returns Y",
                 "init",
                 "	let x = new LinkedList<int>",
                 "	x.foldl<int,int>(0, (x, y) -> x + y)"

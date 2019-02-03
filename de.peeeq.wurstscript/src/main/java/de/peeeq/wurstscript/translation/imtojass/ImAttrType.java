@@ -52,7 +52,7 @@ public class ImAttrType {
             public ImType case_ImTypeVarRef(ImTypeVarRef t) {
                 int index = typeVars.indexOf(t.getTypeVariable());
                 if (index < 0) {
-                    throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
+                    return t;
                 }
                 return generics.get(index).getType();
             }
