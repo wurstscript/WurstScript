@@ -256,6 +256,14 @@ public class FunctionSignature {
         });
     }
 
+    public boolean hasIfNotDefinedAnnotation() {
+        if (trace instanceof HasModifier) {
+            HasModifier m = (HasModifier) this.trace;
+            return m.attrHasAnnotation("ifNotDefined");
+        }
+        return false;
+    }
+
     public static class ArgsMatchResult {
         private final FunctionSignature sig;
         private final ImmutableList<CompileError> errors;

@@ -280,4 +280,8 @@ public class FuncLink extends DefLink {
     public VariableBinding getVariableBinding() {
         return mapping;
     }
+
+    public boolean hasIfNotDefinedAnnotation() {
+        return def.attrHasAnnotation("ifNotDefined");
+    }
 }

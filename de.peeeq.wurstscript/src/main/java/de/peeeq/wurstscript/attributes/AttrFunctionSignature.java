@@ -6,10 +6,13 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.Either;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AttrFunctionSignature {
 
@@ -37,19 +40,24 @@ public class AttrFunctionSignature {
             return FunctionSignature.empty;
         }
 
-        List<FunctionSignature> candidates = new ArrayList<>();
-        for (FunctionSignature sig : sigs) {
-            sig = sig.matchAgainstArgs(argTypes, location);
-            if (sig != null) {
-                candidates.add(sig);
-            }
-        }
+        List<FunctionSignature> candidates = filterByArgumentTypes(sigs, argTypes, location);
         if (candidates.isEmpty()) {
             // parameters match for no element, just return the first signature
             return Utils.getFirst(sigs);
         } else if (candidates.size() == 1) {
             return candidates.get(0);
         }
+
+        candidates = filterByIfNotDefinedAnnotation(candidates);
+        if (candidates.isEmpty()) {
+            // parameters match for no element, just return the first signature
+            return Utils.getFirst(sigs);
+        } else if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
+
+
+
 
         if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
             // only show overloading error, if type for all arguments could be determined
@@ -61,6 +69,24 @@ public class AttrFunctionSignature {
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
+    }
+
+    private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {
+        return candidates.stream()
+                .filter(sig -> !sig.hasIfNotDefinedAnnotation())
+                .collect(Collectors.toList());
+    }
+
+    @NotNull
+    private static List<FunctionSignature> filterByArgumentTypes(Collection<FunctionSignature> sigs, List<WurstType> argTypes, StmtCall location) {
+        List<FunctionSignature> candidates = new ArrayList<>();
+        for (FunctionSignature sig : sigs) {
+            sig = sig.matchAgainstArgs(argTypes, location);
+            if (sig != null) {
+                candidates.add(sig);
+            }
+        }
+        return candidates;
     }
 
     private static boolean isInitTrigFunc(StmtCall e) {
