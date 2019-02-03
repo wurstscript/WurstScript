@@ -1106,7 +1106,7 @@ public class ImTranslator {
         if (f == null) {
             String name = "new_" + constr.attrNearestClassDef().getName();
 
-            f = ImFunction(constr, name, ImTypeVars(), ImVars(), TypesHelper.imInt(), ImVars(), ImStmts(), flags());
+            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), flags());
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }

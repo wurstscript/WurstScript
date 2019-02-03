@@ -416,7 +416,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
 
     @Test
     public void implicitConversionsFail() {
-        testAssertErrorsLines(true, "Could not find function blaFromIndex",
+        testAssertOkLines(true,
                 "package test",
                 "	native testSuccess()",
                 "	class Cell<T:>",
@@ -429,28 +429,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "	tuple bla(int z, int y)",
                 "	init",
                 "		Cell<bla> c = new Cell<bla>()",
+                "		c.set(bla(3,4))",
+                "		if c.get() == bla(3,4)",
+                "			testSuccess()",
                 "endpackage"
         );
     }
 
-    @Test
-    public void implicitConversionsFail2() {
-        testAssertErrorsLines(true, "Parameter must be of type int",
-                "package test",
-                "	native testSuccess()",
-                "	class Cell<T:>",
-                "		T elem",
-                "		function set(T t)",
-                "			elem = t",
-                "		function get() returns T",
-                "			return elem",
-                "",
-                "	tuple bla(int z, int y)",
-                "	init",
-                "		Cell<bla> c = new Cell<bla>()",
-                "endpackage"
-        );
-    }
 
     @Test
     public void implicitConversionsAssign() {
@@ -1022,6 +1007,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
+    @Ignore
     public void normalFoldlInfer() { // #657
         testAssertOkLines(true,
                 "package test",

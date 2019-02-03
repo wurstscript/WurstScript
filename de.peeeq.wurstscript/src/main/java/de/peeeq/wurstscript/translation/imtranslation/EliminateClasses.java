@@ -455,7 +455,11 @@ public class EliminateClasses {
         ImExpr receiver = ma.getReceiver();
         receiver.setParent(null);
 
-        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldToArray.get(ma.getVar()), JassIm.ImExprs(receiver)));
+        ImVar fieldArray = fieldToArray.get(ma.getVar());
+        if (fieldArray == null) {
+            throw new CompileError(ma, "Could not find field array for " + ma);
+        }
+        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldArray, JassIm.ImExprs(receiver)));
 
     }
 

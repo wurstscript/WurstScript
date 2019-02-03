@@ -5,7 +5,10 @@ import com.google.common.collect.Table;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -46,19 +49,51 @@ public class EliminateGenerics {
             @Override
             public void visit(ImMethodCall mc) {
                 super.visit(mc);
-                ImClassType ct = (ImClassType) mc.getReceiver().attrTyp();
-                List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
-                mc.getTypeArguments().addAll(0, typeArgs);
+                handle(mc, mc.getMethod().attrClass());
             }
 
             @Override
             public void visit(ImMemberAccess ma) {
                 super.visit(ma);
-                ImClassType ct = (ImClassType) ma.getReceiver().attrTyp();
+                handle(ma, (ImClass) ma.getVar().getParent().getParent());
+            }
+
+            private void handle(ImMemberOrMethodAccess ma, ImClass owningClass) {
+                ImType receiverType = ma.getReceiver().attrTyp();
+                if (!(receiverType instanceof ImClassType)) {
+                    throw new CompileError(ma, "invalid member access " + ma + " on " + receiverType);
+                }
+                ImClassType ct = (ImClassType) receiverType;
+                ct = adaptToSuperclass(ct, owningClass);
                 List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
                 ma.getTypeArguments().addAll(0, typeArgs);
             }
+
         });
+    }
+
+    private ImClassType adaptToSuperclass(ImClassType ct, ImClass owningClass) {
+        if (ct.getClassDef() == owningClass) {
+            return ct;
+        }
+        for (ImClassType sc : superTypes(ct)) {
+            ImClassType r = adaptToSuperclass(sc, owningClass);
+            if (r != null) {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    private Iterable<ImClassType> superTypes(ImClassType ct) {
+        GenericTypes generics = new GenericTypes(ct.getTypeArguments());
+        List<ImTypeVar> typeVars = ct.getClassDef().getTypeVariables();
+        return () ->
+                ct.getClassDef()
+                        .getSuperClasses()
+                        .stream()
+                        .map(sc -> (ImClassType) transformType(sc, generics, typeVars))
+                        .iterator();
     }
 
 //    private void recalculateTypeIds() {
@@ -190,76 +225,77 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImClass c) {
-                c.getSuperClasses().replaceAll(t -> (ImClassType) transformType(t));
+                c.getSuperClasses().replaceAll(t -> (ImClassType) transformType(t, generics, typeVars));
                 super.visit(c);
             }
 
             @Override
             public void visit(ImTypeArgument ta) {
-                ta.setType(transformType(ta.getType()));
+                ta.setType(transformType(ta.getType(), generics, typeVars));
             }
 
             @Override
             public void visit(ImNull e) {
-                e.setType(transformType(e.getType()));
+                e.setType(transformType(e.getType(), generics, typeVars));
                 super.visit(e);
             }
 
             @Override
             public void visit(ImFunction e) {
-                e.setReturnType(transformType(e.getReturnType()));
+                e.setReturnType(transformType(e.getReturnType(), generics, typeVars));
                 super.visit(e);
             }
 
             @Override
             public void visit(ImVar e) {
-                e.setType(transformType(e.getType()));
+                e.setType(transformType(e.getType(), generics, typeVars));
                 super.visit(e);
             }
 
-            private ImType transformType(ImType type) {
-                return type.match(new ImType.Matcher<ImType>() {
+        });
+    }
 
-                    @Override
-                    public ImType case_ImVoid(ImVoid t) {
-                        return t;
-                    }
+    private ImType transformType(ImType type, GenericTypes generics, List<ImTypeVar> typeVars) {
+        return type.match(new ImType.Matcher<ImType>() {
 
-                    @Override
-                    public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                        return JassIm.ImArrayTypeMulti(transformType(t.getEntryType()), t.getArraySize());
-                    }
+            @Override
+            public ImType case_ImVoid(ImVoid t) {
+                return t;
+            }
 
-                    @Override
-                    public ImType case_ImTupleType(ImTupleType t) {
-                        return JassIm.ImTupleType(t.getTypes().stream().map(tt -> transformType(tt)).collect(Collectors.toList()), t.getNames());
-                    }
+            @Override
+            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
+                return JassIm.ImArrayTypeMulti(transformType(t.getEntryType(), generics, typeVars), t.getArraySize());
+            }
 
-                    @Override
-                    public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                        int index = typeVars.indexOf(t.getTypeVariable());
-                        if (index < 0) {
-                            throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
-                        }
-                        return generics.getTypeArguments().get(index).getType();
-                    }
+            @Override
+            public ImType case_ImTupleType(ImTupleType t) {
+                return JassIm.ImTupleType(t.getTypes().stream().map(tt -> transformType(tt, generics, typeVars)).collect(Collectors.toList()), t.getNames());
+            }
 
-                    @Override
-                    public ImType case_ImSimpleType(ImSimpleType t) {
-                        return t;
-                    }
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                int index = typeVars.indexOf(t.getTypeVariable());
+                if (index < 0) {
+                    throw new CompileError(t, "Could not find type var " + t + " in " + typeVars);
+                }
+                return generics.getTypeArguments().get(index).getType();
+            }
 
-                    @Override
-                    public ImType case_ImArrayType(ImArrayType t) {
-                        return JassIm.ImArrayType(transformType(t.getEntryType()));
-                    }
+            @Override
+            public ImType case_ImSimpleType(ImSimpleType t) {
+                return t;
+            }
 
-                    @Override
-                    public ImType case_ImClassType(ImClassType t) {
-                        ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(transformType(ta.getType()), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
-                        return JassIm.ImClassType(t.getClassDef(), args);
-                    }
-                });
+            @Override
+            public ImType case_ImArrayType(ImArrayType t) {
+                return JassIm.ImArrayType(transformType(t.getEntryType(), generics, typeVars));
+            }
+
+            @Override
+            public ImType case_ImClassType(ImClassType t) {
+                ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(transformType(ta.getType(), generics, typeVars), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
+                return JassIm.ImClassType(t.getClassDef(), args);
             }
         });
     }
@@ -296,7 +332,9 @@ public class EliminateGenerics {
         collectGenericUsages(prog);
     }
 
-    /** checks that all the type arguments only have concrete types */
+    /**
+     * checks that all the type arguments only have concrete types
+     */
     private boolean onlyConcreteTypes(ImTypeArguments ta) {
         return ta.stream()
                 .noneMatch(t -> isGenericType(t.getType()));
@@ -484,12 +522,8 @@ public class EliminateGenerics {
         public void eliminate() {
             ImMethod f = mc.getMethod();
 
-            List<ImTypeArgument> typeArguments = new ArrayList<>();
             GenericTypes generics = new GenericTypes(mc.getTypeArguments());
-            ImMethod specializedMethod = specializedMethods.get(f, generics);
-            if (specializedMethod == null) {
-                specializedMethod = specializeMethod(f, generics);
-            }
+            ImMethod specializedMethod = specializeMethod(f, generics);
             mc.setMethod(specializedMethod);
             mc.getTypeArguments().removeAll();
         }
@@ -504,14 +538,13 @@ public class EliminateGenerics {
 
         @Override
         public void eliminate() {
-            ImClassType t = (ImClassType) specializeType(ma.getReceiver().attrTyp());
-            ImVar oldVar = ma.getVar();
-            ImVars parent = (ImVars) oldVar.getParent();
-            int index = parent.indexOf(oldVar);
-            ImVar newVar = t.getClassDef().getFields().get(index);
-            if (oldVar != newVar) {
-                ma.setVar(newVar);
-            }
+            ImVar f = ma.getVar();
+            ImClass owningClass = (ImClass) f.getParent().getParent();
+            GenericTypes generics = new GenericTypes(ma.getTypeArguments());
+            ImClass specializedClass = specializeClass(owningClass, generics);
+            int fieldIndex = owningClass.getFields().indexOf(f);
+            ma.setVar(specializedClass.getFields().get(fieldIndex));
+            ma.getTypeArguments().removeAll();
         }
     }
 
@@ -599,7 +632,7 @@ public class EliminateGenerics {
 
         @Override
         public void eliminate() {
-            throw new RuntimeException("TODO");
+            mc.setReturnType(specializeType(mc.getReturnType()));
         }
     }
 
