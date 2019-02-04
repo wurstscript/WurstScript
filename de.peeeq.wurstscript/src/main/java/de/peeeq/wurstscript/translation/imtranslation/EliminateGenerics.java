@@ -56,6 +56,7 @@ public class EliminateGenerics {
     private void debug(String name) {
         try {
             Files.write(Paths.get("test-output", name + ".im"), prog.toString().getBytes());
+            translator.assertProperties(AssertProperty.rooted(prog));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -196,6 +197,9 @@ public class EliminateGenerics {
         prog.getFunctions().removeIf(f -> !f.getTypeVariables().isEmpty());
         prog.getMethods().removeIf(m -> !m.getImplementation().getTypeVariables().isEmpty());
         prog.getClasses().removeIf(c -> !c.getTypeVariables().isEmpty());
+        for (ImClass c : prog.getClasses()) {
+            c.getFields().removeIf(f -> isGenericType(f.getType()));
+        }
     }
 
     private void eliminateGenericUses() {
@@ -575,8 +579,10 @@ public class EliminateGenerics {
             GenericTypes generics = new GenericTypes(specializeTypeArgs(ma.getTypeArguments()));
             ImClass specializedClass = specializeClass(owningClass, generics);
             int fieldIndex = owningClass.getFields().indexOf(f);
-            ma.setVar(specializedClass.getFields().get(fieldIndex));
+            ImVar newVar = specializedClass.getFields().get(fieldIndex);
+            ma.setVar(newVar);
             ma.getTypeArguments().removeAll();
+            newVar.setType(specializeType(newVar.getType()));
         }
     }
 

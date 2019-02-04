@@ -531,6 +531,9 @@ public class ExprTranslation {
                 throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
             }
             WurstTypeBoundTypeParam t = to.some();
+            if (!t.isTemplateTypeParameter()) {
+                continue;
+            }
             ImType type = t.imTranslateType(tr);
             // TODO handle constraints
             Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();

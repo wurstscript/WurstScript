@@ -70,7 +70,6 @@ public class ClassTranslator {
         List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
-        addTypeVariables();
         translateMethods(classDef, subClasses);
         translateVars(classDef);
         translateConstructors();
@@ -79,14 +78,6 @@ public class ClassTranslator {
 
     }
 
-    private void addTypeVariables() {
-        for (TypeParamDef tp : classDef.getTypeParameters()) {
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                ImTypeVar tv = translator.getTypeVar(tp);
-                imClass.getTypeVariables().add(tv);
-            }
-        }
-    }
 
 
     private void addSuperClasses() {
@@ -172,10 +163,17 @@ public class ClassTranslator {
         if (c instanceof ClassDef) {
             ClassDef cd = (ClassDef) c;
             WurstTypeClass ct = cd.attrTypC();
-            if (ct.extendedClass() != null) {
+            WurstTypeClass extended = ct.extendedClass();
+            if (extended != null) {
                 // call onDestroy of super class
-                ImFunction onDestroy = translator.getFuncFor(ct.extendedClass().getClassDef().getOnDestroy());
-                addTo.add(ImFunctionCall(c, onDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+                ImFunction onDestroy = translator.getFuncFor(extended.getClassDef().getOnDestroy());
+                ImTypeArguments typeArgs = ImTypeArguments();
+                for (WurstTypeBoundTypeParam tp : extended.getTypeParameters()) {
+                    if (tp.isTemplateTypeParameter()) {
+                        typeArgs.add(tp.imTranslateToTypeArgument(translator));
+                    }
+                }
+                addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
     }

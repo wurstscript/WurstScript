@@ -174,7 +174,7 @@ ImPrintable.print(java.lang.Appendable sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
-ImPrintable.toString()
+Element.toString()
 	returns String
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.asString
 

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ImPrinter {
 
@@ -502,5 +503,31 @@ public class ImPrinter {
     public static void print(ImTypeVar tv, Appendable sb, int indent) {
         append(sb, tv.getName());
         append(sb, smallHash(tv));
+    }
+
+    public static String asString(ImStmts s) {
+        return asString((ImPrintable) s);
+    }
+
+    public static String asString(List<?> s) {
+        return "[" + ((List<?>) s).stream()
+                    .map(Object::toString)
+                    .collect(Collectors.joining(", ")) + "]";
+    }
+
+    public static String asString(ImTypeClassFunc s) {
+        return s.getName() + smallHash(s);
+    }
+
+    public static String asString(ImClass s) {
+        return s.getName() + smallHash(s);
+    }
+
+    public static String asString(ImMethod s) {
+        return s.getName() + smallHash(s);
+    }
+
+    public static String asString(ImTypeArgument s) {
+        return s.getType() + "" + s.getTypeClassBinding();
     }
 }

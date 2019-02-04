@@ -26,11 +26,9 @@ import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSimpleType;
-import de.peeeq.wurstscript.jassIm.ImStatementExpr;
 import de.peeeq.wurstscript.jassIm.ImStmts;
-import de.peeeq.wurstscript.jassIm.ImTupleExpr;
-import de.peeeq.wurstscript.jassIm.ImTupleSelection;
 import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.ImTypeVar;
 import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.jassIm.ImTypeVars;
@@ -1484,7 +1482,7 @@ public class ImTranslator {
     }
 
     public void assertProperties(AssertProperty... properties1) {
-        final Set<AssertProperty> properties = Sets.newEnumSet(Lists.newArrayList(properties1), AssertProperty.class);
+        final Set<AssertProperty> properties = Sets.newHashSet(properties1);
         assertProperties(properties, imProg);
     }
 
@@ -1492,23 +1490,12 @@ public class ImTranslator {
         if (e instanceof ElementWithVar) {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
+        properties.forEach(p -> p.check(e));
         if (properties.contains(AssertProperty.NOTUPLES)) {
-            if (e instanceof ImTupleExpr
-                    || e instanceof ImTupleSelection
-            ) {
-                throw new Error("contains tuple exprs " + e);
-            }
-            if (e instanceof ImVar) {
-                ImVar v = (ImVar) e;
-                if (TypesHelper.typeContainsTuples(v.getType())) {
-                    throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
-                }
-            }
+
         }
         if (properties.contains(AssertProperty.FLAT)) {
-            if (e instanceof ImStatementExpr) {
-                throw new Error("contains statementExpr " + e);
-            }
+
         }
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
@@ -1567,7 +1554,19 @@ public class ImTranslator {
 
     public ImClass getClassFor(StructureDef s) {
         Preconditions.checkNotNull(s);
-        return classForStructureDef.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
+        return classForStructureDef.computeIfAbsent(s, s1 -> {
+            ImTypeVars typeVariables = JassIm.ImTypeVars();
+            if (s instanceof AstElementWithTypeParameters) {
+                for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
+                    if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                        ImTypeVar tv = getTypeVar(tp);
+                        typeVariables.add(tv);
+                    }
+                }
+            }
+
+            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+        });
     }
 
 

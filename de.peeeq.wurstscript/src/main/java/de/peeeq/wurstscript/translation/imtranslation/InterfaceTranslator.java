@@ -26,7 +26,6 @@ public class InterfaceTranslator {
 
     public void translate() {
         translator.getImProg().getClasses().add(imClass);
-        addTypeVariables();
 
         // set super-classes
         for (TypeExpr ext : interfaceDef.getExtendsList()) {
@@ -40,15 +39,6 @@ public class InterfaceTranslator {
 
         // add destroy method
         addDestroyMethod();
-    }
-
-    private void addTypeVariables() {
-        for (TypeParamDef tp : interfaceDef.getTypeParameters()) {
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                ImTypeVar tv = translator.getTypeVar(tp);
-                imClass.getTypeVariables().add(tv);
-            }
-        }
     }
 
     public void addDestroyMethod() {
