@@ -42,6 +42,7 @@ public class TypeEquality {
                     return false;
                 }
             }
+            return true;
         }
         return false;
     }

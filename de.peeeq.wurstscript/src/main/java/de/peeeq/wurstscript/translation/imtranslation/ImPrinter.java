@@ -99,14 +99,14 @@ public class ImPrinter {
     }
 
     public static void print(ImTupleType p, Appendable sb, int indent) {
-        append(sb, "<");
+        append(sb, "⦅");
         boolean first = true;
         for (ImType t : p.getTypes()) {
             if (!first) append(sb, ", ");
             t.print(sb, indent);
             first = false;
         }
-        append(sb, ">");
+        append(sb, "⦆");
     }
 
     public static void print(ImVoid p, Appendable sb, int indent) {

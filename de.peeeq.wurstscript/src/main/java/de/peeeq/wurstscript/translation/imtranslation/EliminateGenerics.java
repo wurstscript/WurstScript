@@ -226,7 +226,7 @@ public class EliminateGenerics {
         newF.getTypeVariables().removeAll();
         List<ImTypeVar> typeVars = f.getTypeVariables();
 
-        newF.setName(f.getName() + "_specialized_" + generics.makeName());
+        newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
         rewriteGenerics(newF, generics, typeVars);
         collectGenericUsages(newF);
         return newF;
@@ -251,7 +251,7 @@ public class EliminateGenerics {
         }
         newM.setMethodClass(specializeType(newClassType));
 
-        newM.setName(m.getName() + "_specialized_" + generics.makeName());
+        newM.setName(m.getName() + "⟪" + generics.makeName() + "⟫");
         newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
         newM.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
 
@@ -352,7 +352,7 @@ public class EliminateGenerics {
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();
 
-        newC.setName(c.getName() + "_specialized_" + generics.makeName());
+        newC.setName(c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
         rewriteGenerics(newC, generics, typeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
