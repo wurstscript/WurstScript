@@ -107,7 +107,7 @@ class GenericTypes {
         StringBuilder sb = new StringBuilder();
         for (ImTypeArgument ta : typeArguments) {
             if (sb.length() > 0) {
-                sb.append("_");
+                sb.append(", ");
             }
             ta.getType().print(sb, 0);
         }

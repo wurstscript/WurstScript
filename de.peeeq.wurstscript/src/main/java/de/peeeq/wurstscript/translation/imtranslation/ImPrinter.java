@@ -65,6 +65,7 @@ public class ImPrinter {
         append(sb, smallHash(m));
         append(sb, " implemented by ");
         append(sb, m.getImplementation().getName());
+        append(sb, smallHash(m.getImplementation()));
         append(sb, "\n");
         for (ImMethod sm : m.getSubMethods()) {
             append(sb, "        sub: ");
