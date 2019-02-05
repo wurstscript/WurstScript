@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.attributes.CheckHelper;
@@ -12,6 +13,7 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -29,7 +31,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
 
     @Override
-    public abstract StructureDef getDef();
+    public abstract @NonNull ClassOrInterface getDef();
 
     /**
      * Level in the type hierarchy.

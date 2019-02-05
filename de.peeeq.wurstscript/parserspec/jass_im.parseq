@@ -159,7 +159,7 @@ ElementWithTypes = ImTupleType | ImTupleArrayType
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
 
-ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImType | ImTypeVar
+ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImType | ImTypeVar | ImClass
 
 ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
 ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess

@@ -35,7 +35,7 @@ public abstract class WurstType {
      * <p>
      * Will try to instantiate type variables from the set typeParams
      */
-    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+    public final @Nullable VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeUnknown || this instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return mapping;

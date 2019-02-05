@@ -24,34 +24,38 @@ public class ImPrinter {
         }
         append(sb, "\n\n");
         for (ImClass c : p.getClasses()) {
-            append(sb, "class ");
-            append(sb, c.getName());
-            append(sb, smallHash(c));
-            printTypeVariables(c.getTypeVariables(), sb, indent);
-            append(sb, " extends ");
-            for (ImClassType sc : c.getSuperClasses()) {
-                sc.print(sb, indent);
-                append(sb, " ");
-            }
-            append(sb, "{\n");
-            for (ImVar f : c.getFields()) {
-                indent(sb, indent + 1);
-                f.print(sb, indent + 1);
-                append(sb, "\n");
-            }
-            append(sb, "\n\n");
-            for (ImMethod m : c.getMethods()) {
-                indent(sb, indent + 1);
-                printMethod(sb, m, indent + 1);
-            }
-
-            for (ImFunction func : c.getFunctions()) {
-                func.print(sb, indent + 1);
-            }
-
-            append(sb, "}\n\n");
+            print(c, sb, indent);
         }
 
+    }
+
+    public static void print(ImClass c, Appendable sb, int indent) {
+        append(sb, "class ");
+        append(sb, c.getName());
+        append(sb, smallHash(c));
+        printTypeVariables(c.getTypeVariables(), sb, indent);
+        append(sb, " extends ");
+        for (ImClassType sc : c.getSuperClasses()) {
+            sc.print(sb, indent);
+            append(sb, " ");
+        }
+        append(sb, "{\n");
+        for (ImVar f : c.getFields()) {
+            indent(sb, indent + 1);
+            f.print(sb, indent + 1);
+            append(sb, "\n");
+        }
+        append(sb, "\n\n");
+        for (ImMethod m : c.getMethods()) {
+            indent(sb, indent + 1);
+            printMethod(sb, m, indent + 1);
+        }
+
+        for (ImFunction func : c.getFunctions()) {
+            func.print(sb, indent + 1);
+        }
+
+        append(sb, "}\n\n");
     }
 
     private static void printMethod(Appendable sb, ImMethod m, int indent) {
@@ -359,6 +363,10 @@ public class ImPrinter {
         append(sb, ")");
     }
 
+
+    public static String printToString(ImPrintable p) {
+        return asString(p);
+    }
 
     public static String asString(ImPrintable p) {
         Appendable sb = new StringBuilder();
