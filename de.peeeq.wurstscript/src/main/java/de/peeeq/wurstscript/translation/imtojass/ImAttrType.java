@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
@@ -53,6 +52,8 @@ public class ImAttrType {
                 int index = typeVars.indexOf(t.getTypeVariable());
                 if (index < 0) {
                     return t;
+                } else if (index >= generics.size()) {
+                    throw new RuntimeException("Could not find replacement for " + t + " when replacing " + typeVars + " with " + generics);
                 }
                 return generics.get(index).getType();
             }
@@ -177,11 +178,15 @@ public class ImAttrType {
         ImType t = e.getVar().getType();
         ImClassType receiverType = (ImClassType) e.getReceiver().attrTyp();
         ImTypeArguments typeArgs = e.getTypeArguments();
-        if (typeArgs.isEmpty()) {
-            typeArgs = receiverType.getTypeArguments();
+        try {
+            if (typeArgs.isEmpty()) {
+                typeArgs = receiverType.getTypeArguments();
+            }
+            t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+            return t;
+        } catch (Exception ex) {
+            throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
         }
-        t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
-        return t;
     }
 
     public static ImType getType(ImAlloc imAlloc) {

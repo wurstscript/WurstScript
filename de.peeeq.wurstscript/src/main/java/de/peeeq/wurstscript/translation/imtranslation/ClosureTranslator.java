@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
@@ -27,6 +28,7 @@ public class ClosureTranslator {
     // type arguments captured in the closure -> new type variables
     private Map<ImTypeVar, ImTypeVar> typeVars;
     private ImFunction impl;
+    private ImClass c;
 
     public ClosureTranslator(ExprClosure e, ImTranslator tr, ImFunction f) {
         super();
@@ -41,18 +43,19 @@ public class ClosureTranslator {
             return translateAnonFunc();
         } else {
             ImClass c = createClass();
-            ImVar clVar = JassIm.ImVar(e, WurstTypeInt.instance().imTranslateType(tr), "clVar", false);
+            ImClassType ct = JassIm.ImClassType(c, getClassTypeArguments());
+            closureThis().getVar().setType(ct);
+            ImVar clVar = JassIm.ImVar(e, ct, "clVar", false);
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
-            ImClassType ct = JassIm.ImClassType(c, getClassTypeArguments());
             stmts.add(JassIm.ImSet(e, JassIm.ImVarAccess(clVar), JassIm.ImAlloc(ct)));
             callSuperConstructor(clVar, stmts, c);
             // set closure vars
             for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {
                 ImVar orig = entry.getKey();
                 ImVar v = entry.getValue();
-                stmts.add(JassIm.ImSet(e, JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs((ImExpr) JassIm.ImVarAccess(clVar))), JassIm.ImVarAccess(orig)));
+                stmts.add(JassIm.ImSet(e, JassIm.ImMemberAccess(e, JassIm.ImVarAccess(clVar), JassIm.ImTypeArguments(), v, JassIm.ImExprs()), JassIm.ImVarAccess(orig)));
             }
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(clVar));
         }
@@ -138,12 +141,14 @@ public class ClosureTranslator {
         FuncDef superMethod = getSuperMethod();
 
 
-        ImClass c = tr.getClassForClosure(e);
+        c = tr.getClassForClosure(e);
+        c.setName(makeClassName(superClass));
         c.setSuperClasses(singletonList(superClass));
         //JassIm.ImClass(e, "Closure", JassIm.ImTypeVars(), fields, methods, functions, superClasses);
         tr.imProg().getClasses().add(c);
 
         impl = tr.getFuncFor(e);
+        impl.setName(makeFuncName(superMethod));
         tr.getImProg().getFunctions().remove(impl);
         c.getFunctions().add(impl);
         ImClassType methodClass = JassIm.ImClassType(c, JassIm.ImTypeArguments());
@@ -167,6 +172,29 @@ public class ClosureTranslator {
         return c;
     }
 
+    private String makeClassName(ImClassType superClass) {
+        String res =
+                superClass.getClassDef().getName()
+                        + "_line" + e.attrSource().getLine();
+        return addScopeNames(res);
+    }
+
+    private String makeFuncName(FuncDef superClass) {
+        String res = superClass.getName() + "_line" + e.attrSource().getLine();
+        return addScopeNames(res);
+    }
+
+    private String addScopeNames(String res) {
+        Element elem = e;
+        while (elem != null) {
+            if (elem instanceof NamedScope) {
+                res = ((NamedScope) elem).getName() + "_" + res;
+            }
+            elem = elem.getParent();
+        }
+        return res;
+    }
+
     /**
      * Replaces all captured type variables with new type variables.
      * And adds these type variables to the closure-class c.
@@ -177,25 +205,25 @@ public class ClosureTranslator {
             @Override
             public void visit(ImVar e) {
                 super.visit(e);
-                rewriteType(e.getType());
+                e.setType(rewriteType(e.getType()));
             }
 
             @Override
             public void visit(ImFunction e) {
                 super.visit(e);
-                rewriteType(e.getReturnType());
+                e.setReturnType(rewriteType(e.getReturnType()));
             }
 
             @Override
             public void visit(ImNull e) {
                 super.visit(e);
-                rewriteType(e.getType());
+                e.setType(rewriteType(e.getType()));
             }
 
             @Override
             public void visit(ImTypeArgument e) {
                 super.visit(e);
-                rewriteType(e.getType());
+                e.setType(rewriteType(e.getType()));
             }
 
             @Override
@@ -325,11 +353,11 @@ public class ClosureTranslator {
 
         for (ImVarAccess va : vas) {
             ImVar v = getClosureVarFor(va.getVar());
-            va.replaceBy(JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(closureThis())));
+            va.replaceBy(JassIm.ImMemberAccess(e, closureThis(), JassIm.ImTypeArguments(), v, JassIm.ImExprs()));
         }
     }
 
-    private ImExpr closureThis() {
+    private ImVarAccess closureThis() {
         return JassIm.ImVarAccess(tr.getThisVar(e));
     }
 
@@ -337,8 +365,8 @@ public class ClosureTranslator {
     private ImVar getClosureVarFor(ImVar var) {
         ImVar v = closureVars.get(var);
         if (v == null) {
-            v = JassIm.ImVar(e, JassIm.ImArrayType(var.getType()), var.getName(), false);
-            tr.imProg().getGlobals().add(v);
+            v = JassIm.ImVar(e, var.getType(), var.getName(), false);
+            c.getFields().add(v);
             closureVars.put(var, v);
         }
         return v;
@@ -385,7 +413,7 @@ public class ClosureTranslator {
         WurstType closureType = e.attrTyp();
         VariableBinding mapping2 = closureType.matchAgainstSupertype(t, e, mapping, VariablePosition.RIGHT);
         if (mapping2 == null) {
-            throw new CompileError(e, "Could not translate closure: type " + closureType +  " does not match " + t);
+            throw new CompileError(e, "Could not translate closure: type " + closureType + " does not match " + t);
         }
         WurstType t2 = t.setTypeArgs(mapping2);
         return (ImClassType) t2.imTranslateType(tr);

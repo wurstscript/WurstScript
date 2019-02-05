@@ -220,6 +220,7 @@ public class EliminateGenerics {
         if (f.getTypeVariables().isEmpty()) {
             return f;
         }
+        System.out.println("rewriting " + f.getName() + " to " + generics);
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
         prog.getFunctions().add(newF);
@@ -253,6 +254,8 @@ public class EliminateGenerics {
 
         newM.setName(m.getName() + "⟪" + generics.makeName() + "⟫");
         newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
+        // TODO adapt generics to submethods
+        // not all submethods have the same number of type parameters
         newM.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
 
         return newM;
