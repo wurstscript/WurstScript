@@ -73,6 +73,8 @@ public class ImPrinter {
         append(sb, "\n");
         for (ImMethod sm : m.getSubMethods()) {
             append(sb, "        sub: ");
+            sm.getMethodClass().print(sb, indent);
+            append(sb, ".");
             append(sb, sm.getName());
             append(sb, smallHash(sm));
             append(sb, "\n");
@@ -392,6 +394,10 @@ public class ImPrinter {
         printArgumentList(sb, 0, mc.getArguments());
     }
 
+    public static String asString(ImFunction f) {
+        return f.getName() + smallHash(f);
+
+    }
 
     public static void print(ImMemberAccess e, Appendable sb,
                              int indent) {

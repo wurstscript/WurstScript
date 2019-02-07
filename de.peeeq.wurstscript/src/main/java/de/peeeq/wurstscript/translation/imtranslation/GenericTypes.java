@@ -138,4 +138,9 @@ class GenericTypes {
                 typeArguments.stream().skip(n).collect(Collectors.toList())
         );
     }
+
+    public boolean containsTypeVariable() {
+        return typeArguments.stream()
+                .anyMatch(ta -> EliminateGenerics.containsTypeVariable(ta.getType()));
+    }
 }

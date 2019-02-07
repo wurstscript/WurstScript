@@ -33,12 +33,16 @@ public interface AssertProperty {
 
     static AssertProperty rooted(Element root) {
         return new AssertProperty() {
+            ImFunction currentFunction;
+
             @Override
             public void check(Element e) {
                 if (e instanceof ImVar) {
                     checkType(e, ((ImVar) e).getType());
                 } else if (e instanceof ImFunction) {
-                    checkType(e, ((ImFunction) e).getReturnType());
+                    ImFunction f = (ImFunction) e;
+                    currentFunction = f;
+                    checkType(e, (f).getReturnType());
                 } else if (e instanceof ImTypeClassFunc) {
                     checkType(e, ((ImTypeClassFunc) e).getReturnType());
                 } else if (e instanceof ImMethod) {
@@ -84,14 +88,21 @@ public interface AssertProperty {
             }
 
             public void checkRooted(Element location, Element el) {
-                Element e = el;
-                while (e != null) {
-                    if (e == root) {
-                        return;
+                try {
+                    Element e = el;
+                    while (e != null) {
+                        if (e == root) {
+                            return;
+                        }
+                        Element parent = e.getParent();
+                        checkContains(location, parent, e);
+                        if (parent instanceof ImFunction && parent != currentFunction) {
+                            throw new CompileError(location, "Element " + el + " is rooted in function " + parent + " but should be in function " + currentFunction);
+                        }
+                        e = parent;
                     }
-                    Element parent = e.getParent();
-                    checkContains(location, parent, e);
-                    e = parent;
+                } catch (CompileError e) {
+                    throw new CompileError(location, "Element " + el + " not rooted. In ...\n" + location + "\n\n" + e.getMessage());
                 }
                 throw new CompileError(location, "Element " + el + " not rooted. In ...\n" + location);
             }
@@ -102,7 +113,8 @@ public interface AssertProperty {
                         return;
                     }
                 }
-                throw new CompileError(location, "Element " + e + " does not appear in parent. In ...\n" + location);
+                throw new CompileError(location, "Element " + e + " does not appear in parent " + parent.getClass().getSimpleName() + "." +
+                        "\nIn ...\n" + location);
             }
         };
     }

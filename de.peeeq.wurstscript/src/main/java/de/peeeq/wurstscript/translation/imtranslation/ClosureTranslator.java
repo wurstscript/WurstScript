@@ -44,7 +44,6 @@ public class ClosureTranslator {
         } else {
             ImClass c = createClass();
             ImClassType ct = JassIm.ImClassType(c, getClassTypeArguments());
-            closureThis().getVar().setType(ct);
             ImVar clVar = JassIm.ImVar(e, ct, "clVar", false);
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
@@ -201,6 +200,8 @@ public class ClosureTranslator {
      */
     private Map<ImTypeVar, ImTypeVar> rewriteTypeVars(ImClass c) {
         Map<ImTypeVar, ImTypeVar> result = new LinkedHashMap<>();
+        ImClassType thisType = JassIm.ImClassType(c, JassIm.ImTypeArguments());
+        System.out.println("BEFORE rewriteTypeVars:\n" + ImPrinter.printToString(c));
         c.accept(new ImClass.DefaultVisitor() {
             @Override
             public void visit(ImVar e) {
@@ -289,8 +290,8 @@ public class ClosureTranslator {
 
                     @Override
                     public ImType case_ImClassType(ImClassType t) {
-                        if (t.getTypeArguments().isEmpty()) {
-                            return t;
+                        if (t.getClassDef() == c) {
+                            return thisType;
                         }
                         return JassIm.ImClassType(
                                 t.getClassDef(),
@@ -323,6 +324,10 @@ public class ClosureTranslator {
                             newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
                             result.put(oldTypevar, newTypevar);
                             c.getTypeVariables().add(newTypevar);
+                            thisType.getTypeArguments().add(
+                                    JassIm.ImTypeArgument(
+                                            JassIm.ImTypeVarRef(newTypevar),
+                                            Collections.emptyMap()));
                         }
                         return JassIm.ImTypeVarRef(newTypevar);
                     }

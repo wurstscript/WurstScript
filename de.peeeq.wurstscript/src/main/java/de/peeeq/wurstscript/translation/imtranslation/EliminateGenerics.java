@@ -1,7 +1,10 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Table;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import org.jetbrains.annotations.NotNull;
@@ -9,10 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 /**
@@ -27,6 +28,7 @@ public class EliminateGenerics {
     private Table<ImFunction, GenericTypes, ImFunction> specializedFunctions = HashBasedTable.create();
     private Table<ImMethod, GenericTypes, ImMethod> specializedMethods = HashBasedTable.create();
     private Table<ImClass, GenericTypes, ImClass> specializedClasses = HashBasedTable.create();
+    private Multimap<ImClass, BiConsumer<GenericTypes, ImClass>> onSpecializedClassTriggers = HashMultimap.create();
 
     public EliminateGenerics(ImTranslator tr, ImProg prog) {
         translator = tr;
@@ -51,6 +53,11 @@ public class EliminateGenerics {
         debug("eliminate-5-removeGenericConstructs");
 
 //        recalculateTypeIds();
+    }
+
+    private void onSpecializeClass(ImClass orig, BiConsumer<GenericTypes, ImClass> action) {
+        onSpecializedClassTriggers.put(orig, action);
+        specializedClasses.row(orig).forEach(action);
     }
 
     private void debug(String name) {
@@ -115,15 +122,6 @@ public class EliminateGenerics {
                         .iterator();
     }
 
-//    private void recalculateTypeIds() {
-//        Map<ImClass, Integer> typeIds = prog.attrTypeId();
-//        typeIds.clear();
-//        typeIds.putAll(TypeId.calculate(prog));
-//        System.out.println("new type ids: " + typeIds.size());
-//        typeIds.forEach((k,v) -> {
-//            System.out.println(k.getName() + ImPrinter.smallHash(k) + " -> " + v);
-//        });
-//    }
 
     /**
      * Removed methods and functions from classes and adds them to the
@@ -135,30 +133,6 @@ public class EliminateGenerics {
         }
     }
 
-//    /**
-//     * when a function f living in class C[T] is called, add the type arguments for the class
-//     */
-//    private void addFunctionTypeArguments() {
-//        prog.accept(new Element.DefaultVisitor() {
-//            @Override
-//            public void visit(ImFunctionCall fc) {
-//                Element parent = fc.getFunc().getParent().getParent();
-//                if (parent instanceof ImClass) {
-//                    System.out.println("adapting " + fc);
-//                    ImClass c = (ImClass) parent;
-//                    List<ImTypeArgument> typeArgs =
-//                            c.getTypeVariables().stream()
-//                            .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
-//                            .collect(Collectors.toList());
-//                    fc.getTypeArguments().addAll(0, typeArgs);
-//                } else {
-//                    System.out.println("not adapting " + fc + "\n    with parent " + parent.getClass());
-//                }
-//                super.visit(fc);
-//            }
-//        });
-//
-//    }
 
     private void simplifyClass(ImClass c) {
         moveMethodsOutOfClass(c);
@@ -220,7 +194,10 @@ public class EliminateGenerics {
         if (f.getTypeVariables().isEmpty()) {
             return f;
         }
-        System.out.println("rewriting " + f.getName() + " to " + generics);
+        if (generics.containsTypeVariable()) {
+            throw new CompileError(f, "Generics should not contain type variables");
+        }
+
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
         prog.getFunctions().add(newF);
@@ -242,6 +219,10 @@ public class EliminateGenerics {
         if (specialized != null) {
             return specialized;
         }
+        if (generics.containsTypeVariable()) {
+            throw new CompileError(m, "Generics should not contain type variables.");
+        }
+
         ImMethod newM = m.copyWithRefs();
         specializedMethods.put(m, generics, newM);
         prog.getMethods().add(newM);
@@ -254,11 +235,32 @@ public class EliminateGenerics {
 
         newM.setName(m.getName() + "⟪" + generics.makeName() + "⟫");
         newM.setImplementation(specializeFunction(newM.getImplementation(), generics));
-        // TODO adapt generics to submethods
-        // not all submethods have the same number of type parameters
-        newM.getSubMethods().replaceAll(subMethod -> specializeMethod(subMethod, generics));
-
+        adaptSubmethods(m.getSubMethods(), newM);
         return newM;
+    }
+
+    private void adaptSubmethods(List<ImMethod> oldSubMethods, ImMethod newM) {
+        newM.setSubMethods(new ArrayList<>());
+        ImClassType newClassT = newM.getMethodClass();
+        ImClass newMClass = newClassT.getClassDef();
+        for (ImMethod subMethod : oldSubMethods) {
+            ImClassType subClassT = subMethod.getMethodClass();
+            ImClass subClass = subClassT.getClassDef();
+            if (isGenericType(subClassT)) {
+                onSpecializeClass(subClass, (subGenerics, specializedSubClass) -> {
+                    if (specializedSubClass.isSubclassOf(newMClass)) {
+                        ImMethod specializedSubMethod = specializeMethod(subMethod, subGenerics);
+                        newM.getSubMethods().add(specializedSubMethod);
+                    }
+                });
+            } else {
+                subClass.getSuperClasses().replaceAll(this::specializeType);
+                ImClassType newClassTspecialized = specializeType(newClassT);
+                if (subClass.isSubclassOf(newClassTspecialized.getClassDef())) {
+                    newM.getSubMethods().add(subMethod);
+                }
+            }
+        }
     }
 
     /**
@@ -350,7 +352,11 @@ public class EliminateGenerics {
         if (specialized != null) {
             return specialized;
         }
+        if (generics.containsTypeVariable()) {
+            throw new CompileError(c, "Generics should not contain type variables.");
+        }
         ImClass newC = c.copyWithRefs();
+        newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
         newC.getTypeVariables().removeAll();
@@ -361,6 +367,8 @@ public class EliminateGenerics {
         newC.getSuperClasses().replaceAll(this::specializeType);
         // we don't collect generic usages to avoid infinite loops
         // in cases like class C<T> { C<C<T>> x; }
+        onSpecializedClassTriggers.get(c).forEach(consumer ->
+                consumer.accept(generics, newC));
         return newC;
     }
 
@@ -411,6 +419,9 @@ public class EliminateGenerics {
             public void visit(ImVar v) {
                 super.visit(v);
                 if (isGenericType(v.getType())) {
+                    if (containsTypeVariable(v.getType())) {
+                        throw new CompileError(v, "Var should not have type variables.");
+                    }
                     genericsUses.add(new GenericVar(v));
                 }
             }
@@ -520,6 +531,51 @@ public class EliminateGenerics {
             @Override
             public Boolean case_ImTypeVarRef(ImTypeVarRef t) {
                 return false;
+            }
+        });
+    }
+
+    static boolean containsTypeVariable(ImType type) {
+        return type.match(new ImType.Matcher<Boolean>() {
+            @Override
+            public Boolean case_ImArrayTypeMulti(ImArrayTypeMulti t) {
+                return containsTypeVariable(t.getEntryType());
+            }
+
+            @Override
+            public Boolean case_ImArrayType(ImArrayType t) {
+                return containsTypeVariable(t.getEntryType());
+            }
+
+            @Override
+            public Boolean case_ImClassType(ImClassType t) {
+                return t.getTypeArguments().stream()
+                        .anyMatch(tt -> containsTypeVariable(tt.getType()));
+            }
+
+            @Override
+            public Boolean case_ImVoid(ImVoid t) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTupleType(ImTupleType t) {
+                for (ImType tt : t.getTypes()) {
+                    if (containsTypeVariable(tt)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImSimpleType(ImSimpleType t) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImTypeVarRef(ImTypeVarRef t) {
+                return true;
             }
         });
     }
@@ -636,11 +692,7 @@ public class EliminateGenerics {
             @Override
             public ImType case_ImClassType(ImClassType t) {
                 ImTypeArguments typeArgs = t.getTypeArguments();
-                if (typeArgs.isEmpty()) {
-                    return t;
-                }
                 List<ImTypeArgument> newTypeArgs = specializeTypeArgs(typeArgs);
-
                 ImClass specializedClass = specializeClass(t.getClassDef(), new GenericTypes(newTypeArgs));
                 return JassIm.ImClassType(specializedClass, JassIm.ImTypeArguments());
             }

@@ -1205,16 +1205,35 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
                 "interface F<A:,R:>",
                 "	function apply(A a) returns R",
                 "function twice<X:>(F<X, X> f) returns F<X, X>",
-                "	return x -> f.apply(f.apply(x))",
+                "	return x -> f.apply(f.apply(x))", // line 7
                 "init",
-                "	F<int, int> plus1 = x -> x + 1",
+                "	F<int, int> plus1 = x -> x + 1", // line 9
                 "	F<int, int> plus2 = twice(plus1)",
-                "	F<string, string> shout = twice((string s) -> s + \"!\")",
+                "	F<string, string> shout = twice((string s) -> s + \"!\")", // line 11
                 "	if shout.apply(\"hello\") == \"hello!!\" and plus2.apply(1) == 3",
                 "		testSuccess()"
         );
     }
 
+    @Test
+    public void severalSubMethods() { // #490
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "native println(string s)",
+                "class B<T:>",
+                "	function id(T x) returns T",
+                "		return x",
+                "class A<X:, Y:> extends B<Y>",
+                "	override function id(Y y) returns Y",
+                "		return y",
+                "init",
+                "	B<int> a = new A<int,int>",
+                "	B<int> b = new A<string, int>",
+                "	if a.id(4) == 4 and b.id(2) == 2",
+                "		testSuccess()"
+        );
+    }
 
 
 }
