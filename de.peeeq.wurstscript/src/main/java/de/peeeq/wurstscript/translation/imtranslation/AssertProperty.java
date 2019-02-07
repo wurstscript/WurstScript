@@ -95,6 +95,9 @@ public interface AssertProperty {
                             return;
                         }
                         Element parent = e.getParent();
+                        if (parent == null) {
+                            break;
+                        }
                         checkContains(location, parent, e);
                         if (parent instanceof ImFunction && parent != currentFunction) {
                             throw new CompileError(location, "Element " + el + " is rooted in function " + parent + " but should be in function " + currentFunction);

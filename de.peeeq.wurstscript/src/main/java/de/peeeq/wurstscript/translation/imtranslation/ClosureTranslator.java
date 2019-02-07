@@ -201,7 +201,6 @@ public class ClosureTranslator {
     private Map<ImTypeVar, ImTypeVar> rewriteTypeVars(ImClass c) {
         Map<ImTypeVar, ImTypeVar> result = new LinkedHashMap<>();
         ImClassType thisType = JassIm.ImClassType(c, JassIm.ImTypeArguments());
-        System.out.println("BEFORE rewriteTypeVars:\n" + ImPrinter.printToString(c));
         c.accept(new ImClass.DefaultVisitor() {
             @Override
             public void visit(ImVar e) {
