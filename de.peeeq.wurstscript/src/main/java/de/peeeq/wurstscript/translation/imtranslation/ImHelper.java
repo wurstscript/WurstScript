@@ -18,30 +18,18 @@ public class ImHelper {
         }
     }
 
-//	static ImVar translateParam(WParameter p) {
-//		return tra
-//		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
-//	}
-
     public static ImType toArray(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) t;
-            return JassIm.ImArrayType(imSimpleType);
-        } else if (t instanceof ImTupleType) {
-            ImTupleType imTupleType = (ImTupleType) t;
-            return JassIm.ImArrayType(imTupleType);
-        } else if (t instanceof ImArrayType) {
-            // already an array
+        if (t instanceof ImArrayType) {
+            // already an array (should never happen?)
             return t;
-        } else if (t instanceof ImArrayTypeMulti) {
+        } if (t instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
             nsize.add(Constants.MAX_ARRAY_SIZE);
             return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
-        } else if (t instanceof ImTypeVarRef) {
+        } else {
             return JassIm.ImArrayType(t);
         }
-        throw new Error("Can't make array type from " + t + " -- " + t.getClass());
     }
 
     public static void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
