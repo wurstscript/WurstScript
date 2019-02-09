@@ -452,7 +452,7 @@ public class ImTranslator {
     }
 
     private void addFunction(ImFunction f, StructureDef s) {
-        ImClass c = getClassFor(s);
+        ImClass c = getClassFor(s.attrNearestClassOrInterface());
         c.getFunctions().add(f);
     }
 
@@ -603,7 +603,7 @@ public class ImTranslator {
     }
 
     public ImClassType selfType(StructureDef classDef) {
-        ImClass imClass = getClassFor(classDef);
+        ImClass imClass = getClassFor(classDef.attrNearestClassOrInterface());
         return selfType(imClass);
     }
 
@@ -721,7 +721,7 @@ public class ImTranslator {
             @Override
             public ImClass case_FuncDef(FuncDef funcDef) {
                 if (funcDef.attrIsDynamicClassMember()) {
-                    return getClassFor(funcDef.attrNearestStructureDef());
+                    return getClassFor(funcDef.attrNearestClassOrInterface());
                 }
                 return null;
             }
@@ -733,7 +733,7 @@ public class ImTranslator {
 
             @Override
             public ImClass case_OnDestroyDef(OnDestroyDef funcDef) {
-                return getClassFor(funcDef.attrNearestStructureDef());
+                return getClassFor(funcDef.attrNearestClassOrInterface());
             }
 
             @Override
@@ -748,7 +748,7 @@ public class ImTranslator {
 
             @Override
             public ImClass case_ConstructorDef(ConstructorDef funcDef) {
-                return getClassFor(funcDef.attrNearestStructureDef());
+                return getClassFor(funcDef.attrNearestClassOrInterface());
             }
 
             @Override
@@ -1550,9 +1550,9 @@ public class ImTranslator {
     }
 
 
-    Map<StructureDef, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
+    private Map<ClassOrInterface, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
-    public ImClass getClassFor(StructureDef s) {
+    public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
             ImTypeVars typeVariables = JassIm.ImTypeVars();

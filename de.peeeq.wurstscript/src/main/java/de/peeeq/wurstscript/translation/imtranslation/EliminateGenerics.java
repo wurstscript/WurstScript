@@ -37,6 +37,8 @@ public class EliminateGenerics {
 
 
     public void transform() {
+        debug("eliminate-0");
+
         simplifyClasses();
         debug("eliminate-1-simplifyClasses");
 
