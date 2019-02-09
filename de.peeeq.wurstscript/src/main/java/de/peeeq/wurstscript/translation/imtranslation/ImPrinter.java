@@ -101,8 +101,9 @@ public class ImPrinter {
     }
 
     public static void print(ImArrayType t, Appendable sb, int indent) {
-        append(sb, "array ");
+        append(sb, "array<");
         t.getEntryType().print(sb, indent);
+        append(sb, ">");
     }
 
     public static void print(ImTupleType p, Appendable sb, int indent) {
@@ -405,6 +406,11 @@ public class ImPrinter {
         append(sb, ".");
         append(sb, e.getVar().getName());
         append(sb, smallHash(e.getVar()));
+        for (ImExpr index : e.getIndexes()) {
+            append(sb, "[");
+            index.print(sb, indent);
+            append(sb, "]");
+        }
         printTypeArguments(e.getTypeArguments(), indent, sb);
     }
 
@@ -451,10 +457,11 @@ public class ImPrinter {
 
     public static void print(ImArrayTypeMulti imArrayTypeMulti,
                              Appendable sb, int indent) {
-        append(sb, "array ");
+        append(sb, "array<");
         imArrayTypeMulti.getEntryType().print(sb, indent);
         append(sb, " size: ");
         append(sb, imArrayTypeMulti.getArraySize());
+        append(sb, ">");
 
     }
 

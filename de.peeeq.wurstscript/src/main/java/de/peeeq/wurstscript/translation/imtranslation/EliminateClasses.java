@@ -67,8 +67,9 @@ public class EliminateClasses {
     private void eliminateClass(ImClass c) {
         // for each field, create a global array variable
         for (ImVar f : c.getFields()) {
+            ImType type = ImHelper.toArray(f.getType());
             ImVar v = JassIm
-                    .ImVar(f.getTrace(), JassIm.ImArrayType(f.getType()), f.getName(), false);
+                    .ImVar(f.getTrace(), type, f.getName(), false);
             prog.getGlobals().add(v);
             fieldToArray.put(f, v);
         }
@@ -459,7 +460,9 @@ public class EliminateClasses {
         if (fieldArray == null) {
             throw new CompileError(ma, "Could not find field array for " + ma);
         }
-        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldArray, JassIm.ImExprs(receiver)));
+        ImExprs indexes = JassIm.ImExprs(receiver);
+        indexes.addAll(ma.getIndexes().removeAll());
+        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldArray, indexes));
 
     }
 

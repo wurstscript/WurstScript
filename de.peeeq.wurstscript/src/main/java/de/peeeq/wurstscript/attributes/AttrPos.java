@@ -66,7 +66,7 @@ public class AttrPos {
             }
             parent = parent.getParent();
         }
-        return new WPos("<source of " + e + " not found>", new LineOffsets(), 0, 0);
+        return new WPos("<source of " + e + " not found>", new LineOffsets(), 0, -1);
     }
 
 

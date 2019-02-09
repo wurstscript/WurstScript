@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public class ImHelper {
         } else if (t instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
-            nsize.add(8192);
+            nsize.add(Constants.MAX_ARRAY_SIZE);
             return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
         } else if (t instanceof ImTypeVarRef) {
             return JassIm.ImArrayType(t);

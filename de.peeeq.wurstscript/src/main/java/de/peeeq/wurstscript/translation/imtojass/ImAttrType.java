@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
@@ -176,16 +177,21 @@ public class ImAttrType {
 
     public static ImType getType(ImMemberAccess e) {
         ImType t = e.getVar().getType();
-        ImClassType receiverType = (ImClassType) e.getReceiver().attrTyp();
-        ImTypeArguments typeArgs = e.getTypeArguments();
-        try {
-            if (typeArgs.isEmpty()) {
-                typeArgs = receiverType.getTypeArguments();
+        ImType receiverType1 = e.getReceiver().attrTyp();
+        if (receiverType1 instanceof ImClassType) {
+            ImClassType receiverType = (ImClassType) receiverType1;
+            ImTypeArguments typeArgs = e.getTypeArguments();
+            try {
+                if (typeArgs.isEmpty()) {
+                    typeArgs = receiverType.getTypeArguments();
+                }
+                t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+                return t;
+            } catch (Exception ex) {
+                throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
             }
-            t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+        } else {
             return t;
-        } catch (Exception ex) {
-            throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
         }
     }
 

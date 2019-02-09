@@ -193,8 +193,8 @@ public class ProgramState extends State {
         }
 
         public void appendTo(StringBuilder sb) {
-            for (int i = stackFrames.size() - 1; i >= 0; i--) {
-                sb.append(stackFrames.get(i).getMessage());
+            for (ILStackFrame stackFrame : stackFrames) {
+                sb.append(stackFrame.getMessage());
                 sb.append("\n");
             }
         }

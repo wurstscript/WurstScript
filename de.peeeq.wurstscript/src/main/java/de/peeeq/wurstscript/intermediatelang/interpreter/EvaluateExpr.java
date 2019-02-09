@@ -93,11 +93,16 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
-        ILconstTuple t = (ILconstTuple) e.getTupleExpr().evaluate(globalState, localState);
-        if (e.getTupleIndex() >= t.values().size()) {
-            throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+        ILconst tupleE = e.getTupleExpr().evaluate(globalState, localState);
+        if (tupleE instanceof ILconstTuple) {
+            ILconstTuple t = (ILconstTuple) tupleE;
+            if (e.getTupleIndex() >= t.values().size()) {
+                throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+            }
+            return t.getValue(e.getTupleIndex());
+        } else {
+            throw new InterpreterException(globalState, "Tuple " + e + " evaluated to " + tupleE);
         }
-        return t.getValue(e.getTupleIndex());
 
     }
 
@@ -196,7 +201,12 @@ public class EvaluateExpr {
         if (receiver.getVal() == 0) {
             throw new RuntimeException("Null pointer dereference");
         }
-        return notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
+        ILconst res = notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
+        for (ImExpr index : ma.getIndexes()) {
+            ILconstInt indexE = (ILconstInt) index.evaluate(globalState, localState);
+            res = ((ILconstArray) res).get(indexE.getVal());
+        }
+        return res;
     }
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
