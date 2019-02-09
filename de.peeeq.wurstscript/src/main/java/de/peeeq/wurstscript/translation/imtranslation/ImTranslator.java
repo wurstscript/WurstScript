@@ -98,6 +98,7 @@ public class ImTranslator {
     private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
+    private boolean debug = false;
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
         this.wurstProg = wurstProg;
@@ -1482,6 +1483,9 @@ public class ImTranslator {
     }
 
     public void assertProperties(AssertProperty... properties1) {
+        if (!debug) {
+            return;
+        }
         final Set<AssertProperty> properties = Sets.newHashSet(properties1);
         assertProperties(properties, imProg);
     }
