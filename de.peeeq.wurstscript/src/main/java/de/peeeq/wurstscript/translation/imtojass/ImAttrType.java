@@ -31,22 +31,7 @@ public class ImAttrType {
     }
 
     public static ImType substituteType(ImType type, List<ImTypeArgument> generics, List<ImTypeVar> typeVars) {
-        return type.match(new ImType.Matcher<ImType>() {
-
-            @Override
-            public ImType case_ImVoid(ImVoid t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                return JassIm.ImArrayTypeMulti(substituteType(t.getEntryType(), generics, typeVars), t.getArraySize());
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType t) {
-                return JassIm.ImTupleType(t.getTypes().stream().map(tt -> substituteType(tt, generics, typeVars)).collect(Collectors.toList()), t.getNames());
-            }
+        return type.match(new TypeRewriteMatcher() {
 
             @Override
             public ImType case_ImTypeVarRef(ImTypeVarRef t) {
@@ -59,21 +44,6 @@ public class ImAttrType {
                 return generics.get(index).getType();
             }
 
-            @Override
-            public ImType case_ImSimpleType(ImSimpleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType t) {
-                return JassIm.ImArrayType(substituteType(t.getEntryType(), generics, typeVars));
-            }
-
-            @Override
-            public ImType case_ImClassType(ImClassType t) {
-                ImTypeArguments args = t.getTypeArguments().stream().map(ta -> JassIm.ImTypeArgument(substituteType(ta.getType(), generics, typeVars), ta.getTypeClassBinding())).collect(Collectors.toCollection(JassIm::ImTypeArguments));
-                return JassIm.ImClassType(t.getClassDef(), args);
-            }
         });
     }
 

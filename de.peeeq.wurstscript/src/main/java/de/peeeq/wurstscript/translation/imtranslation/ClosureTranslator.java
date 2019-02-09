@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.Collections;
@@ -272,48 +273,16 @@ public class ClosureTranslator {
             }
 
             private ImType rewriteType(ImType type) {
-                return type.match(new ImType.Matcher<ImType>() {
-                    @Override
-                    public ImType case_ImTupleType(ImTupleType t) {
-                        return JassIm.ImTupleType(
-                                t.getTypes().stream()
-                                        .map(tt -> rewriteType(tt))
-                                        .collect(Collectors.toList()),
-                                t.getNames());
-                    }
-
-                    @Override
-                    public ImType case_ImVoid(ImVoid t) {
-                        return t;
-                    }
+                return type.match(new TypeRewriteMatcher() {
 
                     @Override
                     public ImType case_ImClassType(ImClassType t) {
                         if (t.getClassDef() == c) {
                             return thisType;
                         }
-                        return JassIm.ImClassType(
-                                t.getClassDef(),
-                                t.getTypeArguments().stream()
-                                        .map(tt -> JassIm.ImTypeArgument(rewriteType(tt.getType()), tt.getTypeClassBinding()))
-                                        .collect(Collectors.toCollection(JassIm::ImTypeArguments)));
-
+                        return super.case_ImClassType(t);
                     }
 
-                    @Override
-                    public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                        return JassIm.ImArrayTypeMulti(rewriteType(t.getEntryType()), t.getArraySize());
-                    }
-
-                    @Override
-                    public ImType case_ImSimpleType(ImSimpleType t) {
-                        return t;
-                    }
-
-                    @Override
-                    public ImType case_ImArrayType(ImArrayType t) {
-                        return JassIm.ImArrayType(rewriteType(t.getEntryType()));
-                    }
 
                     @Override
                     public ImType case_ImTypeVarRef(ImTypeVarRef t) {

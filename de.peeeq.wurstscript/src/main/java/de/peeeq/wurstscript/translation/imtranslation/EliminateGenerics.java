@@ -7,6 +7,7 @@ import com.google.common.collect.Table;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -91,8 +92,11 @@ public class EliminateGenerics {
                     // using old generics
                     return;
                 }
-                ImClassType ct = (ImClassType) receiverType;
-                ct = adaptToSuperclass(ct, owningClass);
+                ImClassType rt = (ImClassType) receiverType;
+                ImClassType ct = adaptToSuperclass(rt, owningClass);
+                if (ct == null) {
+                    throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass);
+                }
                 List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
                 ma.getTypeArguments().addAll(0, typeArgs);
             }
@@ -382,14 +386,6 @@ public class EliminateGenerics {
         collectGenericUsages(prog);
     }
 
-    /**
-     * checks that all the type arguments only have concrete types
-     */
-    private boolean onlyConcreteTypes(ImTypeArguments ta) {
-        return ta.stream()
-                .noneMatch(t -> isGenericType(t.getType()));
-    }
-
     private void collectGenericUsages(Element element) {
         element.accept(new Element.DefaultVisitor() {
             @Override
@@ -648,20 +644,6 @@ public class EliminateGenerics {
     }
 
 
-    class GenericClass implements GenericUse {
-
-        private final ImClassType ct;
-
-        public GenericClass(ImClassType ct) {
-            this.ct = ct;
-        }
-
-        @Override
-        public void eliminate() {
-            throw new RuntimeException("TODO");
-        }
-    }
-
     class GenericVar implements GenericUse {
         private final ImVar mc;
 
@@ -680,16 +662,7 @@ public class EliminateGenerics {
     }
 
     private ImType specializeType(ImType type) {
-        return type.match(new ImType.Matcher<ImType>() {
-            @Override
-            public ImType case_ImArrayTypeMulti(ImArrayTypeMulti t) {
-                return JassIm.ImArrayTypeMulti(specializeType(t.getEntryType()), t.getArraySize());
-            }
-
-            @Override
-            public ImType case_ImArrayType(ImArrayType t) {
-                return JassIm.ImArrayType(specializeType(t.getEntryType()));
-            }
+        return type.match(new TypeRewriteMatcher() {
 
             @Override
             public ImType case_ImClassType(ImClassType t) {
@@ -699,29 +672,6 @@ public class EliminateGenerics {
                 return JassIm.ImClassType(specializedClass, JassIm.ImTypeArguments());
             }
 
-            @Override
-            public ImType case_ImVoid(ImVoid t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImTupleType(ImTupleType t) {
-                List<ImType> types = t.getTypes()
-                        .stream()
-                        .map(tt -> specializeType(tt))
-                        .collect(Collectors.toList());
-                return JassIm.ImTupleType(types, t.getNames());
-            }
-
-            @Override
-            public ImType case_ImSimpleType(ImSimpleType t) {
-                return t;
-            }
-
-            @Override
-            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                return t;
-            }
         });
     }
 
@@ -743,45 +693,6 @@ public class EliminateGenerics {
         @Override
         public void eliminate() {
             mc.setReturnType(specializeType(mc.getReturnType()));
-        }
-    }
-
-    class GenericReturnTypeMethod implements GenericUse {
-        private final ImMethod mc;
-
-        GenericReturnTypeMethod(ImMethod mc) {
-            this.mc = mc;
-        }
-
-        @Override
-        public void eliminate() {
-            throw new RuntimeException("TODO");
-        }
-    }
-
-    class GenericNull implements GenericUse {
-        private final ImNull mc;
-
-        GenericNull(ImNull mc) {
-            this.mc = mc;
-        }
-
-        @Override
-        public void eliminate() {
-            throw new RuntimeException("TODO");
-        }
-    }
-
-    class GenericTypeArgument implements GenericUse {
-        private final ImTypeArgument mc;
-
-        GenericTypeArgument(ImTypeArgument mc) {
-            this.mc = mc;
-        }
-
-        @Override
-        public void eliminate() {
-            throw new RuntimeException("TODO");
         }
     }
 
