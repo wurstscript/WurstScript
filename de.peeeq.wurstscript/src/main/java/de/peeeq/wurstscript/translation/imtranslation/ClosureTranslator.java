@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.Collections;
@@ -202,107 +203,38 @@ public class ClosureTranslator {
     private Map<ImTypeVar, ImTypeVar> rewriteTypeVars(ImClass c) {
         Map<ImTypeVar, ImTypeVar> result = new LinkedHashMap<>();
         ImClassType thisType = JassIm.ImClassType(c, JassIm.ImTypeArguments());
-        c.accept(new ImClass.DefaultVisitor() {
-            @Override
-            public void visit(ImVar e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
+        TypeRewriter.rewriteTypes(c, t -> rewriteType(thisType, result, t));
+        return result;
+    }
+
+    private ImType rewriteType(ImClassType thisType, Map<ImTypeVar, ImTypeVar> result, ImType type) {
+        return type.match(new TypeRewriteMatcher() {
 
             @Override
-            public void visit(ImFunction e) {
-                super.visit(e);
-                e.setReturnType(rewriteType(e.getReturnType()));
+            public ImType case_ImClassType(ImClassType t) {
+                if (t.getClassDef() == c) {
+                    return thisType;
+                }
+                return super.case_ImClassType(t);
             }
+
 
             @Override
-            public void visit(ImNull e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
-
-            @Override
-            public void visit(ImTypeArgument e) {
-                super.visit(e);
-                e.setType(rewriteType(e.getType()));
-            }
-
-            @Override
-            public void visit(ImClass e) {
-                super.visit(e);
-                List<ImClassType> newSuperClasses = e.getSuperClasses().stream()
-                        .map(tt -> (ImClassType) rewriteType(tt))
-                        .collect(Collectors.toList());
-                e.setSuperClasses(newSuperClasses);
-            }
-
-            @Override
-            public void visit(ImMethod e) {
-                super.visit(e);
-                e.setMethodClass((ImClassType) rewriteType(e.getMethodClass()));
-            }
-
-            @Override
-            public void visit(ImAlloc e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImDealloc e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImInstanceof e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImTypeIdOfObj e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            @Override
-            public void visit(ImTypeIdOfClass e) {
-                super.visit(e);
-                e.setClazz((ImClassType) rewriteType(e.getClazz()));
-            }
-
-            private ImType rewriteType(ImType type) {
-                return type.match(new TypeRewriteMatcher() {
-
-                    @Override
-                    public ImType case_ImClassType(ImClassType t) {
-                        if (t.getClassDef() == c) {
-                            return thisType;
-                        }
-                        return super.case_ImClassType(t);
-                    }
-
-
-                    @Override
-                    public ImType case_ImTypeVarRef(ImTypeVarRef t) {
-                        ImTypeVar oldTypevar = t.getTypeVariable();
-                        ImTypeVar newTypevar = result.get(oldTypevar);
-                        if (newTypevar == null) {
-                            newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
-                            result.put(oldTypevar, newTypevar);
-                            c.getTypeVariables().add(newTypevar);
-                            thisType.getTypeArguments().add(
-                                    JassIm.ImTypeArgument(
-                                            JassIm.ImTypeVarRef(newTypevar),
-                                            Collections.emptyMap()));
-                        }
-                        return JassIm.ImTypeVarRef(newTypevar);
-                    }
-                });
+            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                ImTypeVar oldTypevar = t.getTypeVariable();
+                ImTypeVar newTypevar = result.get(oldTypevar);
+                if (newTypevar == null) {
+                    newTypevar = JassIm.ImTypeVar(oldTypevar.getName() + "_captured");
+                    result.put(oldTypevar, newTypevar);
+                    c.getTypeVariables().add(newTypevar);
+                    thisType.getTypeArguments().add(
+                            JassIm.ImTypeArgument(
+                                    JassIm.ImTypeVarRef(newTypevar),
+                                    Collections.emptyMap()));
+                }
+                return JassIm.ImTypeVarRef(newTypevar);
             }
         });
-        return result;
     }
 
 
