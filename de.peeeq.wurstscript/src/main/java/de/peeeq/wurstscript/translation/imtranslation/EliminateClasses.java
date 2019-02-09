@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -14,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static de.peeeq.wurstscript.types.TypesHelper.imInt;
 
 /**
  * eliminate classes and dynamic method invocations
@@ -51,6 +55,22 @@ public class EliminateClasses {
         }
 
         prog.getClasses().clear();
+        prog.getMethods().clear();
+
+        eliminateClassTypes();
+    }
+
+    private void eliminateClassTypes() {
+        TypeRewriter.rewriteTypes(prog, this::eliminateClassTypes);
+    }
+
+    private ImType eliminateClassTypes(ImType imType) {
+        return imType.match(new TypeRewriteMatcher() {
+            @Override
+            public ImType case_ImClassType(ImClassType t) {
+                return imInt();
+            }
+        });
     }
 
 
@@ -378,7 +398,7 @@ public class EliminateClasses {
         ImExpr objTypeIdExpr = objTypeId;
         if (useTempVar) {
             // use temporary variable
-            tempVar = JassIm.ImVar(e.attrTrace(), TypesHelper.imInt(), "instanceOfTemp", false);
+            tempVar = JassIm.ImVar(e.attrTrace(), imInt(), "instanceOfTemp", false);
             f.getLocals().add(tempVar);
             objTypeIdExpr = JassIm.ImVarAccess(tempVar);
         }
