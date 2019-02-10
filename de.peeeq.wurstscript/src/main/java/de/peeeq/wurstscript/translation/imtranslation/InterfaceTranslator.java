@@ -2,9 +2,15 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +62,7 @@ public class InterfaceTranslator {
         // deallocate
         ImFunction f = translator.destroyFunc.getFor(interfaceDef);
         ImVar thisVar = f.getParameters().get(0);
-        f.getBody().add(JassIm.ImDealloc(imClassType(), JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(interfaceDef, imClassType(), JassIm.ImVarAccess(thisVar)));
     }
 
     private ImClassType imClassType() {

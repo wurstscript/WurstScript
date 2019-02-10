@@ -109,7 +109,7 @@ public class MultiArrayEliminator {
                         args.add(set.getRight().copy());
 
                         if (generateStacktraces) {
-                            args.add(JassIm.ImStringVal("when writing array " + va.getVar().getName() + " in " + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
+                            args.add(JassIm.ImStringVal("when writing array " + va.getVar().getName() + StackTraceInjector2.getCallPos(va.getTrace().attrSource())));
                         }
 
                         set.replaceBy(JassIm.ImFunctionCall(set.getTrace(), getSetMap.get(va.getVar()).setter, JassIm.ImTypeArguments(), args, false, CallType.NORMAL));

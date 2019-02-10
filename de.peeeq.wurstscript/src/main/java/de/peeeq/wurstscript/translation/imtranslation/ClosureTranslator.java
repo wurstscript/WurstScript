@@ -50,7 +50,7 @@ public class ClosureTranslator {
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
-            stmts.add(JassIm.ImSet(e, JassIm.ImVarAccess(clVar), JassIm.ImAlloc(ct)));
+            stmts.add(JassIm.ImSet(e, JassIm.ImVarAccess(clVar), JassIm.ImAlloc(e, ct)));
             callSuperConstructor(clVar, stmts, c);
             // set closure vars
             for (Entry<ImVar, ImVar> entry : closureVars.entrySet()) {

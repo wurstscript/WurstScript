@@ -119,8 +119,8 @@ ImMemberOrMethodAccess =
 	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ImTypeArguments typeArguments, ref ImVar var, ImExprs indexes)
 
 ImClassRelatedExprWithClass =
-	  ImAlloc(ref ImClassType clazz)
-	| ImDealloc(ref ImClassType clazz, ImExpr obj)
+	  ImAlloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz)
+	| ImDealloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExpr obj)
 	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfClass(ref ImClassType clazz)
@@ -154,6 +154,7 @@ ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImE
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
  | ImProg | ImFuncRef
+ | ImAlloc | ImDealloc
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 

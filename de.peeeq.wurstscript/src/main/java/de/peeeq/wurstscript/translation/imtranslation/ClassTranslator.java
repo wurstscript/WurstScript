@@ -118,7 +118,7 @@ public class ClassTranslator {
         f.getBody().add(ImFunctionCall(trace, scOnDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 
         // deallocate
-        f.getBody().add(JassIm.ImDealloc(imClassType(), JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(c.getOnDestroy(), imClassType(), JassIm.ImVarAccess(thisVar)));
     }
 
     private ImClassType imClassType() {
@@ -341,7 +341,7 @@ public class ClassTranslator {
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClassType())));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(constr, imClassType())));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);
