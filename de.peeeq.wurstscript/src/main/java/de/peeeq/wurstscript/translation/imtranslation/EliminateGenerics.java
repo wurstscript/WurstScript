@@ -10,9 +10,6 @@ import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -38,38 +35,22 @@ public class EliminateGenerics {
 
 
     public void transform() {
-        debug("eliminate-0");
 
         simplifyClasses();
-        debug("eliminate-1-simplifyClasses");
 
         addMemberTypeArguments();
-        debug("eliminate-2-addMemberTypeArguments");
 
         collectGenericUsages();
-        debug("eliminate-3-collectGenericUsages");
 
         eliminateGenericUses();
-        debug("eliminate-4-eliminateGenericUses");
 
         removeGenericConstructs();
-        debug("eliminate-5-removeGenericConstructs");
 
-//        recalculateTypeIds();
     }
 
     private void onSpecializeClass(ImClass orig, BiConsumer<GenericTypes, ImClass> action) {
         onSpecializedClassTriggers.put(orig, action);
         specializedClasses.row(orig).forEach(action);
-    }
-
-    private void debug(String name) {
-        try {
-            Files.write(Paths.get("test-output", name + ".im"), prog.toString().getBytes());
-            translator.assertProperties(AssertProperty.rooted(prog));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void addMemberTypeArguments() {
