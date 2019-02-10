@@ -76,7 +76,7 @@ public class EliminateGenerics {
                 ImClassType rt = (ImClassType) receiverType;
                 ImClassType ct = adaptToSuperclass(rt, owningClass);
                 if (ct == null) {
-                    throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass);
+                    throw new CompileError(ma, "Could not adapt receiver " + rt + " to superclass " + owningClass + " in member access " + ma);
                 }
                 List<ImTypeArgument> typeArgs = ct.getTypeArguments().stream().map(ImTypeArgument::copy).collect(Collectors.toList());
                 ma.getTypeArguments().addAll(0, typeArgs);

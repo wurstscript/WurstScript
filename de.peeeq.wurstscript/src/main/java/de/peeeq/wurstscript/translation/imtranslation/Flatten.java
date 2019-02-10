@@ -61,6 +61,10 @@ public class Flatten {
         throw new RuntimeException("called too early");
     }
 
+    public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
+        return imCast.getExpr().flatten(translator, f);
+    }
+
     public static class Result {
 
         final List<ImStmt> stmts;

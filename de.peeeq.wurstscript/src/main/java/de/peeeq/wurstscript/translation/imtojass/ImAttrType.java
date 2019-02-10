@@ -197,4 +197,8 @@ public class ImAttrType {
     public static ImType getType(ImTypeVarDispatch e) {
         return e.getTypeClassFunc().getReturnType();
     }
+
+    public static ImType getType(ImCast imCast) {
+        return imCast.getToType();
+    }
 }

@@ -1235,5 +1235,24 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void simpleCastTest() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "	class B extends A",
+                "		int x",
+                "	function get() returns A",
+                "		let r = new B",
+                "		r.x = 5",
+                "		return r",
+                "	init",
+                "		if (get() castTo B).x == 5",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
 
 }

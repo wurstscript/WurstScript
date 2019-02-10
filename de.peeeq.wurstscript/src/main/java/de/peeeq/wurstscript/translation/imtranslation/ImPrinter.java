@@ -552,4 +552,12 @@ public class ImPrinter {
     public static String asString(ImTypeArgument s) {
         return s.getType() + "" + s.getTypeClassBinding();
     }
+
+    public static void print(ImCast e, Appendable sb, int indent) {
+        append(sb, "(");
+        e.getExpr().print(sb, indent);
+        append(sb, " castTo ");
+        e.getToType().print(sb, indent);
+        append(sb, ")");
+    }
 }

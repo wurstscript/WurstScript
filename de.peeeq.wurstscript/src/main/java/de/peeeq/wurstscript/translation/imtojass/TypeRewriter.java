@@ -89,6 +89,12 @@ public class TypeRewriter {
                 super.visit(e);
                 e.setClazz((ImClassType) rewriteType(e.getClazz()));
             }
+
+            @Override
+            public void visit(ImCast e) {
+                super.visit(e);
+                e.setToType(rewriteType(e.getToType()));
+            }
         });
     }
 

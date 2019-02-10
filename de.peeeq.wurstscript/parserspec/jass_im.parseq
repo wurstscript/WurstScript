@@ -97,6 +97,7 @@ ImExpr =
     | ImLExpr
     | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
                        , ref ImTypeVar typeVariable)
+	| ImCast(ImExpr expr, ref ImType toType)
 
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =

@@ -391,4 +391,8 @@ public class EvaluateExpr {
         // TODO store type arguments in localState with the required dispatch functions
         throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
     }
+
+    public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
+        return imCast.getExpr().evaluate(globalState, localState);
+    }
 }

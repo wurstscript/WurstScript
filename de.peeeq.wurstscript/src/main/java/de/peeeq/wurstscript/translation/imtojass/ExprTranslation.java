@@ -137,4 +137,8 @@ public class ExprTranslation {
     public static JassExpr translate(ImTypeVarDispatch e, ImToJassTranslator translator) {
         throw new CompileError(e, "Typevar dispatch not eliminated.");
     }
+
+    public static JassExpr translate(ImCast imCast, ImToJassTranslator translator) {
+        return imCast.getExpr().translate(translator);
+    }
 }

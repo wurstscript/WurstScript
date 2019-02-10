@@ -122,6 +122,11 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImCast(ImCast imCast) {
+                return quickcheckHasSideeffects(imCast.getExpr());
+            }
+
+            @Override
             public Boolean case_ImCompiletimeExpr(ImCompiletimeExpr imCompiletimeExpr) {
                 return true;
             }

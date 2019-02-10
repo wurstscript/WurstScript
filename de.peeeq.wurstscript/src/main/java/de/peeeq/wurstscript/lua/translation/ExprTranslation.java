@@ -174,4 +174,8 @@ public class ExprTranslation {
     public static LuaExpr translate(ImTypeVarDispatch imTypeVarDispatch, LuaTranslator tr) {
         throw new Error("not implemented");
     }
+
+    public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
+        return imCast.getExpr().translateToLua(tr);
+    }
 }

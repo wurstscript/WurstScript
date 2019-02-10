@@ -323,10 +323,10 @@ public class ExtendedWurstLexer implements TokenSource {
                 spacesPerIndent = n;
             } else if (tabWarning == null && n != indentationLevels.peek() + spacesPerIndent) {
                 String message = "Inconsistent indentation: Earlier in this file " + spacesPerIndent + " spaces were used for indentation and here it is " + (n - indentationLevels.peek()) + " spaces.";
-                tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), message);
+                tabWarning = new CompileError(new WPos("", lineOffsets, lineOffsets.get(token.getLine()), token.getStopIndex()), message);
             }
             if (tabWarning == null && n % 2 == 1) {
-                tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Use an even number of spaces for indentation.");
+                tabWarning = new CompileError(new WPos("", lineOffsets, lineOffsets.get(token.getLine()), token.getStopIndex()), "Use an even number of spaces for indentation.");
             }
 
 
