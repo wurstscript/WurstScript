@@ -643,7 +643,7 @@ public class WurstValidator {
 
         if (e.getImplementation() instanceof ExprStatementsBlock) {
             ExprStatementsBlock block = (ExprStatementsBlock) e.getImplementation();
-            new DataflowAnomalyAnalysis().execute(block);
+            new DataflowAnomalyAnalysis(false).execute(block);
         }
 
         if (e.attrExpectedTyp() instanceof WurstTypeClass) {
@@ -1146,8 +1146,9 @@ public class WurstValidator {
         }
         if (!isAbstract) { // not abstract
             checkReturn(f);
-            if (!Utils.isJassCode(f)) {
-                new DataflowAnomalyAnalysis().execute(f);
+            if (!f.getSource().getFile().endsWith("common.j")
+                    && !f.getSource().getFile().endsWith("blizzard.j")) {
+                new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
             }
         }
     }

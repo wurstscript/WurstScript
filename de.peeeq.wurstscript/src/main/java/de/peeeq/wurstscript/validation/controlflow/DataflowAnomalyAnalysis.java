@@ -247,6 +247,13 @@ class VState {
 
 public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElementWithBody> {
 
+
+    private final boolean jassCode;
+
+    public DataflowAnomalyAnalysis(boolean jassCode) {
+        this.jassCode = jassCode;
+    }
+
     @Override
     VarStates calculate(WStatement s, VarStates incoming) {
         if (s instanceof StartFunctionStatement) {
@@ -322,16 +329,16 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
             }
         }
         if (s instanceof ExprThis) {
-            s.addError("Cannot access 'this' because it might already have been destroyed.");
+            reportError(s, "Cannot access 'this' because it might already have been destroyed.");
             return true;
         } if (s instanceof FunctionCall) {
             if (((FunctionCall) s).attrImplicitParameter() instanceof ExprThis) {
-                s.addError("Cannot access 'this' because it might already have been destroyed.");
+                reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
         } else if (s instanceof NameRef) {
             if (((NameRef) s).attrImplicitParameter() instanceof ExprThis) {
-                s.addError("Cannot access 'this' because it might already have been destroyed.");
+                reportError(s, "Cannot access 'this' because it might already have been destroyed.");
                 return true;
             }
         }
@@ -400,8 +407,16 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 } else {
                     error += " may not have been initialized";
                 }
-                readingExpr.addError(error);
+                reportError(readingExpr, error);
             }
+        }
+    }
+
+    private void reportError(Element location, String error) {
+        if (jassCode) {
+            location.addWarning(error);
+        } else {
+            location.addError(error);
         }
     }
 
