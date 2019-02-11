@@ -2,14 +2,12 @@ package de.peeeq.datastructures;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public abstract class GraphInterpreter<T> {
 
@@ -121,12 +119,10 @@ public abstract class GraphInterpreter<T> {
                 // Otherwise, if w has not yet been assigned to a strongly connected component:
                 if (!component.containsKey(w)) {
                     // Repeatedly pop vertices from P until the top element of P has a preorder number less than or equal to the preorder number of w.
-                    do {
-                        if (p.isEmpty()) {
-                            break;
-                        }
+                    while (!p.isEmpty()
+                            && preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w)) {
                         p.pop();
-                    } while (preorderNumber.getOrDefault(p.peek(), -1) > preorderNumber.get(w));
+                    }
                 }
             }
         }
@@ -147,6 +143,28 @@ public abstract class GraphInterpreter<T> {
         }
 
 
+    }
+
+    public String generateDotFile(List<T> nodes) {
+        StringBuilder sb = new StringBuilder();
+        Set<T> visited = new HashSet<>();
+        Deque<T> todo = new ArrayDeque<>(nodes);
+        sb.append("digraph G{\n");
+        while (!todo.isEmpty()) {
+            T node = todo.removeFirst();
+            if (!visited.add(node)) {
+                continue;
+            }
+            sb.append("  \"").append(node.toString()).append("\";\n");
+            for (T n : getIncidentNodes(node)) {
+                sb.append("  ");
+                sb.append("\"").append(node.toString()).append("\" -> ");
+                sb.append("\"").append(n.toString()).append("\";\n\n");
+                todo.addFirst(n);
+            }
+        }
+        sb.append("}\n");
+        return sb.toString();
     }
 
 }
