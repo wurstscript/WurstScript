@@ -16,9 +16,11 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Stream;
@@ -54,7 +56,7 @@ public class RunMap extends MapRequest {
 
         // TODO use normal compiler for this, avoid code duplication
         WLogger.info("received runMap command: map=" + map.getAbsolutePath() + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
-        WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
+        WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
             if (wc3Path != null) {
                 W3Utils.parsePatchVersion(new File(wc3Path));
@@ -135,6 +137,15 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    @NotNull
+    private String getWorkspaceAbsolute() {
+        try {
+            return workspaceRoot.getFile().getAbsolutePath();
+        } catch (FileNotFoundException e) {
+            throw new RequestFailedException(MessageType.Error, "Could not open workspace root: " + e);
+        }
     }
 
     /**

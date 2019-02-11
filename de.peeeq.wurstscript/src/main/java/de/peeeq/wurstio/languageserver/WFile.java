@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.InvalidPathException;
@@ -13,31 +14,25 @@ import java.util.Objects;
 /**
  *
  */
-public class WFile {
-    private final File file;
+public abstract class WFile {
 
-    private WFile(File file) {
-        try {
-            file = file.getAbsoluteFile().getCanonicalFile();
-        } catch (Exception e) {
-            file = file.getAbsoluteFile();
-        }
-        this.file = file;
+    private WFile() {
+
     }
 
     public static WFile create(File f) {
-        return new WFile(f);
+        return new Ok(f);
     }
 
     public static WFile create(Path f) {
-        return new WFile(f.toFile());
+        return new Ok(f.toFile());
     }
 
     public static WFile create(URI f) {
         try {
-            return new WFile(new File(f));
+            return new Ok(new File(f));
         } catch (IllegalArgumentException e) {
-            throw new RuntimeException("URI " + f + " is not a vald file", e);
+            return new Unsupported(f.toString());
         }
     }
 
@@ -62,33 +57,98 @@ public class WFile {
         return create(textDocument.getUri());
     }
 
-    public File getFile() {
-        return file;
+    public abstract File getFile() throws FileNotFoundException;
+
+    public abstract String getUriString();
+
+    public abstract Path getPath() throws FileNotFoundException;
+
+    private static class Unsupported extends WFile {
+        private final String uriString;
+
+        public Unsupported(String uriString) {
+            this.uriString = uriString;
+        }
+
+        @Override
+        public File getFile() throws FileNotFoundException {
+            throw new FileNotFoundException("URI " + uriString + " is not supported.");
+        }
+
+        @Override
+        public String getUriString() {
+            return uriString;
+        }
+
+        @Override
+        public Path getPath() throws FileNotFoundException {
+            throw new FileNotFoundException("URI " + uriString + " is not supported.");
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Unsupported that = (Unsupported) o;
+            return Objects.equals(uriString, that.uriString);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(uriString);
+        }
+
+        @Override
+        public String toString() {
+            return uriString;
+        }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        WFile wFile = (WFile) o;
-        return Objects.equals(file, wFile.file);
+    private static class Ok extends WFile {
+
+        private final File file;
+
+        private Ok(File file) {
+            try {
+                file = file.getAbsoluteFile().getCanonicalFile();
+            } catch (Exception e) {
+                file = file.getAbsoluteFile();
+            }
+            this.file = file;
+        }
+
+        @Override
+        public File getFile() {
+            return file;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Ok wFile = (Ok) o;
+            return Objects.equals(file, wFile.file);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(file);
+        }
+
+        @Override
+        public String toString() {
+            return file.toString();
+        }
+
+        @Override
+        public String getUriString() {
+            return getFile().toURI().toString();
+        }
+
+        public Path getPath() {
+            return file.toPath();
+        }
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(file);
-    }
 
-    @Override
-    public String toString() {
-        return file.toString();
-    }
-
-    public String getUriString() {
-        return getFile().toURI().toString();
-    }
-
-    public Path getPath() {
-        return file.toPath();
-    }
 }
