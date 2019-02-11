@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.NonNull;
 
 import java.util.Collection;
 
@@ -19,7 +20,7 @@ import java.util.Collection;
  */
 public class AttrExprExpectedType {
 
-    public static WurstType calculate(Expr expr) {
+    public static @NonNull WurstType calculate(Expr expr) {
         try {
             Element parent = expr.getParent();
             if (parent instanceof Arguments) {
@@ -88,7 +89,11 @@ public class AttrExprExpectedType {
             } else if (parent instanceof ExprMemberMethod) {
                 ExprMemberMethod m = (ExprMemberMethod) parent;
                 if (m.getLeft() == expr) {
-                    return m.attrFunctionSignature().getReceiverType();
+                    WurstType receiverType = m.attrFunctionSignature().getReceiverType();
+                    if (receiverType == null) {
+                        return WurstTypeUnknown.instance();
+                    }
+                    return receiverType;
                 }
             }
         } catch (CyclicDependencyError | CompileError t) {
@@ -112,9 +117,6 @@ public class AttrExprExpectedType {
         }
         // call super constructor
         ClassDef superClassDef = superClass.getDef();
-        if (superClassDef == null) {
-            return WurstTypeUnknown.instance();
-        }
         ConstructorDefs constructors = superClassDef.getConstructors();
 
 
