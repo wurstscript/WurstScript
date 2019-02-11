@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.WParameter;
 import de.peeeq.wurstscript.ast.WParameters;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,28 +18,18 @@ public class ImHelper {
         }
     }
 
-//	static ImVar translateParam(WParameter p) {
-//		return tra
-//		return JassIm.ImVar(p.attrTyp().imTranslateType(), p.getName());
-//	}
-
     public static ImType toArray(ImType t) {
-        if (t instanceof ImSimpleType) {
-            ImSimpleType imSimpleType = (ImSimpleType) t;
-            return JassIm.ImArrayType(imSimpleType);
-        } else if (t instanceof ImTupleType) {
-            ImTupleType imTupleType = (ImTupleType) t;
-            return JassIm.ImArrayType(imTupleType);
-        } else if (t instanceof ImArrayType) {
-            // already an array
+        if (t instanceof ImArrayType) {
+            // already an array (should never happen?)
             return t;
-        } else if (t instanceof ImArrayTypeMulti) {
+        } if (t instanceof ImArrayTypeMulti) {
             ImArrayTypeMulti mat = ((ImArrayTypeMulti) t);
             ArrayList<Integer> nsize = new ArrayList<>(mat.getArraySize());
-            nsize.add(8192);
+            nsize.add(Constants.MAX_ARRAY_SIZE);
             return JassIm.ImArrayTypeMulti(mat.getEntryType(), nsize);
+        } else {
+            return JassIm.ImArrayType(t);
         }
-        throw new Error("Can't make array type from " + t);
     }
 
     public static void replaceVar(List<ImStmt> stmts, final ImVar oldVar, final ImVar newVar) {
@@ -137,7 +128,7 @@ public class ImHelper {
         return t.match(new ImType.Matcher<ImExpr>() {
             @Override
             public ImExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
             }
 
             @Override
@@ -151,12 +142,22 @@ public class ImHelper {
 
             @Override
             public ImExpr case_ImArrayType(ImArrayType imArrayType) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new CompileError(t, "Cannot find default value for type " + t);
             }
 
             @Override
             public ImExpr case_ImVoid(ImVoid imVoid) {
-                throw new CompileError(t.attrTrace().attrErrorPos(), "Cannot find default value for type " + t);
+                throw new CompileError(t, "Cannot find default value for type " + t);
+            }
+
+            @Override
+            public ImExpr case_ImClassType(ImClassType imClassType) {
+                return JassIm.ImIntVal(0);
             }
 
             @Override

@@ -57,6 +57,14 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
+    public static Result flatten(ImTypeVarDispatch imTypeVarDispatch, ImTranslator translator, ImFunction f) {
+        throw new RuntimeException("called too early");
+    }
+
+    public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
+        return imCast.getExpr().flatten(translator, f);
+    }
+
     public static class Result {
 
         final List<ImStmt> stmts;
@@ -245,7 +253,7 @@ public class Flatten {
 
     public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getArguments());
-        return new Result(r.stmts, JassIm.ImFunctionCall(e.getTrace(), e.getFunc(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
+        return new Result(r.stmts, ImFunctionCall(e.getTrace(), e.getFunc(), ImTypeArguments(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
     }
 
     public static Result flatten(ImOperatorCall e, ImTranslator t, ImFunction f) {
@@ -260,7 +268,7 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
                     f.getLocals().add(tempVar);
                     ImStmts thenBlock = JassIm.ImStmts();
                     // if left is true then check right
@@ -280,7 +288,7 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(), "andLeft", false);
+                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
                     f.getLocals().add(tempVar);
                     // if left is true then result is ture
                     ImStmts thenBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(true)));

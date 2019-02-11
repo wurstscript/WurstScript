@@ -119,7 +119,7 @@ public class ExprTranslation {
 
     public static JassExpr translate(ImClassRelatedExpr e,
                                      ImToJassTranslator translator) {
-        throw new RuntimeException("Eliminate method calls before translating to jass");
+        throw new RuntimeException("Eliminate method calls before translating to jass:\n" + e);
     }
 
 
@@ -134,4 +134,11 @@ public class ExprTranslation {
                 "Enable '-runcompiletimefunctions' to evaluate compiletime expressions.");
     }
 
+    public static JassExpr translate(ImTypeVarDispatch e, ImToJassTranslator translator) {
+        throw new CompileError(e, "Typevar dispatch not eliminated.");
+    }
+
+    public static JassExpr translate(ImCast imCast, ImToJassTranslator translator) {
+        return imCast.getExpr().translate(translator);
+    }
 }

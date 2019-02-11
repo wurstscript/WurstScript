@@ -417,4 +417,8 @@ public class DescriptionHtml {
     public static String description(SomeSuperConstructorCall s) {
         return "Calling the super constructor";
     }
+
+    public static String description(NoTypeParamConstraints noTypeParamConstraints) {
+        return "no type parameter constraints";
+    }
 }

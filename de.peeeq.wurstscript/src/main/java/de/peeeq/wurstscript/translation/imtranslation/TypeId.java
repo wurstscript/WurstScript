@@ -6,7 +6,9 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImClass;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -22,6 +24,11 @@ public class TypeId {
     private static final Comparator<ImClass> class_comparator =
             Comparator.comparing(ImClass::getName)
                     .thenComparing(TypeId::packageName);
+
+    // sort class types by name to get deterministic order
+    private static final Comparator<ImClassType> classtype_comparator =
+            Comparator.comparing((ImClassType ct) -> ct.getClassDef().getName())
+                    .thenComparing(ct -> TypeId.packageName(ct.getClassDef()));
 
     public static Map<ImClass, Integer> calculate(ImProg prog) {
         AtomicInteger count = new AtomicInteger();
@@ -58,7 +65,9 @@ public class TypeId {
     private static Multimap<ImClass, ImClass> calculateSubclasses(List<ImClass> classes) {
         Multimap<ImClass, ImClass> subClasses = LinkedHashMultimap.create();
         for (ImClass c : classes) {
-            c.getSuperClasses().stream().sorted(class_comparator).forEach(superClass ->
+            c.getSuperClasses().stream()
+                    .map(ImClassType::getClassDef)
+                    .sorted(class_comparator).forEach(superClass ->
                     subClasses.put(superClass, c)
             );
         }
@@ -80,15 +89,19 @@ public class TypeId {
     }
 
     public static int get(ImClass c) {
-        return c.attrProg().attrTypeId().get(c);
+        Integer res = c.attrProg().attrTypeId().get(c);
+        if (res == null) {
+            throw new CompileError(c, "Could not get type-id for " + c.getName() + ImPrinter.smallHash(c));
+        }
+        return res;
     }
 
     public static boolean isSubclass(ImClass c, ImClass other) {
         if (c == other) {
             return true;
         }
-        for (ImClass sc : c.getSuperClasses()) {
-            if (sc.isSubclassOf(other)) {
+        for (ImClassType sc : c.getSuperClasses()) {
+            if (sc.getClassDef().isSubclassOf(other)) {
                 return true;
             }
         }

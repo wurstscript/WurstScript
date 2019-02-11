@@ -2,12 +2,18 @@ package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.ClassOrInterface;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImTypeArguments;
+import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -25,7 +31,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
 
     @Override
-    public abstract StructureDef getDef();
+    public abstract @NonNull ClassOrInterface getDef();
 
     /**
      * Level in the type hierarchy.
@@ -121,6 +127,17 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
             }
         }
         return null;
+    }
+
+    @Override
+    public final ImType imTranslateType(ImTranslator tr) {
+        ImTypeArguments typeArgs = JassIm.ImTypeArguments();
+        for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
+            if (btp.isTemplateTypeParameter()) {
+                typeArgs.add(btp.imTranslateToTypeArgument(tr));
+            }
+        }
+        return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }
 
 }

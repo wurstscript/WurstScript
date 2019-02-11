@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
@@ -14,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static de.peeeq.wurstscript.types.TypesHelper.imInt;
 
 /**
  * eliminate classes and dynamic method invocations
@@ -34,10 +38,16 @@ public class EliminateClasses {
     }
 
     public void eliminateClasses() {
-
+        moveFunctionsOutOfClasses();
 
         for (ImClass c : prog.getClasses()) {
             eliminateClass(c);
+        }
+
+        // for each method, create a dispatch function
+        for (ImMethod m : prog.getMethods()) {
+            ImClass c = m.getMethodClass().getClassDef();
+            createDispatchFunc(c, m);
         }
 
         for (ImFunction f : prog.getFunctions()) {
@@ -45,13 +55,41 @@ public class EliminateClasses {
         }
 
         prog.getClasses().clear();
+        prog.getMethods().clear();
+
+        eliminateClassTypes();
     }
+
+    private void eliminateClassTypes() {
+        TypeRewriter.rewriteTypes(prog, this::eliminateClassTypes);
+    }
+
+    private ImType eliminateClassTypes(ImType imType) {
+        return imType.match(new TypeRewriteMatcher() {
+            @Override
+            public ImType case_ImClassType(ImClassType t) {
+                return imInt();
+            }
+        });
+    }
+
+
+    /**
+     * Move all the functions out of classes and into the global program
+     */
+    private void moveFunctionsOutOfClasses() {
+        for (ImClass c : prog.getClasses()) {
+            prog.getFunctions().addAll(c.getFunctions().removeAll());
+        }
+    }
+
 
     private void eliminateClass(ImClass c) {
         // for each field, create a global array variable
         for (ImVar f : c.getFields()) {
+            ImType type = ImHelper.toArray(f.getType());
             ImVar v = JassIm
-                    .ImVar(f.getTrace(), JassIm.ImArrayType(f.getType()), f.getName(), false);
+                    .ImVar(f.getTrace(), type, f.getName(), false);
             prog.getGlobals().add(v);
             fieldToArray.put(f, v);
         }
@@ -81,7 +119,7 @@ public class EliminateClasses {
         }
 
 
-        ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), m
+        ImFunction df = JassIm.ImFunction(m.getTrace(), "dispatch_" + c.getName() + "_" + m.getName(), JassIm.ImTypeVars(), m
                 .getImplementation().getParameters().copy(), m
                 .getImplementation().getReturnType(), JassIm.ImVars(), JassIm
                 .ImStmts(), flags);
@@ -170,7 +208,7 @@ public class EliminateClasses {
             }
             // only one method, call it
             ImFunctionCall call = JassIm.ImFunctionCall(df.getTrace(), ranges
-                    .get(start).getB().getImplementation(), arguments, false, CallType.NORMAL);
+                    .get(start).getB().getImplementation(), JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL);
             if (resultVar == null) {
                 stmts.add(call);
             } else {
@@ -332,26 +370,26 @@ public class EliminateClasses {
     }
 
     private void replaceTypeIdOfObj(ImTypeIdOfObj e) {
-        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
+        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz().getClassDef()).typeId;
         ImExpr obj = e.getObj();
         obj.setParent(null);
         e.replaceBy(JassIm.ImVarArrayAccess(e.attrTrace(), typeIdVar, JassIm.ImExprs(obj)));
     }
 
     private void replaceTypeIdOfClass(ImTypeIdOfClass e) {
-        e.replaceBy(JassIm.ImIntVal(e.getClazz().attrTypeId()));
+        e.replaceBy(JassIm.ImIntVal(e.getClazz().getClassDef().attrTypeId()));
     }
 
     private void replaceInstanceof(ImInstanceof e) {
         ImFunction f = e.getNearestFunc();
-        List<ImClass> allSubClasses = getAllSubclasses(e.getClazz());
+        List<ImClass> allSubClasses = getAllSubclasses(e.getClazz().getClassDef());
         List<Integer> subClassIds = allSubClasses.stream()
                 .map(ImClass::attrTypeId)
                 .collect(Collectors.toList());
         List<IntRange> idRanges = IntRange.createFromIntList(subClassIds);
         ImExpr obj = e.getObj();
         obj.setParent(null);
-        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz()).typeId;
+        ImVar typeIdVar = translator.getClassManagementVarsFor(e.getClazz().getClassDef()).typeId;
 
         ImExpr objTypeId = JassIm.ImVarArrayAccess(e.attrTrace(), typeIdVar, JassIm.ImExprs(obj));
 
@@ -360,7 +398,7 @@ public class EliminateClasses {
         ImExpr objTypeIdExpr = objTypeId;
         if (useTempVar) {
             // use temporary variable
-            tempVar = JassIm.ImVar(e.attrTrace(), TypesHelper.imInt(), "instanceOfTemp", false);
+            tempVar = JassIm.ImVar(e.attrTrace(), imInt(), "instanceOfTemp", false);
             f.getLocals().add(tempVar);
             objTypeIdExpr = JassIm.ImVarAccess(tempVar);
         }
@@ -407,16 +445,16 @@ public class EliminateClasses {
     }
 
     private void replaceDealloc(ImDealloc e) {
-        ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz());
+        ImFunction deallocFunc = translator.deallocFunc.getFor(e.getClazz().getClassDef());
         ImExpr obj = e.getObj();
         obj.setParent(null);
-        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImExprs(obj), false, CallType.NORMAL));
+        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), deallocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(obj), false, CallType.NORMAL));
 
     }
 
     private void replaceAlloc(ImAlloc e) {
-        ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz());
-        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImExprs(), false, CallType.NORMAL));
+        ImFunction allocFunc = translator.allocFunc.getFor(e.getClazz().getClassDef());
+        e.replaceBy(JassIm.ImFunctionCall(e.attrTrace(), allocFunc, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL));
     }
 
     private void replaceMethodCall(ImMethodCall mc) {
@@ -430,8 +468,7 @@ public class EliminateClasses {
         if (dispatch == null) {
             throw new CompileError(mc.attrTrace().attrSource(), "Could not find dispatch for " + mc.getMethod().getName());
         }
-        mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(),
-                dispatch, arguments, false, CallType.NORMAL));
+        mc.replaceBy(JassIm.ImFunctionCall(mc.getTrace(), dispatch, JassIm.ImTypeArguments(), arguments, false, CallType.NORMAL));
 
     }
 
@@ -439,7 +476,13 @@ public class EliminateClasses {
         ImExpr receiver = ma.getReceiver();
         receiver.setParent(null);
 
-        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldToArray.get(ma.getVar()), JassIm.ImExprs(receiver)));
+        ImVar fieldArray = fieldToArray.get(ma.getVar());
+        if (fieldArray == null) {
+            throw new CompileError(ma, "Could not find field array for " + ma);
+        }
+        ImExprs indexes = JassIm.ImExprs(receiver);
+        indexes.addAll(ma.getIndexes().removeAll());
+        ma.replaceBy(JassIm.ImVarArrayAccess(ma.attrTrace(), fieldArray, indexes));
 
     }
 

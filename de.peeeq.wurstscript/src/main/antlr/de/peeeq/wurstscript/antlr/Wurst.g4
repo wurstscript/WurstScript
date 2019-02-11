@@ -132,6 +132,15 @@ classDef:
             ENDBLOCK)?
         ;
 
+typeclassDef:
+    modifiersWithDoc 'typeclass' name=ID typeParams
+    ('extends' implemented+=typeExpr (',' implemented+=typeExpr)*)?
+    NL (STARTBLOCK
+       classSlots
+    ENDBLOCK)?
+    ;
+
+
 enumDef: modifiersWithDoc 'enum' name=ID NL (STARTBLOCK 
       (enumMembers+=ID NL)*
 ENDBLOCK)?;
@@ -406,7 +415,10 @@ shortFormalParameter: typeExpr? name=ID;
 
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
-typeParam: name=ID;
+typeParam: name=ID typeParamConstraints?;
+
+typeParamConstraints: ':' (constraints+=typeExpr ('and' constraints+=typeExpr)*)?;
+
 
 stmtForLoop:
 			   forRangeLoop

@@ -41,34 +41,33 @@ create_zip_wurstpack_compiler.dependsOn(make_for_wurstpack)
 
 task create_zips {
     doLast {
-    mkdir("../downloads/")
-    copy {
-        from 'build/distributions/'
-        into '../downloads/'
-    }
-    copy {
-        from 'build/install/wurstscript/lib/wurstscript.jar'
-        into '../downloads/'
-    }
-    copy {
-        from '../Wurstpack'
-        into '../downloads/Wurstpack/'
-    }
-    copy {
-        from '../WurstSetup/build/libs/WurstSetup.jar'
-        into '../downloads/'
-    }
-    // create checksums
-    mkdir("../Checksums/bin")
+        mkdir("../downloads/")
+        copy {
+            from 'build/distributions/'
+            into '../downloads/'
+        }
+        copy {
+            from 'build/install/wurstscript/lib/wurstscript.jar'
+            into '../downloads/'
+        }
+        copy {
+            from '../Wurstpack'
+            into '../downloads/Wurstpack/'
+        }
+        copy {
+            from '../WurstSetup/build/libs/WurstSetup.jar'
+            into '../downloads/'
+        }
+        // create checksums
+        mkdir("../Checksums/bin")
 
-    javaexec {
-        classpath = sourceSets.main.runtimeClasspath
-        main = "de.peeeq.wurstio.Checksums"
-        args = ["../downloads/Wurstpack/",
-                "../downloads/wurstpack.md5"]
+        javaexec {
+            classpath = sourceSets.main.runtimeClasspath
+            main = "de.peeeq.wurstio.Checksums"
+            args = ["../downloads/Wurstpack/",
+                    "../downloads/wurstpack.md5"]
+        }
     }
-    }
-
 }
 create_zips.dependsOn(installDist)
 create_zips.dependsOn(create_zip_wurstpack_complete)
@@ -76,16 +75,16 @@ create_zips.dependsOn(create_zip_wurstpack_compiler)
 
 task generate_hotdoc {
     doLast {
-    copy {
-        from("/src/main/resources/")
-        into("/build/classes/main/")
-    }
-    javaexec {
-        classpath = sourceSets.main.runtimeClasspath
-        main = "de.peeeq.wurstio.Main"
-        args = ["--hotdoc",
-                "./build/deps/",
-                "../downloads/hotdoc"]
+        copy {
+            from("/src/main/resources/")
+            into("/build/classes/main/")
+        }
+        javaexec {
+            classpath = sourceSets.main.runtimeClasspath
+            main = "de.peeeq.wurstio.Main"
+            args = ["--hotdoc",
+                    "./build/deps/",
+                    "../downloads/hotdoc"]
         }
     }
 }

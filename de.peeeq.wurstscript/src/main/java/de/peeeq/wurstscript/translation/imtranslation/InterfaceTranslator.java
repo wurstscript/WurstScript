@@ -2,13 +2,21 @@ package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.ClassDef;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.InterfaceDef;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.types.VariableBinding;
+import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 public class InterfaceTranslator {
 
@@ -27,10 +35,7 @@ public class InterfaceTranslator {
 
         // set super-classes
         for (TypeExpr ext : interfaceDef.getExtendsList()) {
-            if (ext.attrTypeDef() instanceof StructureDef) {
-                StructureDef sup = (StructureDef) ext.attrTypeDef();
-                imClass.getSuperClasses().add(translator.getClassFor(sup));
-            }
+            imClass.getSuperClasses().add((ImClassType) ext.attrTyp().imTranslateType(translator));
         }
 
         // create dispatch methods
@@ -57,7 +62,14 @@ public class InterfaceTranslator {
         // deallocate
         ImFunction f = translator.destroyFunc.getFor(interfaceDef);
         ImVar thisVar = f.getParameters().get(0);
-        f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(interfaceDef, imClassType(), JassIm.ImVarAccess(thisVar)));
+    }
+
+    private ImClassType imClassType() {
+        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        return JassIm.ImClassType(imClass, typeArgs);
     }
 
     private void translateInterfaceFuncDef(FuncDef f) {

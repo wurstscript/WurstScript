@@ -747,4 +747,8 @@ public class PrettyPrinter {
         sb.append(")\n");
 
     }
+
+    public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
+        // nothing
+    }
 }

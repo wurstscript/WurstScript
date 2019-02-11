@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -34,7 +35,7 @@ public abstract class WurstType {
      * <p>
      * Will try to instantiate type variables from the set typeParams
      */
-    public final VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
+    public final @Nullable VariableBinding matchAgainstSupertype(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (other instanceof WurstTypeUnknown || this instanceof WurstTypeUnknown) {
             // everything is a subtype of unknown (stops error cascades)
             return mapping;
@@ -176,7 +177,7 @@ public abstract class WurstType {
     }
 
 
-    public abstract ImType imTranslateType();
+    public abstract ImType imTranslateType(ImTranslator tr);
 
 
     public abstract ImExprOpt getDefaultValue();
@@ -250,4 +251,5 @@ public abstract class WurstType {
     }
 
 
+    protected abstract boolean isNullable();
 }

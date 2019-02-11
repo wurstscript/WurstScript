@@ -1291,7 +1291,19 @@ public class AntlrWurstParseTreeTransformer {
 
     private TypeParamDef transformTypeParam(TypeParamContext p) {
         Modifiers modifiers = Ast.Modifiers();
-        return Ast.TypeParamDef(source(p), modifiers, text(p.name));
+        TypeParamConstraints typeParamClasses = tranformTypeParamConstraints(p.typeParamConstraints());
+        return Ast.TypeParamDef(source(p), modifiers, text(p.name), typeParamClasses);
+    }
+
+    private TypeParamConstraints tranformTypeParamConstraints(TypeParamConstraintsContext tc) {
+        if (tc == null) {
+            return Ast.NoTypeParamConstraints();
+        }
+        TypeExprList res = Ast.TypeExprList();
+        for (TypeExprContext t : tc.constraints) {
+            res.add(transformTypeExpr(t));
+        }
+        return res;
     }
 
     private WImport transformImport(WImportContext i) {

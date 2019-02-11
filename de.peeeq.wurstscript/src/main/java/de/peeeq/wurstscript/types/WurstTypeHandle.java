@@ -30,5 +30,8 @@ public class WurstTypeHandle extends WurstTypePrimitive {
         return JassIm.ImNull(imTranslateType());
     }
 
-
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
 }

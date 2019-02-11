@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -17,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class EvaluateExpr {
 
@@ -91,11 +93,16 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
-        ILconstTuple t = (ILconstTuple) e.getTupleExpr().evaluate(globalState, localState);
-        if (e.getTupleIndex() >= t.values().size()) {
-            throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+        ILconst tupleE = e.getTupleExpr().evaluate(globalState, localState);
+        if (tupleE instanceof ILconstTuple) {
+            ILconstTuple t = (ILconstTuple) tupleE;
+            if (e.getTupleIndex() >= t.values().size()) {
+                throw new InterpreterException(globalState, "Trying to get element " + e.getTupleIndex() + " of tuple value " + t);
+            }
+            return t.getValue(e.getTupleIndex());
+        } else {
+            throw new InterpreterException(globalState, "Tuple " + e + " evaluated to " + tupleE);
         }
-        return t.getValue(e.getTupleIndex());
 
     }
 
@@ -194,30 +201,35 @@ public class EvaluateExpr {
         if (receiver.getVal() == 0) {
             throw new RuntimeException("Null pointer dereference");
         }
-        return notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
+        ILconst res = notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
+        for (ImExpr index : ma.getIndexes()) {
+            ILconstInt indexE = (ILconstInt) index.evaluate(globalState, localState);
+            res = ((ILconstArray) res).get(indexE.getVal());
+        }
+        return res;
     }
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
                                LocalState localState) {
-        return new ILconstInt(globalState.allocate(imAlloc.getClazz(), imAlloc.attrTrace()));
+        return new ILconstInt(globalState.allocate(imAlloc.getClazz().getClassDef(), imAlloc.attrTrace()));
     }
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
                                LocalState localState) {
         ILconstInt obj = (ILconstInt) imDealloc.getObj().evaluate(globalState, localState);
-        globalState.deallocate(obj.getVal(), imDealloc.getClazz(), imDealloc.attrTrace());
+        globalState.deallocate(obj.getVal(), imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
         return ILconstNull.instance();
     }
 
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
         ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
-        return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz(), e.attrTrace()));
+        return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz().getClassDef(), e.attrTrace()));
     }
 
     public static ILconst eval(ImTypeIdOfClass e,
                                ProgramState globalState, LocalState localState) {
-        return new ILconstInt(e.getClazz().attrTypeId());
+        return new ILconstInt(e.getClazz().getClassDef().attrTypeId());
     }
 
     public static ILconst eval(ImTypeIdOfObj e,
@@ -322,9 +334,29 @@ public class EvaluateExpr {
         }
     }
 
-    public static ILaddress evaluateLvalue(ImMemberAccess e, ProgramState globalState, LocalState localState) {
-        ILconst r = e.getReceiver().evaluate(globalState, localState);
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + r);
+    public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
+        ImVar v = va.getVar();
+        int receiver = ((ILconstInt) va.getReceiver().evaluate(globalState, localState)).getVal();
+        State state;
+        state = globalState;
+        List<Integer> indexes =
+                Stream.concat(
+                        Stream.of(receiver),
+                        va.getIndexes().stream()
+                                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+                )
+                .collect(Collectors.toList());
+        return new ILaddress() {
+            @Override
+            public void set(ILconst value) {
+                state.setArrayVal(v, indexes, value);
+            }
+
+            @Override
+            public ILconst get() {
+                return state.getArrayVal(v, indexes);
+            }
+        };
     }
 
 
@@ -355,4 +387,12 @@ public class EvaluateExpr {
     }
 
 
+    public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
+        // TODO store type arguments in localState with the required dispatch functions
+        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
+    }
+
+    public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
+        return imCast.getExpr().evaluate(globalState, localState);
+    }
 }

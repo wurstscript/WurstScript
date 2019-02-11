@@ -6,10 +6,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -22,14 +20,16 @@ public class FuncLink extends DefLink {
     private final WurstType returnType;
     private final List<String> parameterNames;
     private final List<WurstType> parameterTypes;
+    private final VariableBinding mapping;
 
     public FuncLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams,
-                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType) {
+                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType, VariableBinding mapping) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
         this.parameterNames = parameterNames;
+        this.mapping = mapping;
     }
 
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
@@ -43,7 +43,7 @@ public class FuncLink extends DefLink {
                 .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType);
+        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, VariableBinding.emptyMapping());
     }
 
 
@@ -73,7 +73,7 @@ public class FuncLink extends DefLink {
         if (newVis == getVisibility()) {
             return this;
         }
-        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType);
+        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
     }
 
 
@@ -153,7 +153,7 @@ public class FuncLink extends DefLink {
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
                     .filter(tp -> !binding.contains(tp))
                     .collect(Collectors.toList());
-            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType);
+            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType, binding);
         } else {
             return this;
         }
@@ -165,7 +165,7 @@ public class FuncLink extends DefLink {
             return this;
         }
         ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
-        return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType);
+        return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
     }
 
     @Override
@@ -175,7 +175,7 @@ public class FuncLink extends DefLink {
 
     @Override
     public FuncLink withDef(NameDef def) {
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType());
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType(), mapping);
     }
 
     private WurstType adjustType(Element context, WurstType t, VariableBinding binding) {
@@ -219,7 +219,7 @@ public class FuncLink extends DefLink {
 
     public FuncLink withConfigDef() {
         FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType);
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
     }
 
     public FuncLink hidingPrivate() {
@@ -275,6 +275,10 @@ public class FuncLink extends DefLink {
     @Override
     public int hashCode() {
         return Objects.hash(def);
+    }
+
+    public VariableBinding getVariableBinding() {
+        return mapping;
     }
 
     public boolean hasIfNotDefinedAnnotation() {

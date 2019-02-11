@@ -8,6 +8,8 @@ import com.google.common.collect.Sets;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -216,14 +218,14 @@ public class StackTraceInjector2 {
             // pass the stacktrace parameter at all calls
             for (ImFunctionCall call : callsForF) {
                 String callPos = getCallPos(call.attrTrace().attrErrorPos());
-                call.getArguments().add(str("when calling " + name(f) + " in " + callPos));
+                call.getArguments().add(str("when calling " + name(f) + "" + callPos));
             }
         }
     }
 
     private String name(ImFunction f) {
         @Nullable NameDef nameDef = f.attrTrace().tryGetNameDef();
-        if (nameDef != null) {
+        if (nameDef instanceof FunctionDefinition) {
             return nameDef.getName();
         }
         return f.getName();
@@ -234,7 +236,7 @@ public class StackTraceInjector2 {
         if (source.getFile().startsWith("<")) {
             callPos = "";
         } else {
-            callPos = source.printShort();
+            callPos = " in " + source.printShort();
         }
         return callPos;
     }
@@ -258,8 +260,8 @@ public class StackTraceInjector2 {
             ImVars params = f.getParameters().copy();
             // remove stacktrace param
             params.remove(params.size() - 1);
-            ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), params,
-                    f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
+
+            ImFunction bridgeFunc = JassIm.ImFunction(f.getTrace(), "bridge_" + f.getName(), JassIm.ImTypeVars(), params, f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), f.getFlags());
             prog.getFunctions().add(bridgeFunc);
 
             ImStmt stmt;
@@ -268,12 +270,12 @@ public class StackTraceInjector2 {
             ImStmts body = bridgeFunc.getBody();
             de.peeeq.wurstscript.ast.Element trace = fr.attrTrace();
             if (trace.getParent() == null) {
-                throw new RuntimeException("no trace");
+                throw new RuntimeException("func ref " + fr + " has no trace: " + trace);
             }
             // reset stack and add information for callback:
             body.add(JassIm.ImSet(trace, JassIm.ImVarAccess(stackSize), JassIm.ImIntVal(0)));
 
-            ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, args, true, CallType.NORMAL);
+            ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), args, true, CallType.NORMAL);
             if (bridgeFunc.getReturnType() instanceof ImVoid) {
                 stmt = call;
             } else {

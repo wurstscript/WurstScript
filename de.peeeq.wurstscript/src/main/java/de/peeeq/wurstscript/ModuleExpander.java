@@ -109,7 +109,7 @@ public class ModuleExpander {
         return mi.getP_moduleInstanciations();
     }
 
-    private static <T extends Element> T smartCopy(T e, List<Pair<WurstType, WurstType>> typeReplacements) {
+    public static <T extends Element> T smartCopy(T e, List<Pair<WurstType, WurstType>> typeReplacements) {
         List<Pair<ImmutableList<Integer>, TypeExpr>> replacementsByPath = Lists.newArrayList();
         calcReplacementsByPath(typeReplacements, replacementsByPath, e, ImmutableList.<Integer>emptyList());
 
@@ -118,7 +118,7 @@ public class ModuleExpander {
 
         // Do the type replacements
         for (Pair<ImmutableList<Integer>, TypeExpr> rep : replacementsByPath) {
-            doReplacement(copy, rep.getA(), (TypeExpr) rep.getB().copy());
+            doReplacement(copy, rep.getA(), rep.getB().copy());
         }
 
         @SuppressWarnings("unchecked")

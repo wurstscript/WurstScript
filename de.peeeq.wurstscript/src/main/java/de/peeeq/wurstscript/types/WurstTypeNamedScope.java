@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.*;
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -97,7 +98,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
-    public WurstType setTypeArgs(VariableBinding typeParamBounds) {
+    public WurstType setTypeArgs(@NonNull VariableBinding typeParamBounds) {
         List<WurstTypeBoundTypeParam> newTypes = Lists.newArrayList();
         for (WurstTypeBoundTypeParam t : typeParameters) {
             newTypes.add(t.setTypeArgs(typeParamBounds));
@@ -228,6 +229,11 @@ public abstract class WurstTypeNamedScope extends WurstType {
             }
         }
         return false;
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return true;
     }
 
 

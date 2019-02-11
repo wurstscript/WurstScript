@@ -67,6 +67,17 @@ public class AttrNearest {
         return node.getParent().attrNearestClassOrModule();
     }
 
+    public static ClassOrInterface nearestClassOrInterface(Element node) {
+        while (node != null) {
+            if (node instanceof ClassOrInterface) {
+                return ((ClassOrInterface) node);
+            }
+            node = node.getParent();
+        }
+        return null;
+    }
+
+
     public static @Nullable NamedScope nearestNamedScope(@Nullable Element node) {
         if (node == null) {
             return null;

@@ -18,20 +18,26 @@ public class WurstTypeNull extends WurstTypePrimitive {
 
     @Override
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
-        if (other instanceof WurstTypeNull
-                || other instanceof WurstTypeHandle
-                || other instanceof WurstNativeType
-                || other instanceof WurstTypeString
-                || other instanceof WurstTypeCode
-                || other instanceof WurstTypeClass
-                || other instanceof WurstTypeInterface
-                || other instanceof WurstTypeModule
-                || other instanceof WurstTypeModuleInstanciation
-                || other instanceof WurstTypeTypeParam
-                || other instanceof WurstTypeBoundTypeParam
-                || Utils.isJassCode(location) && (other instanceof WurstTypeInt || other instanceof WurstTypeIntLiteral)) {
+        if (other.isNullable()) {
             return mapping;
         }
+        if (Utils.isJassCode(location) && (other instanceof WurstTypeInt || other instanceof WurstTypeIntLiteral)) {
+            return mapping;
+        }
+
+//            other instanceof WurstTypeNull
+//                    || other instanceof WurstTypeHandle
+//                    || other instanceof WurstNativeType
+//                    || other instanceof WurstTypeString
+//                    || other instanceof WurstTypeCode
+//                    || other instanceof WurstTypeClass
+//                    || other instanceof WurstTypeInterface
+//                    || other instanceof WurstTypeModule
+//                    || other instanceof WurstTypeModuleInstanciation
+//                    ||
+//        other instanceof WurstTypeTypeParam
+//        other instanceof WurstTypeBoundTypeParam
+
         return null;
     }
 
@@ -45,5 +51,8 @@ public class WurstTypeNull extends WurstTypePrimitive {
         return JassIm.ImIntVal(0);
     }
 
-
+    @Override
+    protected boolean isNullable() {
+        return true;
+    }
 }

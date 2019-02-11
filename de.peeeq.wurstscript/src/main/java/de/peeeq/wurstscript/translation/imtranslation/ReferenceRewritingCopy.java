@@ -90,7 +90,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -99,7 +99,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -117,7 +117,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -126,7 +126,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 
@@ -135,7 +135,7 @@ public class ReferenceRewritingCopy {
                 super.visit(e);
                 Element newChild = oldToNew.get(e.getClazz());
                 if (newChild != null) {
-                    e.setClazz((ImClass) newChild);
+                    e.setClazz((ImClassType) newChild);
                 }
             }
 

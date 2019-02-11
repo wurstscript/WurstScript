@@ -15,9 +15,12 @@ import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
@@ -76,6 +79,7 @@ public class ClassTranslator {
     }
 
 
+
     private void addSuperClasses() {
         if (classDef.getExtendedClass() instanceof TypeExpr) {
             TypeExpr extended = (TypeExpr) classDef.getExtendedClass();
@@ -88,10 +92,7 @@ public class ClassTranslator {
     }
 
     private void addSuperClass(TypeExpr extended) {
-        if (extended.attrTypeDef() instanceof StructureDef) {
-            StructureDef sc = (StructureDef) extended.attrTypeDef();
-            imClass.getSuperClasses().add(translator.getClassFor(sc));
-        }
+        imClass.getSuperClasses().add((ImClassType) extended.attrTyp().imTranslateType(translator));
     }
 
     private void createDestroyMethod(List<ClassDef> subClasses) {
@@ -114,12 +115,17 @@ public class ClassTranslator {
         // call ondestroy methods
         ClassDef c = classDef;
         ImFunction scOnDestroy = translator.getFuncFor(c.getOnDestroy());
-        f.getBody().add(ImFunctionCall(trace,
-                scOnDestroy,
-                ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+        f.getBody().add(ImFunctionCall(trace, scOnDestroy, ImTypeArguments(), ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
 
         // deallocate
-        f.getBody().add(JassIm.ImDealloc(imClass, JassIm.ImVarAccess(thisVar)));
+        f.getBody().add(JassIm.ImDealloc(c.getOnDestroy(), imClassType(), JassIm.ImVarAccess(thisVar)));
+    }
+
+    private ImClassType imClassType() {
+        ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+        return JassIm.ImClassType(imClass, typeArgs);
     }
 
     /**
@@ -157,12 +163,17 @@ public class ClassTranslator {
         if (c instanceof ClassDef) {
             ClassDef cd = (ClassDef) c;
             WurstTypeClass ct = cd.attrTypC();
-            if (ct.extendedClass() != null) {
+            WurstTypeClass extended = ct.extendedClass();
+            if (extended != null) {
                 // call onDestroy of super class
-                ImFunction onDestroy = translator.getFuncFor(ct.extendedClass().getClassDef().getOnDestroy());
-                addTo.add(ImFunctionCall(c,
-                        onDestroy,
-                        ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
+                ImFunction onDestroy = translator.getFuncFor(extended.getClassDef().getOnDestroy());
+                ImTypeArguments typeArgs = ImTypeArguments();
+                for (WurstTypeBoundTypeParam tp : extended.getTypeParameters()) {
+                    if (tp.isTemplateTypeParameter()) {
+                        typeArgs.add(tp.imTranslateToTypeArgument(translator));
+                    }
+                }
+                addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
         }
     }
@@ -223,14 +234,13 @@ public class ClassTranslator {
     private void translateVar(GlobalVarDef s) {
         ImVar v = translator.getVarFor(s);
         if (s.attrIsDynamicClassMember()) {
-            // for dynamic class members create an array
-            ImType t = s.attrTyp().imTranslateType();
-            v.setType(ImHelper.toArray(t));
+            // add dynamic class members to the class
+            imClass.getFields().add(v);
             dynamicInits.add(Pair.create(v, s.getInitialExpr()));
         } else { // static class member
             translator.addGlobalInitalizer(v, classDef.attrNearestPackage(), s.getInitialExpr());
+            translator.addGlobal(v);
         }
-        translator.addGlobal(v);
     }
 
     private void translateMethods(ClassOrModuleInstanciation c, List<ClassDef> subClasses) {
@@ -320,18 +330,18 @@ public class ClassTranslator {
         Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
-            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(), p.getName(), false);
+            ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), false);
             varReplacements.put(translator.getVarFor(p), imP);
             f.getParameters().add(imP);
         }
 
 
-        ImVar thisVar = JassIm.ImVar(constr, TypesHelper.imInt(), "this", false);
+        ImVar thisVar = JassIm.ImVar(constr, imClassType(), "this", false);
         varReplacements.put(translator.getThisVar(constr), thisVar);
         f.getLocals().add(thisVar);
 
         // allocate class
-        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(imClass)));
+        f.getBody().add(ImSet(trace, ImVarAccess(thisVar), JassIm.ImAlloc(constr, imClassType())));
 
         // call user defined constructor code:
         ImFunction constrFunc = translator.getConstructFunc(constr);
@@ -339,7 +349,11 @@ public class ClassTranslator {
         for (ImVar a : f.getParameters()) {
             arguments.add(ImVarAccess(a));
         }
-        f.getBody().add(ImFunctionCall(trace, constrFunc, arguments, false, CallType.NORMAL));
+        ImTypeArguments typeArgs = ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        f.getBody().add(ImFunctionCall(trace, constrFunc, typeArgs, arguments, false, CallType.NORMAL));
 
 
         // return this
@@ -360,20 +374,33 @@ public class ClassTranslator {
             for (Expr a : superArgs(constr)) {
                 arguments.add(a.imTranslateExpr(translator, f));
             }
-            f.getBody().add(ImFunctionCall(trace, superConstrFunc, arguments, false, CallType.NORMAL));
+            ImTypeArguments typeArgs = ImTypeArguments();
+            ClassDef classDef = constr.attrNearestClassDef();
+            assert classDef != null;
+            WurstType extendedType = classDef.getExtendedClass().attrTyp();
+            if (extendedType instanceof WurstTypeClass) {
+                WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
+                for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
+                    if (bt.isTemplateTypeParameter()) {
+                        typeArgs.add(bt.imTranslateToTypeArgument(translator));
+                    }
+                }
+            }
+            f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
             ImVar v = i.getA();
             if (i.getB() instanceof Expr) {
                 Expr e = (Expr) i.getB();
-                ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) ImVarAccess(thisVar))), e.imTranslateExpr(translator, f));
+                ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs()), e.imTranslateExpr(translator, f));
+
                 f.getBody().add(s);
             } else if (i.getB() instanceof ArrayInitializer) {
                 ArrayInitializer ai = (ArrayInitializer) i.getB();
                 int index = 0;
                 for (Expr e : ai.getValues()) {
-                    ImStmt s = ImSet(trace, ImVarArrayAccess(trace, v, ImExprs(ImVarAccess(thisVar), JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
+                    ImStmt s = ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), ImTypeArguments(), v, ImExprs(JassIm.ImIntVal(index))), e.imTranslateExpr(translator, f));
                     f.getBody().add(s);
                     index++;
                 }
@@ -391,7 +418,7 @@ public class ClassTranslator {
         // call constructors of used modules:
         for (ConstructorDef c : mi.getConstructors()) {
             ImFunction moduleConstr = translator.getConstructFunc(c);
-            f.getBody().add(JassIm.ImFunctionCall(c, moduleConstr, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+            f.getBody().add(ImFunctionCall(c, moduleConstr, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
         }
     }
 

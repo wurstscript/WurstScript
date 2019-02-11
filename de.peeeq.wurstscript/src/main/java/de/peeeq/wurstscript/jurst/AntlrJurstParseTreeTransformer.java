@@ -1254,7 +1254,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private TypeParamDef transformTypeParam(TypeParamContext p) {
         Modifiers modifiers = Ast.Modifiers();
-        return Ast.TypeParamDef(source(p), modifiers, text(p.name));
+        return Ast.TypeParamDef(source(p), modifiers, text(p.name), Ast.NoTypeParamConstraints());
     }
 
     private WImport transformImport(WImportContext i) {
