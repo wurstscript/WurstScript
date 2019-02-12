@@ -23,15 +23,17 @@ public class ValidateGlobalsUsage {
             if (jassDecl instanceof JassGlobalBlock) {
                 JassGlobalBlock globals = (JassGlobalBlock) jassDecl;
                 for (GlobalVarDef glob : globals) {
-                    glob.getInitialExpr().accept(new Element.DefaultVisitor() {
-                        @Override
-                        public void visit(ExprVarAccess e) {
+                    if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")) {
+                        glob.getInitialExpr().accept(new Element.DefaultVisitor() {
+                          @Override
+                          public void visit(ExprVarAccess e) {
                             usedGlobals.put(e.attrNameDef(), e);
+                          }
+                        });
+                        Element use = usedGlobals.get(glob);
+                        if (use != null) {
+                            use.addWarning("Global variable " + glob.getName() + " used before it is declared.");
                         }
-                    });
-                    Element use = usedGlobals.get(glob);
-                    if (use != null) {
-                        use.addWarning("Global variable " + glob.getName() + " used before it is declared.");
                     }
                 }
             }
