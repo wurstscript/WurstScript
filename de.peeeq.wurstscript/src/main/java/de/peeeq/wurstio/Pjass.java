@@ -103,6 +103,13 @@ public class Pjass {
                     throw new RuntimeException("Could not make pjass executable.");
                 }
                 args.set(0, fileName.getAbsolutePath());
+            } else if (os.equals("Mac OS X")) {
+                File fileName = Utils.getResourceFileF("pjass_osx");
+                boolean success = fileName.setExecutable(true);
+                if (!success) {
+                    throw new RuntimeException("Could not make pjass_osx executable.");
+                }
+                args.set(0, fileName.getAbsolutePath());
             } else if (!os.toLowerCase().contains("windows")) {
                 WLogger.info("Operation system " + os + " detected.");
                 WLogger.info("Trying to run with wine ...");
