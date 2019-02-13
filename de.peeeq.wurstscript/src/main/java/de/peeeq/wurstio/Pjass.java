@@ -50,7 +50,7 @@ public class Pjass {
             }
             LineOffsets lineOffsets = new LineOffsets();
             try {
-                String cont = Files.toString(jassFile, Charsets.UTF_8);
+                String cont = Files.asCharSource(jassFile, Charsets.UTF_8).read();
                 int line = 0;
                 lineOffsets.set(1, 0);
                 for (int i = 0; i < cont.length(); i++) {
