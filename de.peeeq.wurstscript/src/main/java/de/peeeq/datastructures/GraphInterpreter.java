@@ -86,20 +86,20 @@ public abstract class GraphInterpreter<T> {
         Deque<T> p = new ArrayDeque<>();
         // It also uses a counter C of the number of vertices reached so far, which it uses to compute the preorder numbers of the vertices.
         AtomicInteger c = new AtomicInteger();
+        AtomicInteger componentCount = new AtomicInteger();
         Map<T, Integer> preorderNumber = new HashMap<>();
         Map<T, Integer> component = new HashMap<>();
 
         for (T v : nodes) {
             if (!preorderNumber.containsKey(v)) {
-                findStronglyConnectedComponentsRec(v, s, p, c, preorderNumber, component);
+                findStronglyConnectedComponentsRec(v, s, p, c, preorderNumber, component, componentCount);
             }
         }
-        Set<Set<T>> result = new LinkedHashSet<>();
         return ImmutableSet.copyOf(Utils.inverseMapToSet(component).values());
     }
 
 
-    private void findStronglyConnectedComponentsRec(T v, Deque<T> s, Deque<T> p, AtomicInteger c, Map<T, Integer> preorderNumber, Map<T, Integer> component) {
+    private void findStronglyConnectedComponentsRec(T v, Deque<T> s, Deque<T> p, AtomicInteger c, Map<T, Integer> preorderNumber, Map<T, Integer> component, AtomicInteger componentCount) {
 
 
         // When the depth-first search reaches a vertex v, the algorithm performs the following steps:
@@ -114,7 +114,7 @@ public abstract class GraphInterpreter<T> {
         for (T w : getIncidentNodes(v)) {
             if (!preorderNumber.containsKey(w)) {
                 // If the preorder number of w has not yet been assigned, recursively search w;
-                findStronglyConnectedComponentsRec(w, s, p, c, preorderNumber, component);
+                findStronglyConnectedComponentsRec(w, s, p, c, preorderNumber, component, componentCount);
             } else {
                 // Otherwise, if w has not yet been assigned to a strongly connected component:
                 if (!component.containsKey(w)) {
@@ -129,7 +129,7 @@ public abstract class GraphInterpreter<T> {
         // 4. If v is the top element of P:
         if (!p.isEmpty() && p.peek() == v) {
             // Pop vertices from S until v has been popped, and assign the popped vertices to a new component.
-            int newComponent = component.values().stream().mapToInt(x -> x).max().orElse(0) + 1;
+            Integer newComponent = componentCount.incrementAndGet();
             while (true) {
                 T popped = s.pop();
                 component.put(popped, newComponent);
