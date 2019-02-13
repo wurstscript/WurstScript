@@ -110,7 +110,11 @@ public class Pjass {
                 args.add(0, "wine");
             }
 
-            p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+            try {
+                p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+            } catch (IOException e) {
+               return new Result(outputFile, false, "Pjass execution error: \n" + e.toString());
+            }
 
             StringBuilder output = new StringBuilder();
 
