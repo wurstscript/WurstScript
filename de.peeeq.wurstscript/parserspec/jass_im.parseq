@@ -254,14 +254,14 @@ ImVar.isGlobal()
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
 
 ImStmt.translateStmtToLua(java.util.List<de.peeeq.wurstscript.luaAst.LuaStatement> res, 
-						de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+						de.peeeq.wurstscript.translation.lua.translation.LuaTranslator tr)
 	returns void
-	implemented by de.peeeq.wurstscript.lua.translation.StmtTranslation.translate
+	implemented by de.peeeq.wurstscript.translation.lua.translation.StmtTranslation.translate
 
 
-ImExpr.translateToLua(de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+ImExpr.translateToLua(de.peeeq.wurstscript.translation.lua.translation.LuaTranslator tr)
 	returns de.peeeq.wurstscript.luaAst.LuaExpr
-	implemented by de.peeeq.wurstscript.lua.translation.ExprTranslation.translate
+	implemented by de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.translate
 
 	
 ImStmts.runStatements(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
