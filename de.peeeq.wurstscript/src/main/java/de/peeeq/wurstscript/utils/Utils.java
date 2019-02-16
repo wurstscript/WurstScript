@@ -10,8 +10,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -1034,5 +1032,34 @@ public class Utils {
             }
         }
         throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
+    }
+
+    public static <T,K> Collector<T, ImmutableMultimap.Builder<K, T>, ImmutableMultimap<K, T>> groupBy(java.util.function.Function<T, K> key) {
+        return new Collector<T, ImmutableMultimap.Builder<K,T> , ImmutableMultimap<K, T>>() {
+            @Override
+            public Supplier<ImmutableMultimap.Builder<K, T>> supplier() {
+                return ImmutableMultimap::builder;
+            }
+
+            @Override
+            public BiConsumer<ImmutableMultimap.Builder<K, T>, T> accumulator() {
+                return (a,x) -> a.put(key.apply(x), x);
+            }
+
+            @Override
+            public BinaryOperator<ImmutableMultimap.Builder<K, T>> combiner() {
+                return (a,b) -> a.putAll(b.build());
+            }
+
+            @Override
+            public java.util.function.Function<ImmutableMultimap.Builder<K, T>, ImmutableMultimap<K, T>> finisher() {
+                return ImmutableMultimap.Builder::build;
+            }
+
+            @Override
+            public Set<Characteristics> characteristics() {
+                return Collections.emptySet();
+            }
+        };
     }
 }

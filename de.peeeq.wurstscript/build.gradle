@@ -111,6 +111,10 @@ dependencies {
 
     // Smallcheck testing library:
     testCompile group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
+
+    // ASM Byte Code Library for compiling Wurst to Java.
+    compile group: 'org.ow2.asm', name: 'asm', version: '7.0'
+
 }
 
 configurations.all {
