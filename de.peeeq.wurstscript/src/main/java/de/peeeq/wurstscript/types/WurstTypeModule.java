@@ -73,7 +73,7 @@ public class WurstTypeModule extends WurstTypeNamedScope {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNull(TypesHelper.imInt());
     }
 

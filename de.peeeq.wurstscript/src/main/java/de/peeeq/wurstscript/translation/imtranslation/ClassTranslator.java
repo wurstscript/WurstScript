@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
@@ -312,7 +311,7 @@ public class ClassTranslator {
         f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
         // TODO add return for abstract function
         if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
-            f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue()));
+            f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue(translator)));
         }
         return f;
     }

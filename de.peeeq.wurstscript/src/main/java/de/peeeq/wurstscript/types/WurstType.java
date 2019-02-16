@@ -180,7 +180,7 @@ public abstract class WurstType {
     public abstract ImType imTranslateType(ImTranslator tr);
 
 
-    public abstract ImExprOpt getDefaultValue();
+    public abstract ImExprOpt getDefaultValue(ImTranslator tr);
 
     public boolean isVoid() {
         return false;

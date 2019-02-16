@@ -42,7 +42,7 @@ public class WurstTypeInfer extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         throw new Error("not implemented");
     }
 
