@@ -41,10 +41,7 @@ public class GroupProvider extends Provider {
             WLogger.warning("Trying to get FoG of empty group");
             return ILconstNull.instance();
         }
-        Iterator<IlConstHandle> iterator = groupList.iterator();
-        IlConstHandle next = iterator.next();
-        iterator.remove();
-        return next;
+        return groupList.iterator().next();
     }
 
     public void ForGroup(IlConstHandle group, ILconstFuncRef funcRef) {
