@@ -2,9 +2,8 @@ package de.peeeq.wurstscript.translation.jvm;
 
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
-import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -156,8 +155,10 @@ public class JvmTranslation {
                 switch (s.getTypename()) {
                     case "integer":
                         return "I";
+                    case "boolean":
+                        return "Z";
                     default:
-                        return "L"+s.getTypename() + ";";
+                        return "L" + s.getTypename() + ";";
                 }
             }
 
@@ -240,7 +241,12 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImVarAccess(ImVarAccess imVarAccess) {
+            public void case_ImVarAccess(ImVarAccess va) {
+                if (localVars.containsKey(va.getVar())) {
+                    int index = localVars.get(va.getVar());
+                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 2);
+                    return;
+                }
                 throw new RuntimeException("TODO " + s);
             }
 
@@ -256,7 +262,7 @@ public class JvmTranslation {
 
             @Override
             public void case_ImRealVal(ImRealVal imRealVal) {
-                throw new RuntimeException("TODO " + s);
+                methodVisitor.visitLdcInsn(new Float(imRealVal.getValR()));
             }
 
             @Override
@@ -279,6 +285,29 @@ public class JvmTranslation {
 
             @Override
             public void case_ImOperatorCall(ImOperatorCall oc) {
+                if (oc.getOp().equals(WurstOperator.AND)) {
+                    Label ifTrue = new Label();
+                    Label afterAnd = new Label();
+                    translateStatement(methodVisitor, oc.getArguments().get(0));
+                    methodVisitor.visitJumpInsn(IFNE, ifTrue);
+                    methodVisitor.visitInsn(ICONST_0);
+                    methodVisitor.visitJumpInsn(GOTO, afterAnd);
+                    methodVisitor.visitLabel(ifTrue);
+                    translateStatement(methodVisitor, oc.getArguments().get(1));
+                    methodVisitor.visitLabel(afterAnd);
+                    return;
+                } else if (oc.getOp().equals(WurstOperator.OR)) {
+                    Label ifFalse = new Label();
+                    Label afterOr = new Label();
+                    translateStatement(methodVisitor, oc.getArguments().get(0));
+                    methodVisitor.visitJumpInsn(IFEQ, ifFalse);
+                    methodVisitor.visitInsn(ICONST_1);
+                    methodVisitor.visitJumpInsn(GOTO, afterOr);
+                    methodVisitor.visitLabel(ifFalse);
+                    translateStatement(methodVisitor, oc.getArguments().get(1));
+                    methodVisitor.visitLabel(afterOr);
+                    return;
+                }
                 for (ImExpr a : oc.getArguments()) {
                     translateStatement(methodVisitor, a);
                 }
@@ -287,45 +316,61 @@ public class JvmTranslation {
                         break;
                     case AND:
                         break;
-                    case EQ:
-                        Label notEqual = new Label();
-                        Label afterCompare = new Label();
-                        methodVisitor.visitJumpInsn(IF_ICMPNE, notEqual);
-                        methodVisitor.visitInsn(ICONST_1);
-                        methodVisitor.visitJumpInsn(GOTO, afterCompare);
-                        methodVisitor.visitLabel(notEqual);
-                        methodVisitor.visitInsn(ICONST_0);
-                        methodVisitor.visitLabel(afterCompare);
+                    case EQ: {
+                        makeCompare(methodVisitor, IF_ICMPNE, ICONST_1, ICONST_0);
                         return;
-                    case NOTEQ:
-                        break;
-                    case LESS_EQ:
-                        break;
+                    }
+                    case NOTEQ: {
+                        makeCompare(methodVisitor, IF_ICMPEQ, ICONST_1, ICONST_0);
+                        return;
+                    }
+                    case LESS_EQ: {
+                        makeCompare(methodVisitor, IF_ICMPLE, ICONST_0, ICONST_1);
+                        return;
+                    }
                     case LESS:
-                        break;
+                    {
+                        makeCompare(methodVisitor, IF_ICMPLT, ICONST_0, ICONST_1);
+                        return;
+                    }
                     case GREATER_EQ:
-                        break;
+                    {
+                        makeCompare(methodVisitor, IF_ICMPGE, ICONST_0, ICONST_1);
+                        return;
+                    }
                     case GREATER:
-                        break;
+                    {
+                        makeCompare(methodVisitor, IF_ICMPGT, ICONST_0, ICONST_1);
+                        return;
+                    }
                     case PLUS:
                         methodVisitor.visitInsn(IADD);
                         return;
                     case MINUS:
-                        break;
+                        methodVisitor.visitInsn(ISUB);
+                        return;
                     case MULT:
-                        break;
+                        methodVisitor.visitInsn(IMUL);
+                        return;
                     case DIV_REAL:
-                        break;
+                        methodVisitor.visitInsn(FDIV);
+                        return;
                     case DIV_INT:
-                        break;
+                        methodVisitor.visitInsn(IDIV);
+                        return;
                     case MOD_REAL:
-                        break;
+                        methodVisitor.visitInsn(FREM);
+                        return;
                     case MOD_INT:
-                        break;
+                        methodVisitor.visitInsn(IREM);
+                        return;
                     case NOT:
-                        break;
+                        methodVisitor.visitInsn(ICONST_1);
+                        methodVisitor.visitInsn(IXOR);
+                        return;
                     case UNARY_MINUS:
-                        break;
+                        methodVisitor.visitInsn(INEG);
+                        return;
                 }
                 throw new RuntimeException("TODO " + s);
             }
@@ -402,8 +447,9 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImStatementExpr(ImStatementExpr imStatementExpr) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImStatementExpr(ImStatementExpr se) {
+                translateStatements(methodVisitor, se.getStatements());
+                translateStatement(methodVisitor, se.getExpr());
             }
 
             @Override
@@ -441,6 +487,63 @@ public class JvmTranslation {
         });
     }
 
+    private void makeCompare(MethodVisitor methodVisitor, int ifIcmple, int iconst0, int iconst1) {
+        Label equal = new Label();
+        Label afterCompare = new Label();
+        methodVisitor.visitJumpInsn(ifIcmple, equal);
+        methodVisitor.visitInsn(iconst0);
+        methodVisitor.visitJumpInsn(GOTO, afterCompare);
+        methodVisitor.visitLabel(equal);
+        methodVisitor.visitInsn(iconst1);
+        methodVisitor.visitLabel(afterCompare);
+    }
+
+    private int getLoadInstruction(ImType type) {
+        return type.match(new ImType.Matcher<Integer>() {
+            @Override
+            public Integer case_ImTupleType(ImTupleType imTupleType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImVoid(ImVoid imVoid) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImClassType(ImClassType imClassType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImSimpleType(ImSimpleType t) {
+                switch (t.getTypename()) {
+                    case "integer":
+                        return ILOAD;
+                    case "real":
+                        return FLOAD;
+                    default:
+                        return ALOAD;
+                }
+            }
+
+            @Override
+            public Integer case_ImArrayType(ImArrayType imArrayType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new RuntimeException("TODO " + type);
+            }
+        });
+    }
+
     private int getStoreInstruction(ImType type) {
         return type.match(new ImType.Matcher<Integer>() {
             @Override
@@ -466,8 +569,12 @@ public class JvmTranslation {
             @Override
             public Integer case_ImSimpleType(ImSimpleType t) {
                 switch (t.getTypename()) {
-                    case "integer": return ISTORE;
-                    default: return ASTORE;
+                    case "integer":
+                        return ISTORE;
+                    case "real":
+                        return FSTORE;
+                    default:
+                        return ASTORE;
                 }
             }
 
