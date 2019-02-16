@@ -12,9 +12,9 @@ public class IntVal {
                 return Utils.parseInt(raw);
             } else if (raw.matches("-?0[0-9]+")) {
                 return Utils.parseOctalInt(raw);
-            } else if (raw.matches("-?0x[0-9a-f]+")) {
+            } else if (raw.matches("-?0x[0-9a-fA-F]+")) {
                 return Utils.parseHexInt(raw, 2);
-            } else if (raw.matches("-?\\$[0-9a-f]+")) {
+            } else if (raw.matches("-?\\$[0-9a-fA-F]+")) {
                 return Utils.parseHexInt(raw, 1);
             } else if (raw.startsWith("'")) {
                 try {
