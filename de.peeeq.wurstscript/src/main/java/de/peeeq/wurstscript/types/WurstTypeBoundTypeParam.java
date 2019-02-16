@@ -69,7 +69,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImIntVal(0);
     }
 

@@ -38,8 +38,8 @@ public class WurstTypeStaticTypeRef extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return base.getDefaultValue();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return base.getDefaultValue(tr);
     }
 
     @Override

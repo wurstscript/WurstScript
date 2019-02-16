@@ -126,7 +126,7 @@ public class WurstTypeArray extends WurstType {
 
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         throw new Error();
     }
 

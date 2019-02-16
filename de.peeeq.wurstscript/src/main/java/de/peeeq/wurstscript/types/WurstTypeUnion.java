@@ -51,8 +51,8 @@ public class WurstTypeUnion extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return typeA.getDefaultValue();
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return typeA.getDefaultValue(tr);
     }
 
     @Override

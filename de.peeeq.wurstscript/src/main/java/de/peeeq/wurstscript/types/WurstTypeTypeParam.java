@@ -82,8 +82,8 @@ public class WurstTypeTypeParam extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        throw new CompileError(def, "Cannot get default value for generic " + def.getName());
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(this.imTranslateType(tr));
     }
 
 

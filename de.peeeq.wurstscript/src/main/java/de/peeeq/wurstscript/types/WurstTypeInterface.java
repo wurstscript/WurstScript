@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.InterfaceDef;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
@@ -76,7 +74,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
 
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNull(TypesHelper.imInt());
     }
 

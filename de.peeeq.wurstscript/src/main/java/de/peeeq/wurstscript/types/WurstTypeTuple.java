@@ -63,10 +63,10 @@ public class WurstTypeTuple extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         ImExprs exprs = JassIm.ImExprs();
         for (WParameter p : tupleDef.getParameters()) {
-            exprs.add((ImExpr) p.attrTyp().getDefaultValue());
+            exprs.add((ImExpr) p.attrTyp().getDefaultValue(tr));
         }
         return JassIm.ImTupleExpr(exprs);
     }

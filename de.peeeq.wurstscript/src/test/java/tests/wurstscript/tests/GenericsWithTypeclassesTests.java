@@ -1254,5 +1254,24 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void abstractReturnT() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "abstract class F<T:>",
+                "	abstract function get() returns T",
+                "class X<T:> extends F<T>",
+                "	T t",
+                "	construct(T t)",
+                "		this.t = t",
+                "	override function get() returns T",
+                "		return t",
+                "init",
+                "	F<int> x = new X(42)",
+                "	if x.get() == 42",
+                "		testSuccess()"
+        );
+    }
 
 }

@@ -53,7 +53,7 @@ public class WurstNativeType extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNull(imTranslateType());
     }
 

@@ -1209,4 +1209,28 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void negativeNumberLiterals() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "init",
+                "    if 0117 != 79",
+                "        testFail(\"a\")",
+                "    if -0117 != -79",
+                "        testFail(\"b\")",
+                "    if 0x4f != 79",
+                "        testFail(\"c\")",
+                "    if -0x4f != -79",
+                "        testFail(\"d\")",
+                "    if $4f != 79",
+                "        testFail(\"e\")",
+                "    if -$4f != -79",
+                "        testFail(\"f\")",
+                "    testSuccess()"
+        );
+    }
+
 }
