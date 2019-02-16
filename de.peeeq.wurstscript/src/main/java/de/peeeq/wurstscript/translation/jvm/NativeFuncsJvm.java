@@ -1,0 +1,38 @@
+package de.peeeq.wurstscript.translation.jvm;
+
+import de.peeeq.wurstscript.jassIm.ImFunction;
+import org.objectweb.asm.MethodVisitor;
+
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
+import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.PackageOrGlobal;
+import de.peeeq.wurstscript.ast.WPackage;
+import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Utils;
+import org.jetbrains.annotations.NotNull;
+import org.objectweb.asm.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+import static org.objectweb.asm.Opcodes.*;
+
+
+/**
+ *
+ */
+public class NativeFuncsJvm {
+    public static void generateCode(MethodVisitor methodVisitor, ImFunction func) {
+        if (func.getName().equals("testSuccess")) {
+            methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+            methodVisitor.visitLdcInsn("testSuccess");
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+            methodVisitor.visitInsn(RETURN);
+        }
+    }
+}

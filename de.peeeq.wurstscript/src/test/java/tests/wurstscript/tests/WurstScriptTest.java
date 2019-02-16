@@ -22,14 +22,17 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
-import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.translation.jvm.JvmTranslation;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.testng.Assert;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
@@ -40,6 +43,7 @@ public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
     private static final boolean testLua = false;
+    private static final boolean testJvm = true;
 
     protected boolean testOptimizer() {
         return true;
@@ -209,6 +213,12 @@ public class WurstScriptTest {
                 translateAndTestLua(name, executeProg, gui, model);
             }
 
+            if (testJvm && !withStdLib) {
+                // test lua translation
+                compiler.setRunArgs(new RunArgs("-jvm"));
+                translateAndTestJvm(name, executeProg, gui, model);
+            }
+
             return new CompilationResult(model, gui);
         }
 
@@ -338,7 +348,7 @@ public class WurstScriptTest {
     }
 
     private void testWithInliningAndOptimizationsAndStacktraces(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
+                                                                WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
         compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations", "-stacktraces"));
         translateAndTest(name + "_stacktraceinlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
@@ -428,6 +438,57 @@ public class WurstScriptTest {
             }
 
 
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private void translateAndTestJvm(String name, boolean executeProg, WurstGui gui, WurstModel model) {
+        try {
+            name = name.replaceAll("[^a-zA-Z0-9_]", "_");
+
+            ImTranslator imTranslator = new ImTranslator(model, true);
+            ImProg imProg = imTranslator.translateProg();
+
+            Path outputFolder = Paths.get("test-output", name);
+            outputFolder.toFile().mkdirs();
+            JvmTranslation luaTranslator = new JvmTranslation(imProg, outputFolder);
+            luaTranslator.translate();
+
+            if (executeProg) {
+                String line;
+                ProcessBuilder pb = new ProcessBuilder("java", "WurstMain");
+                pb.directory(outputFolder.toFile());
+                Process p = pb.start();
+                StringBuilder errors = new StringBuilder();
+                StringBuilder output = new StringBuilder();
+                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getErrorStream()))) {
+                    while ((line = input.readLine()) != null) {
+                        System.err.println(line);
+                        errors.append(line);
+                        errors.append("\n");
+                    }
+                }
+
+                if (errors.length() > 0) {
+                    throw new TestFailException(errors.toString());
+                }
+
+                boolean success = false;
+                try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+                    while ((line = input.readLine()) != null) {
+                        if (line.equals("testSuccess")) {
+                            success = true;
+                        }
+                        output.append(line);
+                        output.append("\n");
+                    }
+                }
+                if (!success) {
+                    throw new Error("Succeed function not called");
+                }
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

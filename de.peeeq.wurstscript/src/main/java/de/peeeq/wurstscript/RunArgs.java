@@ -14,6 +14,7 @@ public class RunArgs {
 
 
     private final String[] args;
+    private final RunOption optionJvm;
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
@@ -112,6 +113,8 @@ public class RunArgs {
 
         optionHelp = addOption("help", "Prints this help message.");
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
+
+        optionJvm = addOption("jvm", "Translate to Java Bytecode.");
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
