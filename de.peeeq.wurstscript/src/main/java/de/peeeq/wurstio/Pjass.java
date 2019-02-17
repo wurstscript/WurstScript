@@ -103,7 +103,7 @@ public class Pjass {
                     throw new RuntimeException("Could not make pjass executable.");
                 }
                 args.set(0, fileName.getAbsolutePath());
-            } else if (os.equals("Mac OS X")) {
+            } else if (os.startsWith("Mac OS X")) {
                 File fileName = Utils.getResourceFileF("pjass_osx");
                 boolean success = fileName.setExecutable(true);
                 if (!success) {
