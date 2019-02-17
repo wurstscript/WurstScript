@@ -175,7 +175,7 @@ public class OptimizerTests extends WurstScriptTest {
 
     public void assertError(boolean executeProg, String expected, String... body) {
         String prog = makeCode(body);
-        testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, expected);
+        testAssertErrors(UtilsIO.getTestName(), executeProg, prog, expected);
     }
 
     @Test

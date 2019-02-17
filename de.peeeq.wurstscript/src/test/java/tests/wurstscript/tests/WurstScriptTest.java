@@ -115,7 +115,7 @@ public class WurstScriptTest {
         }
 
         CompilationResult lines(String... lines) {
-            String testName = UtilsIO.getMethodName(WurstScriptTest.class.getName());
+            String testName = UtilsIO.getTestName();
             additionalCompilationUnits.add(new CU(testName, Utils.join(lines, "\n") + "\n"));
             return run();
         }
@@ -292,7 +292,7 @@ public class WurstScriptTest {
     }
 
     public TestConfig test() {
-        String name = UtilsIO.getMethodName(WurstScriptTest.class.getName());
+        String name = UtilsIO.getTestName();
         name = this.getClass().getSimpleName() + "_" + name;
         return new TestConfig(name);
     }
@@ -452,14 +452,21 @@ public class WurstScriptTest {
             ImProg imProg = imTranslator.translateProg();
 
             Path outputFolder = Paths.get("test-output", name);
-            outputFolder.toFile().mkdirs();
+            File outputFolderF = outputFolder.toFile();
+            if (!outputFolderF.exists()) {
+                boolean res = outputFolderF.mkdirs();
+                if (!res) {
+                    throw new RuntimeException("could not create directory " + outputFolder);
+                }
+            }
+            System.out.println("Output to " + outputFolderF.getAbsolutePath());
             JvmTranslation luaTranslator = new JvmTranslation(imProg, outputFolder);
             luaTranslator.translate();
 
             if (executeProg) {
                 String line;
                 ProcessBuilder pb = new ProcessBuilder("java", "WurstMain");
-                pb.directory(outputFolder.toFile());
+                pb.directory(outputFolderF);
                 Process p = pb.start();
                 StringBuilder errors = new StringBuilder();
                 StringBuilder output = new StringBuilder();

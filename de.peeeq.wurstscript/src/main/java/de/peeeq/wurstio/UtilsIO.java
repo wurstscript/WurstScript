@@ -1,6 +1,7 @@
 package de.peeeq.wurstio;
 
 import java.io.File;
+import java.util.Arrays;
 
 public class UtilsIO {
 
@@ -12,32 +13,14 @@ public class UtilsIO {
         }
     }
 
-    /**
-     * Get the method name for a depth in call stack. <br />
-     * Utility function
-     *
-     * @param depth depth in the call stack (0 means current method, 1 means call
-     *              method, ...)
-     * @return method name
-     */
-    public static String getMethodName(final int depth) {
+    public static String getTestName() {
         StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        return ste[depth + 2].getMethodName();
-    }
-
-    /**
-     * Get the method name of the calling method, ignoring the given current class
-     *
-     * @return method name
-     */
-    public static String getMethodName(String currentClass) {
-        StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-        for (int i = 2; i < ste.length; i++) {
-            if (!ste[i].getClassName().startsWith(currentClass)) {
-                return ste[i].getMethodName();
+        for (int i = 0; i < ste.length; i++) {
+            if (ste[i].getClassName().equals("sun.reflect.NativeMethodAccessorImpl")) {
+                return ste[i-1].getMethodName();
             }
         }
-        return "";
+        throw new RuntimeException("Could not get test name");
     }
 
 

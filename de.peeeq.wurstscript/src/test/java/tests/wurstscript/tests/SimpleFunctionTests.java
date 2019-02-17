@@ -63,7 +63,7 @@ public class SimpleFunctionTests extends WurstScriptTest {
 
     public void assertOk(boolean executeProg, String... body) {
         String prog = makeCode(body);
-        testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
+        testAssertOk(UtilsIO.getTestName(), executeProg, prog);
     }
 
     private String makeCode(String... body) {
@@ -77,7 +77,7 @@ public class SimpleFunctionTests extends WurstScriptTest {
 
     public void assertError(boolean executeProg, String expected, String... body) {
         String prog = makeCode(body);
-        testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, expected);
+        testAssertErrors(UtilsIO.getTestName(), executeProg, prog, expected);
     }
 
 }

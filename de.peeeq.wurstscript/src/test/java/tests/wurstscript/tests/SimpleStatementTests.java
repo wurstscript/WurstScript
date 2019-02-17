@@ -468,7 +468,7 @@ public class SimpleStatementTests extends WurstScriptTest {
                 "		" + Utils.join(body, "\n		") +
                 "\n" +
                 "endpackage\n";
-        testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
+        testAssertOk(UtilsIO.getTestName(), executeProg, prog);
     }
 
     @Test
@@ -501,7 +501,7 @@ public class SimpleStatementTests extends WurstScriptTest {
                 "		" + Utils.join(body, "\n		") +
                 "\n" +
                 "endpackage\n";
-        testAssertErrors(UtilsIO.getMethodName(1), executeProg, prog, expected);
+        testAssertErrors(UtilsIO.getTestName(), executeProg, prog, expected);
     }
 
     @Test

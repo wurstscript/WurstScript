@@ -302,13 +302,13 @@ public class ExpressionTests extends WurstScriptTest {
 
     public void assertOk(String booleanExpr) {
         String prog = makeProg(booleanExpr);
-        testAssertOk(UtilsIO.getMethodName(1), true, prog);
+        testAssertOk(UtilsIO.getTestName(), true, prog);
     }
 
 
     public void assertError(String errorMessage, String booleanExpr) {
         String prog = makeProg(booleanExpr);
-        testAssertErrors(UtilsIO.getMethodName(1), true, prog, errorMessage);
+        testAssertErrors(UtilsIO.getTestName(), true, prog, errorMessage);
     }
 
 }

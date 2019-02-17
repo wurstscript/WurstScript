@@ -174,7 +174,7 @@ public class ArrayTests extends WurstScriptTest {
                 "native testSuccess()\n" +
                 Utils.join(input, "\n") + "\n" +
                 "endpackage\n";
-        testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
+        testAssertOk(UtilsIO.getTestName(), executeProg, prog);
     }
 
 }

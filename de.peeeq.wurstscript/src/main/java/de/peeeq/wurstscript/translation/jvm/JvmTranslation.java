@@ -138,7 +138,8 @@ public class JvmTranslation {
 
             @Override
             public String case_ImClassType(ImClassType c) {
-                return c.getClassDef().getName();
+                ImClass cd = c.getClassDef();
+                return "L" + getPackage(cd) + "$" + cd.getName() + ";";
             }
 
             @Override
@@ -244,7 +245,7 @@ public class JvmTranslation {
             public void case_ImVarAccess(ImVarAccess va) {
                 if (localVars.containsKey(va.getVar())) {
                     int index = localVars.get(va.getVar());
-                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 2);
+                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), index);
                     return;
                 }
                 throw new RuntimeException("TODO " + s);
@@ -270,7 +271,10 @@ public class JvmTranslation {
                 for (ImExpr arg : fc.getArguments()) {
                     translateStatement(methodVisitor, arg);
                 }
-                methodVisitor.visitMethodInsn(INVOKESTATIC, getPackage(fc.getFunc()).name, fc.getFunc().getName(), getSignatureDescriptor(fc.getFunc()), false);
+                System.out.println(fc.getFunc());
+                String signatureDescriptor = getSignatureDescriptor(fc.getFunc());
+                System.out.println("signatureDescriptor = " + signatureDescriptor);
+                methodVisitor.visitMethodInsn(INVOKESTATIC, getPackage(fc.getFunc()).name, fc.getFunc().getName(), signatureDescriptor, false);
             }
 
             @Override
@@ -317,41 +321,89 @@ public class JvmTranslation {
                     case AND:
                         break;
                     case EQ: {
-                        makeCompare(methodVisitor, IF_ICMPNE, ICONST_1, ICONST_0);
-                        return;
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPNE, ICONST_1, ICONST_0);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFNE, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
                     case NOTEQ: {
-                        makeCompare(methodVisitor, IF_ICMPEQ, ICONST_1, ICONST_0);
-                        return;
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPEQ, ICONST_1, ICONST_0);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFEQ, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
                     case LESS_EQ: {
-                        makeCompare(methodVisitor, IF_ICMPLE, ICONST_0, ICONST_1);
-                        return;
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPLE, ICONST_0, ICONST_1);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFLE, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
-                    case LESS:
-                    {
-                        makeCompare(methodVisitor, IF_ICMPLT, ICONST_0, ICONST_1);
-                        return;
+                    case LESS: {
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPLT, ICONST_0, ICONST_1);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFLE, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
-                    case GREATER_EQ:
-                    {
-                        makeCompare(methodVisitor, IF_ICMPGE, ICONST_0, ICONST_1);
-                        return;
+                    case GREATER_EQ: {
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPGE, ICONST_0, ICONST_1);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFGE, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
-                    case GREATER:
-                    {
-                        makeCompare(methodVisitor, IF_ICMPGT, ICONST_0, ICONST_1);
-                        return;
+                    case GREATER: {
+                        if (isIntOperation(oc)) {
+                            makeCompare(methodVisitor, IF_ICMPGT, ICONST_0, ICONST_1);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFGT, ICONST_1, ICONST_0);
+                            return;
+                        }
                     }
                     case PLUS:
-                        methodVisitor.visitInsn(IADD);
-                        return;
+                        if (isIntOperation(oc)) {
+                            methodVisitor.visitInsn(IADD);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FADD);
+                            return;
+                        }
                     case MINUS:
-                        methodVisitor.visitInsn(ISUB);
-                        return;
+                        if (isIntOperation(oc)) {
+                            methodVisitor.visitInsn(ISUB);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FSUB);
+                            return;
+                        }
                     case MULT:
-                        methodVisitor.visitInsn(IMUL);
-                        return;
+                        if (isIntOperation(oc)) {
+                            methodVisitor.visitInsn(IMUL);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FMUL);
+                            return;
+                        }
                     case DIV_REAL:
                         methodVisitor.visitInsn(FDIV);
                         return;
@@ -369,8 +421,14 @@ public class JvmTranslation {
                         methodVisitor.visitInsn(IXOR);
                         return;
                     case UNARY_MINUS:
-                        methodVisitor.visitInsn(INEG);
-                        return;
+                        if (isIntOperation(oc)) {
+                            methodVisitor.visitInsn(INEG);
+                            return;
+                        } else if (isFloatOperation(oc)) {
+                            methodVisitor.visitInsn(FNEG);
+                            return;
+                        }
+                        throw new RuntimeException("TODO " + s + " " + oc.getArguments().get(0).attrTyp());
                 }
                 throw new RuntimeException("TODO " + s);
             }
@@ -487,16 +545,45 @@ public class JvmTranslation {
         });
     }
 
-    private void makeCompare(MethodVisitor methodVisitor, int ifIcmple, int iconst0, int iconst1) {
+    private boolean isIntOperation(ImOperatorCall oc) {
+        for (ImExpr a : oc.getArguments()) {
+            if (!isIntType(a.attrTyp())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isFloatOperation(ImOperatorCall oc) {
+        for (ImExpr a : oc.getArguments()) {
+            if (isFloatType(a.attrTyp())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isIntType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("integer");
+    }
+
+    private boolean isFloatType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("real");
+    }
+
+    private void makeCompare(MethodVisitor methodVisitor, int jumpInstruction, int ifFalse, int ifTrue) {
         Label equal = new Label();
         Label afterCompare = new Label();
-        methodVisitor.visitJumpInsn(ifIcmple, equal);
-        methodVisitor.visitInsn(iconst0);
+        methodVisitor.visitJumpInsn(jumpInstruction, equal);
+        methodVisitor.visitInsn(ifFalse);
         methodVisitor.visitJumpInsn(GOTO, afterCompare);
         methodVisitor.visitLabel(equal);
-        methodVisitor.visitInsn(iconst1);
+        methodVisitor.visitInsn(ifTrue);
         methodVisitor.visitLabel(afterCompare);
     }
+
 
     private int getLoadInstruction(ImType type) {
         return type.match(new ImType.Matcher<Integer>() {
