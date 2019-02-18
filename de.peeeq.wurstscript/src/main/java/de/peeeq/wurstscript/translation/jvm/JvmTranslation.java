@@ -23,6 +23,8 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class JvmTranslation {
 
+    /** target version for translation */
+    public static final int JAVA_VERSION = V11;
     private ImProg prog;
     private final Path outputFolder;
     private ImmutableMultimap<ImClass, ImMethod> methodByClass;
@@ -51,6 +53,11 @@ public class JvmTranslation {
         @Override
         public int hashCode() {
             return Objects.hash(name);
+        }
+
+        @Override
+        public String toString() {
+            return name;
         }
     }
 
@@ -105,18 +112,53 @@ public class JvmTranslation {
     }
 
     private void translatePackage(JPackage p, Collection<ImFunction> imFunctions, Collection<ImVar> imVars, Collection<ImClass> imClasses) throws IOException {
-        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES); // ClassWriter.COMPUTE_MAXS
-        classWriter.visit(V1_6, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
+        ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
+        classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
+
+        for (ImClass c : imClasses) {
+            translateClass(p, classWriter, c);
+        }
+
         for (ImVar v : imVars) {
             translateStaticVar(classWriter, v);
         }
         for (ImFunction f : imFunctions) {
-            translateFunc(classWriter, f);
+            translateFunc(classWriter, f, ACC_PUBLIC | ACC_STATIC);
         }
+
 
         classWriter.visitEnd();
         byte[] bytes = classWriter.toByteArray();
         Files.write(outputFolder.resolve(p.name + ".class"), bytes);
+    }
+
+    private void translateClass(JPackage p, ClassWriter outerClassWriter, ImClass c) throws IOException {
+        String name = p.name + "$" + c.getName();
+        outerClassWriter.visitNestMember(name);
+        outerClassWriter.visitInnerClass(name, p.name, c.getName(), ACC_STATIC);
+
+        ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
+        classWriter.visit(JAVA_VERSION, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
+        for (ImVar v : c.getFields()) {
+            translateField(classWriter, v);
+        }
+
+        for (ImMethod method : c.getMethods()) {
+            translateMethod(classWriter, method);
+        }
+
+        classWriter.visitEnd();
+        byte[] bytes = classWriter.toByteArray();
+        Files.write(outputFolder.resolve(name + ".class"), bytes);
+    }
+
+    private void translateMethod(ClassWriter classWriter, ImMethod method) {
+        translateFunc(classWriter, method.getImplementation(), ACC_PUBLIC);
+    }
+
+    private void translateField(ClassWriter classWriter, ImVar v) {
+        FieldVisitor fieldVisitor = classWriter.visitField(0, v.getName(), translateType(v.getType()), null, null);
+        fieldVisitor.visitEnd();
     }
 
     private void translateStaticVar(ClassWriter classWriter, ImVar v) {
@@ -175,8 +217,8 @@ public class JvmTranslation {
         });
     }
 
-    private void translateFunc(ClassWriter classWriter, ImFunction func) {
-        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_STATIC, func.getName(), getSignatureDescriptor(func), null, null);
+    private void translateFunc(ClassWriter classWriter, ImFunction func, int accesss) {
+        MethodVisitor methodVisitor = classWriter.visitMethod(accesss, func.getName(), getSignatureDescriptor(func), null, null);
         methodVisitor.visitCode();
         Label start = new Label();
         methodVisitor.visitLabel(start);
@@ -219,7 +261,7 @@ public class JvmTranslation {
         }
     }
 
-    private void translateStatement(MethodVisitor methodVisitor, ImStmt s) {
+    public void translateStatement(MethodVisitor methodVisitor, ImStmt s) {
         s.match(new ImStmt.MatcherVoid() {
             @Override
             public void case_ImTypeVarDispatch(ImTypeVarDispatch imTypeVarDispatch) {
@@ -228,7 +270,7 @@ public class JvmTranslation {
 
             @Override
             public void case_ImDealloc(ImDealloc imDealloc) {
-                throw new RuntimeException("TODO " + s);
+                // we have garbage collection in Java so nothing to do
             }
 
             @Override
@@ -271,9 +313,7 @@ public class JvmTranslation {
                 for (ImExpr arg : fc.getArguments()) {
                     translateStatement(methodVisitor, arg);
                 }
-                System.out.println(fc.getFunc());
                 String signatureDescriptor = getSignatureDescriptor(fc.getFunc());
-                System.out.println("signatureDescriptor = " + signatureDescriptor);
                 methodVisitor.visitMethodInsn(INVOKESTATIC, getPackage(fc.getFunc()).name, fc.getFunc().getName(), signatureDescriptor, false);
             }
 
@@ -312,8 +352,14 @@ public class JvmTranslation {
                     methodVisitor.visitLabel(afterOr);
                     return;
                 }
+                boolean intOperation = isIntOperation(oc);
+                boolean floatOperation = isFloatOperation(oc);
                 for (ImExpr a : oc.getArguments()) {
                     translateStatement(methodVisitor, a);
+                    if (floatOperation && isIntType(a.attrTyp())) {
+                        // convert to float
+                        methodVisitor.visitInsn(I2F);
+                    }
                 }
                 switch (oc.getOp()) {
                     case OR:
@@ -321,89 +367,114 @@ public class JvmTranslation {
                     case AND:
                         break;
                     case EQ: {
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             makeCompare(methodVisitor, IF_ICMPNE, ICONST_1, ICONST_0);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFNE, ICONST_1, ICONST_0);
+                            return;
+                        } else {
+                            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+                        }
+                        throw new RuntimeException("unhandled case " + oc);
+                    }
+                    case NOTEQ: {
+                        if (intOperation) {
+                            makeCompare(methodVisitor, IF_ICMPEQ, ICONST_1, ICONST_0);
+                            return;
+                        } else if (floatOperation) {
+                            methodVisitor.visitInsn(FCMPL);
+                            makeCompare(methodVisitor, IFEQ, ICONST_1, ICONST_0);
+                            return;
+                        } else {
+                            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
                             makeCompare(methodVisitor, IFNE, ICONST_1, ICONST_0);
                             return;
                         }
                     }
-                    case NOTEQ: {
-                        if (isIntOperation(oc)) {
-                            makeCompare(methodVisitor, IF_ICMPEQ, ICONST_1, ICONST_0);
-                            return;
-                        } else if (isFloatOperation(oc)) {
-                            methodVisitor.visitInsn(FCMPL);
-                            makeCompare(methodVisitor, IFEQ, ICONST_1, ICONST_0);
-                            return;
-                        }
-                    }
                     case LESS_EQ: {
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             makeCompare(methodVisitor, IF_ICMPLE, ICONST_0, ICONST_1);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FCMPL);
-                            makeCompare(methodVisitor, IFLE, ICONST_1, ICONST_0);
+                            makeCompare(methodVisitor, IFLE, ICONST_0, ICONST_1);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     }
                     case LESS: {
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             makeCompare(methodVisitor, IF_ICMPLT, ICONST_0, ICONST_1);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FCMPL);
-                            makeCompare(methodVisitor, IFLE, ICONST_1, ICONST_0);
+                            makeCompare(methodVisitor, IFLE, ICONST_0, ICONST_1);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     }
                     case GREATER_EQ: {
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             makeCompare(methodVisitor, IF_ICMPGE, ICONST_0, ICONST_1);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FCMPL);
-                            makeCompare(methodVisitor, IFGE, ICONST_1, ICONST_0);
+                            makeCompare(methodVisitor, IFGE, ICONST_0, ICONST_1);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     }
                     case GREATER: {
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             makeCompare(methodVisitor, IF_ICMPGT, ICONST_0, ICONST_1);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FCMPL);
-                            makeCompare(methodVisitor, IFGT, ICONST_1, ICONST_0);
+                            makeCompare(methodVisitor, IFGT, ICONST_0, ICONST_1);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     }
                     case PLUS:
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             methodVisitor.visitInsn(IADD);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FADD);
                             return;
+                        } else if (isStringOperation(oc)) {
+                            methodVisitor.visitInvokeDynamicInsn(
+                                    "makeConcatWithConstants",
+                                    "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+                                    new Handle(Opcodes.H_INVOKESTATIC,
+                                            "java/lang/invoke/StringConcatFactory",
+                                            "makeConcatWithConstants",
+                                            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/invoke/CallSite;"
+                                            , false)
+                                    , "\u0001\u0001");
+                            return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     case MINUS:
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             methodVisitor.visitInsn(ISUB);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FSUB);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     case MULT:
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             methodVisitor.visitInsn(IMUL);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FMUL);
                             return;
                         }
+                        throw new RuntimeException("unhandled case " + oc);
                     case DIV_REAL:
                         methodVisitor.visitInsn(FDIV);
                         return;
@@ -421,10 +492,10 @@ public class JvmTranslation {
                         methodVisitor.visitInsn(IXOR);
                         return;
                     case UNARY_MINUS:
-                        if (isIntOperation(oc)) {
+                        if (intOperation) {
                             methodVisitor.visitInsn(INEG);
                             return;
-                        } else if (isFloatOperation(oc)) {
+                        } else if (floatOperation) {
                             methodVisitor.visitInsn(FNEG);
                             return;
                         }
@@ -563,6 +634,15 @@ public class JvmTranslation {
         return false;
     }
 
+    private boolean isStringOperation(ImOperatorCall oc) {
+        for (ImExpr a : oc.getArguments()) {
+            if (isStringType(a.attrTyp())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isIntType(ImType t) {
         return t instanceof ImSimpleType
                 && ((ImSimpleType) t).getTypename().equals("integer");
@@ -571,6 +651,11 @@ public class JvmTranslation {
     private boolean isFloatType(ImType t) {
         return t instanceof ImSimpleType
                 && ((ImSimpleType) t).getTypename().equals("real");
+    }
+
+    private boolean isStringType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("string");
     }
 
     private void makeCompare(MethodVisitor methodVisitor, int jumpInstruction, int ifFalse, int ifTrue) {
@@ -599,7 +684,7 @@ public class JvmTranslation {
 
             @Override
             public Integer case_ImClassType(ImClassType imClassType) {
-                throw new RuntimeException("TODO " + type);
+                return ALOAD;
             }
 
             @Override
@@ -645,7 +730,7 @@ public class JvmTranslation {
 
             @Override
             public Integer case_ImClassType(ImClassType imClassType) {
-                throw new RuntimeException("TODO " + type);
+                return ASTORE;
             }
 
             @Override
@@ -699,9 +784,7 @@ public class JvmTranslation {
 
     public static void main(String[] args) throws IOException {
         ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-        FieldVisitor fieldVisitor;
         MethodVisitor methodVisitor;
-        AnnotationVisitor annotationVisitor0;
 
         classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, "Blub", null, "java/lang/Object", null);
 
