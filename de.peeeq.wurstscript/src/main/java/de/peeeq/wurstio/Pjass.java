@@ -50,7 +50,7 @@ public class Pjass {
             }
             LineOffsets lineOffsets = new LineOffsets();
             try {
-                String cont = Files.toString(jassFile, Charsets.UTF_8);
+                String cont = Files.asCharSource(jassFile, Charsets.UTF_8).read();
                 int line = 0;
                 lineOffsets.set(1, 0);
                 for (int i = 0; i < cont.length(); i++) {
@@ -103,6 +103,13 @@ public class Pjass {
                     throw new RuntimeException("Could not make pjass executable.");
                 }
                 args.set(0, fileName.getAbsolutePath());
+            } else if (os.startsWith("Mac OS X")) {
+                File fileName = Utils.getResourceFileF("pjass_osx");
+                boolean success = fileName.setExecutable(true);
+                if (!success) {
+                    throw new RuntimeException("Could not make pjass_osx executable.");
+                }
+                args.set(0, fileName.getAbsolutePath());
             } else if (!os.toLowerCase().contains("windows")) {
                 WLogger.info("Operation system " + os + " detected.");
                 WLogger.info("Trying to run with wine ...");
@@ -110,7 +117,11 @@ public class Pjass {
                 args.add(0, "wine");
             }
 
-            p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+            try {
+                p = Runtime.getRuntime().exec(args.toArray(new String[0]));
+            } catch (IOException e) {
+               return new Result(outputFile, false, "Pjass execution error: \n" + e.toString());
+            }
 
             StringBuilder output = new StringBuilder();
 
