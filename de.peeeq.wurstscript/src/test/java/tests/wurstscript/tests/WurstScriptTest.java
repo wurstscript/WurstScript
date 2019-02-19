@@ -459,7 +459,6 @@ public class WurstScriptTest {
                     throw new RuntimeException("could not create directory " + outputFolder);
                 }
             }
-            System.out.println("Output to " + outputFolderF.getAbsolutePath());
             JvmTranslation luaTranslator = new JvmTranslation(imProg, outputFolder);
             luaTranslator.translate();
 

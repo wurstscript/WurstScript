@@ -23,12 +23,17 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public class JvmTranslation {
 
-    /** target version for translation */
+    /**
+     * target version for translation
+     */
     public static final int JAVA_VERSION = V11;
+    private static Label currentEndLoopLabel;
     private ImProg prog;
     private final Path outputFolder;
     private ImmutableMultimap<ImClass, ImMethod> methodByClass;
     private Map<ImVar, Integer> localVars = new HashMap<>();
+    // signatures of functions already added to the current class
+    private Set<String> currentClassFunctions = new HashSet<>();
 
     public JvmTranslation(ImProg prog, Path outputFolder) {
         this.prog = prog;
@@ -111,6 +116,16 @@ public class JvmTranslation {
         return new JPackage("WurstMain");
     }
 
+    private ImClass getElemClass(de.peeeq.wurstscript.jassIm.Element element) {
+        while (element != null) {
+            if (element instanceof ImClass) {
+                return (ImClass) element;
+            }
+            element = element.getParent();
+        }
+        return null;
+    }
+
     private void translatePackage(JPackage p, Collection<ImFunction> imFunctions, Collection<ImVar> imVars, Collection<ImClass> imClasses) throws IOException {
         ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
         classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
@@ -130,21 +145,35 @@ public class JvmTranslation {
         classWriter.visitEnd();
         byte[] bytes = classWriter.toByteArray();
         Files.write(outputFolder.resolve(p.name + ".class"), bytes);
+
+        for (ImClass c : imClasses) {
+            translateInnerClass(p, c);
+        }
     }
 
-    private void translateClass(JPackage p, ClassWriter outerClassWriter, ImClass c) throws IOException {
-        String name = p.name + "$" + c.getName();
+    private void translateClass(JPackage p, ClassWriter outerClassWriter, ImClass c) {
+        String name = className(c, p);
         outerClassWriter.visitNestMember(name);
         outerClassWriter.visitInnerClass(name, p.name, c.getName(), ACC_STATIC);
+    }
 
-        ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
-        classWriter.visit(JAVA_VERSION, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
+    private void translateInnerClass(JPackage p, ImClass c) throws IOException {
+        currentClassFunctions.clear();
+        String name = className(c, p);
+        ClassWriter classWriter = new WurstClassWriter();
+        classWriter.visit(JAVA_VERSION, ACC_PUBLIC | ACC_SUPER, name, null, "java/lang/Object", null);
+        classWriter.visitNestHost(p.name);
+        classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
         for (ImVar v : c.getFields()) {
             translateField(classWriter, v);
         }
 
         for (ImMethod method : c.getMethods()) {
             translateMethod(classWriter, method);
+        }
+
+        for (ImFunction func : c.getFunctions()) {
+            translateFunc(classWriter, func, ACC_PUBLIC | ACC_STATIC);
         }
 
         classWriter.visitEnd();
@@ -218,7 +247,12 @@ public class JvmTranslation {
     }
 
     private void translateFunc(ClassWriter classWriter, ImFunction func, int accesss) {
-        MethodVisitor methodVisitor = classWriter.visitMethod(accesss, func.getName(), getSignatureDescriptor(func), null, null);
+        String sig = getSignatureDescriptor(func);
+        boolean changed = currentClassFunctions.add(func.getName() + sig);
+        if (!changed) {
+            return;
+        }
+        MethodVisitor methodVisitor = classWriter.visitMethod(accesss, func.getName(), sig, null, null);
         methodVisitor.visitCode();
         Label start = new Label();
         methodVisitor.visitLabel(start);
@@ -314,12 +348,62 @@ public class JvmTranslation {
                     translateStatement(methodVisitor, arg);
                 }
                 String signatureDescriptor = getSignatureDescriptor(fc.getFunc());
-                methodVisitor.visitMethodInsn(INVOKESTATIC, getPackage(fc.getFunc()).name, fc.getFunc().getName(), signatureDescriptor, false);
+                methodVisitor.visitMethodInsn(INVOKESTATIC, getClassName(fc.getFunc()), fc.getFunc().getName(), signatureDescriptor, false);
             }
 
             @Override
             public void case_ImReturn(ImReturn imReturn) {
+                if (imReturn.getReturnValue() instanceof ImExpr) {
+                    ImExpr re = (ImExpr) imReturn.getReturnValue();
+                    translateStatement(methodVisitor, re);
+                    re.attrTyp().match(new ImType.MatcherVoid() {
+                        @Override
+                        public void case_ImTupleType(ImTupleType imTupleType) {
+                            methodVisitor.visitInsn(ARETURN);
+                        }
 
+                        @Override
+                        public void case_ImVoid(ImVoid imVoid) {
+                            methodVisitor.visitInsn(RETURN);
+                        }
+
+                        @Override
+                        public void case_ImClassType(ImClassType imClassType) {
+                            methodVisitor.visitInsn(ARETURN);
+                        }
+
+                        @Override
+                        public void case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                            methodVisitor.visitInsn(ARETURN);
+                        }
+
+                        @Override
+                        public void case_ImSimpleType(ImSimpleType t) {
+                            int returnIns = ARETURN;
+                            switch (t.getTypename()) {
+                                case "integer":
+                                    returnIns = IRETURN;
+                                    break;
+                                case "real":
+                                    returnIns = FRETURN;
+                                    break;
+                            }
+                            methodVisitor.visitInsn(returnIns);
+                        }
+
+                        @Override
+                        public void case_ImArrayType(ImArrayType imArrayType) {
+
+                        }
+
+                        @Override
+                        public void case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+
+                        }
+                    });
+                } else {
+                    methodVisitor.visitInsn(RETURN);
+                }
             }
 
             @Override
@@ -511,7 +595,9 @@ public class JvmTranslation {
 
             @Override
             public void case_ImAlloc(ImAlloc imAlloc) {
-                throw new RuntimeException("TODO " + s);
+                ImClass cd = imAlloc.getClazz().getClassDef();
+                String className = className(cd, getPackage(cd));
+                methodVisitor.visitTypeInsn(NEW, className);
             }
 
             @Override
@@ -520,8 +606,9 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImExitwhen(ImExitwhen imExitwhen) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImExitwhen(ImExitwhen e) {
+                translateStatement(methodVisitor, e.getCondition());
+                methodVisitor.visitJumpInsn(IFNE, currentEndLoopLabel);
             }
 
             @Override
@@ -536,12 +623,19 @@ public class JvmTranslation {
 
             @Override
             public void case_ImLoop(ImLoop imLoop) {
-                throw new RuntimeException("TODO " + s);
+                Label beginLoop = new Label();
+                Label endLoop = new Label();
+                methodVisitor.visitLabel(beginLoop);
+                JvmTranslation.currentEndLoopLabel = endLoop;
+                translateStatements(methodVisitor, imLoop.getBody());
+                methodVisitor.visitLabel(endLoop);
             }
 
             @Override
-            public void case_ImMemberAccess(ImMemberAccess imMemberAccess) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImMemberAccess(ImMemberAccess ma) {
+                ImVar var = ma.getVar();
+                translateStatement(methodVisitor, ma.getReceiver());
+                methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
             }
 
             @Override
@@ -562,17 +656,46 @@ public class JvmTranslation {
             @Override
             public void case_ImSet(ImSet imSet) {
                 ImLExpr left = imSet.getLeft();
-                if (left instanceof ImVarAccess) {
-                    ImVarAccess leftVar = (ImVarAccess) left;
-                    if (localVars.containsKey(leftVar.getVar())) {
-                        int varIndex = localVars.get(leftVar.getVar());
-                        translateStatement(methodVisitor, imSet.getRight());
-                        methodVisitor.visitVarInsn(getStoreInstruction(leftVar.getVar().getType()), varIndex);
-                        return;
+                left.match(new ImLExpr.MatcherVoid() {
+                    @Override
+                    public void case_ImTupleSelection(ImTupleSelection imTupleSelection) {
+                        throw new RuntimeException("TODO " + s);
                     }
 
-                }
-                throw new RuntimeException("TODO " + s);
+                    @Override
+                    public void case_ImVarAccess(ImVarAccess leftVar) {
+                        ImVar var = leftVar.getVar();
+                        if (localVars.containsKey(var)) {
+                            int varIndex = localVars.get(var);
+                            translateStatement(methodVisitor, imSet.getRight());
+                            methodVisitor.visitVarInsn(getStoreInstruction(var.getType()), varIndex);
+                        } else {
+                            // if it is not a local variable it must be a static field / global variable
+                            methodVisitor.visitFieldInsn(GETSTATIC, getPackage(var).name, var.getName(), translateType(var.getType()));
+                        }
+                    }
+
+                    @Override
+                    public void case_ImVarArrayAccess(ImVarArrayAccess imVarArrayAccess) {
+                        throw new RuntimeException("TODO " + s);
+                    }
+
+                    @Override
+                    public void case_ImMemberAccess(ImMemberAccess e) {
+                        translateStatement(methodVisitor, e.getReceiver());
+                        methodVisitor.visitFieldInsn(PUTFIELD, getClassName(e.getVar()), e.getVar().getName(), translateType(e.getVar().getType()));
+                    }
+
+                    @Override
+                    public void case_ImStatementExpr(ImStatementExpr imStatementExpr) {
+                        throw new RuntimeException("TODO " + s);
+                    }
+
+                    @Override
+                    public void case_ImTupleExpr(ImTupleExpr imTupleExpr) {
+                        throw new RuntimeException("TODO " + s);
+                    }
+                });
             }
 
             @Override
@@ -614,6 +737,27 @@ public class JvmTranslation {
                 throw new RuntimeException("TODO " + s);
             }
         });
+    }
+
+    @NotNull
+    private String className(ImClass cd, JPackage aPackage) {
+        return aPackage.name + "$" + cd.getName();
+    }
+
+    private String getClassName(ImVar var) {
+        ImClass elemClass = getElemClass(var);
+        if (elemClass == null) {
+            return getPackage(var).name;
+        }
+        return getPackage(var).name + "$" + elemClass.getName();
+    }
+
+    private String getClassName(ImFunction f) {
+        ImClass elemClass = getElemClass(f);
+        if (elemClass == null) {
+            return getPackage(f).name;
+        }
+        return getPackage(f).name + "$" + elemClass.getName();
     }
 
     private boolean isIntOperation(ImOperatorCall oc) {
