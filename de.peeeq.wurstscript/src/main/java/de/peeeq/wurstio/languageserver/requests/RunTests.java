@@ -23,6 +23,7 @@ import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
 import java.util.List;
@@ -89,6 +90,10 @@ public class RunTests extends UserRequest<Object> {
 
     @Override
     public Object execute(ModelManager modelManager) {
+        if (modelManager.hasErrors()) {
+            throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running tests.");
+        }
+
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);
         println("Running unit tests..\n");
 
