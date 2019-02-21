@@ -126,7 +126,7 @@ public class HashtableProvider extends Provider {
     }
 
     public ILconstBool HaveSavedString(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {
-        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstInt.class));
+        return ILconstBool.instance(haveSaved(ht, key1, key2, ILconstString.class));
     }
 
     public ILconstBool HaveSavedInteger(IlConstHandle ht, ILconstInt key1, ILconstInt key2) {

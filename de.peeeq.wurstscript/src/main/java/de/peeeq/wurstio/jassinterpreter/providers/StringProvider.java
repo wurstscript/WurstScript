@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import net.moonlightflower.wc3libs.misc.StringHash;
+import org.apache.commons.lang.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.math.RoundingMode;
@@ -56,13 +57,15 @@ public class StringProvider extends Provider {
     }
 
     public ILconstString R2SW(ILconstReal r, ILconstInt width, ILconstInt precision) {
-        // TODO width
         NumberFormat formatter = NumberFormat.getInstance(Locale.US);
         formatter.setMaximumFractionDigits(precision.getVal());
         formatter.setMinimumFractionDigits(precision.getVal());
         formatter.setRoundingMode(RoundingMode.HALF_UP);
-        Float formatedFloat = new Float(formatter.format(r.getVal()));
-        return new ILconstString("" + formatedFloat);
+        formatter.setGroupingUsed(false);
+        String s = formatter.format(r.getVal());
+        // pad to desired width
+        s = StringUtils.rightPad(s, width.getVal());
+        return new ILconstString(s);
     }
 
     public ILconstInt R2I(ILconstReal i) {
