@@ -1,7 +1,6 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -53,6 +52,24 @@ public class ClassesTests extends WurstScriptTest {
                 "		let a = new A",
                 "		a.i = 42",
                 "		if a.i == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+
+    @Test
+    public void simpleMethod() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "		function foo() returns int",
+                "			return 42",
+                "	init",
+                "		let a = new A",
+                "		a.foo()",
+                "		if 42 == 42",
                 "			testSuccess()",
                 "endpackage"
         );
@@ -271,26 +288,26 @@ public class ClassesTests extends WurstScriptTest {
         test().executeProg(true)
                 .executeProgOnlyAfterTransforms()
                 .lines(
-                "package test",
-                "	native testSuccess()",
-                "	native println(string msg)",
-                "	@extern native I2S(int i) returns string",
-                "	class C",
-                "		int i",
-                "",
-                "	init",
-                "		C array cs",
-                "		for int i = 0 to 6000",
-                "			cs[i] = new C()",
-                "		for int j = 0 to 6000",
-                "			destroy cs[j]",
-                "		for int k = 0 to 6000",
-                "			cs[k] = new C()",
+                        "package test",
+                        "	native testSuccess()",
+                        "	native println(string msg)",
+                        "	@extern native I2S(int i) returns string",
+                        "	class C",
+                        "		int i",
+                        "",
+                        "	init",
+                        "		C array cs",
+                        "		for int i = 0 to 6000",
+                        "			cs[i] = new C()",
+                        "		for int j = 0 to 6000",
+                        "			destroy cs[j]",
+                        "		for int k = 0 to 6000",
+                        "			cs[k] = new C()",
 //                "			println(I2S(k) + \" --> \"  +I2S(cs[k] castTo int))",
-                "		if cs[6000] castTo int <= 6001",
-                "			testSuccess()",
-                "endpackage"
-        );
+                        "		if cs[6000] castTo int <= 6001",
+                        "			testSuccess()",
+                        "endpackage"
+                );
     }
 
     @Test
@@ -565,16 +582,16 @@ public class ClassesTests extends WurstScriptTest {
         test().executeProg()
                 .executeProgOnlyAfterTransforms()
                 .lines(
-                "package test",
-                "	native testSuccess()",
-                "	class A",
-                "		function foo() returns int",
-                "			return 7",
-                "	init",
-                "		A a = null",
-                "		if a.foo() == 7",
-                "			testSuccess()",
-                "endpackage");
+                        "package test",
+                        "	native testSuccess()",
+                        "	class A",
+                        "		function foo() returns int",
+                        "			return 7",
+                        "	init",
+                        "		A a = null",
+                        "		if a.foo() == 7",
+                        "			testSuccess()",
+                        "endpackage");
     }
 
     @Test(expectedExceptions = DebugPrintError.class)
@@ -582,18 +599,18 @@ public class ClassesTests extends WurstScriptTest {
         test().executeProg()
                 .executeProgOnlyAfterTransforms()
                 .lines(
-                "package test",
-                "	native testSuccess()",
-                "	class A",
-                "		function foo() returns int",
-                "			return 7",
-                "	init",
-                "		A a = new A()",
-                "		let b = a",
-                "		destroy b",
-                "		if a.foo() == 7",
-                "			testSuccess()",
-                "endpackage");
+                        "package test",
+                        "	native testSuccess()",
+                        "	class A",
+                        "		function foo() returns int",
+                        "			return 7",
+                        "	init",
+                        "		A a = new A()",
+                        "		let b = a",
+                        "		destroy b",
+                        "		if a.foo() == 7",
+                        "			testSuccess()",
+                        "endpackage");
     }
 
     @Test
