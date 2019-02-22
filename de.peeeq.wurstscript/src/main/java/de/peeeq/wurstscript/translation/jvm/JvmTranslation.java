@@ -161,9 +161,23 @@ public class JvmTranslation {
         currentClassFunctions.clear();
         String name = className(c, p);
         ClassWriter classWriter = new WurstClassWriter();
+        // TODO use correct super-class
         classWriter.visit(JAVA_VERSION, ACC_PUBLIC | ACC_SUPER, name, null, "java/lang/Object", null);
         classWriter.visitNestHost(p.name);
         classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
+
+        // create init function:
+        {
+            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+            methodVisitor.visitCode();
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            // TODO call init of correct super class
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+            methodVisitor.visitInsn(RETURN);
+            methodVisitor.visitMaxs(1, 1);
+            methodVisitor.visitEnd();
+        }
+
         for (ImVar v : c.getFields()) {
             translateField(classWriter, v);
         }
@@ -322,9 +336,13 @@ public class JvmTranslation {
                 if (localVars.containsKey(va.getVar())) {
                     int index = localVars.get(va.getVar());
                     methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), index);
-                    return;
+                } else {
+                    // must be a field:
+                    ImVar var = va.getVar();
+                    // load 'this', which is always in index 0
+                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 0);
+                    methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
                 }
-                throw new RuntimeException("TODO " + s);
             }
 
             @Override
@@ -333,8 +351,16 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImMethodCall(ImMethodCall imMethodCall) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImMethodCall(ImMethodCall mc) {
+                ImClassType rt = (ImClassType) mc.getReceiver().attrTyp();
+                String className = getClassName(rt.getClassDef());
+                translateStatement(methodVisitor, mc.getReceiver());
+                for (ImExpr a : mc.getArguments()) {
+                    translateStatement(methodVisitor, a);
+                }
+                // TODO handle interfaces correctly, not sure how ...
+                boolean isInterface = false;
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, className, mc.getMethod().getName(), getSignatureDescriptor(mc.getMethod().getImplementation()), isInterface);
             }
 
             @Override
@@ -598,6 +624,8 @@ public class JvmTranslation {
                 ImClass cd = imAlloc.getClazz().getClassDef();
                 String className = className(cd, getPackage(cd));
                 methodVisitor.visitTypeInsn(NEW, className);
+                methodVisitor.visitInsn(DUP);
+                methodVisitor.visitMethodInsn(INVOKESPECIAL, className, "<init>", "()V", false);
             }
 
             @Override
@@ -683,6 +711,7 @@ public class JvmTranslation {
                     @Override
                     public void case_ImMemberAccess(ImMemberAccess e) {
                         translateStatement(methodVisitor, e.getReceiver());
+                        translateStatement(methodVisitor, imSet.getRight());
                         methodVisitor.visitFieldInsn(PUTFIELD, getClassName(e.getVar()), e.getVar().getName(), translateType(e.getVar().getType()));
                     }
 
@@ -750,6 +779,10 @@ public class JvmTranslation {
             return getPackage(var).name;
         }
         return getPackage(var).name + "$" + elemClass.getName();
+    }
+
+    private String getClassName(ImClass c) {
+        return getPackage(c).name + "$" + c.getName();
     }
 
     private String getClassName(ImFunction f) {

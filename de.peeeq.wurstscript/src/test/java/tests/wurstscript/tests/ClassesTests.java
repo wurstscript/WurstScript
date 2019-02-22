@@ -43,6 +43,23 @@ public class ClassesTests extends WurstScriptTest {
     }
 
     @Test
+    public void simpleField() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "		int i",
+                "	init",
+                "		let a = new A",
+                "		a.i = 42",
+                "		if a.i == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+
+    @Test
     public void classes_static_func() {
         testAssertErrorsLines(false, "static",
                 "package test",
