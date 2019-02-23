@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.jvm;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
@@ -68,6 +69,8 @@ public class JvmTranslation {
 
     public void translate() {
         try {
+            normalizeNames();
+
             Multimap<JPackage, ImFunction> functionsByPackage =
                     prog.getFunctions().stream()
                             .collect(Utils.groupBy(this::getPackage));
@@ -100,6 +103,49 @@ public class JvmTranslation {
             throw new RuntimeException(e);
         }
 
+    }
+
+    /**
+     * uses the original names when possible instead of the mangled names
+     */
+    private void normalizeNames() {
+        for (ImVar g : prog.getGlobals()) {
+            Element trace = g.attrTrace();
+            if (trace instanceof AstElementWithNameId) {
+                g.setName(((AstElementWithNameId) trace).getNameId().getName());
+            }
+        }
+        for (ImFunction f : prog.getFunctions()) {
+            Element trace = f.attrTrace();
+            if (trace instanceof AstElementWithNameId) {
+                f.setName(((AstElementWithNameId) trace).getNameId().getName());
+            }
+        }
+        for (ImClass c : prog.getClasses()) {
+            for (ImVar g : c.getFields()) {
+                Element trace = g.attrTrace();
+                if (trace instanceof AstElementWithNameId) {
+                    g.setName(((AstElementWithNameId) trace).getNameId().getName());
+                }
+            }
+            for (ImFunction f : c.getFunctions()) {
+                Element trace = f.attrTrace();
+                if (trace instanceof AstElementWithNameId) {
+                    f.setName(((AstElementWithNameId) trace).getNameId().getName());
+                }
+            }
+            for (ImMethod m : c.getMethods()) {
+                Element trace = m.attrTrace();
+                if (trace instanceof AstElementWithNameId) {
+                    m.setName(((AstElementWithNameId) trace).getNameId().getName());
+                }
+            }
+
+            Element trace = c.attrTrace();
+            if (trace instanceof AstElementWithNameId) {
+                c.setName(((AstElementWithNameId) trace).getNameId().getName());
+            }
+        }
     }
 
     private JPackage getPackage(de.peeeq.wurstscript.jassIm.Element element) {
