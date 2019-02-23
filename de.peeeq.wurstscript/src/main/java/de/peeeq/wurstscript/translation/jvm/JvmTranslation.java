@@ -138,7 +138,7 @@ public class JvmTranslation {
             translateStaticVar(classWriter, v);
         }
         for (ImFunction f : imFunctions) {
-            translateFunc(classWriter, f, ACC_PUBLIC | ACC_STATIC);
+            translateFunc(classWriter, f, ACC_PUBLIC | ACC_STATIC, f.getName());
         }
 
 
@@ -187,7 +187,7 @@ public class JvmTranslation {
         }
 
         for (ImFunction func : c.getFunctions()) {
-            translateFunc(classWriter, func, ACC_PUBLIC | ACC_STATIC);
+            translateFunc(classWriter, func, ACC_PUBLIC | ACC_STATIC, func.getName());
         }
 
         classWriter.visitEnd();
@@ -197,7 +197,7 @@ public class JvmTranslation {
 
     private void translateMethod(ClassWriter classWriter, ImMethod method) {
         ImFunction impl = method.getImplementation();
-        translateFunc(classWriter, impl, ACC_PUBLIC);
+        translateFunc(classWriter, impl, ACC_PUBLIC, method.getName());
     }
 
     private void translateField(ClassWriter classWriter, ImVar v) {
@@ -261,14 +261,14 @@ public class JvmTranslation {
         });
     }
 
-    private void translateFunc(ClassWriter classWriter, ImFunction func, int accesss) {
+    private void translateFunc(ClassWriter classWriter, ImFunction func, int accesss, String name) {
         System.out.println("\n------------------------\ntranslating " + func.getName());
-        String sig = getSignatureDescriptor(func, (accesss & ACC_STATIC) != 0);
+        String sig = getSignatureDescriptor(func, (accesss & ACC_STATIC) == 0);
         boolean changed = currentClassFunctions.add(func.getName() + sig);
         if (!changed) {
             return;
         }
-        MethodVisitor methodVisitor = logMethodVisitor(classWriter.visitMethod(accesss, func.getName(), sig, null, null));
+        MethodVisitor methodVisitor = logMethodVisitor(classWriter.visitMethod(accesss, name, sig, null, null));
         methodVisitor.visitCode();
         Label start = new Label();
         methodVisitor.visitLabel(start);
