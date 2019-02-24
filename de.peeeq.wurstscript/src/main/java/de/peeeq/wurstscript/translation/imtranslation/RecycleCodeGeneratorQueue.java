@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Constants;
 
 /**
  * Manages object ids in a queue. This way the time each object is
@@ -19,12 +20,12 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ImStmts body = f.getBody();
         Element tr = c.getTrace();
 
-        ImVar thisVar = JassIm.ImVar(tr, TypesHelper.imInt(), "this", false);
+        ImVar thisVar = JassIm.ImVar(tr, translator.selfType(c), "this", false); // TODO change type
         locals.add(thisVar);
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);
 
-        int maxSize = 32768;
+        int maxSize = Constants.MAX_ARRAY_SIZE;
         // if freeCount == 0 then
         ImStmts elseBlock = JassIm.ImStmts();
         ImStmts thenBlock = JassIm.ImStmts();

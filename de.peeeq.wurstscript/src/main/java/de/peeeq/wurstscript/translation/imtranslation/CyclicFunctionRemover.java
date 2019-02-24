@@ -46,10 +46,11 @@ public class CyclicFunctionRemover {
 
         de.peeeq.wurstscript.ast.Element trace = funcs.get(0).getTrace();
 
-        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(), "funcChoice", false);
+        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(tr), "funcChoice", false);
 
         List<FunctionFlag> flags = Lists.newArrayList();
-        ImFunction newFunc = JassIm.ImFunction(trace, makeName(funcs), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), flags);
+
+        ImFunction newFunc = JassIm.ImFunction(trace, makeName(funcs), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), flags);
         prog.getFunctions().add(newFunc);
         newFunc.getParameters().add(choiceVar);
         newFunc.getParameters().addAll(newParameters);
@@ -121,13 +122,8 @@ public class CyclicFunctionRemover {
             ImFuncRef fr = (ImFuncRef) e;
             ImFunction f = fr.getFunc();
             if (funcs.contains(f)) {
-                ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(),
-                        f.getName() + "_proxy",
-                        f.getParameters().copy(),
-                        (ImType) f.getReturnType().copy(),
-                        JassIm.ImVars(),
-                        JassIm.ImStmts(),
-                        Collections.<FunctionFlag>emptyList());
+
+                ImFunction proxyFunc = JassIm.ImFunction(f.attrTrace(), f.getName() + "_proxy", JassIm.ImTypeVars(), f.getParameters().copy(), (ImType) f.getReturnType().copy(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
                 prog.getFunctions().add(proxyFunc);
 
                 ImExprs arguments = JassIm.ImExprs();
@@ -135,11 +131,7 @@ public class CyclicFunctionRemover {
                     arguments.add(JassIm.ImVarAccess(p));
                 }
 
-                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(),
-                        f,
-                        arguments,
-                        true,
-                        CallType.NORMAL);
+                ImFunctionCall call = JassIm.ImFunctionCall(fr.attrTrace(), f, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
 
                 if (f.getReturnType() instanceof ImVoid) {
                     proxyFunc.getBody().add(call);
@@ -176,7 +168,7 @@ public class CyclicFunctionRemover {
                 }
 
 
-                ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, arguments, true, CallType.NORMAL);
+                ImFunctionCall newCall = JassIm.ImFunctionCall(fc.getTrace(), newFunc, JassIm.ImTypeArguments(), arguments, true, CallType.NORMAL);
 
                 Element ret;
                 if (oldFunc.getReturnType() instanceof ImVoid) {

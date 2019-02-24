@@ -121,9 +121,16 @@ public class Utils {
         return result;
     }
 
+    public static int parseOctalInt(String yytext) {
+        return (int) Long.parseLong(yytext, 8);
+    }
 
     public static int parseHexInt(String yytext, int offset) {
-        return (int) Long.parseLong(yytext.substring(offset), 16);
+        if (yytext.startsWith("-")) {
+            return (int) -Long.parseLong(yytext.substring(offset+1), 16);
+        } else {
+            return (int) Long.parseLong(yytext.substring(offset), 16);
+        }
     }
 
     public static String printSep(String sep, String[] args) {

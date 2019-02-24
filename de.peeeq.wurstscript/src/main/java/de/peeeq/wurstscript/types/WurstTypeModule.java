@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -67,13 +68,13 @@ public class WurstTypeModule extends WurstTypeNamedScope {
     }
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         return TypesHelper.imInt();
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
-        return JassIm.ImNull(imTranslateType());
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
+        return JassIm.ImNull(TypesHelper.imInt());
     }
 
     @Override

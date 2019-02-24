@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 
@@ -25,7 +26,7 @@ public class WurstTypeBool extends WurstTypePrimitive {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImBoolVal(false);
     }
 

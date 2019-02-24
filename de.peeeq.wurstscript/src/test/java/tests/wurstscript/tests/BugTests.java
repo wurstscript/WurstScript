@@ -116,6 +116,50 @@ public class BugTests extends WurstScriptTest {
                 "endpackage");
     }
 
+    @Test
+    public void test_init_order_jass_warning() {
+        testAssertErrorsLines(false, "Variable b may not have been initialized",
+                "function foo takes nothing returns integer",
+                "	local integer a = b",
+                "	local integer b = 3",
+                "	return a + b",
+                "endfunction",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if foo() == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void test_init_order_globals_warning() {
+        testAssertErrorsLines(false, "Global variable b must be declared before it is used.",
+                "package test",
+                "	integer a = b",
+                "	integer b = 3",
+                "	native testSuccess()",
+                "	init",
+                "		if a + b == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
+    @Test
+    public void test_init_order_globals_warning_jass() {
+        testAssertErrorsLines(false, "Global variable b used before it is declared.",
+                "globals",
+                "	integer a = b",
+                "	integer b = 3",
+                "endglobals",
+                "package test",
+                "	native testSuccess()",
+                "	init",
+                "		if a + b == 6",
+                "			testSuccess()",
+                "endpackage");
+    }
+
 
     @Test
     public void test_for_from() {
@@ -1162,6 +1206,30 @@ public class BugTests extends WurstScriptTest {
                 "        let clean_queue = new LinkedList<X>()",
                 "        clean_queue.forEach() itr ->",
                 ""
+        );
+    }
+
+
+    @Test
+    public void negativeNumberLiterals() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "native testFail(string msg)",
+                "init",
+                "    if 0117 != 79",
+                "        testFail(\"a\")",
+                "    if -0117 != -79",
+                "        testFail(\"b\")",
+                "    if 0x4f != 79",
+                "        testFail(\"c\")",
+                "    if -0x4f != -79",
+                "        testFail(\"d\")",
+                "    if $4f != 79",
+                "        testFail(\"e\")",
+                "    if -$4f != -79",
+                "        testFail(\"f\")",
+                "    testSuccess()"
         );
     }
 

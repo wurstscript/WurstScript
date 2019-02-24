@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.lua.translation;
+package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.jassIm.*;

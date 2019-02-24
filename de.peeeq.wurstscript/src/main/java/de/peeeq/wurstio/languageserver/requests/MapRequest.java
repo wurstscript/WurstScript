@@ -27,6 +27,7 @@ import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -180,14 +181,24 @@ public abstract class MapRequest extends UserRequest<Object> {
 
     private boolean isInWurstFolder(String file) {
         Path p = Paths.get(file);
-        Path w = workspaceRoot.getPath();
+        Path w;
+        try {
+            w = workspaceRoot.getPath();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
         return p.startsWith(w)
                 && java.nio.file.Files.exists(p)
                 && Utils.isWurstFile(file);
     }
 
     protected File getBuildDir() {
-        File buildDir = new File(workspaceRoot.getFile(), "_build");
+        File buildDir;
+        try {
+            buildDir = new File(workspaceRoot.getFile(), "_build");
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException("Cannot get build dir", e);
+        }
         if (!buildDir.exists()) {
             UtilsIO.mkdirs(buildDir);
         }

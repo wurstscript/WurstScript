@@ -2,18 +2,41 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  *
  */
 public class ValidateGlobalsUsage {
     public static void checkGlobalsUsage(List<CompilationUnit> toCheck) {
+        Map<NameDef, Element> usedGlobals = new HashMap<>();
         for (CompilationUnit cu : toCheck) {
+            checkJassGlobals(cu.getJassDecls(), usedGlobals);
             for (WPackage p : cu.getPackages()) {
                 checkGlobalsUsage(p);
+            }
+        }
+    }
+
+    private static void checkJassGlobals(JassToplevelDeclarations jassDecls, Map<NameDef, Element> usedGlobals) {
+        for (JassToplevelDeclaration jassDecl : jassDecls) {
+            if (jassDecl instanceof JassGlobalBlock) {
+                JassGlobalBlock globals = (JassGlobalBlock) jassDecl;
+                for (GlobalVarDef glob : globals) {
+                    if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")
+                      && !glob.getSource().getFile().endsWith("war3map.j")) {
+                        glob.getInitialExpr().accept(new Element.DefaultVisitor() {
+                          @Override
+                          public void visit(ExprVarAccess e) {
+                            usedGlobals.put(e.attrNameDef(), e);
+                          }
+                        });
+                        Element use = usedGlobals.get(glob);
+                        if (use != null) {
+                            use.addWarning("Global variable " + glob.getName() + " used before it is declared.");
+                        }
+                    }
+                }
             }
         }
     }

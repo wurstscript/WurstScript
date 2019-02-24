@@ -15,8 +15,12 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import fj.data.Either;
+import fj.data.Option;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -120,10 +124,10 @@ public class ExprTranslation {
             return translated;
         } else if (fromIndex != null) {
 //            System.out.println("  --> fromIndex");
-            return JassIm.ImFunctionCall(trace, fromIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         } else if (toIndex != null) {
 //            System.out.println("  --> toIndex");
-            return JassIm.ImFunctionCall(trace, toIndex, JassIm.ImExprs(translated), false, CallType.NORMAL);
+            return ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
         }
         return translated;
     }
@@ -135,7 +139,7 @@ public class ExprTranslation {
         if (e.attrFuncLink() != null) {
             // overloaded operator
             ImFunction calledFunc = t.getFuncFor(e.attrFuncDef());
-            return JassIm.ImFunctionCall(e, calledFunc, ImExprs(left, right), false, CallType.NORMAL);
+            return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
             if (Utils.isJassCode(e)) {
@@ -169,7 +173,7 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprFuncRef e, ImTranslator t, ImFunction f) {
         ImFunction func = t.getFuncFor(e.attrFuncDef());
-        return ImFuncRef(func);
+        return ImFuncRef(e, func);
     }
 
     public static ImExpr translateIntern(ExprIntVal e, ImTranslator t, ImFunction f) {
@@ -188,7 +192,7 @@ public class ExprTranslation {
         } else if (expectedTypeRaw instanceof WurstTypeUnknown) {
             e.addError("Cannot use 'null' in this context.");
         }
-        return ImNull(expectedTypeRaw.imTranslateType());
+        return ImNull(expectedTypeRaw.imTranslateType(t));
     }
 
     public static ImExpr translateIntern(ExprRealVal e, ImTranslator t, ImFunction f) {
@@ -245,11 +249,10 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(index1, index2));
-
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                 }
             } else {
                 // direct var access
@@ -391,7 +394,9 @@ public class ExprTranslation {
     }
 
     public static ImExpr translateIntern(ExprCast e, ImTranslator t, ImFunction f) {
-        return e.getExpr().imTranslateExpr(t, f);
+        ImExpr et = e.getExpr().imTranslateExpr(t, f);
+        ImType toType = e.getTyp().attrTyp().imTranslateType(t);
+        return JassIm.ImCast(et, toType);
     }
 
     public static ImExpr translateIntern(FunctionCall e, ImTranslator t, ImFunction f) {
@@ -415,7 +420,7 @@ public class ExprTranslation {
             String exFunc = s.getValS();
             NameLink func = Utils.getFirst(e.lookupFuncs(exFunc));
             ImFunction executedFunc = t.getFuncFor((TranslatedToImFunction) func.getDef());
-            return JassIm.ImFunctionCall(e, executedFunc, JassIm.ImExprs(), true, CallType.EXECUTE);
+            return ImFunctionCall(e, executedFunc, ImTypeArguments(), JassIm.ImExprs(), true, CallType.EXECUTE);
         }
 
         if (e.getFuncName().equals("compiletime")
@@ -486,22 +491,26 @@ public class ExprTranslation {
         if (returnReveiver) {
             if (leftExpr == null)
                 throw new Error("impossible");
-            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(), "receiver", false);
+            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
             f.getLocals().add(tempVar);
             stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
         }
 
+
+
         ImExpr call;
         if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
-            call = JassIm.ImMethodCall(e, method, receiver, imArgs, false);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            call = ImFunctionCall(e, calledImFunc, imArgs, false, CallType.NORMAL);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
         if (returnReveiver) {
@@ -512,6 +521,27 @@ public class ExprTranslation {
         } else {
             return call;
         }
+    }
+
+    private static ImTypeArguments getFunctionCallTypeArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables) {
+        ImTypeArguments res = ImTypeArguments();
+        VariableBinding mapping = sig.getMapping();
+        for (ImTypeVar tv : typeVariables) {
+            TypeParamDef tp = tr.getTypeParamDef(tv);
+            Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
+            if (to.isNone()) {
+                throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
+            }
+            WurstTypeBoundTypeParam t = to.some();
+            if (!t.isTemplateTypeParameter()) {
+                continue;
+            }
+            ImType type = t.imTranslateType(tr);
+            // TODO handle constraints
+            Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+            res.add(ImTypeArgument(type, typeClassBinding));
+        }
+        return res;
     }
 
     private static boolean isCalledOnDynamicRef(FunctionCall e) {
@@ -539,7 +569,11 @@ public class ExprTranslation {
     public static ImExpr translateIntern(ExprNewObject e, ImTranslator t, ImFunction f) {
         ConstructorDef constructorFunc = e.attrConstructorDef();
         ImFunction constructorImFunc = t.getConstructNewFunc(constructorFunc);
-        return ImFunctionCall(e, constructorImFunc, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        FunctionSignature sig = e.attrFunctionSignature();
+        WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
+        ImClass imClass = t.getClassFor(wurstType.getClassDef());
+        ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
+        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {
@@ -548,27 +582,31 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprInstanceOf e, ImTranslator translator, ImFunction f) {
         WurstType targetType = e.getTyp().attrTyp();
-        if (targetType instanceof WurstTypeNamedScope) {
-            WurstTypeNamedScope t = (WurstTypeNamedScope) targetType;
-            ImClass clazz = translator.getClassFor((StructureDef) t.getDef());
-            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), clazz);
+        ImType imTargetType = targetType.imTranslateType(translator);
+        if (imTargetType instanceof ImClassType) {
+            return JassIm.ImInstanceof(e.getExpr().imTranslateExpr(translator, f), (ImClassType) imTargetType);
         }
         throw new Error("Cannot compile instanceof " + targetType);
     }
 
     public static ImExpr translate(ExprTypeId e, ImTranslator translator, ImFunction f) {
         WurstType leftType = e.getLeft().attrTyp();
-        if (leftType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
+        ImType imLeftType = leftType.imTranslateType(translator);
+        if (imLeftType instanceof ImClassType) {
+            ImClassType imLeftTypeC = (ImClassType) imLeftType;
+            if (leftType instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface wtc = (WurstTypeClassOrInterface) leftType;
 
-            ImClass c = translator.getClassFor(wtc.getDef());
-            if (wtc.isStaticRef()) {
-                return JassIm.ImTypeIdOfClass(c);
+                if (wtc.isStaticRef()) {
+                    return JassIm.ImTypeIdOfClass(imLeftTypeC);
+                } else {
+                    return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), imLeftTypeC);
+                }
             } else {
-                return JassIm.ImTypeIdOfObj(e.getLeft().imTranslateExpr(translator, f), c);
+                throw new CompileError(e, "not implemented for " + leftType);
             }
         } else {
-            throw new Error("not implemented for " + leftType);
+            throw new CompileError(e, "not implemented for " + leftType);
         }
     }
 
@@ -615,7 +653,8 @@ public class ExprTranslation {
 
     public static ImExpr destroyClass(ExprDestroy s, ImTranslator t, ImFunction f, StructureDef classDef) {
         ImMethod destroyFunc = t.destroyMethod.getFor(classDef);
-        return JassIm.ImMethodCall(s, destroyFunc, s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+        return ImMethodCall(s, destroyFunc, ImTypeArguments(), s.getDestroyedObj().imTranslateExpr(t, f), ImExprs(), false);
+
     }
 
     public static ImExpr translate(ExprEmpty s, ImTranslator translator, ImFunction f) {
@@ -673,11 +712,11 @@ public class ExprTranslation {
                 if (e instanceof AstElementWithIndexes) {
                     ImExpr index1 = implicitParam.imTranslateExpr(t, f);
                     ImExpr index2 = ((AstElementWithIndexes) e).getIndexes().get(0).imTranslateExpr(t, f);
-                    return JassIm.ImVarArrayAccess(e, v, JassIm.ImExprs(index1, index2));
+                    return JassIm.ImMemberAccess(e, index1, JassIm.ImTypeArguments(), v, JassIm.ImExprs(index2));
 
                 } else {
                     ImExpr index = implicitParam.imTranslateExpr(t, f);
-                    return ImVarArrayAccess(e, v, JassIm.ImExprs(index));
+                    return JassIm.ImMemberAccess(e, index, JassIm.ImTypeArguments(), v, JassIm.ImExprs());
                 }
             } else {
                 // direct var access

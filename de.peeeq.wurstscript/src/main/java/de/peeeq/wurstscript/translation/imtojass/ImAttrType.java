@@ -1,10 +1,12 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ImAttrType {
 
@@ -18,6 +20,7 @@ public class ImAttrType {
 
     public static ImType getType(ImFunctionCall e) {
         ImType t = e.getFunc().getReturnType();
+        t = substituteType(t, e.getTypeArguments(), e.getFunc().getTypeVariables());
         if (e.getTuplesEliminated()) {
             if (t instanceof ImTupleType) {
                 ImTupleType tt = (ImTupleType) t;
@@ -26,6 +29,24 @@ public class ImAttrType {
         }
         return t;
     }
+
+    public static ImType substituteType(ImType type, List<ImTypeArgument> generics, List<ImTypeVar> typeVars) {
+        return type.match(new TypeRewriteMatcher() {
+
+            @Override
+            public ImType case_ImTypeVarRef(ImTypeVarRef t) {
+                int index = typeVars.indexOf(t.getTypeVariable());
+                if (index < 0) {
+                    return t;
+                } else if (index >= generics.size()) {
+                    throw new RuntimeException("Could not find replacement for " + t + " when replacing " + typeVars + " with " + generics);
+                }
+                return generics.get(index).getType();
+            }
+
+        });
+    }
+
 
     public static ImType getType(ImIntVal e) {
         return WurstTypeInt.instance().imTranslateType();
@@ -125,7 +146,23 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImMemberAccess e) {
-        return e.getVar().getType();
+        ImType t = e.getVar().getType();
+        ImType receiverType1 = e.getReceiver().attrTyp();
+        if (receiverType1 instanceof ImClassType) {
+            ImClassType receiverType = (ImClassType) receiverType1;
+            ImTypeArguments typeArgs = e.getTypeArguments();
+            try {
+                if (typeArgs.isEmpty()) {
+                    typeArgs = receiverType.getTypeArguments();
+                }
+                t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+                return t;
+            } catch (Exception ex) {
+                throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
+            }
+        } else {
+            return t;
+        }
     }
 
     public static ImType getType(ImAlloc imAlloc) {
@@ -155,5 +192,13 @@ public class ImAttrType {
 
     public static ImType getType(ImCompiletimeExpr e) {
         return e.getExpr().attrTyp();
+    }
+
+    public static ImType getType(ImTypeVarDispatch e) {
+        return e.getTypeClassFunc().getReturnType();
+    }
+
+    public static ImType getType(ImCast imCast) {
+        return imCast.getToType();
     }
 }

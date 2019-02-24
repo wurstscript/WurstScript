@@ -6,13 +6,16 @@ abstract syntax:
 ImProg(
     @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
     ImVars globals,
-	ImFunctions functions, 
-	ImClasses classes, 
+	ImFunctions functions,
+	ImMethods methods,
+	ImClasses classes,
+	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
+ImTypeClassFuncs * ImTypeClassFunc
 
 ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
 
@@ -22,25 +25,42 @@ ImType =
 	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
-	
+	| ImClassType(ref ImClass classDef, ImTypeArguments typeArguments)
+	| ImTypeVarRef(ref ImTypeVar typeVariable)
+
+ImTypeVars * ImTypeVar
+
+ImTypeVar(String name)
+
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+	String name,
+	ImTypeVars typeVariables,
 	ImVars parameters, 
 	ref ImType returnType, 
 	ImVars locals, 
 	ImStmts body, 
 	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
+ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+	String name,
+	ImTypeVars typeVariables,
+	ImVars parameters,
+	ref ImType returnType)
+
+
 ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+	String name,
+	ImTypeVars typeVariables,
 	ImVars fields, 
-	ImMethods methods, 
-	java.util.List<ImClass> superClasses)
+	ImMethods methods,
+	ImFunctions functions,
+	java.util.List<ImClassType> superClasses)
 
 ImMethods * ImMethod
 
-ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
-	String name, 
+ImMethod(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    ref ImClassType methodClass,
+	String name,
 	ref ImFunction implementation,
 	java.util.List<ImMethod> subMethods,
 	boolean isAbstract)
@@ -75,6 +95,9 @@ ImExpr =
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
+    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
+                       , ref ImTypeVar typeVariable)
+	| ImCast(ImExpr expr, ref ImType toType)
 
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =
@@ -87,18 +110,26 @@ ImLExpr =
 
 
 
-ImClassRelatedExpr = 
-	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
-	| ImAlloc(ref ImClass clazz)
-	| ImDealloc(ref ImClass clazz, ImExpr obj)
-	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ref ImVar var)
-	| ImInstanceof(ImExpr obj, ref ImClass clazz)
-	| ImTypeIdOfObj(ImExpr obj, ref ImClass clazz)
-	| ImTypeIdOfClass(ref ImClass clazz)
+ImClassRelatedExpr =
+      ImMemberOrMethodAccess
+	| ImClassRelatedExprWithClass
+
+ImMemberOrMethodAccess =
+	  ImMethodCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImTypeArguments typeArguments, ImExpr receiver, ImExprs arguments, boolean tuplesEliminated)
+	| ImMemberAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr receiver, ImTypeArguments typeArguments, ref ImVar var, ImExprs indexes)
+
+ImClassRelatedExprWithClass =
+	  ImAlloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz)
+	| ImDealloc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExpr obj)
+	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
+	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
+	| ImTypeIdOfClass(ref ImClassType clazz)
 	
 
+
+
 ImCall = 
-	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImExprs arguments
+	  ImFunctionCall(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func, ImTypeArguments typeArguments, ImExprs arguments
 	  				, boolean tuplesEliminated, de.peeeq.wurstscript.translation.imtranslation.CallType callType)
 	| ImOperatorCall(de.peeeq.wurstscript.WurstOperator op, ImExprs arguments)
 	
@@ -107,8 +138,12 @@ ImConst =
 	| ImRealVal(String valR)
 	| ImStringVal(String valS)
 	| ImBoolVal(boolean valB)
-	| ImFuncRef(ref ImFunction func)
+	| ImFuncRef(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImFunction func)
 	| ImNull(ref ImType type)
+
+ImTypeArguments * ImTypeArgument
+
+ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, fj.data.Either<ImMethod, ImFunction>> typeClassBinding)
 
 // helper types:
 
@@ -118,14 +153,15 @@ JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
- | ImProg
+ | ImProg | ImFuncRef
+ | ImAlloc | ImDealloc
 
 ElementWithTypes = ImTupleType | ImTupleArrayType
 
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
 
-ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt
+ImPrintable = ImStmt | ImFunction | ImProg | ImVar | ImType | ImStmts | ImExprOpt | ImType | ImTypeVar | ImClass
 
 ImVarWrite = ImSet | ImSetArray | ImSetArrayMulti | ImSetArrayTuple | ImSetTuple
 ImVarRead = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess
@@ -140,7 +176,7 @@ ImPrintable.print(java.lang.Appendable sb, int indent)
 	returns void
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.print
 
-ImPrintable.toString()
+Element.toString()
 	returns String
 	implemented by de.peeeq.wurstscript.translation.imtranslation.ImPrinter.asString
 
@@ -218,14 +254,14 @@ ImVar.isGlobal()
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.isGlobal
 
 ImStmt.translateStmtToLua(java.util.List<de.peeeq.wurstscript.luaAst.LuaStatement> res, 
-						de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+						de.peeeq.wurstscript.translation.lua.translation.LuaTranslator tr)
 	returns void
-	implemented by de.peeeq.wurstscript.lua.translation.StmtTranslation.translate
+	implemented by de.peeeq.wurstscript.translation.lua.translation.StmtTranslation.translate
 
 
-ImExpr.translateToLua(de.peeeq.wurstscript.lua.translation.LuaTranslator tr)
+ImExpr.translateToLua(de.peeeq.wurstscript.translation.lua.translation.LuaTranslator tr)
 	returns de.peeeq.wurstscript.luaAst.LuaExpr
-	implemented by de.peeeq.wurstscript.lua.translation.ExprTranslation.translate
+	implemented by de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.translate
 
 	
 ImStmts.runStatements(de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState globalState
@@ -315,7 +351,7 @@ ImMethod.attrClass()
 	returns ImClass
 	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.attrClass
 	
-ImClass.attrTypeId
+ImClass.attrTypeId()
 	returns int
 	implemented by de.peeeq.wurstscript.translation.imtranslation.TypeId.get
 	

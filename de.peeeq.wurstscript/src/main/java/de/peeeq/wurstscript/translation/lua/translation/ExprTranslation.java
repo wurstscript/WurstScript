@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.lua.translation;
+package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
@@ -10,12 +10,12 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         LuaTableFields fields = LuaAst.LuaTableFields();
-        ImClass clazz = e.getClazz();
+        ImClass clazz = e.getClazz().getClassDef();
         fields.add(LuaAst.LuaTableNamedField("wurst_typeId", LuaAst.LuaExprIntVal("" + clazz.attrTypeId())));
-        for (ImMethod m : clazz.getMethods()) {
-            LuaFunction luaMethod = tr.luaMethod.getFor(m);
-            fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
-        }
+//        for (ImMethod m : clazz.getMethods()) {
+//            LuaFunction luaMethod = tr.luaMethod.getFor(m);
+//            fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
+//        }
         return LuaAst.LuaTableConstructor(fields); // TODO any fields required? typeid?
     }
 
@@ -143,7 +143,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
-        int i = tr.typeId.getFor(e.getClazz());
+        int i = tr.typeId.getFor(e.getClazz().getClassDef());
         return LuaAst.LuaExprIntVal("" + i);
     }
 
@@ -171,4 +171,11 @@ public class ExprTranslation {
         throw new Error("not implemented");
     }
 
+    public static LuaExpr translate(ImTypeVarDispatch imTypeVarDispatch, LuaTranslator tr) {
+        throw new Error("not implemented");
+    }
+
+    public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
+        return imCast.getExpr().translateToLua(tr);
+    }
 }

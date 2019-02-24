@@ -1,16 +1,17 @@
 package de.peeeq.wurstscript.types;
 
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
-import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.jassIm.ImExprOpt;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import fj.data.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.types.VariablePosition.NONE;
@@ -20,8 +21,10 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     private final TypeParamDef typeParamDef;
     private final WurstType baseType;
+    // the fromIndex and toIndex functions for old-generics:
     private FuncDef fromIndex;
     private FuncDef toIndex;
+    private final @Nullable Map<FuncDef, FuncLink> typeConstraintFunctions;
     private boolean indexInitialized = false;
     private Element context;
 
@@ -32,6 +35,11 @@ public class WurstTypeBoundTypeParam extends WurstType {
         this.typeParamDef = def;
         this.baseType = baseType;
         this.context = context;
+        if (def.getTypeParamConstraints() instanceof NoTypeParamConstraints) {
+            this.typeConstraintFunctions = null;
+        } else {
+            this.typeConstraintFunctions = new HashMap<>();
+        }
     }
 
     @Override
@@ -56,12 +64,12 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     @Override
-    public ImType imTranslateType() {
-        return baseType.imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return baseType.imTranslateType(tr);
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImIntVal(0);
     }
 
@@ -122,14 +130,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
         if (indexInitialized) {
             return;
         }
-        // if type does support generics natively, try to find implicit conversion functions
-        if (!baseType.supportsGenerics()) {
-            fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
-            toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
-        } else if (baseType instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
-            fromIndex = bt.getFromIndex();
-            toIndex = bt.getToIndex();
+        if (typeConstraintFunctions == null) {
+            if (!baseType.supportsGenerics()) {
+                // if type does support generics natively, try to find implicit conversion functions
+                fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
+                toIndex = ImplicitFuncs.findToIndexFunc(baseType, context);
+            } else if (baseType instanceof WurstTypeBoundTypeParam) {
+                WurstTypeBoundTypeParam bt = (WurstTypeBoundTypeParam) baseType;
+                fromIndex = bt.getFromIndex();
+                toIndex = bt.getToIndex();
+            }
         }
         indexInitialized = true;
     }
@@ -138,6 +148,11 @@ public class WurstTypeBoundTypeParam extends WurstType {
     public boolean supportsGenerics() {
         return baseType.supportsGenerics()
                 || getFromIndex() != null && getToIndex() != null;
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return baseType.isNullable();
     }
 
     @Override
@@ -175,4 +190,18 @@ public class WurstTypeBoundTypeParam extends WurstType {
         return baseType.isTranslatedToInt();
     }
 
+    public @Nullable Map<FuncDef, FuncLink> getTypeConstraintFunctions() {
+        return typeConstraintFunctions;
+    }
+
+    public boolean isTemplateTypeParameter() {
+        return typeParamDef.getTypeParamConstraints() instanceof TypeExprList;
+    }
+
+    public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
+        ImType t = imTranslateType(tr);
+        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
+        // TODO add type class binding
+        return JassIm.ImTypeArgument(t, typeClassBinding);
+    }
 }

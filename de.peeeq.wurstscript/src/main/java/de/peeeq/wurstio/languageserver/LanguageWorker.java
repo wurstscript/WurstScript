@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
+import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -172,7 +173,7 @@ public class LanguageWorker implements Runnable {
             // TODO this can be done more efficiently than doing one at a time
             PendingChange change = removeFirst(changes);
             return new Workitem(change.toString(), () -> {
-                if (change.getFilename().getFile().getName().endsWith("wurst.dependencies")) {
+                if (isWurstDependencyFile(change)) {
                     if (!(change instanceof FileReconcile)) {
                         modelManager.clean();
                     }
@@ -189,6 +190,10 @@ public class LanguageWorker implements Runnable {
             });
         }
         return null;
+    }
+
+    private boolean isWurstDependencyFile(PendingChange change) {
+        return change.getFilename().getUriString().endsWith("wurst.dependencies");
     }
 
     private PendingChange removeFirst(Map<WFile, PendingChange> changes) {

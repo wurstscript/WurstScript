@@ -47,4 +47,11 @@ public class DefaultValue {
         return () -> new ILconstArray(makeSupplier(depth - 1, entryType));
     }
 
+    public static ILconst get(ImTypeVarRef e) {
+        return new ILconstUnsafeDefault(e.getTypeVariable());
+    }
+
+    public static ILconst get(ImClassType ct) {
+        return new ILconstInt(0);
+    }
 }

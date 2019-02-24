@@ -810,4 +810,19 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void closureCaptureMain() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "interface SimpleFunc",
+                "	function apply(int x) returns int",
+                "init",
+                "	int main = 4",
+                "	SimpleFunc f = (int x) -> x + main",
+                "	if f.apply(3) == 7",
+                "		testSuccess()"
+        );
+    }
+
 }

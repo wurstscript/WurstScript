@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 
@@ -39,14 +40,19 @@ public class WurstTypeVararg extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
-        return baseType.imTranslateType();
+    public ImType imTranslateType(ImTranslator tr) {
+        return baseType.imTranslateType(tr);
     }
 
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         throw new Error();
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
 

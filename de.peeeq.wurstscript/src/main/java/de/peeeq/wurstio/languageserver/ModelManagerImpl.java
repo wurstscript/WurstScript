@@ -407,7 +407,13 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void replaceCompilationUnit(WFile filename) {
-        File f = filename.getFile();
+        File f;
+        try {
+            f = filename.getFile();
+        } catch (FileNotFoundException e) {
+            WLogger.info("Cannot replaceCompilationUnit for " + filename + "\n" + e);
+            return;
+        }
         if (!f.exists()) {
             removeCompilationUnit(filename);
             return;

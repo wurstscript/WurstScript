@@ -87,4 +87,4 @@ attributes:
 
 Element.print(StringBuilder sb, int indent)
 	returns void
-	implemented by de.peeeq.wurstscript.lua.printing.LuaPrinter.print
+	implemented by de.peeeq.wurstscript.translation.lua.printing.LuaPrinter.print

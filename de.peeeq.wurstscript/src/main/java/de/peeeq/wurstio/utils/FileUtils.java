@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.languageserver.WFile;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
 /**
@@ -27,7 +28,11 @@ public class FileUtils {
 
 
     public static boolean isInDirectoryTrans(WFile file, WFile directory) {
-        return file.getPath().startsWith(directory.getPath());
+        try {
+            return file.getPath().startsWith(directory.getPath());
+        } catch (FileNotFoundException e) {
+            return false;
+        }
     }
 
     public static void deleteRecursively(File f) throws IOException {

@@ -70,7 +70,7 @@ dependencies {
     antlr "org.antlr:antlr4:4.7"
 
     // tool for generating AST-classes
-    compileOnly 'com.github.peterzeller:abstractsyntaxgen:0.3.1'
+    compileOnly 'com.github.peterzeller:abstractsyntaxgen:59168ba9d61d89c775a53d54b3b83a99f48a585b'
 
     // JUnit for testing
     testCompile group: 'org.testng', name: 'testng', version: '6.14.3'
@@ -108,6 +108,9 @@ dependencies {
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
+    // Smallcheck testing library:
+    testCompile group: 'com.github.peterzeller', name: 'java-smallcheck', version: '3f6a178ba7'
 }
 
 configurations.all {

@@ -1,4 +1,4 @@
-package de.peeeq.wurstscript.lua.printing;
+package de.peeeq.wurstscript.translation.lua.printing;
 
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.utils.Utils;

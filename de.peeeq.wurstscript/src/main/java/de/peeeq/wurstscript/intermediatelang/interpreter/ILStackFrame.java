@@ -44,7 +44,7 @@ public class ILStackFrame {
             sb.append("... when executing compiletime expression ");
         }
 
-        if (trace != null) {
+        if (trace != null && !trace.isArtificial()) {
             String file = new File(trace.getFile()).getName();
             sb.append(" in ").append(file).append(":").append(trace.getLine());
         }

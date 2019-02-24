@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -50,11 +51,11 @@ public class WurstTypeTuple extends WurstType {
 
 
     @Override
-    public ImType imTranslateType() {
+    public ImType imTranslateType(ImTranslator tr) {
         List<ImType> types = Lists.newArrayList();
         List<String> names = Lists.newArrayList();
         for (WParameter p : tupleDef.getParameters()) {
-            ImType pt = p.attrTyp().imTranslateType();
+            ImType pt = p.attrTyp().imTranslateType(tr);
             types.add(pt);
             names.add(p.getName());
         }
@@ -62,12 +63,17 @@ public class WurstTypeTuple extends WurstType {
     }
 
     @Override
-    public ImExprOpt getDefaultValue() {
+    public ImExprOpt getDefaultValue(ImTranslator tr) {
         ImExprs exprs = JassIm.ImExprs();
         for (WParameter p : tupleDef.getParameters()) {
-            exprs.add((ImExpr) p.attrTyp().getDefaultValue());
+            exprs.add((ImExpr) p.attrTyp().getDefaultValue(tr));
         }
         return JassIm.ImTupleExpr(exprs);
+    }
+
+    @Override
+    protected boolean isNullable() {
+        return false;
     }
 
     public int getTupleIndex(VarDef varDef) {

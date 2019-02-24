@@ -92,11 +92,10 @@ public class StmtTranslation {
 
             ImStmts imBody = ImStmts();
             // exitwhen not #hasNext()
-            imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(s, hasNextFuncIm, fromTarget, false, CallType
+            imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(ImFunctionCall(s, hasNextFuncIm, ImTypeArguments(), fromTarget, false, CallType
                     .NORMAL)))));
             // elem = next()
-            ImFunctionCall nextCall = JassIm.ImFunctionCall(s, nextFuncIm, fromTarget.copy(),
-                    false, CallType.NORMAL);
+            ImFunctionCall nextCall = ImFunctionCall(s, nextFuncIm, ImTypeArguments(), fromTarget.copy(), false, CallType.NORMAL);
 
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
@@ -146,7 +145,7 @@ public class StmtTranslation {
             }
 
             // call XX.iterator()
-            ImFunctionCall iteratorCall = JassIm.ImFunctionCall(forIn, iteratorFuncIm, iterationTargetList, false, CallType.NORMAL);
+            ImFunctionCall iteratorCall = ImFunctionCall(forIn, iteratorFuncIm, ImTypeArguments(), iterationTargetList, false, CallType.NORMAL);
             // create IM-variable for iterator
             ImVar iteratorVar = JassIm.ImVar(forIn.getLoopVar(), iteratorCall.attrTyp(), "iterator", false);
 
@@ -160,12 +159,11 @@ public class StmtTranslation {
 
             ImStmts imBody = ImStmts();
             // exitwhen not #hasNext()
-            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(JassIm.ImFunctionCall(forIn, hasNextFuncIm, JassIm.ImExprs
+            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(ImFunctionCall(forIn, hasNextFuncIm, ImTypeArguments(), JassIm.ImExprs
                     (JassIm
                             .ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
             // elem = next()
-            ImFunctionCall nextCall = JassIm.ImFunctionCall(forIn, nextFuncIm, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false,
-                    CallType.NORMAL);
+            ImFunctionCall nextCall = ImFunctionCall(forIn, nextFuncIm, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL);
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(forIn, t, nextCall, nextReturn, loopVarType);
 
@@ -181,7 +179,7 @@ public class StmtTranslation {
                     @Override
                     public void visit(ImReturn imReturn) {
                         super.visit(imReturn);
-                        imReturn.replaceBy(ImHelper.statementExprVoid(JassIm.ImStmts(JassIm.ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), JassIm
+                        imReturn.replaceBy(ImHelper.statementExprVoid(JassIm.ImStmts(ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), ImTypeArguments(), JassIm
                                 .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn.copy())));
                     }
 
@@ -191,7 +189,7 @@ public class StmtTranslation {
 
             result.add(ImLoop(forIn, imBody));
             // close iterator after loop
-            closeFunc.ifPresent(nameLink -> result.add(JassIm.ImFunctionCall(forIn, t.getFuncFor(nameLink.getDef()), JassIm.ImExprs(JassIm
+            closeFunc.ifPresent(nameLink -> result.add(ImFunctionCall(forIn, t.getFuncFor(nameLink.getDef()), ImTypeArguments(), JassIm.ImExprs(JassIm
                     .ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
 
         }
@@ -299,7 +297,7 @@ public class StmtTranslation {
 
     public static ImStmt translate(SwitchStmt switchStmt, ImTranslator t, ImFunction f) {
         List<ImStmt> result = Lists.newArrayList();
-        ImType type = switchStmt.getExpr().attrTyp().imTranslateType();
+        ImType type = switchStmt.getExpr().attrTyp().imTranslateType(t);
         ImExpr tempVar = addCacheVariableSmart(t, f, result, switchStmt.getExpr(), type);
         // generate ifs
         // leerer Block:

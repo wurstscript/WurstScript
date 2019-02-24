@@ -105,7 +105,9 @@ public class FunctionSignature {
 
 
     public static FunctionSignature fromNameLink(FuncLink f) {
-        return new FunctionSignature(f.getDef(), VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(f.getTypeParams())), f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
+        VariableBinding mapping = f.getVariableBinding();
+        mapping = mapping.withTypeVariables(fj.data.List.iterableList(f.getTypeParams()));
+        return new FunctionSignature(f.getDef(), mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 
 
@@ -254,6 +256,14 @@ public class FunctionSignature {
         });
     }
 
+    public boolean hasIfNotDefinedAnnotation() {
+        if (trace instanceof HasModifier) {
+            HasModifier m = (HasModifier) this.trace;
+            return m.attrHasAnnotation("ifNotDefined");
+        }
+        return false;
+    }
+
     public static class ArgsMatchResult {
         private final FunctionSignature sig;
         private final ImmutableList<CompileError> errors;
@@ -287,11 +297,11 @@ public class FunctionSignature {
         int badness = 0;
         if (!isValidParameterNumber(argTypes.size())) {
             if (argTypes.size() > getMaxNumParams()) {
-                errors.add(new CompileError(location.attrErrorPos(), "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
+                errors.add(new CompileError(location, "Too many arguments: " + argTypes.size() + " given, but only " + getMaxNumParams() +
                         " expected."));
                 badness += argTypes.size() - getMaxNumParams();
             } else if (argTypes.size() < getMinNumParams()) {
-                errors.add(new CompileError(location.attrErrorPos(), "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
+                errors.add(new CompileError(location, "Not enough arguments: " + argTypes.size() + " given, but  " + getMinNumParams() + " expected."));
                 badness += getMinNumParams() - argTypes.size();
             }
         }
@@ -311,7 +321,7 @@ public class FunctionSignature {
         }
 
         if (mapping.hasUnboundTypeVars()) {
-            errors.add(new CompileError(location.attrErrorPos(), "Could not infer type for type variables " + mapping.printUnboundTypeVars()));
+            errors.add(new CompileError(location, "Could not infer type for type variables " + mapping.printUnboundTypeVars()));
         }
         errors.addAll(mapping.getErrors());
 

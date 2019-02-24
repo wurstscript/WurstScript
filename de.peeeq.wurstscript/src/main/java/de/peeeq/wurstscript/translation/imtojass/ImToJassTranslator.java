@@ -19,6 +19,8 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
+import java.util.regex.Pattern;
+
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 public class ImToJassTranslator {
 
@@ -213,6 +215,7 @@ public class ImToJassTranslator {
     }
 
     private String jassifyName(String name) {
+        name = filterInvalidSymbols(name);
         if (RestrictedCompressedNames.contains(name) || name.startsWith("_")) {
             name = "w" + name;
         }
@@ -223,6 +226,27 @@ public class ImToJassTranslator {
             name = "empty";
         }
         return name;
+    }
+
+    private final Pattern jassValidName = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
+
+    /** replaces all invalid characters with underscores*/
+    private String filterInvalidSymbols(String name) {
+        if (jassValidName.matcher(name).matches()) {
+            return name;
+        }
+        StringBuilder sb = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            if (!(c >= 'a' && c <= 'z'
+                    || c >= 'A' && c <= 'Z'
+                    || c >= '0' && c <= '9'
+                    || c == '_')) {
+                c = '_';
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private boolean isGlobal(ImVar v) {
@@ -241,7 +265,11 @@ public class ImToJassTranslator {
                     prog.getNatives().add((JassNative) f);
                 }
             } else {
-                String name = getUniqueGlobalName(func.getName());
+                String name = func.getName();
+                // find a unique name, but keep special names 'main' and 'config'
+                if (!name.equals("main") && !name.equals("config")) {
+                    name = getUniqueGlobalName(func.getName());
+                }
                 boolean isCompiletimeNative = func.hasFlag(FunctionFlagEnum.IS_COMPILETIME_NATIVE);
                 f = JassFunction(name, JassSimpleVars(), "nothing", JassVars(), JassStatements(), isCompiletimeNative);
                 if (!func.isBj() && !func.isExtern()) {
