@@ -23,7 +23,8 @@ public class ValidateGlobalsUsage {
             if (jassDecl instanceof JassGlobalBlock) {
                 JassGlobalBlock globals = (JassGlobalBlock) jassDecl;
                 for (GlobalVarDef glob : globals) {
-                    if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")) {
+                    if (!glob.getSource().getFile().endsWith("common.j") && !glob.getSource().getFile().endsWith("blizzard.j")
+                      && !glob.getSource().getFile().endsWith("war3map.j")) {
                         glob.getInitialExpr().accept(new Element.DefaultVisitor() {
                           @Override
                           public void visit(ExprVarAccess e) {
