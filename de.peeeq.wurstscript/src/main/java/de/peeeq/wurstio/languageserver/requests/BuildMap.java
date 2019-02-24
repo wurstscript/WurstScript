@@ -16,10 +16,13 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
+import net.moonlightflower.wc3libs.txt.app.jass.JassScript;
+import net.moonlightflower.wc3libs.txt.app.jass.LightJass;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -95,7 +98,7 @@ public class BuildMap extends MapRequest {
             }
 
             gui.sendProgress("Applying Map Config...");
-            applyProjectConfig(projectConfig, targetMap);
+            applyProjectConfig(projectConfig, targetMap, compiledScript);
             gui.sendProgress("Done.");
         } catch (CompileError e) {
             WLogger.info(e);
@@ -110,7 +113,7 @@ public class BuildMap extends MapRequest {
         return "ok"; // TODO
     }
 
-    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
         if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
@@ -127,6 +130,19 @@ public class BuildMap extends MapRequest {
                 applyPlayers(projectConfig, w3I);
                 applyForces(projectConfig, w3I);
                 applyLoadingScreen(w3I, scenarioData);
+
+                mpq.deleteFile("war3map.j");
+
+                LightJass jass = new LightJass(compiledScript);
+                JassScript script = new JassScript(jass.getRootContext());
+
+                w3I.injectConfigsInJassScript(script);
+
+                StringWriter sw = new StringWriter();
+
+                script.write(sw);
+
+                mpq.insertFile("war3map.j", sw.toString().getBytes());
 
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
