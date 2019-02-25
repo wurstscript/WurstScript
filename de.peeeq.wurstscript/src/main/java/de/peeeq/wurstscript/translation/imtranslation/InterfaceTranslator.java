@@ -31,6 +31,7 @@ public class InterfaceTranslator {
     }
 
     public void translate() {
+        imClass.setIsInterface(true);
         translator.getImProg().getClasses().add(imClass);
 
         // set super-classes

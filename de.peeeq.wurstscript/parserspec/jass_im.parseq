@@ -54,7 +54,8 @@ ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	ImVars fields, 
 	ImMethods methods,
 	ImFunctions functions,
-	java.util.List<ImClassType> superClasses)
+	java.util.List<ImClassType> superClasses,
+	boolean isInterface)
 
 ImMethods * ImMethod
 

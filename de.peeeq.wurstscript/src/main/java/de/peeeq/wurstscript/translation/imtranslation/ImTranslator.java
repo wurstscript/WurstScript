@@ -1550,7 +1550,7 @@ public class ImTranslator {
 
     public ImClass getClassForClosure(ExprClosure s) {
         Preconditions.checkNotNull(s);
-        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
+        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList(), false));
     }
 
 
@@ -1569,7 +1569,7 @@ public class ImTranslator {
                 }
             }
 
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList(), false);
         });
     }
 

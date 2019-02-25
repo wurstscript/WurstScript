@@ -68,8 +68,45 @@ public class ClassesTests extends WurstScriptTest {
                 "			return 42",
                 "	init",
                 "		let a = new A",
-                "		a.foo()",
-                "		if 42 == 42",
+                "		if a.foo() == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+
+    @Test
+    public void simpleSubclass() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "		function foo() returns int",
+                "			return 41",
+                "	class B extends A",
+                "		override function foo() returns int",
+                "			return 42",
+                "	init",
+                "		A a = new B",
+                "		if a.foo() == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void simpleInterfaces() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	interface I",
+                "		function foo() returns int",
+                "	class B implements I",
+                "		override function foo() returns int",
+                "			return 42",
+                "	init",
+                "		I i = new B",
+                "		if i.foo() == 42",
                 "			testSuccess()",
                 "endpackage"
         );

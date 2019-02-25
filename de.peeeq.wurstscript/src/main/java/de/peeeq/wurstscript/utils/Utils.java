@@ -1069,4 +1069,50 @@ public class Utils {
             }
         };
     }
+
+    public static <T> Collector<T, ?, Optional<T>> oneAndOnly() {
+        class Col {
+            T first = null;
+        }
+        return new Collector<T, Col, Optional<T>>() {
+            @Override
+            public Supplier<Col> supplier() {
+                return Col::new;
+            }
+
+            @Override
+            public BiConsumer<Col, T> accumulator() {
+                return (c,t) -> {
+                    Preconditions.checkNotNull(t);
+                    if (c.first != null) {
+                        throw new RuntimeException("There is more than one element:\n1. " + c.first + "\n2. " + t);
+                    }
+                    c.first = t;
+                };
+            }
+
+            @Override
+            public BinaryOperator<Col> combiner() {
+                return (c1, c2) -> {
+                    if (c1.first == null) {
+                        return c2;
+                    } else if (c2.first == null) {
+                        return c1;
+                    } else {
+                        throw new RuntimeException("There is more than one element:\n1. " + c1.first + "\n2. " + c2.first);
+                    }
+                };
+            }
+
+            @Override
+            public java.util.function.Function<Col, Optional<T>> finisher() {
+                return c -> Optional.ofNullable(c.first);
+            }
+
+            @Override
+            public Set<Characteristics> characteristics() {
+                return ImmutableSet.of(Characteristics.UNORDERED);
+            }
+        };
+    }
 }

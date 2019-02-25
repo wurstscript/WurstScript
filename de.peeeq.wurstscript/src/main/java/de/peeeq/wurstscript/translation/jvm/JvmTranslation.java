@@ -191,6 +191,7 @@ public class JvmTranslation {
         classWriter.visitEnd();
         byte[] bytes = classWriter.toByteArray();
         Files.write(outputFolder.resolve(p.name + ".class"), bytes);
+        System.out.println("written " + outputFolder.resolve(p.name + ".class").toFile().getAbsolutePath());
 
         for (ImClass c : imClasses) {
             translateInnerClass(p, c);
@@ -208,20 +209,32 @@ public class JvmTranslation {
         String name = className(c, p);
         ClassWriter classWriter = new WurstClassWriter();
         // TODO use correct super-class
-        classWriter.visit(JAVA_VERSION, ACC_PUBLIC | ACC_SUPER, name, null, "java/lang/Object", null);
+        Optional<ImClass> superClass = c.getSuperClasses().stream()
+                .map(ImClassType::getClassDef)
+                .filter(st -> !st.getIsInterface())
+                .collect(Utils.oneAndOnly());
+        String superClassDescr = superClass.map(this::classDescriptor).orElse("java/lang/Object");
+
+        String[] interfaces = c.getSuperClasses().stream()
+                .map(ImClassType::getClassDef)
+                .filter(ImClass::getIsInterface)
+                .map(this::classDescriptor)
+                .toArray(String[]::new);
+
+        int access = ACC_PUBLIC;
+        if (c.getIsInterface()) {
+            access |= ACC_ABSTRACT | ACC_INTERFACE;
+        } else {
+            access |= ACC_SUPER;
+        }
+        // TODO add ACC_ABSTRACT for abstract classes
+
+        classWriter.visit(JAVA_VERSION, access, name, null, superClassDescr, interfaces);
         classWriter.visitNestHost(p.name);
         classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
 
-        // create init function:
-        {
-            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-            methodVisitor.visitCode();
-            methodVisitor.visitVarInsn(ALOAD, 0);
-            // TODO call init of correct super class
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-            methodVisitor.visitInsn(RETURN);
-            methodVisitor.visitMaxs(1, 1);
-            methodVisitor.visitEnd();
+        if (!c.getIsInterface()) {
+            createInitFunction(classWriter, superClassDescr);
         }
 
         for (ImVar v : c.getFields()) {
@@ -233,17 +246,35 @@ public class JvmTranslation {
         }
 
         for (ImFunction func : c.getFunctions()) {
-            translateFunc(classWriter, func, ACC_PUBLIC | ACC_STATIC, func.getName());
+            if (!func.getBody().isEmpty()) {
+                translateFunc(classWriter, func, ACC_PUBLIC | ACC_STATIC, func.getName());
+            }
         }
 
         classWriter.visitEnd();
         byte[] bytes = classWriter.toByteArray();
         Files.write(outputFolder.resolve(name + ".class"), bytes);
+        System.out.println("written " + outputFolder.resolve(name + ".class").toFile().getAbsolutePath());
+    }
+
+    private void createInitFunction(ClassWriter classWriter, String superClassDescr) {
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
+        methodVisitor.visitCode();
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        // TODO call init of correct super class
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, superClassDescr, "<init>", "()V", false);
+        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMaxs(1, 1);
+        methodVisitor.visitEnd();
     }
 
     private void translateMethod(ClassWriter classWriter, ImMethod method) {
         ImFunction impl = method.getImplementation();
-        translateFunc(classWriter, impl, ACC_PUBLIC, method.getName());
+        int acc = ACC_PUBLIC;
+        if (method.getIsAbstract()) {
+            acc |= ACC_ABSTRACT;
+        }
+        translateFunc(classWriter, impl, acc, method.getName());
     }
 
     private void translateField(ClassWriter classWriter, ImVar v) {
@@ -254,6 +285,10 @@ public class JvmTranslation {
     private void translateStaticVar(ClassWriter classWriter, ImVar v) {
         FieldVisitor fieldVisitor = classWriter.visitField(ACC_PUBLIC | ACC_STATIC, v.getName(), translateType(v.getType()), null, null);
         fieldVisitor.visitEnd();
+    }
+
+    private String classDescriptor(ImClass cd) {
+        return getPackage(cd).name + "$" + cd.getName();
     }
 
     private String translateType(ImType type) {
@@ -271,7 +306,7 @@ public class JvmTranslation {
             @Override
             public String case_ImClassType(ImClassType c) {
                 ImClass cd = c.getClassDef();
-                return "L" + getPackage(cd) + "$" + cd.getName() + ";";
+                return "L" + classDescriptor(cd) + ";";
             }
 
             @Override
@@ -352,194 +387,198 @@ public class JvmTranslation {
         return new MethodVisitor(Opcodes.ASM5) {
             @Override
             public void visitParameter(String name, int access) {
-                System.out.println("visitParameter" + Arrays.asList(name, access));
+                println("visitParameter" + Arrays.asList(name, access));
                 parent.visitParameter(name, access);
             }
 
             @Override
             public AnnotationVisitor visitAnnotationDefault() {
-                System.out.println("visitAnnotationDefault" + Arrays.asList());
+                println("visitAnnotationDefault" + Arrays.asList());
                 return parent.visitAnnotationDefault();
             }
 
             @Override
             public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
-                System.out.println("visitAnnotation" + Arrays.asList(descriptor, visible));
+                println("visitAnnotation" + Arrays.asList(descriptor, visible));
                 return parent.visitAnnotation(descriptor, visible);
             }
 
             @Override
             public AnnotationVisitor visitTypeAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                System.out.println("visitTypeAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
+                println("visitTypeAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
                 return parent.visitTypeAnnotation(typeRef, typePath, descriptor, visible);
             }
 
             @Override
             public void visitAnnotableParameterCount(int parameterCount, boolean visible) {
-                System.out.println("visitAnnotableParameterCount" + Arrays.asList(parameterCount, visible));
+                println("visitAnnotableParameterCount" + Arrays.asList(parameterCount, visible));
                 parent.visitAnnotableParameterCount(parameterCount, visible);
             }
 
             @Override
             public AnnotationVisitor visitParameterAnnotation(int parameter, String descriptor, boolean visible) {
-                System.out.println("visitParameterAnnotation" + Arrays.asList(parameter, descriptor, visible));
+                println("visitParameterAnnotation" + Arrays.asList(parameter, descriptor, visible));
                 return parent.visitParameterAnnotation(parameter, descriptor, visible);
             }
 
             @Override
             public void visitAttribute(Attribute attribute) {
-                System.out.println("visitAttribute" + Arrays.asList(attribute));
+                println("visitAttribute" + Arrays.asList(attribute));
                 parent.visitAttribute(attribute);
             }
 
             @Override
             public void visitCode() {
-                System.out.println("visitCode" + Arrays.asList());
+                println("visitCode" + Arrays.asList());
                 parent.visitCode();
             }
 
             @Override
             public void visitFrame(int type, int numLocal, Object[] local, int numStack, Object[] stack) {
-                System.out.println("visitFrame" + Arrays.asList(type, numLocal, local, numStack, stack));
+                println("visitFrame" + Arrays.asList(type, numLocal, local, numStack, stack));
                 parent.visitFrame(type, numLocal, local, numStack, stack);
             }
 
             @Override
             public void visitInsn(int opcode) {
-                System.out.println("visitInsn" + Arrays.asList(opcode));
+                println("visitInsn" + Arrays.asList(opcode));
                 parent.visitInsn(opcode);
             }
 
             @Override
             public void visitIntInsn(int opcode, int operand) {
-                System.out.println("visitIntInsn" + Arrays.asList(opcode, operand));
+                println("visitIntInsn" + Arrays.asList(opcode, operand));
                 parent.visitIntInsn(opcode, operand);
             }
 
             @Override
             public void visitVarInsn(int opcode, int var) {
-                System.out.println("visitVarInsn" + Arrays.asList(opcode, var));
+                println("visitVarInsn" + Arrays.asList(opcode, var));
                 parent.visitVarInsn(opcode, var);
             }
 
             @Override
             public void visitTypeInsn(int opcode, String type) {
-                System.out.println("visitTypeInsn" + Arrays.asList(opcode, type));
+                println("visitTypeInsn" + Arrays.asList(opcode, type));
                 parent.visitTypeInsn(opcode, type);
             }
 
             @Override
             public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-                System.out.println("visitFieldInsn" + Arrays.asList(opcode, owner, name, descriptor));
+                println("visitFieldInsn" + Arrays.asList(opcode, owner, name, descriptor));
                 parent.visitFieldInsn(opcode, owner, name, descriptor);
             }
 
             @Override
             public void visitMethodInsn(int opcode, String owner, String name, String descriptor) {
-                System.out.println("visitMethodInsn" + Arrays.asList(opcode, owner, name, descriptor));
+                println("visitMethodInsn" + Arrays.asList(opcode, owner, name, descriptor));
                 parent.visitMethodInsn(opcode, owner, name, descriptor);
             }
 
             @Override
             public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                System.out.println("visitMethodInsn" + Arrays.asList(opcode, owner, name, descriptor, isInterface));
+                println("visitMethodInsn" + Arrays.asList(opcode, owner, name, descriptor, isInterface));
                 parent.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
             }
 
             @Override
             public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle, Object... bootstrapMethodArguments) {
-                System.out.println("visitInvokeDynamicInsn" + Arrays.asList(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
+                println("visitInvokeDynamicInsn" + Arrays.asList(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments));
                 parent.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, bootstrapMethodArguments);
             }
 
             @Override
             public void visitJumpInsn(int opcode, Label label) {
-                System.out.println("visitJumpInsn" + Arrays.asList(opcode, label));
+                println("visitJumpInsn" + Arrays.asList(opcode, label));
                 parent.visitJumpInsn(opcode, label);
             }
 
             @Override
             public void visitLabel(Label label) {
-                System.out.println("visitLabel" + Arrays.asList(label));
+                println("visitLabel" + Arrays.asList(label));
                 parent.visitLabel(label);
             }
 
             @Override
             public void visitLdcInsn(Object value) {
-                System.out.println("visitLdcInsn" + Arrays.asList(value));
+                println("visitLdcInsn" + Arrays.asList(value));
                 parent.visitLdcInsn(value);
             }
 
             @Override
             public void visitIincInsn(int var, int increment) {
-                System.out.println("visitIincInsn" + Arrays.asList(var, increment));
+                println("visitIincInsn" + Arrays.asList(var, increment));
                 parent.visitIincInsn(var, increment);
             }
 
             @Override
             public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
-                System.out.println("visitTableSwitchInsn" + Arrays.asList(min, max, dflt, labels));
+                println("visitTableSwitchInsn" + Arrays.asList(min, max, dflt, labels));
                 parent.visitTableSwitchInsn(min, max, dflt, labels);
             }
 
             @Override
             public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
-                System.out.println("visitLookupSwitchInsn" + Arrays.asList(dflt, keys, labels));
+                println("visitLookupSwitchInsn" + Arrays.asList(dflt, keys, labels));
                 parent.visitLookupSwitchInsn(dflt, keys, labels);
             }
 
             @Override
             public void visitMultiANewArrayInsn(String descriptor, int numDimensions) {
-                System.out.println("visitMultiANewArrayInsn" + Arrays.asList(descriptor, numDimensions));
+                println("visitMultiANewArrayInsn" + Arrays.asList(descriptor, numDimensions));
                 parent.visitMultiANewArrayInsn(descriptor, numDimensions);
             }
 
             @Override
             public AnnotationVisitor visitInsnAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                System.out.println("visitInsnAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
+                println("visitInsnAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
                 return parent.visitInsnAnnotation(typeRef, typePath, descriptor, visible);
             }
 
             @Override
             public void visitTryCatchBlock(Label start, Label end, Label handler, String type) {
-                System.out.println("visitTryCatchBlock" + Arrays.asList(start, end, handler, type));
+                println("visitTryCatchBlock" + Arrays.asList(start, end, handler, type));
                 parent.visitTryCatchBlock(start, end, handler, type);
             }
 
             @Override
             public AnnotationVisitor visitTryCatchAnnotation(int typeRef, TypePath typePath, String descriptor, boolean visible) {
-                System.out.println("visitTryCatchAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
+                println("visitTryCatchAnnotation" + Arrays.asList(typeRef, typePath, descriptor, visible));
                 return parent.visitTryCatchAnnotation(typeRef, typePath, descriptor, visible);
             }
 
             @Override
             public void visitLocalVariable(String name, String descriptor, String signature, Label start, Label end, int index) {
-                System.out.println("visitLocalVariable" + Arrays.asList(name, descriptor, signature, start, end, index));
+                println("visitLocalVariable" + Arrays.asList(name, descriptor, signature, start, end, index));
                 parent.visitLocalVariable(name, descriptor, signature, start, end, index);
             }
 
             @Override
             public AnnotationVisitor visitLocalVariableAnnotation(int typeRef, TypePath typePath, Label[] start, Label[] end, int[] index, String descriptor, boolean visible) {
-                System.out.println("visitLocalVariableAnnotation" + Arrays.asList(typeRef, typePath, start, end, index, descriptor, visible));
+                println("visitLocalVariableAnnotation" + Arrays.asList(typeRef, typePath, start, end, index, descriptor, visible));
                 return parent.visitLocalVariableAnnotation(typeRef, typePath, start, end, index, descriptor, visible);
             }
 
             @Override
             public void visitLineNumber(int line, Label start) {
-                System.out.println("visitLineNumber" + Arrays.asList(line, start));
+                println("visitLineNumber" + Arrays.asList(line, start));
                 parent.visitLineNumber(line, start);
             }
 
             @Override
             public void visitMaxs(int maxStack, int maxLocals) {
-                System.out.println("visitMaxs" + Arrays.asList(maxStack, maxLocals));
+                println("visitMaxs" + Arrays.asList(maxStack, maxLocals));
                 parent.visitMaxs(maxStack, maxLocals);
             }
 
             @Override
             public void visitEnd() {
-                System.out.println("visitEnd" + Arrays.asList());
+                println("visitEnd" + Arrays.asList());
                 parent.visitEnd();
+            }
+
+            private void println(String s) {
+
             }
         };
     }
@@ -605,14 +644,15 @@ public class JvmTranslation {
             @Override
             public void case_ImMethodCall(ImMethodCall mc) {
                 ImClassType rt = (ImClassType) mc.getReceiver().attrTyp();
-                String className = getClassName(rt.getClassDef());
+                ImClass classDef = rt.getClassDef();
+                String className = classDescriptor(classDef);
                 translateStatement(methodVisitor, mc.getReceiver());
                 for (ImExpr a : mc.getArguments()) {
                     translateStatement(methodVisitor, a);
                 }
-                // TODO handle interfaces correctly, not sure how ...
-                boolean isInterface = false;
-                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, className, mc.getMethod().getName(), getSignatureDescriptor(mc.getMethod()), isInterface);
+                boolean isInterface = classDef.getIsInterface();
+                int invokeCommand = isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL;
+                methodVisitor.visitMethodInsn(invokeCommand, className, mc.getMethod().getName(), getSignatureDescriptor(mc.getMethod()), isInterface);
             }
 
             @Override
@@ -1031,10 +1071,6 @@ public class JvmTranslation {
             return getPackage(var).name;
         }
         return getPackage(var).name + "$" + elemClass.getName();
-    }
-
-    private String getClassName(ImClass c) {
-        return getPackage(c).name + "$" + c.getName();
     }
 
     private String getClassName(ImFunction f) {
