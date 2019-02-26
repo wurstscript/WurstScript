@@ -20,6 +20,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static de.peeeq.wurstscript.translation.jvm.JvmTranslation.getReturnInstruction;
+import static de.peeeq.wurstscript.translation.jvm.JvmTranslation.pushDefaultValue;
 import static org.objectweb.asm.Opcodes.*;
 
 
@@ -39,7 +41,10 @@ public class NativeFuncsJvm {
         methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
         methodVisitor.visitLdcInsn("Called native " + func.getName());
         methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-        methodVisitor.visitInsn(RETURN);
+
+
+        pushDefaultValue(func.getReturnType(), methodVisitor);
+        methodVisitor.visitInsn(getReturnInstruction(func.getReturnType()));
     }
 
     private static void testSuccess(MethodVisitor methodVisitor) {

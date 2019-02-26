@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_ABSTRACT;
 
 public class ClassTranslator {
 
@@ -63,6 +64,10 @@ public class ClassTranslator {
     private void translate() {
         imClass = translator.getClassFor(classDef);
         prog.getClasses().add(imClass);
+
+        if (classDef.attrIsAbstract()) {
+            imClass.getFlags().add(IS_ABSTRACT);
+        }
 
         addSuperClasses();
 

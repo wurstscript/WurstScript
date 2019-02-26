@@ -57,6 +57,72 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void simpleFieldLocal() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "		int i",
+                "		function set()",
+                "			i = 42",
+                "		function get() returns int",
+                "			return i",
+                "	init",
+                "		let a = new A",
+                "		a.set()",
+                "		if a.get() == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void simpleFieldLocalThis() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	class A",
+                "		int i",
+                "		function set()",
+                "			this.i = 42",
+                "		function get() returns int",
+                "			return this.i",
+                "	init",
+                "		let a = new A",
+                "		a.set()",
+                "		if a.get() == 42",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
+    public void fieldAssignExecutionOrder() {
+        testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "@extern native I2S(int i) returns string",
+                "native println(string s)",
+                "int j = 0",
+                "A a",
+                "class A",
+                "	int i",
+                "function getA() returns A",
+                "	j = j * 10 + 4",
+                "	a = new A",
+                "	return a",
+                "function getInt() returns int",
+                "	j = j * 10 + 2",
+                "	return j",
+                "init",
+                "	j = 0",
+                "	getA().i = getInt()",
+                "	println(I2S(a.i))",
+                "	if a.i == 42",
+                "		testSuccess()"
+        );
+    }
 
     @Test
     public void simpleMethod() {

@@ -18,6 +18,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_ABSTRACT;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_INTERFACE;
+
 public class InterfaceTranslator {
 
     private InterfaceDef interfaceDef;
@@ -31,7 +34,7 @@ public class InterfaceTranslator {
     }
 
     public void translate() {
-        imClass.setIsInterface(true);
+        imClass.getFlags().add(IS_INTERFACE);
         translator.getImProg().getClasses().add(imClass);
 
         // set super-classes

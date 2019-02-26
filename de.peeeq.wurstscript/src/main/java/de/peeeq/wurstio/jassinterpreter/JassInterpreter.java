@@ -122,8 +122,8 @@ public class JassInterpreter implements AbstractInterpreter {
 
             @Override
             public void case_JassStmtSetArray(JassStmtSetArray jassStmtSetArray) {
-                ILconst right = executeExpr(localVarMap, jassStmtSetArray.getRight());
                 ILconstInt index = (ILconstInt) executeExpr(localVarMap, jassStmtSetArray.getIndex());
+                ILconst right = executeExpr(localVarMap, jassStmtSetArray.getRight());
                 JassArray v = (JassArray) getVarValue(localVarMap, jassStmtSetArray.getLeft());
                 v.set(index.getVal(), right);
             }

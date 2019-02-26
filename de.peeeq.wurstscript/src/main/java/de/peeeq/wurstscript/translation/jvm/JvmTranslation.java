@@ -17,6 +17,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_ABSTRACT;
+import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.IS_INTERFACE;
 import static org.objectweb.asm.Opcodes.*;
 
 /**
@@ -211,29 +213,31 @@ public class JvmTranslation {
         // TODO use correct super-class
         Optional<ImClass> superClass = c.getSuperClasses().stream()
                 .map(ImClassType::getClassDef)
-                .filter(st -> !st.getIsInterface())
+                .filter(st -> !st.getFlags().contains(IS_INTERFACE))
                 .collect(Utils.oneAndOnly());
         String superClassDescr = superClass.map(this::classDescriptor).orElse("java/lang/Object");
 
         String[] interfaces = c.getSuperClasses().stream()
                 .map(ImClassType::getClassDef)
-                .filter(ImClass::getIsInterface)
+                .filter(cc -> cc.getFlags().contains(IS_INTERFACE))
                 .map(this::classDescriptor)
                 .toArray(String[]::new);
 
         int access = ACC_PUBLIC;
-        if (c.getIsInterface()) {
+        if (c.getFlags().contains(IS_INTERFACE)) {
             access |= ACC_ABSTRACT | ACC_INTERFACE;
         } else {
             access |= ACC_SUPER;
+            if (c.getFlags().contains(IS_ABSTRACT)) {
+                access |= ACC_ABSTRACT;
+            }
         }
-        // TODO add ACC_ABSTRACT for abstract classes
 
         classWriter.visit(JAVA_VERSION, access, name, null, superClassDescr, interfaces);
         classWriter.visitNestHost(p.name);
         classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
 
-        if (!c.getIsInterface()) {
+        if (!c.getFlags().contains(IS_INTERFACE)) {
             createInitFunction(classWriter, superClassDescr);
         }
 
@@ -325,6 +329,8 @@ public class JvmTranslation {
                         return "I";
                     case "boolean":
                         return "Z";
+                    case "string":
+                        return "Ljava/lang/String;";
                     default:
                         return "L" + s.getTypename() + ";";
                 }
@@ -344,41 +350,53 @@ public class JvmTranslation {
 
     private void translateFunc(ClassWriter classWriter, ImFunction func, int accesss, String name) {
         System.out.println("\n------------------------\ntranslating " + func.getName());
+        boolean isAbstract = func.getFlags().contains(IS_ABSTRACT);
+        if (isAbstract) {
+            accesss |= ACC_ABSTRACT;
+        }
+        if ((accesss & ACC_ABSTRACT) != 0 && (accesss & ACC_STATIC) != 0) {
+            // abstract and static methods
+            return;
+        }
         String sig = getSignatureDescriptor(func, (accesss & ACC_STATIC) == 0);
         boolean changed = currentClassFunctions.add(func.getName() + sig);
         if (!changed) {
             return;
         }
         MethodVisitor methodVisitor = logMethodVisitor(classWriter.visitMethod(accesss, name, sig, null, null));
-        methodVisitor.visitCode();
-        Label start = new Label();
-        methodVisitor.visitLabel(start);
-        methodVisitor.visitLineNumber(line(func), start);
+        if (!isAbstract) {
 
-        localVars.clear();
-        for (int i = 0; i < func.getParameters().size(); i++) {
-            localVars.put(func.getParameters().get(i), i);
-        }
-        if (func.isNative()) {
-            NativeFuncsJvm.generateCode(methodVisitor, func);
-        } else {
-            for (int i = 0; i < func.getLocals().size(); i++) {
-                localVars.put(func.getLocals().get(i), i + func.getParameters().size());
+
+            methodVisitor.visitCode();
+            Label start = new Label();
+            methodVisitor.visitLabel(start);
+            methodVisitor.visitLineNumber(line(func), start);
+
+            localVars.clear();
+            for (int i = 0; i < func.getParameters().size(); i++) {
+                localVars.put(func.getParameters().get(i), i);
+            }
+            if (func.isNative()) {
+                NativeFuncsJvm.generateCode(methodVisitor, func);
+            } else {
+                for (int i = 0; i < func.getLocals().size(); i++) {
+                    localVars.put(func.getLocals().get(i), i + func.getParameters().size());
+                }
+
+                translateStatements(methodVisitor, func.getBody());
+
+                if (func.getReturnType() instanceof ImVoid) {
+                    methodVisitor.visitInsn(RETURN);
+                }
             }
 
-            translateStatements(methodVisitor, func.getBody());
-
-            if (func.getReturnType() instanceof ImVoid) {
-                methodVisitor.visitInsn(RETURN);
-            }
+            Label end = new Label();
+            localVars.forEach((v, i) -> {
+                methodVisitor.visitLocalVariable(v.getName(), translateType(v.getType()), null, start, end, i);
+            });
+            // TODO do correctly ...
+            methodVisitor.visitMaxs(100, 200);
         }
-
-        Label end = new Label();
-        localVars.forEach((v, i) -> {
-            methodVisitor.visitLocalVariable(v.getName(), translateType(v.getType()), null, start, end, i);
-        });
-        // TODO do correctly ...
-        methodVisitor.visitMaxs(100, 200);
         methodVisitor.visitEnd();
 
     }
@@ -628,11 +646,16 @@ public class JvmTranslation {
                     int index = localVars.get(va.getVar());
                     methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), index);
                 } else {
-                    // must be a field:
                     ImVar var = va.getVar();
-                    // load 'this', which is always in index 0
-                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 0);
-                    methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
+                    if (var.getParent().getParent() instanceof ImClass) {
+                        // must be a field:
+                        // load 'this', which is always in index 0
+                        methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 0);
+                        methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
+                    } else {
+                        // otherwise it is a global variable
+                        methodVisitor.visitFieldInsn(GETSTATIC, getClassName(var), var.getName(), translateType(var.getType()));
+                    }
                 }
             }
 
@@ -650,7 +673,7 @@ public class JvmTranslation {
                 for (ImExpr a : mc.getArguments()) {
                     translateStatement(methodVisitor, a);
                 }
-                boolean isInterface = classDef.getIsInterface();
+                boolean isInterface = classDef.getFlags().contains(IS_INTERFACE);
                 int invokeCommand = isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL;
                 methodVisitor.visitMethodInsn(invokeCommand, className, mc.getMethod().getName(), getSignatureDescriptor(mc.getMethod()), isInterface);
             }
@@ -671,57 +694,13 @@ public class JvmTranslation {
 
             @Override
             public void case_ImReturn(ImReturn imReturn) {
+                ImType returnType = JassIm.ImVoid();
                 if (imReturn.getReturnValue() instanceof ImExpr) {
                     ImExpr re = (ImExpr) imReturn.getReturnValue();
                     translateStatement(methodVisitor, re);
-                    re.attrTyp().match(new ImType.MatcherVoid() {
-                        @Override
-                        public void case_ImTupleType(ImTupleType imTupleType) {
-                            methodVisitor.visitInsn(ARETURN);
-                        }
-
-                        @Override
-                        public void case_ImVoid(ImVoid imVoid) {
-                            methodVisitor.visitInsn(RETURN);
-                        }
-
-                        @Override
-                        public void case_ImClassType(ImClassType imClassType) {
-                            methodVisitor.visitInsn(ARETURN);
-                        }
-
-                        @Override
-                        public void case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
-                            methodVisitor.visitInsn(ARETURN);
-                        }
-
-                        @Override
-                        public void case_ImSimpleType(ImSimpleType t) {
-                            int returnIns = ARETURN;
-                            switch (t.getTypename()) {
-                                case "integer":
-                                    returnIns = IRETURN;
-                                    break;
-                                case "real":
-                                    returnIns = FRETURN;
-                                    break;
-                            }
-                            methodVisitor.visitInsn(returnIns);
-                        }
-
-                        @Override
-                        public void case_ImArrayType(ImArrayType imArrayType) {
-
-                        }
-
-                        @Override
-                        public void case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
-
-                        }
-                    });
-                } else {
-                    methodVisitor.visitInsn(RETURN);
+                    returnType = re.attrTyp();
                 }
+                methodVisitor.visitInsn(getReturnInstruction(returnType));
             }
 
             @Override
@@ -984,14 +963,21 @@ public class JvmTranslation {
 
                     @Override
                     public void case_ImVarAccess(ImVarAccess leftVar) {
+                        translateStatement(methodVisitor, imSet.getRight());
                         ImVar var = leftVar.getVar();
                         if (localVars.containsKey(var)) {
                             int varIndex = localVars.get(var);
-                            translateStatement(methodVisitor, imSet.getRight());
                             methodVisitor.visitVarInsn(getStoreInstruction(var.getType()), varIndex);
                         } else {
-                            // if it is not a local variable it must be a static field / global variable
-                            methodVisitor.visitFieldInsn(GETSTATIC, getPackage(var).name, var.getName(), translateType(var.getType()));
+                            if (var.getParent().getParent() instanceof ImClass) {
+                                // must be a field:
+                                // load 'this', which is always in index 0
+                                methodVisitor.visitVarInsn(getLoadInstruction(var.getType()), 0);
+                                methodVisitor.visitFieldInsn(PUTFIELD, getClassName(var), var.getName(), translateType(var.getType()));
+                            } else {
+                                // otherwise it is a global variable
+                                methodVisitor.visitFieldInsn(PUTSTATIC, getClassName(var), var.getName(), translateType(var.getType()));
+                            }
                         }
                     }
 
@@ -1056,6 +1042,102 @@ public class JvmTranslation {
             @Override
             public void case_ImInstanceof(ImInstanceof imInstanceof) {
                 throw new RuntimeException("TODO " + s);
+            }
+        });
+    }
+
+
+    public static int getReturnInstruction(ImType returnType) {
+        return returnType.match(new ImType.Matcher<Integer>() {
+            @Override
+            public Integer case_ImTupleType(ImTupleType imTupleType) {
+                return (ARETURN);
+            }
+
+            @Override
+            public Integer case_ImVoid(ImVoid imVoid) {
+                return (RETURN);
+            }
+
+            @Override
+            public Integer case_ImClassType(ImClassType imClassType) {
+                return (ARETURN);
+            }
+
+            @Override
+            public Integer case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                return (ARETURN);
+            }
+
+            @Override
+            public Integer case_ImSimpleType(ImSimpleType t) {
+                int returnIns = ARETURN;
+                switch (t.getTypename()) {
+                    case "integer":
+                        returnIns = IRETURN;
+                        break;
+                    case "real":
+                        returnIns = FRETURN;
+                        break;
+                }
+                return (returnIns);
+            }
+
+            @Override
+            public Integer case_ImArrayType(ImArrayType imArrayType) {
+                throw new RuntimeException("TODO");
+            }
+
+            @Override
+            public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new RuntimeException("TODO");
+            }
+        });
+    }
+
+    public static void pushDefaultValue(ImType t, MethodVisitor methodVisitor) {
+        t.match(new ImType.MatcherVoid() {
+            @Override
+            public void case_ImTupleType(ImTupleType imTupleType) {
+                methodVisitor.visitInsn(ACONST_NULL);
+            }
+
+            @Override
+            public void case_ImVoid(ImVoid imVoid) {
+            }
+
+            @Override
+            public void case_ImClassType(ImClassType imClassType) {
+                methodVisitor.visitInsn(ACONST_NULL);
+            }
+
+            @Override
+            public void case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                methodVisitor.visitInsn(ACONST_NULL);
+            }
+
+            @Override
+            public void case_ImSimpleType(ImSimpleType t) {
+                switch (t.getTypename()) {
+                    case "integer":
+                        methodVisitor.visitInsn(ICONST_0);
+                        break;
+                    case "real":
+                        methodVisitor.visitInsn(FCONST_0);
+                        break;
+                    default:
+                        methodVisitor.visitInsn(ACONST_NULL);
+                }
+            }
+
+            @Override
+            public void case_ImArrayType(ImArrayType imArrayType) {
+                methodVisitor.visitInsn(ACONST_NULL);
+            }
+
+            @Override
+            public void case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                methodVisitor.visitInsn(ACONST_NULL);
             }
         });
     }

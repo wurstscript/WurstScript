@@ -48,14 +48,14 @@ ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	ref ImType returnType)
 
 
-ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
+ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags,
 	String name,
 	ImTypeVars typeVariables,
 	ImVars fields, 
 	ImMethods methods,
 	ImFunctions functions,
-	java.util.List<ImClassType> superClasses,
-	boolean isInterface)
+	java.util.List<ImClassType> superClasses)
 
 ImMethods * ImMethod
 

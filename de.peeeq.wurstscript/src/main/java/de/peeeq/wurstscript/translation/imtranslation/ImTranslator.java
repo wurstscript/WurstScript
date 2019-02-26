@@ -679,6 +679,9 @@ public class ImTranslator {
             if (funcDef2.attrHasAnnotation("test")) {
                 flags.add(IS_TEST);
             }
+            if (funcDef2.attrIsAbstract()) {
+                flags.add(IS_ABSTRACT);
+            }
         }
 
         // Check if last parameter is vararg
@@ -1550,7 +1553,7 @@ public class ImTranslator {
 
     public ImClass getClassForClosure(ExprClosure s) {
         Preconditions.checkNotNull(s);
-        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList(), false));
+        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, new ArrayList<>(), "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
     }
 
 
@@ -1569,7 +1572,7 @@ public class ImTranslator {
                 }
             }
 
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList(), false);
+            return JassIm.ImClass(s1, new ArrayList<>(), s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 

@@ -6,6 +6,7 @@ public enum FunctionFlagEnum implements FunctionFlag {
     IS_TEST,
     IS_COMPILETIME_NATIVE,
     IS_EXTERN,
-    IS_VARARG
-
+    IS_VARARG,
+    IS_ABSTRACT,
+    IS_INTERFACE
 }
