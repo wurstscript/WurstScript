@@ -7,6 +7,9 @@ import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
+import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Constants;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.objectweb.asm.*;
@@ -189,6 +192,7 @@ public class JvmTranslation {
             translateFunc(classWriter, f, ACC_PUBLIC | ACC_STATIC, f.getName());
         }
 
+        createPackageInitFunction(classWriter, p, imVars);
 
         classWriter.visitEnd();
         byte[] bytes = classWriter.toByteArray();
@@ -238,7 +242,7 @@ public class JvmTranslation {
         classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
 
         if (!c.getFlags().contains(IS_INTERFACE)) {
-            createInitFunction(classWriter, superClassDescr);
+            createInitFunction(classWriter, c, superClassDescr);
         }
 
         for (ImVar v : c.getFields()) {
@@ -261,15 +265,62 @@ public class JvmTranslation {
         System.out.println("written " + outputFolder.resolve(name + ".class").toFile().getAbsolutePath());
     }
 
-    private void createInitFunction(ClassWriter classWriter, String superClassDescr) {
+    private void createInitFunction(ClassWriter classWriter, ImClass c, String superClassDescr) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         methodVisitor.visitCode();
         methodVisitor.visitVarInsn(ALOAD, 0);
-        // TODO call init of correct super class
         methodVisitor.visitMethodInsn(INVOKESPECIAL, superClassDescr, "<init>", "()V", false);
+        // initialize arrays
+        for (ImVar v : c.getFields()) {
+            if (v.getType() instanceof ImArrayType) {
+                ImArrayType at = (ImArrayType) v.getType();
+                methodVisitor.visitLdcInsn(Constants.MAX_ARRAY_SIZE);
+                ImType entryType = at.getEntryType();
+                newArrayInstruction(methodVisitor, entryType);
+                methodVisitor.visitFieldInsn(PUTSTATIC, classDescriptor(c), v.getName(), translateType(at));
+            }
+            if (v.getType() instanceof ImArrayTypeMulti) {
+                ImArrayTypeMulti at = (ImArrayTypeMulti) v.getType();
+                throw new RuntimeException("TODO " + at + " sizes: " + at.getArraySize());
+            }
+        }
         methodVisitor.visitInsn(RETURN);
         methodVisitor.visitMaxs(1, 1);
         methodVisitor.visitEnd();
+    }
+
+    private void createPackageInitFunction(ClassWriter classWriter, JPackage p, Collection<ImVar> imVars) {
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_STATIC, "<clinit>", "()V", null, null);
+        methodVisitor.visitCode();
+        // initialize arrays
+        for (ImVar v : imVars) {
+            if (v.getType() instanceof ImArrayType) {
+                ImArrayType at = (ImArrayType) v.getType();
+                methodVisitor.visitLdcInsn(Constants.MAX_ARRAY_SIZE);
+                ImType entryType = at.getEntryType();
+                newArrayInstruction(methodVisitor, entryType);
+                methodVisitor.visitFieldInsn(PUTSTATIC, p.name, v.getName(), translateType(at));
+            }
+            if (v.getType() instanceof ImArrayTypeMulti) {
+                ImArrayTypeMulti at = (ImArrayTypeMulti) v.getType();
+                throw new RuntimeException("TODO " + at + " sizes: " + at.getArraySize());
+            }
+        }
+        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMaxs(1, 1);
+        methodVisitor.visitEnd();
+    }
+
+    private void newArrayInstruction(MethodVisitor methodVisitor, ImType entryType) {
+        if (entryType.equalsType(TypesHelper.imInt())) {
+            methodVisitor.visitIntInsn(NEWARRAY, T_INT);
+        } else if (entryType.equalsType(TypesHelper.imBool())) {
+            methodVisitor.visitIntInsn(NEWARRAY, T_BOOLEAN);
+        } else if (entryType.equalsType(TypesHelper.imReal())) {
+            methodVisitor.visitIntInsn(NEWARRAY, T_FLOAT);
+        } else {
+            methodVisitor.visitTypeInsn(ANEWARRAY, translateType(entryType));
+        }
     }
 
     private void translateMethod(ClassWriter classWriter, ImMethod method) {
@@ -642,21 +693,8 @@ public class JvmTranslation {
 
             @Override
             public void case_ImVarAccess(ImVarAccess va) {
-                if (localVars.containsKey(va.getVar())) {
-                    int index = localVars.get(va.getVar());
-                    methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), index);
-                } else {
-                    ImVar var = va.getVar();
-                    if (var.getParent().getParent() instanceof ImClass) {
-                        // must be a field:
-                        // load 'this', which is always in index 0
-                        methodVisitor.visitVarInsn(getLoadInstruction(va.getVar().getType()), 0);
-                        methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
-                    } else {
-                        // otherwise it is a global variable
-                        methodVisitor.visitFieldInsn(GETSTATIC, getClassName(var), var.getName(), translateType(var.getType()));
-                    }
-                }
+                ImVar v = va.getVar();
+                translateVarAccess(methodVisitor, v);
             }
 
             @Override
@@ -886,8 +924,17 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImVarArrayAccess(ImVarArrayAccess imVarArrayAccess) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImVarArrayAccess(ImVarArrayAccess e) {
+                ImVar v = e.getVar();
+                ImArrayType arrayType = (ImArrayType) v.getType();
+                translateVarAccess(methodVisitor, v);
+                for (int i = 0; i < e.getIndexes().size() - 1; i++) {
+                    ImExpr index = e.getIndexes().get(i);
+                    translateStatement(methodVisitor, index);
+                    methodVisitor.visitInsn(AALOAD);
+                }
+                translateStatement(methodVisitor, Utils.getLast(e.getIndexes()));
+                methodVisitor.visitInsn(getArrayLoadInstruction(arrayType.getEntryType()));
             }
 
             @Override
@@ -982,8 +1029,19 @@ public class JvmTranslation {
                     }
 
                     @Override
-                    public void case_ImVarArrayAccess(ImVarArrayAccess imVarArrayAccess) {
-                        throw new RuntimeException("TODO " + s);
+                    public void case_ImVarArrayAccess(ImVarArrayAccess e) {
+                        ImVar v = e.getVar();
+                        ImArrayType arrayType = (ImArrayType) v.getType();
+                        translateVarAccess(methodVisitor, v);
+                        for (int i = 0; i < e.getIndexes().size() - 1; i++) {
+                            ImExpr index = e.getIndexes().get(i);
+                            translateStatement(methodVisitor, index);
+                            methodVisitor.visitInsn(AALOAD);
+                        }
+                        translateStatement(methodVisitor, Utils.getLast(e.getIndexes()));
+                        translateStatement(methodVisitor, imSet.getRight());
+                        methodVisitor.visitInsn(getArrayStoreInstruction(arrayType.getEntryType()));
+
                     }
 
                     @Override
@@ -1044,6 +1102,24 @@ public class JvmTranslation {
                 throw new RuntimeException("TODO " + s);
             }
         });
+    }
+
+    private void translateVarAccess(MethodVisitor methodVisitor, ImVar v) {
+        if (localVars.containsKey(v)) {
+            int index = localVars.get(v);
+            methodVisitor.visitVarInsn(getLoadInstruction(v.getType()), index);
+        } else {
+            ImVar var = v;
+            if (var.getParent().getParent() instanceof ImClass) {
+                // must be a field:
+                // load 'this', which is always in index 0
+                methodVisitor.visitVarInsn(getLoadInstruction(v.getType()), 0);
+                methodVisitor.visitFieldInsn(GETFIELD, getClassName(var), var.getName(), translateType(var.getType()));
+            } else {
+                // otherwise it is a global variable
+                methodVisitor.visitFieldInsn(GETSTATIC, getClassName(var), var.getName(), translateType(var.getType()));
+            }
+        }
     }
 
 
@@ -1308,6 +1384,99 @@ public class JvmTranslation {
             }
         });
     }
+
+    private int getArrayStoreInstruction(ImType type) {
+        return type.match(new ImType.Matcher<Integer>() {
+            @Override
+            public Integer case_ImTupleType(ImTupleType imTupleType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImVoid(ImVoid imVoid) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImClassType(ImClassType imClassType) {
+                return AASTORE;
+            }
+
+            @Override
+            public Integer case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImSimpleType(ImSimpleType t) {
+                switch (t.getTypename()) {
+                    case "integer":
+                        return IASTORE;
+                    case "real":
+                        return FASTORE;
+                    default:
+                        return AASTORE;
+                }
+            }
+
+            @Override
+            public Integer case_ImArrayType(ImArrayType imArrayType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new RuntimeException("TODO " + type);
+            }
+        });
+    }
+
+    private int getArrayLoadInstruction(ImType type) {
+        return type.match(new ImType.Matcher<Integer>() {
+            @Override
+            public Integer case_ImTupleType(ImTupleType imTupleType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImVoid(ImVoid imVoid) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImClassType(ImClassType imClassType) {
+                return AALOAD;
+            }
+
+            @Override
+            public Integer case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImSimpleType(ImSimpleType t) {
+                switch (t.getTypename()) {
+                    case "integer":
+                        return IALOAD;
+                    case "real":
+                        return FALOAD;
+                    default:
+                        return AALOAD;
+                }
+            }
+
+            @Override
+            public Integer case_ImArrayType(ImArrayType imArrayType) {
+                throw new RuntimeException("TODO " + type);
+            }
+
+            @Override
+            public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                throw new RuntimeException("TODO " + type);
+            }
+        });
+    }
+
 
     private int line(de.peeeq.wurstscript.jassIm.Element e) {
         return e.attrTrace().attrSource().getLine();
