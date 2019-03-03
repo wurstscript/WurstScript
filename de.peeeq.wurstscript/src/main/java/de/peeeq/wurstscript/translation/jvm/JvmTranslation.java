@@ -754,6 +754,13 @@ public class JvmTranslation {
             if (s instanceof ImNull) {
                 continue;
             }
+            if (s instanceof ImStatementExpr) {
+                ImStatementExpr se = (ImStatementExpr) s;
+                if (se.getExpr() instanceof ImNull) {
+                    translateStatements(methodVisitor, se.getStatements());
+                    continue;
+                }
+            }
             translateStatement(methodVisitor, s);
             if (s instanceof ImExpr) {
                 ImExpr expr = (ImExpr) s;
