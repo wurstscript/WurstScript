@@ -783,7 +783,11 @@ public class JvmTranslation {
 
             @Override
             public void case_ImBoolVal(ImBoolVal imBoolVal) {
-                throw new RuntimeException("TODO " + s);
+                if (imBoolVal.getValB()) {
+                    methodVisitor.visitInsn(ICONST_1);
+                } else {
+                    methodVisitor.visitInsn(ICONST_0);
+                }
             }
 
             @Override
@@ -1074,6 +1078,7 @@ public class JvmTranslation {
                 methodVisitor.visitLabel(beginLoop);
                 JvmTranslation.currentEndLoopLabel = endLoop;
                 translateStatements(methodVisitor, imLoop.getBody());
+                methodVisitor.visitJumpInsn(GOTO, beginLoop);
                 methodVisitor.visitLabel(endLoop);
             }
 
@@ -1292,11 +1297,13 @@ public class JvmTranslation {
                 int returnIns = ARETURN;
                 switch (t.getTypename()) {
                     case "integer":
+                    case "boolean":
                         returnIns = IRETURN;
                         break;
                     case "real":
                         returnIns = FRETURN;
                         break;
+
                 }
                 return (returnIns);
             }
@@ -1471,7 +1478,7 @@ public class JvmTranslation {
 
             @Override
             public Integer case_ImArrayType(ImArrayType imArrayType) {
-                throw new RuntimeException("TODO " + type);
+                return ALOAD;
             }
 
             @Override
