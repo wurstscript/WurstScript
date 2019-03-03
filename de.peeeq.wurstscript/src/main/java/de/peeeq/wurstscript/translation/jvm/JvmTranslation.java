@@ -438,6 +438,11 @@ public class JvmTranslation {
         return getPackage(cd).name + "$" + cd.getName();
     }
 
+    private String classDescriptor(ImType t) {
+        ImClassType ct = (ImClassType) t;
+        return classDescriptor(ct.getClassDef());
+    }
+
     private String translateType(ImType type) {
         return type.match(new ImType.Matcher<String>() {
             @Override
@@ -1206,9 +1211,9 @@ public class JvmTranslation {
                 } else if (imCast.getToType() instanceof ImClassType
                         && imCast.getExpr().attrTyp().equalsType(imInt())) {
                     methodVisitor.visitMethodInsn(INVOKESTATIC, wurstMain.name, "castFromIndex", "(Ljava/lang/Object;)I", false);
-                    methodVisitor.visitTypeInsn(CHECKCAST, translateType(imCast.getToType()));
+                    methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(imCast.getToType()));
                 } else if (imCast.getToType() instanceof ImClassType) {
-                    methodVisitor.visitTypeInsn(CHECKCAST, translateType(imCast.getToType()));
+                    methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(imCast.getToType()));
                 } else{
                     throw new RuntimeException("TODO " + s);
                 }
@@ -1220,8 +1225,9 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImInstanceof(ImInstanceof imInstanceof) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImInstanceof(ImInstanceof e) {
+                translateStatement(methodVisitor, e.getObj());
+                methodVisitor.visitTypeInsn(INSTANCEOF, classDescriptor(e.getClazz().getClassDef()));
             }
         });
     }
