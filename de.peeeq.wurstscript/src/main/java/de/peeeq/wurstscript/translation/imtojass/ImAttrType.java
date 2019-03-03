@@ -156,13 +156,15 @@ public class ImAttrType {
                     typeArgs = receiverType.getTypeArguments();
                 }
                 t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
-                return t;
             } catch (Exception ex) {
                 throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
             }
-        } else {
-            return t;
         }
+        if (!e.getIndexes().isEmpty()) {
+            ImArrayTypeMulti at = (ImArrayTypeMulti) t;
+            t = at.getEntryType();
+        }
+        return t;
     }
 
     public static ImType getType(ImAlloc imAlloc) {
