@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.io.Files;
 import config.*;
+import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -126,23 +127,29 @@ public class BuildMap extends MapRequest {
                 WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
                 w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
                 w3I.setMapDescription(scenarioData.getDescription());
+                System.out.println("Wrote w3i values");
 
                 applyPlayers(projectConfig, w3I);
                 applyForces(projectConfig, w3I);
                 applyLoadingScreen(w3I, scenarioData);
 
                 mpq.deleteFile("war3map.j");
-
+                System.out.println("Parsing LightJass");
                 LightJass jass = new LightJass(compiledScript);
+                System.out.println("Parsing done");
                 JassScript script = new JassScript(jass.getRootContext());
-
+                System.out.println("Injecting..");
                 w3I.injectConfigsInJassScript(script);
 
                 StringWriter sw = new StringWriter();
+                System.out.println("Writing..");
 
                 script.write(sw);
-
-                mpq.insertFile("war3map.j", sw.toString().getBytes());
+                System.out.println("Writing MPQ..");
+                File file = new File("testshit.j");
+                Files.write(sw.toString().getBytes(), file);
+                Pjass.runPjass(file);
+                mpq.insertFile("war3map.j", file);
 
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
