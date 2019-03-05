@@ -1147,7 +1147,8 @@ public class WurstValidator {
         if (!isAbstract) { // not abstract
             checkReturn(f);
             if (!f.getSource().getFile().endsWith("common.j")
-                    && !f.getSource().getFile().endsWith("blizzard.j")) {
+                    && !f.getSource().getFile().endsWith("blizzard.j")
+                    && !f.getSource().getFile().endsWith("war3map.j")) {
                 new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
             }
         }
