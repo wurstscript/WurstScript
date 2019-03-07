@@ -137,7 +137,7 @@ public class ImHelper {
                 for (ImType it : tt.getTypes()) {
                     res.add(defaultValueForComplexType(it));
                 }
-                return JassIm.ImTupleExpr(res);
+                return JassIm.ImTupleExpr(tt, res);
             }
 
             @Override

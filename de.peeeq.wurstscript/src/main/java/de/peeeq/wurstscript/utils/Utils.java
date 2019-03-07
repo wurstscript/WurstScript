@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.utils;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
@@ -10,6 +9,8 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.jassIm.ImType;
+import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -23,10 +24,7 @@ import java.awt.event.MouseListener;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -1112,6 +1110,24 @@ public class Utils {
             @Override
             public Set<Characteristics> characteristics() {
                 return ImmutableSet.of(Characteristics.UNORDERED);
+            }
+        };
+    }
+
+    /**
+     * Creates a view on a map with the given function applied.
+     *
+     */
+    public static <S,T> List<S> mapped(List<T> list, Function<? super T, ? extends S> f) {
+        return new AbstractList<S>() {
+            @Override
+            public S get(int i) {
+                return f.apply(list.get(i));
+            }
+
+            @Override
+            public int size() {
+                return list.size();
             }
         };
     }

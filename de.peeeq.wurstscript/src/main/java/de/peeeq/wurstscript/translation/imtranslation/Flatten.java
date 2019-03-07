@@ -332,7 +332,7 @@ public class Flatten {
 
     public static Result flatten(ImTupleExpr e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getExprs());
-        return new Result(r.stmts, JassIm.ImTupleExpr(ImExprs(r.exprs)));
+        return new Result(r.stmts, JassIm.ImTupleExpr(e.getTupleType(), ImExprs(r.exprs)));
     }
 
     public static ResultL flattenL(ImTupleExpr e, ImTranslator t, ImFunction f) {
@@ -341,7 +341,7 @@ public class Flatten {
         MultiResultL r = flattenExprsL(t, f, exprs);
         ImExprs newExprs = ImExprs();
         newExprs.addAll(r.getLExprs());
-        return new ResultL(r.stmts, JassIm.ImTupleExpr(newExprs));
+        return new ResultL(r.stmts, JassIm.ImTupleExpr(e.getTupleType(), newExprs));
     }
 
 

@@ -164,6 +164,7 @@ public class EliminateTuples {
                     VarsForTupleResult vars = translator.getVarsForTuple(v);
                     ImExpr expr = vars.<ImExpr>map(
                             parts -> JassIm.ImTupleExpr(
+                                    ((ImTupleType) v.getType()),
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                             JassIm::ImVarAccess
                     );
@@ -197,6 +198,7 @@ public class EliminateTuples {
                     VarsForTupleResult vars = translator.getVarsForTuple(v);
                     ImExpr expr = vars.<ImExpr>map(
                             parts -> JassIm.ImTupleExpr(
+                                    tupleType(v.getType()),
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                             var -> JassIm.ImVarArrayAccess(va.getTrace(), var, indexExprs.copy())
                     );
@@ -215,6 +217,7 @@ public class EliminateTuples {
             public void visit(ImFunctionCall fc) {
                 super.visit(fc);
                 if (translator.getOriginalReturnValue(fc.getFunc()) instanceof ImTupleType) {
+                    ImTupleType tupleType = (ImTupleType) translator.getOriginalReturnValue(fc.getFunc());
                     Element parent = fc.getParent();
                     fc.setParent(null);
 
@@ -224,6 +227,7 @@ public class EliminateTuples {
 
                     ImExpr newFc = returnVars.<ImExpr>map(
                             parts -> JassIm.ImTupleExpr(
+                                    tupleType,
                                     parts.collect(Collectors.toCollection(JassIm::ImExprs))),
                             var -> var == firstVar
                                     ? fc.copy()
@@ -235,6 +239,17 @@ public class EliminateTuples {
             }
 
         });
+    }
+
+    private static ImTupleType tupleType(ImType type) {
+        if (type instanceof ImTupleType) {
+            return ((ImTupleType) type);
+        } else if (type instanceof ImArrayType) {
+            return tupleType(((ImArrayType) type).getEntryType());
+        } else if (type instanceof ImArrayTypeMulti) {
+            return tupleType(((ImArrayTypeMulti) type).getEntryType());
+        }
+        throw new RuntimeException("not supported: " + type);
     }
 
 

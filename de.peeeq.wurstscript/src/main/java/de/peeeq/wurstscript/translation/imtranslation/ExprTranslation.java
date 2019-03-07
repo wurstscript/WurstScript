@@ -483,7 +483,8 @@ public class ExprTranslation {
 
         if (calledFunc instanceof TupleDef) {
             // creating a new tuple...
-            return ImTupleExpr(imArgs);
+            TupleDef tupleDef = (TupleDef) calledFunc;
+            return ImTupleExpr(t.getTupleTypeFor(tupleDef), imArgs);
         }
 
         ImStmts stmts = null;

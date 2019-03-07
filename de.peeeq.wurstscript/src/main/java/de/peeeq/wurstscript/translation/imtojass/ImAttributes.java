@@ -6,9 +6,11 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagCompiletime;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 
 public class ImAttributes {
 
@@ -120,5 +122,13 @@ public class ImAttributes {
 
     public static String translateType(ImClassType imClassType) {
         return "integer";
+    }
+
+    public static List<ImType> tupleGetTypes(ImTupleType tt) {
+        return Utils.mapped(tt.getParameters(), ImVar::getType);
+    }
+
+    public static List<String> tupleGetNames(ImTupleType tt) {
+        return Utils.mapped(tt.getParameters(), ImVar::getName);
     }
 }

@@ -104,7 +104,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTupleTypes(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
     }
 
 
@@ -1277,6 +1277,25 @@ public class ImTranslator {
 
     public ImTypeVar getTypeVar(TypeParamDef tv) {
         return typeVariable.getFor(tv);
+    }
+
+    private GetAForB<TupleDef, ImTupleType> tupleTypeForTupleDef = new GetAForB<TupleDef, ImTupleType>() {
+        @Override
+        public ImTupleType initFor(TupleDef a) {
+            ImTupleType tt = JassIm.ImTupleType(
+                    a,
+                    a.getName(),
+                    a.getParameters().stream()
+                            .map(p -> getVarFor(p))
+                            .collect(Collectors.toCollection(JassIm::ImVars))
+            );
+            imProg.getTupleTypes().add(tt);
+            return tt;
+        }
+    };
+
+    public ImTupleType getTupleTypeFor(TupleDef tupleDef) {
+        return tupleTypeForTupleDef.getFor(tupleDef);
     }
 
 

@@ -51,15 +51,8 @@ public class WurstTypeTuple extends WurstType {
 
 
     @Override
-    public ImType imTranslateType(ImTranslator tr) {
-        List<ImType> types = Lists.newArrayList();
-        List<String> names = Lists.newArrayList();
-        for (WParameter p : tupleDef.getParameters()) {
-            ImType pt = p.attrTyp().imTranslateType(tr);
-            types.add(pt);
-            names.add(p.getName());
-        }
-        return JassIm.ImTupleType(types, names);
+    public ImTupleType imTranslateType(ImTranslator tr) {
+        return tr.getTupleTypeFor(tupleDef);
     }
 
     @Override
@@ -68,7 +61,7 @@ public class WurstTypeTuple extends WurstType {
         for (WParameter p : tupleDef.getParameters()) {
             exprs.add((ImExpr) p.attrTyp().getDefaultValue(tr));
         }
-        return JassIm.ImTupleExpr(exprs);
+        return JassIm.ImTupleExpr(imTranslateType(tr), exprs);
     }
 
     @Override

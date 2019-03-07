@@ -234,6 +234,7 @@ public class CompiletimeFunctionRunner {
             return JassIm.ImStringVal(((ILconstString) value).getVal());
         } else if (value instanceof ILconstTuple) {
             return JassIm.ImTupleExpr(
+                    ((ImTupleType) cte.attrTyp()),
                     JassIm.ImExprs(
                             ((ILconstTuple) value).values().stream()
                                     .map(e -> constantToExpr(cte, e))

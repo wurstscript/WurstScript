@@ -26,6 +26,10 @@ public class ImPrinter {
         for (ImClass c : p.getClasses()) {
             print(c, sb, indent);
         }
+        append(sb, "\n\n");
+        for (ImTupleType tt : p.getTupleTypes()) {
+            print(tt, sb, indent);
+        }
 
     }
 
@@ -107,7 +111,9 @@ public class ImPrinter {
     }
 
     public static void print(ImTupleType p, Appendable sb, int indent) {
-        append(sb, "⦅");
+        append(sb, "tuple");
+        append(sb, p.getName());
+        append(sb, " (");
         boolean first = true;
         for (ImType t : p.getTypes()) {
             if (!first) append(sb, ", ");
@@ -400,6 +406,10 @@ public class ImPrinter {
 
     }
 
+    public static String asString(ImTupleType f) {
+        return f.getName() + smallHash(f);
+
+    }
     public static void print(ImMemberAccess e, Appendable sb,
                              int indent) {
         e.getReceiver().print(sb, 0);

@@ -22,11 +22,7 @@ public class TypeRewriteMatcher implements ImType.Matcher<ImType> {
 
     @Override
     public ImType case_ImTupleType(ImTupleType t) {
-        return JassIm.ImTupleType(t.getTypes()
-                        .stream()
-                        .map(tt -> tt.match(this))
-                        .collect(Collectors.toList()),
-                ImmutableList.copyOf(t.getNames()));
+        return t;
     }
 
     @Override

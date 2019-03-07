@@ -86,6 +86,11 @@ public class JvmTranslation {
             Multimap<JPackage, ImClass> classesByPackage =
                     prog.getClasses().stream()
                             .collect(Utils.groupBy(this::getPackage));
+
+            Multimap<JPackage, ImTupleType> tuplesByPackage =
+                    prog.getTupleTypes().stream()
+                            .collect(Utils.groupBy(this::getPackage));
+
             methodByClass =
                     prog.getMethods().stream()
                             .collect(Utils.groupBy(f -> f.getMethodClass().getClassDef()));
@@ -95,7 +100,7 @@ public class JvmTranslation {
 
             // create one class per package
             for (JPackage p : packages) {
-                translatePackage(p, functionsByPackage.get(p), varsByPackage.get(p), classesByPackage.get(p));
+                translatePackage(p, functionsByPackage.get(p), varsByPackage.get(p), classesByPackage.get(p), tuplesByPackage.get(p));
             }
 
 
@@ -180,7 +185,7 @@ public class JvmTranslation {
         return null;
     }
 
-    private void translatePackage(JPackage p, Collection<ImFunction> imFunctions, Collection<ImVar> imVars, Collection<ImClass> imClasses) throws IOException {
+    private void translatePackage(JPackage p, Collection<ImFunction> imFunctions, Collection<ImVar> imVars, Collection<ImClass> imClasses, Collection<ImTupleType> imTupleTypes) throws IOException {
         ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
         classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
 
@@ -190,6 +195,10 @@ public class JvmTranslation {
 
         for (ImClass c : imClasses) {
             translateClass(p, classWriter, c);
+        }
+
+        for (ImTupleType tt : imTupleTypes) {
+            translateTupleType(p, classWriter, tt);
         }
 
         for (ImVar v : imVars) {
@@ -210,6 +219,7 @@ public class JvmTranslation {
             translateInnerClass(p, c);
         }
     }
+
 
     private void addStandardFunctions(ClassWriter classWriter) {
         {
@@ -252,7 +262,7 @@ public class JvmTranslation {
             methodVisitor.visitInsn(POP);
             methodVisitor.visitLabel(label2);
             methodVisitor.visitLineNumber(13, label2);
-            methodVisitor.visitFrame(Opcodes.F_APPEND,1, new Object[] {"java/lang/Integer"}, 0, null);
+            methodVisitor.visitFrame(Opcodes.F_APPEND, 1, new Object[]{"java/lang/Integer"}, 0, null);
             methodVisitor.visitVarInsn(ALOAD, 1);
             methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
             methodVisitor.visitInsn(IRETURN);
@@ -343,6 +353,103 @@ public class JvmTranslation {
         System.out.println("written " + outputFolder.resolve(name + ".class").toFile().getAbsolutePath());
     }
 
+
+    private void translateTupleType(JPackage p, ClassWriter outerClassWriter, ImTupleType tt) throws IOException {
+        String name = className(tt, p);
+        outerClassWriter.visitNestMember(name);
+        outerClassWriter.visitInnerClass(name, p.name, tt.getName(), ACC_STATIC);
+
+        ClassWriter classWriter = new WurstClassWriter();
+        // TODO use correct super-class
+        String superClassDescr = "java/lang/Object";
+
+
+        int access = ACC_PUBLIC | ACC_SUPER;
+
+        String[] interfaces = {};
+        classWriter.visit(JAVA_VERSION, access, name, null, superClassDescr, interfaces);
+        classWriter.visitNestHost(p.name);
+        classWriter.visitInnerClass(name, p.name, tt.getName(), ACC_PUBLIC | ACC_STATIC);
+
+
+        for (ImVar v : tt.getParameters()) {
+            translateField(classWriter, v);
+        }
+
+        // create constructor
+        createTupleInitFunction(classWriter, name, tt, superClassDescr);
+
+
+        // create equals
+        createTupleEquals(classWriter, name, tt);
+
+
+        classWriter.visitEnd();
+        byte[] bytes = classWriter.toByteArray();
+        Files.write(outputFolder.resolve(name + ".class"), bytes);
+        System.out.println("written " + outputFolder.resolve(name + ".class").toFile().getAbsolutePath());
+
+    }
+
+    private void createTupleEquals(ClassWriter classWriter, String name, ImTupleType tt) {
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "equals", "(Ljava/lang/Object;)Z", null, null);
+        methodVisitor.visitCode();
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitVarInsn(ALOAD, 1);
+        Label notReferenceEquals = new Label();
+        methodVisitor.visitJumpInsn(IF_ACMPNE, notReferenceEquals);
+        // if reference equals return true
+        methodVisitor.visitInsn(ICONST_1);
+        methodVisitor.visitInsn(IRETURN);
+        methodVisitor.visitLabel(notReferenceEquals);
+        methodVisitor.visitLineNumber(15, notReferenceEquals);
+        methodVisitor.visitVarInsn(ALOAD, 1);
+        Label returnFalse = new Label();
+        methodVisitor.visitJumpInsn(IFNULL, returnFalse);
+
+        // compare classes
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+        methodVisitor.visitVarInsn(ALOAD, 1);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Object", "getClass", "()Ljava/lang/Class;", false);
+        Label ifSameClass = new Label();
+        methodVisitor.visitJumpInsn(IF_ACMPEQ, ifSameClass);
+        // if other is null or classes are different return false:
+        methodVisitor.visitLabel(returnFalse);
+        methodVisitor.visitInsn(ICONST_0);
+        methodVisitor.visitInsn(IRETURN);
+
+        // if classes are the same compare fields
+        methodVisitor.visitLabel(ifSameClass);
+        // cast to right class
+        methodVisitor.visitVarInsn(ALOAD, 1);
+        methodVisitor.visitTypeInsn(CHECKCAST, name);
+        methodVisitor.visitVarInsn(ASTORE, 2);
+
+        for (ImVar p : tt.getParameters()) {
+            // load this.p
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            methodVisitor.visitFieldInsn(GETFIELD, name, p.getName(), translateType(p.getType()));
+            // load other.p
+            methodVisitor.visitVarInsn(ALOAD, 2);
+            methodVisitor.visitFieldInsn(GETFIELD, name, p.getName(), translateType(p.getType()));
+            if (isIntType(p.getType())) {
+                methodVisitor.visitJumpInsn(IF_ICMPNE, returnFalse);
+            } else if (isFloatType(p.getType())) {
+                methodVisitor.visitInsn(FCMPL);
+                methodVisitor.visitJumpInsn(IFNE, returnFalse);
+            } else {
+                methodVisitor.visitMethodInsn(INVOKESTATIC, "java/util/Objects", "equals", "(Ljava/lang/Object;Ljava/lang/Object;)Z", false);
+                methodVisitor.visitJumpInsn(IFEQ, returnFalse);
+            }
+        }
+        // all equal: return true
+        methodVisitor.visitInsn(ICONST_1);
+        methodVisitor.visitInsn(IRETURN);
+        methodVisitor.visitMaxs(10, 10);
+        methodVisitor.visitEnd();
+    }
+
     private void createInitFunction(ClassWriter classWriter, ImClass c, String superClassDescr) {
         MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
         methodVisitor.visitCode();
@@ -372,6 +479,35 @@ public class JvmTranslation {
         methodVisitor.visitInsn(RETURN);
         methodVisitor.visitMaxs(1, 1);
         methodVisitor.visitEnd();
+    }
+
+    private void createTupleInitFunction(ClassWriter classWriter, String className, ImTupleType tt, String superClassDescr) {
+
+        String sig = getTupleConstructorSignature(tt);
+
+        MethodVisitor methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", sig, null, null);
+        methodVisitor.visitCode();
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, superClassDescr, "<init>", "()V", false);
+        // initialize fields from params
+        for (int i = 0; i < tt.getParameters().size(); i++) {
+            ImVar param = tt.getParameters().get(i);
+
+            // load this
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            // load the parameter
+            methodVisitor.visitVarInsn(getLoadInstruction(param.getType()), 1 + i);
+            methodVisitor.visitFieldInsn(PUTFIELD, className, param.getName(), translateType(param.getType()));
+        }
+
+        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMaxs(1, 1);
+        methodVisitor.visitEnd();
+    }
+
+    @NotNull
+    private String getTupleConstructorSignature(ImTupleType tt) {
+        return getSignatureDescriptor(Utils.mapped(tt.getParameters(), ImVar::getType), JassIm.ImVoid());
     }
 
     private void createPackageInitFunction(ClassWriter classWriter, JPackage p, Collection<ImVar> imVars) {
@@ -411,7 +547,7 @@ public class JvmTranslation {
         } else if (entryType.equalsType(TypesHelper.imReal())) {
             methodVisitor.visitIntInsn(NEWARRAY, T_FLOAT);
         } else {
-            methodVisitor.visitTypeInsn(ANEWARRAY, translateType(entryType));
+            methodVisitor.visitTypeInsn(ANEWARRAY, classDescriptor(entryType));
         }
     }
 
@@ -439,15 +575,22 @@ public class JvmTranslation {
     }
 
     private String classDescriptor(ImType t) {
-        ImClassType ct = (ImClassType) t;
-        return classDescriptor(ct.getClassDef());
+        if (t instanceof ImClassType) {
+            ImClassType ct = (ImClassType) t;
+            return classDescriptor(ct.getClassDef());
+        } else if (t instanceof ImTupleType) {
+            ImTupleType tt = (ImTupleType) t;
+            return getPackage(tt.attrTrace()).name + "$" + tt.getName();
+        } else {
+            throw new RuntimeException("unhandled case: " + t);
+        }
     }
 
     private String translateType(ImType type) {
         return type.match(new ImType.Matcher<String>() {
             @Override
-            public String case_ImTupleType(ImTupleType imTupleType) {
-                throw new RuntimeException("TODO " + imTupleType);
+            public String case_ImTupleType(ImTupleType t) {
+                return "L" + classDescriptor(t) + ";";
             }
 
             @Override
@@ -479,6 +622,8 @@ public class JvmTranslation {
                         return "Z";
                     case "string":
                         return "Ljava/lang/String;";
+                    case "real":
+                        return "F";
                     default:
                         return "L" + s.getTypename() + ";";
                 }
@@ -853,8 +998,11 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImTupleSelection(ImTupleSelection imTupleSelection) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImTupleSelection(ImTupleSelection ts) {
+                translateStatement(methodVisitor, ts.getTupleExpr());
+                ImTupleType tt = (ImTupleType) ts.getTupleExpr().attrTyp();
+                ImVar p = tt.getParameters().get(ts.getTupleIndex());
+                methodVisitor.visitFieldInsn(GETFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
             }
 
             @Override
@@ -1108,8 +1256,17 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImTupleExpr(ImTupleExpr imTupleExpr) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImTupleExpr(ImTupleExpr te) {
+                ImTupleType tt = te.getTupleType();
+                String classDescriptor = classDescriptor(tt);
+
+
+                methodVisitor.visitTypeInsn(NEW, classDescriptor);
+                methodVisitor.visitInsn(DUP);
+                for (ImExpr arg : te.getExprs()) {
+                    translateStatement(methodVisitor, arg);
+                }
+                methodVisitor.visitMethodInsn(INVOKESPECIAL, classDescriptor, "<init>", getTupleConstructorSignature(tt), false);
             }
 
             @Override
@@ -1122,8 +1279,13 @@ public class JvmTranslation {
                 ImLExpr left = imSet.getLeft();
                 left.match(new ImLExpr.MatcherVoid() {
                     @Override
-                    public void case_ImTupleSelection(ImTupleSelection imTupleSelection) {
-                        throw new RuntimeException("TODO " + s);
+                    public void case_ImTupleSelection(ImTupleSelection ts) {
+                        translateStatement(methodVisitor, ts.getTupleExpr());
+                        ImTupleType tt = (ImTupleType) ts.getTupleExpr().attrTyp();
+                        ImVar p = tt.getParameters().get(ts.getTupleIndex());
+                        translateStatement(methodVisitor, imSet.getRight());
+                        // TODO this is actually more difficult: need to copy the tuple
+                        methodVisitor.visitFieldInsn(PUTFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
                     }
 
                     @Override
@@ -1226,7 +1388,7 @@ public class JvmTranslation {
                     methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(imCast.getToType()));
                 } else if (imCast.getToType() instanceof ImClassType) {
                     methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(imCast.getToType()));
-                } else{
+                } else {
                     throw new RuntimeException("TODO " + s);
                 }
             }
@@ -1374,8 +1536,11 @@ public class JvmTranslation {
         });
     }
 
-    @NotNull
     private String className(ImClass cd, JPackage aPackage) {
+        return aPackage.name + "$" + cd.getName();
+    }
+
+    private String className(ImTupleType cd, JPackage aPackage) {
         return aPackage.name + "$" + cd.getName();
     }
 
@@ -1453,7 +1618,7 @@ public class JvmTranslation {
         return type.match(new ImType.Matcher<Integer>() {
             @Override
             public Integer case_ImTupleType(ImTupleType imTupleType) {
-                throw new RuntimeException("TODO " + type);
+                return ALOAD;
             }
 
             @Override
@@ -1499,7 +1664,7 @@ public class JvmTranslation {
         return type.match(new ImType.Matcher<Integer>() {
             @Override
             public Integer case_ImTupleType(ImTupleType imTupleType) {
-                throw new RuntimeException("TODO " + type);
+                return ASTORE;
             }
 
             @Override
@@ -1545,7 +1710,7 @@ public class JvmTranslation {
         return type.match(new ImType.Matcher<Integer>() {
             @Override
             public Integer case_ImTupleType(ImTupleType imTupleType) {
-                throw new RuntimeException("TODO " + type);
+                return AASTORE;
             }
 
             @Override
@@ -1591,7 +1756,7 @@ public class JvmTranslation {
         return type.match(new ImType.Matcher<Integer>() {
             @Override
             public Integer case_ImTupleType(ImTupleType imTupleType) {
-                throw new RuntimeException("TODO " + type);
+                return AALOAD;
             }
 
             @Override
@@ -1654,6 +1819,16 @@ public class JvmTranslation {
         }
         sb.append(")");
         sb.append(translateType(func.getReturnType()));
+        return sb.toString();
+    }
+
+    private String getSignatureDescriptor(List<ImType> paramTypes, ImType resultType) {
+        StringBuilder sb = new StringBuilder("(");
+        for (ImType t : paramTypes) {
+            sb.append(translateType(t));
+        }
+        sb.append(")");
+        sb.append(translateType(resultType));
         return sb.toString();
     }
 

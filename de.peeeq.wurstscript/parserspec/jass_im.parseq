@@ -9,12 +9,14 @@ ImProg(
 	ImFunctions functions,
 	ImMethods methods,
 	ImClasses classes,
+	ImTupleTypes tupleTypes,
 	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
+ImTupleTypes * ImTupleType
 ImTypeClassFuncs * ImTypeClassFunc
 
 ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
@@ -23,7 +25,7 @@ ImType =
 	  ImSimpleType(String typename)
 	| ImArrayType(ref ImType entryType)
 	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
-	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
+	| ImTupleType(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, String name, ImVars parameters)
 	| ImVoid()
 	| ImClassType(ref ImClass classDef, ImTypeArguments typeArguments)
 	| ImTypeVarRef(ref ImTypeVar typeVariable)
@@ -106,7 +108,7 @@ ImLExpr =
     | ImVarArrayAccess(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImVar var, ImExprs indexes)
     | ImTupleSelection(ImExpr tupleExpr, int tupleIndex) // can only be used as L-value if tupleExpr is l-exprs
     | ImMemberAccess
-    | ImTupleExpr(ImExprs exprs)                        // can only be used as L-value if exprs only contains l-exprs
+    | ImTupleExpr(ref ImTupleType tupleType, ImExprs exprs) // can only be used as L-value if exprs only contains l-exprs
     | ImStatementExpr(ImStmts statements, ImExpr expr)  // can only be used as L-value if expr only contains l-exprs
 
 
@@ -156,8 +158,9 @@ ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImE
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess
  | ImProg | ImFuncRef
  | ImAlloc | ImDealloc
+ | ImTupleType
 
-ElementWithTypes = ImTupleType | ImTupleArrayType
+ElementWithTypes = ImTupleType
 
 ElementWithVar = ImVarAccess | ImVarArrayAccess | ImVarArrayMultiAccess | ImMemberAccess
 
@@ -376,3 +379,10 @@ ImLExpr.isUsedAsLValue()
     returns boolean
     implemented by de.peeeq.wurstscript.translation.imtranslation.LValues.isUsedAsLValue
 		
+ImTupleType.getTypes()
+    returns java.util.List<ImType>
+    implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.tupleGetTypes
+
+ImTupleType.getNames()
+    returns java.util.List<String>
+    implemented by de.peeeq.wurstscript.translation.imtojass.ImAttributes.tupleGetNames

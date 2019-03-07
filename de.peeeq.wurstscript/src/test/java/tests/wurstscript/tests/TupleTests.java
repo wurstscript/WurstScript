@@ -22,6 +22,21 @@ public class TupleTests extends WurstScriptTest {
     }
 
     @Test
+    public void differentTypes() {
+        testAssertOkLines(true,
+                "package test",
+                "	native testSuccess()",
+                "	tuple vec(int x, real y, string z)",
+                "	init",
+                "		vec a = vec(1, 2.0, \"abc\")",
+                "		vec b = vec(1, 2.0, \"abc\")",
+                "		if a == b",
+                "			testSuccess()",
+                "endpackage"
+        );
+    }
+
+    @Test
     public void swap() {
         testAssertOkLines(true,
                 "package test",
