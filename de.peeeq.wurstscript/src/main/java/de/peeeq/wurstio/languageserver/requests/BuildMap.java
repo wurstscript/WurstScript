@@ -17,11 +17,10 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
-import net.moonlightflower.wc3libs.txt.app.jass.JassScript;
-import net.moonlightflower.wc3libs.txt.app.jass.LightJass;
 import org.eclipse.lsp4j.MessageType;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -80,6 +79,7 @@ public class BuildMap extends MapRequest {
             }
             Files.copy(map, targetMap);
 
+
             // first compile the script:
             File compiledScript = compileScript(gui, modelManager, compileArgs, targetMap, map);
 
@@ -90,16 +90,9 @@ public class BuildMap extends MapRequest {
                 println("We will try to start the map now, but it will probably fail. ");
             }
 
-
-            // then inject the script into the map
-            gui.sendProgress("Injecting mapscript");
-            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(targetMap)) {
-                mpqEditor.deleteFile("war3map.j");
-                mpqEditor.insertFile("war3map.j", compiledScript);
-            }
-
             gui.sendProgress("Applying Map Config...");
             applyProjectConfig(projectConfig, targetMap, compiledScript);
+
             gui.sendProgress("Done.");
         } catch (CompileError e) {
             WLogger.info(e);
@@ -114,39 +107,37 @@ public class BuildMap extends MapRequest {
         return "ok"; // TODO
     }
 
-    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
+  private W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
+      try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
+          W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
+          w3I.setMapName(projectConfig.getBuildMapData().getName());
+          w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
+          WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
+          w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
+          w3I.setMapDescription(scenarioData.getDescription());
+
+          applyPlayers(projectConfig, w3I);
+          applyForces(projectConfig, w3I);
+          applyLoadingScreen(w3I, scenarioData);
+          return w3I;
+      }
+  }
+
+  private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
         if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
 
         if (!projectConfig.getBuildMapData().getName().isEmpty()) {
             try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-                W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
-                w3I.setMapName(projectConfig.getBuildMapData().getName());
-                w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
-                WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
-                w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
-                w3I.setMapDescription(scenarioData.getDescription());
-                System.out.println("Wrote w3i values");
 
-                applyPlayers(projectConfig, w3I);
-                applyForces(projectConfig, w3I);
-                applyLoadingScreen(w3I, scenarioData);
-
-                mpq.deleteFile("war3map.j");
-                System.out.println("Parsing LightJass");
-                LightJass jass = new LightJass(compiledScript);
-                System.out.println("Parsing done");
-                JassScript script = new JassScript(jass.getRootContext());
-                System.out.println("Injecting..");
-                w3I.injectConfigsInJassScript(script);
-
+                // Apply w3i config values
+                W3I w3I = prepareW3I(projectConfig, targetMap);
+                FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
-                System.out.println("Writing..");
+                w3I.injectConfigsInJassScript(inputStream, sw);
 
-                script.write(sw);
-                System.out.println("Writing MPQ..");
-                File file = new File("testshit.j");
+                File file = new File("wc3libs.j");
                 Files.write(sw.toString().getBytes(), file);
                 Pjass.runPjass(file);
                 mpq.insertFile("war3map.j", file);
@@ -156,6 +147,7 @@ public class BuildMap extends MapRequest {
 
                 mpq.deleteFile("war3map.w3i");
                 mpq.insertFile("war3map.w3i", java.nio.file.Files.readAllBytes(w3iFile.toPath()));
+                file.delete();
                 w3iFile.delete();
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -178,7 +170,7 @@ public class BuildMap extends MapRequest {
 
     private void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
         // Forces
-        w3I.getForces().clear();
+        w3I.clearForces();
         ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
         for (WurstProjectBuildForce wforce : forces) {
             W3I.Force force = w3I.addForce();
