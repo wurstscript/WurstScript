@@ -107,21 +107,21 @@ public class BuildMap extends MapRequest {
         return "ok"; // TODO
     }
 
-  private W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
-      try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-          W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
-          w3I.setMapName(projectConfig.getBuildMapData().getName());
-          w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
-          WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
-          w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
-          w3I.setMapDescription(scenarioData.getDescription());
+    private W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
+        try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
+            W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
+            w3I.setMapName(projectConfig.getBuildMapData().getName());
+            w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
+            WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
+            w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
+            w3I.setMapDescription(scenarioData.getDescription());
 
-          applyPlayers(projectConfig, w3I);
-          applyForces(projectConfig, w3I);
-          applyLoadingScreen(w3I, scenarioData);
-          return w3I;
-      }
-  }
+            applyPlayers(projectConfig, w3I);
+            applyForces(projectConfig, w3I);
+            applyLoadingScreen(w3I, scenarioData);
+            return w3I;
+        }
+    }
 
   private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
         if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
