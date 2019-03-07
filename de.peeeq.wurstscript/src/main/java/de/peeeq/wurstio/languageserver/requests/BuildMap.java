@@ -137,10 +137,11 @@ public class BuildMap extends MapRequest {
                 StringWriter sw = new StringWriter();
                 w3I.injectConfigsInJassScript(inputStream, sw);
 
-                File file = new File("wc3libs.j");
-                Files.write(sw.toString().getBytes(), file);
+                File file = new File(getBuildDir(), "wc3libs.j");
+                byte[] scriptBytes = sw.toString().getBytes();
+                Files.write(scriptBytes, file);
                 Pjass.runPjass(file);
-                mpq.insertFile("war3map.j", file);
+                mpq.insertFile("war3map.j", scriptBytes);
 
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
