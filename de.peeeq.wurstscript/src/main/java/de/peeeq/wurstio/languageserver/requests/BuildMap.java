@@ -159,7 +159,6 @@ public class BuildMap extends MapRequest {
     }
 
     private void applyLoadingScreen(W3I w3I, WurstProjectBuildScenarioData scenarioData) {
-        // Loading Screen
         WurstProjectBuildLoadingScreenData loadingScreen = scenarioData.getLoadingScreen();
         if (loadingScreen != null) {
             w3I.setLoadingScreenModel(loadingScreen.getModel());
@@ -170,7 +169,6 @@ public class BuildMap extends MapRequest {
     }
 
     private void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
-        // Forces
         w3I.clearForces();
         ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
         for (WurstProjectBuildForce wforce : forces) {
@@ -186,7 +184,6 @@ public class BuildMap extends MapRequest {
     }
 
     private void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
-        // Players
         w3I.getPlayers().clear();
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
