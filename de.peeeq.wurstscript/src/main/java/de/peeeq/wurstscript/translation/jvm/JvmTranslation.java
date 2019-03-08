@@ -1277,20 +1277,51 @@ public class JvmTranslation {
             @Override
             public void case_ImSet(ImSet imSet) {
                 ImLExpr left = imSet.getLeft();
+                ImExpr right = imSet.getRight();
+                Runnable translateRight = () -> translateStatement(methodVisitor, right);
+                translateAssignment(left, translateRight);
+            }
+
+            private void translateAssignment(ImLExpr left, Runnable translateRight) {
                 left.match(new ImLExpr.MatcherVoid() {
+
                     @Override
                     public void case_ImTupleSelection(ImTupleSelection ts) {
-                        translateStatement(methodVisitor, ts.getTupleExpr());
-                        ImTupleType tt = (ImTupleType) ts.getTupleExpr().attrTyp();
-                        ImVar p = tt.getParameters().get(ts.getTupleIndex());
-                        translateStatement(methodVisitor, imSet.getRight());
-                        // TODO this is actually more difficult: need to copy the tuple
-                        methodVisitor.visitFieldInsn(PUTFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
+                        // TODO extract side effects from tupleExpr, so they get only executed once
+                        ImLExpr tupleExpr = (ImLExpr) ts.getTupleExpr();
+                        ImTupleType tt = (ImTupleType) tupleExpr.attrTyp();
+                        translateAssignment(tupleExpr, () -> {
+                            // construct a new tuple and use it as the right hand side
+                            String classDescriptor = classDescriptor(tt);
+                            methodVisitor.visitTypeInsn(NEW, classDescriptor);
+                            methodVisitor.visitInsn(DUP);
+                            // arguments unchanged, except for updated field
+                            for (int i = 0; i < tt.getParameters().size(); i++) {
+                                if (i == ts.getTupleIndex()) {
+                                    translateRight.run();
+                                } else {
+                                    translateStatement(methodVisitor, tupleExpr);
+                                    ImVar p = tt.getParameters().get(i);
+                                    methodVisitor.visitFieldInsn(GETFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
+                                }
+                            }
+                            methodVisitor.visitMethodInsn(INVOKESPECIAL, classDescriptor, "<init>", getTupleConstructorSignature(tt), false);
+
+                        });
+
+
+//
+//                        translateStatement(methodVisitor, ts.getTupleExpr());
+//                        ImTupleType tt = (ImTupleType) ts.getTupleExpr().attrTyp();
+//                        ImVar p = tt.getParameters().get(ts.getTupleIndex());
+//                        translateStatement(methodVisitor, right);
+//                        // TODO this is actually more difficult: need to copy the tuple
+//                        methodVisitor.visitFieldInsn(PUTFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
                     }
 
                     @Override
                     public void case_ImVarAccess(ImVarAccess leftVar) {
-                        translateStatement(methodVisitor, imSet.getRight());
+                        translateRight.run();
                         ImVar var = leftVar.getVar();
                         if (localVars.containsKey(var)) {
                             int varIndex = localVars.get(var);
@@ -1324,7 +1355,7 @@ public class JvmTranslation {
                             methodVisitor.visitInsn(AALOAD);
                         }
                         translateStatement(methodVisitor, Utils.getLast(indexes));
-                        translateStatement(methodVisitor, imSet.getRight());
+                        translateRight.run();
                         methodVisitor.visitInsn(getArrayStoreInstruction(entryType));
                     }
 
@@ -1332,7 +1363,7 @@ public class JvmTranslation {
                     public void case_ImMemberAccess(ImMemberAccess e) {
                         translateStatement(methodVisitor, e.getReceiver());
                         if (e.getIndexes().isEmpty()) {
-                            translateStatement(methodVisitor, imSet.getRight());
+                            translateRight.run();
                             methodVisitor.visitFieldInsn(PUTFIELD, getClassName(e.getVar()), e.getVar().getName(), translateType(e.getVar().getType()));
                         } else {
                             methodVisitor.visitFieldInsn(GETFIELD, getClassName(e.getVar()), e.getVar().getName(), translateType(e.getVar().getType()));
