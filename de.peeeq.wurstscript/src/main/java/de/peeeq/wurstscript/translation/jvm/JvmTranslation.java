@@ -1674,6 +1674,8 @@ public class JvmTranslation {
                         return ILOAD;
                     case "real":
                         return FLOAD;
+                    case "boolean":
+                        return ILOAD;
                     default:
                         return ALOAD;
                 }
@@ -1720,6 +1722,8 @@ public class JvmTranslation {
                         return ISTORE;
                     case "real":
                         return FSTORE;
+                    case "boolean":
+                        return ISTORE;
                     default:
                         return ASTORE;
                 }

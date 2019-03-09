@@ -32,9 +32,26 @@ public class NativeFuncsJvm {
     public static void generateCode(MethodVisitor methodVisitor, ImFunction func) {
         if (func.getName().equals("testSuccess")) {
             testSuccess(methodVisitor);
+        } else if (func.getName().equals("I2S")) {
+             I2S(methodVisitor);
+        } else if (func.getName().equals("println")) {
+            println(methodVisitor);
         } else {
             genericStub(methodVisitor, func);
         }
+    }
+
+    private static void println(MethodVisitor methodVisitor) {
+        methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/Object;)V", false);
+        methodVisitor.visitInsn(RETURN);
+    }
+
+    private static void I2S(MethodVisitor methodVisitor) {
+        methodVisitor.visitVarInsn(ILOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false);
+        methodVisitor.visitInsn(ARETURN);
     }
 
     private static void genericStub(MethodVisitor methodVisitor, ImFunction func) {
