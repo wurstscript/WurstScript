@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Constants;
 import de.peeeq.wurstscript.utils.Utils;
@@ -16,7 +17,6 @@ import org.objectweb.asm.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,9 +49,15 @@ public class JvmTranslation {
 
     static class JPackage {
         final String name;
+        private final WPos source;
 
-        JPackage(String name) {
+        JPackage(String name, WPos source) {
             this.name = name;
+            this.source = source;
+        }
+
+        public WPos getSource() {
+            return source;
         }
 
         @Override
@@ -163,12 +169,12 @@ public class JvmTranslation {
         return getPackage(element.attrTrace());
     }
 
-    private JPackage wurstMain = new JPackage("WurstMain");
+    private JPackage wurstMain = new JPackage("WurstMain", null);
 
     private JPackage getPackage(Element element) {
         while (element != null) {
             if (element instanceof WPackage) {
-                return new JPackage(((WPackage) element).getName());
+                return new JPackage(((WPackage) element).getName(), element.attrSource());
             }
             element = element.getParent();
         }
@@ -188,6 +194,9 @@ public class JvmTranslation {
     private void translatePackage(JPackage p, Collection<ImFunction> imFunctions, Collection<ImVar> imVars, Collection<ImClass> imClasses, Collection<ImTupleType> imTupleTypes) throws IOException {
         ClassWriter classWriter = new WurstClassWriter(); // ClassWriter.COMPUTE_MAXS
         classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, p.name, null, "java/lang/Object", null);
+        if (p.getSource() != null) {
+            classWriter.visitSource(p.getSource().getFile(), null);
+        }
 
         if (p.equals(wurstMain)) {
             addStandardFunctions(classWriter);
@@ -326,6 +335,9 @@ public class JvmTranslation {
         }
 
         classWriter.visit(JAVA_VERSION, access, name, null, superClassDescr, interfaces);
+        if (p.getSource() != null) {
+            classWriter.visitSource(c.attrTrace().attrSource().getFile(), null);
+        }
         classWriter.visitNestHost(p.name);
         classWriter.visitInnerClass(name, p.name, c.getName(), ACC_PUBLIC | ACC_STATIC);
 
@@ -921,7 +933,10 @@ public class JvmTranslation {
     public void translateStatement(MethodVisitor methodVisitor, ImStmt s) {
         Label l = new Label();
         methodVisitor.visitLabel(l);
-        methodVisitor.visitLineNumber(s.attrTrace().attrSource().getLine(), l);
+        WPos source = s.attrTrace().attrSource();
+        if (!source.isArtificial()) {
+            methodVisitor.visitLineNumber(source.getLine(), l);
+        }
         s.match(new ImStmt.MatcherVoid() {
             @Override
             public void case_ImTypeVarDispatch(ImTypeVarDispatch imTypeVarDispatch) {
@@ -1000,9 +1015,23 @@ public class JvmTranslation {
             @Override
             public void case_ImTupleSelection(ImTupleSelection ts) {
                 translateStatement(methodVisitor, ts.getTupleExpr());
+                int tupleIndex = ts.getTupleIndex();
+                readTupleSelectionIndex(ts, tupleIndex);
+            }
+
+            private void readTupleSelectionIndex(ImTupleSelection ts, int tupleIndex) {
+                Label ifNull = new Label();
+                Label join = new Label();
+                methodVisitor.visitInsn(DUP);
+                methodVisitor.visitJumpInsn(IFNULL, ifNull);
                 ImTupleType tt = (ImTupleType) ts.getTupleExpr().attrTyp();
-                ImVar p = tt.getParameters().get(ts.getTupleIndex());
+                ImVar p = tt.getParameters().get(tupleIndex);
                 methodVisitor.visitFieldInsn(GETFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
+                methodVisitor.visitJumpInsn(GOTO, join);
+                methodVisitor.visitLabel(ifNull);
+                methodVisitor.visitInsn(POP);
+                pushDefaultValue(ts.attrTyp(), methodVisitor);
+                methodVisitor.visitLabel(join);
             }
 
             @Override
@@ -1301,8 +1330,7 @@ public class JvmTranslation {
                                     translateRight.run();
                                 } else {
                                     translateStatement(methodVisitor, tupleExpr);
-                                    ImVar p = tt.getParameters().get(i);
-                                    methodVisitor.visitFieldInsn(GETFIELD, classDescriptor(tt), p.getName(), translateType(p.getType()));
+                                    readTupleSelectionIndex(ts, i);
                                 }
                             }
                             methodVisitor.visitMethodInsn(INVOKESPECIAL, classDescriptor, "<init>", getTupleConstructorSignature(tt), false);
@@ -1545,6 +1573,7 @@ public class JvmTranslation {
             public void case_ImSimpleType(ImSimpleType t) {
                 switch (t.getTypename()) {
                     case "integer":
+                    case "boolean":
                         methodVisitor.visitInsn(ICONST_0);
                         break;
                     case "real":
@@ -1873,47 +1902,5 @@ public class JvmTranslation {
     }
 
 
-    public static void main(String[] args) throws IOException {
-        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-        MethodVisitor methodVisitor;
-
-        classWriter.visit(V11, ACC_PUBLIC | ACC_SUPER, "Blub", null, "java/lang/Object", null);
-
-        classWriter.visitSource("Hello.java", null);
-
-        {
-            methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "()V", null, null);
-            methodVisitor.visitCode();
-            Label label0 = new Label();
-            methodVisitor.visitLabel(label0);
-            methodVisitor.visitLineNumber(1, label0);
-            methodVisitor.visitVarInsn(ALOAD, 0);
-            methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-            methodVisitor.visitInsn(RETURN);
-            methodVisitor.visitMaxs(1, 1);
-            methodVisitor.visitEnd();
-        }
-        {
-            methodVisitor = classWriter.visitMethod(ACC_PUBLIC | ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-            methodVisitor.visitCode();
-            Label label0 = new Label();
-            methodVisitor.visitLabel(label0);
-            methodVisitor.visitLineNumber(3, label0);
-            methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
-            methodVisitor.visitLdcInsn("Hello World!!!");
-            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-            Label label1 = new Label();
-            methodVisitor.visitLabel(label1);
-            methodVisitor.visitLineNumber(4, label1);
-            methodVisitor.visitInsn(RETURN);
-            methodVisitor.visitMaxs(2, 1);
-            methodVisitor.visitEnd();
-        }
-        classWriter.visitEnd();
-
-
-        byte[] bytes = classWriter.toByteArray();
-        Files.write(Paths.get("/home/peter/Desktop/Blub.class"), bytes);
-    }
 
 }
