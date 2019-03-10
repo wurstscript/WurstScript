@@ -523,7 +523,7 @@ public class JvmTranslation {
             ImTupleType tt = (ImTupleType) t;
             return getPackage(tt.attrTrace()).name + "$" + tt.getName();
         } else {
-            throw new RuntimeException("unhandled case: " + t);
+            return "java/lang/Object";
         }
     }
 
