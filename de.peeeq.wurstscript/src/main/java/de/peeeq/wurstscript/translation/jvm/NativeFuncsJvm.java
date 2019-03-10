@@ -19,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
 
 import static de.peeeq.wurstscript.translation.jvm.JvmTranslation.getReturnInstruction;
 import static de.peeeq.wurstscript.translation.jvm.JvmTranslation.pushDefaultValue;
@@ -29,13 +30,35 @@ import static org.objectweb.asm.Opcodes.*;
  *
  */
 public class NativeFuncsJvm {
+
+    private static Map<String, Consumer<MethodVisitor>> codeGen = new HashMap<>();
+
+    static {
+        codeGen.put("testSuccess", NativeFuncsJvm::testSuccess);
+        codeGen.put("I2S", NativeFuncsJvm::I2S);
+        codeGen.put("println", NativeFuncsJvm::println);
+        codeGen.put("Sin", methodVisitor -> {
+            methodVisitor.visitVarInsn(FLOAD, 0);
+            methodVisitor.visitInsn(F2D);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Math", "sin", "(D)D", false);
+            methodVisitor.visitInsn(D2F);
+            methodVisitor.visitInsn(FRETURN);
+        });
+        codeGen.put("Cos", methodVisitor -> {
+            methodVisitor.visitVarInsn(FLOAD, 0);
+            methodVisitor.visitInsn(F2D);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Math", "cos", "(D)D", false);
+            methodVisitor.visitInsn(D2F);
+            methodVisitor.visitInsn(FRETURN);
+        });
+
+    }
+
+
     public static void generateCode(MethodVisitor methodVisitor, ImFunction func) {
-        if (func.getName().equals("testSuccess")) {
-            testSuccess(methodVisitor);
-        } else if (func.getName().equals("I2S")) {
-             I2S(methodVisitor);
-        } else if (func.getName().equals("println")) {
-            println(methodVisitor);
+        Consumer<MethodVisitor> code = codeGen.get(func.getName());
+        if (code != null) {
+            code.accept(methodVisitor);
         } else {
             genericStub(methodVisitor, func);
         }
