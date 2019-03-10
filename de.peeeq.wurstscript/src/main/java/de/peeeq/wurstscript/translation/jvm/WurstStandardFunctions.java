@@ -21,6 +21,7 @@ public class WurstStandardFunctions {
         castToIndex(classWriter);
         castFromIndex(classWriter);
         stringConcat(classWriter);
+        getStackTrace(classWriter);
     }
 
     private void castFromIndex(ClassWriter classWriter) {
@@ -92,6 +93,73 @@ public class WurstStandardFunctions {
     private void createIndexMap(ClassWriter classWriter) {
         FieldVisitor fieldVisitor = classWriter.visitField(ACC_STATIC, "indexMap", "Ljava/util/Map;", "Ljava/util/Map<Ljava/lang/Object;Ljava/lang/Integer;>;", null);
         fieldVisitor.visitEnd();
+    }
+
+    private void getStackTrace(ClassWriter classWriter) {
+        {
+            MethodVisitor methodVisitor = classWriter.visitMethod(ACC_STATIC, "getStackTrace", "()Ljava/lang/String;", null, null);
+            methodVisitor.visitCode();
+            Label label0 = new Label();
+            methodVisitor.visitLabel(label0);
+            methodVisitor.visitLineNumber(28, label0);
+            methodVisitor.visitTypeInsn(NEW, "java/lang/StringBuilder");
+            methodVisitor.visitInsn(DUP);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
+            methodVisitor.visitVarInsn(ASTORE, 0);
+            Label label1 = new Label();
+            methodVisitor.visitLabel(label1);
+            methodVisitor.visitLineNumber(29, label1);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", false);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Thread", "getStackTrace", "()[Ljava/lang/StackTraceElement;", false);
+            methodVisitor.visitVarInsn(ASTORE, 1);
+            Label label2 = new Label();
+            methodVisitor.visitLabel(label2);
+            methodVisitor.visitLineNumber(30, label2);
+            methodVisitor.visitInsn(ICONST_2);
+            methodVisitor.visitVarInsn(ISTORE, 2);
+            Label label3 = new Label();
+            methodVisitor.visitLabel(label3);
+            methodVisitor.visitFrame(Opcodes.F_APPEND,3, new Object[] {"java/lang/StringBuilder", "[Ljava/lang/StackTraceElement;", Opcodes.INTEGER}, 0, null);
+            methodVisitor.visitVarInsn(ILOAD, 2);
+            methodVisitor.visitVarInsn(ALOAD, 1);
+            methodVisitor.visitInsn(ARRAYLENGTH);
+            Label label4 = new Label();
+            methodVisitor.visitJumpInsn(IF_ICMPGE, label4);
+            Label label5 = new Label();
+            methodVisitor.visitLabel(label5);
+            methodVisitor.visitLineNumber(31, label5);
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            methodVisitor.visitVarInsn(ALOAD, 1);
+            methodVisitor.visitVarInsn(ILOAD, 2);
+            methodVisitor.visitInsn(AALOAD);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", false);
+            methodVisitor.visitInsn(POP);
+            Label label6 = new Label();
+            methodVisitor.visitLabel(label6);
+            methodVisitor.visitLineNumber(32, label6);
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            methodVisitor.visitLdcInsn("\n");
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
+            methodVisitor.visitInsn(POP);
+            Label label7 = new Label();
+            methodVisitor.visitLabel(label7);
+            methodVisitor.visitLineNumber(30, label7);
+            methodVisitor.visitIincInsn(2, 1);
+            methodVisitor.visitJumpInsn(GOTO, label3);
+            methodVisitor.visitLabel(label4);
+            methodVisitor.visitLineNumber(34, label4);
+            methodVisitor.visitFrame(Opcodes.F_CHOP,1, null, 0, null);
+            methodVisitor.visitVarInsn(ALOAD, 0);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false);
+            methodVisitor.visitInsn(ARETURN);
+            Label label8 = new Label();
+            methodVisitor.visitLabel(label8);
+            methodVisitor.visitLocalVariable("i", "I", null, label3, label4, 2);
+            methodVisitor.visitLocalVariable("sb", "Ljava/lang/StringBuilder;", null, label1, label8, 0);
+            methodVisitor.visitLocalVariable("st", "[Ljava/lang/StackTraceElement;", null, label2, label8, 1);
+            methodVisitor.visitMaxs(3, 3);
+            methodVisitor.visitEnd();
+        }
     }
 
     public void stringConcat(ClassWriter classWriter) {

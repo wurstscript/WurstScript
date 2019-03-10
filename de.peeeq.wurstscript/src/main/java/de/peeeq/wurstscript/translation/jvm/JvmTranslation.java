@@ -230,8 +230,6 @@ public class JvmTranslation {
     }
 
 
-
-
     private void translateClass(JPackage p, ClassWriter outerClassWriter, ImClass c) {
         String name = className(c, p);
         outerClassWriter.visitNestMember(name);
@@ -1213,7 +1211,7 @@ public class JvmTranslation {
 
             @Override
             public void case_ImGetStackTrace(ImGetStackTrace imGetStackTrace) {
-                throw new RuntimeException("TODO " + s);
+                methodVisitor.visitMethodInsn(INVOKESTATIC, wurstMain.name, "getStackTrace", "()Ljava/lang/String;", false);
             }
 
             @Override
@@ -1370,11 +1368,17 @@ public class JvmTranslation {
             @Override
             public void case_ImCast(ImCast imCast) {
                 translateStatement(methodVisitor, imCast.getExpr());
-                if (imCast.getToType().equalsType(imInt())
-                        && imCast.getExpr().attrTyp() instanceof ImClassType) {
-                    methodVisitor.visitMethodInsn(INVOKESTATIC, wurstMain.name, "castToIndex", "(Ljava/lang/Object;)I", false);
+                ImType et = imCast.getExpr().attrTyp();
+                if (imCast.getToType().equalsType(imInt())) {
+                    if (et instanceof ImClassType) {
+                        methodVisitor.visitMethodInsn(INVOKESTATIC, wurstMain.name, "castToIndex", "(Ljava/lang/Object;)I", false);
+                    } else if (TypesHelper.isIntType(et)) {
+                        // already int
+                    } else {
+                        throw new RuntimeException("TODO " + s);
+                    }
                 } else if (imCast.getToType() instanceof ImClassType
-                        && imCast.getExpr().attrTyp().equalsType(imInt())) {
+                        && et.equalsType(imInt())) {
                     methodVisitor.visitMethodInsn(INVOKESTATIC, wurstMain.name, "castFromIndex", "(Ljava/lang/Object;)I", false);
                     methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(imCast.getToType()));
                 } else if (imCast.getToType() instanceof ImClassType) {
@@ -1385,8 +1389,10 @@ public class JvmTranslation {
             }
 
             @Override
-            public void case_ImFuncRef(ImFuncRef imFuncRef) {
-                throw new RuntimeException("TODO " + s);
+            public void case_ImFuncRef(ImFuncRef fr) {
+                // TODO choose suitable representation for function refs
+                // Could be a lambda or a reflection method
+                methodVisitor.visitInsn(NULL);
             }
 
             @Override
@@ -1817,7 +1823,6 @@ public class JvmTranslation {
     private String getSignatureDescriptor(ImMethod func) {
         return getSignatureDescriptor(func.getImplementation(), true);
     }
-
 
 
 }
