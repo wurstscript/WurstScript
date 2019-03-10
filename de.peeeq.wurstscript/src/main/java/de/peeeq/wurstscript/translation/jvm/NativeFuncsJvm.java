@@ -3,22 +3,8 @@ package de.peeeq.wurstscript.translation.jvm;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import org.objectweb.asm.MethodVisitor;
 
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.PackageOrGlobal;
-import de.peeeq.wurstscript.ast.WPackage;
-import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.utils.Utils;
-import org.jetbrains.annotations.NotNull;
-import org.objectweb.asm.*;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import static de.peeeq.wurstscript.translation.jvm.JvmTranslation.getReturnInstruction;
@@ -50,6 +36,40 @@ public class NativeFuncsJvm {
             methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Math", "cos", "(D)D", false);
             methodVisitor.visitInsn(D2F);
             methodVisitor.visitInsn(FRETURN);
+        });
+        codeGen.put("GetRandomReal", methodVisitor -> {
+            {
+                methodVisitor.visitTypeInsn(NEW, "java/util/Random");
+                methodVisitor.visitInsn(DUP);
+                methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Random", "<init>", "()V", false);
+                methodVisitor.visitVarInsn(ASTORE, 2);
+                methodVisitor.visitVarInsn(FLOAD, 0);
+                methodVisitor.visitVarInsn(ALOAD, 2);
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/Random", "nextFloat", "()F", false);
+                methodVisitor.visitVarInsn(FLOAD, 1);
+                methodVisitor.visitVarInsn(FLOAD, 0);
+                methodVisitor.visitInsn(FSUB);
+                methodVisitor.visitInsn(FMUL);
+                methodVisitor.visitInsn(FADD);
+                methodVisitor.visitInsn(FRETURN);
+            }
+        });
+
+        codeGen.put("GetRandomInt", methodVisitor -> {
+            methodVisitor.visitTypeInsn(NEW, "java/util/Random");
+            methodVisitor.visitInsn(DUP);
+            methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/util/Random", "<init>", "()V", false);
+            methodVisitor.visitVarInsn(ASTORE, 2);
+            methodVisitor.visitVarInsn(ILOAD, 0);
+            methodVisitor.visitVarInsn(ALOAD, 2);
+            methodVisitor.visitInsn(ICONST_1);
+            methodVisitor.visitVarInsn(ILOAD, 1);
+            methodVisitor.visitInsn(IADD);
+            methodVisitor.visitVarInsn(ILOAD, 0);
+            methodVisitor.visitInsn(ISUB);
+            methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/util/Random", "nextInt", "(I)I", false);
+            methodVisitor.visitInsn(IADD);
+            methodVisitor.visitInsn(IRETURN);
         });
 
     }
