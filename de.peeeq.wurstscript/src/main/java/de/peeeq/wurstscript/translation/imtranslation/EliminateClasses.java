@@ -303,6 +303,7 @@ public class EliminateClasses {
         final List<ImInstanceof> instaneofs = Lists.newArrayList();
         final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
         final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
+        final List<ImNull> nulls = Lists.newArrayList();
         f.getBody().accept(new ImStmts.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
@@ -345,6 +346,11 @@ public class EliminateClasses {
                 super.visit(e);
                 typeIdObjs.add(e);
             }
+
+            @Override
+            public void visit(ImNull e) {
+                nulls.add(e);
+            }
         });
         for (ImMemberAccess ma : mas) {
             replaceMemberAccess(ma);
@@ -366,6 +372,16 @@ public class EliminateClasses {
         }
         for (ImTypeIdOfObj e : typeIdObjs) {
             replaceTypeIdOfObj(e);
+        }
+        for (ImNull imNull : nulls) {
+            replaceNull(imNull);
+        }
+    }
+
+    private void replaceNull(ImNull imNull) {
+        if (TypesHelper.isIntType(imNull.getType())
+                || imNull.getType() instanceof ImClassType) {
+            imNull.replaceBy(JassIm.ImIntVal(0));
         }
     }
 
