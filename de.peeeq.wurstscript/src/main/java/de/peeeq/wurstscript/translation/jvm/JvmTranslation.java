@@ -526,6 +526,8 @@ public class JvmTranslation {
         } else if (t instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) t;
             return getPackage(tt.attrTrace()).name + "$" + tt.getName();
+        } else if (TypesHelper.isStringType(t)) {
+            return "java/lang/String";
         } else {
             return "java/lang/Object";
         }
