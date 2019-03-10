@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleInstanciation;
 import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -85,7 +86,7 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
     @Override
     public ImType imTranslateType(ImTranslator tr) {
-        return TypesHelper.imInt();
+        return moduleInst.attrNearestClassOrInterface().attrTyp().imTranslateType(tr);
     }
 
     @Override

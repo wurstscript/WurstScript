@@ -13,7 +13,8 @@ import static org.objectweb.asm.Opcodes.*;
 
 
 /**
- *
+ * Native functions directly implemented in the compiler such that the same unit
+ * tests can be run for the Jass and JVM backends.
  */
 public class NativeFuncsJvm {
 

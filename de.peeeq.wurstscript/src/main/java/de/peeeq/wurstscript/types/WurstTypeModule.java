@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.ModuleDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -69,7 +70,7 @@ public class WurstTypeModule extends WurstTypeNamedScope {
 
     @Override
     public ImType imTranslateType(ImTranslator tr) {
-        return TypesHelper.imInt();
+        throw new CompileError(moduleDef, "should be eliminated before translation");
     }
 
     @Override
