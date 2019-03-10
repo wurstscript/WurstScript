@@ -477,11 +477,15 @@ public class WurstScriptTest {
                     }
                 }
 
+                boolean success = false;
                 if (errors.length() > 0) {
-                    throw new TestFailException(errors.toString());
+                    if (errors.toString().contains("java.lang.RuntimeException: testSuccess")) {
+                        success = true;
+                    } else {
+                        throw new TestFailException(errors.toString());
+                    }
                 }
 
-                boolean success = false;
                 try (BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                     while ((line = input.readLine()) != null) {
                         if (line.equals("testSuccess")) {

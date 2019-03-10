@@ -38,6 +38,13 @@ public class NativeFuncsJvm {
             methodVisitor.visitInsn(D2F);
             methodVisitor.visitInsn(FRETURN);
         });
+        codeGen.put("SquareRoot", methodVisitor -> {
+            methodVisitor.visitVarInsn(FLOAD, 0);
+            methodVisitor.visitInsn(F2D);
+            methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Math", "sqrt", "(D)D", false);
+            methodVisitor.visitInsn(D2F);
+            methodVisitor.visitInsn(FRETURN);
+        });
         codeGen.put("GetRandomReal", methodVisitor -> {
             {
                 methodVisitor.visitTypeInsn(NEW, "java/util/Random");
@@ -109,9 +116,14 @@ public class NativeFuncsJvm {
     }
 
     private static void testSuccess(MethodVisitor methodVisitor) {
-        methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+//        methodVisitor.visitFieldInsn(GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+//        methodVisitor.visitLdcInsn("testSuccess");
+//        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
+//        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitTypeInsn(NEW, "java/lang/RuntimeException");
+        methodVisitor.visitInsn(DUP);
         methodVisitor.visitLdcInsn("testSuccess");
-        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
-        methodVisitor.visitInsn(RETURN);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V", false);
+        methodVisitor.visitInsn(ATHROW);
     }
 }

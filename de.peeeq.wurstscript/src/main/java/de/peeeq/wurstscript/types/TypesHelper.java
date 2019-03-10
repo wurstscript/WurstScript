@@ -50,6 +50,11 @@ public class TypesHelper {
                 && ((ImSimpleType) t).getTypename().equals("integer");
     }
 
+    public static boolean isBoolType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("boolean");
+    }
+
     public static  boolean isFloatType(ImType t) {
         return t instanceof ImSimpleType
                 && ((ImSimpleType) t).getTypename().equals("real");

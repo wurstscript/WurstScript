@@ -583,7 +583,7 @@ public class JvmTranslation {
 
             @Override
             public String case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
-                throw new RuntimeException("TODO " + imTypeVarRef);
+                return "Ljava/lang/Object;";
             }
         });
     }
@@ -874,7 +874,44 @@ public class JvmTranslation {
         }
     }
 
+    public void translateExprTyped(MethodVisitor methodVisitor, ImExpr e, ImType expectedType) {
+        translateStatement(methodVisitor, e);
+        convertType(methodVisitor, e.attrTyp(), expectedType);
+    }
+
+    private void convertType(MethodVisitor methodVisitor, ImType from, ImType to) {
+        if (from.equalsType(to)) {
+            return;
+        }
+        System.out.println("trying to convert from " + from + " to " + to);
+        if (to instanceof ImClassType || to instanceof ImTypeVarRef) {
+            if (TypesHelper.isIntType(from)) {
+                methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+            } else if (TypesHelper.isFloatType(from)) {
+                methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
+            } else if (TypesHelper.isBoolType(from)) {
+                methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
+            } else if (to instanceof ImClassType) {
+                // could optimize and only do this if not a subtype:
+                methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(to));
+            }
+        } else if (from instanceof ImClassType || from instanceof ImTypeVarRef) {
+            if (TypesHelper.isIntType(to)) {
+                methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Integer");
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I", false);
+            } else if (TypesHelper.isFloatType(to)) {
+                methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Float");
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Float", "floatValue", "()F", false);
+            } else if (TypesHelper.isBoolType(to)) {
+                methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
+                methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            }
+        }
+
+    }
+
     public void translateStatement(MethodVisitor methodVisitor, ImStmt s) {
+        System.out.println("translating " + s);
         Label l = new Label();
         methodVisitor.visitLabel(l);
         WPos source = s.attrTrace().attrSource();
@@ -923,26 +960,36 @@ public class JvmTranslation {
                 ImClass classDef = rt.getClassDef();
                 String className = classDescriptor(classDef);
                 translateStatement(methodVisitor, mc.getReceiver());
+                int i = 0;
                 for (ImExpr a : mc.getArguments()) {
-                    translateStatement(methodVisitor, a);
+                    ImVar param = mc.getMethod().getImplementation().getParameters().get(i);
+                    translateExprTyped(methodVisitor, a, param.getType());
+                    i++;
                 }
                 boolean isInterface = classDef.getFlags().contains(IS_INTERFACE);
                 int invokeCommand = isInterface ? INVOKEINTERFACE : INVOKEVIRTUAL;
                 methodVisitor.visitMethodInsn(invokeCommand, className, mc.getMethod().getName(), getSignatureDescriptor(mc.getMethod()), isInterface);
+                convertType(methodVisitor, mc.getMethod().getImplementation().getReturnType(),
+                        mc.attrTyp());
+            }
+
+            @Override
+            public void case_ImFunctionCall(ImFunctionCall fc) {
+                int i = 0;
+                for (ImExpr a : fc.getArguments()) {
+                    ImVar param = fc.getFunc().getParameters().get(i);
+                    translateExprTyped(methodVisitor, a, param.getType());
+                    i++;
+                }
+                String signatureDescriptor = getSignatureDescriptor(fc.getFunc(), false);
+                methodVisitor.visitMethodInsn(INVOKESTATIC, getClassName(fc.getFunc()), fc.getFunc().getName(), signatureDescriptor, false);
+                convertType(methodVisitor, fc.getFunc().getReturnType(),
+                        fc.attrTyp());
             }
 
             @Override
             public void case_ImRealVal(ImRealVal imRealVal) {
                 methodVisitor.visitLdcInsn(new Float(imRealVal.getValR()));
-            }
-
-            @Override
-            public void case_ImFunctionCall(ImFunctionCall fc) {
-                for (ImExpr arg : fc.getArguments()) {
-                    translateStatement(methodVisitor, arg);
-                }
-                String signatureDescriptor = getSignatureDescriptor(fc.getFunc(), false);
-                methodVisitor.visitMethodInsn(INVOKESTATIC, getClassName(fc.getFunc()), fc.getFunc().getName(), signatureDescriptor, false);
             }
 
             @Override
@@ -1213,6 +1260,7 @@ public class JvmTranslation {
                     t = arrayEntryType(t);
                     methodVisitor.visitInsn(getArrayLoadInstruction(t));
                 }
+                convertType(methodVisitor, ma.attrTypRaw(), ma.attrTyp());
             }
 
             @Override
@@ -1243,7 +1291,10 @@ public class JvmTranslation {
             public void case_ImSet(ImSet imSet) {
                 ImLExpr left = imSet.getLeft();
                 ImExpr right = imSet.getRight();
-                Runnable translateRight = () -> translateStatement(methodVisitor, right);
+                Runnable translateRight = () -> {
+                    translateStatement(methodVisitor, right);
+                    convertType(methodVisitor, right.attrTyp(), left.attrTypRaw());
+                };
                 translateAssignment(left, translateRight);
             }
 
@@ -1487,7 +1538,7 @@ public class JvmTranslation {
 
             @Override
             public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
-                throw new RuntimeException("TODO");
+                return ARETURN;
             }
         });
     }
@@ -1646,7 +1697,7 @@ public class JvmTranslation {
 
             @Override
             public Integer case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
-                throw new RuntimeException("TODO " + type);
+                return ALOAD;
             }
         });
     }

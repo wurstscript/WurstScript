@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -135,7 +136,20 @@ public class ImAttrType {
 
 
     public static ImType getType(ImMethodCall mc) {
-        return mc.getMethod().getImplementation().getReturnType();
+        ImFunction func = mc.getMethod().getImplementation();
+        ImType t = func.getReturnType();
+        List <ImTypeArgument> typeArguments = new ArrayList<>();
+        List<ImTypeVar> typeVariables = new ArrayList<>();
+        ImType receiverType = mc.getReceiver().attrTyp();
+        if (receiverType instanceof ImClassType) {
+            ImClassType ct = (ImClassType) receiverType;
+            typeArguments.addAll(ct.getTypeArguments());
+            typeVariables.addAll(ct.getClassDef().getTypeVariables());
+        }
+        typeArguments.addAll(mc.getTypeArguments());
+        typeVariables.addAll(func.getTypeVariables());
+        t = substituteType(t, typeArguments, typeVariables);
+        return t;
     }
 
     public static ImType getType(ImMemberAccess e) {
@@ -161,7 +175,7 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImAlloc imAlloc) {
-        return TypesHelper.imInt();
+        return imAlloc.getClazz();
     }
 
     public static ImType getType(ImDealloc imDealloc) {
@@ -196,4 +210,27 @@ public class ImAttrType {
     public static ImType getType(ImCast imCast) {
         return imCast.getToType();
     }
+
+    public static ImType getTypeRaw(ImExpr e) {
+        return e.attrTyp();
+    }
+
+    public static ImType getTypeRaw(ImFunctionCall e) {
+        return e.getFunc().getReturnType();
+    }
+
+    public static ImType getTypeRaw(ImMethodCall e) {
+        return e.getMethod().getImplementation().getReturnType();
+    }
+
+    public static ImType getTypeRaw(ImMemberAccess e) {
+        ImType t = e.getVar().getType();
+        if (!e.getIndexes().isEmpty()) {
+            ImArrayTypeMulti at = (ImArrayTypeMulti) t;
+            t = at.getEntryType();
+        }
+        return t;
+    }
+
+
 }
