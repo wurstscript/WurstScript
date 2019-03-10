@@ -376,9 +376,9 @@ public class JvmTranslation {
             // load other.p
             methodVisitor.visitVarInsn(ALOAD, 2);
             methodVisitor.visitFieldInsn(GETFIELD, name, p.getName(), translateType(p.getType()));
-            if (isIntType(p.getType())) {
+            if (TypesHelper.isIntType(p.getType())) {
                 methodVisitor.visitJumpInsn(IF_ICMPNE, returnFalse);
-            } else if (isFloatType(p.getType())) {
+            } else if (TypesHelper.isFloatType(p.getType())) {
                 methodVisitor.visitInsn(FCMPL);
                 methodVisitor.visitJumpInsn(IFNE, returnFalse);
             } else {
@@ -1003,7 +1003,7 @@ public class JvmTranslation {
                 boolean floatOperation = isFloatOperation(oc);
                 for (ImExpr a : oc.getArguments()) {
                     translateStatement(methodVisitor, a);
-                    if (floatOperation && isIntType(a.attrTyp())) {
+                    if (floatOperation && TypesHelper.isIntType(a.attrTyp())) {
                         // convert to float
                         methodVisitor.visitInsn(I2F);
                     }
@@ -1554,7 +1554,7 @@ public class JvmTranslation {
 
     private boolean isIntOperation(ImOperatorCall oc) {
         for (ImExpr a : oc.getArguments()) {
-            if (!isIntType(a.attrTyp())) {
+            if (!TypesHelper.isIntType(a.attrTyp())) {
                 return false;
             }
         }
@@ -1563,7 +1563,7 @@ public class JvmTranslation {
 
     private boolean isFloatOperation(ImOperatorCall oc) {
         for (ImExpr a : oc.getArguments()) {
-            if (isFloatType(a.attrTyp())) {
+            if (TypesHelper.isFloatType(a.attrTyp())) {
                 return true;
             }
         }
@@ -1572,26 +1572,11 @@ public class JvmTranslation {
 
     private boolean isStringOperation(ImOperatorCall oc) {
         for (ImExpr a : oc.getArguments()) {
-            if (isStringType(a.attrTyp())) {
+            if (TypesHelper.isStringType(a.attrTyp())) {
                 return true;
             }
         }
         return false;
-    }
-
-    private boolean isIntType(ImType t) {
-        return t instanceof ImSimpleType
-                && ((ImSimpleType) t).getTypename().equals("integer");
-    }
-
-    private boolean isFloatType(ImType t) {
-        return t instanceof ImSimpleType
-                && ((ImSimpleType) t).getTypename().equals("real");
-    }
-
-    private boolean isStringType(ImType t) {
-        return t instanceof ImSimpleType
-                && ((ImSimpleType) t).getTypename().equals("string");
     }
 
     private void makeCompare(MethodVisitor methodVisitor, int jumpInstruction, int ifFalse, int ifTrue) {

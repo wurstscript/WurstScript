@@ -45,6 +45,21 @@ public class TypesHelper {
     }
 
 
+    public static boolean isIntType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("integer");
+    }
+
+    public static  boolean isFloatType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("real");
+    }
+
+    public static  boolean isStringType(ImType t) {
+        return t instanceof ImSimpleType
+                && ((ImSimpleType) t).getTypename().equals("string");
+    }
+
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {
 //		if (classParams.size() == 0 && interfaceParams.size() == 0) {
