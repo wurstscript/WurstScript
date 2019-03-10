@@ -208,7 +208,11 @@ public abstract class WurstType {
 
     public boolean isTranslatedToInt() {
         return this instanceof WurstTypeInt
-                || this instanceof WurstTypeIntLiteral; //  WurstTypeBoundTypeParam overrides this method
+                || this instanceof WurstTypeIntLiteral
+                || this instanceof WurstTypeNamedScope
+                || this instanceof WurstTypeTypeParam
+                || this instanceof WurstTypeNull
+                || this instanceof WurstTypeBoundTypeParam; //  WurstTypeBoundTypeParam overrides this method
     }
 
     public boolean isCastableToInt() {
