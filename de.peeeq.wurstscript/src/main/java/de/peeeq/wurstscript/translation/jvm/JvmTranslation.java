@@ -5,6 +5,7 @@ import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.AstElementWithNameId;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.OnDestroyDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -155,6 +156,9 @@ public class JvmTranslation {
                 Element trace = m.attrTrace();
                 if (trace instanceof AstElementWithNameId) {
                     m.setName(((AstElementWithNameId) trace).getNameId().getName());
+                }
+                if (trace instanceof OnDestroyDef) {
+                    m.setName("__onDestroy");
                 }
             }
 

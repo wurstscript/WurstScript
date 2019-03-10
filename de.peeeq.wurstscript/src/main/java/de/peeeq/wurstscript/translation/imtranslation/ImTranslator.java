@@ -549,7 +549,7 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
+            ImMethod m = JassIm.ImMethod(classDef.getOnDestroy(), selfType(classDef), "destroy" + classDef.getName(),
                     impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
