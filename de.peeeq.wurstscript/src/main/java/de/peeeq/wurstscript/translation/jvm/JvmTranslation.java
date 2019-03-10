@@ -42,6 +42,7 @@ public class JvmTranslation {
     private Map<ImVar, Integer> localVars = new HashMap<>();
     // signatures of functions already added to the current class
     private Set<String> currentClassFunctions = new HashSet<>();
+    private Multimap<ImMethod, ImMethod> superMethods;
 
     public JvmTranslation(ImProg prog, Path outputFolder) {
         this.prog = prog;
@@ -98,6 +99,9 @@ public class JvmTranslation {
                     prog.getTupleTypes().stream()
                             .collect(Utils.groupBy(this::getPackage));
 
+            superMethods = calculateSuperMethods();
+
+
             methodByClass =
                     prog.getMethods().stream()
                             .collect(Utils.groupBy(f -> f.getMethodClass().getClassDef()));
@@ -121,6 +125,18 @@ public class JvmTranslation {
             throw new RuntimeException(e);
         }
 
+    }
+
+    private Multimap<ImMethod, ImMethod> calculateSuperMethods() {
+        ImmutableMultimap.Builder<ImMethod, ImMethod> builder = ImmutableMultimap.builder();
+        for (ImClass c : prog.getClasses()) {
+            for (ImMethod m : c.getMethods()) {
+                for (ImMethod subMethod : m.getSubMethods()) {
+                    builder.put(subMethod, m);
+                }
+            }
+        }
+        return builder.build();
     }
 
     /**
@@ -503,6 +519,59 @@ public class JvmTranslation {
             acc |= ACC_ABSTRACT;
         }
         translateFunc(classWriter, impl, acc, method.getName());
+
+        String sig = getSignatureDescriptor(method);
+        for (ImMethod superMethod : superMethods.get(method)) {
+            String superSig = getSignatureDescriptor(superMethod);
+            if (!sig.equals(superSig)) {
+                addBridgeMethod(classWriter, method, superMethod);
+            }
+
+        }
+
+    }
+
+    private void addBridgeMethod(ClassWriter classWriter, ImMethod method, ImMethod superMethod) {
+        int accesss = ACC_PUBLIC;
+        String name = superMethod.getName();
+        String sig = getSignatureDescriptor(method);
+        String superSig = getSignatureDescriptor(superMethod);
+        MethodVisitor methodVisitor = logMethodVisitor(classWriter.visitMethod(accesss, name, superSig, null, null));
+
+        methodVisitor.visitCode();
+        Label start = new Label();
+        methodVisitor.visitLabel(start);
+        methodVisitor.visitLineNumber(line(method), start);
+
+        ImFunction impl = method.getImplementation();
+        ImFunction superImpl = superMethod.getImplementation();
+
+        ImVars parameters = impl.getParameters();
+        ImVars superParameters = superImpl.getParameters();
+
+
+        // load this
+        methodVisitor.visitVarInsn(ALOAD, 0);
+
+        // load and convert parameters
+        for (int i = 1; i < parameters.size(); i++) {
+            ImVar param = parameters.get(i);
+            ImVar superParam = superParameters.get(i);
+            methodVisitor.visitVarInsn(getLoadInstruction(superParam.getType()), i);
+            convertType(methodVisitor, superParam.getType(), param.getType());
+        }
+        // call the original method
+        ImClass classDef = (ImClass) method.getParent().getParent();
+        String className = classDescriptor(classDef);
+        boolean isInterface = classDef.getFlags().contains(IS_INTERFACE);
+        methodVisitor.visitMethodInsn(INVOKEVIRTUAL, className, method.getName(), sig, isInterface);
+
+        // convert result
+        convertType(methodVisitor, method.getImplementation().getReturnType(), superMethod.getImplementation().getReturnType());
+
+        // return
+        methodVisitor.visitInsn(getReturnInstruction(superMethod.getImplementation().getReturnType()));
+        methodVisitor.visitMaxs(20, 20);
     }
 
     private void translateField(ClassWriter classWriter, ImVar v) {
@@ -884,14 +953,14 @@ public class JvmTranslation {
             return;
         }
         System.out.println("trying to convert from " + from + " to " + to);
-        if (to instanceof ImClassType || to instanceof ImTypeVarRef) {
+        if (to instanceof ImClassType || to instanceof ImTypeVarRef || to instanceof ImTupleType) {
             if (TypesHelper.isIntType(from)) {
                 methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
             } else if (TypesHelper.isFloatType(from)) {
                 methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", false);
             } else if (TypesHelper.isBoolType(from)) {
                 methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", false);
-            } else if (to instanceof ImClassType) {
+            } else {
                 // could optimize and only do this if not a subtype:
                 methodVisitor.visitTypeInsn(CHECKCAST, classDescriptor(to));
             }
@@ -905,7 +974,13 @@ public class JvmTranslation {
             } else if (TypesHelper.isBoolType(to)) {
                 methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/Boolean");
                 methodVisitor.visitMethodInsn(INVOKEVIRTUAL, "java/lang/Boolean", "booleanValue", "()Z", false);
+            } else if (TypesHelper.isStringType(to)) {
+                methodVisitor.visitTypeInsn(CHECKCAST, "java/lang/String");
+            } else {
+                throw new RuntimeException("Cannot convert from " + from + " to " + to);
             }
+        } else {
+            throw new RuntimeException("Cannot convert from " + from + " to " + to);
         }
 
     }
@@ -962,7 +1037,7 @@ public class JvmTranslation {
                 translateStatement(methodVisitor, mc.getReceiver());
                 int i = 0;
                 for (ImExpr a : mc.getArguments()) {
-                    ImVar param = mc.getMethod().getImplementation().getParameters().get(i);
+                    ImVar param = mc.getMethod().getImplementation().getParameters().get(i + 1);
                     translateExprTyped(methodVisitor, a, param.getType());
                     i++;
                 }
