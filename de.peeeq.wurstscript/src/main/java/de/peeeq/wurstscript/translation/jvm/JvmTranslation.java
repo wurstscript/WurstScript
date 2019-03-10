@@ -83,6 +83,8 @@ public class JvmTranslation {
 
     public void translate() {
         try {
+            superMethods = calculateSuperMethods();
+
             normalizeNames();
 
             Multimap<JPackage, ImFunction> functionsByPackage =
@@ -99,7 +101,6 @@ public class JvmTranslation {
                     prog.getTupleTypes().stream()
                             .collect(Utils.groupBy(this::getPackage));
 
-            superMethods = calculateSuperMethods();
 
 
             methodByClass =
@@ -176,6 +177,14 @@ public class JvmTranslation {
                 if (trace instanceof OnDestroyDef) {
                     m.setName("__onDestroy");
                 }
+                // if this has no supermethods, make sure all submethods
+                // have the same name
+                if (superMethods.get(m).isEmpty()) {
+                    for (ImMethod subMethod : m.getSubMethods()) {
+                        subMethod.setName(m.getName());
+                    }
+                }
+
             }
 
             Element trace = c.attrTrace();

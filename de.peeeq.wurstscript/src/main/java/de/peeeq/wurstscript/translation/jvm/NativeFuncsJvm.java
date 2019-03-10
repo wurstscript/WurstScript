@@ -23,6 +23,8 @@ public class NativeFuncsJvm {
     static {
         codeGen.put("testSuccess", NativeFuncsJvm::testSuccess);
         codeGen.put("I2S", NativeFuncsJvm::I2S);
+        codeGen.put("R2S", NativeFuncsJvm::R2S);
+        codeGen.put("R2I", NativeFuncsJvm::R2I);
         codeGen.put("println", NativeFuncsJvm::println);
         codeGen.put("Sin", methodVisitor -> {
             methodVisitor.visitVarInsn(FLOAD, 0);
@@ -103,6 +105,18 @@ public class NativeFuncsJvm {
         methodVisitor.visitVarInsn(ILOAD, 0);
         methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Integer", "toString", "(I)Ljava/lang/String;", false);
         methodVisitor.visitInsn(ARETURN);
+    }
+
+    private static void R2S(MethodVisitor methodVisitor) {
+        methodVisitor.visitVarInsn(FLOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKESTATIC, "java/lang/Float", "toString", "(F)Ljava/lang/String;", false);
+        methodVisitor.visitInsn(ARETURN);
+    }
+
+    private static void R2I(MethodVisitor methodVisitor) {
+        methodVisitor.visitVarInsn(FLOAD, 0);
+        methodVisitor.visitInsn(F2I);
+        methodVisitor.visitInsn(IRETURN);
     }
 
     private static void genericStub(MethodVisitor methodVisitor, ImFunction func) {
