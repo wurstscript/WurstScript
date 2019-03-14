@@ -110,15 +110,22 @@ public class BuildMap extends MapRequest {
     private W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
         try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
             W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
-            w3I.setMapName(projectConfig.getBuildMapData().getName());
-            w3I.setMapAuthor(projectConfig.getBuildMapData().getAuthor());
-            WurstProjectBuildScenarioData scenarioData = projectConfig.getBuildMapData().getScenarioData();
+            WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
+            w3I.setMapName(buildMapData.getName());
+            w3I.setMapAuthor(buildMapData.getAuthor());
+            WurstProjectBuildScenarioData scenarioData = buildMapData.getScenarioData();
             w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
             w3I.setMapDescription(scenarioData.getDescription());
 
-            applyPlayers(projectConfig, w3I);
-            applyForces(projectConfig, w3I);
-            applyLoadingScreen(w3I, scenarioData);
+            if (buildMapData.getPlayers().size() > 0) {
+                applyPlayers(projectConfig, w3I);
+            }
+            if (buildMapData.getForces().size() > 0) {
+                applyForces(projectConfig, w3I);
+            }
+            if (scenarioData.getLoadingScreen() != null) {
+                applyLoadingScreen(w3I, scenarioData.getLoadingScreen());
+            }
             return w3I;
         }
     }
@@ -158,14 +165,11 @@ public class BuildMap extends MapRequest {
         applyMapHeader(projectConfig, targetMap);
     }
 
-    private void applyLoadingScreen(W3I w3I, WurstProjectBuildScenarioData scenarioData) {
-        WurstProjectBuildLoadingScreenData loadingScreen = scenarioData.getLoadingScreen();
-        if (loadingScreen != null) {
-            w3I.setLoadingScreenModel(loadingScreen.getModel());
-            w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
-            w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
-            w3I.getLoadingScreen().setText(loadingScreen.getText());
-        }
+    private void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
+        w3I.setLoadingScreenModel(loadingScreen.getModel());
+        w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
+        w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
+        w3I.getLoadingScreen().setText(loadingScreen.getText());
     }
 
     private void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
