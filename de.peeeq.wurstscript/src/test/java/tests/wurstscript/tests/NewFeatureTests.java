@@ -72,6 +72,24 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchShort() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "init",
+                "	Blub b = B",
+                "	switch b",
+                "		case A",
+                "			skip",
+                "		case B",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
     public void testSwitchDefault() {
         testAssertOkLines(true,
                 "package Test",
