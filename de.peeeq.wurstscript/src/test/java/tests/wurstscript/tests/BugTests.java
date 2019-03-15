@@ -829,6 +829,24 @@ public class BugTests extends WurstScriptTest {
 
 
     @Test
+    public void unreadVarWarningArrays() { // #813
+        testAssertOkLines(false,
+                "package test",
+                "@extern native I2S(int x) returns string",
+                "init",
+                "    integer array b",
+                "    b[0] = 0 // Warning.",
+                "    b[1] = 0 // Warning.",
+                "    b[2] = 0 // No warning.",
+                "    I2S(b[0])",
+                "    I2S(b[1])",
+                "    for i = 0 to 2",
+                "        I2S(b[i])"
+                );
+    }
+
+
+    @Test
     public void closureClassConstructor() { // # 440
         testAssertOkLines(true,
                 "package test",

@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.jassIm.ImArrayType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -252,4 +254,8 @@ public abstract class WurstType {
 
 
     protected abstract boolean isNullable();
+
+    public boolean isArray() {
+        return this instanceof WurstTypeArray;
+    }
 }
