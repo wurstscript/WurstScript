@@ -73,7 +73,7 @@ TypeExprList * TypeExpr
 SwitchCases * SwitchCase
 
 
-SwitchCase( de.peeeq.wurstscript.parser.WPos source, Expr expr, WStatements stmts )
+SwitchCase( de.peeeq.wurstscript.parser.WPos source, ExprList expressions, WStatements stmts )
 SwitchDefaultCase = SwitchDefaultCaseStatements(de.peeeq.wurstscript.parser.WPos source, WStatements stmts) | NoDefaultCase()
 
 ClassSlot =

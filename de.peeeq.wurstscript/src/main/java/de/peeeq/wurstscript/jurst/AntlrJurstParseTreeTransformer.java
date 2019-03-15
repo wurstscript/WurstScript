@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
+import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -613,7 +614,7 @@ public class AntlrJurstParseTreeTransformer {
         for (SwitchCaseContext c : s.switchCase()) {
             Expr e = transformExpr(c.expr());
             WStatements stmts = transformStatements(c.statementsBlock());
-            cases.add(Ast.SwitchCase(source(c), e, stmts));
+            cases.add(Ast.SwitchCase(source(c), Ast.ExprList(e), stmts));
         }
         SwitchDefaultCase switchDefault;
         if (s.switchDefaultCase() != null) {

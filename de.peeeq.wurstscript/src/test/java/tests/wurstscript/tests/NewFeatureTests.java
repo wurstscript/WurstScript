@@ -200,6 +200,26 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchMulti() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "	var s = \"toll\"",
+                "	var i = 0",
+                "	switch s",
+                "		case \"bla\"",
+                "			i = 1",
+                "		case \"blub\" | \"toll\"",
+                "			i= 2",
+                "		default",
+                "			i = 3",
+                "	if i == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void testTypeId1() {
         testAssertOkLines(true,
                 "package Test",

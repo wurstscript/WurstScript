@@ -277,7 +277,9 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
                 SwitchStmt swi = (SwitchStmt) s;
                 // switch statement must be handled separately, because expressions are not direct children:
                 for (SwitchCase switchCase : swi.getCases()) {
-                    incoming = handleExprInCompound(incoming, switchCase.getExpr());
+                    for (Expr switchCaseExpr : switchCase.getExpressions()) {
+                        incoming = handleExprInCompound(incoming, switchCaseExpr);
+                    }
                 }
             }
         } else {

@@ -1973,10 +1973,13 @@ public class WurstValidator {
                 // c.addError("Case " + j + " and " + i + " are the same.");
                 // }
                 // }
-                if (!c.getExpr().attrTyp().isSubtypeOf(s.getExpr().attrTyp(), c)) {
-                    c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
-                            + s.getExpr().attrTyp() + ".");
+                for (Expr cExpr : c.getExpressions()) {
+                    if (!cExpr.attrTyp().isSubtypeOf(s.getExpr().attrTyp(), c)) {
+                        cExpr.addError("The type " + cExpr.attrTyp() + " does not match the switchtype "
+                                + s.getExpr().attrTyp() + ".");
+                    }
                 }
+
             }
         }
         if (s.getExpr().attrTyp() instanceof WurstTypeEnum) {
@@ -1985,10 +1988,12 @@ public class WurstValidator {
                 nextMember:for (EnumMember e : wurstTypeEnum.getDef().getMembers()) {
                     String name = e.getName();
                     for (SwitchCase c : s.getCases()) {
-                        if (c.getExpr() instanceof NameRef) {
-                            NameRef exprVarAccess = (NameRef) c.getExpr();
-                            if (exprVarAccess.attrNameDef() == e) {
-                                continue nextMember;
+                        for (Expr cExpr : c.getExpressions()) {
+                            if (cExpr instanceof NameRef) {
+                                NameRef exprVarAccess = (NameRef) cExpr;
+                                if (exprVarAccess.attrNameDef() == e) {
+                                    continue nextMember;
+                                }
                             }
                         }
                     }
