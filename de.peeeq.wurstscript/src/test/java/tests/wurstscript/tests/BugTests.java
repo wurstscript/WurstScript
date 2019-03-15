@@ -1233,4 +1233,52 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+	@Test
+	public void testSelfAssignmentWarning() {
+		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"init",
+			"	var i = 5",
+			"	I2S(i)",
+			"	i = i",
+			"	I2S(i)",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentWarningDot() {
+		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct()",
+			"		this.i = i",
+			"init",
+			"	new A()",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentNoWarning() {
+		testAssertOkLines(true,
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct(int i)",
+			"		this.i = i",
+			"init",
+			"	new A(1)",
+			"	testSuccess()"
+		);
+	}
+
+
 }
