@@ -1235,7 +1235,7 @@ public class BugTests extends WurstScriptTest {
 
 	@Test
 	public void testSelfAssignmentWarning() {
-		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
+		testAssertErrorsLines(false, "The assignment to local variable i probably has no effect",
 			"package test",
 			"@extern native I2S(int x) returns string",
 			"native testSuccess()",
