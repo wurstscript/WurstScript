@@ -611,7 +611,7 @@ public class ImTranslator {
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), JassIm.ImInternalDetails()));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }

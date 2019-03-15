@@ -71,7 +71,7 @@ public class InterfaceTranslator {
 
     private ImClassType imClassType() {
         ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), JassIm.ImInternalDetails()))
                 .collect(Collectors.toCollection(JassIm::ImTypeArguments));
         return JassIm.ImClassType(imClass, typeArgs);
     }

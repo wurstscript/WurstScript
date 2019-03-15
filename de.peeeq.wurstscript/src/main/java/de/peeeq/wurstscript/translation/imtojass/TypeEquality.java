@@ -75,7 +75,7 @@ public class TypeEquality {
                 if (!x.getType().equalsType(y.getType())) {
                     return false;
                 }
-                if (!x.getTypeClassBinding().equals(y.getTypeClassBinding())) {
+                if (!x.getDetails().structuralEquals(y.getDetails())) {
                     return false;
                 }
             }

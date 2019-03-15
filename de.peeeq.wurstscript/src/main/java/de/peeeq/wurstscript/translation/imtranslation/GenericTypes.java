@@ -38,7 +38,7 @@ class GenericTypes {
                 if (!t1.getType().equalsType(t2.getType())) {
                     return false;
                 }
-                if (!t1.getTypeClassBinding().equals(t2.getTypeClassBinding())) {
+                if (!t1.getDetails().structuralEquals(t2.getDetails())) {
                     return false;
                 }
             }

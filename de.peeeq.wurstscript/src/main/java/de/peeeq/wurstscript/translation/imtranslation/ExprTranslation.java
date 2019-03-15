@@ -538,7 +538,7 @@ public class ExprTranslation {
             ImType type = t.imTranslateType(tr);
             // TODO handle constraints
             Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-            res.add(ImTypeArgument(type, typeClassBinding));
+            res.add(ImTypeArgument(type, JassIm.ImTemplateDetails(typeClassBinding)));
         }
         return res;
     }

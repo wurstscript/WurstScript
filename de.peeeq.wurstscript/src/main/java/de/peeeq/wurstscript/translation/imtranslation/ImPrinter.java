@@ -560,7 +560,7 @@ public class ImPrinter {
     }
 
     public static String asString(ImTypeArgument s) {
-        return s.getType() + "" + s.getTypeClassBinding();
+        return s.getType() + "" + s.getDetails();
     }
 
     public static void print(ImCast e, Appendable sb, int indent) {
@@ -569,5 +569,17 @@ public class ImPrinter {
         append(sb, " castTo ");
         e.getToType().print(sb, indent);
         append(sb, ")");
+    }
+
+    public static String asString(ImTemplateDetails d) {
+        return "<" + d.getTypeClassBinding() + ">";
+    }
+
+    public static String asString(ImErasedDetails d) {
+        return "<" + d.getFromErased() + ", " + d.getToErased() + ">" ;
+    }
+
+    public static String asString(ImInternalDetails imInternalDetails) {
+        return "<internal>";
     }
 }

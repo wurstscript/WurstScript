@@ -146,7 +146,14 @@ ImConst =
 
 ImTypeArguments * ImTypeArgument
 
-ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, fj.data.Either<ImMethod, ImFunction>> typeClassBinding)
+ImTypeArgument(ref ImType type, ImTypeArgumentDetails details)
+
+ImTypeArgumentDetails =
+    // template generics with possible type class bindings
+    ImTemplateDetails(java.util.Map<ImTypeClassFunc, fj.data.Either<ImMethod, ImFunction>> typeClassBinding)
+    // erased generics with function to convert to and from the erased type (int for translating to Jass)
+  | ImErasedDetails(ref ImFunction toErased, ref ImFunction fromErased)
+  | ImInternalDetails()
 
 // helper types:
 

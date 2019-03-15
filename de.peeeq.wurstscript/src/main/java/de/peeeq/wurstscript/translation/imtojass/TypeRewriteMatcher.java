@@ -44,7 +44,7 @@ public class TypeRewriteMatcher implements ImType.Matcher<ImType> {
     public ImType case_ImClassType(ImClassType t) {
         ImTypeArguments args = t.getTypeArguments()
                 .stream()
-                .map(ta -> JassIm.ImTypeArgument(ta.getType().match(this), ta.getTypeClassBinding()))
+                .map(ta -> JassIm.ImTypeArgument(ta.getType().match(this), ta.getDetails().copy()))
                 .collect(Collectors.toCollection(JassIm::ImTypeArguments));
         return JassIm.ImClassType(t.getClassDef(), args);
     }

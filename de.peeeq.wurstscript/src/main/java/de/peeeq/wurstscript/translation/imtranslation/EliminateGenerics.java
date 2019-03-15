@@ -144,7 +144,7 @@ public class EliminateGenerics {
             f.getTypeVariables().addAll(0, newTypeVars);
             List<ImTypeArgument> typeArgs = newTypeVars
                     .stream()
-                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
+                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), JassIm.ImInternalDetails()))
                     .collect(Collectors.toList());
             rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
         }
@@ -660,7 +660,7 @@ public class EliminateGenerics {
     private List<ImTypeArgument> specializeTypeArgs(ImTypeArguments typeArgs) {
         return typeArgs
                 .stream()
-                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding()))
+                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getDetails().copy()))
                 .collect(Collectors.toList());
     }
 
