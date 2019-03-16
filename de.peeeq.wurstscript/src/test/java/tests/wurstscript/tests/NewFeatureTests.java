@@ -218,6 +218,44 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchEnumAll2() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumDuplicate() {
+        testAssertErrorsLines(false, "The case B is already handled in line 9",
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case B",
+                "			return 2",
+                "		case C",
+                "			return 3"
+        );
+    }
+
+    @Test
     public void testSwitchMulti() {
         testAssertOkLines(false,
                 "package Test",
