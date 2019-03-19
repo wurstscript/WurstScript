@@ -97,10 +97,7 @@ public class StmtTranslation {
             // elem = next()
             ImFunctionCall nextCall = ImFunctionCall(s, nextFuncIm, ImTypeArguments(), fromTarget.copy(), false, CallType.NORMAL);
 
-            WurstType nextReturn = nextFunc.getReturnType();
-            ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
-
-            imBody.add(ImSet(s, ImVarAccess(t.getVarFor(s.getLoopVar())), nextCallWrapped));
+            imBody.add(ImSet(s, ImVarAccess(t.getVarFor(s.getLoopVar())), nextCall));
 
             imBody.addAll(t.translateStatements(f, s.getBody()));
 
@@ -164,10 +161,8 @@ public class StmtTranslation {
                             .ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
             // elem = next()
             ImFunctionCall nextCall = ImFunctionCall(forIn, nextFuncIm, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL);
-            WurstType nextReturn = nextFunc.getReturnType();
-            ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(forIn, t, nextCall, nextReturn, loopVarType);
 
-            imBody.add(ImSet(forIn, ImVarAccess(t.getVarFor(forIn.getLoopVar())), nextCallWrapped));
+            imBody.add(ImSet(forIn, ImVarAccess(t.getVarFor(forIn.getLoopVar())), nextCall));
 
             imBody.addAll(t.translateStatements(f, forIn.getBody()));
 

@@ -91,44 +91,6 @@ public class ExprTranslation {
     }
 
     private static ImExpr wrapTranslation(Expr e, ImTranslator t, ImExpr translated) {
-        WurstType actualType = e.attrTypRaw();
-        WurstType expectedTypRaw = e.attrExpectedTypRaw();
-        return wrapTranslation(e, t, translated, actualType, expectedTypRaw);
-    }
-
-    static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
-        ImFunction toIndex = null;
-        ImFunction fromIndex = null;
-        if (actualType instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) actualType;
-            FuncDef fromIndexFunc = wtb.getFromIndex();
-            if (fromIndexFunc != null) {
-                fromIndex = t.getFuncFor(fromIndexFunc);
-            }
-        }
-        if (expectedTypRaw instanceof WurstTypeBoundTypeParam) {
-            WurstTypeBoundTypeParam wtb = (WurstTypeBoundTypeParam) expectedTypRaw;
-            FuncDef toIndexFunc = wtb.getToIndex();
-            if (toIndexFunc != null) {
-                toIndex = t.getFuncFor(toIndexFunc);
-            }
-        }
-
-//        System.out.println("CAll " + Utils.prettyPrintWithLine(trace));
-//        System.out.println("  actualType = " + actualType.getFullName());
-//        System.out.println("  expectedTypRaw = " + expectedTypRaw.getFullName());
-
-        if (toIndex != null && fromIndex != null) {
-//            System.out.println("  --> cancel");
-            // the two conversions cancel each other out
-            return translated;
-        } else if (fromIndex != null) {
-//            System.out.println("  --> fromIndex");
-            return ImFunctionCall(trace, fromIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
-        } else if (toIndex != null) {
-//            System.out.println("  --> toIndex");
-            return ImFunctionCall(trace, toIndex, ImTypeArguments(), JassIm.ImExprs(translated), false, CallType.NORMAL);
-        }
         return translated;
     }
 
