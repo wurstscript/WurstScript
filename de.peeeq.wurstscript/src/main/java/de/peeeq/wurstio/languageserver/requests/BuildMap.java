@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Created by peter on 16.05.16.
@@ -188,28 +189,53 @@ public class BuildMap extends MapRequest {
     }
 
     private void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
-        w3I.getPlayers().clear();
+		List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
+		w3I.getPlayers().clear();
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
-            W3I.Player player = w3I.addPlayer();
-            if(! wplayer.getName().equalsIgnoreCase("defaultplayer")) {
-                player.setName(wplayer.getName());
-            }
+			Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
+			W3I.Player player = w3I.addPlayer();
+			player.setNum(wplayer.getId());
 
-            W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
-            if (val != null) {
-                player.setRace(val);
-            }
-            Controller val1 = Controller.valueOf(wplayer.getController().toString());
-            if(val1 != null) {
-                player.setType(val1);
-            }
-            player.setNum(wplayer.getId());
-            player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
-        }
+			old.ifPresent(player1 -> applyExistingPlayerConfig(player1, player));
+
+			setVolatilePlayerConfig(wplayer, player);
+		}
     }
 
-    private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+	private void applyExistingPlayerConfig(W3I.Player oldPlayer, W3I.Player player) {
+		player.setStartPos(oldPlayer.getStartPos());
+		player.setName(oldPlayer.getName());
+		player.setRace(oldPlayer.getRace());
+		player.setType(oldPlayer.getType());
+		player.setStartPosFixed(oldPlayer.getStartPosFixed());
+		player.setAllyLowPrioFlags(oldPlayer.getAllyLowPrioFlags());
+		player.setAllyHighPrioFlags(oldPlayer.getAllyHighPrioFlags());
+	}
+
+	private void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
+		if(wplayer.getName() != null) {
+			player.setName(wplayer.getName());
+		}
+
+		if (wplayer.getRace() != null) {
+			W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
+			if (val != null) {
+				player.setRace(val);
+			}
+		}
+		if (wplayer.getController() != null) {
+			Controller val1 = Controller.valueOf(wplayer.getController().toString());
+			if (val1 != null) {
+				player.setType(val1);
+			}
+		}
+		if (wplayer.getFixedStartLoc() != null) {
+			player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
+		}
+	}
+
+	private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
         mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
         mapHeader.setMapName(projectConfig.getBuildMapData().getName());
