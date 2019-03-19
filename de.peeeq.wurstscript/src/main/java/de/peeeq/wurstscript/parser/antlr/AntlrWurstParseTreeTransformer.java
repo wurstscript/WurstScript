@@ -559,9 +559,13 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private ExprList transformExprlist(ExprListContext es) {
+        return transformExprlist(es.exprs);
+    }
+
+    private ExprList transformExprlist(List<ExprContext> es) {
         ExprList result = Ast.ExprList();
         if (es != null) {
-            for (ExprContext e : es.exprs) {
+            for (ExprContext e : es) {
                 result.add(transformExpr(e));
             }
         }
@@ -674,7 +678,7 @@ public class AntlrWurstParseTreeTransformer {
         Expr expr = transformExpr(s.expr());
         SwitchCases cases = Ast.SwitchCases();
         for (SwitchCaseContext c : s.switchCase()) {
-            Expr e = transformExpr(c.expr());
+            ExprList e = transformExprlist(c.expr());
             WStatements stmts = transformStatements(c.statementsBlock());
             cases.add(Ast.SwitchCase(source(c), e, stmts));
         }

@@ -130,7 +130,7 @@ public class Flow {
             } else {
                 r.add(defaul.getStmts().get(0));
             }
-        } else {
+        } else if (!s.calculateHandlesAllCases()) {
             following = true;
         }
 

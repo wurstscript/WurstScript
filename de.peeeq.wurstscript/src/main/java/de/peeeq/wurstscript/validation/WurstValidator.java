@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -20,6 +21,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 
@@ -769,7 +771,7 @@ public class WurstValidator {
     private void checkIfNoEffectAssignment(StmtSet s) {
         if (refersToSameVar(s.getUpdatedExpr(), s.getRight())) {
             s.addWarning("The assignment to " + Utils.printElement(s.getUpdatedExpr().attrNameDef())
-                    + "  probably has no effect.");
+                    + " probably has no effect.");
         }
 
     }
@@ -784,7 +786,7 @@ public class WurstValidator {
         if (a instanceof NameRef && b instanceof NameRef) {
             NameRef va = (NameRef) a;
             NameRef vb = (NameRef) b;
-            if (va.attrNameLink() == vb.attrNameLink()
+            if (va.attrNameLink().getDef() == vb.attrNameLink().getDef()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
                 if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
                     AstElementWithIndexes vai = (AstElementWithIndexes) va;
@@ -1110,11 +1112,30 @@ public class WurstValidator {
                         // contains unreachable code
                         s.addWarning("unreachable code");
                     } else {
-                        s.addError("unreachable code");
+                        if (mightBeAffectedBySwitchThatCoversAllCases(s)) {
+                            // fow backwards compatibility just use a warning when
+                            // switch statements that handle all cases are involved:
+                            s.addWarning("unreachable code");
+                        } else {
+                            s.addError("unreachable code");
+                        }
                     }
                 }
             }
         }
+    }
+
+    private boolean mightBeAffectedBySwitchThatCoversAllCases(WStatement s) {
+        boolean[] containsSwitchAr = { false };
+        s.attrNearestNamedScope().accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(SwitchStmt switchStmt) {
+                if (switchStmt.calculateHandlesAllCases()) {
+                    containsSwitchAr[0] = true;
+                }
+            }
+        });
+        return containsSwitchAr[0];
     }
 
     private void visit(FuncDef func) {
@@ -1963,39 +1984,28 @@ public class WurstValidator {
             s.addError("The type " + s.getExpr().attrTyp()
                     + " is not viable as switchtype.\nViable switchtypes: int, string, enum");
         } else {
-            for (SwitchCase c : s.getCases()) {
-                // if ( i > 0 ) {
-                // for( int j = 0; j<i; j++) {
-                // WLogger.info(">>>>>>>>>>>>>>>>"+c.getExprs());
-                // WLogger.info(">>>>>>>>>>>>>>>>"+s.getCases().get(j).getExprs());
-                // if ( c.getExprs().attrN.equals(s.getCases().get(j).getExprs())
-                // )
-                // c.addError("Case " + j + " and " + i + " are the same.");
-                // }
-                // }
-                if (!c.getExpr().attrTyp().isSubtypeOf(s.getExpr().attrTyp(), c)) {
-                    c.addError("The type " + c.getExpr().attrTyp() + " does not match the switchtype "
+            List<Expr> switchExprs = s.getCases().stream()
+                    .flatMap(e -> e.getExpressions().stream())
+                    .collect(Collectors.toList());
+            for (Expr cExpr : switchExprs) {
+                if (!cExpr.attrTyp().isSubtypeOf(s.getExpr().attrTyp(), cExpr)) {
+                    cExpr.addError("The type " + cExpr.attrTyp() + " does not match the switchtype "
                             + s.getExpr().attrTyp() + ".");
                 }
             }
-        }
-        if (s.getExpr().attrTyp() instanceof WurstTypeEnum) {
-            WurstTypeEnum wurstTypeEnum = (WurstTypeEnum) s.getExpr().attrTyp();
-            if (s.getSwitchDefault() instanceof NoDefaultCase)
-                nextMember:for (EnumMember e : wurstTypeEnum.getDef().getMembers()) {
-                    String name = e.getName();
-                    for (SwitchCase c : s.getCases()) {
-                        if (c.getExpr() instanceof NameRef) {
-                            NameRef exprVarAccess = (NameRef) c.getExpr();
-                            if (exprVarAccess.attrNameDef() == e) {
-                                continue nextMember;
-                            }
-                        }
+            for (int i = 0; i < switchExprs.size(); i++) {
+                Expr ei = switchExprs.get(i);
+                for (int j = 0; j < i; j++) {
+                    Expr ej = switchExprs.get(j);
+                    if (ei.structuralEquals(ej)) {
+                        ei.addError("The case " + Utils.prettyPrint(ei) + " is already handled in line " + ej.attrSource().getLine());
+                        return;
                     }
-                    s.addError("Enum member " + name + " from enum " + wurstTypeEnum.getName()
-                            + " not covered in switchstatement and no default found.");
                 }
-
+            }
+        }
+        for (String unhandledCase : s.calculateUnhandledCases()) {
+            s.addError(unhandledCase + " not covered in switchstatement and no default found.");
         }
         if (s.getCases().isEmpty()) {
             s.addError("Switch statement without any cases.");

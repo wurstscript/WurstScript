@@ -829,6 +829,24 @@ public class BugTests extends WurstScriptTest {
 
 
     @Test
+    public void unreadVarWarningArrays() { // #813
+        testAssertOkLines(false,
+                "package test",
+                "@extern native I2S(int x) returns string",
+                "init",
+                "    integer array b",
+                "    b[0] = 0 // Warning.",
+                "    b[1] = 0 // Warning.",
+                "    b[2] = 0 // No warning.",
+                "    I2S(b[0])",
+                "    I2S(b[1])",
+                "    for i = 0 to 2",
+                "        I2S(b[i])"
+                );
+    }
+
+
+    @Test
     public void closureClassConstructor() { // # 440
         testAssertOkLines(true,
                 "package test",
@@ -1232,5 +1250,53 @@ public class BugTests extends WurstScriptTest {
                 "    testSuccess()"
         );
     }
+
+	@Test
+	public void testSelfAssignmentWarning() {
+		testAssertErrorsLines(false, "The assignment to local variable i probably has no effect",
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"init",
+			"	var i = 5",
+			"	I2S(i)",
+			"	i = i",
+			"	I2S(i)",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentWarningDot() {
+		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct()",
+			"		this.i = i",
+			"init",
+			"	new A()",
+			"	testSuccess()"
+		);
+	}
+
+	@Test
+	public void testSelfAssignmentNoWarning() {
+		testAssertOkLines(true,
+			"package test",
+			"@extern native I2S(int x) returns string",
+			"native testSuccess()",
+			"class A",
+			"	var i = 5",
+			"	construct(int i)",
+			"		this.i = i",
+			"init",
+			"	new A(1)",
+			"	testSuccess()"
+		);
+	}
+
 
 }

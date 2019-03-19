@@ -297,7 +297,7 @@ stmtSwitch:
 		  ;
 			
 switchCase:
-			  'case' expr NL statementsBlock
+			  'case' (caseExpressions+=expr ('|' caseExpressions+=expr)*) NL statementsBlock
 		  ;
 
 switchDefaultCase:

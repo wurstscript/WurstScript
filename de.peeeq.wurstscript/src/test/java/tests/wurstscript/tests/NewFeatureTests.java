@@ -72,6 +72,24 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchShort() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "init",
+                "	Blub b = B",
+                "	switch b",
+                "		case A",
+                "			skip",
+                "		case B",
+                "			testSuccess()"
+        );
+    }
+
+    @Test
     public void testSwitchDefault() {
         testAssertOkLines(true,
                 "package Test",
@@ -196,6 +214,64 @@ public class NewFeatureTests extends WurstScriptTest {
                 "			i = 1",
                 "		case Blub.B",
                 "			i = 2"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll2() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumDuplicate() {
+        testAssertErrorsLines(false, "The case B is already handled in line 9",
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case B",
+                "			return 2",
+                "		case C",
+                "			return 3"
+        );
+    }
+
+    @Test
+    public void testSwitchMulti() {
+        testAssertOkLines(false,
+                "package Test",
+                "native testSuccess()",
+                "init",
+                "	var s = \"toll\"",
+                "	var i = 0",
+                "	switch s",
+                "		case \"bla\"",
+                "			i = 1",
+                "		case \"blub\" | \"toll\"",
+                "			i= 2",
+                "		default",
+                "			i = 3",
+                "	if i == 2",
+                "		testSuccess()"
         );
     }
 
