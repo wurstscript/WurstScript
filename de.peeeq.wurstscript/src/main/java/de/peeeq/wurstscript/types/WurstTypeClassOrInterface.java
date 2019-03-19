@@ -133,9 +133,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
     public final ImType imTranslateType(ImTranslator tr) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
-            if (btp.isTemplateTypeParameter()) {
-                typeArgs.add(btp.imTranslateToTypeArgument(tr));
-            }
+            typeArgs.add(btp.imTranslateToTypeArgument(tr));
         }
         return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }

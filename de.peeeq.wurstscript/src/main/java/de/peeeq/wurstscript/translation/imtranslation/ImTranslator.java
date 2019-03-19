@@ -778,9 +778,7 @@ public class ImTranslator {
             }
 
             private void handleTypeParameter(TypeParamDef tp) {
-                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                    typeVars.add(typeVariable.getFor(tp));
-                }
+                typeVars.add(getTypeVar(tp));
             }
 
             @Override
@@ -1584,10 +1582,8 @@ public class ImTranslator {
             ImTypeVars typeVariables = JassIm.ImTypeVars();
             if (s instanceof AstElementWithTypeParameters) {
                 for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
-                    if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                        ImTypeVar tv = getTypeVar(tp);
-                        typeVariables.add(tv);
-                    }
+                    ImTypeVar tv = getTypeVar(tp);
+                    typeVariables.add(tv);
                 }
             }
 

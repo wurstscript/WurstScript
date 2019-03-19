@@ -70,10 +70,7 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     public ImType imTranslateType(ImTranslator tr) {
-        if (hasTypeConstraints()) {
-            return JassIm.ImTypeVarRef(tr.getTypeVar(def));
-        }
-        return TypesHelper.imInt();
+        return JassIm.ImTypeVarRef(tr.getTypeVar(def));
     }
 
     /** Using the new template generics with type constraints*/

@@ -173,9 +173,7 @@ public class ClassTranslator {
                 ImFunction onDestroy = translator.getFuncFor(extended.getClassDef().getOnDestroy());
                 ImTypeArguments typeArgs = ImTypeArguments();
                 for (WurstTypeBoundTypeParam tp : extended.getTypeParameters()) {
-                    if (tp.isTemplateTypeParameter()) {
-                        typeArgs.add(tp.imTranslateToTypeArgument(translator));
-                    }
+                    typeArgs.add(tp.imTranslateToTypeArgument(translator));
                 }
                 addTo.add(ImFunctionCall(c, onDestroy, typeArgs, ImExprs(ImVarAccess(thisVar)), false, CallType.NORMAL));
             }
@@ -385,9 +383,7 @@ public class ClassTranslator {
             if (extendedType instanceof WurstTypeClass) {
                 WurstTypeClass extendedTypeC = (WurstTypeClass) extendedType;
                 for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
-                    if (bt.isTemplateTypeParameter()) {
-                        typeArgs.add(bt.imTranslateToTypeArgument(translator));
-                    }
+                    typeArgs.add(bt.imTranslateToTypeArgument(translator));
                 }
             }
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));

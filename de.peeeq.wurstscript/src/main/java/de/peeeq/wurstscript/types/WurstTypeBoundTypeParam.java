@@ -36,6 +36,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         this.baseType = baseType;
         this.context = context;
         if (def.getTypeParamConstraints() instanceof NoTypeParamConstraints) {
+            // TODO if no type constraints are given, try to derive equality, toIndex, fromIndex, defaultValue (null)
             this.typeConstraintFunctions = null;
         } else {
             this.typeConstraintFunctions = new HashMap<>();
