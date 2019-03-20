@@ -284,6 +284,33 @@ public class CompiletimeFunctionRunner {
                             JassIm.ImIntVal(key.getChildkey()),
                             JassIm.ImIntVal(iv.getVal())
                     ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstReal) {
+                    ILconstReal iv = (ILconstReal) v;
+                    ImFunction SaveReal = findNative("SaveReal", errorPos);
+                    stmts.add(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(key.getParentkey()),
+                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImRealVal("" + iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstString) {
+                    ILconstString iv = (ILconstString) v;
+                    ImFunction SaveStr = findNative("SaveStr", errorPos);
+                    stmts.add(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(key.getParentkey()),
+                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImStringVal(iv.getVal())
+                    ), false, CallType.NORMAL));
+                } else if (v instanceof ILconstBool) {
+                    ILconstBool iv = (ILconstBool) v;
+                    ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
+                    stmts.add(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                            JassIm.ImVarAccess(htVar),
+                            JassIm.ImIntVal(key.getParentkey()),
+                            JassIm.ImIntVal(key.getChildkey()),
+                            JassIm.ImBoolVal(iv.getVal())
+                    ), false, CallType.NORMAL));
                 } else {
                     throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
                 }
