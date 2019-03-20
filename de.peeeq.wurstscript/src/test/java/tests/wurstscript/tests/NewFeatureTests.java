@@ -236,6 +236,72 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSwitchEnumAll3() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll4() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "		default",
+                "			return 3",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void testSwitchEnumAll5() {
+        testAssertOkLines(true,
+                "package Test",
+                "native testSuccess()",
+                "enum Blub",
+                "	A",
+                "	B",
+                "	C",
+                "function foo(Blub blub) returns int",
+                "	switch blub",
+                "		case A | B",
+                "			return 1",
+                "		case C",
+                "			return 2",
+                "	return 3",
+                "init",
+                "	if foo(Blub.C) == 2",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
     public void testSwitchEnumDuplicate() {
         testAssertErrorsLines(false, "The case B is already handled in line 9",
                 "package Test",
