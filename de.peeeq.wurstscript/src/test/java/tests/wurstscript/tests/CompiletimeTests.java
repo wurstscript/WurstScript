@@ -186,6 +186,28 @@ public class CompiletimeTests extends WurstScriptTest {
 
 
     @Test
+    public void testPersistCompiletimeClassTuple() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    int y",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "tuple pair(A a, A b)",
+                        "let a = compiletime(pair(new A, new A))",
+                        "@compiletime",
+                        "function foo()",
+                        "    a.a.y = 42",
+                        "    a.b.y = 43",
+                        "init",
+                        "    if a.a.y == 42 and a.b.y == 43",
+                        "        testSuccess()");
+    }
+
+    @Test
     public void checkCompiletimeAnnotation1() {
         testAssertErrorsLines(false, "Functions annotated '@compiletime' may not take parameters.",
                 "package test",
