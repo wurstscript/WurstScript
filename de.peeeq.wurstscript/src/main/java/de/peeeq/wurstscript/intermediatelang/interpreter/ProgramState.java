@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
+import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.ILconstObject;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -176,6 +177,10 @@ public class ProgramState extends State {
         for (ILStackFrame sf : Utils.iterateReverse(getStackFrames().getStackFrames())) {
             getGui().sendError(sf.makeCompileError());
         }
+    }
+
+    public ILconst getObjectByIndex(int val) {
+        return indexToObject.get(val);
     }
 
     public static class StackTrace {

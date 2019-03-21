@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
 import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
+import de.peeeq.wurstscript.types.TypesHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -398,6 +399,17 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
-        return imCast.getExpr().evaluate(globalState, localState);
+        ILconst res = imCast.getExpr().evaluate(globalState, localState);
+        if (TypesHelper.isIntType(imCast.getToType())) {
+            if (res instanceof ILconstObject) {
+                return ILconstInt.create(((ILconstObject) res).getObjectId());
+            }
+        }
+        if (imCast.getToType() instanceof ImClassType) {
+            if (res instanceof ILconstInt) {
+                return globalState.getObjectByIndex(((ILconstInt) res).getVal());
+            }
+        }
+        return res;
     }
 }
