@@ -30,6 +30,10 @@ public class TypesHelper {
         return WurstTypeBool.instance().imTranslateType();
     }
 
+    public static ImType imHashTable() {
+        return JassIm.ImSimpleType("hashtable");
+    }
+
     public static ImArrayType imIntArray() {
         return JassIm.ImArrayType(imInt());
     }
@@ -44,6 +48,12 @@ public class TypesHelper {
                 || vt instanceof ImArrayTypeMulti && typeContainsTuples(((ImArrayTypeMulti) vt).getEntryType());
     }
 
+    public static boolean isIntType(ImType t) {
+        if (t instanceof ImSimpleType) {
+            return ((ImSimpleType) t).getTypename().equals("integer");
+        }
+        return false;
+    }
 
 
 //	public static boolean checkTypeArgs(InstanceDef iDef, List<PscriptType> classParams, List<PscriptType> interfaceParams) {

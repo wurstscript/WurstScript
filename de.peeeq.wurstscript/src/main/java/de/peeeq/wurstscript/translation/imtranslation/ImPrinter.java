@@ -15,6 +15,20 @@ public class ImPrinter {
             append(sb, "\n");
         }
         append(sb, "\n\n");
+        p.getGlobalInits().forEach((v,es) -> {
+            append(sb, v.getName());
+            append(sb, " = ");
+            boolean first = true;
+            for (ImExpr e : es) {
+                if (!first) {
+                    append(sb, ", ");
+                }
+                e.print(sb, indent);
+                first = false;
+            }
+            append(sb, "\n");
+        });
+        append(sb, "\n\n");
         for (ImFunction f : p.getFunctions()) {
             f.print(sb, indent);
             append(sb, "\n");
