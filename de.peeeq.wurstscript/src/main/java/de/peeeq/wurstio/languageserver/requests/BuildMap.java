@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -146,7 +147,7 @@ public class BuildMap extends MapRequest {
                 w3I.injectConfigsInJassScript(inputStream, sw);
 
                 File file = new File(getBuildDir(), "wc3libs.j");
-                byte[] scriptBytes = sw.toString().getBytes();
+                byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
                 Files.write(scriptBytes, file);
                 Pjass.runPjass(file);
                 mpq.insertFile("war3map.j", scriptBytes);
