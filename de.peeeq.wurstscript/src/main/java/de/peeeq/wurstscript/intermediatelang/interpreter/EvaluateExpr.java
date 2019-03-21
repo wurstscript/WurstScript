@@ -345,8 +345,6 @@ public class EvaluateExpr {
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
         ILconstObject receiver = ((ILconstObject) va.getReceiver().evaluate(globalState, localState));
-        State state;
-        state = globalState;
         List<Integer> indexes =
                         va.getIndexes().stream()
                                 .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
@@ -360,7 +358,7 @@ public class EvaluateExpr {
             @Override
             public ILconst get() {
                 return receiver.get(v, indexes)
-                        .orElseGet(() -> v.getType().defaultValue());
+                        .orElseGet(() -> va.attrTyp().defaultValue());
             }
         };
     }
