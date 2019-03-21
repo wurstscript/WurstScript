@@ -30,6 +30,10 @@ public class TypesHelper {
         return WurstTypeBool.instance().imTranslateType();
     }
 
+    public static ImType imHashTable() {
+        return JassIm.ImSimpleType("hashtable");
+    }
+
     public static ImArrayType imIntArray() {
         return JassIm.ImArrayType(imInt());
     }

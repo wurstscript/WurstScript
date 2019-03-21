@@ -98,7 +98,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             // compile & inject object-editor data
             // TODO run optimizations later?
             gui.sendProgress("Running compiletime functions");
-            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
+            CompiletimeFunctionRunner ctr = new CompiletimeFunctionRunner(imTranslator, getImProg(), getMapFile(), getMapfileMpqEditor(), gui,
                     CompiletimeFunctions);
             ctr.setInjectObjects(runArgs.isInjectObjects());
             ctr.setOutputStream(new PrintStream(System.err));

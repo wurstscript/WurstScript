@@ -158,6 +158,32 @@ public class CompiletimeTests extends WurstScriptTest {
                         "        testSuccess()");
     }
 
+    @Test
+    public void testPersistCompiletimeClassCycle() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    A x",
+                        "    int y",
+                        "function compiletime<T:>(T t) returns T",
+                        "    return t",
+                        "let a = compiletime(new A)",
+                        "@compiletime",
+                        "function foo()",
+                        "    a.x = new A",
+                        "    a.x.x = new A",
+                        "    a.x.x.x = a",
+                        "    a.y = 42",
+                        "    a.x.y = 43",
+                        "    a.x.x.y = 43",
+                        "init",
+                        "    if a.x.x.x.y == 42",
+                        "        testSuccess()");
+    }
+
 
     @Test
     public void checkCompiletimeAnnotation1() {

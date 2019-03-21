@@ -206,16 +206,14 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
-        ILconstInt receiver = (ILconstInt) ma.getReceiver().evaluate(globalState, localState);
-        if (receiver.getVal() == 0) {
+        ILconstObject receiver = (ILconstObject) ma.getReceiver().evaluate(globalState, localState);
+        if (receiver == null) {
             throw new RuntimeException("Null pointer dereference");
         }
-        ILconst res = notNull(globalState.getArrayVal(ma.getVar(), Collections.singletonList(receiver.getVal())), ma.getVar().getType(), "Variable " + ma.getVar().getName() + " is null.", false);
-        for (ImExpr index : ma.getIndexes()) {
-            ILconstInt indexE = (ILconstInt) index.evaluate(globalState, localState);
-            res = ((ILconstArray) res).get(indexE.getVal());
-        }
-        return res;
+        List<Integer> indexes = ma.getIndexes().stream()
+                .map(i -> ((ILconstInt) i.evaluate(globalState, localState)).getVal())
+                .collect(Collectors.toList());
+        return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
     }
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,

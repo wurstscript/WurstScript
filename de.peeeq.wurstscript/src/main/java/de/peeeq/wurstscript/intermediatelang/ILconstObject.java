@@ -29,12 +29,7 @@ public class ILconstObject extends ILconstAbstract {
 
     @Override
     public String print() {
-        return classType + "_" + hashCode() + "{"
-                + attributes.rowMap().entrySet()
-                .stream()
-                .map(e -> e.getKey() + " = " + e.getValue())
-                .collect(Collectors.joining(", "))
-                + "}";
+        return classType + "_" + hashCode();
     }
 
 
@@ -45,7 +40,6 @@ public class ILconstObject extends ILconstAbstract {
     }
 
     public void set(ImVar attr, List<Integer> indexes, ILconst value) {
-        System.out.println("setting " + this + "." + attr + " " +indexes +  " = " + value);
         attributes.put(attr, indexes, value);
     }
 

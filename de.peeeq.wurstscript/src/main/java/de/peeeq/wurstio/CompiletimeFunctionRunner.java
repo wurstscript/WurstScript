@@ -25,6 +25,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -44,8 +45,9 @@ public class CompiletimeFunctionRunner {
     private final List<ImFunction> successTests = Lists.newArrayList();
     private final Map<ImFunction, Pair<de.peeeq.wurstscript.jassIm.Element, String>> failTests = Maps.newLinkedHashMap();
     private final ProgramStateIO globalState;
+    private final ImTranslator translator;
     private boolean injectObjects;
-    private final List<Runnable> delayedActions = new ArrayList<>();
+    private final Deque<Runnable> delayedActions = new ArrayDeque<>();
 
     public ILInterpreter getInterpreter() {
         return interpreter;
@@ -74,8 +76,9 @@ public class CompiletimeFunctionRunner {
     }
 
 
-    public CompiletimeFunctionRunner(ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
+    public CompiletimeFunctionRunner(ImTranslator tr, ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
         Preconditions.checkNotNull(imProg);
+        this.translator = tr;
         this.imProg = imProg;
         globalState = new ProgramStateIO(mapFile, mpqEditor, gui, imProg, true);
         this.interpreter = new ILInterpreter(imProg, gui, mapFile, globalState);
@@ -149,8 +152,8 @@ public class CompiletimeFunctionRunner {
      * Run actions that must be run after all other code
      */
     private void runDelayedActions() {
-        for (Runnable delayedAction : delayedActions) {
-            delayedAction.run();
+        while (!delayedActions.isEmpty()) {
+            delayedActions.removeFirst().run();
         }
     }
 
@@ -211,7 +214,7 @@ public class CompiletimeFunctionRunner {
             globalState.pushStackframe(cte, cte.attrTrace().attrErrorPos());
             LocalState localState = new LocalState();
             ILconst value = cte.evaluate(globalState, localState);
-            ImExpr newExpr = constantToExpr(cte, value);
+            ImExpr newExpr = constantToExpr(cte.getTrace(), value);
             cte.replaceBy(newExpr);
         } catch (InterpreterException e) {
             String msg = ILInterpreter.buildStacktrace(globalState, e);
@@ -224,26 +227,71 @@ public class CompiletimeFunctionRunner {
 
     private GetAForB<ILconstObject, ImVar> globalForObject = new GetAForB<ILconstObject, ImVar>() {
         @Override
-        public ImVar initFor(ILconstObject a) {
+        public ImVar initFor(ILconstObject obj) {
 
 
-            ImVar res = JassIm.ImVar(a.getTrace(), a.getType(), a.getType() + "_compiletime", false);
+            ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
             imProg.getGlobals().add(res);
-            ImAlloc alloc = JassIm.ImAlloc(a.getTrace(), a.getType());
-            imProg.getGlobalInits().put(res, Collections.singletonList(alloc));
+            ImAlloc alloc = JassIm.ImAlloc(obj.getTrace(), obj.getType());
+            addCompiletimeStateInitAlloc(alloc.getTrace(), res, alloc);
 
-            ImFunction globalInit = imProg.getFunctions().stream()
-                    .filter(f -> f.getName().equals("initGlobals"))
-                    .findFirst().get();
 
-            globalInit.getBody().add(JassIm.ImSet(alloc.getTrace(), JassIm.ImVarAccess(res), alloc.copy()));
+            Element trace = obj.getTrace();
+
+            delayedActions.add(() -> {
+                for (Map.Entry<ImVar, Map<List<Integer>, ILconst>> entry : obj.getAttributes().rowMap().entrySet()) {
+                    ImVar var = entry.getKey();
+                    Map<List<Integer>, ILconst> value1 = entry.getValue();
+                    for (Map.Entry<List<Integer>, ILconst> entry2 : value1.entrySet()) {
+                        List<Integer> indexes = entry2.getKey();
+                        ILconst attrValue = entry2.getValue();
+                        ImExprs indexesT = indexes.stream()
+                                .map(i -> constantToExpr(trace, ILconstInt.create(i)))
+                                .collect(Collectors.toCollection(JassIm::ImExprs));
+                        addCompiletimeStateInit(JassIm.ImSet(trace, JassIm.ImMemberAccess(trace, JassIm.ImVarAccess(res), JassIm.ImTypeArguments(), var, indexesT), constantToExpr(trace, attrValue)));
+                    }
+                }
+            });
 
             return res;
         }
     };
 
-    private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
-        Element trace = cte.attrTrace();
+    private GetAForB<IlConstHandle, ImVar> globalForHandle = new GetAForB<IlConstHandle, ImVar>() {
+        @Override
+        public ImVar initFor(IlConstHandle a) {
+
+            Element trace = imProg.getTrace();
+
+            ImType type;
+            ImExpr init;
+            List<ImStmt> initStmts = new ArrayList<>();
+
+            Object obj = a.getObj();
+            if (obj instanceof ArrayListMultimap) {
+                @SuppressWarnings("unchecked")
+                ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
+                init = constantToExprHashtable(trace, a, map, initStmts);
+                type = TypesHelper.imHashTable();
+            } else {
+                throw new RuntimeException("Handle value " + obj + " (" + obj.getClass() + ") can not be persistet at compiletime");
+            }
+
+            ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
+            imProg.getGlobals().add(res);
+
+            addCompiletimeStateInitAlloc(trace, res, init);
+
+            delayedActions.add(() -> {
+                for (ImStmt initStmt : initStmts) {
+                    addCompiletimeStateInit(initStmt);
+                }
+            });
+            return res;
+        }
+    };
+
+    private ImExpr constantToExpr(Element trace, ILconst value) {
         if (value instanceof ILconstBool) {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
         } else if (value instanceof ILconstInt) {
@@ -254,116 +302,119 @@ public class CompiletimeFunctionRunner {
             return JassIm.ImTupleExpr(
                     JassIm.ImExprs(
                             ((ILconstTuple) value).values().stream()
-                                    .map(e -> constantToExpr(cte, e))
+                                    .map(e -> constantToExpr(trace, e))
                                     .collect(Collectors.toList())
                     )
             );
         } else if (value instanceof IlConstHandle) {
             IlConstHandle h = (IlConstHandle) value;
-            Object obj = h.getObj();
-            if (obj instanceof ArrayListMultimap) {
-                // a hashtable
-                @SuppressWarnings("unchecked")
-                ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
-                return constantToExprHashtable(cte, trace, map);
-            }
+            ImVar hVar = globalForHandle.getFor(h);
+            return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
             ILconstObject obj = (ILconstObject) value;
-            System.out.println("persisting object " + obj);
             ImVar v = globalForObject.getFor(obj);
-            ImStmts stmts = JassIm.ImStmts();
-
-            delayedActions.add(() -> {
-                for (Map.Entry<ImVar, Map<List<Integer>, ILconst>> entry : obj.getAttributes().rowMap().entrySet()) {
-                    ImVar var = entry.getKey();
-                    Map<List<Integer>, ILconst> value1 = entry.getValue();
-                    for (Map.Entry<List<Integer>, ILconst> entry2 : value1.entrySet()) {
-                        List<Integer> indexes = entry2.getKey();
-                        ILconst attrValue = entry2.getValue();
-                        ImExprs indexesT = indexes.stream()
-                                .map(i -> constantToExpr(cte, ILconstInt.create(i)))
-                                .collect(Collectors.toCollection(JassIm::ImExprs));
-                        stmts.add(JassIm.ImSet(trace, JassIm.ImMemberAccess(trace, JassIm.ImVarAccess(v), JassIm.ImTypeArguments(), var, indexesT), constantToExpr(cte, attrValue)));
-                    }
-                }
-            });
-
-            return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(v));
+            return JassIm.ImVarAccess(v);
         }
         throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
 
+    }
+
+    private ImFunction compiletimeStateInitFunction = null;
+
+    private ImFunction getCompiletimeStateInitFunction() {
+        ImFunction res = this.compiletimeStateInitFunction;
+        if (res == null) {
+            Element trace = imProg.getTrace();
+            res = JassIm.ImFunction(trace, "initCompiletimeState", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+            imProg.getFunctions().add(res);
+            compiletimeStateInitFunction = res;
+            ImFunction mainFunc = translator.getMainFunc();
+            ImFunction globalInitFunc = translator.getGlobalInitFunc();
+            Preconditions.checkNotNull(mainFunc);
+            ListIterator<ImStmt> iterator = mainFunc.getBody().listIterator();
+            ImFunctionCall call = JassIm.ImFunctionCall(trace, res, JassIm.ImTypeArguments(), JassIm.ImExprs(), true, CallType.NORMAL);
+            while (iterator.hasNext()) {
+                ImStmt stmt = iterator.next();
+                if (stmt instanceof ImFunctionCall) {
+                    ImFunctionCall fc = (ImFunctionCall) stmt;
+                    if (fc.getFunc() == globalInitFunc) {
+                        // call initCompiletimeState right after globalInitFunc
+                        iterator.add(call);
+                        return res;
+                    }
+                }
+            }
+            iterator.add(call);
+        }
+        return res;
+    }
+
+    // insert at the beginning
+    private void addCompiletimeStateInitAlloc(Element trace, ImVar v, ImExpr init) {
+        imProg.getGlobalInits().put(v, Collections.singletonList(init));
+        getCompiletimeStateInitFunction().getBody().add(0, JassIm.ImSet(trace, JassIm.ImVarAccess(v), init.copy()));
+    }
+
+    // insert at the end
+    private void addCompiletimeStateInit(ImStmt stmt) {
+        getCompiletimeStateInitFunction().getBody().add(stmt);
     }
 
     /**
      * Stores a hashtable value in a compiletime expression
      * by generating the respective native calls
      */
-    private ImExpr constantToExprHashtable(ImCompiletimeExpr cte, Element trace, ArrayListMultimap<HashtableProvider.KeyPair, Object> map) {
-        ImFunction f = cte.getNearestFunc();
-        ImVar htVar = JassIm.ImVar(trace, cte.attrTyp(), "ht", false);
-        f.getLocals().add(htVar);
-
-
+    private ImExpr constantToExprHashtable(Element trace, IlConstHandle handle, ArrayListMultimap<HashtableProvider.KeyPair, Object> map, List<ImStmt> stmts) {
+        ImVar htVar = globalForHandle.getFor(handle);
         WPos errorPos = trace.attrErrorPos();
-        ImFunction initHashtable = findNative("InitHashtable", errorPos);
-        ImStmts stmts = JassIm.ImStmts(
-                JassIm.ImSet(trace, JassIm.ImVarAccess(htVar), JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL))
-        );
-
         // we have to collect all values after all compiletime functions have run, so use delayedActions
-        delayedActions.add(() -> {
-            for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
-                HashtableProvider.KeyPair key = entry.getKey();
-                Object v = entry.getValue();
-                if (v instanceof ILconstInt) {
-                    ILconstInt iv = (ILconstInt) v;
-                    ImFunction SaveInteger = findNative("SaveInteger", errorPos);
-                    stmts.add(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
-                            JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImIntVal(iv.getVal())
-                    ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstReal) {
-                    ILconstReal iv = (ILconstReal) v;
-                    ImFunction SaveReal = findNative("SaveReal", errorPos);
-                    stmts.add(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
-                            JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImRealVal("" + iv.getVal())
-                    ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstString) {
-                    ILconstString iv = (ILconstString) v;
-                    ImFunction SaveStr = findNative("SaveStr", errorPos);
-                    stmts.add(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
-                            JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImStringVal(iv.getVal())
-                    ), false, CallType.NORMAL));
-                } else if (v instanceof ILconstBool) {
-                    ILconstBool iv = (ILconstBool) v;
-                    ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
-                    stmts.add(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
-                            JassIm.ImVarAccess(htVar),
-                            JassIm.ImIntVal(key.getParentkey()),
-                            JassIm.ImIntVal(key.getChildkey()),
-                            JassIm.ImBoolVal(iv.getVal())
-                    ), false, CallType.NORMAL));
-                } else {
-                    throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
-                }
-
-
+        for (Map.Entry<HashtableProvider.KeyPair, Object> entry : map.entries()) {
+            HashtableProvider.KeyPair key = entry.getKey();
+            Object v = entry.getValue();
+            if (v instanceof ILconstInt) {
+                ILconstInt iv = (ILconstInt) v;
+                ImFunction SaveInteger = findNative("SaveInteger", errorPos);
+                stmts.add(JassIm.ImFunctionCall(trace, SaveInteger, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                        JassIm.ImVarAccess(htVar),
+                        JassIm.ImIntVal(key.getParentkey()),
+                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImIntVal(iv.getVal())
+                ), false, CallType.NORMAL));
+            } else if (v instanceof ILconstReal) {
+                ILconstReal iv = (ILconstReal) v;
+                ImFunction SaveReal = findNative("SaveReal", errorPos);
+                stmts.add(JassIm.ImFunctionCall(trace, SaveReal, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                        JassIm.ImVarAccess(htVar),
+                        JassIm.ImIntVal(key.getParentkey()),
+                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImRealVal("" + iv.getVal())
+                ), false, CallType.NORMAL));
+            } else if (v instanceof ILconstString) {
+                ILconstString iv = (ILconstString) v;
+                ImFunction SaveStr = findNative("SaveStr", errorPos);
+                stmts.add(JassIm.ImFunctionCall(trace, SaveStr, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                        JassIm.ImVarAccess(htVar),
+                        JassIm.ImIntVal(key.getParentkey()),
+                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImStringVal(iv.getVal())
+                ), false, CallType.NORMAL));
+            } else if (v instanceof ILconstBool) {
+                ILconstBool iv = (ILconstBool) v;
+                ImFunction SaveBoolean = findNative("SaveBoolean", errorPos);
+                stmts.add(JassIm.ImFunctionCall(trace, SaveBoolean, JassIm.ImTypeArguments(), JassIm.ImExprs(
+                        JassIm.ImVarAccess(htVar),
+                        JassIm.ImIntVal(key.getParentkey()),
+                        JassIm.ImIntVal(key.getChildkey()),
+                        JassIm.ImBoolVal(iv.getVal())
+                ), false, CallType.NORMAL));
+            } else {
+                throw new CompileError(errorPos, "Unsupported value stored in HashMap: " + v + " // " + v.getClass().getSimpleName());
             }
-        });
+        }
 
         // we already return the expr and fill out stmts in delayedActions (see above)
-        return JassIm.ImStatementExpr(
-                stmts,
-                JassIm.ImVarAccess(htVar)
-        );
+        ImFunction initHashtable = findNative("InitHashtable", errorPos);
+        return JassIm.ImFunctionCall(trace, initHashtable, JassIm.ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL);
     }
 
     @NotNull
