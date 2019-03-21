@@ -137,6 +137,29 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testPersistCompiletimeClass() {
+        test().executeProg(true)
+                .runCompiletimeFunctions(true)
+                .executeProgOnlyAfterTransforms()
+                .lines("package Test",
+                        "native testSuccess()",
+                        "class A",
+                        "    string x",
+                        "    int y",
+                        "function compiletime(A a) returns A",
+                        "    return a",
+                        "let a = compiletime(new A)",
+                        "@compiletime",
+                        "function foo()",
+                        "    a.x = \"schwardemage\"",
+                        "    a.y = 42",
+                        "init",
+                        "    if a.x == \"schwardemage\" and a.y == 42",
+                        "        testSuccess()");
+    }
+
+
+    @Test
     public void checkCompiletimeAnnotation1() {
         testAssertErrorsLines(false, "Functions annotated '@compiletime' may not take parameters.",
                 "package test",

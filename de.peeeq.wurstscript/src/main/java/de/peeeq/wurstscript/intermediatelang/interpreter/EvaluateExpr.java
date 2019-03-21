@@ -42,6 +42,11 @@ public class EvaluateExpr {
         for (int i = 0; i < args2.size(); i++) {
             args[i] = args2.get(i).evaluate(globalState, localState);
         }
+        return evaluateFunc(globalState, f, trace, args);
+    }
+
+    @Nullable
+    private static ILconst evaluateFunc(ProgramState globalState, ImFunction f, Element trace, ILconst[] args) {
         LocalState r = ILInterpreter.runFunc(globalState, f, trace, args);
         return r.getReturnVal();
     }
@@ -171,13 +176,12 @@ public class EvaluateExpr {
 
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
-        ILconstInt receiver = (ILconstInt) mc.getReceiver().evaluate(globalState, localState);
+        ILconstObject receiver = (ILconstObject) mc.getReceiver().evaluate(globalState, localState);
 
-        globalState.assertAllocated(receiver.getVal(), mc.attrTrace());
+        globalState.assertAllocated(receiver, mc.attrTrace());
 
 
-        ArrayList<ImExpr> args = Lists.newArrayList(mc.getArguments());
-        args.add(0, JassIm.ImIntVal(receiver.getVal()));
+        List<ImExpr> args = mc.getArguments();
 
 
         ImMethod mostPrecise = mc.getMethod();
@@ -186,14 +190,19 @@ public class EvaluateExpr {
         for (ImMethod m : mc.getMethod().getSubMethods()) {
 
             if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
-                if (globalState.isInstanceOf(receiver.getVal(), m.attrClass(), mc.attrTrace())) {
+                if (globalState.isInstanceOf(receiver, m.attrClass(), mc.attrTrace())) {
                     // found more precise method
                     mostPrecise = m;
                 }
             }
         }
         // execute most precise method
-        return evaluateFunc(globalState, localState, mostPrecise.getImplementation(), args, mc);
+        ILconst[] eargs = new ILconst[args.size() + 1];
+        eargs[0] = receiver;
+        for (int i = 0; i < args.size(); i++) {
+            eargs[i+1] = args.get(i).evaluate(globalState, localState);
+        }
+        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
     }
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
@@ -211,20 +220,20 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImAlloc imAlloc, ProgramState globalState,
                                LocalState localState) {
-        return new ILconstInt(globalState.allocate(imAlloc.getClazz().getClassDef(), imAlloc.attrTrace()));
+        return globalState.allocate(imAlloc.getClazz(), imAlloc.attrTrace());
     }
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
                                LocalState localState) {
-        ILconstInt obj = (ILconstInt) imDealloc.getObj().evaluate(globalState, localState);
-        globalState.deallocate(obj.getVal(), imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
+        ILconstObject obj = (ILconstObject) imDealloc.getObj().evaluate(globalState, localState);
+        globalState.deallocate(obj, imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
         return ILconstNull.instance();
     }
 
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
-        ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
-        return ILconstBool.instance(globalState.isInstanceOf(obj.getVal(), e.getClazz().getClassDef(), e.attrTrace()));
+        ILconstObject obj = (ILconstObject) e.getObj().evaluate(globalState, localState);
+        return ILconstBool.instance(globalState.isInstanceOf(obj, e.getClazz().getClassDef(), e.attrTrace()));
     }
 
     public static ILconst eval(ImTypeIdOfClass e,
@@ -234,8 +243,8 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTypeIdOfObj e,
                                ProgramState globalState, LocalState localState) {
-        ILconstInt obj = (ILconstInt) e.getObj().evaluate(globalState, localState);
-        return new ILconstInt(globalState.getTypeId(obj.getVal(), e.attrTrace()));
+        ILconstObject obj = (ILconstObject) e.getObj().evaluate(globalState, localState);
+        return new ILconstInt(globalState.getTypeId(obj, e.attrTrace()));
     }
 
 
@@ -336,25 +345,23 @@ public class EvaluateExpr {
 
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
-        int receiver = ((ILconstInt) va.getReceiver().evaluate(globalState, localState)).getVal();
+        ILconstObject receiver = ((ILconstObject) va.getReceiver().evaluate(globalState, localState));
         State state;
         state = globalState;
         List<Integer> indexes =
-                Stream.concat(
-                        Stream.of(receiver),
                         va.getIndexes().stream()
                                 .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-                )
                 .collect(Collectors.toList());
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
-                state.setArrayVal(v, indexes, value);
+                receiver.set(v, indexes, value);
             }
 
             @Override
             public ILconst get() {
-                return state.getArrayVal(v, indexes);
+                return receiver.get(v, indexes)
+                        .orElseGet(() -> v.getType().defaultValue());
             }
         };
     }

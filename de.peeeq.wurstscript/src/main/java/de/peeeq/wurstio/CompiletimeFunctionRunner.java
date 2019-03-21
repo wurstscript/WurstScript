@@ -24,10 +24,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.imtranslation.CallType;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlag;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagCompiletime;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -224,6 +221,27 @@ public class CompiletimeFunctionRunner {
         }
     }
 
+
+    private GetAForB<ILconstObject, ImVar> globalForObject = new GetAForB<ILconstObject, ImVar>() {
+        @Override
+        public ImVar initFor(ILconstObject a) {
+
+
+            ImVar res = JassIm.ImVar(a.getTrace(), a.getType(), a.getType() + "_compiletime", false);
+            imProg.getGlobals().add(res);
+            ImAlloc alloc = JassIm.ImAlloc(a.getTrace(), a.getType());
+            imProg.getGlobalInits().put(res, Collections.singletonList(alloc));
+
+            ImFunction globalInit = imProg.getFunctions().stream()
+                    .filter(f -> f.getName().equals("initGlobals"))
+                    .findFirst().get();
+
+            globalInit.getBody().add(JassIm.ImSet(alloc.getTrace(), JassIm.ImVarAccess(res), alloc.copy()));
+
+            return res;
+        }
+    };
+
     private ImExpr constantToExpr(ImCompiletimeExpr cte, ILconst value) {
         Element trace = cte.attrTrace();
         if (value instanceof ILconstBool) {
@@ -249,6 +267,28 @@ public class CompiletimeFunctionRunner {
                 ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
                 return constantToExprHashtable(cte, trace, map);
             }
+        } else if (value instanceof ILconstObject) {
+            ILconstObject obj = (ILconstObject) value;
+            System.out.println("persisting object " + obj);
+            ImVar v = globalForObject.getFor(obj);
+            ImStmts stmts = JassIm.ImStmts();
+
+            delayedActions.add(() -> {
+                for (Map.Entry<ImVar, Map<List<Integer>, ILconst>> entry : obj.getAttributes().rowMap().entrySet()) {
+                    ImVar var = entry.getKey();
+                    Map<List<Integer>, ILconst> value1 = entry.getValue();
+                    for (Map.Entry<List<Integer>, ILconst> entry2 : value1.entrySet()) {
+                        List<Integer> indexes = entry2.getKey();
+                        ILconst attrValue = entry2.getValue();
+                        ImExprs indexesT = indexes.stream()
+                                .map(i -> constantToExpr(cte, ILconstInt.create(i)))
+                                .collect(Collectors.toCollection(JassIm::ImExprs));
+                        stmts.add(JassIm.ImSet(trace, JassIm.ImMemberAccess(trace, JassIm.ImVarAccess(v), JassIm.ImTypeArguments(), var, indexesT), constantToExpr(cte, attrValue)));
+                    }
+                }
+            });
+
+            return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(v));
         }
         throw new InterpreterException(trace, "Compiletime expression returned unsupported value " + value);
 

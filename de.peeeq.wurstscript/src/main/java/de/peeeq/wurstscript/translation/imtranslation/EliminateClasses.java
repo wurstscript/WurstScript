@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
-import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Pair;
 
 import java.util.ArrayList;
@@ -51,7 +50,13 @@ public class EliminateClasses {
         }
 
         for (ImFunction f : prog.getFunctions()) {
-            eliminateClassRelatedExprs(f);
+            eliminateClassRelatedExprs(f.getBody());
+        }
+
+        for (Map.Entry<ImVar, List<ImExpr>> entry : prog.getGlobalInits().entrySet()) {
+            ImExprs newValue = JassIm.ImExprs(entry.getValue());
+            eliminateClassRelatedExprs(newValue);
+            entry.setValue(newValue.removeAll());
         }
 
         prog.getClasses().clear();
@@ -295,7 +300,7 @@ public class EliminateClasses {
         }
     }
 
-    private void eliminateClassRelatedExprs(ImFunction f) {
+    private void eliminateClassRelatedExprs(de.peeeq.wurstscript.jassIm.Element body) {
         final List<ImMemberAccess> mas = Lists.newArrayList();
         final List<ImMethodCall> mcs = Lists.newArrayList();
         final List<ImAlloc> allocs = Lists.newArrayList();
@@ -303,7 +308,7 @@ public class EliminateClasses {
         final List<ImInstanceof> instaneofs = Lists.newArrayList();
         final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
         final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
-        f.getBody().accept(new ImStmts.DefaultVisitor() {
+        body.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
                 super.visit(e);
