@@ -93,6 +93,17 @@ public class RunMap extends MapRequest {
                 println("We will try to start the map now, but it will probably fail. ");
             }
 
+            if (runArgs.isHotReload() || runArgs.isHotStartmap()) {
+                // call jhcr update
+                callJhcrUpdate(compiledScript);
+            }
+
+
+            if (runArgs.isHotReload()) {
+                // if we are just reloading the mapscript with JHCR, we are done here
+                return "ok";
+            }
+
             gui.sendProgress("preparing testmap ... ");
 
             // then inject the script into the map
@@ -137,6 +148,27 @@ public class RunMap extends MapRequest {
             }
         }
         return "ok"; // TODO
+    }
+
+    private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {
+        File mapScriptFolder = mapScript.getParentFile();
+        File commonJ = new File(mapScriptFolder, "common.j");
+        File blizzardJ = new File(mapScriptFolder, "blizzard.j");
+        if (!commonJ.exists()) {
+            throw new IOException("Could not find file " + commonJ.getAbsolutePath());
+        }
+
+        if (!blizzardJ.exists()) {
+            throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
+        }
+        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "update", mapScript.getName(),
+                "--preload-path", "C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData");
+        pb.directory(mapScriptFolder);
+        Process process = pb.start();
+        int r = process.waitFor();
+        if (r != 0) {
+            throw new IOException("Failed to run jhcr");
+        }
     }
 
     @NotNull

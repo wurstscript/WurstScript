@@ -28,6 +28,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -42,11 +43,13 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final File map;
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
+    protected final RunArgs runArgs;
 
     public MapRequest(File map, List<String> compileArgs, WFile workspaceRoot) {
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
+        this.runArgs = new RunArgs(compileArgs);
     }
 
     @Override
@@ -158,10 +161,36 @@ public abstract class MapRequest extends UserRequest<Object> {
                     return null;
                 }
             }
+            if (runArgs.isHotStartmap()) {
+                return runJassHotCodeReload(outFile);
+            }
             return outFile;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
+        File mapScriptFolder = mapScript.getParentFile();
+        File commonJ = new File(mapScriptFolder, "common.j");
+        File blizzardJ = new File(mapScriptFolder, "blizzard.j");
+
+        if (!commonJ.exists()) {
+            throw new IOException("Could not find file " + commonJ.getAbsolutePath());
+        }
+
+        if (!blizzardJ.exists()) {
+            throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
+        }
+
+        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
+        pb.directory(mapScriptFolder);
+        Process process = pb.start();
+        int r = process.waitFor();
+        if (r != 0) {
+            throw new IOException("Failed to run jhcr");
+        }
+        return new File(mapScriptFolder, "jhcr_war3map.j");
     }
 
     /**
