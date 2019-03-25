@@ -1090,7 +1090,9 @@ public class Utils {
         }
 
         Collector cIn = new Collector(process.getInputStream());
+        cIn.start();
         Collector cErr = new Collector(process.getErrorStream());
+        cErr.start();
 
         boolean r = process.waitFor(duration.toMillis(), TimeUnit.MILLISECONDS);
         process.destroyForcibly();

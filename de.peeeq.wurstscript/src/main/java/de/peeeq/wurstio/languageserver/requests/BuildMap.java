@@ -4,6 +4,7 @@ import com.google.common.io.Files;
 import config.*;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
+import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -43,8 +44,8 @@ public class BuildMap extends MapRequest {
         QuickAndDirty, KindOfSafe
     }
 
-    public BuildMap(WFile workspaceRoot, File map, List<String> compileArgs) {
-        super(map, compileArgs, workspaceRoot);
+    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, File map, List<String> compileArgs) {
+        super(configProvider, map, compileArgs, workspaceRoot);
     }
 
 

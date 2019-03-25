@@ -84,7 +84,7 @@ public class WurstCommands {
 
         File map = new File(mapPath);
         List<String> compileArgs = getCompileArgs(workspaceRoot);
-        return server.worker().handle(new BuildMap(workspaceRoot, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, map, compileArgs)).thenApply(x -> x);
     }
 
     private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {
@@ -104,7 +104,7 @@ public class WurstCommands {
 
         File map = new File(mapPath);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
-        return server.worker().handle(new RunMap(workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new RunMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects", "-stacktraces");

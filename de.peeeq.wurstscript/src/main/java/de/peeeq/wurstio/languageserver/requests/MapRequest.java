@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.UtilsIO;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
+import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -41,12 +42,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public abstract class MapRequest extends UserRequest<Object> {
+    protected final ConfigProvider configProvider;
     protected final File map;
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
 
-    public MapRequest(File map, List<String> compileArgs, WFile workspaceRoot) {
+    public MapRequest(ConfigProvider configProvider, File map, List<String> compileArgs, WFile workspaceRoot) {
+        this.configProvider = configProvider;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
@@ -186,7 +189,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
         }
 
-        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
+        ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(mapScriptFolder);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
         return new File(mapScriptFolder, "jhcr_war3map.j");

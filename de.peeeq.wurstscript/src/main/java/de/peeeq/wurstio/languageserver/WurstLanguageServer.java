@@ -113,4 +113,8 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
     public LanguageClient getLanguageClient() {
         return languageClient;
     }
+
+    public ConfigProvider getConfigProvider() {
+        return new ConfigProvider(languageClient);
+    }
 }

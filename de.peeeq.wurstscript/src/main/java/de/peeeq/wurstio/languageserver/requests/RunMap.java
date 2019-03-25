@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
+import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -15,6 +16,7 @@ import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.utils.WinRegistry;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -23,6 +25,8 @@ import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
@@ -45,8 +49,8 @@ public class RunMap extends MapRequest {
         QuickAndDirty, KindOfSafe
     }
 
-    public RunMap(WFile workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
-        super(map, compileArgs, workspaceRoot);
+    public RunMap(ConfigProvider configProvider, WFile workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
+        super(configProvider, map, compileArgs, workspaceRoot);
         this.wc3Path = wc3Path;
     }
 
@@ -165,10 +169,30 @@ public class RunMap extends MapRequest {
         if (!blizzardJ.exists()) {
             throw new IOException("Could not find file " + blizzardJ.getAbsolutePath());
         }
-        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "update", mapScript.getName(),
-                "--preload-path", "C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData");
+
+        Path customMapDataPath = getCustomMapDataPath();
+
+        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "update", mapScript.getName(), "--asm",
+                "--preload-path", customMapDataPath.toAbsolutePath().toString());
         pb.directory(mapScriptFolder);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
+    }
+
+    /**
+     * Tries to find the path where the wc3 CustomMapData is stored.
+     * For example this could be in:
+     * C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData
+     */
+    private Path getCustomMapDataPath() {
+        Path documents;
+        try {
+            documents = Paths.get(WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders", "Personal"));
+        } catch (Throwable t) {
+            WLogger.info(t);
+            Path homeFolder = Paths.get(System.getProperty("user.home"));
+            documents = homeFolder.resolve("Documents");
+        }
+        return documents.resolve(Paths.get("Warcraft III", "CustomMapData"));
     }
 
     @NotNull
