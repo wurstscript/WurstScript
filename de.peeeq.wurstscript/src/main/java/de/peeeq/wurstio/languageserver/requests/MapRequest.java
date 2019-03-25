@@ -33,6 +33,7 @@ import java.nio.channels.NonWritableChannelException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -152,6 +153,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.write(compiledMapScript.getBytes(Charsets.UTF_8), outFile);
 
             if (!runArgs.isDisablePjass()) {
+                gui.sendProgress("Running PJass");
                 Pjass.Result pJassResult = Pjass.runPjass(outFile);
                 WLogger.info(pJassResult.getMessage());
                 if (!pJassResult.isOk()) {
@@ -162,6 +164,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 }
             }
             if (runArgs.isHotStartmap()) {
+                gui.sendProgress("Running JHCR");
                 return runJassHotCodeReload(outFile);
             }
             return outFile;
@@ -185,11 +188,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(mapScriptFolder);
-        Process process = pb.start();
-        int r = process.waitFor();
-        if (r != 0) {
-            throw new IOException("Failed to run jhcr");
-        }
+        Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
         return new File(mapScriptFolder, "jhcr_war3map.j");
     }
 

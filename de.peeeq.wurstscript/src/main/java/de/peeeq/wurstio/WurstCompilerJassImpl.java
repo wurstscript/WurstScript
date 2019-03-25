@@ -532,6 +532,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", false);
         mainFunc.getLocals().add(trig);
         // TriggerRegisterPlayerEventEndCinematic(trig, Player(0))
+        stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(trig), callExtern(trace, CallType.NORMAL, "CreateTrigger")));
         stmts.add(callExtern(trace, CallType.NORMAL, "TriggerRegisterPlayerEventEndCinematic", JassIm.ImVarAccess(trig),
                 callExtern(trace, CallType.NORMAL, "Player", JassIm.ImIntVal(0))));
         stmts.add(callExtern(trace, CallType.NORMAL, "TriggerAddAction", JassIm.ImVarAccess(trig),

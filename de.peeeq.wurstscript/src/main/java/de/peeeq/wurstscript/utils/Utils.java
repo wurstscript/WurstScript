@@ -10,8 +10,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -23,8 +21,10 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.*;
+import java.time.Duration;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Consumer;
@@ -1041,5 +1041,67 @@ public class Utils {
             }
         }
         throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
+    }
+
+    public static class ExecResult {
+        private final String stdOut;
+        private final String stdErr;
+
+        public ExecResult(String stdOut, String stdErr) {
+            this.stdOut = stdOut;
+            this.stdErr = stdErr;
+        }
+
+        public String getStdOut() {
+            return stdOut;
+        }
+
+        public String getStdErr() {
+            return stdErr;
+        }
+    }
+
+    public static ExecResult exec(ProcessBuilder pb, Duration duration, Consumer<String> onInput) throws IOException, InterruptedException {
+        Process process = pb.start();
+        class Collector extends Thread {
+            private final StringBuilder sb = new StringBuilder();
+            private final InputStream in;
+
+            Collector(InputStream in) {
+                this.in = in;
+            }
+
+            @Override
+            public void run() {
+                try (BufferedReader input = new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = input.readLine()) != null) {
+                        onInput.accept(line);
+                        sb.append(line).append("\n");
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            String getContents() {
+                return sb.toString();
+            }
+        }
+
+        Collector cIn = new Collector(process.getInputStream());
+        Collector cErr = new Collector(process.getErrorStream());
+
+        boolean r = process.waitFor(duration.toMillis(), TimeUnit.MILLISECONDS);
+        process.destroyForcibly();
+        cIn.join();
+        cErr.join();
+        if (!r) {
+            throw new IOException("Timeout running external tool");
+        }
+        if (process.exitValue() != 0) {
+            throw new IOException("Failure when running external tool");
+        }
+        return new ExecResult(cIn.getContents(), cErr.getContents());
     }
 }

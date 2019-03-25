@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
+import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +23,7 @@ import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -93,14 +95,16 @@ public class RunMap extends MapRequest {
                 println("We will try to start the map now, but it will probably fail. ");
             }
 
-            if (runArgs.isHotReload() || runArgs.isHotStartmap()) {
+            if (runArgs.isHotReload()) {
                 // call jhcr update
+                gui.sendProgress("Calling JHCR update");
                 callJhcrUpdate(compiledScript);
             }
 
 
             if (runArgs.isHotReload()) {
                 // if we are just reloading the mapscript with JHCR, we are done here
+                gui.sendProgress("update complete");
                 return "ok";
             }
 
@@ -164,11 +168,7 @@ public class RunMap extends MapRequest {
         ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "update", mapScript.getName(),
                 "--preload-path", "C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData");
         pb.directory(mapScriptFolder);
-        Process process = pb.start();
-        int r = process.waitFor();
-        if (r != 0) {
-            throw new IOException("Failed to run jhcr");
-        }
+        Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
     }
 
     @NotNull
