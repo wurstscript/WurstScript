@@ -83,38 +83,18 @@ function aboutpopup()
 end
 wh_about = MenuEntry:New(whmenu,"About Grimoire ...",aboutpopup)
 
-function wurst_compilationserver_start()
-	wehack.execprocess("wurstscript\\wurstscript.exe --startServer")
-end
-
-function wurst_compilationserver_stop()
-	wehack.execprocess("wurstscript\\wurstscript_b.exe -stopServer")
-end
-
 -- ##WurstScript##
 havewurst = grim.exists("wurstscript\\wurstscript.exe")
 if havewurst then
 	wurstmenu = wehack.addmenu("WurstScript")
 	
 	function wurst_command()
-		if wurst_b_enable.checked then
-			return "wurstscript\\wurstscript_b.exe"
-		else
-			return "wurstscript\\wurstscript.exe"
-		end
+		return "wurstscript\\wurstscript.exe"
 	end
 	
 	
 	wurst_enable = TogMenuEntry:New(wurstmenu,"Enable WurstScript",nil,true)
-	wurst_b_enable = TogMenuEntry:New(wurstmenu,"Use Wurst compilation server",nil,false)
-	
-	
-	
-	
-	-- TODO
-	-- MenuEntry:New(wurstmenu,"Start Wurst compilation server ",wurst_compilationserver_start)
-	MenuEntry:New(wurstmenu,"Stop Wurst compilation server ",wurst_compilationserver_stop)
-	
+		
 	wehack.addmenuseparator(wurstmenu)
 	-- optimizer options
 	wurst_optenable = TogMenuEntry:New(wurstmenu,"Enable Froptimizer",nil,false)
@@ -591,18 +571,6 @@ grim.log("running tool on save: "..cmdargs)
 			mapvalid = true
 		else 
 			mapvalid = false
-			if wurst_b_enable.checked then
-				if tries == 0 then
-					-- try starting compilation server
-					wurst_compilationserver_start()
-					-- try again
-					compilemap_path(mappath,tries+1)
-				else
-					wehack.messagebox("Could not run Wurst with compilation server.","Wurst",false)
-				end
-			else
-				wehack.messagebox("Could not run Wurst.","Wurst",false)
-			end
 		end
 	end
 end
