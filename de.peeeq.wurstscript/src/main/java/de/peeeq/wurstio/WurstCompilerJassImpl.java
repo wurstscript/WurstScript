@@ -11,23 +11,25 @@ import de.peeeq.wurstio.utils.FileReading;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
-import de.peeeq.wurstscript.jassIm.ImProg;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
 import de.peeeq.wurstscript.utils.TempDir;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.MessageType;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -478,6 +480,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
 
+        if (runArgs.isHotStartmap() || runArgs.isHotReload()) {
+            addJassHotCodeReloadCode();
+        }
+
         if (runArgs.isOptimize()) {
             beginPhase(12, "froptimize");
             optimizer.optimize();
@@ -501,6 +507,44 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
         timeTaker.endPhase();
         return prog;
+    }
+
+    private void addJassHotCodeReloadCode() {
+        Preconditions.checkNotNull(imTranslator);
+        Preconditions.checkNotNull(imProg);
+        ImFunction mainFunc = imTranslator.getMainFunc();
+        Preconditions.checkNotNull(mainFunc);
+        Element trace = imProg.getTrace();
+
+        List<ImStmt> stmts = new ArrayList<>();
+
+        // add call to JHCR_Init_init in main
+        stmts.add(callExtern(trace, CallType.EXECUTE, "JHCR_Init_init"));
+
+
+        // add reload trigger for pressing escape
+        ImStmts reloadBody = JassIm.ImStmts(
+                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse")
+        );
+        ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
+
+
+        ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", false);
+        mainFunc.getLocals().add(trig);
+        // TriggerRegisterPlayerEventEndCinematic(trig, Player(0))
+        stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(trig), callExtern(trace, CallType.NORMAL, "CreateTrigger")));
+        stmts.add(callExtern(trace, CallType.NORMAL, "TriggerRegisterPlayerEventEndCinematic", JassIm.ImVarAccess(trig),
+                callExtern(trace, CallType.NORMAL, "Player", JassIm.ImIntVal(0))));
+        stmts.add(callExtern(trace, CallType.NORMAL, "TriggerAddAction", JassIm.ImVarAccess(trig),
+                JassIm.ImFuncRef(trace, jhcr_reload)));
+
+        mainFunc.getBody().addAll(0, stmts);
+    }
+
+    @NotNull
+    private ImFunctionCall callExtern(Element trace, CallType callType, String functionName, ImExpr... arguments) {
+        ImFunction jhcrinit = JassIm.ImFunction(trace, functionName, JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.singletonList(FunctionFlagEnum.IS_EXTERN));
+        return JassIm.ImFunctionCall(trace, jhcrinit, JassIm.ImTypeArguments(), JassIm.ImExprs(arguments), true, callType);
     }
 
     public void checkNoCompiletimeExpr(ImProg prog) {
