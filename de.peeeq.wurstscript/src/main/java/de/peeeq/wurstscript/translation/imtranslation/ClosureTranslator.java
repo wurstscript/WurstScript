@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 
@@ -174,26 +173,27 @@ public class ClosureTranslator {
     }
 
     private String makeClassName(ImClassType superClass) {
-        String res =
-                superClass.getClassDef().getName()
-                        + "_line" + e.attrSource().getLine();
-        return addScopeNames(res);
+        return superClass.getClassDef().getName() + makeNameSuffix();
     }
 
-    private String makeFuncName(FuncDef superClass) {
-        String res = superClass.getName() + "_line" + e.attrSource().getLine();
-        return addScopeNames(res);
-    }
-
-    private String addScopeNames(String res) {
-        Element elem = e;
+    private String makeNameSuffix() {
+        StringBuilder sb = new StringBuilder();
+        Element elem = this.e;
         while (elem != null) {
             if (elem instanceof NamedScope) {
-                res = ((NamedScope) elem).getName() + "_" + res;
+                sb.append("_");
+                sb.append(((NamedScope) elem).getName());
+            } else if (elem instanceof AstElementWithFuncName) {
+                sb.append("_");
+                sb.append(((AstElementWithFuncName) elem).getFuncNameId().getName());
             }
             elem = elem.getParent();
         }
-        return res;
+        return sb.toString();
+    }
+
+    private String makeFuncName(FuncDef superClass) {
+        return superClass.getName() + makeNameSuffix();
     }
 
     /**

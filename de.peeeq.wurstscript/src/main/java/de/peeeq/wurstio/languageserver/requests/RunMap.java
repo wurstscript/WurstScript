@@ -191,7 +191,7 @@ public class RunMap extends MapRequest {
 
         Path documents;
         try {
-            documents = Paths.get(WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders", "Personal"));
+            documents = FileSystemView.getFileSystemView().getDefaultDirectory().toPath();
         } catch (Throwable t) {
             WLogger.info(t);
             Path homeFolder = Paths.get(System.getProperty("user.home"));

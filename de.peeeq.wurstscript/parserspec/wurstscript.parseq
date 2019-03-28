@@ -313,6 +313,7 @@ Modifier =
 HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
+AstElementWithFuncName = ExprFunctionCall | ExprMemberMethod | ExprFuncRefc
 
 AstElementWithBody = ExtensionFuncDef | InitBlock | ConstructorDef | OnDestroyDef | FuncDef | WBlock 
 	| LoopStatement | ExprStatementsBlock | FunctionLike
