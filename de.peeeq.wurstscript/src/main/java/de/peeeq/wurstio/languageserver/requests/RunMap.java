@@ -172,7 +172,7 @@ public class RunMap extends MapRequest {
 
         Path customMapDataPath = getCustomMapDataPath();
 
-        ProcessBuilder pb = new ProcessBuilder("jhcr.exe", "update", mapScript.getName(), "--asm",
+        ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "update", mapScript.getName(), "--asm",
                 "--preload-path", customMapDataPath.toAbsolutePath().toString());
         pb.directory(mapScriptFolder);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
@@ -184,6 +184,11 @@ public class RunMap extends MapRequest {
      * C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData
      */
     private Path getCustomMapDataPath() {
+        String customMapDataPath = configProvider.getConfig("wurst.customMapDataPath", "");
+        if (!customMapDataPath.isEmpty()) {
+            return Paths.get(customMapDataPath);
+        }
+
         Path documents;
         try {
             documents = Paths.get(WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders", "Personal"));

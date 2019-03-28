@@ -259,4 +259,5 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected void println(String s) {
         WLogger.info(s);
     }
+
 }
