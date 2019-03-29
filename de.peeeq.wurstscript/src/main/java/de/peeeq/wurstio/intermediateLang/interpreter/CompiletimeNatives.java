@@ -3,6 +3,7 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
+import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
@@ -10,10 +11,14 @@ import de.peeeq.wurstscript.intermediatelang.ILconstTuple;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
 import de.peeeq.wurstscript.intermediatelang.interpreter.VariableType;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
+import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 @SuppressWarnings("ucd") // ignore unused code detector warnings, because this class uses reflection
 public class CompiletimeNatives extends ReflectionBasedNativeProvider implements NativesProvider {
     private ProgramStateIO globalState;
+    private ImTupleType keyTuple = JassIm.ImTupleType(Ast.NoExpr(), "keyTuple", JassIm.ImVars(JassIm.ImVar(Ast.NoExpr(), TypesHelper.imString(), "key", false)));
 
     public CompiletimeNatives(ProgramStateIO globalState) {
         this.globalState = globalState;
@@ -21,7 +26,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
 
     private ILconstTuple makeKey(String key) {
-        return new ILconstTuple(tupleType, new ILconstString(key));
+        return new ILconstTuple(keyTuple, new ILconstString(key));
     }
 
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {

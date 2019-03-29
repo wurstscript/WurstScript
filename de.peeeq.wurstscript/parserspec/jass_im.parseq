@@ -250,7 +250,7 @@ ImExpr.attrTyp()
 
 ImExpr.attrTypRaw()
 	returns ImType
-	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrType.getTypeRaw
+	implemented by de.peeeq.wurstscript.translation.imtojass.ImAttrTypeRaw.getTypeRaw
 
 Element.getNearestFunc()
 	returns ImFunction

@@ -90,7 +90,7 @@ public class EvaluateExpr {
         for (int i = 0; i < e.getExprs().size(); i++) {
             values[i] = e.getExprs().get(i).evaluate(globalState, localState);
         }
-        return new ILconstTuple(tupleType, values);
+        return new ILconstTuple(e.getTupleType(), values);
     }
 
     public static ILconst eval(ImTupleSelection e, ProgramState globalState, LocalState localState) {
@@ -378,7 +378,7 @@ public class EvaluateExpr {
 
             @Override
             public ILconst get() {
-                return new ILconstTuple(tupleType, addresses.stream()
+                return new ILconstTuple(e.getTupleType(), addresses.stream()
                         .map(ILaddress::get)
                         .toArray(ILconst[]::new));
             }

@@ -29,7 +29,7 @@ public class DefaultValue {
         for (ImType t : tt.getTypes()) {
             values.add(t.defaultValue());
         }
-        return new ILconstTuple(tupleType, values.toArray(new ILconst[0]));
+        return new ILconstTuple(tt, values.toArray(new ILconst[0]));
     }
 
     public static ILconst get(ImVoid t) {
