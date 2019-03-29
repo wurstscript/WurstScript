@@ -48,7 +48,11 @@ public class ImAttributes {
 
 
     public static boolean isGlobal(ImVar imVar) {
-        return imVar.getParent().getParent() instanceof ImProg;
+        Element parent = imVar.getParent();
+        if (parent == null) {
+            throw new RuntimeException("Variable " + imVar + " not attached.");
+        }
+        return parent.getParent() instanceof ImProg;
     }
 
 

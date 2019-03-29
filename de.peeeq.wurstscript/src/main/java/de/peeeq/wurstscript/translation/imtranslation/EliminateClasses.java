@@ -51,7 +51,25 @@ public class EliminateClasses {
         }
 
         for (ImFunction f : prog.getFunctions()) {
-            eliminateClassRelatedExprs(f);
+            eliminateClassRelatedExprs(f.getBody());
+        }
+
+        for (Map.Entry<ImVar, List<ImExpr>> entry : prog.getGlobalInits().entrySet()) {
+            ImExprs exprs = JassIm.ImExprs();
+            List<ImExpr> value = entry.getValue();
+            for (int i = 0, valueSize = value.size(); i < valueSize; i++) {
+                ImExpr e = value.get(i);
+                List<ImExpr> newValues = new ArrayList<>();
+                if (e.getParent() == null) {
+                    exprs.add(e);
+                    eliminateClassRelatedExprs(exprs);
+                    newValues.add(exprs.remove(0));
+                } else {
+                    eliminateClassRelatedExprs(exprs);
+                    newValues.add(e);
+                }
+                entry.setValue(newValues);
+            }
         }
 
         prog.getClasses().clear();
@@ -295,7 +313,7 @@ public class EliminateClasses {
         }
     }
 
-    private void eliminateClassRelatedExprs(ImFunction f) {
+    private void eliminateClassRelatedExprs(de.peeeq.wurstscript.jassIm.Element body) {
         final List<ImMemberAccess> mas = Lists.newArrayList();
         final List<ImMethodCall> mcs = Lists.newArrayList();
         final List<ImAlloc> allocs = Lists.newArrayList();
@@ -304,7 +322,7 @@ public class EliminateClasses {
         final List<ImTypeIdOfObj> typeIdObjs = Lists.newArrayList();
         final List<ImTypeIdOfClass> typeIdClasses = Lists.newArrayList();
         final List<ImNull> nulls = Lists.newArrayList();
-        f.getBody().accept(new ImStmts.DefaultVisitor() {
+        body.accept(new de.peeeq.wurstscript.jassIm.Element.DefaultVisitor() {
             @Override
             public void visit(ImMemberAccess e) {
                 super.visit(e);

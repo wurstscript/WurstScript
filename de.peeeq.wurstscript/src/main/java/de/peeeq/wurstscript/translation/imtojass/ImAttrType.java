@@ -1,13 +1,10 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import com.google.common.collect.Lists;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ImAttrType {
 
@@ -138,7 +135,7 @@ public class ImAttrType {
     public static ImType getType(ImMethodCall mc) {
         ImFunction func = mc.getMethod().getImplementation();
         ImType t = func.getReturnType();
-        List <ImTypeArgument> typeArguments = new ArrayList<>();
+        List<ImTypeArgument> typeArguments = new ArrayList<>();
         List<ImTypeVar> typeVariables = new ArrayList<>();
         ImType receiverType = mc.getReceiver().attrTyp();
         if (receiverType instanceof ImClassType) {
@@ -163,6 +160,19 @@ public class ImAttrType {
                     typeArgs = receiverType.getTypeArguments();
                 }
                 t = substituteType(t, typeArgs, receiverType.getClassDef().getTypeVariables());
+
+                if (!e.getIndexes().isEmpty()) {
+                    if (t instanceof ImArrayType) {
+                        ImArrayType at = (ImArrayType) t;
+                        t = at.getEntryType();
+                    } else if (t instanceof ImArrayTypeMulti) {
+                        ImArrayTypeMulti at = (ImArrayTypeMulti) t;
+                        t = at.getEntryType();
+                    } else {
+                        throw new RuntimeException("unhandled case: " + t);
+                    }
+                }
+                return t;
             } catch (Exception ex) {
                 throw new RuntimeException("Could not determine type of " + e + " with receiverType " + receiverType, ex);
             }
@@ -210,27 +220,4 @@ public class ImAttrType {
     public static ImType getType(ImCast imCast) {
         return imCast.getToType();
     }
-
-    public static ImType getTypeRaw(ImExpr e) {
-        return e.attrTyp();
-    }
-
-    public static ImType getTypeRaw(ImFunctionCall e) {
-        return e.getFunc().getReturnType();
-    }
-
-    public static ImType getTypeRaw(ImMethodCall e) {
-        return e.getMethod().getImplementation().getReturnType();
-    }
-
-    public static ImType getTypeRaw(ImMemberAccess e) {
-        ImType t = e.getVar().getType();
-        if (!e.getIndexes().isEmpty()) {
-            ImArrayTypeMulti at = (ImArrayTypeMulti) t;
-            t = at.getEntryType();
-        }
-        return t;
-    }
-
-
 }

@@ -44,6 +44,8 @@ public class RunArgs {
     private RunOption optionDisablePjass;
     private RunOption optionShowVersion;
     private RunOption optionMeasureTimes;
+    private RunOption optionHotStartmap;
+    private RunOption optionHotReload;
 
     public RunArgs with(String... additionalArgs) {
         return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
@@ -113,6 +115,8 @@ public class RunArgs {
 
         optionHelp = addOption("help", "Prints this help message.");
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
+        optionHotStartmap = addOption("hotstart", "Uses Jass Hot Code Reload (JHCR) to start the map.");
+        optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
 
         optionJvm = addOption("jvm", "Translate to Java Bytecode.");
 
@@ -309,6 +313,14 @@ public class RunArgs {
 
     public boolean isMeasureTimes() {
         return optionMeasureTimes.isSet;
+    }
+
+    public boolean isHotStartmap() {
+        return optionHotStartmap.isSet;
+    }
+
+    public boolean isHotReload() {
+        return optionHotReload.isSet;
     }
 
 }

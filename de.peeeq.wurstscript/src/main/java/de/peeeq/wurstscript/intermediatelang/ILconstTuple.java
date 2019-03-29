@@ -1,18 +1,19 @@
 package de.peeeq.wurstscript.intermediatelang;
 
 import com.google.common.collect.ImmutableList;
+import de.peeeq.wurstscript.jassIm.ImTupleType;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeString;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class ILconstTuple extends ILconstAbstract {
 
     private final ILconst[] values;
+    private final ImTupleType tupleType;
 
-    public ILconstTuple(ILconst... values) {
+    public ILconstTuple(ImTupleType tupleType, ILconst... values) {
+        this.tupleType = tupleType;
         this.values = values;
     }
 
@@ -68,8 +69,11 @@ public class ILconstTuple extends ILconstAbstract {
         ILconst[] newValues = new ILconst[values.length];
         System.arraycopy(values, 0, newValues, 0, values.length);
         newValues[tupleIndex] = newVal;
-        return new ILconstTuple(newValues);
+        return new ILconstTuple(tupleType, newValues);
     }
 
 
+    public ImTupleType getTupleType() {
+        return tupleType;
+    }
 }

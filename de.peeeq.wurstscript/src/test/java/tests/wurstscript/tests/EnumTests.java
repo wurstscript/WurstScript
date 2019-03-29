@@ -32,4 +32,19 @@ public class EnumTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void enum_short3() {
+        testAssertOkLines(false,
+                "package test",
+                "enum Blub",
+                "	A",
+                "	B",
+                "init",
+                "	Blub a = A",
+                "	if a == A",
+                "		a = B"
+        );
+    }
+
 }

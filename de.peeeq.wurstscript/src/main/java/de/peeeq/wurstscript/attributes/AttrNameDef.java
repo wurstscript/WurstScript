@@ -29,20 +29,26 @@ public class AttrNameDef {
     public static @Nullable NameLink specialEnumLookupRules(ExprVarAccess term) {
         NameLink result = null;
         Element parent = term.getParent();
+        String varName = term.getVarName();
         if (parent instanceof ExprList) {
             parent = parent.getParent();
             if (parent instanceof SwitchCase) {
                 SwitchStmt s = (SwitchStmt) parent.getParent().getParent();
-                result = lookupEnumConst(term.getVarName(), s.getExpr().attrTyp());
+                result = lookupEnumConst(varName, s.getExpr().attrTyp());
             }
         } else if (parent instanceof StmtSet) {
             StmtSet s = (StmtSet) parent;
             if (s.getRight() == term) {
-                result = lookupEnumConst(term.getVarName(), s.getUpdatedExpr().attrTyp());
+                result = lookupEnumConst(varName, s.getUpdatedExpr().attrTyp());
             }
         } else if (parent instanceof GlobalOrLocalVarDef) {
             GlobalOrLocalVarDef v = (GlobalOrLocalVarDef) parent;
-            result = lookupEnumConst(term.getVarName(), v.getOptTyp().attrTyp());
+            result = lookupEnumConst(varName, v.getOptTyp().attrTyp());
+        } else if (parent instanceof ExprBinary) {
+            ExprBinary binary = (ExprBinary) parent;
+            if (binary.getRight() == term) {
+                result = lookupEnumConst(varName, binary.getLeft().attrTyp());
+            }
         }
         return result;
     }

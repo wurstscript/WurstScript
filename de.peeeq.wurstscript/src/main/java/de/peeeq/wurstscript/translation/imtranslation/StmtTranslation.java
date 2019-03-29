@@ -310,6 +310,12 @@ public class StmtTranslation {
                 lastIf = ImIf(switchStmt, translateSwitchCase(cse, tempVar, f, t), ImStmts(t
                         .translateStatements(f, cse.getStmts())), ImStmts());
                 result.add(lastIf);
+            } else if (i == switchStmt.getCases().size() - 1
+                    && switchStmt.getSwitchDefault() instanceof NoDefaultCase
+                    && switchStmt.calculateHandlesAllCases()) {
+                // if this is the last case and all cases are covered, then just add
+                // the code to the else statement without checking the condition:
+                lastIf.setElseBlock(ImStmts(t.translateStatements(f, cse.getStmts())));
             } else {
                 ImIf tmp = ImIf(switchStmt, translateSwitchCase(cse, tempVar, f, t), ImStmts
                         (t.translateStatements(f, cse.getStmts())), ImStmts());

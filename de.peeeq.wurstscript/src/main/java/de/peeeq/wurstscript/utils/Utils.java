@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.utils;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
@@ -9,8 +10,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -22,9 +21,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.*;
+import java.time.Duration;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -77,7 +81,6 @@ public class Utils {
     // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
 
 
-
     public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
         for (int i = 0; i < args.length; i++) {
             if (i > 0) {
@@ -123,7 +126,7 @@ public class Utils {
 
     public static int parseHexInt(String yytext, int offset) {
         if (yytext.startsWith("-")) {
-            return (int) -Long.parseLong(yytext.substring(offset+1), 16);
+            return (int) -Long.parseLong(yytext.substring(offset + 1), 16);
         } else {
             return (int) Long.parseLong(yytext.substring(offset), 16);
         }
@@ -968,9 +971,9 @@ public class Utils {
     private static String[] splitFilename(String name) {
         int dotPos = name.lastIndexOf('.');
         if (dotPos >= 0) {
-            return new String[] { name.substring(0, dotPos), name.substring(dotPos + 1) };
+            return new String[]{name.substring(0, dotPos), name.substring(dotPos + 1)};
         }
-        return new String[] { name, "" };
+        return new String[]{name, ""};
     }
 
     private static Map<String, File> resourceMap = new HashMap<>();
@@ -988,7 +991,7 @@ public class Utils {
     }
 
     @SafeVarargs
-    public static <T> ImmutableList<T> concatLists(List<T> ...lists) {
+    public static <T> ImmutableList<T> concatLists(List<T>... lists) {
         Builder<T> builder = ImmutableList.builder();
         for (List<T> list : lists) {
             builder.addAll(list);
@@ -1028,7 +1031,7 @@ public class Utils {
             return;
         }
         de.peeeq.wurstscript.jassIm.Element oldElementParent = oldElement.getParent();
-        for (int i=0; i<parent.size(); i++) {
+        for (int i = 0; i < parent.size(); i++) {
             if (parent.get(i) == oldElement) {
                 parent.set(i, newElement);
                 // reset parent, because might be changed
@@ -1039,8 +1042,73 @@ public class Utils {
         throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
     }
 
-    public static <T,K> Collector<T, ImmutableMultimap.Builder<K, T>, ImmutableMultimap<K, T>> groupBy(java.util.function.Function<T, K> key) {
-        return new Collector<T, ImmutableMultimap.Builder<K,T> , ImmutableMultimap<K, T>>() {
+    public static class ExecResult {
+        private final String stdOut;
+        private final String stdErr;
+
+        public ExecResult(String stdOut, String stdErr) {
+            this.stdOut = stdOut;
+            this.stdErr = stdErr;
+        }
+
+        public String getStdOut() {
+            return stdOut;
+        }
+
+        public String getStdErr() {
+            return stdErr;
+        }
+    }
+
+    public static ExecResult exec(ProcessBuilder pb, Duration duration, Consumer<String> onInput) throws IOException, InterruptedException {
+        Process process = pb.start();
+        class Collector extends Thread {
+            private final StringBuilder sb = new StringBuilder();
+            private final InputStream in;
+
+            Collector(InputStream in) {
+                this.in = in;
+            }
+
+            @Override
+            public void run() {
+                try (BufferedReader input = new BufferedReader(new InputStreamReader(in))) {
+                    String line;
+                    while ((line = input.readLine()) != null) {
+                        onInput.accept(line);
+                        sb.append(line).append("\n");
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            String getContents() {
+                return sb.toString();
+            }
+        }
+
+        Collector cIn = new Collector(process.getInputStream());
+        cIn.start();
+        Collector cErr = new Collector(process.getErrorStream());
+        cErr.start();
+
+        boolean r = process.waitFor(duration.toMillis(), TimeUnit.MILLISECONDS);
+        process.destroyForcibly();
+        cIn.join();
+        cErr.join();
+        if (!r) {
+            throw new IOException("Timeout running external tool");
+        }
+        if (process.exitValue() != 0) {
+            throw new IOException("Failure when running external tool");
+        }
+        return new ExecResult(cIn.getContents(), cErr.getContents());
+    }
+
+
+    public static <T, K> Collector<T, ImmutableMultimap.Builder<K, T>, ImmutableMultimap<K, T>> groupBy(java.util.function.Function<T, K> key) {
+        return new Collector<T, ImmutableMultimap.Builder<K, T>, ImmutableMultimap<K, T>>() {
             @Override
             public Supplier<ImmutableMultimap.Builder<K, T>> supplier() {
                 return ImmutableMultimap::builder;
@@ -1048,12 +1116,12 @@ public class Utils {
 
             @Override
             public BiConsumer<ImmutableMultimap.Builder<K, T>, T> accumulator() {
-                return (a,x) -> a.put(key.apply(x), x);
+                return (a, x) -> a.put(key.apply(x), x);
             }
 
             @Override
             public BinaryOperator<ImmutableMultimap.Builder<K, T>> combiner() {
-                return (a,b) -> a.putAll(b.build());
+                return (a, b) -> a.putAll(b.build());
             }
 
             @Override
@@ -1080,7 +1148,7 @@ public class Utils {
 
             @Override
             public BiConsumer<Col, T> accumulator() {
-                return (c,t) -> {
+                return (c, t) -> {
                     Preconditions.checkNotNull(t);
                     if (c.first != null) {
                         throw new RuntimeException("There is more than one element:\n1. " + c.first + "\n2. " + t);
@@ -1116,9 +1184,8 @@ public class Utils {
 
     /**
      * Creates a view on a map with the given function applied.
-     *
      */
-    public static <S,T> List<S> mapped(List<T> list, Function<? super T, ? extends S> f) {
+    public static <S, T> List<S> mapped(List<T> list, Function<? super T, ? extends S> f) {
         return new AbstractList<S>() {
             @Override
             public S get(int i) {

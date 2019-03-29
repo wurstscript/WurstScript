@@ -1,11 +1,8 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
-import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
@@ -24,7 +21,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
 
 
     private ILconstTuple makeKey(String key) {
-        return new ILconstTuple(new ILconstString(key));
+        return new ILconstTuple(tupleType, new ILconstString(key));
     }
 
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
