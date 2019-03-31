@@ -992,6 +992,16 @@ public class Utils {
     }
 
     @SafeVarargs
+    public static <T> ImmutableList<T> append(List<T> list, T ... elems) {
+        Builder<T> builder = ImmutableList.builderWithExpectedSize(list.size() + elems.length);
+        builder.addAll(list);
+        for (T elem : elems) {
+            builder.add(elem);
+        }
+        return builder.build();
+    }
+
+    @SafeVarargs
     public static <T> ImmutableList<T> concatLists(List<T> ...lists) {
         Builder<T> builder = ImmutableList.builder();
         for (List<T> list : lists) {

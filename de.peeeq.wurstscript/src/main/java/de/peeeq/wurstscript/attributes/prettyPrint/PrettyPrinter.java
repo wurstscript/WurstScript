@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.attributes.prettyPrint;
 
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 
 public class PrettyPrinter {
@@ -55,9 +56,9 @@ public class PrettyPrinter {
     }
 
     private static void printIndent(StringBuilder sb, int indent) {
-        if (sb.toString().substring(sb.length() - 1).equals("\n")) {
+        if (sb.length() > 0 && sb.charAt(sb.length() - 1) == '\n') {
             for (int i = 0; i < indent; i++) {
-                sb.append("\t");
+                sb.append("    ");
             }
         }
     }
@@ -262,7 +263,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprStringVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append("\"" + e.getValS() + "\"");
+        sb.append(Utils.escapeString(e.getValS()));
     }
 
     public static void prettyPrint(ExprSuper e, Spacer spacer, StringBuilder sb, int indent) {
