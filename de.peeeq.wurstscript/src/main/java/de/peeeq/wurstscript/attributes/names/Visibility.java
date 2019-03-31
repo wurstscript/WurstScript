@@ -11,9 +11,4 @@ public enum Visibility {
         return this == PUBLIC;
     }
 
-    public boolean isVisbileHere() {
-        return this == PUBLIC
-                || this == PRIVATE_HERE
-                || this == PROTECTED_HERE;
-    }
 }

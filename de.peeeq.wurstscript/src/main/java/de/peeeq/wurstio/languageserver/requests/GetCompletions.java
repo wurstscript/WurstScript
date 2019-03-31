@@ -150,7 +150,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 for (DefLink nameLink : ct.nameLinks().values()) {
                     if (isSuitableCompletion(nameLink.getName())
                             && nameLink.getReceiverType() != null
-                            && (nameLink.getVisibility().isVisbileHere())) {
+                            && nameLink.getVisibility() == Visibility.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
                         completions.add(completion);
                     }
