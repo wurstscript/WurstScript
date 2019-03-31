@@ -96,6 +96,7 @@ public class ClosureTranslator {
 
     private ImExpr translateAnonFunc() {
         impl = tr.getFuncFor(e);
+        impl.setName("code_" + makeNameSuffix());
         impl.getParameters().clear();
         ImExpr translated = e.getImplementation().imTranslateExpr(tr, impl);
 

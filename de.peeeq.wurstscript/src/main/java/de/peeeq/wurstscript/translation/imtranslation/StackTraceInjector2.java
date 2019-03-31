@@ -133,6 +133,7 @@ public class StackTraceInjector2 {
                 }
             });
 
+            int count = 0;
             for (ImReturn ret : returns) {
                 ImStmts stmts = JassIm.ImStmts();
                 ImReturn newReturn;
@@ -143,7 +144,12 @@ public class StackTraceInjector2 {
                     newReturn = JassIm.ImReturn(trace, returnedValue);
                 } else {
                     // temp = result
-                    ImVar temp = JassIm.ImVar(trace, f.getReturnType(), "stackTrace_tempReturn", false);
+                    String tempReturnName = "stackTrace_tempReturn";
+                    count++;
+                    if (count > 1) {
+                        tempReturnName += "_" + count;
+                    }
+                    ImVar temp = JassIm.ImVar(trace, f.getReturnType(), tempReturnName, false);
                     f.getLocals().add(temp);
                     stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(temp), (ImExpr) returnedValue));
                     newReturn = JassIm.ImReturn(trace, JassIm.ImVarAccess(temp));

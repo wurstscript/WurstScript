@@ -20,8 +20,10 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
+
 public class ImToJassTranslator {
 
     private ImProg imProg;
@@ -43,6 +45,9 @@ public class ImToJassTranslator {
     }
 
     public JassProg translate() {
+        makeNamesUnique(imProg.getGlobals());
+        makeNamesUnique(imProg.getFunctions());
+
         JassVars globals = JassVars();
         JassFunctions functions = JassFunctions();
         prog = JassProg(JassTypeDefs(), globals, JassNatives(), functions);
@@ -53,6 +58,29 @@ public class ImToJassTranslator {
         translateFunctionTransitive(confFunction);
 
         return prog;
+    }
+
+    /**
+     * makes names unique in a consistent way
+     */
+    private <T extends JassImElementWithName> void makeNamesUnique(List<T> list) {
+        List<T> sorted = list.stream()
+                .sorted(
+                        Comparator.comparing(JassImElementWithName::getName)
+                                .thenComparing(v -> v.getTrace().attrSource().getFile())
+                                .thenComparing(v -> v.getTrace().attrSource().getLine())
+                                .thenComparing(v -> v.getTrace().attrSource().getStartColumn()))
+                .collect(Collectors.toList());
+
+        for (int i = 0; i < sorted.size(); i++) {
+            T vi = sorted.get(i);
+            for (int j = i + 1; j < sorted.size(); j++) {
+                T vj = sorted.get(j);
+                if (vi.getName().equals(vj.getName())) {
+                    vj.setName(vi.getName() + "_" + j);
+                }
+            }
+        }
     }
 
     private void collectGlobalVars() {
@@ -230,7 +258,9 @@ public class ImToJassTranslator {
 
     private final Pattern jassValidName = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
 
-    /** replaces all invalid characters with underscores*/
+    /**
+     * replaces all invalid characters with underscores
+     */
     private String filterInvalidSymbols(String name) {
         if (jassValidName.matcher(name).matches()) {
             return name;

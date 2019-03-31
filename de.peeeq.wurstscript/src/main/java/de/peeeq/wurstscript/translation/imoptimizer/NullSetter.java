@@ -114,7 +114,7 @@ public class NullSetter {
             if (exprContainsVar(returnExpr, handleVars)) {
                 // if the returnExpr contains some handleVar, we have to add a temporary var
 
-                ImVar tempReturn = JassIm.ImVar(trace, returnExpr.attrTyp(), f.getName() + "tempReturn", false);
+                ImVar tempReturn = JassIm.ImVar(imReturn.attrTrace(), returnExpr.attrTyp(), f.getName() + "tempReturn", false);
                 if (isHandleType(returnExpr.attrTyp())) {
                     // use global variables for handle types
                     prog.getGlobals().add(tempReturn);
