@@ -1043,6 +1043,13 @@ public class Utils {
         throw new CompileError(parent.attrTrace().attrSource(), "Could not find " + oldElement + " in " + parent);
     }
 
+    /**
+     * Copy of the list without its last element
+     */
+    public static <T> List<T> init(List<T> list) {
+        return list.stream().limit(list.size() - 1).collect(Collectors.toList());
+    }
+
     public static class ExecResult {
         private final String stdOut;
         private final String stdErr;

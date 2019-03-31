@@ -381,6 +381,16 @@ public class GetCompletions extends UserRequest<CompletionList> {
         }
     }
 
+    private boolean isAtEndOfLine() {
+        String line = currentLine();
+        for (int i = column + 1; i < line.length(); i++) {
+            if (!Character.isWhitespace(line.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void removeDuplicates(List<CompletionItem> completions) {
         for (int i = 0; i < completions.size() - 1; i++) {
             for (int j = completions.size() - 1; j > i; j--) {
@@ -569,17 +579,61 @@ public class GetCompletions extends UserRequest<CompletionList> {
 //        completion.set
 
         if (!isBeforeParenthesis()) {
-            addParamSnippet(replacementString, f.getParameterNames(), completion);
+            addParamSnippet(replacementString, f, completion);
         }
 
 
         return completion;
     }
 
-    private void addParamSnippet(String replacementString, List<String> paramNames, CompletionItem completion) {
+    private void addParamSnippet(String replacementString, FuncLink f, CompletionItem completion) {
+        List<String> paramNames = f.getParameterNames();
+        StringBuilder lambdaReplacement = null;
+        List<WurstType> parameterTypes = f.getParameterTypes();
+        if (isAtEndOfLine() && !parameterTypes.isEmpty()) {
+            WurstType lastParamType = Utils.getLast(parameterTypes);
+            if (lastParamType instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface it = (WurstTypeClassOrInterface) lastParamType;
+                FuncLink singleAbstractMethod = it.findSingleAbstractMethod(elem);
+                if (singleAbstractMethod != null) {
+                    paramNames = Utils.init(paramNames);
+
+                    lambdaReplacement = new StringBuilder(" (");
+                    for (int i = 0; i < singleAbstractMethod.getParameterTypes().size(); i++) {
+                        if (i > 0) {
+                            lambdaReplacement.append(", ");
+                        }
+                        lambdaReplacement.append(singleAbstractMethod.getParameterType(i));
+                        lambdaReplacement.append(" ");
+                        lambdaReplacement.append(singleAbstractMethod.getParameterName(i));
+                    }
+                    lambdaReplacement.append(") ->\n");
+                    String line = currentLine();
+                    boolean spaces = true;
+                    for (int j = 0; j < line.length(); j++) {
+                        char c = line.charAt(j);
+                        if (!Character.isWhitespace(c)) {
+                            break;
+                        }
+                        lambdaReplacement.append(c);
+                        spaces = spaces && c == ' ';
+                    }
+                    if (spaces) {
+                        lambdaReplacement.append("    ");
+                    } else {
+                        lambdaReplacement.append("\t");
+                    }
+                }
+            }
+        }
+
+
+        addParamSnippet(replacementString, paramNames, completion, lambdaReplacement);
+    }
+
+    private void addParamSnippet(String replacementString, List<String> paramNames, CompletionItem completion, StringBuilder lambdaReplacement) {
         if (paramNames.isEmpty()) {
             replacementString += "()";
-            completion.setInsertText(replacementString);
         } else {
             List<String> paramSnippets = new ArrayList<>();
             for (int i = 0; i < paramNames.size(); i++) {
@@ -587,9 +641,13 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 paramSnippets.add("${" + (i + 1) + ":" + paramName + "}");
             }
             replacementString += "(" + String.join(", ", paramSnippets) + ")";
-            completion.setInsertText(replacementString);
             completion.setInsertTextFormat(InsertTextFormat.Snippet);
         }
+        if (lambdaReplacement != null) {
+            replacementString += lambdaReplacement;
+            completion.setInsertTextFormat(InsertTextFormat.Snippet);
+        }
+        completion.setInsertText(replacementString);
     }
 
     private String getFunctionDescriptionShort(FunctionDefinition f) {
@@ -619,7 +677,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
 
         List<String> parameterNames = constr.getParameters().stream().map(WParameter::getName).collect(Collectors.toList());
-        addParamSnippet(replacementString, parameterNames, completion);
+        addParamSnippet(replacementString, parameterNames, completion, null);
 
         return completion;
     }
