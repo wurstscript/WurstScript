@@ -6,10 +6,7 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstArray;
-import de.peeeq.wurstscript.intermediatelang.ILconstNull;
-import de.peeeq.wurstscript.intermediatelang.ILconstObject;
+import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -27,7 +24,7 @@ public class ProgramState extends State {
     private List<NativesProvider> nativeProviders = Lists.newArrayList();
     private ImProg prog;
     private int objectIdCounter;
-    private WeakHashMap<Integer, ILconstObject> indexToObject = new WeakHashMap<>();
+    private HashMap<Integer, ILconstObject> indexToObject = new HashMap<>();
     private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
@@ -181,6 +178,15 @@ public class ProgramState extends State {
 
     public ILconst getObjectByIndex(int val) {
         return indexToObject.get(val);
+    }
+
+    public ILconstObject toObject(ILconst val) {
+        if (val instanceof ILconstObject) {
+            return (ILconstObject) val;
+        } else if (val instanceof ILconstInt) {
+            return indexToObject.get(((ILconstInt) val).getVal());
+        }
+        throw new InterpreterException(this, "Value " + val + " (" + val.getClass().getSimpleName() + ") cannot be cast to object.");
     }
 
     public static class StackTrace {

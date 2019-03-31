@@ -303,7 +303,7 @@ public class CompiletimeFunctionRunner {
             ImVar hVar = globalForHandle.getFor(h);
             return JassIm.ImVarAccess(hVar);
         } else if (value instanceof ILconstObject) {
-            ILconstObject obj = (ILconstObject) value;
+            ILconstObject obj = globalState.toObject(value);
             ImVar v = globalForObject.getFor(obj);
             return JassIm.ImVarAccess(v);
         }

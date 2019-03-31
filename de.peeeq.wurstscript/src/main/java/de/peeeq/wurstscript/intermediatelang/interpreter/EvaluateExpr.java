@@ -177,7 +177,7 @@ public class EvaluateExpr {
 
     public static @Nullable ILconst eval(ImMethodCall mc,
                                          ProgramState globalState, LocalState localState) {
-        ILconstObject receiver = (ILconstObject) mc.getReceiver().evaluate(globalState, localState);
+        ILconstObject receiver = globalState.toObject(mc.getReceiver().evaluate(globalState, localState));
 
         globalState.assertAllocated(receiver, mc.attrTrace());
 
@@ -207,7 +207,7 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
-        ILconstObject receiver = (ILconstObject) ma.getReceiver().evaluate(globalState, localState);
+        ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
         if (receiver == null) {
             throw new RuntimeException("Null pointer dereference");
         }
@@ -224,14 +224,14 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImDealloc imDealloc, ProgramState globalState,
                                LocalState localState) {
-        ILconstObject obj = (ILconstObject) imDealloc.getObj().evaluate(globalState, localState);
+        ILconstObject obj = globalState.toObject(imDealloc.getObj().evaluate(globalState, localState));
         globalState.deallocate(obj, imDealloc.getClazz().getClassDef(), imDealloc.attrTrace());
         return ILconstNull.instance();
     }
 
     public static ILconst eval(ImInstanceof e, ProgramState globalState,
                                LocalState localState) {
-        ILconstObject obj = (ILconstObject) e.getObj().evaluate(globalState, localState);
+        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState));
         return ILconstBool.instance(globalState.isInstanceOf(obj, e.getClazz().getClassDef(), e.attrTrace()));
     }
 
@@ -242,7 +242,7 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImTypeIdOfObj e,
                                ProgramState globalState, LocalState localState) {
-        ILconstObject obj = (ILconstObject) e.getObj().evaluate(globalState, localState);
+        ILconstObject obj = globalState.toObject(e.getObj().evaluate(globalState, localState));
         return new ILconstInt(globalState.getTypeId(obj, e.attrTrace()));
     }
 
@@ -344,7 +344,7 @@ public class EvaluateExpr {
 
     public static ILaddress evaluateLvalue(ImMemberAccess va, ProgramState globalState, LocalState localState) {
         ImVar v = va.getVar();
-        ILconstObject receiver = ((ILconstObject) va.getReceiver().evaluate(globalState, localState));
+        ILconstObject receiver = globalState.toObject(va.getReceiver().evaluate(globalState, localState));
         List<Integer> indexes =
                         va.getIndexes().stream()
                                 .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())

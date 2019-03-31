@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.intermediatelang.interpreter;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
+import de.peeeq.wurstscript.intermediatelang.ILconstObject;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import org.eclipse.jdt.annotation.Nullable;
 
