@@ -18,7 +18,8 @@ import java.util.List;
  *
  */
 public class PerformCodeActionRequest extends UserRequest<Object> {
-    public static final String IMPORT_PACKAGE = "IMPORT_PACKAGE";
+    private static final String IMPORT_PACKAGE = "IMPORT_PACKAGE";
+    private static final String INSERT_CODE = "INSERT_CODE";
     private final WurstLanguageServer server;
     private final ExecuteCommandParams params;
     private final List<Object> args;
@@ -39,9 +40,18 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
         switch (action.get("type").getAsString()) {
             case IMPORT_PACKAGE:
                 return addImport(modelManager, action.get("uriString").getAsString(), action.get("import").getAsString());
-
+            case INSERT_CODE:
+                return insertCodeAction(modelManager, action.get("uriString").getAsString(), action.get("line").getAsInt(), action.get("insertedFunction").getAsString());
         }
         throw new RuntimeException("Unhandled action: " + action);
+    }
+
+    private Object insertCodeAction(ModelManager modelManager, String fileUri, int line, String insertedFunction) {
+        WFile file = WFile.create(fileUri);
+        Range range = new Range(new Position(line, 0), new Position(line, 0));
+        TextEdit textEdit = new TextEdit(range, insertedFunction);
+        List<TextEdit> textEdits = Collections.singletonList(textEdit);
+        return applyTextEdits(file, textEdits);
     }
 
     private Object addImport(ModelManager modelManager, String fileUri, String importName) {
@@ -82,6 +92,15 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
         jsonObject.addProperty("type", IMPORT_PACKAGE);
         jsonObject.addProperty("uriString", uriString);
         jsonObject.addProperty("import", imp);
+        return jsonObject;
+    }
+
+    public static JsonObject insertCodeAction(String uriString, int line, String insertedFunction) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("type", INSERT_CODE);
+        jsonObject.addProperty("uriString", uriString);
+        jsonObject.addProperty("line", line);
+        jsonObject.addProperty("insertedFunction", insertedFunction);
         return jsonObject;
     }
 }

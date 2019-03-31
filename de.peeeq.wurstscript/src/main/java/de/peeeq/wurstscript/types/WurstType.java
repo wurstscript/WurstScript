@@ -258,4 +258,11 @@ public abstract class WurstType {
     public boolean isArray() {
         return this instanceof WurstTypeArray;
     }
+
+    /**
+     * Prints the string as it would be in source code.
+     */
+    public String toPrettyString() {
+        return toString();
+    }
 }

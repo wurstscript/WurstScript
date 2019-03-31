@@ -39,5 +39,8 @@ public class WurstTypeIntLiteral extends WurstTypePrimitive {
         return TypesHelper.imInt();
     }
 
-
+    @Override
+    public String toPrettyString() {
+        return "int";
+    }
 }

@@ -10,4 +10,10 @@ public enum Visibility {
     public boolean isPublic() {
         return this == PUBLIC;
     }
+
+    public boolean isVisbileHere() {
+        return this == PUBLIC
+                || this == PRIVATE_HERE
+                || this == PROTECTED_HERE;
+    }
 }
