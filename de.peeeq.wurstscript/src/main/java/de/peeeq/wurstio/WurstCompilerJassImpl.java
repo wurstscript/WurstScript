@@ -108,8 +108,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         if (gui.getErrorCount() > 0) {
-            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): " + gui
-                    .getErrorList().get(0));
+            CompileError compileError = gui
+                    .getErrorList().get(0);
+            throw new RequestFailedException(MessageType.Error, "Could not compile project (error in running compiletime functions/expressions): ", compileError);
         }
 
 

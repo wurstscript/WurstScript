@@ -205,7 +205,7 @@ public class RunMap extends MapRequest {
         try {
             return workspaceRoot.getFile().getAbsolutePath();
         } catch (FileNotFoundException e) {
-            throw new RequestFailedException(MessageType.Error, "Could not open workspace root: " + e);
+            throw new RequestFailedException(MessageType.Error, "Could not open workspace root: ", e);
         }
     }
 

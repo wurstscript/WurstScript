@@ -125,7 +125,7 @@ public abstract class MapRequest extends UserRequest<Object> {
             compiler.checkProg(model);
 
             if (gui.getErrorCount() > 0) {
-                throw new RequestFailedException(MessageType.Warning, "Could not compile project: " + gui.getErrorList().get(0));
+                throw new RequestFailedException(MessageType.Warning, "Could not compile project: ", gui.getErrorList().get(0));
             }
 
             print("translating program ... ");

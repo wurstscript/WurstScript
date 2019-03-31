@@ -110,7 +110,7 @@ public class CompiletimeFunctionRunner {
 
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
-            sendErrors(origin, e.getMessage());
+            sendErrors(origin, e.getMessage(), e);
             if (isUnitTestMode()) {
                 throw e;
             }
@@ -120,7 +120,7 @@ public class CompiletimeFunctionRunner {
             Element origin = s == null ? null : s.attrTrace();
             if (origin != null) {
                 String msg = e.getMessage();
-                sendErrors(origin, msg);
+                sendErrors(origin, msg, e);
             } else {
                 throw new Error("could not get origin", e);
             }
@@ -139,8 +139,8 @@ public class CompiletimeFunctionRunner {
                 .orElse(false);
     }
 
-    private void sendErrors(Element origin, String msg) {
-        gui.sendError(new CompileError(origin.attrSource(), msg));
+    private void sendErrors(Element origin, String msg, Throwable ex) {
+        gui.sendError(new CompileError(origin.attrSource(), msg, CompileError.ErrorType.ERROR, ex));
 
         // stackframe messages ...
         for (ILStackFrame sf : Utils.iterateReverse(interpreter.getStackFrames().getStackFrames())) {

@@ -33,6 +33,11 @@ public class CompileError extends Error implements Serializable {
     }
 
     public CompileError(@Nullable WPos source, String message, ErrorType errorType) {
+        this(source, message, errorType, null);
+    }
+
+    public CompileError(@Nullable WPos source, String message, ErrorType errorType, Throwable cause) {
+        super(message, cause);
         if (source == null) {
             this.source = new WPos("", new LineOffsets(), 0, 0);
         } else {
