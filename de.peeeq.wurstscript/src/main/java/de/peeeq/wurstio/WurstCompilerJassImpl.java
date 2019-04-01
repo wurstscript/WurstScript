@@ -34,8 +34,9 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
-import static com.google.common.io.Files.asCharSink;
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
 
 public class WurstCompilerJassImpl implements WurstCompiler {
@@ -277,10 +278,19 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
+    private void addImportedLibs(List<CompilationUnit> compilationUnits) {
+        addImportedLibs(compilationUnits, file -> {
+            CompilationUnit lib = parseFile(file);
+            lib.setFile(file.getAbsolutePath());
+            compilationUnits.add(lib);
+            return lib;
+        });
+    }
+
     /**
      * this method scans for unsatisfied imports and tries to find them in the lib-path
      */
-    public void addImportedLibs(List<CompilationUnit> compilationUnits) {
+    public void addImportedLibs(List<CompilationUnit> compilationUnits, Function<File, CompilationUnit> addCompilationUnit) {
         Set<String> packages = Sets.newLinkedHashSet();
         Set<WImport> imports = new LinkedHashSet<>();
         for (CompilationUnit c : compilationUnits) {
@@ -292,16 +302,16 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
 
         for (WImport imp : imports) {
-            resolveImport(compilationUnits, packages, imp);
+            resolveImport(addCompilationUnit, packages, imp);
         }
 
     }
 
-    private void resolveImport(List<CompilationUnit> compilationUnits, Set<String> packages, WImport imp) throws CompileError {
+    private void resolveImport(Function<File, CompilationUnit> addCompilationUnit, Set<String> packages, WImport imp) throws CompileError {
         //		WLogger.info("resolving import: " + imp.getPackagename());
         if (!packages.contains(imp.getPackagename())) {
             if (getLibs().containsKey(imp.getPackagename())) {
-                CompilationUnit lib = loadLibPackage(compilationUnits, imp.getPackagename());
+                CompilationUnit lib = loadLibPackage(addCompilationUnit, imp.getPackagename());
                 boolean foundPackage = false;
                 for (WPackage p : lib.getPackages()) {
                     packages.add(p.getName());
@@ -309,7 +319,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                         foundPackage = true;
                     }
                     for (WImport i : p.getImports()) {
-                        resolveImport(compilationUnits, packages, i);
+                        resolveImport(addCompilationUnit, packages, i);
                     }
                 }
                 if (!foundPackage) {
@@ -331,16 +341,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    private CompilationUnit loadLibPackage(List<CompilationUnit> compilationUnits, String imp) {
+    private CompilationUnit loadLibPackage(Function<File, CompilationUnit> addCompilationUnit, String imp) {
         File file = getLibs().get(imp);
         if (file == null) {
             gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
             return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
-            CompilationUnit lib = parseFile(file);
-            lib.setFile(file.getAbsolutePath());
-            compilationUnits.add(lib);
-            return lib;
+            return addCompilationUnit.apply(file);
         }
     }
 

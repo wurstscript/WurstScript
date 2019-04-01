@@ -25,6 +25,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 /**
  * keeps a version of the model which is always the most recent one
  */
@@ -282,13 +284,24 @@ public class ModelManagerImpl implements ModelManager {
 
         try {
             model2.clearAttributes();
-            comp.addImportedLibs(model2);
+            comp.addImportedLibs(model2, this::addCompilationUnit);
             comp.checkProg(model2);
         } catch (CompileError e) {
             gui.sendError(e);
         }
         WLogger.info("finished typechecking in " + (System.currentTimeMillis() - time) + "ms");
         reportErrorsForProject("build project, doTypecheck, end", gui);
+    }
+
+    private CompilationUnit addCompilationUnit(File file) {
+        WFile wFile = WFile.create(file);
+        try {
+            String contents = new String(java.nio.file.Files.readAllBytes(file.toPath()), UTF_8);
+            return replaceCompilationUnit(wFile, contents, true);
+        } catch (IOException e) {
+            WLogger.severe(e);
+            return null;
+        }
     }
 
     private void reportErrorsForProject(String extra, WurstGui gui) {
@@ -402,7 +415,7 @@ public class ModelManagerImpl implements ModelManager {
                 return;
             }
             m.clearAttributes();
-            comp.addImportedLibs(m);
+            comp.addImportedLibs(m, this::addCompilationUnit);
         } catch (CompileError e) {
             gui.sendError(e);
         }
@@ -559,7 +572,7 @@ public class ModelManagerImpl implements ModelManager {
         List<CompilationUnit> clearedCUs = Collections.emptyList();
         try {
             clearedCUs = clearAttributes(toCheck);
-            comp.addImportedLibs(model2);
+            comp.addImportedLibs(model2, this::addCompilationUnit);
             comp.checkProg(model2, toCheck);
         } catch (ModelChangedException e) {
             // model changed, early return
