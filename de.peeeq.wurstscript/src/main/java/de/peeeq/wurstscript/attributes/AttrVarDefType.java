@@ -99,7 +99,7 @@ public class AttrVarDefType {
                     v.addError("Array parameters are not permitted. Remember that initialized arrays do not have an identity nor length.");
                     return new WurstTypeArray(WurstTypeUnknown.instance());
                 }
-                return new WurstTypeArray(valueType);
+                return new WurstTypeArray(valueType, ai.getValues().size());
             } else if (v.getParent() instanceof StmtForEach) {
                 StmtForEach forEach = (StmtForEach) v.getParent();
                 @Nullable NameDef nameDef = forEach.getIn().tryGetNameDef();

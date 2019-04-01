@@ -120,6 +120,27 @@ public class ArrayTests extends WurstScriptTest {
     }
 
     @Test
+    public void array_init_length1() {
+        assertOk(true,
+                "init",
+                "	var blub = [1,2,3,4]",
+                "	if blub.length == 4",
+                "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void array_init_length2() {
+        assertOk(true,
+                "init",
+                "	int array[7] blub",
+                "	if blub.length == 7",
+                "		testSuccess()"
+        );
+    }
+
+
+    @Test
     public void multiArrayDefaultValue() {
         testAssertOkLines(true,
                 "package test",

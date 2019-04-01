@@ -941,7 +941,7 @@ public class WurstValidator {
             if (arT.getDimensions() == 1) {
                 int initialValues = arInit.getValues().size();
                 int size = arT.getSize(0);
-                if (size > 0 && size != initialValues) {
+                if (size >= 0 && size != initialValues) {
                     def.addError("Array variable " + def.getName() + " is an array of size " + size + ", but is initialized with " + initialValues + " values here.");
                 }
 
@@ -2188,10 +2188,8 @@ public class WurstValidator {
                     v.addError("0-dimensional arrays are not allowed");
                     break;
                 case 1:
-                    if (!v.attrIsDynamicClassMember() && wta.getSize(0) != 0) {
-                        v.addError("Sized arrays are only supported as class members.");
-                    } else if (v.attrIsDynamicClassMember() && wta.getSize(0) == 0) {
-                        v.addError("Array members require a fixed size.");
+                    if (v.attrIsDynamicClassMember() && wta.getSize(0) <= 0) {
+                        v.addError("Array members require a fixed size greater 0.");
                     }
                     break;
                 default:

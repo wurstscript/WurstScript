@@ -1066,7 +1066,7 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void testArraySize2() {
-        testAssertErrorsLines(true, "must be at least 1",
+        testAssertErrorsLines(true, "must be at least 0",
                 "package test",
                 "	native testSuccess()",
                 "	constant x = 4",

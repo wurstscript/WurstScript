@@ -33,7 +33,15 @@ public class WurstTypeArray extends WurstType {
             throw new Error("cannot have array of arrays...");
         }
         this.baseType = baseType;
-        this.sizes = new int[1];
+        this.sizes = new int[] { -1 };
+    }
+
+    public WurstTypeArray(WurstType baseType, int size) {
+        if (baseType instanceof WurstTypeArray) {
+            throw new Error("cannot have array of arrays...");
+        }
+        this.baseType = baseType;
+        this.sizes = new int[] { size };
     }
 
     private void initSizes() {
@@ -48,8 +56,8 @@ public class WurstTypeArray extends WurstType {
             if (i instanceof ILconstInt) {
                 int val = ((ILconstInt) i).getVal();
                 sizes = new int[]{val};
-                if (val <= 0) {
-                    arSize.addError("Array size must be at least 1");
+                if (val < 0) {
+                    arSize.addError("Array size must be at least 0");
                 }
             } else {
                 arSize.addError("Array sizes should be integer...");
@@ -111,7 +119,7 @@ public class WurstTypeArray extends WurstType {
         initSizes();
         ImType bt = baseType.imTranslateType(tr);
         if (sizes.length > 0) {
-            if (sizes[0] == 0) {
+            if (sizes[0] < 0) {
                 return JassIm.ImArrayType(bt);
             }
             List<Integer> nsizes = Lists.newArrayList();

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -218,7 +219,8 @@ public class ExprTranslation {
     }
 
     private static ImExpr translateNameDef(NameRef e, ImTranslator t, ImFunction f) throws CompileError {
-        NameDef decl = e.attrNameDef();
+        NameLink link = e.attrNameLink();
+        NameDef decl = link == null ? null : link.getDef();
         if (decl == null) {
             // should only happen with gg_ variables
             if (!t.isEclipseMode()) {
@@ -274,6 +276,9 @@ public class ExprTranslation {
             EnumMember enumMember = (EnumMember) decl;
             int id = t.getEnumMemberId(enumMember);
             return ImIntVal(id);
+        } else if (link instanceof OtherLink) {
+            OtherLink otherLink = (OtherLink) link;
+            return otherLink.translate(e, t, f);
         } else {
             throw new CompileError(e.getSource(), "Cannot translate reference to " + Utils.printElement(decl));
         }

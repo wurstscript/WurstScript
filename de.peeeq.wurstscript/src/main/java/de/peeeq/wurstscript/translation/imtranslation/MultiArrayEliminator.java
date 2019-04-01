@@ -39,10 +39,10 @@ public class MultiArrayEliminator {
         List<ImVar> newVars = Lists.newArrayList();
         for (ImVar v : prog.getGlobals()) {
             if (v.getType() instanceof ImArrayTypeMulti) {
-                oldVars.add(v);
                 ImArrayTypeMulti type = (ImArrayTypeMulti) v.getType();
                 List<Integer> arraySize = type.getArraySize();
                 if (arraySize.size() == 2) {
+                    oldVars.add(v);
                     int size0 = arraySize.get(0);
                     List<ImVar> newArrays = Lists.newArrayList();
                     for (int i = 0; i < size0; i++) {
@@ -56,9 +56,29 @@ public class MultiArrayEliminator {
                     getSetMap.put(v, new GetSetPair(getFunc, setFunc));
 
                     newVars.addAll(newArrays);
+                } else if (arraySize.size() == 1) {
+                    // just remove the size
+                    v.setType(JassIm.ImArrayType(type.getEntryType()));
+                } else {
+                    throw new CompileError(v, "Unsupported array sizes " + arraySize);
                 }
             }
         }
+        for (ImFunction function : prog.getFunctions()) {
+            for (ImVar v : function.getLocals()) {
+                if (v.getType() instanceof ImArrayTypeMulti) {
+                    ImArrayTypeMulti type = (ImArrayTypeMulti) v.getType();
+                    List<Integer> arraySize = type.getArraySize();
+                    if (arraySize.size() == 1) {
+                        // just remove the size
+                        v.setType(JassIm.ImArrayType(type.getEntryType()));
+                    } else {
+                        throw new CompileError(v, "Unsupported array sizes " + arraySize);
+                    }
+                }
+            }
+        }
+
         replaceVars(prog, getSetMap);
         prog.getGlobals().addAll(newVars);
         prog.getGlobals().removeAll(oldVars);
