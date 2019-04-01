@@ -175,7 +175,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                 while (elem != null) {
                     if (elem instanceof FunctionLike) {
                         WPos source = elem.attrSource();
-                        line = source.getEndLine() + 1;
+                        line = source.getEndLine();
                         indent = source.getStartColumn() - 1;
                         break;
                     } else if (elem instanceof WPackage) {
@@ -184,10 +184,11 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
                         indent = 0;
                         break;
                     } else if (elem instanceof FuncDefs) {
-                        WPos source = elem.attrSource();
-                        if (source.getEndLine() > source.getLine()) {
+                        FuncDefs funcDefs = (FuncDefs) elem;
+                        if (!funcDefs.isEmpty()) {
+                            WPos source = Utils.getLast(funcDefs).attrSource();
                             line = source.getEndLine();
-                            indent = source.getStartColumn() - 1 + 4;
+                            indent = source.getStartColumn() - 1;
                             break;
                         }
                     } else if (elem instanceof NamedScope) {

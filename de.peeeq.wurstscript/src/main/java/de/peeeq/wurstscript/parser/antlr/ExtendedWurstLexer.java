@@ -335,7 +335,7 @@ public class ExtendedWurstLexer implements TokenSource {
         } else {
             while (n < indentationLevels.peek()) {
                 indentationLevels.pop();
-                nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", start, stop));
+                nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", firstNewline.getStartIndex(), firstNewline.getStartIndex()));
             }
             Integer expectedIndentation = indentationLevels.peek();
             if (n != expectedIndentation) {
