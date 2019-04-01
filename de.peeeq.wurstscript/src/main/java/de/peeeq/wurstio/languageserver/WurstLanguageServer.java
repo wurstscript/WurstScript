@@ -1,5 +1,6 @@
 package de.peeeq.wurstio.languageserver;
 
+import de.peeeq.wurstscript.CompileTimeInfo;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -26,7 +27,7 @@ public class WurstLanguageServer implements org.eclipse.lsp4j.services.LanguageS
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        System.err.println("initializing workspace");
+        System.err.println("Loading Wurst version " + CompileTimeInfo.version);
         setupLogger();
         try {
             System.setErr(new PrintStream(new FileOutputStream(FileDescriptor.err), true, "UTF-8"));

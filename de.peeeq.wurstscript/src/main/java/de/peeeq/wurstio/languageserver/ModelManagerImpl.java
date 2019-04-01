@@ -246,17 +246,19 @@ public class ModelManagerImpl implements ModelManager {
     /**
      * check whether p imports something from 'toCheck'
      */
-    private boolean imports(WPackage p, Set<String> packageNames, boolean importPublic, HashSet<WPackage> visited) {
+    private boolean imports(WPackage p, Set<String> packageNames, boolean onlyPublic, HashSet<WPackage> visited) {
         if (visited.contains(p)) {
             return false;
         }
         visited.add(p);
         for (WImport imp : p.getImports()) {
-            if ((!importPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
+            if ((!onlyPublic || imp.getIsPublic()) && packageNames.contains(imp.getPackagename())) {
                 return true;
             } else {
                 WPackage importedPackage = imp.attrImportedPackage();
-                if (imp.getIsPublic() && importedPackage != null && imports(importedPackage, packageNames, true, visited)) {
+                if ((!onlyPublic || imp.getIsPublic())
+                        && importedPackage != null
+                        && imports(importedPackage, packageNames, true, visited)) {
                     return true;
                 }
             }
