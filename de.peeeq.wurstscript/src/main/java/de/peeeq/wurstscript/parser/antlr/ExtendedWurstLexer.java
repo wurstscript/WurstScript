@@ -121,7 +121,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
                     assert token != null;
                 } else if (token.getType() == WurstParser.ENDPACKAGE) {
-                    handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
+                    handleIndent(0, token, token.getStartIndex(), token.getStopIndex(), token);
                     isWurst = false;
                 }
             } else {
@@ -149,7 +149,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
             if (token.getType() == WurstParser.EOF) {
                 // at EOF close all blocks and return an extra newline
-                handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
+                handleIndent(0, token, token.getStartIndex(), token.getStopIndex(), token);
                 eof = token;
                 if (isWurst) {
                     // if inside wurst, add a closing 'endpackage' and a newline
@@ -194,7 +194,7 @@ public class ExtendedWurstLexer implements TokenSource {
                         continue;
                     } else {
                         // no tabs after newline
-                        handleIndent(0, token, token.getStartIndex(), token.getStopIndex());
+                        handleIndent(0, token, token.getStartIndex(), token.getStopIndex(), firstNewline);
                         nextTokens.add(token);
                         state(State.INIT);
                         return firstNewline;
@@ -237,7 +237,7 @@ public class ExtendedWurstLexer implements TokenSource {
                             state(State.INIT);
                             return token;
                         } else {
-                            handleIndent(numberOfTabs, token, token.getStartIndex(), token.getStopIndex());
+                            handleIndent(numberOfTabs, token, token.getStartIndex(), token.getStopIndex(), firstNewline);
                             state(State.INIT);
                             nextTokens.add(token);
                             return firstNewline;
@@ -313,7 +313,7 @@ public class ExtendedWurstLexer implements TokenSource {
     }
 
 
-    private void handleIndent(int n, Token token, int start, int stop) {
+    private void handleIndent(int n, Token token, int start, int stop, Token endBlockToken) {
         if (!isWurst) {
             return;
         }
@@ -335,7 +335,7 @@ public class ExtendedWurstLexer implements TokenSource {
         } else {
             while (n < indentationLevels.peek()) {
                 indentationLevels.pop();
-                nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", firstNewline.getStartIndex(), firstNewline.getStartIndex()));
+                nextTokens.add(makeToken(WurstParser.ENDBLOCK, "$end", endBlockToken.getStartIndex(), endBlockToken.getStartIndex()));
             }
             Integer expectedIndentation = indentationLevels.peek();
             if (n != expectedIndentation) {

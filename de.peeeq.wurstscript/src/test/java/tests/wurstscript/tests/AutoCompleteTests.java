@@ -396,7 +396,7 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
                 .collect(Collectors.toList());
 
 
-        assertEquals(completionLabels, expectedCompletions);
+        assertEquals(completionLabels, expectedCompletions, "completionLabels = " + completionLabels);
     }
 
     private CompletionList calculateCompletions(CompletionTestData testData) {
