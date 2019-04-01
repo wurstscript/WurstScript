@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.VarLink;
-import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.ProgressHelper;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -1110,14 +1109,14 @@ public class WurstValidator {
                         // in jass this is just a warning, because
                         // the shitty code emitted by jasshelper sometimes
                         // contains unreachable code
-                        s.addWarning("unreachable code");
+                        s.addWarning("Unreachable code");
                     } else {
                         if (mightBeAffectedBySwitchThatCoversAllCases(s)) {
                             // fow backwards compatibility just use a warning when
                             // switch statements that handle all cases are involved:
-                            s.addWarning("unreachable code");
+                            s.addWarning("Unreachable code");
                         } else {
-                            s.addError("unreachable code");
+                            s.addError("Unreachable code");
                         }
                     }
                 }
@@ -1604,7 +1603,7 @@ public class WurstValidator {
             Annotation annotation = def.getAnnotation("@deprecated");
             String msg = annotation.getAnnotationMessage();
             msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg.substring(1, msg.length() - 1);
-            trace.addWarning(def.getName() + " is deprecated. " + msg);
+            trace.addWarning("<" + def.getName() + "> is deprecated. " + msg);
         }
     }
 

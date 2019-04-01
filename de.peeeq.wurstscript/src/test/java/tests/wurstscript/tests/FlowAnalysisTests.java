@@ -63,7 +63,7 @@ public class FlowAnalysisTests extends WurstScriptTest {
 
     @Test
     public void testUnreachable1() {
-        assertError(false, "unreachable code",
+        assertError(false, "Unreachable code",
                 "function foo(int i) returns int",
                 "	if i < 5",
                 "		return 4",
