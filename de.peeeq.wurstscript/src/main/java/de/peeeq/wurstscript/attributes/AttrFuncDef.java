@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 
@@ -158,13 +159,23 @@ public class AttrFuncDef {
                 // ignore error
                 return null;
             }
-            node.addError("Reference to function " + funcName + " could not be resolved.");
+            if (node instanceof Annotation) {
+                node.addWarning("Annotation " + funcName + " is not defined.");
+            } else {
+                node.addError("Reference to function " + funcName + " could not be resolved.");
+            }
             return null;
         } else if (funcs1.size() == 1) {
             return Utils.getFirst(funcs1);
         }
+        // distinguish between annotation functions and others
+        List<FuncLink> funcs = filterAnnotation(node, funcs1);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
         // filter out the methods which are private somewhere else
-        List<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        funcs = filterInvisible(funcName, node, funcs);
         if (funcs.size() == 1) {
             return Utils.getFirst(funcs);
         }
@@ -192,6 +203,22 @@ public class AttrFuncDef {
         node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
                 + Utils.printAlternatives(funcs));
         return Utils.getFirst(funcs);
+    }
+
+    static ImmutableList<FuncLink> filterAnnotation(FuncRef node, ImmutableCollection<FuncLink> funcs1) {
+        Predicate<FuncLink> filter;
+        if (node instanceof Annotation) {
+            filter = f -> f.getDef().hasAnnotation("@annotation");
+        } else {
+            filter = f -> !f.getDef().hasAnnotation("@annotation");
+        }
+        ImmutableList<FuncLink> res = funcs1.stream()
+                .filter(filter)
+                .collect(Utils.toImmutableList());
+        if (res.isEmpty()) {
+            return ImmutableList.copyOf(funcs1);
+        }
+        return res;
     }
 
     private static List<FuncLink> ignoreWithIfNotDefinedAnnotation(FuncRef node, List<FuncLink> funcs) {
@@ -373,5 +400,20 @@ public class AttrFuncDef {
     public static FunctionDefinition calculateDef(ExprBinary e) {
         FuncLink f = e.attrFuncLink();
         return f == null ? null : f.getDef();
+    }
+
+    public static FuncLink calculate(Annotation node) {
+        List<WurstType> argumentTypes = node.getArgs().stream()
+                .map(Expr::attrTyp)
+                .collect(Collectors.toList());
+        FuncLink result = searchFunction(node.getFuncName(), node, argumentTypes);
+        if (result == null) {
+            return null;
+        }
+        FunctionDefinition def = result.getDef();
+        if (def != null && !def.hasAnnotation("@annotation")) {
+            node.addWarning("The function " + def.getName() + " must be annotated with @annotation to be usable as an annotation.");
+        }
+        return result;
     }
 }

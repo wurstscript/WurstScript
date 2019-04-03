@@ -817,6 +817,8 @@ public class BugTests extends WurstScriptTest {
     public void unreadVarWarning2() { // #380
         testAssertErrorsLines(true, "i is never read",
                 "package test",
+                "@annotation public function annotation()",
+                "@annotation public function extern()",
                 "@extern native I2S(int x) returns string",
                 "native testSuccess()",
                 "init",
@@ -832,6 +834,8 @@ public class BugTests extends WurstScriptTest {
     public void unreadVarWarningArrays() { // #813
         testAssertOkLines(false,
                 "package test",
+                "@annotation public function annotation()",
+                "@annotation public function extern()",
                 "@extern native I2S(int x) returns string",
                 "init",
                 "    integer array b",
@@ -1255,6 +1259,8 @@ public class BugTests extends WurstScriptTest {
 	public void testSelfAssignmentWarning() {
 		testAssertErrorsLines(false, "The assignment to local variable i probably has no effect",
 			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
 			"@extern native I2S(int x) returns string",
 			"native testSuccess()",
 			"init",
@@ -1270,6 +1276,8 @@ public class BugTests extends WurstScriptTest {
 	public void testSelfAssignmentWarningDot() {
 		testAssertErrorsLines(false, "The assignment to variable i probably has no effect",
 			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
 			"@extern native I2S(int x) returns string",
 			"native testSuccess()",
 			"class A",
@@ -1286,6 +1294,8 @@ public class BugTests extends WurstScriptTest {
 	public void testSelfAssignmentNoWarning() {
 		testAssertOkLines(true,
 			"package test",
+			"@annotation public function annotation()",
+			"@annotation public function extern()",
 			"@extern native I2S(int x) returns string",
 			"native testSuccess()",
 			"class A",

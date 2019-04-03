@@ -16,6 +16,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
+import static de.peeeq.wurstscript.attributes.AttrFuncDef.filterAnnotation;
+
 public class PossibleFuncDefs {
 
 
@@ -89,8 +91,10 @@ public class PossibleFuncDefs {
             node.addError("Reference to function " + funcName + " could not be resolved.");
             return ImmutableList.of();
         }
+        ImmutableCollection<FuncLink> funcs2 = filterAnnotation(node, funcs1);
+
         // filter out the methods which are private somewhere else
-        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs2);
         if (funcs.size() <= 1) {
             return funcs;
         }
@@ -172,4 +176,7 @@ public class PossibleFuncDefs {
         return funcs4;
     }
 
+    public static ImmutableCollection<FuncLink> calculate(Annotation node) {
+        return searchFunction(node.getFuncName(), node);
+    }
 }

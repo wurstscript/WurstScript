@@ -213,7 +213,7 @@ modifier:
 		| annotation
 		;
 
-annotation: name=ANNOTATION (PAREN_LEFT message=STRING PAREN_RIGHT)?;
+annotation: name=ANNOTATION argumentList?;
 
 hotdocComment: HOTDOC_COMMENT;
 

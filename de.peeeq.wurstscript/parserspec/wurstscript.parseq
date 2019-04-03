@@ -256,7 +256,7 @@ StmtCall = FunctionCall | ExprNewObject
 
 FunctionCall = ExprMemberMethod | ExprFunctionCall
 
-FuncRef = ExprFuncRef | FunctionCall
+FuncRef = ExprFuncRef | FunctionCall | Annotation
 
 
 NotExtensionFunction = NativeFunc | FuncDef | TupleDef
@@ -300,7 +300,7 @@ Modifiers * Modifier
 
 Modifier =
 	  VisibilityModifier
-	| Annotation(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, String annotationType, String annotationMessage)
+	| Annotation(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Identifier funcNameId, Arguments args)
 	| ModStatic(de.peeeq.wurstscript.parser.WPos source)
 	| ModOverride(de.peeeq.wurstscript.parser.WPos source)
 	| ModAbstract(de.peeeq.wurstscript.parser.WPos source)
@@ -1064,3 +1064,12 @@ SwitchStmt.calculateUnhandledCases()
 SwitchStmt.calculateHandlesAllCases()
     returns boolean
     implemented by de.peeeq.wurstscript.attributes.SwitchStatements.handlesAllCases
+
+Annotation.getAnnotationType()
+    returns String
+    implemented by de.peeeq.wurstscript.attributes.Annotations.annotationType
+
+
+Annotation.getAnnotationMessage()
+    returns String
+    implemented by de.peeeq.wurstscript.attributes.Annotations.annotationMessage

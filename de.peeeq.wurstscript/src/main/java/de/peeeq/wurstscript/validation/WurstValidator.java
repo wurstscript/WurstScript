@@ -216,6 +216,8 @@ public class WurstValidator {
 
     private void check(Element e) {
         try {
+            if (e instanceof Annotation)
+                checkAnnotation((Annotation) e);
             if (e instanceof AstElementWithTypeParameters)
                 checkTypeParameters((AstElementWithTypeParameters) e);
             if (e instanceof AstElementWithNameId)
@@ -1187,6 +1189,25 @@ public class WurstValidator {
         call.attrCallSignature().checkSignatureCompatibility(call.attrFunctionSignature(), funcName, call);
     }
 
+    private void checkAnnotation(Annotation a) {
+        FuncLink fl = a.attrFuncLink();
+        if (fl != null) {
+            if (a.getArgs().size() < fl.getParameterTypes().size()) {
+                a.addWarning("not enough arguments");
+            } else if (a.getArgs().size() > fl.getParameterTypes().size()) {
+                a.addWarning("too many enough arguments");
+            } else {
+                for (int i = 0; i < a.getArgs().size(); i++) {
+                    WurstType actual = a.getArgs().get(i).attrTyp();
+                    WurstType expected = fl.getParameterType(i);
+                    if (!actual.isSubtypeOf(expected, a)) {
+                        a.getArgs().get(i).addWarning("Expected " + expected + " but found " + actual + ".");
+                    }
+                }
+            }
+        }
+    }
+
     private void visit(ExprFunctionCall stmtCall) {
         String funcName = stmtCall.getFuncName();
         // calculating the exprType should reveal most errors:
@@ -1602,7 +1623,7 @@ public class WurstValidator {
         if (def != null && def.hasAnnotation("@deprecated")) {
             Annotation annotation = def.getAnnotation("@deprecated");
             String msg = annotation.getAnnotationMessage();
-            msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg.substring(1, msg.length() - 1);
+            msg = (msg == null || msg.isEmpty()) ? "It shouldn't be used and will be removed in the future." : msg;
             trace.addWarning("<" + def.getName() + "> is deprecated. " + msg);
         }
     }

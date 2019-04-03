@@ -325,7 +325,9 @@ public class AntlrWurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message != null ? m.annotation().message.getText() : "");
+            return Ast.Annotation(src,
+                    Ast.Identifier(source(m.annotation().name), m.annotation().name.getText().substring(1).toLowerCase()),
+                    transformArgumentList(m.annotation().argumentList()));
         }
         switch (m.modType.getType()) {
             case WurstParser.PUBLIC:

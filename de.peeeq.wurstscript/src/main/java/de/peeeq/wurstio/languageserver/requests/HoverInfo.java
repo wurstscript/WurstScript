@@ -293,8 +293,11 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_Annotation(Annotation annotation) {
-            // TODO different annotations
-            return string("This is an annotation.");
+            FunctionDefinition def = annotation.attrFuncDef();
+            if (def != null) {
+                return string(def.attrComment());
+            }
+            return string("This is an undefined annotation.");
         }
 
         @Override

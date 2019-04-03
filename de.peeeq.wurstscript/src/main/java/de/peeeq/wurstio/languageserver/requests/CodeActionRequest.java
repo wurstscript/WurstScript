@@ -163,10 +163,17 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             private WFile targetFile = filename;
             private String receiverType = "";
             private WurstType returnType = WurstTypeVoid.instance();
+            private boolean isAnnotation = false;
 
 
             @Override
             public void case_ExprFuncRef(ExprFuncRef e) {
+                getInsertPos(fr);
+            }
+
+            @Override
+            public void case_Annotation(Annotation annotation) {
+                isAnnotation = true;
                 getInsertPos(fr);
             }
 
@@ -279,6 +286,9 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
         String title = "Create function " + fr.getFuncName();
         StringBuilder code = new StringBuilder("\n");
         m.indent(code);
+        if (m.isAnnotation) {
+            code.append("@annotation ");
+        }
         code.append("function ");
         code.append(m.receiverType);
         code.append(fr.getFuncName());

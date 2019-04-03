@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
-import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser;
 import de.peeeq.wurstscript.jurst.antlr.JurstParser.*;
 import de.peeeq.wurstscript.parser.WPos;
@@ -318,7 +317,10 @@ public class AntlrJurstParseTreeTransformer {
     private Modifier transformModifier(ModifierContext m) {
         WPos src = source(m);
         if (m.annotation() != null) {
-            return Ast.Annotation(src, m.annotation().name.getText(), m.annotation().message.getText());
+            AnnotationContext a = m.annotation();
+            return Ast.Annotation(src,
+                    Ast.Identifier(source(a.name), a.name.getText().substring(1)),
+                    Ast.Arguments(Ast.ExprStringVal(source(a.message), a.message.getText())));
         }
         switch (m.modType.getType()) {
             case JurstParser.PUBLIC:
@@ -339,11 +341,15 @@ public class AntlrJurstParseTreeTransformer {
             case JurstParser.CONSTANT:
                 return Ast.ModConstant(src);
             case JurstParser.DELEGATE:
-                return Ast.Annotation(src, "delegate", "internal");
+                return annotation(src, "delegate", "internal");
             case JurstParser.STUB:
-                return Ast.Annotation(src, "stub", "internal");
+                return annotation(src, "stub", "internal");
         }
         throw error(m, "modifier not implemented");
+    }
+
+    private Modifier annotation(WPos src, String name, String message) {
+        return Ast.Annotation(src, Ast.Identifier(src, name), Ast.Arguments(Ast.ExprStringVal(src, message)));
     }
 
     private WEntity transformTupleDef(TupleDefContext t) {
