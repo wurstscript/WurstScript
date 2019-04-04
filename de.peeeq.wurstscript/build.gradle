@@ -83,7 +83,7 @@ dependencies {
     compile group: 'org.functionaljava', name: 'functionaljava', version: '4.8.1'
 
     // Support for the vscode language server protocol
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.5.0'
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.7.0'
 
     // @Nullable annotations
     compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'

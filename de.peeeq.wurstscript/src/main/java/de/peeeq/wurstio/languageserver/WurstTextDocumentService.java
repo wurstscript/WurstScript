@@ -46,7 +46,7 @@ public class WurstTextDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<List<? extends Location>> definition(TextDocumentPositionParams position) {
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams position) {
         WLogger.info("definition");
         return worker.handle(new GetDefinition(position, worker.getBufferManager()));
     }

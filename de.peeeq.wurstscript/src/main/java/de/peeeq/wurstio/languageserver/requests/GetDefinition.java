@@ -11,12 +11,14 @@ import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 import java.util.Collections;
 import java.util.List;
 
-public class GetDefinition extends UserRequest<List<? extends Location>> {
+public class GetDefinition extends UserRequest<Either<List<? extends Location>, List<? extends LocationLink>>> {
 
     private final WFile filename;
     private final String buffer;
@@ -33,7 +35,12 @@ public class GetDefinition extends UserRequest<List<? extends Location>> {
 
 
     @Override
-    public List<? extends Location> execute(ModelManager modelManager) {
+    public Either<List<? extends Location>, List<? extends LocationLink>> execute(ModelManager modelManager) {
+        return Either.forLeft(execute2(modelManager));
+    }
+
+
+    private List<? extends Location> execute2(ModelManager modelManager) {
         CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
         if (cu == null) {
             return Collections.emptyList();

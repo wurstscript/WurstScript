@@ -184,7 +184,7 @@ public class RunMap extends MapRequest {
      * C:\\Users\\Peter\\Documents\\Warcraft III\\CustomMapData
      */
     private Path getCustomMapDataPath() {
-        String customMapDataPath = configProvider.getConfig("wurst.customMapDataPath", "");
+        String customMapDataPath = configProvider.getConfig("customMapDataPath", "");
         if (!customMapDataPath.isEmpty()) {
             return Paths.get(customMapDataPath);
         }

@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.ast.CompilationUnit;
 import de.peeeq.wurstscript.ast.WImport;
 import de.peeeq.wurstscript.ast.WPackage;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.util.Collections;
@@ -78,11 +79,10 @@ public class PerformCodeActionRequest extends UserRequest<Object> {
     private Object applyTextEdits(WFile file, List<TextEdit> textEdits) {
         LanguageClient languageClient = server.getLanguageClient();
         int version = server.worker().getBufferManager().getTextDocumentVersion(file);
-        VersionedTextDocumentIdentifier textDocument = new VersionedTextDocumentIdentifier(version);
-        textDocument.setUri(file.getUriString());
+        VersionedTextDocumentIdentifier textDocument = new VersionedTextDocumentIdentifier(file.getUriString(), version);
 
         TextDocumentEdit change = new TextDocumentEdit(textDocument, textEdits);
-        List<TextDocumentEdit> documentChanges = Collections.singletonList(change);
+        List<Either<TextDocumentEdit, ResourceOperation>> documentChanges = Collections.singletonList(Either.forLeft(change));
         languageClient.applyEdit(new ApplyWorkspaceEditParams(new WorkspaceEdit(documentChanges)));
         return "ok";
     }

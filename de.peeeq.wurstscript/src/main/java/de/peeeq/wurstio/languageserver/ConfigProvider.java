@@ -1,11 +1,12 @@
 package de.peeeq.wurstio.languageserver;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import javax.json.JsonObject;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +31,10 @@ private final LanguageClient languageClient;
             for (Object c : config) {
                 if (c instanceof JsonObject) {
                     JsonObject cfg = (JsonObject) c;
-                    return cfg.getString(key, defaultValue);
+                    JsonElement result = cfg.get(key);
+                    if (result != null) {
+                        return result.getAsString();
+                    }
                 }
             }
             return defaultValue;
@@ -40,7 +44,7 @@ private final LanguageClient languageClient;
     }
 
     public String getJhcrExe() {
-        return getConfig("wurst.jhcrExe", "jhcr.exe");
+        return getConfig("jhcrExe", "jhcr.exe");
     }
 }
 
