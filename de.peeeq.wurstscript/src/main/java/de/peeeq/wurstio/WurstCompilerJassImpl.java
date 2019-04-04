@@ -532,7 +532,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         // add reload trigger for pressing escape
         ImStmts reloadBody = JassIm.ImStmts(
-                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse")
+                callExtern(trace, CallType.EXECUTE, "JHCR_Init_parse"),
+                callExtern(trace, CallType.NORMAL, "BJDebugMsg", JassIm.ImStringVal("Code reloaded!"))
         );
         ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
 

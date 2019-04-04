@@ -26,7 +26,9 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
+import org.jetbrains.annotations.Nullable;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -43,12 +45,21 @@ import java.util.stream.Collectors;
 
 public abstract class MapRequest extends UserRequest<Object> {
     protected final ConfigProvider configProvider;
-    protected final File map;
+    protected final @Nullable File map;
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
 
-    public MapRequest(ConfigProvider configProvider, File map, List<String> compileArgs, WFile workspaceRoot) {
+    /**
+     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
+     */
+    private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
+
+    enum SafetyLevel {
+        QuickAndDirty, KindOfSafe
+    }
+
+    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot) {
         this.configProvider = configProvider;
         this.map = map;
         this.compileArgs = compileArgs;
@@ -71,13 +82,12 @@ public abstract class MapRequest extends UserRequest<Object> {
         File existingScript = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
-        if (runArgs.isNoExtractMapScript()) {
-            WLogger.info("flag -isNoExtractMapScript set");
+        if (mapCopy == null || runArgs.isNoExtractMapScript()) {
             if (existingScript.exists()) {
                 modelManager.syncCompilationUnit(WFile.create(existingScript));
                 return;
             } else {
-                throw new CompileError(new WPos(mapCopy.toString(), new LineOffsets(), 0, 0),
+                throw new CompileError(new WPos("", new LineOffsets(), 0, 0),
                         "RunArg noExtractMapScript is set but no mapscript is provided inside the wurst folder");
             }
         }
@@ -109,10 +119,10 @@ public abstract class MapRequest extends UserRequest<Object> {
         modelManager.syncCompilationUnit(WFile.create(existingScript));
     }
 
-    protected File compileMap(File projectFolder, WurstGui gui, File mapCopy, File origMap, RunArgs runArgs, WurstModel model) {
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
+    protected File compileMap(File projectFolder, WurstGui gui, File mapCopy, RunArgs runArgs, WurstModel model) {
+        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             //WurstGui gui = new WurstGuiLogger();
-            if (!mpqEditor.canWrite()) {
+            if (mpqEditor != null && !mpqEditor.canWrite()) {
                 WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
                         "Please supply a valid .w3x input map that can be opened in the world editor.");
                 throw new NonWritableChannelException();
@@ -260,4 +270,61 @@ public abstract class MapRequest extends UserRequest<Object> {
         WLogger.info(s);
     }
 
+
+    protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, @Nullable File mapCopy) throws Exception {
+        RunArgs runArgs = new RunArgs(compileArgs);
+        print("Compile Script : ");
+        for (File dep : modelManager.getDependencyWurstFiles()) {
+            WLogger.info("dep: " + dep.getPath());
+        }
+        print("Dependencies done.");
+        processMapScript(runArgs, gui, modelManager, mapCopy);
+        print("Processed mapscript");
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+            // it is safer to rebuild the project, instead of taking the current editor state
+            gui.sendProgress("Cleaning project");
+            modelManager.clean();
+            gui.sendProgress("Building project");
+            modelManager.buildProject();
+        }
+
+        if (modelManager.hasErrors()) {
+            for (CompileError compileError : modelManager.getParseErrors()) {
+                gui.sendError(compileError);
+            }
+            throw new RequestFailedException(MessageType.Warning, "Cannot run code with syntax errors.");
+        }
+
+        WurstModel model = modelManager.getModel();
+        if (safeCompilation != RunMap.SafetyLevel.QuickAndDirty) {
+            // compilation will alter the model (e.g. remove unused imports),
+            // so it is safer to create a copy
+            model = ModelManager.copy(model);
+        }
+
+        return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model);
+    }
+
+    protected File compileScript(ModelManager modelManager, WurstGui gui, @Nullable File testMap) throws Exception {
+        if (testMap != null && testMap.exists()) {
+            boolean deleteOk = testMap.delete();
+            if (!deleteOk) {
+                throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + testMap);
+            }
+        }
+        if (map != null) {
+            Files.copy(map, testMap);
+        }
+
+        // first compile the script:
+        File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
+
+        WurstModel model = modelManager.getModel();
+        if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+            println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
+            println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
+            println("We will try to start the map now, but it will probably fail. ");
+        }
+        return compiledScript;
+    }
 }

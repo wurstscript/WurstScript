@@ -255,7 +255,7 @@ public class RunArgs {
     }
 
     public boolean isInjectObjects() {
-        return optionInjectCompiletimeObjects.isSet;
+        return !isHotReload() && optionInjectCompiletimeObjects.isSet;
     }
 
     public List<File> getAdditionalLibDirs() {

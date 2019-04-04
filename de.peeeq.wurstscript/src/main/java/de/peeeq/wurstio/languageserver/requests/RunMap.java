@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.utils.WinRegistry;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
@@ -37,42 +38,38 @@ import static net.moonlightflower.wc3libs.bin.GameExe.VERSION_1_29;
  * Created by peter on 16.05.16.
  */
 public class RunMap extends MapRequest {
-    private final String wc3Path;
-    /**
-     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
-     */
-    private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
-
+    private final @Nullable
+    String wc3Path;
     private File customTarget = null;
 
-    enum SafetyLevel {
-        QuickAndDirty, KindOfSafe
-    }
 
-    public RunMap(ConfigProvider configProvider, WFile workspaceRoot, String wc3Path, File map, List<String> compileArgs) {
+    public RunMap(ConfigProvider configProvider, WFile workspaceRoot, @Nullable String wc3Path, @Nullable File map, List<String> compileArgs) {
         super(configProvider, map, compileArgs, workspaceRoot);
         this.wc3Path = wc3Path;
     }
 
     @Override
     public Object execute(ModelManager modelManager) {
+        WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
+               + ",\n map = " + map
+                + ",\n compileArgs = " + compileArgs
+                + ",\n workspaceRoot = " + workspaceRoot
+                + ",\n runArgs = " + runArgs
+        );
+
         if (modelManager.hasErrors()) {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.");
         }
 
         // TODO use normal compiler for this, avoid code duplication
-        WLogger.info("received runMap command: map=" + map.getAbsolutePath() + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
+        WLogger.info("received runMap command: map=" + map + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
             if (wc3Path != null) {
                 W3Utils.parsePatchVersion(new File(wc3Path));
             }
-            if (W3Utils.getWc3PatchVersion() == null) {
-                throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
-            }
-            File gameExe = findGameExecutable();
 
-            if (!map.exists()) {
+            if (map != null && !map.exists()) {
                 throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
             }
 
@@ -80,24 +77,8 @@ public class RunMap extends MapRequest {
 
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
-            File testMap = new File(buildDir, "WurstRunMap.w3x");
-            if (testMap.exists()) {
-                boolean deleteOk = testMap.delete();
-                if (!deleteOk) {
-                    throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + testMap);
-                }
-            }
-            Files.copy(map, testMap);
-
-            // first compile the script:
-            File compiledScript = compileScript(gui, modelManager, compileArgs, testMap, map);
-
-            WurstModel model = modelManager.getModel();
-            if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-                println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
-                println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
-                println("We will try to start the map now, but it will probably fail. ");
-            }
+            File testMap = map == null ? null : new File(buildDir, "WurstRunMap.w3x");
+            File compiledScript = compileScript(modelManager, gui, testMap);
 
             if (runArgs.isHotReload()) {
                 // call jhcr update
@@ -112,37 +93,45 @@ public class RunMap extends MapRequest {
                 return "ok";
             }
 
-            gui.sendProgress("preparing testmap ... ");
 
-            // then inject the script into the map
-            gui.sendProgress("Injecting mapscript");
-            try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
-                mpqEditor.deleteFile("war3map.j");
-                mpqEditor.insertFile("war3map.j", compiledScript);
-            }
+            if (testMap != null) {
+                gui.sendProgress("preparing testmap ... ");
 
-
-            File mapCopy = copyToWarcraftMapDir(testMap);
-
-            WLogger.info("Starting wc3 ... ");
-            String path = "";
-            if(customTarget != null) {
-                path = new File(customTarget, testMap.getName()).getAbsolutePath();
-            } else if(mapCopy != null) {
-                path = mapCopy.getAbsolutePath();
-            }
-
-            if (path.length() > 0) {
-                // now start the map
-                List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
-
-                if (!System.getProperty("os.name").startsWith("Windows")) {
-                    // run with wine
-                    cmd.add(0, "wine");
+                // then inject the script into the map
+                gui.sendProgress("Injecting mapscript");
+                try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+                    mpqEditor.deleteFile("war3map.j");
+                    mpqEditor.insertFile("war3map.j", compiledScript);
                 }
 
-                gui.sendProgress("running " + cmd);
-                Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+
+                File mapCopy = copyToWarcraftMapDir(testMap);
+
+                WLogger.info("Starting wc3 ... ");
+                String path = "";
+                if (customTarget != null) {
+                    path = new File(customTarget, testMap.getName()).getAbsolutePath();
+                } else if (mapCopy != null) {
+                    path = mapCopy.getAbsolutePath();
+                }
+
+
+                if (path.length() > 0) {
+                    // now start the map
+                    File gameExe = findGameExecutable();
+                    if (W3Utils.getWc3PatchVersion() == null) {
+                        throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
+                    }
+                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+
+                    if (!System.getProperty("os.name").startsWith("Windows")) {
+                        // run with wine
+                        cmd.add(0, "wine");
+                    }
+
+                    gui.sendProgress("running " + cmd);
+                    Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+                }
             }
         } catch (CompileError e) {
             throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
@@ -157,6 +146,8 @@ public class RunMap extends MapRequest {
         }
         return "ok"; // TODO
     }
+
+
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {
         File mapScriptFolder = mapScript.getParentFile();
@@ -240,7 +231,7 @@ public class RunMap extends MapRequest {
                     Files.copy(testMap, testMap2);
                     return testMap2;
                 } else {
-                  WLogger.severe("Directory specified via -runmapTarget does not exists or is not a directory");
+                    WLogger.severe("Directory specified via -runmapTarget does not exists or is not a directory");
                 }
             }
         }
@@ -281,41 +272,6 @@ public class RunMap extends MapRequest {
             WLogger.severe("Could not create Test folder");
         }
         return null;
-    }
-
-
-    private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {
-        RunArgs runArgs = new RunArgs(compileArgs);
-        print("Compile Script : ");
-        for (File dep : modelManager.getDependencyWurstFiles()) {
-            WLogger.info("dep: " + dep.getPath());
-        }
-        print("Dependencies done.");
-        processMapScript(runArgs, gui, modelManager, mapCopy);
-        print("Processed mapscript");
-        if (safeCompilation != SafetyLevel.QuickAndDirty) {
-            // it is safer to rebuild the project, instead of taking the current editor state
-            gui.sendProgress("Cleaning project");
-            modelManager.clean();
-            gui.sendProgress("Building project");
-            modelManager.buildProject();
-        }
-
-        if (modelManager.hasErrors()) {
-            for (CompileError compileError : modelManager.getParseErrors()) {
-                gui.sendError(compileError);
-            }
-            throw new RequestFailedException(MessageType.Warning, "Cannot run code with syntax errors.");
-        }
-
-        WurstModel model = modelManager.getModel();
-        if (safeCompilation != SafetyLevel.QuickAndDirty) {
-            // compilation will alter the model (e.g. remove unused imports), 
-            // so it is safer to create a copy
-            model = ModelManager.copy(model);
-        }
-
-        return compileMap(modelManager.getProjectPath(), gui, mapCopy, origMap, runArgs, model);
     }
 
 

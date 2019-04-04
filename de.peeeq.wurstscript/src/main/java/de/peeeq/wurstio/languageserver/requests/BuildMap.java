@@ -9,10 +9,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
@@ -36,15 +33,6 @@ import java.util.Optional;
 public class BuildMap extends MapRequest {
     private static final String FILE_NAME = "wurst.build";
 
-    /**
-     * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
-     */
-    private SafetyLevel safeCompilation = SafetyLevel.KindOfSafe;
-
-    enum SafetyLevel {
-        QuickAndDirty, KindOfSafe
-    }
-
     public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, File map, List<String> compileArgs) {
         super(configProvider, map, compileArgs, workspaceRoot);
     }
@@ -63,10 +51,10 @@ public class BuildMap extends MapRequest {
         }
 
         // TODO use normal compiler for this, avoid code duplication
-        WLogger.info("buildMap " + map.getAbsolutePath() + " " + compileArgs);
+        WLogger.info("buildMap " + map + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
-            if (!map.exists()) {
+            if (map != null && !map.exists()) {
                 throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
             }
 
@@ -74,25 +62,8 @@ public class BuildMap extends MapRequest {
 
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
-            File targetMap = new File(buildDir, projectConfig.getBuildMapData().getFileName() + ".w3x");
-            if (targetMap.exists()) {
-                boolean deleteOk = targetMap.delete();
-                if (!deleteOk) {
-                    throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + targetMap);
-                }
-            }
-            Files.copy(map, targetMap);
-
-
-            // first compile the script:
-            File compiledScript = compileScript(gui, modelManager, compileArgs, targetMap, map);
-
-            WurstModel model = modelManager.getModel();
-            if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
-                println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
-                println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
-                println("We will try to start the map now, but it will probably fail. ");
-            }
+            File targetMap = map == null ? null : new File(buildDir, projectConfig.getBuildMapData().getFileName() + ".w3x");
+            File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
             applyProjectConfig(projectConfig, targetMap, compiledScript);
@@ -116,14 +87,14 @@ public class BuildMap extends MapRequest {
             W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
             WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
             if (StringUtils.isNotBlank(buildMapData.getName())) {
-				w3I.setMapName(buildMapData.getName());
-			}
+                w3I.setMapName(buildMapData.getName());
+            }
             if (StringUtils.isNotBlank(buildMapData.getAuthor())) {
-				w3I.setMapAuthor(buildMapData.getAuthor());
-			}
-			applyScenarioData(w3I, buildMapData);
+                w3I.setMapAuthor(buildMapData.getAuthor());
+            }
+            applyScenarioData(w3I, buildMapData);
 
-			if (buildMapData.getPlayers().size() > 0) {
+            if (buildMapData.getPlayers().size() > 0) {
                 applyPlayers(projectConfig, w3I);
             }
             if (buildMapData.getForces().size() > 0) {
@@ -134,7 +105,7 @@ public class BuildMap extends MapRequest {
         }
     }
 
-	private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
+    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
         if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
@@ -169,18 +140,18 @@ public class BuildMap extends MapRequest {
         applyMapHeader(projectConfig, targetMap);
     }
 
-	private void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
-		WurstProjectBuildScenarioData scenarioData = buildMapData.getScenarioData();
-		if (StringUtils.isNotBlank(scenarioData.getSuggestedPlayers())) {
-			w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
-		}
-		if (StringUtils.isNotBlank(scenarioData.getDescription())) {
-			w3I.setMapDescription(scenarioData.getDescription());
-		}
-		if (scenarioData.getLoadingScreen() != null) {
-			applyLoadingScreen(w3I, scenarioData.getLoadingScreen());
-		}
-	}
+    private void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
+        WurstProjectBuildScenarioData scenarioData = buildMapData.getScenarioData();
+        if (StringUtils.isNotBlank(scenarioData.getSuggestedPlayers())) {
+            w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
+        }
+        if (StringUtils.isNotBlank(scenarioData.getDescription())) {
+            w3I.setMapDescription(scenarioData.getDescription());
+        }
+        if (scenarioData.getLoadingScreen() != null) {
+            applyLoadingScreen(w3I, scenarioData.getLoadingScreen());
+        }
+    }
 
     private void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
         w3I.setLoadingScreenModel(loadingScreen.getModel());
@@ -205,96 +176,61 @@ public class BuildMap extends MapRequest {
     }
 
     private void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
-		List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
-		w3I.getPlayers().clear();
+        List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
+        w3I.getPlayers().clear();
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
         for (WurstProjectBuildPlayer wplayer : players) {
-			Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
-			W3I.Player player = w3I.addPlayer();
-			player.setNum(wplayer.getId());
+            Optional<W3I.Player> old = existing.stream().filter(player -> player.getNum() == wplayer.getId()).findFirst();
+            W3I.Player player = w3I.addPlayer();
+            player.setNum(wplayer.getId());
 
-			old.ifPresent(player1 -> applyExistingPlayerConfig(player1, player));
+            old.ifPresent(player1 -> applyExistingPlayerConfig(player1, player));
 
-			setVolatilePlayerConfig(wplayer, player);
-		}
+            setVolatilePlayerConfig(wplayer, player);
+        }
     }
 
-	private void applyExistingPlayerConfig(W3I.Player oldPlayer, W3I.Player player) {
-		player.setStartPos(oldPlayer.getStartPos());
-		player.setName(oldPlayer.getName());
-		player.setRace(oldPlayer.getRace());
-		player.setType(oldPlayer.getType());
-		player.setStartPosFixed(oldPlayer.getStartPosFixed());
-		player.setAllyLowPrioFlags(oldPlayer.getAllyLowPrioFlags());
-		player.setAllyHighPrioFlags(oldPlayer.getAllyHighPrioFlags());
-	}
+    private void applyExistingPlayerConfig(W3I.Player oldPlayer, W3I.Player player) {
+        player.setStartPos(oldPlayer.getStartPos());
+        player.setName(oldPlayer.getName());
+        player.setRace(oldPlayer.getRace());
+        player.setType(oldPlayer.getType());
+        player.setStartPosFixed(oldPlayer.getStartPosFixed());
+        player.setAllyLowPrioFlags(oldPlayer.getAllyLowPrioFlags());
+        player.setAllyHighPrioFlags(oldPlayer.getAllyHighPrioFlags());
+    }
 
-	private void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
-		if(wplayer.getName() != null) {
-			player.setName(wplayer.getName());
-		}
+    private void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
+        if (wplayer.getName() != null) {
+            player.setName(wplayer.getName());
+        }
 
-		if (wplayer.getRace() != null) {
-			W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
-			if (val != null) {
-				player.setRace(val);
-			}
-		}
-		if (wplayer.getController() != null) {
-			Controller val1 = Controller.valueOf(wplayer.getController().toString());
-			if (val1 != null) {
-				player.setType(val1);
-			}
-		}
-		if (wplayer.getFixedStartLoc() != null) {
-			player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
-		}
-	}
+        if (wplayer.getRace() != null) {
+            W3I.Player.UnitRace val = W3I.Player.UnitRace.valueOf(wplayer.getRace().toString());
+            if (val != null) {
+                player.setRace(val);
+            }
+        }
+        if (wplayer.getController() != null) {
+            Controller val1 = Controller.valueOf(wplayer.getController().toString());
+            if (val1 != null) {
+                player.setType(val1);
+            }
+        }
+        if (wplayer.getFixedStartLoc() != null) {
+            player.setStartPosFixed(wplayer.getFixedStartLoc() ? 1 : 0);
+        }
+    }
 
-	private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
         if (projectConfig.getBuildMapData().getPlayers().size() > 0) {
-			mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
-		}
+            mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());
+        }
         if (StringUtils.isNotBlank(projectConfig.getBuildMapData().getName())) {
-			mapHeader.setMapName(projectConfig.getBuildMapData().getName());
-		}
+            mapHeader.setMapName(projectConfig.getBuildMapData().getName());
+        }
         mapHeader.writeToMapFile(targetMap);
-    }
-
-    private File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, File mapCopy, File origMap) throws Exception {
-        gui.sendProgress("Compiling mapscript");
-        RunArgs runArgs = new RunArgs(compileArgs);
-        print("Compile Script : ");
-        for (File dep : modelManager.getDependencyWurstFiles()) {
-            WLogger.info("dep: " + dep.getPath());
-        }
-        print("Dependencies done.");
-        processMapScript(runArgs, gui, modelManager, mapCopy);
-        print("Processed mapscript");
-        if (safeCompilation != SafetyLevel.QuickAndDirty) {
-            // it is safer to rebuild the project, instead of taking the current editor state
-            gui.sendProgress("Cleaning project");
-            modelManager.clean();
-            gui.sendProgress("Building project");
-            modelManager.buildProject();
-        }
-
-        if (modelManager.hasErrors()) {
-            for (CompileError compileError : modelManager.getParseErrors()) {
-                gui.sendError(compileError);
-            }
-            throw new RequestFailedException(MessageType.Warning, "Cannot run code with syntax errors.");
-        }
-
-        WurstModel model = modelManager.getModel();
-        if (safeCompilation != SafetyLevel.QuickAndDirty) {
-            // compilation will alter the model (e.g. remove unused imports), 
-            // so it is safer to create a copy
-            model = ModelManager.copy(model);
-        }
-
-        return compileMap(modelManager.getProjectPath(), gui, mapCopy, origMap, runArgs, model);
     }
 
 }
