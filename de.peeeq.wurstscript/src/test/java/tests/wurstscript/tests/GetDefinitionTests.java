@@ -1,25 +1,21 @@
 package tests.wurstscript.tests;
 
-import com.google.common.collect.ImmutableMap;
-import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.languageserver.BufferManager;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.ModelManagerImpl;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.languageserver.requests.GetDefinition;
-import de.peeeq.wurstscript.RunArgs;
-import de.peeeq.wurstscript.ast.WurstModel;
-import de.peeeq.wurstscript.gui.WurstGui;
-import de.peeeq.wurstscript.gui.WurstGuiLogger;
 import org.eclipse.lsp4j.*;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertFalse;
 
 /**
  * tests the get definition functionality.
@@ -78,18 +74,25 @@ public class GetDefinitionTests extends WurstLanguageServerTest {
 
     private void testGetDef(CompletionTestData testData, List<String> expectedPositions) {
 
-        List<? extends Location> result = calculateDefinition(testData);
+        Either<List<? extends Location>, List<? extends LocationLink>> result = calculateDefinition(testData);
+        if (result.isLeft()) {
+			List<String> definitions = result.getLeft().stream()
+				.map((Location l) -> l.getRange().getStart().getLine() + ":" + l.getRange().getStart().getCharacter() + "-" + l.getRange().getEnd().getLine() + ":" + l.getRange().getEnd().getCharacter())
+				.sorted()
+				.collect(Collectors.toList());
 
-        List<String> definitions = result.stream()
-                .map((Location l) -> l.getRange().getStart().getLine() + ":" + l.getRange().getStart().getCharacter() + "-" + l.getRange().getEnd().getLine() + ":" + l.getRange().getEnd().getCharacter())
-                .sorted()
-                .collect(Collectors.toList());
+			assertEquals(definitions, expectedPositions);
+		} else {
+			List<String> definitions = result.getRight().stream()
+				.map((LocationLink l) -> l.getTargetRange().getStart().getLine() + ":" + l.getTargetRange().getStart().getCharacter() + "-" + l.getTargetRange().getEnd().getLine() + ":" + l.getTargetRange().getEnd().getCharacter())
+				.sorted()
+				.collect(Collectors.toList());
 
-
-        assertEquals(definitions, expectedPositions);
+			assertEquals(definitions, expectedPositions);
+		}
     }
 
-    private List<? extends Location> calculateDefinition(CompletionTestData testData) {
+    private Either<List<? extends Location>, List<? extends LocationLink>> calculateDefinition(CompletionTestData testData) {
         BufferManager bufferManager = new BufferManager();
         File projectPath = new File("./test-output").getAbsoluteFile();
         ModelManager modelManager = new ModelManagerImpl(projectPath, bufferManager);
