@@ -574,7 +574,11 @@ public class GetCompletions extends UserRequest<CompletionList> {
         completion.setDetail(getFunctionDescriptionShort(f.getDef()));
         completion.setDocumentation(HoverInfo.descriptionString(f.getDef()));
         completion.setInsertText(replacementString);
-        completion.setSortText(ratingToString(calculateRating(f.getName(), f.getReturnType())));
+		double rating = calculateRating(f.getName(), f.getReturnType());
+		if (f.getDef().attrHasAnnotation("deprecated")) {
+			rating -= 0.05;
+		}
+		completion.setSortText(ratingToString(rating));
         // TODO use call signature instead for generics
 //        completion.set
 

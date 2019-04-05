@@ -382,7 +382,25 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         testCompletions(testData, "leiyunjianqi", "shenjianyulei", "xuanbinjinqi", "zhanguishen");
     }
 
-    private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
+	@Test
+	public void testDeprecated() {
+		CompletionTestData testData = input(true,
+			"package test",
+			"@deprecated function getIndexedUnit() returns unit",
+			"    return null",
+			"function getIndexingUnit() returns unit",
+			"    return null",
+			"",
+			"init",
+			"    unit u = getInd|"
+
+		);
+
+		testCompletions(testData, "getIndexingUnit", "getIndexedUnit");
+	}
+
+
+	private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
     }
 
