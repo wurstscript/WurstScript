@@ -75,8 +75,10 @@ public class GetCompletions extends UserRequest<CompletionList> {
         // sort: highest rating first, then sort by label
         if (result != null) {
             result.sort(completionItemComparator());
+            return new CompletionList(isIncomplete, result);
+        } else {
+            return new CompletionList(isIncomplete, Collections.emptyList());
         }
-        return new CompletionList(isIncomplete, result);
     }
 
     private Comparator<CompletionItem> completionItemComparator() {
