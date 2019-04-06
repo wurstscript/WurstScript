@@ -110,13 +110,13 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             withNextPackage:
             for (WPackage wPackage : cu.getPackages()) {
                 for (DefLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
-                    if (nameLink.receiverCompatibleWith(receiverType, nr)) {
+                    if (definedInPackage(wPackage, nameLink) && nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }
                 }
                 for (TypeLink nameLink : wPackage.attrExportedTypeNameLinks().get(funcName)) {
-                    if (nameLink.receiverCompatibleWith(receiverType, nr)) {
+                    if (definedInPackage(wPackage, nameLink) && nameLink.receiverCompatibleWith(receiverType, nr)) {
                         possibleImports.add(wPackage.getName());
                         continue withNextPackage;
                     }
@@ -126,6 +126,14 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
         return makeImportCommands(possibleImports);
 
+    }
+
+    private boolean definedInPackage(WPackage wPackage, NameLink nameLink) {
+        NameDef def = nameLink.getDef();
+        if (def != null) {
+            return def.attrNearestPackage() == wPackage;
+        }
+        return false;
     }
 
     private List<Either<Command, CodeAction>> handleMissingFunction(ModelManager modelManager, FuncRef fr) {
@@ -142,7 +150,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
             for (WPackage wPackage : cu.getPackages()) {
                 for (NameLink nameLink : wPackage.attrExportedNameLinks().get(funcName)) {
                     if (nameLink.getDef() instanceof FunctionDefinition) {
-                        if (nameLink.receiverCompatibleWith(receiverType, fr)) {
+                        if (definedInPackage(wPackage, nameLink) && nameLink.receiverCompatibleWith(receiverType, fr)) {
                             possibleImports.add(wPackage.getName());
                             continue withNextPackage;
                         }
