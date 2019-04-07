@@ -110,31 +110,38 @@ public class BuildMap extends MapRequest {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
 
-        if (!projectConfig.getBuildMapData().getName().isEmpty()) {
-            try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
 
+        try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
+            File file = new File(getBuildDir(), "wc3libs.j");
+            byte[] scriptBytes;
+            if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
                 W3I w3I = prepareW3I(projectConfig, targetMap);
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
                 w3I.injectConfigsInJassScript(inputStream, sw);
 
-                File file = new File(getBuildDir(), "wc3libs.j");
-                byte[] scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
-                Files.write(scriptBytes, file);
-                Pjass.runPjass(file);
-                mpq.insertFile("war3map.j", scriptBytes);
+                scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
 
                 File w3iFile = new File("w3iFile");
                 w3I.write(w3iFile);
 
                 mpq.deleteFile("war3map.w3i");
                 mpq.insertFile("war3map.w3i", java.nio.file.Files.readAllBytes(w3iFile.toPath()));
-                file.delete();
+
                 w3iFile.delete();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+            } else {
+                scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
             }
+
+            Files.write(scriptBytes, file);
+            Pjass.runPjass(file);
+            mpq.deleteFile("war3map.j");
+            mpq.insertFile("war3map.j", scriptBytes);
+
+            file.delete();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
 
         applyMapHeader(projectConfig, targetMap);
