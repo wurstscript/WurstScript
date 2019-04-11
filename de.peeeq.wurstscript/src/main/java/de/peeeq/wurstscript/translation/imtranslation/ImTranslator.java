@@ -1105,7 +1105,7 @@ public class ImTranslator {
     }
 
 
-    Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
+    private Map<ConstructorDef, ImFunction> constructorFuncs = Maps.newLinkedHashMap();
 
     public ImFunction getConstructFunc(ConstructorDef constr) {
         ImFunction f = constructorFuncs.get(constr);

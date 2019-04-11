@@ -825,4 +825,23 @@ public class ClosureTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void closureInClassInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Func",
+            "	function apply(int x) returns int",
+            "class A",
+            "	Func f = x -> x + 1",
+            "	construct()",
+            "	construct(int x)",
+            "init",
+            "	let a = new A",
+            "	if a.f.apply(3) == 4",
+            "		testSuccess()"
+        );
+    }
+
 }

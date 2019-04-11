@@ -32,6 +32,7 @@ public class ClassTranslator {
     final private List<Pair<ImVar, VarInitialization>> dynamicInits;
     private ImClass imClass;
     private ImProg prog;
+    private ImFunction classInitFunc;
 
     public ClassTranslator(ClassDef classDef, ImTranslator translator) {
         this.classDef = classDef;
@@ -71,6 +72,7 @@ public class ClassTranslator {
         // order is important here
         translateMethods(classDef, subClasses);
         translateVars(classDef);
+        translateClassInitFunc();
         translateConstructors();
         createOnDestroyMethod();
         createDestroyMethod(subClasses);
@@ -387,6 +389,23 @@ public class ClassTranslator {
             }
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
+        // call classInitFunc:
+        ImTypeArguments typeArguments = JassIm.ImTypeArguments();
+        for (ImTypeVar tv : imClass.getTypeVariables()) {
+            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+        }
+        f.getBody().add(ImFunctionCall(trace, classInitFunc, typeArguments, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
+        // constructor user code
+        f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
+    }
+
+    private void translateClassInitFunc() {
+        ClassDef trace = classDef;
+        ImVar thisVar = JassIm.ImVar(trace, imClassType(), "this", false);
+        classInitFunc = JassIm.ImFunction(classDef, translator.getNameFor(classDef) + "_init", ImTypeVars(), ImVars(thisVar), ImVoid(), ImVars(), ImStmts(), Collections.emptyList());
+        imClass.getFunctions().add(classInitFunc);
+
+        ImFunction f = classInitFunc;
         // initialize vars
         for (Pair<ImVar, VarInitialization> i : translator.getDynamicInits(classDef)) {
             ImVar v = i.getA();
@@ -409,8 +428,6 @@ public class ClassTranslator {
         for (ModuleInstanciation mi : classDef.getModuleInstanciations()) {
             addModuleInits(f, mi, thisVar);
         }
-        // constructor user code
-        f.getBody().addAll(translator.translateStatements(f, constr.getBody()));
     }
 
     private void addModuleInits(ImFunction f, ModuleInstanciation mi, ImVar thisVar) {
