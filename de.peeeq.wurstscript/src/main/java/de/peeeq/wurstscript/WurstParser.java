@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser.CompilationUnitContext;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.CompilationUnit;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -115,6 +116,7 @@ public class WurstParser {
 
             CompilationUnit root = new AntlrWurstParseTreeTransformer(source, errorHandler, lexer.getLineOffsets()).transform(cu);
             removeSyntacticSugar(root, hasCommonJ);
+            root.getCuInfo().setIndentationMode(lexer.getIndentationMode());
             return root;
 
         } catch (IOException e) {
@@ -265,7 +267,7 @@ public class WurstParser {
 
 
     public CompilationUnit emptyCompilationUnit() {
-        return Ast.CompilationUnit("<empty compilation unit>", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
+        return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
     }
 
     private void removeSyntacticSugar(CompilationUnit root, boolean hasCommonJ) {

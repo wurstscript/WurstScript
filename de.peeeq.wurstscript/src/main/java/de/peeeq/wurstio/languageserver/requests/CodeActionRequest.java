@@ -5,6 +5,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
@@ -283,9 +284,8 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
 
             public void indent(StringBuilder sb) {
-                for (int i = 0; i < indent; i++) {
-                    sb.append(" ");
-                }
+                CompilationUnitInfo.IndentationMode indentationMode = fr.attrCompilationUnit().getCuInfo().getIndentationMode();
+                indentationMode.appendIndent(sb, indentationMode.countIndents(indent) + 1);
             }
         }
         M m = new M();

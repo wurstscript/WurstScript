@@ -331,7 +331,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_CompilationUnit(CompilationUnit compilationUnit) {
-            return string("File " + compilationUnit.getFile());
+            return string("File " + compilationUnit.getCuInfo().getFile());
         }
 
         @Override

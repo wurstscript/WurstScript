@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.WurstParser;
 import de.peeeq.wurstscript.antlr.WurstParser.*;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.jass.AntlrJassParseTreeTransformer;
@@ -54,7 +55,7 @@ public class AntlrWurstParseTreeTransformer {
         }
 
         return Ast
-                .CompilationUnit("", this.cuErrorHandler, jassDecls, packages);
+                .CompilationUnit(new CompilationUnitInfo(this.cuErrorHandler), jassDecls, packages);
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(

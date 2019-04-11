@@ -12,6 +12,7 @@ import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.gui.WurstGui;
@@ -255,7 +256,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         WurstModel merged = mergeCompilationUnits(compilationUnits);
         StringBuilder sb = new StringBuilder();
         for (CompilationUnit cu : merged) {
-            sb.append(cu.getFile()).append(", ");
+            sb.append(cu.getCuInfo().getFile()).append(", ");
         }
         WLogger.info("Compiling compilation units: " + sb);
 
@@ -281,7 +282,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private void addImportedLibs(List<CompilationUnit> compilationUnits) {
         addImportedLibs(compilationUnits, file -> {
             CompilationUnit lib = parseFile(file);
-            lib.setFile(file.getAbsolutePath());
+            lib.getCuInfo().setFile(file.getAbsolutePath());
             compilationUnits.add(lib);
             return lib;
         });
@@ -294,7 +295,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         Set<String> packages = Sets.newLinkedHashSet();
         Set<WImport> imports = new LinkedHashSet<>();
         for (CompilationUnit c : compilationUnits) {
-            c.setCuErrorHandler(errorHandler);
+            c.getCuInfo().setCuErrorHandler(errorHandler);
             for (WPackage p : c.getPackages()) {
                 packages.add(p.getName());
                 imports.addAll(p.getImports());
@@ -323,7 +324,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                     }
                 }
                 if (!foundPackage) {
-                    imp.addError("The import " + imp.getPackagename() + " could not be found in file " + lib.getFile());
+                    imp.addError("The import " + imp.getPackagename() + " could not be found in file " + lib.getCuInfo().getFile());
                 }
             } else {
                 if (imp.getPackagename().equals("Wurst")) {
@@ -345,7 +346,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         File file = getLibs().get(imp);
         if (file == null) {
             gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
-            return Ast.CompilationUnit("", errorHandler, Ast.JassToplevelDeclarations(), Ast.WPackages());
+            return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
             return addCompilationUnit.apply(file);
         }

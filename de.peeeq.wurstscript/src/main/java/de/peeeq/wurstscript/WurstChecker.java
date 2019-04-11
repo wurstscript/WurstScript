@@ -49,7 +49,7 @@ public class WurstChecker {
 
     private void attachErrorHandler(WurstModel root) {
         for (CompilationUnit cu : root) {
-            cu.setCuErrorHandler(errorHandler);
+            cu.getCuInfo().setCuErrorHandler(errorHandler);
         }
     }
 

@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.parser.antlr;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.antlr.WurstLexer;
 import de.peeeq.wurstscript.antlr.WurstParser;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
@@ -427,5 +428,17 @@ public class ExtendedWurstLexer implements TokenSource {
 
     public CompileError getTabWarning() {
         return tabWarning;
+    }
+
+    public CompilationUnitInfo.IndentationMode getIndentationMode() {
+        if (tabChoice == TabChoice.Tabs) {
+            return CompilationUnitInfo.IndentationMode.tabs();
+        } else {
+            int num = this.spacesPerIndent;
+            if (num < 0) {
+                num = 4;
+            }
+            return CompilationUnitInfo.IndentationMode.spaces(num);
+        }
     }
 }

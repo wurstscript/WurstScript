@@ -1932,11 +1932,11 @@ public class WurstValidator {
     }
 
     private void checkPackageName(CompilationUnit cu) {
-        if (cu.getPackages().size() == 1 && Utils.isWurstFile(cu.getFile())) {
+        if (cu.getPackages().size() == 1 && Utils.isWurstFile(cu.getCuInfo().getFile())) {
             // only one package in a wurst file
             WPackage p = cu.getPackages().get(0);
-            if (!Utils.fileName(cu.getFile()).equals(p.getName() + ".wurst")
-                    && !Utils.fileName(cu.getFile()).equals(p.getName() + ".jurst")) {
+            if (!Utils.fileName(cu.getCuInfo().getFile()).equals(p.getName() + ".wurst")
+                    && !Utils.fileName(cu.getCuInfo().getFile()).equals(p.getName() + ".jurst")) {
                 p.addError("The file must have the same name as the package " + p.getName());
             }
         }

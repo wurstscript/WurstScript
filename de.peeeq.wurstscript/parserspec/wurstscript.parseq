@@ -7,7 +7,7 @@ Identifier(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, String na
 
 WurstModel * CompilationUnit
 
-CompilationUnit( String file, de.peeeq.wurstscript.attributes.ErrorHandler cuErrorHandler, 
+CompilationUnit(de.peeeq.wurstscript.attributes.CompilationUnitInfo cuInfo,
 	JassToplevelDeclarations jassDecls, WPackages packages)
 
 

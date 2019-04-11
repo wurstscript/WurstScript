@@ -347,7 +347,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private void updateModel(CompilationUnit cu, WurstGui gui) {
-        WLogger.info("update model with " + cu.getFile());
+        WLogger.info("update model with " + cu.getCuInfo().getFile());
         parseErrors.put(wFile(cu), new ArrayList<>(gui.getErrorsAndWarnings()));
 
         WurstModel model2 = model;
@@ -398,7 +398,7 @@ public class ModelManagerImpl implements ModelManager {
 
         try (InputStreamReader reader = new FileReader(sourceFile)) {
             CompilationUnit cu = comp.parse(sourceFile.getAbsolutePath(), reader);
-            cu.setFile(getCanonicalPath(sourceFile));
+            cu.getCuInfo().setFile(getCanonicalPath(sourceFile));
             return cu;
         }
     }
@@ -500,7 +500,7 @@ public class ModelManagerImpl implements ModelManager {
         WurstGui gui = new WurstGuiLogger();
         WurstCompilerJassImpl c = getCompiler(gui);
         CompilationUnit cu = c.parse(filename.toString(), new StringReader(contents));
-        cu.setFile(filename.toString());
+        cu.getCuInfo().setFile(filename.toString());
         updateModel(cu, gui);
         fileHashcodes.put(filename, contents.hashCode());
         if (reportErrors) {
@@ -586,10 +586,10 @@ public class ModelManagerImpl implements ModelManager {
 
     private Set<CompilationUnit> addPackageDependencies(List<CompilationUnit> toCheck, Set<String> oldPackages, WurstModel model) {
 
-        Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(CompilationUnit::getFile));
+        Set<CompilationUnit> result = new TreeSet<>(Comparator.comparing(cu -> cu.getCuInfo().getFile()));
         result.addAll(toCheck);
 
-        if (toCheck.stream().anyMatch(cu -> cu.getFile().endsWith(".j"))) {
+        if (toCheck.stream().anyMatch(cu -> cu.getCuInfo().getFile().endsWith(".j"))) {
             // when plain Jass files are changed, everything must be checked again:
             result.addAll(model);
             return result;
@@ -656,7 +656,7 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private WFile wFile(CompilationUnit cu) {
-        return compilationunitFile.computeIfAbsent(cu, c -> WFile.create(cu.getFile()));
+        return compilationunitFile.computeIfAbsent(cu, c -> WFile.create(cu.getCuInfo().getFile()));
     }
 
     /**

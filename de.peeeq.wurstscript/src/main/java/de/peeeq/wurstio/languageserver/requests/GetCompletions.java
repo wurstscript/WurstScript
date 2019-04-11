@@ -44,6 +44,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     private WurstType expectedType;
     private ModelManager modelManager;
     private boolean isIncomplete = false;
+    private CompilationUnit cu;
 
 
     public GetCompletions(CompletionParams position, BufferManager bufferManager) {
@@ -67,7 +68,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
     @Override
     public CompletionList execute(ModelManager modelManager) {
         this.modelManager = modelManager;
-        CompilationUnit cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
+        cu = modelManager.replaceCompilationUnitContent(filename, buffer, false);
         if (cu == null) {
             return new CompletionList(Collections.emptyList());
         }
@@ -614,21 +615,8 @@ public class GetCompletions extends UserRequest<CompletionList> {
                         lambdaReplacement.append(singleAbstractMethod.getParameterName(i));
                     }
                     lambdaReplacement.append(") ->\n");
-                    String line = currentLine();
-                    boolean spaces = true;
-                    for (int j = 0; j < line.length(); j++) {
-                        char c = line.charAt(j);
-                        if (!Character.isWhitespace(c)) {
-                            break;
-                        }
-                        lambdaReplacement.append(c);
-                        spaces = spaces && c == ' ';
-                    }
-                    if (spaces) {
-                        lambdaReplacement.append("    ");
-                    } else {
-                        lambdaReplacement.append("\t");
-                    }
+                    // only need to add one indent here, because \n already indents to the same line as before
+                    cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
                 }
             }
         }

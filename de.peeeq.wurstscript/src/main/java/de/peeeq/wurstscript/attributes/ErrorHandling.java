@@ -68,12 +68,12 @@ public class ErrorHandling {
     }
 
     public static ErrorHandler getErrorHandler(CompilationUnit e) {
-        return e.getCuErrorHandler();
+        return e.getCuInfo().getCuErrorHandler();
     }
 
     public static ErrorHandler getErrorHandler(WurstModel m) {
         for (CompilationUnit cu : m) {
-            return cu.getCuErrorHandler();
+            return cu.getCuInfo().getCuErrorHandler();
         }
         throw new Error("Empty model.");
     }

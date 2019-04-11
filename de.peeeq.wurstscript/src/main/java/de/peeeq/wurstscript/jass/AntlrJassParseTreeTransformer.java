@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.jass;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.antlr.JassParser;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompilationUnitInfo;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.ErrorHandler;
 import de.peeeq.wurstscript.parser.WPos;
@@ -43,7 +44,7 @@ public class AntlrJassParseTreeTransformer {
             // ignore
         }
 
-        return Ast.CompilationUnit("", this.cuErrorHandler, jassDecls, Ast.WPackages());
+        return Ast.CompilationUnit(new CompilationUnitInfo(this.cuErrorHandler), jassDecls, Ast.WPackages());
     }
 
     private JassToplevelDeclaration transformJassToplevelDecl(

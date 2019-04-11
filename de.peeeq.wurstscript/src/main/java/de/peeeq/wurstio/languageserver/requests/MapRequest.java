@@ -214,7 +214,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     private void purgeUnimportedFiles(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
-                .filter(cu -> isInWurstFolder(cu.getFile()) || cu.getFile().endsWith(".j")).distinct().collect(Collectors.toSet());
+                .filter(cu -> isInWurstFolder(cu.getCuInfo().getFile()) || cu.getCuInfo().getFile().endsWith(".j")).distinct().collect(Collectors.toSet());
         addImports(imported, imported);
 
         model.removeIf(cu -> !imported.contains(cu));
@@ -320,7 +320,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
 
         WurstModel model = modelManager.getModel();
-        if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getFile().endsWith("war3map.j"))) {
+        if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
             println("We will try to start the map now, but it will probably fail. ");
