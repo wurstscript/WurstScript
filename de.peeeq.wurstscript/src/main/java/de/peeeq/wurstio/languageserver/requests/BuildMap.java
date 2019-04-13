@@ -31,7 +31,7 @@ import java.util.Optional;
  * Created by peter on 16.05.16.
  */
 public class BuildMap extends MapRequest {
-    private static final String FILE_NAME = "wurst.build";
+    public static final String FILE_NAME = "wurst.build";
 
     public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, File map, List<String> compileArgs) {
         super(configProvider, map, compileArgs, workspaceRoot);
@@ -66,7 +66,7 @@ public class BuildMap extends MapRequest {
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
-            applyProjectConfig(projectConfig, targetMap, compiledScript);
+            applyProjectConfig(projectConfig, targetMap, compiledScript, buildDir);
 
             gui.sendProgress("Done.");
         } catch (CompileError e) {
@@ -82,7 +82,7 @@ public class BuildMap extends MapRequest {
         return "ok"; // TODO
     }
 
-    private W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
+    private static W3I prepareW3I(WurstProjectConfigData projectConfig, File targetMap) throws Exception {
         try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
             W3I w3I = new W3I(mpq.extractFile("war3map.w3i"));
             WurstProjectBuildMapData buildMapData = projectConfig.getBuildMapData();
@@ -105,14 +105,14 @@ public class BuildMap extends MapRequest {
         }
     }
 
-    private void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript) throws IOException {
+    public static void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir) throws IOException {
         if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
         }
 
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-            File file = new File(getBuildDir(), "wc3libs.j");
+            File file = new File(buildDir, "wc3libs.j");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
@@ -147,7 +147,7 @@ public class BuildMap extends MapRequest {
         applyMapHeader(projectConfig, targetMap);
     }
 
-    private void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
+    private static void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
         WurstProjectBuildScenarioData scenarioData = buildMapData.getScenarioData();
         if (StringUtils.isNotBlank(scenarioData.getSuggestedPlayers())) {
             w3I.setPlayersRecommendedAmount(scenarioData.getSuggestedPlayers());
@@ -160,18 +160,19 @@ public class BuildMap extends MapRequest {
         }
     }
 
-    private void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
+    private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
         w3I.setLoadingScreenModel(loadingScreen.getModel());
         w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
         w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
         w3I.getLoadingScreen().setText(loadingScreen.getText());
     }
 
-    private void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
+    private static void applyForces(WurstProjectConfigData projectConfig, W3I w3I) {
         w3I.clearForces();
         ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
         for (WurstProjectBuildForce wforce : forces) {
             W3I.Force force = w3I.addForce();
+            System.err.println("Setting name: " + wforce.getName());
             force.setName(wforce.getName());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED, wforce.getFlags().getAllied());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED_VICTORY, wforce.getFlags().getAlliedVictory());
@@ -182,7 +183,7 @@ public class BuildMap extends MapRequest {
         }
     }
 
-    private void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
+    private static void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {
         List<W3I.Player> existing = new ArrayList<>(w3I.getPlayers());
         w3I.getPlayers().clear();
         ArrayList<WurstProjectBuildPlayer> players = projectConfig.getBuildMapData().getPlayers();
@@ -197,7 +198,7 @@ public class BuildMap extends MapRequest {
         }
     }
 
-    private void applyExistingPlayerConfig(W3I.Player oldPlayer, W3I.Player player) {
+    private static void applyExistingPlayerConfig(W3I.Player oldPlayer, W3I.Player player) {
         player.setStartPos(oldPlayer.getStartPos());
         player.setName(oldPlayer.getName());
         player.setRace(oldPlayer.getRace());
@@ -207,7 +208,7 @@ public class BuildMap extends MapRequest {
         player.setAllyHighPrioFlags(oldPlayer.getAllyHighPrioFlags());
     }
 
-    private void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
+    private static void setVolatilePlayerConfig(WurstProjectBuildPlayer wplayer, W3I.Player player) {
         if (wplayer.getName() != null) {
             player.setName(wplayer.getName());
         }
@@ -229,7 +230,7 @@ public class BuildMap extends MapRequest {
         }
     }
 
-    private void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
+    private static void applyMapHeader(WurstProjectConfigData projectConfig, File targetMap) throws IOException {
         MapHeader mapHeader = MapHeader.ofFile(targetMap);
         if (projectConfig.getBuildMapData().getPlayers().size() > 0) {
             mapHeader.setMaxPlayersCount(projectConfig.getBuildMapData().getPlayers().size());

@@ -1,29 +1,23 @@
 package de.peeeq.wurstio;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.io.Files;
-import de.peeeq.wurstio.Pjass.Result;
+import config.WurstProjectConfig;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
-import de.peeeq.wurstio.languageserver.LanguageServerStarter;
-import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.languageserver.*;
+import de.peeeq.wurstio.languageserver.requests.BuildMap;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.*;
-import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
-import de.peeeq.wurstscript.jassAst.JassProg;
-import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.jdt.annotation.Nullable;
@@ -32,15 +26,15 @@ import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
 
-import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
+import static de.peeeq.wurstio.languageserver.requests.BuildMap.FILE_NAME;
 import static javax.swing.SwingConstants.CENTER;
 
 public class Main {
@@ -93,15 +87,13 @@ public class Main {
             }
 
             if (runArgs.isLanguageServer()) {
-//                new LanguageServer().start();
                 LanguageServerStarter.start();
                 return;
             }
 
             WLogger.info("runArgs.isExtractImports() = " + runArgs.isExtractImports());
-            String mapFilePath = runArgs.getMapFile();
             if (runArgs.isExtractImports()) {
-                File mapFile = new File(mapFilePath);
+                File mapFile = new File(runArgs.getMapFile());
                 ImportFile.extractImportsFromMap(mapFile, runArgs);
                 return;
             }
@@ -126,6 +118,24 @@ public class Main {
             }
 
             try {
+                WurstProjectConfigData projectConfig = null;
+                Path buildDir = null;
+                Path target = null;
+                if (runArgs.isBuild() && runArgs.getInputmap() != null && runArgs.getWorkspaceroot() != null) {
+                    Path root = Paths.get(runArgs.getWorkspaceroot());
+                    Path inputMap = root.resolve(runArgs.getInputmap());
+                    projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
+
+                    if (java.nio.file.Files.exists(inputMap) && projectConfig != null) {
+                        buildDir = root.resolve("_build");
+                        java.nio.file.Files.createDirectories(buildDir);
+                        target = buildDir.resolve(projectConfig.getBuildMapData().getFileName() + ".w3x");
+                        java.nio.file.Files.copy(inputMap, target, StandardCopyOption.REPLACE_EXISTING);
+                        runArgs.setMapFile(target.toAbsolutePath().toString());
+                    }
+                }
+
+                String mapFilePath = runArgs.getMapFile();
                 if (mapFilePath != null) {
                     // tempfolder
                     File tempFolder = new File("./temp/");
@@ -135,19 +145,30 @@ public class Main {
                 }
 
                 CompilationProcess compilationProcess = new CompilationProcess(gui, runArgs);
+                @Nullable CharSequence compiledScript;
 
                 if (mapFilePath != null) {
                     try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
-                        CharSequence mapScript = compilationProcess.doCompilation(mpqEditor);
-                        if (mapScript != null) {
+                        compiledScript = compilationProcess.doCompilation(mpqEditor);
+                        if (compiledScript != null) {
                             gui.sendProgress("Writing to map");
                             mpqEditor.deleteFile("war3map.j");
-                            byte[] war3map = mapScript.toString().getBytes(Charsets.UTF_8);
+                            byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
                             mpqEditor.insertFile("war3map.j", war3map);
                         }
                     }
                 } else {
-                    compilationProcess.doCompilation(null);
+                    compiledScript = compilationProcess.doCompilation(null);
+                }
+
+                File scriptFile = new File("compiled.j.txt");
+                Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
+
+                if (projectConfig != null && target != null) {
+                    BuildMap.applyProjectConfig(projectConfig, target.toFile(), scriptFile, buildDir.toFile());
+
+                    WLogger.info("map build success");
+                    System.out.println("Build succeeded. Output file: <" + target + ">");
                 }
 
                 gui.sendProgress("Finished!");

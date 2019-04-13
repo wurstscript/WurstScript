@@ -113,7 +113,7 @@ public class WurstCommands {
 
     private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects", "-stacktraces");
 
-    private static List<String> getCompileArgs(WFile rootPath, String... additionalArgs) {
+    public static List<String> getCompileArgs(WFile rootPath, String... additionalArgs) {
         try {
             Path configFile = Paths.get(rootPath.toString(), "wurst_run.args");
             if (Files.exists(configFile)) {

@@ -17,7 +17,6 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.function.Supplier;
 
 /**
  *
@@ -105,8 +104,9 @@ public class CompilationProcess {
 
         if (!runArgs.isDisablePjass()) {
             boolean pjassOk = timeTaker.measure("Run PJass",
+            boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
-            if (pjassOk) return null;
+            if (pjassError) return null;
         }
         timeTaker.printReport();
         return mapScript;

@@ -18,6 +18,8 @@ public class RunArgs {
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
     private @Nullable String testDir = null;
+    private @Nullable String workspaceroot = null;
+    private @Nullable String inputmap = null;
     private List<RunOption> options = Lists.newArrayList();
     private List<File> libDirs = Lists.newArrayList();
     private RunOption optionHelp;
@@ -46,17 +48,19 @@ public class RunArgs {
     private RunOption optionHotStartmap;
     private RunOption optionHotReload;
 
+    private RunOption optionBuild;
+
     public RunArgs with(String... additionalArgs) {
         return new RunArgs(Stream.concat(Stream.of(args), Stream.of(additionalArgs))
                 .toArray(String[]::new));
     }
 
     private class RunOption {
+
         final String name;
         final String descr;
         final @Nullable Consumer<String> argHandler;
         boolean isSet;
-
         RunOption(String name, String descr) {
             this.name = name;
             this.descr = descr;
@@ -68,8 +72,8 @@ public class RunArgs {
             this.descr = descr;
             this.argHandler = argHandler2;
         }
-    }
 
+    }
 
     public static RunArgs defaults() {
         return new RunArgs();
@@ -116,6 +120,10 @@ public class RunArgs {
         optionDisablePjass = addOption("noPJass", "Disables PJass checks for the generated code.");
         optionHotStartmap = addOption("hotstart", "Uses Jass Hot Code Reload (JHCR) to start the map.");
         optionHotReload = addOption("hotreload", "Reloads the mapscript after running the map with Jass Hot Code Reload (JHCR).");
+
+        optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
+        addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
+        addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -198,6 +206,10 @@ public class RunArgs {
 
     public @Nullable String getMapFile() {
         return mapFile;
+    }
+
+    public void setMapFile(String file) {
+        mapFile = file;
     }
 
     public @Nullable String getOutFile() {
@@ -318,6 +330,18 @@ public class RunArgs {
 
     public boolean isHotReload() {
         return optionHotReload.isSet;
+    }
+
+    public boolean isBuild() {
+        return optionBuild.isSet;
+    }
+
+    public String getWorkspaceroot() {
+        return workspaceroot;
+    }
+
+    public String getInputmap() {
+        return inputmap;
     }
 
 }
