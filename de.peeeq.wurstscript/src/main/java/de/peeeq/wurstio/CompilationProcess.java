@@ -103,7 +103,6 @@ public class CompilationProcess {
                 () -> writeMapscript(mapScript));
 
         if (!runArgs.isDisablePjass()) {
-            boolean pjassOk = timeTaker.measure("Run PJass",
             boolean pjassError = timeTaker.measure("Run PJass",
                     () -> runPjass(outputMapscript));
             if (pjassError) return null;
