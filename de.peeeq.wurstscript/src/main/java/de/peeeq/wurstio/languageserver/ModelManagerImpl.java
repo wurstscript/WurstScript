@@ -75,7 +75,7 @@ public class ModelManagerImpl implements ModelManager {
         }
 
         syncCompilationUnitContent(resource, "");
-        return model.removeIf(cu -> wFile(cu).equals(resource));
+        return model2.removeIf(cu -> wFile(cu).equals(resource));
     }
 
     @Override
@@ -455,6 +455,10 @@ public class ModelManagerImpl implements ModelManager {
     }
 
     private Set<String> declaredPackages(WFile f) {
+        WurstModel model = this.model;
+        if (model == null) {
+            return Collections.emptySet();
+        }
         for (CompilationUnit cu : model) {
             if (wFile(cu).equals(f)) {
                 return cu.getPackages()
