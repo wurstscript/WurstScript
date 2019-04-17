@@ -40,7 +40,9 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
                     WLogger.severe(e);
                     throw new Error(e);
                 } catch (InvocationTargetException e) {
-                    if (e.getCause() instanceof Error) {
+                    if (e.getCause() instanceof InterpreterException) {
+                        throw (InterpreterException) e.getCause();
+                    } if (e.getCause() instanceof Error) {
                         throw (Error) e.getCause();
                     }
                     throw new Error(e.getCause());

@@ -2,6 +2,7 @@ package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
 import com.google.common.base.Preconditions;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
 import de.peeeq.wurstscript.ast.Element;
@@ -133,7 +134,7 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     }
 
     public void compileError(ILconstString msg) {
-        globalState.compilationError(msg.getVal());
+        throw new InterpreterException(msg.getVal());
     }
 
 }

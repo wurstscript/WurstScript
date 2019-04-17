@@ -3,6 +3,7 @@ package de.peeeq.wurstio.languageserver.requests;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.CompiletimeFunctionRunner;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
@@ -204,8 +205,19 @@ public class RunTests extends UserRequest<Object> {
                     service.shutdown();
                     service.awaitTermination(10, TimeUnit.SECONDS);
                     service = Executors.newSingleThreadScheduledExecutor();
-                    successTests.add(f);
-                    println("\tOK!");
+                    if (gui.getErrorCount() > 0) {
+                        StringBuilder sb = new StringBuilder();
+                        for (CompileError error : gui.getErrorList()) {
+                            sb.append(error.toString()).append("\n");
+                            println(error.getMessage());
+                        }
+                        gui.clearErrors();
+                        TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), sb.toString());
+                        failTests.add(failure);
+                    } else {
+                        successTests.add(f);
+                        println("\tOK!");
+                    }
                 } catch (TestSuccessException e) {
                     successTests.add(f);
                     println("\tOK!");
@@ -218,9 +230,13 @@ public class RunTests extends UserRequest<Object> {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
                     println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
                     println(interpreter.getStackFrames().toString());
+                } catch (InterpreterException e) {
+                    TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
+                    failTests.add(failure);
+                    println("\t" + failure.getMessageWithStackFrame());
                 } catch (Throwable e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.toString()));
-                    println("\tFAILED with exception: " + e.getLocalizedMessage());
+                    println("\tFAILED with exception: " + e.getClass() + " " + e.getLocalizedMessage());
                     println(interpreter.getStackFrames().toString());
                     println("Here are some compiler internals, that might help Wurst developers to debug this issue:");
                     StringWriter sw = new StringWriter();
@@ -240,6 +256,9 @@ public class RunTests extends UserRequest<Object> {
         }
         if (gui.getErrorCount() > 0) {
             println("There were some errors reported while running the tests.");
+            for (CompileError error : gui.getErrorList()) {
+                println(error.toString());
+            }
         }
 
         WLogger.info("finished tests");
