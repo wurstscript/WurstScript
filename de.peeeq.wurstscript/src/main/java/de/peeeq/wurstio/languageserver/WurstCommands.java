@@ -69,7 +69,8 @@ public class WurstCommands {
         String filename = getString(options, "filename");
         int line = options.has("line") ? options.get("line").getAsInt() : -1;
         int column = options.has("column") ? options.get("column").getAsInt() : -1;
-        return server.worker().handle(new RunTests(filename, line, column));
+        String testName = getString(options, "testName");
+        return server.worker().handle(new RunTests(filename, line, column, testName));
     }
 
     private static CompletableFuture<Object> buildmap(WurstLanguageServer server, ExecuteCommandParams params) {

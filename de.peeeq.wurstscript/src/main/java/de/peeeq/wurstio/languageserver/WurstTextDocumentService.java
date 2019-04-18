@@ -1,6 +1,7 @@
 package de.peeeq.wurstio.languageserver;
 
 import de.peeeq.wurstio.languageserver.requests.*;
+import de.peeeq.wurstio.languageserver.requests.CodeLensRequest;
 import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -84,14 +85,12 @@ public class WurstTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<? extends CodeLens>> codeLens(CodeLensParams params) {
-        WLogger.info("codeLens");
-        return null;
+        return worker.handle(new CodeLensRequest.GetCodeLens(params, worker. getBufferManager()));
     }
 
     @Override
     public CompletableFuture<CodeLens> resolveCodeLens(CodeLens unresolved) {
-        WLogger.info("resolveCodeLens");
-        return null;
+        return worker.handle(new CodeLensRequest.Resolve(unresolved));
     }
 
     @Override

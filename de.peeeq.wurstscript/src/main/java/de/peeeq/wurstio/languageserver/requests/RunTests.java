@@ -8,9 +8,7 @@ import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
@@ -28,6 +26,7 @@ import org.eclipse.lsp4j.MessageType;
 
 import java.io.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.*;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
@@ -40,6 +39,7 @@ public class RunTests extends UserRequest<Object> {
     private final WFile filename;
     private final int line;
     private final int column;
+    private final String testName;
 
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
@@ -82,10 +82,11 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public RunTests(String filename, int line, int column) {
+    public RunTests(String filename, int line, int column, String testName) {
         this.filename = filename == null ? null : WFile.create(filename);
         this.line = line;
         this.column = column;
+        this.testName = testName;
     }
 
 
@@ -304,6 +305,24 @@ public class RunTests extends UserRequest<Object> {
 
 
     private FuncDef getFunctionToTest(CompilationUnit cu) {
+        if (testName != null) {
+            int dotPos = testName.indexOf(".");
+            String packageName = testName.substring(0, dotPos);
+            String funcName = testName.substring(dotPos+1);
+            Optional<FuncDef> testFunc = cu.getPackages()
+                .stream()
+                .filter(p -> p.getName().equals(packageName))
+                .flatMap(p -> p.getElements().stream())
+                .filter(e -> e instanceof FuncDef)
+                .map(e -> (FuncDef) e)
+                .filter(f -> f.hasAnnotation("@test"))
+                .filter(f -> f.getName().equals(funcName))
+                .findFirst();
+
+            if (testFunc.isPresent()) {
+                return testFunc.get();
+            }
+        }
         if (filename == null || cu == null || line < 0) {
             return null;
         }

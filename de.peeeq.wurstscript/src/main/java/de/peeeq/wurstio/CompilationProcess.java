@@ -146,7 +146,7 @@ public class CompilationProcess {
         // tests
         gui.sendProgress("Running tests");
         System.out.println("Running tests");
-        RunTests runTests = new RunTests(null, 0, 0) {
+        RunTests runTests = new RunTests(null, 0, 0, null) {
             @Override
             protected void print(String message) {
                 out.print(message);

@@ -23,7 +23,7 @@ public class BufferManager {
         return getBuffer(uri);
     }
 
-    private String getBuffer(WFile uri) {
+    public String getBuffer(WFile uri) {
         StringBuilder sb = currentBuffer.get(uri);
         if (sb == null) {
             return readFileFromDisk(uri);

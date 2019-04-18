@@ -557,7 +557,7 @@ public class WurstScriptTest {
     }
 
     private void executeTests(WurstGui gui, ImProg imProg) {
-        RunTests runTests = new RunTests(null, 0, 0);
+        RunTests runTests = new RunTests(null, 0, 0, null);
         RunTests.TestResult res = runTests.runTests(imProg, null, null);
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
