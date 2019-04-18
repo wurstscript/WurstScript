@@ -39,7 +39,6 @@ public class CodeLensRequest {
             String buffer = bufferManager.getBuffer(wFile);
             CompilationUnit cu = modelManager.replaceCompilationUnitContent(wFile, buffer, true);
             if (cu == null) {
-                System.err.println("empty CU codelens");
                 return Collections.emptyList();
             }
             List<CodeLens> result = new ArrayList<>();
@@ -58,7 +57,6 @@ public class CodeLensRequest {
                     }
                 }
             }
-            System.err.println("code lens with " + result.size());
             return result;
         }
     }
@@ -75,7 +73,6 @@ public class CodeLensRequest {
             Object data = unresolved.getData();
             Command cmd = new Command("Run Wurst unit test", "wurst.tests", Collections.singletonList(data));
             unresolved.setCommand(cmd);
-            System.err.println("resolved " + data);
             return unresolved;
         }
     }
