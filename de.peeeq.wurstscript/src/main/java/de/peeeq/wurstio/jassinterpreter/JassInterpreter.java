@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
 import de.peeeq.wurstscript.jassAst.*;
 import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.jassIm.ImFunction;
+import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.ExitwhenException;
 import de.peeeq.wurstscript.jassinterpreter.ReturnException;
 import de.peeeq.wurstscript.utils.Utils;
@@ -496,5 +497,20 @@ public class JassInterpreter implements AbstractInterpreter {
     @Override
     public void completeTimers() {
         timerMockHandler.completeTimers();
+    }
+
+    @Override
+    public ImProg getImProg() {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
+    }
+
+    @Override
+    public int getInstanceCount(int val) {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
+    }
+
+    @Override
+    public int getMaxInstanceCount(int val) {
+        throw new UnsupportedOperationException("Not supported in Jass interpreter.");
     }
 }

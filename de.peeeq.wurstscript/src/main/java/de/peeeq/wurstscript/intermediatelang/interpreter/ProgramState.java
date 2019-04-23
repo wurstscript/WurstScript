@@ -259,6 +259,9 @@ public class ProgramState extends State {
         return r;
     }
 
+    public Collection<ILconstObject> getAllObjects() {
+        return indexToObject.values();
+    }
 
 }
 

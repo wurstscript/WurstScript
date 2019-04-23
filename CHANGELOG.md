@@ -1,3 +1,20 @@
+## 1.9 (in progress)
+
+- Added new pseudo-natives for debugging memory leaks:
+
+        // returns the maximum type id, can be usd to
+        // iterate over all type-ids from 1 to maxTypeId()
+        native maxTypeId() returns int
+        // returns the class name for a given type id
+        native typeIdToTypeName(int typeId) returns string
+        // returns the number of active instances for a typeId
+        native instanceCount(int typeId) returns int
+        // returns the maximum number of instances reached for the given type id
+        native maxInstanceCount(int typeId) returns int
+
+    Remember, that when translated to Jass all types related by a subtype relation share the same object id recycler and will thus give the same numbers for `instanceCount`.
+    The interpreter will give more precise numbers.
+
 ## 1.8.1.0 (2019-04-11)
 
 ### Changelog reactivated

@@ -442,6 +442,82 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void typeName() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "class A",
+            "class B",
+            "init",
+            "	if typeIdToTypeName(B.typeId) == \"Test.B\"",
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void maxTypeId() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native maxTypeId() returns int",
+            "class A",
+            "class B",
+            "class C",
+            "class D",
+            "class E",
+            "init",
+            "	if maxTypeId() == 5", // since there are 5 classes [1..5]
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void instanceCount() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native instanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "	let a = new A",
+            "	let b = new A",
+            "	let c = new A",
+            "	let d = new A",
+            "	let e = new A",
+            "	let count1 = instanceCount(A.typeId)",
+            "	destroy a",
+            "	destroy e",
+            "	let count2 = instanceCount(A.typeId)",
+            "	if count1 == 5 and count2 == 3",
+            "		testSuccess()"
+        );
+    }
+
+    @Test
+    public void instanceMaxCount() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native maxInstanceCount(int typeId) returns int",
+            "class A",
+            "init",
+            "	let a = new A",
+            "	let b = new A",
+            "	let c = new A",
+            "	let d = new A",
+            "	let e = new A",
+            "	let count1 = maxInstanceCount(A.typeId)",
+            "	destroy a",
+            "	destroy e",
+            "	let count2 = maxInstanceCount(A.typeId)",
+            "	if count1 == 5 and count2 == 5",
+            "		testSuccess()"
+        );
+    }
+
+
+    @Test
     public void cyclicFunc2() {
         testAssertOkLines(true,
                 "package Test",

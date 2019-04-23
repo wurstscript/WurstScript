@@ -243,4 +243,26 @@ public class ILInterpreter implements AbstractInterpreter {
     public void completeTimers() {
         timerMockHandler.completeTimers();
     }
+
+    @Override
+    public ImProg getImProg() {
+        return prog;
+    }
+
+    @Override
+    public int getInstanceCount(int val) {
+        return (int) globalState.getAllObjects()
+            .stream()
+            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
+            .filter(o -> !o.isDestroyed())
+            .count();
+    }
+
+    @Override
+    public int getMaxInstanceCount(int val) {
+        return (int) globalState.getAllObjects()
+            .stream()
+            .filter(o -> o.getType().getClassDef().attrTypeId() == val)
+            .count();
+    }
 }

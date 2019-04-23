@@ -25,6 +25,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new HashtableProvider(interpreter));
         addProvider(new MathProvider(interpreter));
         addProvider(new OutputProvider(interpreter));
+        addProvider(new WurstflectionProvider(interpreter));
         addProvider(new StringProvider(interpreter));
         addProvider(new UnitProvider(interpreter));
         addProvider(new PlayerProvider(interpreter));
