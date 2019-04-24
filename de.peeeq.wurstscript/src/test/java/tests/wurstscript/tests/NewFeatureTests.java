@@ -456,6 +456,29 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void typeName2() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native typeIdToTypeName(int typeId) returns string",
+            "class A",
+            "class B",
+            "class C",
+            "class D",
+            "class E",
+            "class F",
+            "class G",
+            "class H",
+            "class I",
+            "class J",
+            "class K",
+            "init",
+            "	if typeIdToTypeName(J.typeId) == \"Test.J\"",
+            "		testSuccess()"
+        );
+    }
+
+    @Test
     public void maxTypeId() {
         testAssertOkLines(true,
             "package Test",

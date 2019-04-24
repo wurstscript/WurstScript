@@ -15,7 +15,6 @@ import de.peeeq.wurstscript.utils.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -137,25 +136,37 @@ public class EliminateClasses {
         ImVar typeId = JassIm.ImVar(trace, TypesHelper.imInt(), "typeId", false);
         ImVars parameters = JassIm.ImVars(typeId);
         ImVars locals = JassIm.ImVars();
-        ImStmts body = JassIm.ImStmts(
+        Map<ImClass, Integer> classId = prog.attrTypeId();
+        int maxTypeId = calculateMaxTypeId(prog);
+        ImClass[] typeIdToClass = new ImClass[maxTypeId + 1];
+        for (Map.Entry<ImClass, Integer> e : classId.entrySet()) {
+            typeIdToClass[e.getValue()] = e.getKey();
+        }
+        ImStmts body = generateBinarySearch(1, maxTypeId, typeId, typeIdToClass, makeAccess);
+        body.add(
             JassIm.ImReturn(trace, defaultReturn)
         );
-        Map<ImClass, Integer> classId = prog.attrTypeId();
-        for (Map.Entry<ImClass, Integer> entry : classId.entrySet()) {
-            body = JassIm.ImStmts(
-                JassIm.ImIf(trace,
-                    JassIm.ImOperatorCall(WurstOperator.EQ, JassIm.ImExprs(
-                        JassIm.ImVarAccess(typeId), JassIm.ImIntVal(entry.getValue()))),
-                    JassIm.ImStmts(
-                        JassIm.ImReturn(trace, makeAccess.apply(entry.getKey()))
-                    ),
-                    body
-                )
-            );
-        }
+
         ImFunction f = JassIm.ImFunction(trace, funcName, JassIm.ImTypeVars(), parameters, returnType, locals, body, Collections.emptyList());
         prog.getFunctions().add(f);
         return f;
+    }
+
+    private ImStmts generateBinarySearch(int lower, int upper, ImVar typeId, ImClass[] typeIdToClass, Function<ImClass, ImExpr> makeAccess) {
+        if (lower > upper) {
+            return JassIm.ImStmts();
+        } else if (lower == upper) {
+            return JassIm.ImStmts(JassIm.ImReturn(prog.getTrace(), makeAccess.apply(typeIdToClass[lower])));
+        } else {
+            int mid = lower + (upper - lower) / 2;
+            return
+                JassIm.ImStmts(JassIm.ImIf(prog.getTrace(),
+                    JassIm.ImOperatorCall(WurstOperator.LESS_EQ,
+                        JassIm.ImExprs(JassIm.ImVarAccess(typeId), JassIm.ImIntVal(mid))),
+                    generateBinarySearch(lower, mid, typeId, typeIdToClass, makeAccess),
+                    generateBinarySearch(mid + 1, upper, typeId, typeIdToClass, makeAccess)));
+
+        }
     }
 
     public static String calculateClassName(ImClass c) {
