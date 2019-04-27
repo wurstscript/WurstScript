@@ -8,15 +8,14 @@ import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
 import de.peeeq.wurstscript.types.TypesHelper;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashSet;
-import java.util.ListIterator;
-import java.util.Set;
+import java.util.*;
 
 public class LuaTranslator {
 
-    private final ImProg prog;
-    private final LuaCompilationUnit luaModel;
+    final ImProg prog;
+    final LuaCompilationUnit luaModel;
     private final Set<String> usedNames = new HashSet<>();
+    List<ExprTranslation.TupleEqualsFunc> tupleEqualsFuncs = new ArrayList<>();
 
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override

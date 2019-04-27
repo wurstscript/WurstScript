@@ -1,9 +1,11 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.Optional;
 
 public class ExprTranslation {
 
@@ -84,6 +86,11 @@ public class ExprTranslation {
         if (e.getArguments().size() == 2) {
             ImExpr left = e.getArguments().get(0);
             ImExpr right = e.getArguments().get(1);
+            if (e.getOp() == WurstOperator.EQ) {
+                return translateEquals(left, right, tr);
+            } else if (e.getOp() == WurstOperator.NOTEQ) {
+                return LuaAst.LuaExprUnary(LuaAst.LuaOpNot(), translateEquals(left, right, tr));
+            }
             LuaExpr leftExpr = left.translateToLua(tr);
             LuaExpr rightExpr = right.translateToLua(tr);
             LuaOpBinary op;
@@ -125,6 +132,76 @@ public class ExprTranslation {
 
         }
         throw new Error("not implemented: " + e);
+    }
+
+    static class TupleEqualsFunc {
+        final ImTupleType tupleType;
+        final LuaFunction func;
+
+        public TupleEqualsFunc(ImTupleType tupleType, LuaFunction func) {
+            this.tupleType = tupleType;
+            this.func = func;
+        }
+    }
+
+
+
+    private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
+        Optional<TupleEqualsFunc> tfo = tr.tupleEqualsFuncs.stream()
+            .filter(f -> f.tupleType.equalsType(t))
+            .findFirst();
+        TupleEqualsFunc tf;
+        if (tfo.isPresent()) {
+            tf = tfo.get();
+        } else {
+            LuaVariable t1 = LuaAst.LuaVariable("t1", LuaAst.LuaNoExpr());
+            LuaVariable t2 = LuaAst.LuaVariable("t2", LuaAst.LuaNoExpr());
+            LuaStatements body = LuaAst.LuaStatements();
+            LuaFunction func = LuaAst.LuaFunction(tr.uniqueName("tupleEquals"), LuaAst.LuaParams(t1, t2), body);
+            LuaExpr result = LuaAst.LuaExprBoolVal(true);
+
+            for (int i = 0; i < t.getNames().size(); i++) {
+                result = conjunction(result, translateEquals(
+                   LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t1),
+                       LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t2),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                    t.getTypes().get(i),
+                    tr));
+            }
+
+            body.add(LuaAst.LuaReturn(result));
+            tr.luaModel.add(func);
+            tf = new TupleEqualsFunc(t, func);
+            tr.tupleEqualsFuncs.add(tf);
+        }
+        return tf.func;
+    }
+
+    private static LuaExpr conjunction(LuaExpr left, LuaExpr right) {
+        if (left instanceof LuaExprBoolVal && ((LuaExprBoolVal) left).getValB()) {
+            return right;
+        } else if (right instanceof LuaExprBoolVal && ((LuaExprBoolVal) right).getValB()) {
+            return left;
+        }
+        return LuaAst.LuaExprBinary(left, LuaAst.LuaOpAnd(), right);
+    }
+
+    private static LuaExpr translateEquals(ImExpr left, ImExpr right, LuaTranslator tr) {
+        LuaExpr leftExpr = left.translateToLua(tr);
+        LuaExpr rightExpr = right.translateToLua(tr);
+        ImType t = left.attrTyp();
+        return translateEquals(leftExpr, rightExpr, t, tr);
+    }
+
+    @NotNull
+    private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
+        if (t instanceof ImTupleType) {
+            ImTupleType tt = (ImTupleType) t;
+            LuaFunction ef = getTupleEqualsFunc(tt, tr);
+            return LuaAst.LuaExprFunctionCall(ef, LuaAst.LuaExprlist(leftExpr, rightExpr));
+        }
+        return LuaAst.LuaExprBinary(leftExpr, LuaAst.LuaOpEquals(), rightExpr);
     }
 
 
