@@ -58,10 +58,9 @@ public class LuaTranslator {
         @Override
         public LuaMethod initFor(ImClass a) {
             LuaExprVarAccess receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a));
-            return LuaAst.LuaMethod(receiver,  uniqueName("create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            return LuaAst.LuaMethod(receiver, uniqueName("create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
-
 
 
     public LuaTranslator(ImProg prog) {
@@ -115,13 +114,14 @@ public class LuaTranslator {
             LuaStatement s = it.next();
             if (s instanceof LuaExprNull) {
                 it.remove();
-            } else if (s instanceof LuaExpr && !(s instanceof AstElementWithArgs)) {
+            } else if (s instanceof LuaExpr) {
                 LuaExpr e = (LuaExpr) s;
-                e.setParent(null);
-                LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", LuaAst.LuaNoExpr());
-                it.set(LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(exprTemp), e));
+                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral)) {
+                    e.setParent(null);
+                    LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);
+                    it.set(exprTemp);
+                }
             }
-
         }
     }
 
@@ -139,13 +139,14 @@ public class LuaTranslator {
         // translate parameters
         for (ImVar p : f.getParameters()) {
             LuaVariable pv = luaVar.getFor(p);
-            if (pv.getParent() != null) {
-                System.out.println(pv.getParent());
-                System.out.println(pv.getParent().getParent());
-                System.out.println(pv.getParent().getParent().getParent());
-            }
             lf.getParams().add(pv);
         }
+        // translate local variables
+        for (ImVar local : f.getLocals()) {
+            LuaVariable luaLocal = luaVar.getFor(local);
+            lf.getBody().add(luaLocal);
+        }
+
         // translate body:
         translateStatements(lf.getBody(), f.getBody());
     }
@@ -191,11 +192,21 @@ public class LuaTranslator {
             ));
         }
 
+        // set supertype metadata:
+        LuaTableFields superClasses = LuaAst.LuaTableFields();
+        collectSuperClasses(superClasses, c, new HashSet<>());
+        luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+            LuaAst.LuaExprVarAccess(classVar),
+            ExprTranslation.WURST_SUPERTYPES),
+            LuaAst.LuaTableConstructor(superClasses)
+        ));
+
+
         // create init function:
         LuaStatements body = initMethod.getBody();
         // local new_inst = {}
-        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaNoExpr());
-        body.add(LuaAst.LuaLocal(newInst, LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())));
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        body.add(newInst);
         // setmetatable(new_inst, {__index = classVar})
         body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
             LuaAst.LuaExprVarAccess(newInst),
@@ -207,10 +218,22 @@ public class LuaTranslator {
 
     }
 
+    private void collectSuperClasses(LuaTableFields superClasses, ImClass c, Set<ImClass> visited) {
+        if (visited.contains(c)) {
+            return;
+        }
+        superClasses.add(LuaAst.LuaTableExprField(LuaAst.LuaExprVarAccess(luaClassVar.getFor(c)), LuaAst.LuaExprBoolVal(true)));
+        visited.add(c);
+        for (ImClassType sc : c.getSuperClasses()) {
+            collectSuperClasses(superClasses, sc.getClassDef(), visited);
+        }
+    }
+
+
     private void translateGlobal(ImVar v) {
         LuaVariable lv = luaVar.getFor(v);
         if (v.getType() instanceof ImArrayType
-                || v.getType() instanceof ImArrayTypeMulti) {
+            || v.getType() instanceof ImArrayTypeMulti) {
             lv.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
         }
         luaModel.add(lv);

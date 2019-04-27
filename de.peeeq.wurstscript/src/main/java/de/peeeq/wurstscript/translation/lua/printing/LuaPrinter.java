@@ -177,16 +177,6 @@ public class LuaPrinter {
         sb.append("end");
     }
 
-    public static void print(LuaLocal s, StringBuilder sb, int indent) {
-        sb.append("local ");
-        sb.append(s.getDefinedVar().getName());
-        if (s.getInitialValue() instanceof LuaExpr) {
-            LuaExpr in = (LuaExpr) s.getInitialValue();
-            sb.append(" = ");
-            in.print(sb, indent);
-        }
-    }
-
     public static void print(LuaModel m, StringBuilder sb, int indent) {
         for (LuaCompilationUnit cu : m) {
             cu.print(sb, indent);
@@ -290,7 +280,7 @@ public class LuaPrinter {
     public static void print(LuaTableExprField e, StringBuilder sb, int indent) {
         sb.append("[");
         e.getFieldKey().print(sb, indent);
-        sb.append("])");
+        sb.append("] = ");
         e.getVal().print(sb, indent);
     }
 
@@ -312,13 +302,11 @@ public class LuaPrinter {
     }
 
     public static void print(LuaVariable v, StringBuilder sb, int indent) {
-
+        sb.append("local ");
         sb.append(v.getName());
-        sb.append(" = ");
         if (v.getInitialValue() instanceof LuaExpr) {
+            sb.append(" = ");
             v.getInitialValue().print(sb, indent);
-        } else {
-            sb.append("nil");
         }
     }
 

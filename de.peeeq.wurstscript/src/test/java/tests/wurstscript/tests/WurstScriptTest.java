@@ -39,7 +39,6 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
-    private static final boolean testLua = true;
 
     protected boolean testOptimizer() {
         return true;
@@ -60,6 +59,7 @@ public class WurstScriptTest {
         private List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
+        private boolean testLua = true;
 
         TestConfig(String name) {
             this.name = name;
@@ -244,6 +244,11 @@ public class WurstScriptTest {
 
         public TestConfig runCompiletimeFunctions(boolean b) {
             this.runCompiletimeFunctions = b;
+            return this;
+        }
+
+        public TestConfig testLua(boolean b) {
+            this.testLua = b;
             return this;
         }
     }

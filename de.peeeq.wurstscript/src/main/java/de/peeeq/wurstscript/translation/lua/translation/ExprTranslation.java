@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.luaAst.*;
 public class ExprTranslation {
 
     private static final String TYPE_ID = "__typeId__";
+    public static final String WURST_SUPERTYPES = "__wurst_supertypes";
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
         ImClass c = e.getClazz().getClassDef();
@@ -37,8 +38,21 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
-        // what is the object layout?
-        throw new Error("not implemented");
+        // x instanceof A
+        // ==> x.__wurst_supertypes[A] == true
+        return LuaAst.LuaExprBinary(
+            LuaAst.LuaExprArrayAccess(
+                LuaAst.LuaExprFieldAccess(
+                    e.getObj().translateToLua(tr),
+                    WURST_SUPERTYPES
+                ),
+                LuaAst.LuaExprlist(
+                    LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(e.getClazz().getClassDef()))
+                )
+            ),
+            LuaAst.LuaOpEquals(),
+            LuaAst.LuaExprBoolVal(true)
+        );
     }
 
     public static LuaExpr translate(ImIntVal e, LuaTranslator tr) {
@@ -66,19 +80,19 @@ public class ExprTranslation {
             LuaExpr rightExpr = right.translateToLua(tr);
             LuaOpBinary op;
             if (e.getOp() == WurstOperator.PLUS
-                    && isStringType(left.attrTyp())
-                    && isStringType(right.attrTyp())) {
+                && isStringType(left.attrTyp())
+                && isStringType(right.attrTyp())) {
                 // special case for string concatenation
                 op = LuaAst.LuaOpConcatString();
             } else if (e.getOp() == WurstOperator.MOD_INT) {
                 op = LuaAst.LuaOpMod();
 
                 return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
-                        LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
+                    LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
             } else if (e.getOp() == WurstOperator.DIV_INT) {
                 op = LuaAst.LuaOpDiv();
                 return LuaAst.LuaExprFunctionCallE(LuaAst.LuaLiteral("math.floor"),
-                        LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
+                    LuaAst.LuaExprlist(LuaAst.LuaExprBinary(leftExpr, op, rightExpr)));
             } else {
                 // TODO special cases for integer division and modulo
                 op = e.getOp().luaTranslateBinary();
@@ -122,8 +136,8 @@ public class ExprTranslation {
         LuaStatements body = tr.translateStatements(e.getStatements());
         body.add(LuaAst.LuaReturn(e.getExpr().translateToLua(tr)));
         return LuaAst.LuaExprFunctionCallE(
-                LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(), body),
-                LuaAst.LuaExprlist());
+            LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(), body),
+            LuaAst.LuaExprlist());
     }
 
     public static LuaExpr translate(ImStringVal e, LuaTranslator tr) {

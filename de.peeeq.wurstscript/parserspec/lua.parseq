@@ -18,7 +18,6 @@ LuaStatements * LuaStatement
 
 LuaStatement =
       LuaDefinition
-    | LuaLocal(LuaVariable definedVar, LuaExprOpt initialValue)
     | LuaAssignment(LuaExpr left, LuaExpr right)
     | LuaWhile(LuaExpr cond, LuaStatements body)
     | LuaIf(LuaExpr cond, LuaStatements thenStmts, LuaStatements elseStmts)
@@ -33,15 +32,19 @@ LuaExprlist * LuaExpr
 LuaExpr = 
       LuaExprBinary(LuaExpr leftExpr, LuaOpBinary op, LuaExpr right) // left = a, op = "and" right="b" --> a and b k?
     | LuaExprUnary(LuaOpUnary opU, LuaExpr right)
-    | LuaExprFunctionCall(ref LuaFunction func, LuaExprlist arguments)
-    | LuaExprMethodCall(LuaExpr receiver, ref LuaMethod method, LuaExprlist arguments)
-    | LuaExprFunctionCallByName(String funcName, LuaExprlist arguments)
-    | LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
-    | LuaExprFunctionCallE(LuaExpr funcExpr, LuaExprlist arguments)
+    | LuaCallExpr
     | LuaTableConstructor(LuaTableFields tableFields)
     | LuaExprFieldAccess(LuaExpr receiver, String fieldName)
     | LuaExprArrayAccess(LuaExpr left, LuaExprlist indexes)
     | LuaExprAtomic
+
+LuaCallExpr =
+      LuaExprFunctionCall(ref LuaFunction func, LuaExprlist arguments)
+    | LuaExprMethodCall(LuaExpr receiver, ref LuaMethod method, LuaExprlist arguments)
+    | LuaExprFunctionCallByName(String funcName, LuaExprlist arguments)
+    | LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
+    | LuaExprFunctionCallE(LuaExpr funcExpr, LuaExprlist arguments)
+
 
 LuaTableFields * LuaTableField
 
