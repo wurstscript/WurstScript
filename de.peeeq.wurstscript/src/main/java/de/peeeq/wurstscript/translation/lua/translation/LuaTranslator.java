@@ -37,7 +37,7 @@ public class LuaTranslator {
         @Override
         public LuaMethod initFor(ImMethod a) {
             LuaExpr receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a.attrClass()));
-            return LuaAst.LuaMethod(receiver, uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            return LuaAst.LuaMethod(receiver, a.getName(), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
 
@@ -76,6 +76,7 @@ public class LuaTranslator {
         while (usedNames.contains(rname)) {
             rname = name + ++i;
         }
+        usedNames.add(rname);
         return rname;
     }
 
