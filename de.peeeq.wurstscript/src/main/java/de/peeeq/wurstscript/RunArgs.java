@@ -14,6 +14,7 @@ public class RunArgs {
 
 
     private final String[] args;
+    private final RunOption optionLua;
     private List<String> files = Lists.newArrayList();
     private @Nullable String mapFile = null;
     private @Nullable String outFile = null;
@@ -124,6 +125,8 @@ public class RunArgs {
         optionBuild = addOption("build", "Builds an output map from the input map and library directories.");
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
+        optionLua = addOption("lua", "Choose Lua as the compilation target.");
+
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -342,6 +345,10 @@ public class RunArgs {
 
     public String getInputmap() {
         return inputmap;
+    }
+
+    public boolean isLua() {
+        return optionLua.isSet;
     }
 
 }

@@ -4,13 +4,17 @@ import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
+import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
 
+import java.util.HashSet;
 import java.util.ListIterator;
+import java.util.Set;
 
 public class LuaTranslator {
 
     private final ImProg prog;
     private final LuaCompilationUnit luaModel;
+    private final Set<String> usedNames = new HashSet<>();
 
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
@@ -26,21 +30,39 @@ public class LuaTranslator {
             return LuaAst.LuaFunction(uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
-    public GetAForB<ImMethod, LuaFunction> luaMethod = new GetAForB<ImMethod, LuaFunction>() {
+    public GetAForB<ImMethod, LuaMethod> luaMethod = new GetAForB<ImMethod, LuaMethod>() {
 
         @Override
-        public LuaFunction initFor(ImMethod a) {
-            return LuaAst.LuaFunction(uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        public LuaMethod initFor(ImMethod a) {
+            LuaExpr receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a.attrClass()));
+            return LuaAst.LuaMethod(receiver, uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
-    public GetAForB<ImClass, Integer> typeId = new GetAForB<ImClass, Integer>() {
-        int idCounter = 0;
 
+
+    GetAForB<ImClass, LuaVariable> luaClassVar = new GetAForB<ImClass, LuaVariable>() {
         @Override
-        public Integer initFor(ImClass a) {
-            return ++idCounter;
+        public LuaVariable initFor(ImClass a) {
+            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaNoExpr());
         }
     };
+
+    GetAForB<ImClass, LuaVariable> luaClassMetaTableVar = new GetAForB<ImClass, LuaVariable>() {
+        @Override
+        public LuaVariable initFor(ImClass a) {
+            return LuaAst.LuaVariable(uniqueName(a.getName() + "_mt"), LuaAst.LuaNoExpr());
+        }
+    };
+
+    GetAForB<ImClass, LuaMethod> luaClassInitMethod = new GetAForB<ImClass, LuaMethod>() {
+        @Override
+        public LuaMethod initFor(ImClass a) {
+            LuaExprVarAccess receiver = LuaAst.LuaExprVarAccess(luaClassVar.getFor(a));
+            return LuaAst.LuaMethod(receiver,  uniqueName("create"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+        }
+    };
+
+
 
     public LuaTranslator(ImProg prog) {
         this.prog = prog;
@@ -48,10 +70,16 @@ public class LuaTranslator {
     }
 
     protected String uniqueName(String name) {
-        return name;
+        int i = 0;
+        String rname = name;
+        while (usedNames.contains(rname)) {
+            rname = name + ++i;
+        }
+        return rname;
     }
 
     public LuaCompilationUnit translate() {
+        NormalizeNames.normalizeNames(prog);
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -110,7 +138,13 @@ public class LuaTranslator {
         luaModel.add(lf);
         // translate parameters
         for (ImVar p : f.getParameters()) {
-            lf.getParams().add(luaVar.getFor(p));
+            LuaVariable pv = luaVar.getFor(p);
+            if (pv.getParent() != null) {
+                System.out.println(pv.getParent());
+                System.out.println(pv.getParent().getParent());
+                System.out.println(pv.getParent().getParent().getParent());
+            }
+            lf.getParams().add(pv);
         }
         // translate body:
         translateStatements(lf.getBody(), f.getBody());
@@ -128,9 +162,49 @@ public class LuaTranslator {
         return r;
     }
 
+
     private void translateClass(ImClass c) {
-        // TODO
-        throw new RuntimeException("TODO translate class " + c.getName());
+        // following the code at http://lua-users.org/wiki/InheritanceTutorial
+        LuaVariable classVar = luaClassVar.getFor(c);
+        LuaMethod initMethod = luaClassInitMethod.getFor(c);
+
+        luaModel.add(classVar);
+        luaModel.add(initMethod);
+
+        classVar.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+
+        // translate functions
+        for (ImFunction f : c.getFunctions()) {
+            translateFunc(f);
+            luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
+        }
+
+        // create methods:
+        for (ImMethod method : c.getMethods()) {
+            if (method.getIsAbstract()) {
+                continue;
+            }
+            luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                method.getName()),
+                LuaAst.LuaExprFuncRef(luaFunc.getFor(method.getImplementation()))
+            ));
+        }
+
+        // create init function:
+        LuaStatements body = initMethod.getBody();
+        // local new_inst = {}
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaNoExpr());
+        body.add(LuaAst.LuaLocal(newInst, LuaAst.LuaTableConstructor(LuaAst.LuaTableFields())));
+        // setmetatable(new_inst, {__index = classVar})
+        body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
+            LuaAst.LuaExprVarAccess(newInst),
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+                LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
+            ))
+        )));
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+
     }
 
     private void translateGlobal(ImVar v) {
@@ -159,4 +233,7 @@ public class LuaTranslator {
     }
 
 
+    public int getTypeId(ImClass classDef) {
+        return prog.attrTypeId().get(classDef);
+    }
 }

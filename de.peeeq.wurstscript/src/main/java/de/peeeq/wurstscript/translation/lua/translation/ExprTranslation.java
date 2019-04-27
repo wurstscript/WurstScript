@@ -9,14 +9,14 @@ public class ExprTranslation {
     private static final String TYPE_ID = "__typeId__";
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {
-        LuaTableFields fields = LuaAst.LuaTableFields();
-        ImClass clazz = e.getClazz().getClassDef();
-        fields.add(LuaAst.LuaTableNamedField("wurst_typeId", LuaAst.LuaExprIntVal("" + clazz.attrTypeId())));
-//        for (ImMethod m : clazz.getMethods()) {
-//            LuaFunction luaMethod = tr.luaMethod.getFor(m);
-//            fields.add(LuaAst.LuaTableNamedField(luaMethod.getName(), LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(m.getImplementation()))));
-//        }
-        return LuaAst.LuaTableConstructor(fields); // TODO any fields required? typeid?
+        ImClass c = e.getClazz().getClassDef();
+        LuaMethod m = tr.luaClassInitMethod.getFor(c);
+        LuaVariable classVar = tr.luaClassVar.getFor(c);
+        return LuaAst.LuaExprMethodCall(
+            LuaAst.LuaExprVarAccess(classVar),
+            m,
+            LuaAst.LuaExprlist()
+        );
     }
 
     public static LuaExpr translate(ImBoolVal e, LuaTranslator tr) {
@@ -143,7 +143,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
-        int i = tr.typeId.getFor(e.getClazz().getClassDef());
+        int i = tr.getTypeId(e.getClazz().getClassDef());
         return LuaAst.LuaExprIntVal("" + i);
     }
 

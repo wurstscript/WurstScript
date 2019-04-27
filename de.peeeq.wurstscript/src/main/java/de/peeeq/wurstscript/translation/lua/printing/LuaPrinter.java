@@ -16,7 +16,7 @@ public class LuaPrinter {
     }
 
     public static void print(LuaCompilationUnit cu, StringBuilder sb, int indent) {
-        for (LuaDefinition d : cu) {
+        for (LuaStatement d : cu) {
             d.print(sb, indent);
             sb.append("\n\n");
         }
@@ -47,6 +47,7 @@ public class LuaPrinter {
 
     public static void print(LuaExprFieldAccess e, StringBuilder sb, int indent) {
         e.getReceiver().print(sb, indent);
+        sb.append(".");
         sb.append(e.getFieldName());
     }
 
@@ -109,7 +110,7 @@ public class LuaPrinter {
     public static void print(LuaExprMethodCall e, StringBuilder sb, int indent) {
         e.getReceiver().print(sb, indent);
         sb.append(":");
-        sb.append(e.getFunc().getName());
+        sb.append(e.getMethod().getName());
         sb.append("(");
         e.getArguments().print(sb, indent);
         sb.append(")");
@@ -141,6 +142,20 @@ public class LuaPrinter {
     public static void print(LuaFunction f, StringBuilder sb, int indent) {
         printIndent(sb, indent);
         sb.append("function ");
+        sb.append(f.getName());
+        sb.append("(");
+        f.getParams().print(sb, indent);
+        sb.append(") \n");
+        f.getBody().print(sb, indent + 1);
+        printIndent(sb, indent);
+        sb.append("end");
+    }
+
+    public static void print(LuaMethod f, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("function ");
+        f.getReceiver().print(sb, indent);
+        sb.append(":");
         sb.append(f.getName());
         sb.append("(");
         f.getParams().print(sb, indent);

@@ -39,7 +39,7 @@ import static org.testng.Assert.fail;
 public class WurstScriptTest {
 
     private static final String TEST_OUTPUT_PATH = "./test-output/";
-    private static final boolean testLua = false;
+    private static final boolean testLua = true;
 
     protected boolean testOptimizer() {
         return true;
@@ -393,9 +393,9 @@ public class WurstScriptTest {
             if (executeProg) {
                 String line;
                 String[] args = {
-                        "lua",
-                        "-l", luaFile.getPath().replace(".lua", ""),
-                        "-e", "main()"
+                    "lua",
+                    "-l", luaFile.getPath().replace(".lua", ""),
+                    "-e", "main()"
                 };
                 Process p = Runtime.getRuntime().exec(args);
                 StringBuilder errors = new StringBuilder();
@@ -427,7 +427,8 @@ public class WurstScriptTest {
                 }
             }
 
-
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
