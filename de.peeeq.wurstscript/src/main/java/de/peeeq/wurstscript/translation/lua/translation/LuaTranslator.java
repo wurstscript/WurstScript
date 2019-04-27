@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
+import de.peeeq.wurstscript.types.TypesHelper;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.HashSet;
 import java.util.ListIterator;
@@ -163,8 +165,18 @@ public class LuaTranslator {
         return r;
     }
 
+    private Set<ImClass> translated = new HashSet<>();
 
     private void translateClass(ImClass c) {
+        if (translated.contains(c)) {
+            return;
+        }
+        translated.add(c);
+        // first translate super-classes
+        for (ImClassType sc : c.getSuperClasses()) {
+            translateClass(sc.getClassDef());
+        }
+
         // following the code at http://lua-users.org/wiki/InheritanceTutorial
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
@@ -172,7 +184,7 @@ public class LuaTranslator {
         luaModel.add(classVar);
         luaModel.add(initMethod);
 
-        classVar.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        classVar.setInitialValue(emptyTable());
 
         // translate functions
         for (ImFunction f : c.getFunctions()) {
@@ -181,16 +193,8 @@ public class LuaTranslator {
         }
 
         // create methods:
-        for (ImMethod method : c.getMethods()) {
-            if (method.getIsAbstract()) {
-                continue;
-            }
-            luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
-                LuaAst.LuaExprVarAccess(classVar),
-                method.getName()),
-                LuaAst.LuaExprFuncRef(luaFunc.getFor(method.getImplementation()))
-            ));
-        }
+        Set<String> methods = new HashSet<>();
+        createMethods(c, classVar, methods);
 
         // set supertype metadata:
         LuaTableFields superClasses = LuaAst.LuaTableFields();
@@ -205,7 +209,18 @@ public class LuaTranslator {
         // create init function:
         LuaStatements body = initMethod.getBody();
         // local new_inst = {}
-        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
+        LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
+        for (ImVar field : c.getFields()) {
+            if (field.getType() instanceof ImArrayType
+            || field.getType() instanceof ImArrayTypeMulti) {
+                // initialize with empty array
+                initialFieldValues.add(
+                    LuaAst.LuaTableNamedField(field.getName(), emptyTable())
+                );
+            }
+        }
+
         body.add(newInst);
         // setmetatable(new_inst, {__index = classVar})
         body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
@@ -216,6 +231,32 @@ public class LuaTranslator {
         )));
         body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
 
+    }
+
+    private void createMethods(ImClass c, LuaVariable classVar, Set<String> methods) {
+        for (ImMethod method : c.getMethods()) {
+            if (methods.contains(method.getName())) {
+                continue;
+            }
+            methods.add(method.getName());
+            if (method.getIsAbstract()) {
+                continue;
+            }
+            luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+                LuaAst.LuaExprVarAccess(classVar),
+                method.getName()),
+                LuaAst.LuaExprFuncRef(luaFunc.getFor(method.getImplementation()))
+            ));
+        }
+        // also create links for inherited methods
+        for (ImClassType sc : c.getSuperClasses()) {
+            createMethods(sc.getClassDef(), classVar, methods);
+        }
+    }
+
+    @NotNull
+    private LuaTableConstructor emptyTable() {
+        return LuaAst.LuaTableConstructor(LuaAst.LuaTableFields());
     }
 
     private void collectSuperClasses(LuaTableFields superClasses, ImClass c, Set<ImClass> visited) {
@@ -232,11 +273,58 @@ public class LuaTranslator {
 
     private void translateGlobal(ImVar v) {
         LuaVariable lv = luaVar.getFor(v);
-        if (v.getType() instanceof ImArrayType
-            || v.getType() instanceof ImArrayTypeMulti) {
-            lv.setInitialValue(LuaAst.LuaTableConstructor(LuaAst.LuaTableFields()));
-        }
+        lv.setInitialValue(defaultValue(v.getType()));
         luaModel.add(lv);
+    }
+
+    private LuaExpr defaultValue(ImType type) {
+        return type.match(new ImType.Matcher<LuaExpr>() {
+            @Override
+            public LuaExpr case_ImTupleType(ImTupleType tt) {
+                LuaTableFields tableFields = LuaAst.LuaTableFields();
+                for (int i = 0; i < tt.getNames().size(); i++) {
+                    tableFields.add(LuaAst.LuaTableNamedField(tt.getNames().get(i), defaultValue(tt.getTypes().get(i))));
+                }
+                return LuaAst.LuaTableConstructor(
+                    tableFields
+                );
+            }
+
+            @Override
+            public LuaExpr case_ImVoid(ImVoid imVoid) {
+                return LuaAst.LuaExprNull();
+            }
+
+            @Override
+            public LuaExpr case_ImClassType(ImClassType imClassType) {
+                return LuaAst.LuaExprNull();
+            }
+
+            @Override
+            public LuaExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
+                return emptyTable();
+            }
+
+            @Override
+            public LuaExpr case_ImSimpleType(ImSimpleType st) {
+                if (TypesHelper.isIntType(st)) {
+                    return LuaAst.LuaExprIntVal("0");
+                } else if (TypesHelper.isBoolType(st)) {
+                    return LuaAst.LuaExprBoolVal(false);
+                }
+                return LuaAst.LuaExprNull();
+            }
+
+            @Override
+            public LuaExpr case_ImArrayType(ImArrayType imArrayType) {
+                return emptyTable();
+            }
+
+            @Override
+            public LuaExpr case_ImTypeVarRef(ImTypeVarRef imTypeVarRef) {
+                return LuaAst.LuaExprNull();
+            }
+        });
     }
 
     public LuaExprOpt translateOptional(ImExprOpt e) {

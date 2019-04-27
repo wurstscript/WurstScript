@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.WurstOperator;
+import de.peeeq.wurstscript.jassAst.JassExpr;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 
@@ -60,8 +61,15 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImMemberAccess e, LuaTranslator tr) {
-        return LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), e.getVar().getName());
-        // TODO can name be used here directly?
+        LuaExpr res = LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), e.getVar().getName());
+        if (!e.getIndexes().isEmpty()) {
+            LuaExprlist indexes = LuaAst.LuaExprlist();
+            for (ImExpr index : e.getIndexes()) {
+                indexes.add(index.translateToLua(tr));
+            }
+            res = LuaAst.LuaExprArrayAccess(res, indexes);
+        }
+        return res;
     }
 
     public static LuaExpr translate(ImMethodCall e, LuaTranslator tr) {

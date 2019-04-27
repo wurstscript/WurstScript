@@ -55,6 +55,13 @@ public class TypesHelper {
         return false;
     }
 
+    public static boolean isBoolType(ImType t) {
+        if (t instanceof ImSimpleType) {
+            return ((ImSimpleType) t).getTypename().equals("boolean");
+        }
+        return false;
+    }
+
     public static ImSimpleType imTrigger() {
         return JassIm.ImSimpleType("trigger");
     }
