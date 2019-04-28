@@ -32,8 +32,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
-        // functions are just referenced by name
-        return LuaAst.LuaExprStringVal(tr.luaFunc.getFor(e.getFunc()).getName());
+        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
@@ -314,6 +313,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
+
         return imCast.getExpr().translateToLua(tr);
     }
 }

@@ -205,8 +205,9 @@ public class WurstScriptTest {
 
             if (testLua && executeProg && !withStdLib) {
                 // test lua translation
-                compiler.setRunArgs(new RunArgs("-lua"));
-                translateAndTestLua(name, executeProg, gui, model);
+                runArgs = runArgs.with("-lua");
+                compiler.setRunArgs(runArgs);
+                translateAndTestLua(name, executeProg, gui, model, compiler);
             }
 
             return new CompilationResult(model, gui);
@@ -372,15 +373,17 @@ public class WurstScriptTest {
         translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
-    private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model) {
+    private void translateAndTestLua(String name, boolean executeProg, WurstGui gui, WurstModel model, WurstCompilerJassImpl compiler) {
         try {
             name = name.replaceAll("[^a-zA-Z0-9_]", "_");
 
-            ImTranslator imTranslator = new ImTranslator(model, true);
-            ImProg imProg = imTranslator.translateProg();
+            compiler.translateProgToIm(model);
 
-            LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
-            LuaCompilationUnit luaCode = luaTranslator.translate();
+            compiler.runCompiletime();
+
+            System.out.println(compiler.getImProg());
+
+            LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);
 

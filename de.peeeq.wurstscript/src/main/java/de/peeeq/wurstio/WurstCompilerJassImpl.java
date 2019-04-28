@@ -19,10 +19,12 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtojass.ImToJassTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.*;
+import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.NotNullList;
@@ -796,4 +798,9 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         return mapFileMpq;
     }
 
+    public LuaCompilationUnit transformProgToLua() {
+        LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
+        LuaCompilationUnit luaCode = luaTranslator.translate();
+        return luaCode;
+    }
 }

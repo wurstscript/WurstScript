@@ -74,18 +74,18 @@ public class LuaNatives {
 
         addNative("CreateTrigger", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("{ actions = {}}"));
+            f.getBody().add(LuaAst.LuaLiteral("return { actions = {}}"));
         });
 
         addNative("TriggerAddAction", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
             f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("t.actions.insert(c)"));
+            f.getBody().add(LuaAst.LuaLiteral("table.insert(t.actions, c)"));
         });
 
         addNative("TriggerEvaluate", f -> {
             f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
-            f.getBody().add(LuaAst.LuaLiteral("for a in t.actions do a() end"));
+            f.getBody().add(LuaAst.LuaLiteral("for i,a in ipairs(t.actions) do a() end"));
         });
 
         addNative("R2I", f -> {
