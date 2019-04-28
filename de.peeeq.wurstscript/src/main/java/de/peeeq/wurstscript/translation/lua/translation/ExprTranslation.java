@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class ExprTranslation {
 
-    private static final String TYPE_ID = "__typeId__";
+    public static final String TYPE_ID = "__typeId__";
     public static final String WURST_SUPERTYPES = "__wurst_supertypes";
 
     public static LuaExpr translate(ImAlloc e, LuaTranslator tr) {

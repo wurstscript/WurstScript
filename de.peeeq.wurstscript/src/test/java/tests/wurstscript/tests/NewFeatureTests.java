@@ -443,7 +443,9 @@ public class NewFeatureTests extends WurstScriptTest {
 
     @Test
     public void typeName() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
             "package Test",
             "native testSuccess()",
             "native typeIdToTypeName(int typeId) returns string",
@@ -457,7 +459,9 @@ public class NewFeatureTests extends WurstScriptTest {
 
     @Test
     public void typeName2() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
             "package Test",
             "native testSuccess()",
             "native typeIdToTypeName(int typeId) returns string",
@@ -480,7 +484,9 @@ public class NewFeatureTests extends WurstScriptTest {
 
     @Test
     public void maxTypeId() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
             "package Test",
             "native testSuccess()",
             "native maxTypeId() returns int",
@@ -497,29 +503,33 @@ public class NewFeatureTests extends WurstScriptTest {
 
     @Test
     public void instanceCount() {
-        testAssertOkLines(true,
-            "package Test",
-            "native testSuccess()",
-            "native instanceCount(int typeId) returns int",
-            "class A",
-            "init",
-            "	let a = new A",
-            "	let b = new A",
-            "	let c = new A",
-            "	let d = new A",
-            "	let e = new A",
-            "	let count1 = instanceCount(A.typeId)",
-            "	destroy a",
-            "	destroy e",
-            "	let count2 = instanceCount(A.typeId)",
-            "	if count1 == 5 and count2 == 3",
-            "		testSuccess()"
-        );
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
+                "package Test",
+                "native testSuccess()",
+                "native instanceCount(int typeId) returns int",
+                "class A",
+                "init",
+                "	let a = new A",
+                "	let b = new A",
+                "	let c = new A",
+                "	let d = new A",
+                "	let e = new A",
+                "	let count1 = instanceCount(A.typeId)",
+                "	destroy a",
+                "	destroy e",
+                "	let count2 = instanceCount(A.typeId)",
+                "	if count1 == 5 and count2 == 3",
+                "		testSuccess()"
+            );
     }
 
     @Test
     public void instanceMaxCount() {
-        testAssertOkLines(true,
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
             "package Test",
             "native testSuccess()",
             "native maxInstanceCount(int typeId) returns int",

@@ -268,6 +268,10 @@ public class LuaPrinter {
             printIndent(sb, indent);
             s.print(sb, indent);
             sb.append("\n");
+            if (s instanceof LuaReturn || s instanceof LuaBreak) {
+                // there can be no statement after return or break ...
+                break;
+            }
         }
     }
 

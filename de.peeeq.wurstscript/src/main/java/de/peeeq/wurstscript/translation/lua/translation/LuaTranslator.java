@@ -300,10 +300,18 @@ public class LuaTranslator {
             LuaAst.LuaTableConstructor(superClasses)
         ));
 
+        // set typeid metadata:
+        luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
+            LuaAst.LuaExprVarAccess(classVar),
+            ExprTranslation.TYPE_ID),
+            LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
+        ));
+
+
 
         // create init function:
         LuaStatements body = initMethod.getBody();
-        // local new_inst = {}
+        // local new_inst = { ... }
         LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
         LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
         for (ImVar field : c.getFields()) {
@@ -311,6 +319,7 @@ public class LuaTranslator {
                 LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
             );
         }
+
 
         body.add(newInst);
         // setmetatable(new_inst, {__index = classVar})

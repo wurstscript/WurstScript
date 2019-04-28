@@ -67,6 +67,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.random(l,h)"));
         });
 
+        addNative("SquareRoot", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.sqrt(x)"));
+        });
+
     }
 
     private static void addNative(String name, Consumer<LuaFunction> f) {
