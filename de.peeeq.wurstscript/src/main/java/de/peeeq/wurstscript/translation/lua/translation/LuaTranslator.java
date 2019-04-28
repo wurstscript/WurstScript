@@ -153,7 +153,7 @@ public class LuaTranslator {
                 it.remove();
             } else if (s instanceof LuaExpr) {
                 LuaExpr e = (LuaExpr) s;
-                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral)) {
+                if (!(e instanceof LuaCallExpr || e instanceof LuaLiteral) || e instanceof LuaExprFunctionCallE) {
                     e.setParent(null);
                     LuaVariable exprTemp = LuaAst.LuaVariable("wurstExpr", e);
                     it.set(exprTemp);

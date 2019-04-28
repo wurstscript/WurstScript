@@ -33,6 +33,7 @@ LuaExpr =
       LuaExprBinary(LuaExpr leftExpr, LuaOpBinary op, LuaExpr right) // left = a, op = "and" right="b" --> a and b k?
     | LuaExprUnary(LuaOpUnary opU, LuaExpr right)
     | LuaCallExpr
+    | LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
     | LuaTableConstructor(LuaTableFields tableFields)
     | LuaExprFieldAccess(LuaExpr receiver, String fieldName)
     | LuaExprArrayAccess(LuaExpr left, LuaExprlist indexes)
@@ -42,7 +43,6 @@ LuaCallExpr =
       LuaExprFunctionCall(ref LuaFunction func, LuaExprlist arguments)
     | LuaExprMethodCall(LuaExpr receiver, ref LuaMethod method, LuaExprlist arguments)
     | LuaExprFunctionCallByName(String funcName, LuaExprlist arguments)
-    | LuaExprFunctionAbstraction(LuaParams params, LuaStatements body)
     | LuaExprFunctionCallE(LuaExpr funcExpr, LuaExprlist arguments)
 
 
