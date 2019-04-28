@@ -17,8 +17,8 @@ public class StmtTranslation {
 
     public static void translate(ImExitwhen s, List<LuaStatement> res, LuaTranslator tr) {
         LuaIf r = LuaAst.LuaIf(s.getCondition().translateToLua(tr),
-                LuaAst.LuaStatements(LuaAst.LuaBreak()),
-                LuaAst.LuaStatements());
+            LuaAst.LuaStatements(LuaAst.LuaBreak()),
+            LuaAst.LuaStatements());
         res.add(r);
     }
 
@@ -28,8 +28,8 @@ public class StmtTranslation {
 
     public static void translate(ImIf s, List<LuaStatement> res, LuaTranslator tr) {
         res.add(LuaAst.LuaIf(s.getCondition().translateToLua(tr),
-                tr.translateStatements(s.getThenBlock()),
-                tr.translateStatements(s.getElseBlock())));
+            tr.translateStatements(s.getThenBlock()),
+            tr.translateStatements(s.getElseBlock())));
     }
 
     public static void translate(ImReturn s, List<LuaStatement> res, LuaTranslator tr) {
@@ -37,7 +37,14 @@ public class StmtTranslation {
     }
 
     public static void translate(ImSet s, List<LuaStatement> res, LuaTranslator tr) {
-        res.add(LuaAst.LuaAssignment(s.getLeft().translateToLua(tr), s.getRight().translateToLua(tr)));
+        LuaExpr left = s.getLeft().translateToLua(tr);
+        LuaExpr right = s.getRight().translateToLua(tr);
+        if (s.getRight().attrTyp() instanceof ImTupleType) {
+            ImTupleType tt = (ImTupleType) s.getRight().attrTyp();
+            // tuples must be copied
+            right = LuaAst.LuaExprFunctionCall(ExprTranslation.getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(right));
+        }
+        res.add(LuaAst.LuaAssignment(left, right));
     }
 
 

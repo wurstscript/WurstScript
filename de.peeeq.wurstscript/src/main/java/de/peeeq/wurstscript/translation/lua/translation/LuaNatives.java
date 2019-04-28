@@ -57,6 +57,16 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return x.id"));
         });
 
+        addNative("GetRandomReal", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("return math.random"));
+        });
+
+        addNative("GetRandomInt", f -> {
+            f.getParams().add(LuaAst.LuaVariable("l", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.random(l,h)"));
+        });
+
     }
 
     private static void addNative(String name, Consumer<LuaFunction> f) {

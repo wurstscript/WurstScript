@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
-import de.peeeq.wurstscript.ast.AstElementWithArgs;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
@@ -14,8 +13,35 @@ public class LuaTranslator {
 
     final ImProg prog;
     final LuaCompilationUnit luaModel;
-    private final Set<String> usedNames = new HashSet<>();
-    List<ExprTranslation.TupleEqualsFunc> tupleEqualsFuncs = new ArrayList<>();
+    private final Set<String> usedNames = new HashSet<>(Arrays.asList(
+        // reserved function names
+        "print", "tostring",
+        // keywords:
+        "and",
+        "break",
+        "do",
+        "else",
+        "elseif",
+        "end",
+        "false",
+        "for",
+        "function",
+        "if",
+        "in",
+        "local",
+        "nil",
+        "not",
+        "or",
+        "repeat",
+        "return",
+        "then",
+        "true",
+        "until",
+        "while"
+    ));
+
+    List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
+    List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
 
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
@@ -65,6 +91,7 @@ public class LuaTranslator {
 
     LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
+    LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     public LuaTranslator(ImProg prog) {
         this.prog = prog;
@@ -85,6 +112,7 @@ public class LuaTranslator {
         NormalizeNames.normalizeNames(prog);
 
         createArrayInitFunction();
+        createStringConcatFunction();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -101,6 +129,23 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    private void createStringConcatFunction() {
+        String[] code = {
+            "if x then",
+            "    if y then return x .. y else return x end",
+            "else",
+            "    return y",
+            "end"
+        };
+
+        stringConcatFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        stringConcatFunction.getParams().add(LuaAst.LuaVariable("y", LuaAst.LuaNoExpr()));
+        for (String c : code) {
+            stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        luaModel.add(stringConcatFunction);
     }
 
     private void createArrayInitFunction() {
@@ -372,6 +417,8 @@ public class LuaTranslator {
                     return LuaAst.LuaExprIntVal("0");
                 } else if (TypesHelper.isBoolType(st)) {
                     return LuaAst.LuaExprBoolVal(false);
+                } else if (TypesHelper.isRealType(st)) {
+                    return LuaAst.LuaExprRealVal("0.");
                 }
                 return LuaAst.LuaExprNull();
             }

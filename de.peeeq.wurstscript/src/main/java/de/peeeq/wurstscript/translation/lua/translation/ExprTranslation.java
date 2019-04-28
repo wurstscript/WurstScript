@@ -98,7 +98,8 @@ public class ExprTranslation {
                 && isStringType(left.attrTyp())
                 && isStringType(right.attrTyp())) {
                 // special case for string concatenation
-                op = LuaAst.LuaOpConcatString();
+                return LuaAst.LuaExprFunctionCall(tr.stringConcatFunction,
+                    LuaAst.LuaExprlist(leftExpr, rightExpr));
             } else if (e.getOp() == WurstOperator.MOD_INT) {
                 op = LuaAst.LuaOpMod();
 
@@ -134,11 +135,11 @@ public class ExprTranslation {
         throw new Error("not implemented: " + e);
     }
 
-    static class TupleEqualsFunc {
+    static class TupleFunc {
         final ImTupleType tupleType;
         final LuaFunction func;
 
-        public TupleEqualsFunc(ImTupleType tupleType, LuaFunction func) {
+        public TupleFunc(ImTupleType tupleType, LuaFunction func) {
             this.tupleType = tupleType;
             this.func = func;
         }
@@ -147,10 +148,10 @@ public class ExprTranslation {
 
 
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
-        Optional<TupleEqualsFunc> tfo = tr.tupleEqualsFuncs.stream()
+        Optional<TupleFunc> tfo = tr.tupleEqualsFuncs.stream()
             .filter(f -> f.tupleType.equalsType(t))
             .findFirst();
-        TupleEqualsFunc tf;
+        TupleFunc tf;
         if (tfo.isPresent()) {
             tf = tfo.get();
         } else {
@@ -172,8 +173,46 @@ public class ExprTranslation {
 
             body.add(LuaAst.LuaReturn(result));
             tr.luaModel.add(func);
-            tf = new TupleEqualsFunc(t, func);
+            tf = new TupleFunc(t, func);
             tr.tupleEqualsFuncs.add(tf);
+        }
+        return tf.func;
+    }
+
+
+
+    public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
+        Optional<TupleFunc> tfo = tr.tupleCopyFuncs.stream()
+            .filter(f -> f.tupleType.equalsType(t))
+            .findFirst();
+        TupleFunc tf;
+        if (tfo.isPresent()) {
+            tf = tfo.get();
+        } else {
+            LuaVariable t1 = LuaAst.LuaVariable("t", LuaAst.LuaNoExpr());
+            LuaStatements body = LuaAst.LuaStatements();
+            LuaFunction func = LuaAst.LuaFunction(tr.uniqueName("tupleCopy"), LuaAst.LuaParams(t1), body);
+            LuaTableFields fields = LuaAst.LuaTableFields();
+            LuaExpr result = LuaAst.LuaTableConstructor(fields);
+
+            int i = 0;
+            for (ImType type : t.getTypes()) {
+                i++;
+                LuaExpr v = LuaAst.LuaExprArrayAccess(
+                    LuaAst.LuaExprVarAccess(t1),
+                    LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))
+                );
+                if (type instanceof ImTupleType) {
+                    ImTupleType tt = (ImTupleType) type;
+                    v = LuaAst.LuaExprFunctionCall(getTupleCopyFunc(tt, tr), LuaAst.LuaExprlist(v));
+                }
+                fields.add(LuaAst.LuaTableSingleField(v));
+            }
+
+            body.add(LuaAst.LuaReturn(result));
+            tr.luaModel.add(func);
+            tf = new TupleFunc(t, func);
+            tr.tupleCopyFuncs.add(tf);
         }
         return tf.func;
     }
