@@ -17,7 +17,7 @@ cache:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y wine
+  - sudo apt-get install -y wine lua5.3
   
 before_script: 
   - cd de.peeeq.wurstscript
