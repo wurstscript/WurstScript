@@ -238,7 +238,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {
-        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + e.getTupleIndex())));
+        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1+e.getTupleIndex()))));
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {

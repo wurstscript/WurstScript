@@ -63,6 +63,8 @@ public class LuaTranslator {
         }
     };
 
+    LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
 
     public LuaTranslator(ImProg prog) {
         this.prog = prog;
@@ -82,6 +84,8 @@ public class LuaTranslator {
     public LuaCompilationUnit translate() {
         NormalizeNames.normalizeNames(prog);
 
+        createArrayInitFunction();
+
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
         }
@@ -97,6 +101,37 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    private void createArrayInitFunction() {
+        /*
+        function defaultArray(d)
+            local t = {}
+            local mt = {__index = function (table, key)
+                local v = d()
+                table[key] = v
+                return v
+            end}
+            setmetatable(t, mt)
+            return t
+        end
+         */
+        String[] code = {
+            "local t = {}",
+            "local mt = {__index = function (table, key)",
+            "    local v = d()",
+            "    table[key] = v",
+            "    return v",
+            "end}",
+            "setmetatable(t, mt)",
+            "return t"
+        };
+
+        arrayInitFunction.getParams().add(LuaAst.LuaVariable("d", LuaAst.LuaNoExpr()));
+        for (String c : code) {
+            arrayInitFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        luaModel.add(arrayInitFunction);
     }
 
     private void cleanStatements() {
@@ -128,30 +163,44 @@ public class LuaTranslator {
     }
 
     private void translateFunc(ImFunction f) {
-        if (f.isExtern()) {
-            return;
-        }
-        if (f.isNative()) {
-            LuaFunction nf = luaFunc.getFor(f);
-            LuaNatives.get(nf);
-        }
-
         LuaFunction lf = luaFunc.getFor(f);
-        luaModel.add(lf);
-        // translate parameters
-        for (ImVar p : f.getParameters()) {
-            LuaVariable pv = luaVar.getFor(p);
-            lf.getParams().add(pv);
-        }
-        // translate local variables
-        for (ImVar local : f.getLocals()) {
-            LuaVariable luaLocal = luaVar.getFor(local);
-            luaLocal.setInitialValue(defaultValue(local.getType()));
-            lf.getBody().add(luaLocal);
+        if (f.isNative()) {
+            LuaNatives.get(lf);
+        } else {
+
+
+            // translate parameters
+            for (ImVar p : f.getParameters()) {
+                LuaVariable pv = luaVar.getFor(p);
+                lf.getParams().add(pv);
+            }
+            // translate local variables
+            for (ImVar local : f.getLocals()) {
+                LuaVariable luaLocal = luaVar.getFor(local);
+                luaLocal.setInitialValue(defaultValue(local.getType()));
+                lf.getBody().add(luaLocal);
+            }
+
+            // translate body:
+            translateStatements(lf.getBody(), f.getBody());
         }
 
-        // translate body:
-        translateStatements(lf.getBody(), f.getBody());
+        if (f.isExtern()) {
+            // only add the function if it is not yet defined:
+            String name = lf.getName();
+            luaModel.add(LuaAst.LuaIf(
+                LuaAst.LuaExprFuncRef(lf),
+                LuaAst.LuaStatements(),
+                LuaAst.LuaStatements(
+                    LuaAst.LuaAssignment(LuaAst.LuaLiteral(name), LuaAst.LuaExprFunctionAbstraction(
+                        lf.getParams().copy(),
+                        lf.getBody().copy()
+                    ))
+                )
+            ));
+        } else {
+            luaModel.add(lf);
+        }
     }
 
     void translateStatements(LuaStatements res, ImStmts stmts) {
@@ -298,8 +347,23 @@ public class LuaTranslator {
             }
 
             @Override
-            public LuaExpr case_ImArrayTypeMulti(ImArrayTypeMulti imArrayTypeMulti) {
-                return emptyTable();
+            public LuaExpr case_ImArrayTypeMulti(ImArrayTypeMulti at) {
+                ImType baseType;
+                if (at.getArraySize().size() <= 1) {
+                    baseType = at.getEntryType();
+                } else {
+                    List<Integer> arraySizes = new ArrayList<>(at.getArraySize());
+                    arraySizes.remove(0);
+                    baseType = JassIm.ImArrayTypeMulti(at.getEntryType(), arraySizes);
+                }
+                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
+                    LuaAst.LuaExprlist(
+                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
+                            LuaAst.LuaStatements(
+                                LuaAst.LuaReturn(defaultValue(baseType))
+                            )
+                        )
+                    ));
             }
 
             @Override

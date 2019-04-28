@@ -4,40 +4,75 @@ import de.peeeq.wurstscript.luaAst.LuaAst;
 import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Consumer;
+
 public class LuaNatives {
 
-    private static void native_testSuccess(LuaFunction f) {
-        f.getBody().add(LuaAst.LuaLiteral("print(\"testSuccess\")"));
+    private static Map<String, Consumer<LuaFunction>> nativeCodes = new HashMap<>();
+
+    static {
+        addNative("testSuccess", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("print(\"testSuccess\")"));
+            f.getBody().add(LuaAst.LuaLiteral("os.exit()"));
+        });
+        addNative(Arrays.asList("print", "println"), f -> {
+            LuaVariable p = LuaAst.LuaVariable("text", LuaAst.LuaNoExpr());
+            f.getParams().add(p);
+            f.getBody().add(LuaAst.LuaExprFunctionCallByName("print",
+                LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(p))));
+        });
+
+        addNative("testFail", f -> {
+            f.getParams().add(LuaAst.LuaVariable("msg", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("print(\"error: \" .. msg)"));
+            f.getBody().add(LuaAst.LuaLiteral("error()"));
+        });
+
+
+        addNative("Sin", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.sin(x)"));
+        });
+
+        addNative("Cos", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.cos(x)"));
+        });
+
+        addNative(Arrays.asList("I2S", "R2S"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
+        });
+
+        addNative("Player", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return { id = x }"));
+        });
+
+        addNative("GetPlayerId", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return x.id"));
+        });
+
     }
 
-    private static void native_print(LuaFunction f) {
-        LuaVariable p = LuaAst.LuaVariable("text", LuaAst.LuaNoExpr());
-        f.getParams().add(p);
-        f.getBody().add(LuaAst.LuaExprFunctionCallByName("print",
-            LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(p))));
+    private static void addNative(String name, Consumer<LuaFunction> f) {
+        nativeCodes.put(name,f);
     }
 
-    private static void native_testFail(LuaFunction f) {
-        f.getParams().add(LuaAst.LuaVariable("msg", LuaAst.LuaNoExpr()));
-        f.getBody().add(LuaAst.LuaLiteral("print(\"error: \" .. msg)"));
-        f.getBody().add(LuaAst.LuaLiteral("error()"));
+    private static void addNative(Iterable<String> names, Consumer<LuaFunction> f) {
+        for (String name : names) {
+            nativeCodes.put(name,f);
+        }
     }
 
     public static void get(LuaFunction f) {
-        switch (f.getName()) {
-            case "testSuccess":
-                native_testSuccess(f);
-                break;
-            case "testFail":
-                native_testFail(f);
-                break;
-            case "print":
-            case "println":
-                native_print(f);
-                break;
-            default:
-                throw new RuntimeException("native not implemented: " + f.getName());
-        }
+        nativeCodes.getOrDefault(f.getName(), name -> {
+            throw new RuntimeException("native not implemented: " + f.getName());
+        }).accept(f);
     }
 
 }
