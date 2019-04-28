@@ -63,7 +63,8 @@ public class Flatten {
     }
 
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
-        return imCast.getExpr().flatten(translator, f);
+        Result res = imCast.getExpr().flatten(translator, f);
+        return new Result(res.stmts, ImCast(res.expr, imCast.getToType()));
     }
 
     public static Result flatten(ImTypeIdOfObj e, ImTranslator translator, ImFunction f) {
@@ -296,13 +297,13 @@ public class Flatten {
 
     public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getArguments());
-        return new Result(r.stmts, ImFunctionCall(e.getTrace(), e.getFunc(), ImTypeArguments(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
+        return new Result(r.stmts, ImFunctionCall(e.getTrace(), e.getFunc(), e.getTypeArguments().copy(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
     }
 
     public static Result flatten(ImMethodCall e, ImTranslator t, ImFunction f) {
         Result recR = e.getReceiver().flatten(t, f);
         MultiResult argsR = flattenExprs(t, f, e.getArguments());
-        Result res = new Result(recR.stmts, ImMethodCall(e.getTrace(), e.getMethod(), ImTypeArguments(), recR.expr, ImExprs(argsR.exprs), e.getTuplesEliminated()));
+        Result res = new Result(recR.stmts, ImMethodCall(e.getTrace(), e.getMethod(), e.getTypeArguments().copy(), recR.expr, ImExprs(argsR.exprs), e.getTuplesEliminated()));
         res.addStmts(argsR.stmts);
         return res;
     }
@@ -444,10 +445,17 @@ public class Flatten {
         for (ImFunction f : imProg.getFunctions()) {
             f.flatten(translator);
         }
+        for (ImClass c : imProg.getClasses()) {
+            for (ImFunction f : c.getFunctions()) {
+                f.flatten(translator);
+            }
+        }
+
         translator.assertProperties(AssertProperty.FLAT);
     }
 
     public static Result flatten(ImCompiletimeExpr e, ImTranslator translator, ImFunction f) {
+        e.setParent(null);
         return new Result(e);
     }
 

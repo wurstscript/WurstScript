@@ -3,10 +3,12 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -258,6 +260,12 @@ public class LuaTranslator {
                 LuaVariable pv = luaVar.getFor(p);
                 lf.getParams().add(pv);
             }
+
+            if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
+                LuaVariable lastParam = luaVar.getFor(Utils.getLast(f.getParameters()));
+                lastParam.setName("...");
+            }
+
             // translate local variables
             for (ImVar local : f.getLocals()) {
                 LuaVariable luaLocal = luaVar.getFor(local);
@@ -287,7 +295,7 @@ public class LuaTranslator {
         }
     }
 
-    void translateStatements(LuaStatements res, ImStmts stmts) {
+    void translateStatements(List<LuaStatement> res, ImStmts stmts) {
         for (ImStmt s : stmts) {
             s.translateStmtToLua(res, this);
         }

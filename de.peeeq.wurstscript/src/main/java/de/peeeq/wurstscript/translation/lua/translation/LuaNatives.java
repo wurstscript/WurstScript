@@ -72,6 +72,26 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.sqrt(x)"));
         });
 
+        addNative("CreateTrigger", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("{ actions = {}}"));
+        });
+
+        addNative("TriggerAddAction", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("t.actions.insert(c)"));
+        });
+
+        addNative("TriggerEvaluate", f -> {
+            f.getParams().add(LuaAst.LuaVariable("t", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("for a in t.actions do a() end"));
+        });
+
+        addNative("R2I", f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return math.floor(x)"));
+        });
     }
 
     private static void addNative(String name, Consumer<LuaFunction> f) {
