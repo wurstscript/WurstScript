@@ -17,8 +17,8 @@ cache:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y wine lua5.3
-  
+  - sudo apt-get install -y wine lua5.2
+
 before_script: 
   - cd de.peeeq.wurstscript
   - chmod +x gradlew
