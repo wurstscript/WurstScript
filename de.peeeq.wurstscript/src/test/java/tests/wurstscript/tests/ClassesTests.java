@@ -1,7 +1,6 @@
 package tests.wurstscript.tests;
 
 import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
-import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -777,7 +776,9 @@ public class ClassesTests extends WurstScriptTest {
 
     @Test
     public void thisHandling() { // see bug #145
-        testAssertOkLines(true,
+        test().executeProg(true)
+            .testLua(false)
+            .lines(
             "package test",
             "	native testSuccess()",
             "	class A",

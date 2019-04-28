@@ -212,13 +212,9 @@ public class LuaTranslator {
         LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
         LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
         for (ImVar field : c.getFields()) {
-            if (field.getType() instanceof ImArrayType
-            || field.getType() instanceof ImArrayTypeMulti) {
-                // initialize with empty array
-                initialFieldValues.add(
-                    LuaAst.LuaTableNamedField(field.getName(), emptyTable())
-                );
-            }
+            initialFieldValues.add(
+                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
+            );
         }
 
         body.add(newInst);
