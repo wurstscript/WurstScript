@@ -146,6 +146,7 @@ public class LuaTranslator {
         // translate local variables
         for (ImVar local : f.getLocals()) {
             LuaVariable luaLocal = luaVar.getFor(local);
+            luaLocal.setInitialValue(defaultValue(local.getType()));
             lf.getBody().add(luaLocal);
         }
 
