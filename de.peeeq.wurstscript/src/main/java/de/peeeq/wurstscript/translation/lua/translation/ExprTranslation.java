@@ -232,7 +232,6 @@ public class ExprTranslation {
         return translateEquals(leftExpr, rightExpr, t, tr);
     }
 
-    @NotNull
     private static LuaExpr translateEquals(LuaExpr leftExpr, LuaExpr rightExpr, ImType t, LuaTranslator tr) {
         if (t instanceof ImTupleType) {
             ImTupleType tt = (ImTupleType) t;

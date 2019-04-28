@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ImAttrType {
@@ -140,7 +141,14 @@ public class ImAttrType {
 
 
     public static ImType getType(ImMethodCall mc) {
-        return mc.getMethod().getImplementation().getReturnType();
+        ImType returnType = mc.getMethod().getImplementation().getReturnType();
+        returnType = substituteType(returnType, mc.getTypeArguments(), mc.getMethod().getImplementation().getTypeVariables());
+        ImType rt = mc.getReceiver().attrTyp();
+        if (rt instanceof ImClassType) {
+            ImClassType ct = (ImClassType) rt;
+            returnType = substituteType(returnType, ct.getTypeArguments(), ct.getClassDef().getTypeVariables());
+        }
+        return returnType;
     }
 
     public static ImType getType(ImMemberAccess e) {
