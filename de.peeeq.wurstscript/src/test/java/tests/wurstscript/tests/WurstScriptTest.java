@@ -203,7 +203,7 @@ public class WurstScriptTest {
 
             testWithInliningAndOptimizationsAndStacktraces(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms, runArgs);
 
-            if (testLua && !withStdLib) {
+            if (testLua && executeProg && !withStdLib) {
                 // test lua translation
                 compiler.setRunArgs(new RunArgs("-lua"));
                 translateAndTestLua(name, executeProg, gui, model);

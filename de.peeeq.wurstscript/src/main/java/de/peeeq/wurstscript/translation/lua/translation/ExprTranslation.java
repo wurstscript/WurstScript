@@ -263,7 +263,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-        throw new Error("not implemented");
+        return LuaAst.LuaLiteral("debug.traceback()");
     }
 
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {
