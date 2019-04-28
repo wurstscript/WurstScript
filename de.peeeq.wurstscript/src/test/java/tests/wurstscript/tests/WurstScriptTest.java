@@ -381,8 +381,6 @@ public class WurstScriptTest {
 
             compiler.runCompiletime();
 
-            System.out.println(compiler.getImProg());
-
             LuaCompilationUnit luaCode = compiler.transformProgToLua();
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);

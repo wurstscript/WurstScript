@@ -92,6 +92,26 @@ public class LuaNatives {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return math.floor(x)"));
         });
+
+        addNative("InitHashtable", f -> {
+            f.getBody().add(LuaAst.LuaLiteral("return {}"));
+        });
+
+        addNative(Arrays.asList("SaveInteger", "SaveBoolean", "SaveReal", "SaveStr", "SaveBoolean"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("i", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then h[p] = {} end h[p][c] = i"));
+        });
+
+        addNative(Arrays.asList("LoadInteger", "LoadBoolean", "LoadReal", "LoadStr", "LoadBoolean"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("p", LuaAst.LuaNoExpr()));
+            f.getParams().add(LuaAst.LuaVariable("c", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("if not h[p] then return nil end return h[p][c]"));
+        });
+
     }
 
     private static void addNative(String name, Consumer<LuaFunction> f) {
