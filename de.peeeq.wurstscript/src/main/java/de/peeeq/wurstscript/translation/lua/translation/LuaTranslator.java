@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
+import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
 import de.peeeq.wurstscript.types.TypesHelper;
 import org.jetbrains.annotations.NotNull;
@@ -92,9 +94,11 @@ public class LuaTranslator {
     LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+    private final ImTranslator imTr;
 
-    public LuaTranslator(ImProg prog) {
+    public LuaTranslator(ImProg prog, ImTranslator imTr) {
         this.prog = prog;
+        this.imTr = imTr;
         luaModel = LuaAst.LuaCompilationUnit();
     }
 
@@ -109,13 +113,23 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
-        NormalizeNames.normalizeNames(prog);
+        prog.flatten(imTr);
+
+        normalizeMethodNames();
+
+//        NormalizeNames.normalizeNames(prog);
 
         createArrayInitFunction();
         createStringConcatFunction();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
+        }
+
+        // first add class variables
+        for (ImClass c : prog.getClasses()) {
+            LuaVariable classVar = luaClassVar.getFor(c);
+            luaModel.add(classVar);
         }
 
         for (ImClass c : prog.getClasses()) {
@@ -126,9 +140,34 @@ public class LuaTranslator {
             translateFunc(f);
         }
 
+        for (ImClass c : prog.getClasses()) {
+            initClassTables(c);
+        }
+
         cleanStatements();
 
         return luaModel;
+    }
+
+    private void normalizeMethodNames() {
+        // group related methods
+        UnionFind<ImMethod> methodUnions = new UnionFind<>();
+        for (ImClass c : prog.getClasses()) {
+            for (ImMethod m : c.getMethods()) {
+                methodUnions.find(m);
+                for (ImMethod subMethod : m.getSubMethods()) {
+                    methodUnions.union(m, subMethod);
+                }
+            }
+        }
+
+        // give all related methods the same name
+        for (Map.Entry<ImMethod, Set<ImMethod>> entry : methodUnions.groups().entrySet()) {
+            String name = uniqueName(entry.getKey().getName());
+            for (ImMethod method : entry.getValue()) {
+                method.setName(name);
+            }
+        }
     }
 
     private void createStringConcatFunction() {
@@ -260,23 +299,13 @@ public class LuaTranslator {
         return r;
     }
 
-    private Set<ImClass> translated = new HashSet<>();
 
     private void translateClass(ImClass c) {
-        if (translated.contains(c)) {
-            return;
-        }
-        translated.add(c);
-        // first translate super-classes
-        for (ImClassType sc : c.getSuperClasses()) {
-            translateClass(sc.getClassDef());
-        }
 
         // following the code at http://lua-users.org/wiki/InheritanceTutorial
         LuaVariable classVar = luaClassVar.getFor(c);
         LuaMethod initMethod = luaClassInitMethod.getFor(c);
 
-        luaModel.add(classVar);
         luaModel.add(initMethod);
 
         classVar.setInitialValue(emptyTable());
@@ -287,6 +316,35 @@ public class LuaTranslator {
             luaFunc.getFor(f).setName(uniqueName(c.getName() + "_" + f.getName()));
         }
 
+        createClassInitFunction(c, classVar, initMethod);
+    }
+
+    private void createClassInitFunction(ImClass c, LuaVariable classVar, LuaMethod initMethod) {
+        // create init function:
+        LuaStatements body = initMethod.getBody();
+        // local new_inst = { ... }
+        LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
+        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
+        for (ImVar field : c.getFields()) {
+            initialFieldValues.add(
+                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
+            );
+        }
+
+
+        body.add(newInst);
+        // setmetatable(new_inst, {__index = classVar})
+        body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
+            LuaAst.LuaExprVarAccess(newInst),
+            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+                LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
+            ))
+        )));
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
+    }
+
+    private void initClassTables(ImClass c) {
+        LuaVariable classVar = luaClassVar.getFor(c);
         // create methods:
         Set<String> methods = new HashSet<>();
         createMethods(c, classVar, methods);
@@ -309,27 +367,6 @@ public class LuaTranslator {
 
 
 
-        // create init function:
-        LuaStatements body = initMethod.getBody();
-        // local new_inst = { ... }
-        LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
-        LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
-        for (ImVar field : c.getFields()) {
-            initialFieldValues.add(
-                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
-            );
-        }
-
-
-        body.add(newInst);
-        // setmetatable(new_inst, {__index = classVar})
-        body.add(LuaAst.LuaExprFunctionCallByName("setmetatable", LuaAst.LuaExprlist(
-            LuaAst.LuaExprVarAccess(newInst),
-            LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
-                LuaAst.LuaTableNamedField("__index", LuaAst.LuaExprVarAccess(classVar))
-            ))
-        )));
-        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(newInst)));
 
     }
 

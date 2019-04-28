@@ -379,7 +379,7 @@ public class WurstScriptTest {
             ImTranslator imTranslator = new ImTranslator(model, true);
             ImProg imProg = imTranslator.translateProg();
 
-            LuaTranslator luaTranslator = new LuaTranslator(imProg);
+            LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
             LuaCompilationUnit luaCode = luaTranslator.translate();
             StringBuilder sb = new StringBuilder();
             luaCode.print(sb, 0);

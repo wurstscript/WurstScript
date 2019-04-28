@@ -16,31 +16,19 @@ public class NormalizeNames {
      */
     public static void normalizeNames(ImProg prog) {
         Multimap<ImMethod, ImMethod> superMethods = calculateSuperMethods(prog);
-        for (ImVar g : prog.getGlobals()) {
-            Element trace = g.attrTrace();
-            if (trace instanceof AstElementWithNameId) {
-                g.setName(((AstElementWithNameId) trace).getNameId().getName());
-            }
-        }
-        for (ImFunction f : prog.getFunctions()) {
-            Element trace = f.attrTrace();
-            if (trace instanceof AstElementWithNameId) {
-                f.setName(((AstElementWithNameId) trace).getNameId().getName());
-            }
-        }
+//        for (ImVar g : prog.getGlobals()) {
+//            normalizeName(g);
+//        }
+//        for (ImFunction f : prog.getFunctions()) {
+//            normalizeName(f);
+//        }
         for (ImClass c : prog.getClasses()) {
             for (ImVar g : c.getFields()) {
-                Element trace = g.attrTrace();
-                if (trace instanceof AstElementWithNameId) {
-                    g.setName(((AstElementWithNameId) trace).getNameId().getName());
-                }
+                normalizeName(g);
             }
-            for (ImFunction f : c.getFunctions()) {
-                Element trace = f.attrTrace();
-                if (trace instanceof AstElementWithNameId) {
-                    f.setName(((AstElementWithNameId) trace).getNameId().getName());
-                }
-            }
+//            for (ImFunction f : c.getFunctions()) {
+//                normalizeName(f);
+//            }
             for (ImMethod m : c.getMethods()) {
                 Element trace = m.attrTrace();
                 if (trace instanceof AstElementWithNameId) {
@@ -59,10 +47,17 @@ public class NormalizeNames {
 
             }
 
-            Element trace = c.attrTrace();
-            if (trace instanceof AstElementWithNameId) {
-                c.setName(((AstElementWithNameId) trace).getNameId().getName());
-            }
+//            Element trace = c.attrTrace();
+//            if (trace instanceof AstElementWithNameId) {
+//                c.setName(((AstElementWithNameId) trace).getNameId().getName());
+//            }
+        }
+    }
+
+    private static void normalizeName(ImVar g) {
+        Element trace = g.attrTrace();
+        if (trace instanceof AstElementWithNameId) {
+            g.setName(((AstElementWithNameId) trace).getNameId().getName());
         }
     }
 

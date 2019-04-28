@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
@@ -65,24 +66,50 @@ public class Flatten {
         return imCast.getExpr().flatten(translator, f);
     }
 
+    public static Result flatten(ImTypeIdOfObj e, ImTranslator translator, ImFunction f) {
+        Result o = e.getObj().flatten(translator, f);
+        return new Result(o.stmts, ImTypeIdOfObj(o.expr, e.getClazz()));
+    }
+
+    public static Result flatten(ImTypeIdOfClass e, ImTranslator translator, ImFunction f) {
+        e.setParent(null);
+        return new Result(e);
+    }
+
+    public static Result flatten(ImDealloc d, ImTranslator translator, ImFunction f) {
+        Result o = d.getObj().flatten(translator, f);
+        return new Result(o.stmts, ImDealloc(d.getTrace(), d.getClazz(), o.expr));
+    }
+
+    public static Result flatten(ImInstanceof e, ImTranslator translator, ImFunction f) {
+        Result res = e.getObj().flatten(translator, f);
+        return new Result(res.stmts, ImInstanceof(res.expr, e.getClazz()));
+    }
+
+    public static Result flatten(ImAlloc e, ImTranslator translator, ImFunction f) {
+        e.setParent(null);
+        return new Result(e);
+    }
+
+
     public static class Result {
 
-        final List<ImStmt> stmts;
+        List<ImStmt> stmts;
         final ImExpr expr;
 
         public Result(List<ImStmt> stmts, ImExpr expr) {
+            Preconditions.checkArgument(expr.getParent() == null, "expression must not have a parent");
+            Preconditions.checkArgument(stmts.stream().allMatch(s -> s.getParent() == null), "statement must not have a parent");
             this.stmts = stmts;
             this.expr = expr;
         }
 
-        public Result(ImExpr epxr) {
-            this.stmts = Collections.emptyList();
-            this.expr = epxr;
+        public Result(ImExpr expr) {
+            this(Collections.emptyList(), expr);
         }
 
         public Result(List<ImStmt> stmts) {
-            this.stmts = stmts;
-            this.expr = ImHelper.nullExpr();
+            this(stmts, ImHelper.nullExpr());
         }
 
         public void intoStatements(List<ImStmt> result, ImTranslator t, ImFunction f) {
@@ -100,6 +127,14 @@ public class Flatten {
 
         public ImStatementExpr toStatementExpr() {
             return JassIm.ImStatementExpr(JassIm.ImStmts(stmts), expr);
+        }
+
+        public void addStmts(List<ImStmt> stmts) {
+            if (stmts.isEmpty()) {
+                return;
+            }
+            this.stmts = new ArrayList<>(this.stmts);
+            this.stmts.addAll(stmts);
         }
     }
 
@@ -155,6 +190,14 @@ public class Flatten {
     private static void exprToStatements(List<ImStmt> result, Element e, ImTranslator t, ImFunction f) {
         if (e instanceof ImFunctionCall) {
             Result res = flatten((ImFunctionCall) e, t, f);
+            result.addAll(res.stmts);
+            result.add(res.expr);
+        } else if (e instanceof ImDealloc) {
+            Result res = flatten((ImDealloc) e, t, f);
+            result.addAll(res.stmts);
+            result.add(res.expr);
+        } else if (e instanceof ImMethodCall) {
+            Result res = flatten((ImMethodCall) e, t, f);
             result.addAll(res.stmts);
             result.add(res.expr);
         } else if (e instanceof ImStatementExpr) {
@@ -254,6 +297,14 @@ public class Flatten {
     public static Result flatten(ImFunctionCall e, ImTranslator t, ImFunction f) {
         MultiResult r = flattenExprs(t, f, e.getArguments());
         return new Result(r.stmts, ImFunctionCall(e.getTrace(), e.getFunc(), ImTypeArguments(), ImExprs(r.exprs), e.getTuplesEliminated(), e.getCallType()));
+    }
+
+    public static Result flatten(ImMethodCall e, ImTranslator t, ImFunction f) {
+        Result recR = e.getReceiver().flatten(t, f);
+        MultiResult argsR = flattenExprs(t, f, e.getArguments());
+        Result res = new Result(recR.stmts, ImMethodCall(e.getTrace(), e.getMethod(), ImTypeArguments(), recR.expr, ImExprs(argsR.exprs), e.getTuplesEliminated()));
+        res.addStmts(argsR.stmts);
+        return res;
     }
 
     public static Result flatten(ImOperatorCall e, ImTranslator t, ImFunction f) {
@@ -468,19 +519,22 @@ public class Flatten {
     }
 
 
-    public static Result flatten(ImClassRelatedExpr e,
-                                 ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("Eliminate method calls before calling flatten.");
-    }
-
     public static Result flatten(ImMemberAccess e,
-                                 ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("Eliminate method calls before calling flatten.");
+                                 ImTranslator t, ImFunction f) {
+        Result rr = e.getReceiver().flatten(t, f);
+        MultiResult ir = flattenExprs(t, f, e.getIndexes());
+        Result res = new Result(rr.stmts, ImMemberAccess(e.getTrace(), rr.expr, e.getTypeArguments().copy(), e.getVar(), ImExprs(ir.exprs)));
+        res.addStmts(ir.stmts);
+        return res;
     }
 
     public static ResultL flattenL(ImMemberAccess e,
-                                   ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("Eliminate method calls before calling flatten.");
+                                   ImTranslator t, ImFunction f) {
+        Result rr = e.getReceiver().flatten(t, f);
+        MultiResult ir = flattenExprs(t, f, e.getIndexes());
+        ResultL res = new ResultL(rr.stmts, ImMemberAccess(e.getTrace(), rr.expr, e.getTypeArguments(), e.getVar(), ImExprs(ir.exprs)));
+        res.addStmts(ir.stmts);
+        return res;
     }
 
 

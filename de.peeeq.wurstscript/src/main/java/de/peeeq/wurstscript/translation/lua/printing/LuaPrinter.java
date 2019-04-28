@@ -170,9 +170,18 @@ public class LuaPrinter {
         s.getCond().print(sb, indent);
         sb.append(" then\n");
         s.getThenStmts().print(sb, indent + 1);
-        printIndent(sb, indent);
-        sb.append("else\n"); // TODO special case for else if
-        s.getElseStmts().print(sb, indent);
+        if (!s.getElseStmts().isEmpty()) {
+            printIndent(sb, indent);
+            sb.append("else");
+            if (s.getElseStmts().size() == 1 && s.getElseStmts().get(0) instanceof LuaIf) {
+                LuaIf luaIf = (LuaIf) s.getElseStmts().get(0);
+                luaIf.print(sb, indent);
+                return;
+            } else {
+                sb.append("\n");
+                s.getElseStmts().print(sb, indent + 1);
+            }
+        }
         printIndent(sb, indent);
         sb.append("end");
     }

@@ -604,6 +604,7 @@ public class ClosureTests extends WurstScriptTest {
     @Test
     public void testDispatch() {
         test().executeProg(true)
+            .testLua(false)
                 .executeProgOnlyAfterTransforms()
                 .lines(
                 "package A",
