@@ -428,7 +428,7 @@ public class LuaTranslator {
             public LuaExpr case_ImTupleType(ImTupleType tt) {
                 LuaTableFields tableFields = LuaAst.LuaTableFields();
                 for (int i = 0; i < tt.getNames().size(); i++) {
-                    tableFields.add(LuaAst.LuaTableNamedField(tt.getNames().get(i), defaultValue(tt.getTypes().get(i))));
+                    tableFields.add(LuaAst.LuaTableSingleField(defaultValue(tt.getTypes().get(i))));
                 }
                 return LuaAst.LuaTableConstructor(
                     tableFields
