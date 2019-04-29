@@ -1,8 +1,10 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
+import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
 import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -372,8 +374,6 @@ public class LuaTranslator {
             ExprTranslation.TYPE_ID),
             LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
         ));
-
-
 
 
     }
