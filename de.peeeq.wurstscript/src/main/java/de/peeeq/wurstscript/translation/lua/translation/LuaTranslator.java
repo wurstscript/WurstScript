@@ -21,7 +21,7 @@ public class LuaTranslator {
     final LuaCompilationUnit luaModel;
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
-        "print", "tostring",
+        "print", "tostring", "error",
         // keywords:
         "and",
         "break",
