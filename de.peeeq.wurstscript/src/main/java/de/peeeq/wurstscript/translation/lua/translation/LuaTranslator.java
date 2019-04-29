@@ -279,7 +279,7 @@ public class LuaTranslator {
             translateStatements(lf.getBody(), f.getBody());
         }
 
-        if (f.isExtern()) {
+        if (f.isExtern() || f.isNative() ||f.isBj()) {
             // only add the function if it is not yet defined:
             String name = lf.getName();
             luaModel.add(LuaAst.LuaIf(
