@@ -2,6 +2,8 @@ package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
@@ -52,7 +54,11 @@ public class LuaTranslator {
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaNoExpr());
+            String name = a.getName();
+            if (!a.getIsBJ()) {
+                name = uniqueName(name);
+            }
+            return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
         }
     };
 
@@ -60,7 +66,11 @@ public class LuaTranslator {
 
         @Override
         public LuaFunction initFor(ImFunction a) {
-            return LuaAst.LuaFunction(uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            String name = a.getName();
+            if (!a.isExtern() && !a.isBj() && !a.isNative()) {
+                name = uniqueName(name);
+            }
+            return LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
         }
     };
     public GetAForB<ImMethod, LuaMethod> luaMethod = new GetAForB<ImMethod, LuaMethod>() {
@@ -117,8 +127,11 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
+        collectPredefinedNames();
+
         RemoveGarbage.removeGarbage(prog);
         prog.flatten(imTr);
+
 
         normalizeMethodNames();
 
@@ -152,6 +165,29 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    private void collectPredefinedNames() {
+        for (ImFunction function : prog.getFunctions()) {
+            if (function.isBj() || function.isExtern() || function.isNative()) {
+                setNameFromTrace(function);
+                usedNames.add(function.getName());
+            }
+        }
+
+        for (ImVar global : prog.getGlobals()) {
+            if (global.getIsBJ()) {
+                setNameFromTrace(global);
+                usedNames.add(global.getName());
+            }
+        }
+    }
+
+    private void setNameFromTrace(JassImElementWithName named) {
+        Element trace = named.attrTrace();
+        if (trace instanceof NameDef) {
+            named.setName(((NameDef) trace).getName());
+        }
     }
 
     private void normalizeMethodNames() {

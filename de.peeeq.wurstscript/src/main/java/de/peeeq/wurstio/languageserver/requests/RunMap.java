@@ -123,7 +123,7 @@ public class RunMap extends MapRequest {
                     if (W3Utils.getWc3PatchVersion() == null) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
-                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-loadfile", path);
 
                     if (!System.getProperty("os.name").startsWith("Windows")) {
                         // run with wine
