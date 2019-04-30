@@ -117,6 +117,7 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
+        RemoveGarbage.removeGarbage(prog);
         prog.flatten(imTr);
 
         normalizeMethodNames();
@@ -251,6 +252,10 @@ public class LuaTranslator {
     }
 
     private void translateFunc(ImFunction f) {
+        if (f.isBj()) {
+            // do not translate blizzard functions
+            return;
+        }
         LuaFunction lf = luaFunc.getFor(f);
         if (f.isNative()) {
             LuaNatives.get(lf);
@@ -279,7 +284,7 @@ public class LuaTranslator {
             translateStatements(lf.getBody(), f.getBody());
         }
 
-        if (f.isExtern() || f.isNative() ||f.isBj()) {
+        if (f.isExtern() || f.isNative()) {
             // only add the function if it is not yet defined:
             String name = lf.getName();
             luaModel.add(LuaAst.LuaIf(
@@ -417,6 +422,10 @@ public class LuaTranslator {
 
 
     private void translateGlobal(ImVar v) {
+        if (v.getIsBJ()) {
+            // do not translate blizzard variables
+            return;
+        }
         LuaVariable lv = luaVar.getFor(v);
         lv.setInitialValue(defaultValue(v.getType()));
         luaModel.add(lv);
