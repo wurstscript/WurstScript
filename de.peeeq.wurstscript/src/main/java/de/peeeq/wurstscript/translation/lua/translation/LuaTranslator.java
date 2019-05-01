@@ -108,6 +108,11 @@ public class LuaTranslator {
     LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
     private final ImTranslator imTr;
 
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
@@ -139,6 +144,7 @@ public class LuaTranslator {
 
         createArrayInitFunction();
         createStringConcatFunction();
+        createObjectIndexFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -226,6 +232,52 @@ public class LuaTranslator {
             stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
         }
         luaModel.add(stringConcatFunction);
+    }
+
+    private void createObjectIndexFunctions() {
+        String vName = "__wurst_objectIndexMap";
+        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
+        )));
+        luaModel.add(v);
+
+        {
+            String[] code = {
+                "if type(x) == \"number\" then",
+                "    return x",
+                "elseif __wurst_objectIndexMap[x] then",
+                "    return __wurst_objectIndexMap[x]",
+                "else",
+                "   local r = __wurst_objectIndexMap.counter + 1",
+                "   __wurst_objectIndexMap.counter = r",
+                "   __wurst_objectIndexMap[r] = x",
+                "   __wurst_objectIndexMap[x] = r",
+                "   return r",
+                "end"
+            };
+
+            toIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                toIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(toIndexFunction);
+        }
+
+        {
+            String[] code = {
+                "if type(x) == \"table\" then",
+                "    return x",
+                "else",
+                "    return __wurst_objectIndexMap[x]",
+                "end"
+            };
+
+            fromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                fromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(fromIndexFunction);
+        }
     }
 
     private void createArrayInitFunction() {
@@ -469,6 +521,11 @@ public class LuaTranslator {
 
     private LuaExpr defaultValue(ImType type) {
         return type.match(new ImType.Matcher<LuaExpr>() {
+            @Override
+            public LuaExpr case_ImAnyType(ImAnyType imAnyType) {
+                return LuaAst.LuaExprNull();
+            }
+
             @Override
             public LuaExpr case_ImTupleType(ImTupleType tt) {
                 LuaTableFields tableFields = LuaAst.LuaTableFields();

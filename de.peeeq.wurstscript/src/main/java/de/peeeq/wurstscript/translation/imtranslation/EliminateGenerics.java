@@ -493,6 +493,11 @@ public class EliminateGenerics {
             }
 
             @Override
+            public Boolean case_ImAnyType(ImAnyType imAnyType) {
+                return false;
+            }
+
+            @Override
             public Boolean case_ImTupleType(ImTupleType t) {
                 for (ImType tt : t.getTypes()) {
                     if (isGenericType(tt)) {
@@ -534,6 +539,11 @@ public class EliminateGenerics {
 
             @Override
             public Boolean case_ImVoid(ImVoid t) {
+                return false;
+            }
+
+            @Override
+            public Boolean case_ImAnyType(ImAnyType imAnyType) {
                 return false;
             }
 

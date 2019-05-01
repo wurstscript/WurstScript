@@ -209,6 +209,11 @@ public class RemoveGarbage {
         t.match(new ImType.MatcherVoid() {
 
             @Override
+            public void case_ImAnyType(ImAnyType imAnyType) {
+
+            }
+
+            @Override
             public void case_ImTupleType(ImTupleType tt) {
                 for (ImType type : tt.getTypes()) {
                     visitType(type, used);

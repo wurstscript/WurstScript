@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -33,6 +34,25 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
         return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
+        // alternative: use xpcall to get stacktraces (did not work)
+//        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+//        LuaVariable tempDots = LuaAst.LuaVariable("temp", LuaAst.LuaExprVarAccess(dots));
+//        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots),
+//            LuaAst.LuaStatements(
+//                tempDots,
+//                LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallByName("xpcall", LuaAst.LuaExprlist(
+//                    LuaAst.LuaExprFunctionAbstraction(
+//                        LuaAst.LuaParams(),
+//                        LuaAst.LuaStatements(
+//                            LuaAst.LuaReturn(
+//                                LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
+//                    ),
+//                    LuaAst.LuaLiteral("function(err) BJDebugMsg( \"Error \" .. tostring(err) ..\"\\n\"  .. debug.traceback()) end")
+//                    )
+//                    )
+//                )
+//            )
+//        );
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
@@ -145,7 +165,6 @@ public class ExprTranslation {
     }
 
 
-
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
         Optional<TupleFunc> tfo = tr.tupleEqualsFuncs.stream()
             .filter(f -> f.tupleType.equalsType(t))
@@ -162,10 +181,10 @@ public class ExprTranslation {
 
             for (int i = 0; i < t.getNames().size(); i++) {
                 result = conjunction(result, translateEquals(
-                   LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t1),
-                       LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t1),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))),
                     LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t2),
-                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))),
                     t.getTypes().get(i),
                     tr));
             }
@@ -177,7 +196,6 @@ public class ExprTranslation {
         }
         return tf.func;
     }
-
 
 
     public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
@@ -275,7 +293,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {
-        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1+e.getTupleIndex()))));
+        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1 + e.getTupleIndex()))));
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
@@ -312,7 +330,14 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
-
-        return imCast.getExpr().translateToLua(tr);
+        LuaExpr translated = imCast.getExpr().translateToLua(tr);
+        if (TypesHelper.isIntType(imCast.getToType())) {
+            return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
+        } else if (imCast.getToType() instanceof ImClassType
+            || imCast.getToType() instanceof ImAnyType) {
+            return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
+        } else {
+            return translated;
+        }
     }
 }
