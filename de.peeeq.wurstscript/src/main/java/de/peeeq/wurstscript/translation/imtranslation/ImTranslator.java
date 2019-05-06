@@ -5,6 +5,7 @@ import com.google.common.collect.*;
 import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.datastructures.TransitiveClosure;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -13,7 +14,6 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -35,6 +35,7 @@ import de.peeeq.wurstscript.jassIm.ImTypeVars;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVars;
 import de.peeeq.wurstscript.jassIm.ImVoid;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -833,7 +834,7 @@ public class ImTranslator {
 
     private boolean isBJ(WPos source) {
         String f = source.getFile().toLowerCase();
-        return f.endsWith("blizzard.j") || f.endsWith("common.j");
+        return f.endsWith("blizzard.j") || f.endsWith("common.j") || FileUtils.getWPosParent(source).equals("jassdoc");
     }
 
     public ImFunction getInitFuncFor(WPackage p) {

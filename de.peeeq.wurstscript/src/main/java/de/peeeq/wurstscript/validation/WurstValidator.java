@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
+import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
@@ -1168,9 +1169,11 @@ public class WurstValidator {
         }
         if (!isAbstract) { // not abstract
             checkReturn(f);
+
             if (!f.getSource().getFile().endsWith("common.j")
                     && !f.getSource().getFile().endsWith("blizzard.j")
-                    && !f.getSource().getFile().endsWith("war3map.j")) {
+                    && !f.getSource().getFile().endsWith("war3map.j")
+                    && !FileUtils.getWPosParent(f.getSource()).equals("jassdoc")) {
                 new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
             }
         }

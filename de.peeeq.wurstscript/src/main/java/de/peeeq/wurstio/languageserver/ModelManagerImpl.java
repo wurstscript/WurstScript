@@ -19,6 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.function.Consumer;
@@ -57,6 +58,12 @@ public class ModelManagerImpl implements ModelManager {
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
         try {
+            Path jassdoc = getBuildDir().toPath().resolve("dependencies").resolve("jassdoc");
+            if (jassdoc.toFile().exists()) {
+                List<CompilationUnit> jassdocCUs = getJassdocCUs(jassdoc, gui);
+                jassdocCUs.add(cu);
+                return Ast.WurstModel(jassdocCUs);
+            }
             CompilationUnit commonJ = compileFromJar(gui, "common.j");
             CompilationUnit blizzardJ = compileFromJar(gui, "blizzard.j");
             return Ast.WurstModel(blizzardJ, commonJ, cu);
@@ -64,6 +71,25 @@ public class ModelManagerImpl implements ModelManager {
             WLogger.severe(e);
             return Ast.WurstModel(cu);
         }
+    }
+
+    private List<CompilationUnit> getJassdocCUs(Path jassdoc, WurstGui gui) {
+        ArrayList<CompilationUnit> units = new ArrayList<>();
+        WurstCompilerJassImpl comp = new WurstCompilerJassImpl(projectPath, gui, null, RunArgs.defaults());
+
+        for (File f : jassdoc.toFile().listFiles()) {
+            if (f.getName().endsWith(".j") && ! f.getName().startsWith("builtin-types")) {
+                try (InputStreamReader reader = new FileReader(f)) {
+                    CompilationUnit cu = comp.parse(f.getAbsolutePath(), reader);
+                    cu.getCuInfo().setFile(getCanonicalPath(f));
+                    units.add(cu);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return units;
     }
 
     @Override
@@ -630,7 +656,7 @@ public class ModelManagerImpl implements ModelManager {
                     if (providedPackages.contains(importedPackage)) {
                         result.add(compilationUnit);
                         if (imp.getIsPublic()) {
-                            // recursive call terminates, because it is only called for packages not yet in result 
+                            // recursive call terminates, because it is only called for packages not yet in result
                             addImportingPackages(Collections.singletonList(p.getName()), model2, result);
                         }
                         continue nextCu;
