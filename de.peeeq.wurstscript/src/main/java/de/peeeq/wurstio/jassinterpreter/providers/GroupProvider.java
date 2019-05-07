@@ -3,10 +3,8 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.ArrayDeque;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 
 public class GroupProvider extends Provider {
@@ -72,4 +70,8 @@ public class GroupProvider extends Provider {
         return ILconstBool.instance(groupList.contains(unit));
     }
 
+    public ILconstInt BlzGroupGetSize(IlConstHandle group) {
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        return ILconstInt.create(groupList.size());
+    }
 }
