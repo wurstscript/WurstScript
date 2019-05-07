@@ -62,7 +62,8 @@ public class BuildMap extends MapRequest {
 
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
-            File targetMap = map == null ? null : new File(buildDir, projectConfig.getBuildMapData().getFileName() + ".w3x");
+            String fileName = projectConfig.getBuildMapData().getFileName();
+            File targetMap = map == null ? null : new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() : fileName  + ".w3x");
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
@@ -106,8 +107,8 @@ public class BuildMap extends MapRequest {
     }
 
     public static void applyProjectConfig(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir) throws IOException {
-        if (projectConfig.getBuildMapData().getFileName().isEmpty()) {
-            throw new RequestFailedException(MessageType.Error, "wurst.build is missing mapFileName");
+        if (projectConfig.getProjectName().isEmpty()) {
+            throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
 
 
