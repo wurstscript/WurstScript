@@ -8,7 +8,7 @@ import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
-import de.peeeq.wurstio.languageserver.*;
+import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.requests.BuildMap;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
@@ -161,14 +161,16 @@ public class Main {
                     compiledScript = compilationProcess.doCompilation(null);
                 }
 
-                File scriptFile = new File("compiled.j.txt");
-                Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
+                if (compiledScript != null) {
+                    File scriptFile = new File("compiled.j.txt");
+                    Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
 
-                if (projectConfig != null && target != null) {
-                    BuildMap.applyProjectConfig(projectConfig, target.toFile(), scriptFile, buildDir.toFile());
+                    if (projectConfig != null && target != null) {
+                        BuildMap.applyProjectConfig(projectConfig, target.toFile(), scriptFile, buildDir.toFile());
 
-                    WLogger.info("map build success");
-                    System.out.println("Build succeeded. Output file: <" + target + ">");
+                        WLogger.info("map build success");
+                        System.out.println("Build succeeded. Output file: <" + target.toAbsolutePath() + ">");
+                    }
                 }
 
                 gui.sendProgress("Finished!");
