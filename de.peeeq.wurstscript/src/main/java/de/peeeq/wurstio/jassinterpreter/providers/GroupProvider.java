@@ -74,4 +74,35 @@ public class GroupProvider extends Provider {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         return ILconstInt.create(groupList.size());
     }
+	
+    public ILconst BlzGroupUnitAt(IlConstHandle group, ILconstInt index) {
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        ILconst elem = ILconstNull.instance();
+        if(index.getVal() > 0) {
+            for(int i = 0; i < index.getVal(); i++)
+                elem = groupList.iterator().next();
+            return elem;
+        }
+        else if(index.getVal() == 0)
+            return FirstOfGroup(group);
+        return elem;
+    }
+    
+    public ILconstInt BlzGroupAddGroupFast(IlConstHandle group, IlConstHandle groupAdd) {
+        LinkedHashSet<IlConstHandle> groupList    = (LinkedHashSet<IlConstHandle>) group.getObj();
+        LinkedHashSet<IlConstHandle> groupListAdd = (LinkedHashSet<IlConstHandle>) groupAdd.getObj();
+        groupListAdd.forEach((IlConstHandle u) -> {
+            groupList.add(u);
+        });
+        return ILconstInt.create(groupList.size());
+    }
+
+    public ILconstInt BlzGroupRemoveGroupFast(IlConstHandle group, IlConstHandle groupRm) {
+        LinkedHashSet<IlConstHandle> groupList    = (LinkedHashSet<IlConstHandle>) group.getObj();
+        LinkedHashSet<IlConstHandle> groupListRm  = (LinkedHashSet<IlConstHandle>) groupRm.getObj();
+        groupListRm.forEach((IlConstHandle u) -> {
+            groupList.remove(u);
+        });
+        return ILconstInt.create(groupList.size());
+    }	
 }
