@@ -78,7 +78,7 @@ public class GroupProvider extends Provider {
     public ILconst BlzGroupUnitAt(IlConstHandle group, ILconstInt index) {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         ILconst elem = ILconstNull.instance();
-        if(index.getVal() > 0) {
+        if(index.getVal() > 0 && index.getVal() < groupList.size()) {
             for(int i = 0; i < index.getVal(); i++)
                 elem = groupList.iterator().next();
             return elem;
