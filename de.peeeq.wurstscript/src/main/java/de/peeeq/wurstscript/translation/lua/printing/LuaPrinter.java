@@ -17,7 +17,12 @@ public class LuaPrinter {
 
     public static void print(LuaCompilationUnit cu, StringBuilder sb, int indent) {
         for (LuaStatement d : cu) {
-            d.print(sb, indent);
+            if (d instanceof LuaVariable) {
+                // don't translate global variables as locals:
+                printVariable((LuaVariable) d, sb, indent);
+            } else {
+                d.print(sb, indent);
+            }
             sb.append("\n\n");
         }
     }
@@ -316,6 +321,10 @@ public class LuaPrinter {
 
     public static void print(LuaVariable v, StringBuilder sb, int indent) {
         sb.append("local ");
+        printVariable(v, sb, indent);
+    }
+
+    private static void printVariable(LuaVariable v, StringBuilder sb, int indent) {
         sb.append(v.getName());
         if (v.getInitialValue() instanceof LuaExpr) {
             sb.append(" = ");
