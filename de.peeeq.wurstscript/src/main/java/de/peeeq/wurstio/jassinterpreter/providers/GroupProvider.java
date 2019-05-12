@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 
 import java.util.ArrayDeque;
 import java.util.LinkedHashSet;
+import java.util.Iterator;
 
 public class GroupProvider extends Provider {
 
@@ -79,8 +80,10 @@ public class GroupProvider extends Provider {
         LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
         ILconst elem = ILconstNull.instance();
         if(index.getVal() > 0 && index.getVal() < groupList.size()) {
-            for(int i = 0; i < index.getVal(); i++)
-                elem = groupList.iterator().next();
+            Iterator<IlConstHandle> it = groupList.iterator();
+            elem = it.next();
+            for(int i = 1; i <= index.getVal() && it.hasNext(); i++)
+                elem = it.next();
             return elem;
         }
         else if(index.getVal() == 0)
@@ -89,20 +92,14 @@ public class GroupProvider extends Provider {
     }
     
     public ILconstInt BlzGroupAddGroupFast(IlConstHandle group, IlConstHandle groupAdd) {
-        LinkedHashSet<IlConstHandle> groupList    = (LinkedHashSet<IlConstHandle>) group.getObj();
-        LinkedHashSet<IlConstHandle> groupListAdd = (LinkedHashSet<IlConstHandle>) groupAdd.getObj();
-        groupListAdd.forEach((IlConstHandle u) -> {
-            groupList.add(u);
-        });
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        groupList.addAll((LinkedHashSet<IlConstHandle>) groupAdd.getObj());
         return ILconstInt.create(groupList.size());
     }
 
     public ILconstInt BlzGroupRemoveGroupFast(IlConstHandle group, IlConstHandle groupRm) {
-        LinkedHashSet<IlConstHandle> groupList    = (LinkedHashSet<IlConstHandle>) group.getObj();
-        LinkedHashSet<IlConstHandle> groupListRm  = (LinkedHashSet<IlConstHandle>) groupRm.getObj();
-        groupListRm.forEach((IlConstHandle u) -> {
-            groupList.remove(u);
-        });
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
+        groupList.removeAll((LinkedHashSet<IlConstHandle>) groupRm.getObj());
         return ILconstInt.create(groupList.size());
     }	
 }
