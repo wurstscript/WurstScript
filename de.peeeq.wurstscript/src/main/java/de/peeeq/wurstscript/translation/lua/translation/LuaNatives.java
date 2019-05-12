@@ -125,8 +125,9 @@ public class LuaNatives {
     }
 
     public static void get(LuaFunction f) {
-        nativeCodes.getOrDefault(f.getName(), name -> {
-            throw new RuntimeException("native not implemented: " + f.getName());
+        nativeCodes.getOrDefault(f.getName(), ff -> {
+            // generate a runtime exception
+            f.getBody().add(LuaAst.LuaLiteral("error(\"The native '" + ff.getName() + "' is not implemented.\")"));
         }).accept(f);
     }
 

@@ -1426,6 +1426,12 @@ public class ImTranslator {
             }
 
             @Override
+            public VarsForTupleResult case_ImAnyType(ImAnyType at) {
+                ImType type = typeConstructor.apply(at);
+                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+            }
+
+            @Override
             public VarsForTupleResult case_ImTupleType(ImTupleType tt) {
                 int i = 0;
                 Builder<VarsForTupleResult> ts = ImmutableList.builder();
