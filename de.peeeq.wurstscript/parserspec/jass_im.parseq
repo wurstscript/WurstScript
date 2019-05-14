@@ -27,7 +27,6 @@ ImType =
 	| ImVoid()
 	| ImClassType(ref ImClass classDef, ImTypeArguments typeArguments)
 	| ImTypeVarRef(ref ImTypeVar typeVariable)
-	| ImAnyType()
 
 ImTypeVars * ImTypeVar
 

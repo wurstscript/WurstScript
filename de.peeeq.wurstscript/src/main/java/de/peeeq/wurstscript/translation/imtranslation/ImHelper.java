@@ -132,11 +132,6 @@ public class ImHelper {
             }
 
             @Override
-            public ImExpr case_ImAnyType(ImAnyType at) {
-                return JassIm.ImNull(at);
-            }
-
-            @Override
             public ImExpr case_ImTupleType(ImTupleType tt) {
                 ImExprs res = JassIm.ImExprs();
                 for (ImType it : tt.getTypes()) {

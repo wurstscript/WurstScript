@@ -3,6 +3,7 @@ package de.peeeq.wurstscript.types;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -72,7 +73,7 @@ public class WurstTypeTypeParam extends WurstType {
         if (hasTypeConstraints()) {
             return JassIm.ImTypeVarRef(tr.getTypeVar(def));
         }
-        return JassIm.ImAnyType();
+        return TypesHelper.imInt();
     }
 
     /** Using the new template generics with type constraints*/

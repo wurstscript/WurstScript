@@ -59,11 +59,6 @@ class GenericTypes {
     private static int hashType(ImType t) {
         return t.match(new ImType.Matcher<Integer>() {
             @Override
-            public Integer case_ImAnyType(ImAnyType imAnyType) {
-                return 953;
-            }
-
-            @Override
             public Integer case_ImTupleType(ImTupleType t) {
                 int res = 172;
                 for (ImType it : t.getTypes()) {

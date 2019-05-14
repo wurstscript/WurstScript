@@ -1308,33 +1308,5 @@ public class BugTests extends WurstScriptTest {
 		);
 	}
 
-    @Test
-    public void bitset_add() {
-        testAssertOkLines(true,
-            "package Test",
-            "native testSuccess()",
-            "native testFail(string msg)",
-            "@extern native I2S(int i) returns string",
-            "public tuple bitset(int val)",
-            "public function int.pow(int x) returns int",
-            "    int result = 1",
-            "    for int i=1 to x",
-            "        result *= this",
-            "    return result",
-            "public function bitset.add(int v) returns bitset",
-            "    let pow = 2 .pow(v)",
-            "    return not this.containsPow(pow) ? bitset(this.val + pow) : this",
-            "function bitset.containsPow(int pow) returns boolean",
-            "    return (this.val mod (pow * 2)) >= pow",
-            "init",
-            "    let a = bitset(5)", // {0,2}
-            "    let res = a.add(1)",
-            "    if res.val == 7",
-            "        testSuccess()",
-            "    else",
-            "        testFail(I2S(res.val))"
-        );
-    }
-
 
 }

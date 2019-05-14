@@ -125,8 +125,4 @@ public class ImAttributes {
     public static String translateType(ImClassType imClassType) {
         return "integer";
     }
-
-    public static String translateType(ImAnyType at) {
-        return "integer";
-    }
 }

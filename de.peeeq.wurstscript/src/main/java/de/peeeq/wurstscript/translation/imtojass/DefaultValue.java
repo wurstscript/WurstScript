@@ -54,8 +54,4 @@ public class DefaultValue {
     public static ILconst get(ImClassType ct) {
         return new ILconstInt(0);
     }
-
-    public static ILconst get(ImAnyType imAnyType) {
-        return ILconstNull.instance();
-    }
 }
