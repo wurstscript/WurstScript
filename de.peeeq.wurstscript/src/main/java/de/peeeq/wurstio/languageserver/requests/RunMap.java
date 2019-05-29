@@ -9,14 +9,10 @@ import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
 import de.peeeq.wurstio.utils.W3Utils;
-import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
-import de.peeeq.wurstscript.ast.CompilationUnit;
-import de.peeeq.wurstscript.ast.WurstModel;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
-import de.peeeq.wurstscript.utils.WinRegistry;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
@@ -51,10 +47,10 @@ public class RunMap extends MapRequest {
     @Override
     public Object execute(ModelManager modelManager) {
         WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
-               + ",\n map = " + map
-                + ",\n compileArgs = " + compileArgs
-                + ",\n workspaceRoot = " + workspaceRoot
-                + ",\n runArgs = " + runArgs
+            + ",\n map = " + map
+            + ",\n compileArgs = " + compileArgs
+            + ",\n workspaceRoot = " + workspaceRoot
+            + ",\n runArgs = " + runArgs
         );
 
         if (modelManager.hasErrors()) {
@@ -84,10 +80,7 @@ public class RunMap extends MapRequest {
                 // call jhcr update
                 gui.sendProgress("Calling JHCR update");
                 callJhcrUpdate(compiledScript);
-            }
 
-
-            if (runArgs.isHotReload()) {
                 // if we are just reloading the mapscript with JHCR, we are done here
                 gui.sendProgress("update complete");
                 return "ok";
@@ -100,8 +93,16 @@ public class RunMap extends MapRequest {
                 // then inject the script into the map
                 gui.sendProgress("Injecting mapscript");
                 try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
+                    String mapScriptName;
+                    if (runArgs.isLua()) {
+                        mapScriptName = "war3map.lua";
+                    } else {
+                        mapScriptName = "war3map.j";
+                    }
+                    // delete both original mapscripts, just to be sure:
                     mpqEditor.deleteFile("war3map.j");
-                    mpqEditor.insertFile("war3map.j", compiledScript);
+                    mpqEditor.deleteFile("war3map.lua");
+                    mpqEditor.insertFile(mapScriptName, compiledScript);
                 }
 
 
@@ -122,7 +123,7 @@ public class RunMap extends MapRequest {
                     if (W3Utils.getWc3PatchVersion() == null) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
-                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-loadfile", path);
 
                     if (!System.getProperty("os.name").startsWith("Windows")) {
                         // run with wine
@@ -164,7 +165,7 @@ public class RunMap extends MapRequest {
         Path customMapDataPath = getCustomMapDataPath();
 
         ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "update", mapScript.getName(), "--asm",
-                "--preload-path", customMapDataPath.toAbsolutePath().toString());
+            "--preload-path", customMapDataPath.toAbsolutePath().toString());
         pb.directory(mapScriptFolder);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
     }
@@ -206,12 +207,12 @@ public class RunMap extends MapRequest {
      */
     private File findGameExecutable() {
         return (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_29) < 0 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
-                Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
-                .map(exe -> new File(wc3Path, exe))
-                .filter(File::exists)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("No warcraft executatble found in path '" + wc3Path + "'. \n" +
-                        "Please check your configuration."));
+            Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
+            .map(exe -> new File(wc3Path, exe))
+            .filter(File::exists)
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("No warcraft executatble found in path '" + wc3Path + "'. \n" +
+                "Please check your configuration."));
     }
 
     /**
@@ -235,32 +236,9 @@ public class RunMap extends MapRequest {
                 }
             }
         }
+
         File myDocumentsFolder = FileSystemView.getFileSystemView().getDefaultDirectory();
-        String documentPath = myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III";
-        if (!new File(documentPath).exists()) {
-            WLogger.info("Warcraft folder " + documentPath + " does not exist.");
-            // Try wine default:
-            documentPath = System.getProperty("user.home")
-                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
-            if (!new File(documentPath).exists()) {
-                WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
-            }
-        }
-
-
-        if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27.9")) <= 0) {
-            // 1.27 and lower compat
-            WLogger.info("Version 1.27 or lower detected, changing file location");
-            documentPath = wc3Path;
-        } else {
-            // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
-            File oldFile = new File(wc3Path, "Maps" + File.separator + "Test" + File.separator + testMapName);
-            if (oldFile.exists()) {
-                if (!oldFile.delete()) {
-                    WLogger.severe("Cannot delete old Wurst Test Map");
-                }
-            }
-        }
+        String documentPath = findMapDocumentPath(testMapName, myDocumentsFolder);
 
         // copy the map to the appropriate directory
         File testFolder = new File(documentPath, "Maps" + File.separator + "Test");
@@ -272,6 +250,38 @@ public class RunMap extends MapRequest {
             WLogger.severe("Could not create Test folder");
         }
         return null;
+    }
+
+    private String findMapDocumentPath(String testMapName, File myDocumentsFolder) {
+        String documentPath = configProvider.getMapDocumentPath();
+        if (documentPath == null) {
+            documentPath = myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III";
+            if (!new File(documentPath).exists()) {
+                WLogger.info("Warcraft folder " + documentPath + " does not exist.");
+                // Try wine default:
+                documentPath = System.getProperty("user.home")
+                    + "/.wine/drive_c/users/" + System.getProperty("user.name") + "/My Documents/Warcraft III";
+                if (!new File(documentPath).exists()) {
+                    WLogger.severe("Severe: Wine Warcraft folder " + documentPath + " does not exist.");
+                }
+            }
+
+
+            if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27.9")) <= 0) {
+                // 1.27 and lower compat
+                WLogger.info("Version 1.27 or lower detected, changing file location");
+                documentPath = wc3Path;
+            } else {
+                // For 1.28+ the wc3/maps/test folder must not contain a map of the same name
+                File oldFile = new File(wc3Path, "Maps" + File.separator + "Test" + File.separator + testMapName);
+                if (oldFile.exists()) {
+                    if (!oldFile.delete()) {
+                        WLogger.severe("Cannot delete old Wurst Test Map");
+                    }
+                }
+            }
+        }
+        return documentPath;
     }
 
 

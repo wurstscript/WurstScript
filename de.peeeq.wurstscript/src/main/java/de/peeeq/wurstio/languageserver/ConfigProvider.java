@@ -1,8 +1,8 @@
 package de.peeeq.wurstio.languageserver;
 
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.services.LanguageClient;
@@ -16,7 +16,7 @@ import java.util.concurrent.ExecutionException;
  *
  */
 public class ConfigProvider {
-private final LanguageClient languageClient;
+    private final LanguageClient languageClient;
 
     public ConfigProvider(LanguageClient languageClient) {
         this.languageClient = languageClient;
@@ -32,7 +32,9 @@ private final LanguageClient languageClient;
                 if (c instanceof JsonObject) {
                     JsonObject cfg = (JsonObject) c;
                     JsonElement result = cfg.get(key);
-                    if (result != null) {
+                    if (result instanceof JsonNull) {
+                        return null;
+                    } else if (result != null) {
                         return result.getAsString();
                     }
                 }
@@ -46,6 +48,12 @@ private final LanguageClient languageClient;
     public String getJhcrExe() {
         return getConfig("jhcrExe", "jhcr.exe");
     }
-}
 
+    /**
+     * The path where to put maps before running them
+     */
+    public String getMapDocumentPath() {
+        return getConfig("mapDocumentPath", null);
+    }
+}
 
