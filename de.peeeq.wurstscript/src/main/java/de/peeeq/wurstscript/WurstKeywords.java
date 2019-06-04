@@ -37,6 +37,16 @@ public class WurstKeywords {
             "questitem", "defeatcondition", "timerdialog", "leaderboard", "multiboard",
             "multiboarditem", "trackable", "gamecache", "version", "itemtype",
             "texttag", "attacktype", "damagetype", "weapontype", "soundtype",
-            "lightning", "pathingtype", "image", "ubersplat", "hashtable"};
+            "lightning", "pathingtype", "image", "ubersplat", "hashtable", "framehandle",
+			"originframetype", "framepointtype", "textaligntype", "frameeventtype", "oskeytype",
+			"abilityintegerfield", "abilityrealfield", "abilitybooleanfield", "abilitystringfield",
+			"abilityintegerlevelfield", "abilityreallevelfield", "abilitybooleanlevelfield",
+			"abilitystringlevelfield", "abilityintegerlevelarrayfield", "abilityreallevelarrayfield",
+			"abilitybooleanlevelarrayfield", "abilitystringlevelarrayfield", "unitintegerfield",
+			"unitrealfield", "unitbooleanfield", "unitstringfield", "unitweaponintegerfield",
+			"unitweaponrealfield", "unitweaponbooleanfield", "unitweaponstringfield",
+			"itemintegerfield", "itemrealfield", "itembooleanfield", "itemstringfield", "movetype",
+			"targetflag", "armortype", "heroattribute", "defensetype", "regentype", "unitcategory",
+			"pathingflag"};
 
 }
