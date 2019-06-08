@@ -13,7 +13,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
-import net.moonlightflower.wc3libs.bin.GameExe;
+import net.moonlightflower.wc3libs.port.GameVersion;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static net.moonlightflower.wc3libs.bin.GameExe.VERSION_1_29;
+import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_29;
 
 /**
  * Created by peter on 16.05.16.
@@ -50,7 +50,7 @@ public class RunMap extends MapRequest {
             + ",\n map = " + map
             + ",\n compileArgs = " + compileArgs
             + ",\n workspaceRoot = " + workspaceRoot
-            + ",\n runArgs = " + runArgs
+            + ",\n runArgs = " + compileArgs
         );
 
         if (modelManager.hasErrors()) {
@@ -63,6 +63,9 @@ public class RunMap extends MapRequest {
         try {
             if (wc3Path != null) {
                 W3Utils.parsePatchVersion(new File(wc3Path));
+                if (W3Utils.getWc3PatchVersion() == null) {
+                    throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation!");
+                }
             }
 
             if (map != null && !map.exists()) {
@@ -123,7 +126,7 @@ public class RunMap extends MapRequest {
                     if (W3Utils.getWc3PatchVersion() == null) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
-                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-loadfile", path);
+                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-windowmode", "windowed", "-loadfile", path);
 
                     if (!System.getProperty("os.name").startsWith("Windows")) {
                         // run with wine
@@ -206,13 +209,15 @@ public class RunMap extends MapRequest {
      * since it changed with 1.28.3
      */
     private File findGameExecutable() {
-        return (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_29) < 0 ? Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe") :
-            Stream.of("Warcraft III.exe", "Frozen Throne.exe"))
-            .map(exe -> new File(wc3Path, exe))
-            .filter(File::exists)
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("No warcraft executatble found in path '" + wc3Path + "'. \n" +
-                "Please check your configuration."));
+        if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_29) < 0) {
+            return (Stream.of("war3.exe", "War3.exe", "WAR3.EXE", "Warcraft III.exe", "Frozen Throne.exe"))
+                .map(exe -> new File(wc3Path, exe))
+                .filter(File::exists)
+                .findFirst()
+                .orElseThrow(() -> new RequestFailedException(MessageType.Error, "No warcraft executatble found in path '" + wc3Path + "'. \n" +
+                    "Please check your configuration."));
+        }
+        return W3Utils.getGameExe();
     }
 
     /**
@@ -267,7 +272,7 @@ public class RunMap extends MapRequest {
             }
 
 
-            if (W3Utils.getWc3PatchVersion().compareTo(new GameExe.Version("1.27.9")) <= 0) {
+            if (W3Utils.getWc3PatchVersion().compareTo(new GameVersion("1.27.9")) <= 0) {
                 // 1.27 and lower compat
                 WLogger.info("Version 1.27 or lower detected, changing file location");
                 documentPath = wc3Path;
