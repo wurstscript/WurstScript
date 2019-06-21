@@ -57,11 +57,3 @@ public class ConfigProvider {
     }
 }
 
-    /**
-     * The path where to put maps before running them
-     */
-    public String getMapDocumentPath() {
-        return getConfig("mapDocumentPath", null);
-    }
-}
-
