@@ -574,4 +574,8 @@ public class ImPrinter {
         e.getToType().print(sb, indent);
         append(sb, ")");
     }
+
+    public static void print(ImAnyType at, Appendable sb, int indent) {
+        append(sb, "any");
+    }
 }

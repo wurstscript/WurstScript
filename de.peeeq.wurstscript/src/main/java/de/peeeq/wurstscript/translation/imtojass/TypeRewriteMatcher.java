@@ -21,6 +21,11 @@ public class TypeRewriteMatcher implements ImType.Matcher<ImType> {
     }
 
     @Override
+    public ImType case_ImAnyType(ImAnyType t) {
+        return t;
+    }
+
+    @Override
     public ImType case_ImTupleType(ImTupleType t) {
         return JassIm.ImTupleType(t.getTypes()
                         .stream()

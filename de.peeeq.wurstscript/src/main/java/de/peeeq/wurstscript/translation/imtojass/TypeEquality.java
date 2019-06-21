@@ -83,4 +83,8 @@ public class TypeEquality {
         }
         return false;
     }
+
+    public static boolean isEqualType(ImAnyType t, ImType other) {
+        return other instanceof ImAnyType;
+    }
 }
