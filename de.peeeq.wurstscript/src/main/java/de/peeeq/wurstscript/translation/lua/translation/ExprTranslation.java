@@ -4,7 +4,6 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.types.TypesHelper;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
@@ -50,13 +49,25 @@ public class ExprTranslation {
                                 LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
                                     LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
                         ),
-                        LuaAst.LuaLiteral("function(err) BJDebugMsg(tostring(err)) end")
+//                        LuaAst.LuaLiteral("function(err) " + errorFuncName(tr) + "(tostring(err)) end")
+                        LuaAst.LuaLiteral("function(err) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end")
                         // unfortunately  BJDebugMsg(debug.traceback()) is not working
                     )
                 ),
                 LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes))
             )
         );
+    }
+
+    private static String callErrorFunc(LuaTranslator tr, String msg) {
+        LuaFunction ef = tr.getErrorFunc();
+        if (ef != null) {
+            if (ef.getParams().size() == 2) {
+                return ef.getName() + "(" + msg + ", \"<lua error>\")";
+            }
+            return ef.getName() + "(" + msg + ")";
+        }
+        return "BJDebugMsg(" + msg + ")";
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {

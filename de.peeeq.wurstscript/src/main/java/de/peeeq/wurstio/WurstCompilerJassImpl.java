@@ -798,6 +798,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public LuaCompilationUnit transformProgToLua() {
+
+        if (runArgs.isNoDebugMessages()) {
+            beginPhase(3, "remove debug messages");
+            DebugMessageRemover.removeDebugMessages(imProg);
+        } else {
+            // debug: add stacktraces
+            if (runArgs.isIncludeStacktraces()) {
+                beginPhase(4, "add stack traces");
+                new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
+            }
+        }
+
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         return luaCode;

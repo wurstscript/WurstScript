@@ -3,19 +3,21 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.datastructures.UnionFind;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
 import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 public class LuaTranslator {
 
@@ -48,6 +50,10 @@ public class LuaTranslator {
         "while"
     ));
 
+    private ImProg getProg() {
+        return prog;
+    }
+
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
 
@@ -70,7 +76,14 @@ public class LuaTranslator {
             if (!a.isExtern() && !a.isBj() && !a.isNative()) {
                 name = uniqueName(name);
             }
-            return LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+            LuaFunction lf = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            // translate parameters
+            for (ImVar p : a.getParameters()) {
+                LuaVariable pv = luaVar.getFor(p);
+                lf.getParams().add(pv);
+            }
+            return lf;
         }
     };
     public GetAForB<ImMethod, LuaMethod> luaMethod = new GetAForB<ImMethod, LuaMethod>() {
@@ -112,6 +125,24 @@ public class LuaTranslator {
     LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
+        this.getProg().getFunctions().stream()
+            .flatMap(f -> {
+                Element trace = f.attrTrace();
+                if (trace instanceof FuncDef) {
+                    FuncDef fd = (FuncDef) trace;
+                    if (fd.getName().equals("error")
+                        && fd.attrNearestPackage() instanceof WPackage) {
+                        WPackage p = (WPackage) fd.attrNearestPackage();
+                        if (p.getName().equals("ErrorHandling")) {
+                            return Stream.of(luaFunc.getFor(f));
+                        }
+                    }
+                }
+                return Stream.empty();
+            })
+            .findFirst().orElse(null));
 
     private final ImTranslator imTr;
 
@@ -219,10 +250,22 @@ public class LuaTranslator {
 
     private void createStringConcatFunction() {
         String[] code = {
+            "function dump(o)",
+            "   if type(o) == 'table' then",
+            "      local s = '{ '",
+            "      for k,v in pairs(o) do",
+            "         if type(k) ~= 'number' then k = '\"'..k..'\"' end",
+            "         s = s .. '['..k..'] = ' .. dump(v) .. ','",
+            "      end",
+            "      return s .. '} '",
+            "   else",
+            "      return tostring(o)",
+            "   end",
+            "end",
             "if x then",
-            "    if y then return x .. y else return x end",
+            "    if y then return dump(x) .. dump(y) else return dump(x) end",
             "else",
-            "    return y",
+            "    return dump(y)",
             "end"
         };
 
@@ -367,12 +410,6 @@ public class LuaTranslator {
             LuaNatives.get(lf);
         } else {
 
-
-            // translate parameters
-            for (ImVar p : f.getParameters()) {
-                LuaVariable pv = luaVar.getFor(p);
-                lf.getParams().add(pv);
-            }
 
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
                 LuaVariable lastParam = luaVar.getFor(Utils.getLast(f.getParameters()));
@@ -636,5 +673,10 @@ public class LuaTranslator {
 
     public int getTypeId(ImClass classDef) {
         return prog.attrTypeId().get(classDef);
+    }
+
+
+    public LuaFunction getErrorFunc() {
+        return errorFunc.get();
     }
 }

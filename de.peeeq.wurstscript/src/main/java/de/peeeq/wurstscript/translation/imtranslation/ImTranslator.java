@@ -442,13 +442,7 @@ public class ImTranslator {
                 )),
                 // then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
                 JassIm.ImStmts(
-                        ImFunctionCall(trace, native_DisplayTimedTextToPlayer, ImTypeArguments(), JassIm.ImExprs(
-                                ImFunctionCall(trace, native_GetLocalPlayer, ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL),
-                                JassIm.ImRealVal("0."),
-                                JassIm.ImRealVal("0."),
-                                JassIm.ImRealVal("45."),
-                                JassIm.ImStringVal("Could not initialize package " + p.getName() + ".")
-                        ), false, CallType.NORMAL)
+                    imError(trace, JassIm.ImStringVal("Could not initialize package " + p.getName() + "."))
                 ),
                 // else:
                 JassIm.ImStmts()));
