@@ -33,26 +33,30 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
-        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
-        // alternative: use xpcall to get stacktraces (did not work)
-//        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
-//        LuaVariable tempDots = LuaAst.LuaVariable("temp", LuaAst.LuaExprVarAccess(dots));
-//        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots),
-//            LuaAst.LuaStatements(
-//                tempDots,
-//                LuaAst.LuaReturn(LuaAst.LuaExprFunctionCallByName("xpcall", LuaAst.LuaExprlist(
-//                    LuaAst.LuaExprFunctionAbstraction(
-//                        LuaAst.LuaParams(),
-//                        LuaAst.LuaStatements(
-//                            LuaAst.LuaReturn(
-//                                LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
-//                    ),
-//                    LuaAst.LuaLiteral("function(err) BJDebugMsg( \"Error \" .. tostring(err) ..\"\\n\"  .. debug.traceback()) end")
-//                    )
-//                    )
-//                )
-//            )
-//        );
+//        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
+//         alternative: use xpcall to get stacktraces (did not work)
+        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+        LuaVariable tempDots = LuaAst.LuaVariable("temp", LuaAst.LuaExprVarAccess(dots));
+        LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
+        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots),
+            LuaAst.LuaStatements(
+                tempDots,
+                tempRes,
+                LuaAst.LuaExprFunctionCallByName("xpcall",
+                    LuaAst.LuaExprlist(
+                        LuaAst.LuaExprFunctionAbstraction(
+                            LuaAst.LuaParams(),
+                            LuaAst.LuaStatements(
+                                LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
+                                    LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
+                        ),
+                        LuaAst.LuaLiteral("function(err) BJDebugMsg(tostring(err)) end")
+                        // unfortunately  BJDebugMsg(debug.traceback()) is not working
+                    )
+                ),
+                LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes))
+            )
+        );
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
