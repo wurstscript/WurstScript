@@ -581,7 +581,15 @@ public class LuaTranslator {
 
             @Override
             public LuaExpr case_ImArrayType(ImArrayType imArrayType) {
-                return emptyTable();
+                ImType baseType = imArrayType.getEntryType();
+                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
+                    LuaAst.LuaExprlist(
+                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
+                            LuaAst.LuaStatements(
+                                LuaAst.LuaReturn(defaultValue(baseType))
+                            )
+                        )
+                    ));
             }
 
             @Override

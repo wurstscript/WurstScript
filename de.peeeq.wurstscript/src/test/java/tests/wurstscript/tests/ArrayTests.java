@@ -198,4 +198,29 @@ public class ArrayTests extends WurstScriptTest {
         testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
     }
 
+    @Test
+    public void classArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "Test array ar",
+            "class Test",
+            "    int x",
+            "init",
+            "    if ar[5] == null",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void intArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int array ar",
+            "init",
+            "    if ar[5] == 0",
+            "        testSuccess()");
+    }
+
+
 }
