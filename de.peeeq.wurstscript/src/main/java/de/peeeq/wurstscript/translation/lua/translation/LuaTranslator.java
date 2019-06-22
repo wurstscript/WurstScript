@@ -241,11 +241,27 @@ public class LuaTranslator {
         )));
         luaModel.add(v);
 
+        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
+        )));
+        luaModel.add(im);
+
         {
             String[] code = {
+                "if x == nil then",
+                "    return 0",
+                "end",
+                // wrap numbers in special number-objects:
                 "if type(x) == \"number\" then",
-                "    return x",
-                "elseif __wurst_objectIndexMap[x] then",
+                "    if __wurst_number_wrapper_map[x] then",
+                "        x = __wurst_number_wrapper_map[x]",
+                "    else",
+                "        local obj = {__wurst_boxed_number = x}",
+                "        __wurst_number_wrapper_map[x] = obj",
+                "        x = obj",
+                "    end",
+                "end",
+                "if __wurst_objectIndexMap[x] then",
                 "    return __wurst_objectIndexMap[x]",
                 "else",
                 "   local r = __wurst_objectIndexMap.counter + 1",
@@ -265,11 +281,13 @@ public class LuaTranslator {
 
         {
             String[] code = {
-                "if type(x) == \"table\" then",
-                "    return x",
-                "else",
-                "    return __wurst_objectIndexMap[x]",
-                "end"
+                "if type(x) == \"number\" then",
+                "    x = __wurst_objectIndexMap[x]",
+                "end",
+                "if type(x) == \"table\" and x.__wurst_boxed_number then",
+                "    return x.__wurst_boxed_number",
+                "end",
+                "return x"
             };
 
             fromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));

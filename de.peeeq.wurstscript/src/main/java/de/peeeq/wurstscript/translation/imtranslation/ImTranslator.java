@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.utils.FileUtils;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -100,12 +101,14 @@ public class ImTranslator {
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
     private boolean debug = false;
+    private final RunArgs runArgs;
 
-    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
+    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
         imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        this.runArgs = runArgs;
     }
 
 
@@ -1275,6 +1278,10 @@ public class ImTranslator {
 
     public ImTypeVar getTypeVar(TypeParamDef tv) {
         return typeVariable.getFor(tv);
+    }
+
+    public boolean isLuaTarget() {
+        return runArgs.isLua();
     }
 
 

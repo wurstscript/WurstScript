@@ -322,7 +322,8 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-        return LuaAst.LuaLiteral("debug.traceback()");
+//        return LuaAst.LuaLiteral("debug.traceback()");
+        return LuaAst.LuaLiteral("\"$Stacktrace$\"");
     }
 
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {

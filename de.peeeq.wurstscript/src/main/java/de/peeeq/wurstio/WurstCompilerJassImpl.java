@@ -37,7 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
@@ -581,7 +580,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     public @Nullable ImProg translateProgToIm(WurstModel root) {
         beginPhase(1, "to intermediate lang");
         // translate wurst to intermediate lang:
-        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
+        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
         imProg = getImTranslator().translateProg();
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");

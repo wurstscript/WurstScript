@@ -7,6 +7,7 @@ import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionNativeProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
@@ -297,7 +298,7 @@ public class RunTests extends UserRequest<Object> {
     }
 
     private ImProg translateProg(ModelManager modelManager) {
-        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false);
+        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false, new RunArgs());
         // will ignore udg_ variables which are not found
         imTranslator.setEclipseMode(true);
         return imTranslator.translateProg();

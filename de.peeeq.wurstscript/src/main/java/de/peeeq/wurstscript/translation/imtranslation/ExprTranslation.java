@@ -98,6 +98,12 @@ public class ExprTranslation {
     }
 
     static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+        if (t.isLuaTarget()) {
+            // for lua we do not need fromIndex/toIndex
+            return translated;
+        }
+
+
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
