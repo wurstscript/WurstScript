@@ -1084,7 +1084,7 @@ public class ImTranslator {
                         FuncLink funcLink = (FuncLink) nameLink;
                         FuncDef f = (FuncDef) funcLink.getDef();
                         // check if function f overrides func
-                        if (WurstValidator.canOverride(funcLink, funcNameLink)) {
+                        if (WurstValidator.canOverride(funcLink, funcNameLink, false)) {
                             result.put(c, f);
                         }
                     }

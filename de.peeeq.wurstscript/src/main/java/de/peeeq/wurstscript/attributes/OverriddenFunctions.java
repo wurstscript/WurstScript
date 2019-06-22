@@ -49,7 +49,7 @@ public class OverriddenFunctions {
                     if (nl.getLevel() == c.attrLevel()
                             && nl.getDef() instanceof FunctionDefinition
                             && nl instanceof FuncLink
-                            && WurstValidator.canOverride((FuncLink) nl, fNameLink)
+                            && WurstValidator.canOverride((FuncLink) nl, fNameLink, true)
                             ) {
                         return ((FuncLink) nl).getDef().attrRealFuncDef();
                     }

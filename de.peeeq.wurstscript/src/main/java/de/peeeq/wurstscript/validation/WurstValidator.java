@@ -2063,8 +2063,8 @@ public class WurstValidator {
     /**
      * checks if func1 can override func2
      */
-    public static boolean canOverride(FuncLink func1, FuncLink func2) {
-        return checkOverride(func1, func2, false) == null;
+    public static boolean canOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+        return checkOverride(func1, func2, allowStaticOverride) == null;
     }
 
     /**
