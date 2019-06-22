@@ -32,12 +32,18 @@ public class InterpreterException extends RuntimeException {
     }
 
     @Override
-    public String toString() {
-        if (trace == null) {
-            return getMessage();
+    public String getMessage() {
+        String res = super.getMessage();
+        if (trace != null) {
+            WPos pos = trace.attrSource();
+            res = res + "\n  at " + pos.getFile() + " line " + pos.getLine();
         }
-        WPos pos = trace.attrSource();
-        return "at " + pos.print() + ":\n" + getMessage()
+        return res;
+    }
+
+    @Override
+    public String toString() {
+        return getMessage()
                 + (stackTrace != null ? "\nStack trace:\n" + stackTrace : "");
     }
 

@@ -209,7 +209,7 @@ public class EvaluateExpr {
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
         ILconstObject receiver = globalState.toObject(ma.getReceiver().evaluate(globalState, localState));
         if (receiver == null) {
-            throw new RuntimeException("Null pointer dereference");
+            throw new InterpreterException(ma.getTrace(), "Null pointer dereference");
         }
         List<Integer> indexes = ma.getIndexes().stream()
                 .map(i -> ((ILconstInt) i.evaluate(globalState, localState)).getVal())
