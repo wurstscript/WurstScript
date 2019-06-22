@@ -39,6 +39,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new DialogProvider(interpreter));
         addProvider(new EffectProvider(interpreter));
         addProvider(new RegionProvider(interpreter));
+        addProvider(new ImageProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {
