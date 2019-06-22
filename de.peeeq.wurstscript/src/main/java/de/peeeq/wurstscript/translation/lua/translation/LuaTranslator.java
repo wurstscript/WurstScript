@@ -19,6 +19,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
+
 public class LuaTranslator {
 
     final ImProg prog;
@@ -126,6 +128,8 @@ public class LuaTranslator {
 
     LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
+    LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
     private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
         this.getProg().getFunctions().stream()
             .flatMap(f -> {
@@ -175,6 +179,7 @@ public class LuaTranslator {
 
         createArrayInitFunction();
         createStringConcatFunction();
+        createInstanceOfFunction();
         createObjectIndexFunctions();
 
         for (ImVar v : prog.getGlobals()) {
@@ -275,6 +280,23 @@ public class LuaTranslator {
             stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
         }
         luaModel.add(stringConcatFunction);
+    }
+
+    private void createInstanceOfFunction() {
+        // x instanceof A
+
+        // ==> x ~= nil and x.__wurst_supertypes[A]
+
+        String[] code = {
+            "return x ~= nil and x." + WURST_SUPERTYPES + "[A]"
+        };
+
+        instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
+        for (String c : code) {
+            instanceOfFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        luaModel.add(instanceOfFunction);
     }
 
     private void createObjectIndexFunctions() {
@@ -512,7 +534,7 @@ public class LuaTranslator {
         collectSuperClasses(superClasses, c, new HashSet<>());
         luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.WURST_SUPERTYPES),
+            WURST_SUPERTYPES),
             LuaAst.LuaTableConstructor(superClasses)
         ));
 

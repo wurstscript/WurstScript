@@ -75,21 +75,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
-        // x instanceof A
-        // ==> x.__wurst_supertypes[A] == true
-        return LuaAst.LuaExprBinary(
-            LuaAst.LuaExprArrayAccess(
-                LuaAst.LuaExprFieldAccess(
-                    e.getObj().translateToLua(tr),
-                    WURST_SUPERTYPES
-                ),
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(e.getClazz().getClassDef()))
-                )
-            ),
-            LuaAst.LuaOpEquals(),
-            LuaAst.LuaExprBoolVal(true)
-        );
+        return
+            LuaAst.LuaExprFunctionCall(tr.instanceOfFunction, LuaAst.LuaExprlist(
+                e.getObj().translateToLua(tr),
+                LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(e.getClazz().getClassDef()))));
     }
 
     public static LuaExpr translate(ImIntVal e, LuaTranslator tr) {

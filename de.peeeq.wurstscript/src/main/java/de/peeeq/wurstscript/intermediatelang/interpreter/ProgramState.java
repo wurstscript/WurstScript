@@ -109,6 +109,9 @@ public class ProgramState extends State {
     }
 
     public boolean isInstanceOf(ILconstObject obj, ImClass clazz, Element trace) {
+        if (obj == null) {
+            return false;
+        }
         assertAllocated(obj, trace);
         return obj.getImClass().isSubclassOf(clazz); // TODO more efficient check
     }
