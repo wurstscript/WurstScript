@@ -5,7 +5,7 @@ grammar Jurst;
     package de.peeeq.wurstscript.jurst.antlr;
 }
 
-compilationUnit : NL* decls+=topLevelDeclaration*;
+compilationUnit : NL* decls+=topLevelDeclaration* EOF;
 
 topLevelDeclaration:
 					 wpackage

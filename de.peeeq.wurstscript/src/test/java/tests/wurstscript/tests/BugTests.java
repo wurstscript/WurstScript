@@ -906,7 +906,7 @@ public class BugTests extends WurstScriptTest {
                         "abstract class Hey\n" +
                         "	function foo()";
 
-        WurstModel model = test().executeProg(false).withStdLib(false).withCu(compilationUnit("testLine", "testLine")).run().getModel();
+        WurstModel model = test().executeProg(false).withStdLib(false).withCu(compilationUnit("testLine", input)).run().getModel();
 
         model.accept(new WurstModel.DefaultVisitor() {
             @Override

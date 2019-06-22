@@ -181,9 +181,9 @@ public class ArrayTests extends WurstScriptTest {
     @Test
     public void conditionalWithArray() { // see #631
         testAssertOkLines(false,
+                "package test",
                 "bool cond = true",
-                "class TestClass",
-                "    int array[3] zzzz",
+                "int array[3] zzzz",
                 "function ffff() returns int",
                 "    return cond ? zzzz[1] : 0");
     }

@@ -733,7 +733,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void subTypeGenericInterface2() {
-        testAssertOkLines(false, "Cannot assign B<C> to A<C, integer>",
+        testAssertErrorsLines(false, "Cannot assign B<C> to A<C, integer>",
                 "package test",
                 "    class C",
                 "    interface A<X, Y>",
