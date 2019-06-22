@@ -98,6 +98,12 @@ public class ExprTranslation {
     }
 
     static ImExpr wrapTranslation(Element trace, ImTranslator t, ImExpr translated, WurstType actualType, WurstType expectedTypRaw) {
+        if (t.isLuaTarget()) {
+            // for lua we do not need fromIndex/toIndex
+            return translated;
+        }
+
+
         ImFunction toIndex = null;
         ImFunction fromIndex = null;
         if (actualType instanceof WurstTypeBoundTypeParam) {
@@ -188,9 +194,7 @@ public class ExprTranslation {
 
     public static ImExpr translateIntern(ExprNull e, ImTranslator t, ImFunction f) {
         WurstType expectedTypeRaw = e.attrExpectedTypRaw();
-        if (expectedTypeRaw.isTranslatedToInt()) {
-            return ImIntVal(0);
-        } else if (expectedTypeRaw instanceof WurstTypeUnknown) {
+        if (expectedTypeRaw instanceof WurstTypeUnknown) {
             e.addError("Cannot use 'null' in this context.");
         }
         return ImNull(expectedTypeRaw.imTranslateType(t));

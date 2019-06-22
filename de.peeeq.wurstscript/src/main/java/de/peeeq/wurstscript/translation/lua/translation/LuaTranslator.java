@@ -1,17 +1,25 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
+import de.peeeq.wurstio.TimeTaker;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.FuncDef;
+import de.peeeq.wurstscript.ast.NameDef;
+import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
-import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.translation.imtranslation.NormalizeNames;
+import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
+import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
+import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
+
+import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
 
 public class LuaTranslator {
 
@@ -19,7 +27,7 @@ public class LuaTranslator {
     final LuaCompilationUnit luaModel;
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
-        "print", "tostring",
+        "print", "tostring", "error",
         // keywords:
         "and",
         "break",
@@ -44,13 +52,21 @@ public class LuaTranslator {
         "while"
     ));
 
+    private ImProg getProg() {
+        return prog;
+    }
+
     List<ExprTranslation.TupleFunc> tupleEqualsFuncs = new ArrayList<>();
     List<ExprTranslation.TupleFunc> tupleCopyFuncs = new ArrayList<>();
 
     GetAForB<ImVar, LuaVariable> luaVar = new GetAForB<ImVar, LuaVariable>() {
         @Override
         public LuaVariable initFor(ImVar a) {
-            return LuaAst.LuaVariable(uniqueName(a.getName()), LuaAst.LuaNoExpr());
+            String name = a.getName();
+            if (!a.getIsBJ()) {
+                name = uniqueName(name);
+            }
+            return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
         }
     };
 
@@ -58,7 +74,18 @@ public class LuaTranslator {
 
         @Override
         public LuaFunction initFor(ImFunction a) {
-            return LuaAst.LuaFunction(uniqueName(a.getName()), LuaAst.LuaParams(), LuaAst.LuaStatements());
+            String name = a.getName();
+            if (!a.isExtern() && !a.isBj() && !a.isNative()) {
+                name = uniqueName(name);
+            }
+
+            LuaFunction lf = LuaAst.LuaFunction(name, LuaAst.LuaParams(), LuaAst.LuaStatements());
+            // translate parameters
+            for (ImVar p : a.getParameters()) {
+                LuaVariable pv = luaVar.getFor(p);
+                lf.getParams().add(pv);
+            }
+            return lf;
         }
     };
     public GetAForB<ImMethod, LuaMethod> luaMethod = new GetAForB<ImMethod, LuaMethod>() {
@@ -96,6 +123,31 @@ public class LuaTranslator {
     LuaFunction arrayInitFunction = LuaAst.LuaFunction(uniqueName("defaultArray"), LuaAst.LuaParams(), LuaAst.LuaStatements());
 
     LuaFunction stringConcatFunction = LuaAst.LuaFunction(uniqueName("stringConcat"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    LuaFunction toIndexFunction = LuaAst.LuaFunction(uniqueName("objectToIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    LuaFunction fromIndexFunction = LuaAst.LuaFunction(uniqueName("objectFromIndex"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    LuaFunction instanceOfFunction = LuaAst.LuaFunction(uniqueName("isInstanceOf"), LuaAst.LuaParams(), LuaAst.LuaStatements());
+
+    private final Lazy<LuaFunction> errorFunc = Lazy.create(() ->
+        this.getProg().getFunctions().stream()
+            .flatMap(f -> {
+                Element trace = f.attrTrace();
+                if (trace instanceof FuncDef) {
+                    FuncDef fd = (FuncDef) trace;
+                    if (fd.getName().equals("error")
+                        && fd.attrNearestPackage() instanceof WPackage) {
+                        WPackage p = (WPackage) fd.attrNearestPackage();
+                        if (p.getName().equals("ErrorHandling")) {
+                            return Stream.of(luaFunc.getFor(f));
+                        }
+                    }
+                }
+                return Stream.empty();
+            })
+            .findFirst().orElse(null));
+
     private final ImTranslator imTr;
 
     public LuaTranslator(ImProg prog, ImTranslator imTr) {
@@ -115,7 +167,11 @@ public class LuaTranslator {
     }
 
     public LuaCompilationUnit translate() {
+        collectPredefinedNames();
+
+        RemoveGarbage.removeGarbage(prog);
         prog.flatten(imTr);
+
 
         normalizeMethodNames();
 
@@ -123,6 +179,8 @@ public class LuaTranslator {
 
         createArrayInitFunction();
         createStringConcatFunction();
+        createInstanceOfFunction();
+        createObjectIndexFunctions();
 
         for (ImVar v : prog.getGlobals()) {
             translateGlobal(v);
@@ -149,6 +207,29 @@ public class LuaTranslator {
         cleanStatements();
 
         return luaModel;
+    }
+
+    private void collectPredefinedNames() {
+        for (ImFunction function : prog.getFunctions()) {
+            if (function.isBj() || function.isExtern() || function.isNative()) {
+                setNameFromTrace(function);
+                usedNames.add(function.getName());
+            }
+        }
+
+        for (ImVar global : prog.getGlobals()) {
+            if (global.getIsBJ()) {
+                setNameFromTrace(global);
+                usedNames.add(global.getName());
+            }
+        }
+    }
+
+    private void setNameFromTrace(JassImElementWithName named) {
+        Element trace = named.attrTrace();
+        if (trace instanceof NameDef) {
+            named.setName(((NameDef) trace).getName());
+        }
     }
 
     private void normalizeMethodNames() {
@@ -187,6 +268,87 @@ public class LuaTranslator {
             stringConcatFunction.getBody().add(LuaAst.LuaLiteral(c));
         }
         luaModel.add(stringConcatFunction);
+    }
+
+    private void createInstanceOfFunction() {
+        // x instanceof A
+
+        // ==> x ~= nil and x.__wurst_supertypes[A]
+
+        String[] code = {
+            "return x ~= nil and x." + WURST_SUPERTYPES + "[A]"
+        };
+
+        instanceOfFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+        instanceOfFunction.getParams().add(LuaAst.LuaVariable("A", LuaAst.LuaNoExpr()));
+        for (String c : code) {
+            instanceOfFunction.getBody().add(LuaAst.LuaLiteral(c));
+        }
+        luaModel.add(instanceOfFunction);
+    }
+
+    private void createObjectIndexFunctions() {
+        String vName = "__wurst_objectIndexMap";
+        LuaVariable v = LuaAst.LuaVariable(vName, LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
+        )));
+        luaModel.add(v);
+
+        LuaVariable im = LuaAst.LuaVariable("__wurst_number_wrapper_map", LuaAst.LuaTableConstructor(LuaAst.LuaTableFields(
+            LuaAst.LuaTableNamedField("counter", LuaAst.LuaExprIntVal("0"))
+        )));
+        luaModel.add(im);
+
+        {
+            String[] code = {
+                "if x == nil then",
+                "    return 0",
+                "end",
+                // wrap numbers in special number-objects:
+                "if type(x) == \"number\" then",
+                "    if __wurst_number_wrapper_map[x] then",
+                "        x = __wurst_number_wrapper_map[x]",
+                "    else",
+                "        local obj = {__wurst_boxed_number = x}",
+                "        __wurst_number_wrapper_map[x] = obj",
+                "        x = obj",
+                "    end",
+                "end",
+                "if __wurst_objectIndexMap[x] then",
+                "    return __wurst_objectIndexMap[x]",
+                "else",
+                "   local r = __wurst_objectIndexMap.counter + 1",
+                "   __wurst_objectIndexMap.counter = r",
+                "   __wurst_objectIndexMap[r] = x",
+                "   __wurst_objectIndexMap[x] = r",
+                "   return r",
+                "end"
+            };
+
+            toIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                toIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(toIndexFunction);
+        }
+
+        {
+            String[] code = {
+                "if type(x) == \"number\" then",
+                "    x = __wurst_objectIndexMap[x]",
+                "end",
+                "if type(x) == \"table\" and x.__wurst_boxed_number then",
+                "    return x.__wurst_boxed_number",
+                "end",
+                "return x"
+            };
+
+            fromIndexFunction.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            for (String c : code) {
+                fromIndexFunction.getBody().add(LuaAst.LuaLiteral(c));
+            }
+            luaModel.add(fromIndexFunction);
+        }
     }
 
     private void createArrayInitFunction() {
@@ -249,17 +411,15 @@ public class LuaTranslator {
     }
 
     private void translateFunc(ImFunction f) {
+        if (f.isBj()) {
+            // do not translate blizzard functions
+            return;
+        }
         LuaFunction lf = luaFunc.getFor(f);
         if (f.isNative()) {
             LuaNatives.get(lf);
         } else {
 
-
-            // translate parameters
-            for (ImVar p : f.getParameters()) {
-                LuaVariable pv = luaVar.getFor(p);
-                lf.getParams().add(pv);
-            }
 
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
                 LuaVariable lastParam = luaVar.getFor(Utils.getLast(f.getParameters()));
@@ -277,7 +437,7 @@ public class LuaTranslator {
             translateStatements(lf.getBody(), f.getBody());
         }
 
-        if (f.isExtern()) {
+        if (f.isExtern() || f.isNative()) {
             // only add the function if it is not yet defined:
             String name = lf.getName();
             luaModel.add(LuaAst.LuaIf(
@@ -362,7 +522,7 @@ public class LuaTranslator {
         collectSuperClasses(superClasses, c, new HashSet<>());
         luaModel.add(LuaAst.LuaAssignment(LuaAst.LuaExprFieldAccess(
             LuaAst.LuaExprVarAccess(classVar),
-            ExprTranslation.WURST_SUPERTYPES),
+            WURST_SUPERTYPES),
             LuaAst.LuaTableConstructor(superClasses)
         ));
 
@@ -372,8 +532,6 @@ public class LuaTranslator {
             ExprTranslation.TYPE_ID),
             LuaAst.LuaExprIntVal("" + prog.attrTypeId().get(c))
         ));
-
-
 
 
     }
@@ -417,6 +575,10 @@ public class LuaTranslator {
 
 
     private void translateGlobal(ImVar v) {
+        if (v.getIsBJ()) {
+            // do not translate blizzard variables
+            return;
+        }
         LuaVariable lv = luaVar.getFor(v);
         lv.setInitialValue(defaultValue(v.getType()));
         luaModel.add(lv);
@@ -425,10 +587,15 @@ public class LuaTranslator {
     private LuaExpr defaultValue(ImType type) {
         return type.match(new ImType.Matcher<LuaExpr>() {
             @Override
+            public LuaExpr case_ImAnyType(ImAnyType imAnyType) {
+                return LuaAst.LuaExprNull();
+            }
+
+            @Override
             public LuaExpr case_ImTupleType(ImTupleType tt) {
                 LuaTableFields tableFields = LuaAst.LuaTableFields();
                 for (int i = 0; i < tt.getNames().size(); i++) {
-                    tableFields.add(LuaAst.LuaTableNamedField(tt.getNames().get(i), defaultValue(tt.getTypes().get(i))));
+                    tableFields.add(LuaAst.LuaTableSingleField(defaultValue(tt.getTypes().get(i))));
                 }
                 return LuaAst.LuaTableConstructor(
                     tableFields
@@ -479,7 +646,15 @@ public class LuaTranslator {
 
             @Override
             public LuaExpr case_ImArrayType(ImArrayType imArrayType) {
-                return emptyTable();
+                ImType baseType = imArrayType.getEntryType();
+                return LuaAst.LuaExprFunctionCall(arrayInitFunction,
+                    LuaAst.LuaExprlist(
+                        LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(),
+                            LuaAst.LuaStatements(
+                                LuaAst.LuaReturn(defaultValue(baseType))
+                            )
+                        )
+                    ));
             }
 
             @Override
@@ -508,5 +683,10 @@ public class LuaTranslator {
 
     public int getTypeId(ImClass classDef) {
         return prog.attrTypeId().get(classDef);
+    }
+
+
+    public LuaFunction getErrorFunc() {
+        return errorFunc.get();
     }
 }

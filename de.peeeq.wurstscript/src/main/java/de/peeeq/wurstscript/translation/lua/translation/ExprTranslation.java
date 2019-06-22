@@ -3,7 +3,7 @@ package de.peeeq.wurstscript.translation.lua.translation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import org.jetbrains.annotations.NotNull;
+import de.peeeq.wurstscript.types.TypesHelper;
 
 import java.util.Optional;
 
@@ -32,7 +32,42 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImFuncRef e, LuaTranslator tr) {
-        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
+//        return LuaAst.LuaExprFuncRef(tr.luaFunc.getFor(e.getFunc()));
+//         alternative: use xpcall to get stacktraces (did not work)
+        LuaVariable dots = LuaAst.LuaVariable("...", LuaAst.LuaNoExpr());
+        LuaVariable tempDots = LuaAst.LuaVariable("temp", LuaAst.LuaExprVarAccess(dots));
+        LuaVariable tempRes = LuaAst.LuaVariable("tempRes", LuaAst.LuaExprNull());
+        return LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(dots),
+            LuaAst.LuaStatements(
+                tempDots,
+                tempRes,
+                LuaAst.LuaExprFunctionCallByName("xpcall",
+                    LuaAst.LuaExprlist(
+                        LuaAst.LuaExprFunctionAbstraction(
+                            LuaAst.LuaParams(),
+                            LuaAst.LuaStatements(
+                                LuaAst.LuaAssignment(LuaAst.LuaExprVarAccess(tempRes),
+                                    LuaAst.LuaExprFunctionCall(tr.luaFunc.getFor(e.getFunc()), LuaAst.LuaExprlist(LuaAst.LuaExprVarAccess(tempDots)))))
+                        ),
+//                        LuaAst.LuaLiteral("function(err) " + errorFuncName(tr) + "(tostring(err)) end")
+                        LuaAst.LuaLiteral("function(err) xpcall(function() " + callErrorFunc(tr, "tostring(err)") + " end, function(err2) BJDebugMsg(\"error reporting error: \" .. tostring(err2)) BJDebugMsg(\"while reporting: \" .. tostring(err))  end) end")
+                        // unfortunately  BJDebugMsg(debug.traceback()) is not working
+                    )
+                ),
+                LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(tempRes))
+            )
+        );
+    }
+
+    private static String callErrorFunc(LuaTranslator tr, String msg) {
+        LuaFunction ef = tr.getErrorFunc();
+        if (ef != null) {
+            if (ef.getParams().size() == 2) {
+                return ef.getName() + "(" + msg + ", \"<lua error>\")";
+            }
+            return ef.getName() + "(" + msg + ")";
+        }
+        return "BJDebugMsg(" + msg + ")";
     }
 
     public static LuaExpr translate(ImFunctionCall e, LuaTranslator tr) {
@@ -40,21 +75,10 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImInstanceof e, LuaTranslator tr) {
-        // x instanceof A
-        // ==> x.__wurst_supertypes[A] == true
-        return LuaAst.LuaExprBinary(
-            LuaAst.LuaExprArrayAccess(
-                LuaAst.LuaExprFieldAccess(
-                    e.getObj().translateToLua(tr),
-                    WURST_SUPERTYPES
-                ),
-                LuaAst.LuaExprlist(
-                    LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(e.getClazz().getClassDef()))
-                )
-            ),
-            LuaAst.LuaOpEquals(),
-            LuaAst.LuaExprBoolVal(true)
-        );
+        return
+            LuaAst.LuaExprFunctionCall(tr.instanceOfFunction, LuaAst.LuaExprlist(
+                e.getObj().translateToLua(tr),
+                LuaAst.LuaExprVarAccess(tr.luaClassVar.getFor(e.getClazz().getClassDef()))));
     }
 
     public static LuaExpr translate(ImIntVal e, LuaTranslator tr) {
@@ -145,7 +169,6 @@ public class ExprTranslation {
     }
 
 
-
     private static LuaFunction getTupleEqualsFunc(ImTupleType t, LuaTranslator tr) {
         Optional<TupleFunc> tfo = tr.tupleEqualsFuncs.stream()
             .filter(f -> f.tupleType.equalsType(t))
@@ -162,10 +185,10 @@ public class ExprTranslation {
 
             for (int i = 0; i < t.getNames().size(); i++) {
                 result = conjunction(result, translateEquals(
-                   LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t1),
-                       LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                    LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t1),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))),
                     LuaAst.LuaExprArrayAccess(LuaAst.LuaExprVarAccess(t2),
-                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal(""+i))),
+                        LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + i))),
                     t.getTypes().get(i),
                     tr));
             }
@@ -177,7 +200,6 @@ public class ExprTranslation {
         }
         return tf.func;
     }
-
 
 
     public static LuaFunction getTupleCopyFunc(ImTupleType t, LuaTranslator tr) {
@@ -275,7 +297,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTupleSelection e, LuaTranslator tr) {
-        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1+e.getTupleIndex()))));
+        return LuaAst.LuaExprArrayAccess(e.getTupleExpr().translateToLua(tr), LuaAst.LuaExprlist(LuaAst.LuaExprIntVal("" + (1 + e.getTupleIndex()))));
     }
 
     public static LuaExpr translate(ImTypeIdOfClass e, LuaTranslator tr) {
@@ -300,7 +322,8 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImGetStackTrace e, LuaTranslator tr) {
-        return LuaAst.LuaLiteral("debug.traceback()");
+//        return LuaAst.LuaLiteral("debug.traceback()");
+        return LuaAst.LuaLiteral("\"$Stacktrace$\"");
     }
 
     public static LuaExpr translate(ImCompiletimeExpr imCompiletimeExpr, LuaTranslator tr) {
@@ -312,7 +335,14 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
-
-        return imCast.getExpr().translateToLua(tr);
+        LuaExpr translated = imCast.getExpr().translateToLua(tr);
+        if (TypesHelper.isIntType(imCast.getToType()) && !TypesHelper.isIntType(imCast.getExpr().attrTyp())) {
+            return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
+        } else if (imCast.getToType() instanceof ImClassType
+            || imCast.getToType() instanceof ImAnyType) {
+            return LuaAst.LuaExprFunctionCall(tr.fromIndexFunction, LuaAst.LuaExprlist(translated));
+        } else {
+            return translated;
+        }
     }
 }

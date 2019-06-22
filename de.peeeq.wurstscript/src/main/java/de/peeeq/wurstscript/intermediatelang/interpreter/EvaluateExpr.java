@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
-import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
@@ -9,17 +8,13 @@ import de.peeeq.wurstscript.ast.VarDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.translation.imtranslation.EliminateGenerics;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.types.TypesHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class EvaluateExpr {
 
@@ -57,6 +52,12 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImNull e, ProgramState globalState, LocalState localState) {
+        if (e.getType() instanceof ImAnyType
+            || e.getType() instanceof ImClassType
+            || e.getType() instanceof ImTypeVarRef
+            || TypesHelper.isIntType(e.getType())) {
+            return ILconstInt.create(0);
+        }
         return ILconstNull.instance();
     }
 
@@ -165,8 +166,8 @@ public class EvaluateExpr {
 
     public static ILconst eval(ImVarArrayAccess e, ProgramState globalState, LocalState localState) {
         List<Integer> indexes = e.getIndexes().stream()
-                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-                .collect(Collectors.toList());
+            .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+            .collect(Collectors.toList());
 
         if (e.getVar().isGlobal()) {
             return notNull(globalState.getArrayVal(e.getVar(), indexes), e.getVar().getType(), "Variable " + e.getVar().getName() + " is null.", false);
@@ -201,7 +202,7 @@ public class EvaluateExpr {
         ILconst[] eargs = new ILconst[args.size() + 1];
         eargs[0] = receiver;
         for (int i = 0; i < args.size(); i++) {
-            eargs[i+1] = args.get(i).evaluate(globalState, localState);
+            eargs[i + 1] = args.get(i).evaluate(globalState, localState);
         }
         return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
     }
@@ -212,8 +213,8 @@ public class EvaluateExpr {
             throw new InterpreterException(ma.getTrace(), "Null pointer dereference");
         }
         List<Integer> indexes = ma.getIndexes().stream()
-                .map(i -> ((ILconstInt) i.evaluate(globalState, localState)).getVal())
-                .collect(Collectors.toList());
+            .map(i -> ((ILconstInt) i.evaluate(globalState, localState)).getVal())
+            .collect(Collectors.toList());
         return receiver.get(ma.getVar(), indexes).orElseGet(() -> ma.attrTyp().defaultValue());
     }
 
@@ -291,8 +292,8 @@ public class EvaluateExpr {
         State state;
         state = v.isGlobal() ? globalState : localState;
         List<Integer> indexes = va.getIndexes().stream()
-                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
-                .collect(Collectors.toList());
+            .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+            .collect(Collectors.toList());
         return new ILaddress() {
             @Override
             public void set(ILconst value) {
@@ -346,8 +347,8 @@ public class EvaluateExpr {
         ImVar v = va.getVar();
         ILconstObject receiver = globalState.toObject(va.getReceiver().evaluate(globalState, localState));
         List<Integer> indexes =
-                        va.getIndexes().stream()
-                                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
+            va.getIndexes().stream()
+                .map(ie -> ((ILconstInt) ie.evaluate(globalState, localState)).getVal())
                 .collect(Collectors.toList());
         return new ILaddress() {
             @Override
@@ -358,7 +359,7 @@ public class EvaluateExpr {
             @Override
             public ILconst get() {
                 return receiver.get(v, indexes)
-                        .orElseGet(() -> va.attrTyp().defaultValue());
+                    .orElseGet(() -> va.attrTyp().defaultValue());
             }
         };
     }
@@ -384,8 +385,8 @@ public class EvaluateExpr {
             @Override
             public ILconst get() {
                 return new ILconstTuple(addresses.stream()
-                        .map(ILaddress::get)
-                        .toArray(ILconst[]::new));
+                    .map(ILaddress::get)
+                    .toArray(ILconst[]::new));
             }
         };
     }

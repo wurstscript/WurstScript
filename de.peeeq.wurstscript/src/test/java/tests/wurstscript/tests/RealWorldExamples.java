@@ -171,4 +171,12 @@ public class RealWorldExamples extends WurstScriptTest {
 
     }
 
+    @Test
+    public void nullClosureBug() throws IOException { // See 852
+        test().withStdLib()
+            .executeProg(false)
+            .runCompiletimeFunctions(true)
+            .file(new File(BUG_DIR + "nullclosurebug.wurst"));
+    }
+
 }

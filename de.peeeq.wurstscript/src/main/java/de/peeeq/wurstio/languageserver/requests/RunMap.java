@@ -2,9 +2,12 @@ package de.peeeq.wurstio.languageserver.requests;
 
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
+import config.WurstProjectConfig;
+import config.WurstProjectConfigData;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.languageserver.ConfigProvider;
 import de.peeeq.wurstio.languageserver.ModelManager;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -28,6 +31,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_29;
 
 /**
@@ -45,7 +49,7 @@ public class RunMap extends MapRequest {
     }
 
     @Override
-    public Object execute(ModelManager modelManager) {
+    public Object execute(ModelManager modelManager) throws IOException {
         WLogger.info("Execute RunMap, \nwc3Path =" + wc3Path
             + ",\n map = " + map
             + ",\n compileArgs = " + compileArgs
@@ -55,6 +59,12 @@ public class RunMap extends MapRequest {
 
         if (modelManager.hasErrors()) {
             throw new RequestFailedException(MessageType.Error, "Fix errors in your code before running.");
+        }
+
+        WurstProjectConfigData projectConfig = WurstProjectConfig.INSTANCE.loadProject(workspaceRoot.getFile().toPath().resolve(FILE_NAME));
+        if (projectConfig == null) {
+            throw new RequestFailedException(MessageType.Error, FILE_NAME + " file doesn't exist or is invalid. " +
+                "Please install your project using grill or the wurst setup tool.");
         }
 
         // TODO use normal compiler for this, avoid code duplication
@@ -91,8 +101,6 @@ public class RunMap extends MapRequest {
 
 
             if (testMap != null) {
-                gui.sendProgress("preparing testmap ... ");
-
                 // then inject the script into the map
                 gui.sendProgress("Injecting mapscript");
                 try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(testMap)) {
@@ -108,6 +116,8 @@ public class RunMap extends MapRequest {
                     mpqEditor.insertFile(mapScriptName, compiledScript);
                 }
 
+                gui.sendProgress("Applying Map Config...");
+                ProjectConfigBuilder.apply(projectConfig, testMap, compiledScript, buildDir, runArgs);
 
                 File mapCopy = copyToWarcraftMapDir(testMap);
 

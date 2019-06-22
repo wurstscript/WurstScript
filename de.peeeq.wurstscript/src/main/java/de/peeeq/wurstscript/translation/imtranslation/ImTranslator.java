@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList.Builder;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.utils.FileUtils;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
@@ -100,12 +101,14 @@ public class ImTranslator {
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
     private boolean debug = false;
+    private final RunArgs runArgs;
 
-    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode) {
+    public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
         imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        this.runArgs = runArgs;
     }
 
 
@@ -439,13 +442,7 @@ public class ImTranslator {
                 )),
                 // then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
                 JassIm.ImStmts(
-                        ImFunctionCall(trace, native_DisplayTimedTextToPlayer, ImTypeArguments(), JassIm.ImExprs(
-                                ImFunctionCall(trace, native_GetLocalPlayer, ImTypeArguments(), JassIm.ImExprs(), false, CallType.NORMAL),
-                                JassIm.ImRealVal("0."),
-                                JassIm.ImRealVal("0."),
-                                JassIm.ImRealVal("45."),
-                                JassIm.ImStringVal("Could not initialize package " + p.getName() + ".")
-                        ), false, CallType.NORMAL)
+                    imError(trace, JassIm.ImStringVal("Could not initialize package " + p.getName() + "."))
                 ),
                 // else:
                 JassIm.ImStmts()));
@@ -1277,6 +1274,10 @@ public class ImTranslator {
         return typeVariable.getFor(tv);
     }
 
+    public boolean isLuaTarget() {
+        return runArgs.isLua();
+    }
+
 
     interface VarsForTupleResult {
 
@@ -1422,6 +1423,12 @@ public class ImTranslator {
             @Override
             public VarsForTupleResult case_ImSimpleType(ImSimpleType st) {
                 ImType type = typeConstructor.apply(st);
+                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+            }
+
+            @Override
+            public VarsForTupleResult case_ImAnyType(ImAnyType at) {
+                ImType type = typeConstructor.apply(at);
                 return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
             }
 

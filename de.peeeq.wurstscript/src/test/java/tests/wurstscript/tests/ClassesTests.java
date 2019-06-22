@@ -1203,5 +1203,20 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void instanceof_null() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A",
+            "	class B extends A",
+            "	init",
+            "		A a = null",
+            "		if not a instanceof B",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
+
 
 }
