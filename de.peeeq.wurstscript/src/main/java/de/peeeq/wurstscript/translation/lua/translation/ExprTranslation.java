@@ -347,7 +347,7 @@ public class ExprTranslation {
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);
-        if (TypesHelper.isIntType(imCast.getToType())) {
+        if (TypesHelper.isIntType(imCast.getToType()) && !TypesHelper.isIntType(imCast.getExpr().attrTyp())) {
             return LuaAst.LuaExprFunctionCall(tr.toIndexFunction, LuaAst.LuaExprlist(translated));
         } else if (imCast.getToType() instanceof ImClassType
             || imCast.getToType() instanceof ImAnyType) {
