@@ -9,7 +9,7 @@ import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
-import de.peeeq.wurstio.languageserver.requests.BuildMap;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -29,7 +29,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 
-import static de.peeeq.wurstio.languageserver.requests.BuildMap.FILE_NAME;
+import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 
 public class Main {
 
@@ -150,7 +150,7 @@ public class Main {
                     Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
 
                     if (projectConfig != null && target != null) {
-                        BuildMap.applyProjectConfig(projectConfig, target.toFile(), scriptFile, buildDir.toFile());
+                        ProjectConfigBuilder.apply(projectConfig, target.toFile(), scriptFile, buildDir.toFile(), runArgs);
 
                         WLogger.info("map build success");
                         System.out.println("Build succeeded. Output file: <" + target.toAbsolutePath() + ">");
