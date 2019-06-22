@@ -158,7 +158,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions() {
-        testAssertOkLines(true,
+        test().executeProg(true).testLua(false).lines(
             "package test",
             "	native testSuccess()",
             "	class Cell<T>",
@@ -184,7 +184,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions2() {
-        testAssertOkLines(true,
+        test().executeProg(true).testLua(false).lines(
             "package test",
             "	native testSuccess()",
             "	class Cell<T>",
@@ -211,7 +211,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions3() {
-        testAssertOkLines(true,
+        test().executeProg(true).testLua(false).lines(
             "package test",
             "	native testSuccess()",
             "	public interface FoldClosure<T, Q>",
@@ -264,7 +264,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void implicitConversions5() { // #490
-        testAssertOkLines(true,
+        test().executeProg(true).testLua(false).lines(
             "package test",
             "native testSuccess()",
             "@extern native R2I(real r) returns int",
@@ -995,7 +995,7 @@ public class GenericsTests extends WurstScriptTest {
 
     @Test
     public void normalFoldlInfer() { // #657
-        testAssertOkLines(true,
+        test().executeProg(true).testLua(false).lines(
             "package test",
             "native testSuccess()",
             "@extern native I2S(int i) returns string",

@@ -114,13 +114,16 @@ public class LuaNatives {
 
     }
 
-    private static void addNative(String name, Consumer<LuaFunction> f) {
-        nativeCodes.put(name,f);
+    private static void addNative(String name, Consumer<LuaFunction> g) {
+        nativeCodes.put(name, f -> {
+            f.getParams().removeAll();
+            g.accept(f);
+        });
     }
 
-    private static void addNative(Iterable<String> names, Consumer<LuaFunction> f) {
+    private static void addNative(Iterable<String> names, Consumer<LuaFunction> g) {
         for (String name : names) {
-            nativeCodes.put(name,f);
+            addNative(name, g);
         }
     }
 

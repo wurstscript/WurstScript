@@ -255,22 +255,10 @@ public class LuaTranslator {
 
     private void createStringConcatFunction() {
         String[] code = {
-            "function dump(o)",
-            "   if type(o) == 'table' then",
-            "      local s = '{ '",
-            "      for k,v in pairs(o) do",
-            "         if type(k) ~= 'number' then k = '\"'..k..'\"' end",
-            "         s = s .. '['..k..'] = ' .. dump(v) .. ','",
-            "      end",
-            "      return s .. '} '",
-            "   else",
-            "      return tostring(o)",
-            "   end",
-            "end",
             "if x then",
-            "    if y then return dump(x) .. dump(y) else return dump(x) end",
+            "    if y then return x .. y else return x end",
             "else",
-            "    return dump(y)",
+            "    return y",
             "end"
         };
 
