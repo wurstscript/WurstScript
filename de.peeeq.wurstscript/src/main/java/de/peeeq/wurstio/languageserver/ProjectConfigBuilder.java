@@ -61,7 +61,12 @@ public class ProjectConfigBuilder {
             Files.write(scriptBytes, file);
             Pjass.runPjass(file);
             mpq.deleteFile("war3map.j");
-            mpq.insertFile("war3map.j", scriptBytes);
+            mpq.deleteFile("war3map.lua");
+            String mapScriptName = "war3map.j";
+            if (runArgs.isLua()) {
+                mapScriptName = "war3map.lua";
+            }
+            mpq.insertFile(mapScriptName, scriptBytes);
 
             file.delete();
         } catch (Exception e) {
