@@ -1336,5 +1336,9 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void middlewareOverload() throws IOException {
+        testAssertOkFile(new File(TEST_DIR + "MiddlewareOverload.wurst"), true);
+    }
 
 }
