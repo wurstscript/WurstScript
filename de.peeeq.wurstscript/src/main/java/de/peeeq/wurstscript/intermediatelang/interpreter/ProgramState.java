@@ -184,6 +184,10 @@ public class ProgramState extends State {
         return indexToObject.get(val);
     }
 
+    public HashMap<Integer, IlConstHandle> getHandleMap() {
+        return handleMap;
+    }
+
     public ILconst getHandleByIndex(int val) {
         return handleMap.get(val);
     }
