@@ -747,7 +747,6 @@ public class WurstValidator {
     }
 
     private void checkStmtSet(StmtSet s) {
-
         NameLink nameLink = s.getUpdatedExpr().attrNameLink();
         if (nameLink == null) {
             s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
@@ -925,6 +924,13 @@ public class WurstValidator {
         checkVarName(s, false);
         if (s.getInitialExpr() instanceof Expr) {
             Expr initial = (Expr) s.getInitialExpr();
+            if ((s.getOptTyp() instanceof NoTypeExpr)) {
+                // TODO
+            } else {
+                if (initial instanceof ExprNewObject) {
+                    s.addWarning("Duplicated type information. Use 'var' or 'let' instead.");
+                }
+            }
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
 
