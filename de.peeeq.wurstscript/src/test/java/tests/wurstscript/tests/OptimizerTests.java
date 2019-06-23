@@ -879,4 +879,47 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(compiled.contains("cyc_cyc"));
     }
 
+    @Test
+    public void constantFolding() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function getDamage(int level) returns real",
+            "    switch level ",
+            "        case 1",
+            "            return 6. * 20 ",
+            "        case 2",
+            "            return 6. * 40",
+            "        case 3 ",
+            "            return 6. * 60",
+            "    return 0",
+            "init",
+            "    if getDamage(2) > 239 and getDamage(2) < 241",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void inlinerIntRealsConstantFolding() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function getDamage(int level) returns real",
+            "    switch level ",
+            "        case 1",
+            "            return getDamageDuration(level) * 20 ",
+            "        case 2",
+            "            return getDamageDuration(level) * 40",
+            "        case 3 ",
+            "            return getDamageDuration(level) * 60",
+            "    return 0",
+            "",
+            "function getDamageDuration(int _level) returns real",
+            "    return 6.",
+            "init",
+            "    if getDamage(2) > 239 and getDamage(2) < 241",
+            "        testSuccess()"
+            );
+    }
+
 }

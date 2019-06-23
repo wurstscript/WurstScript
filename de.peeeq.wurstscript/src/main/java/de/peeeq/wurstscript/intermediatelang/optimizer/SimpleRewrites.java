@@ -523,7 +523,7 @@ public class SimpleRewrites implements OptimizerPass {
         format.setDecimalFormatSymbols(new DecimalFormatSymbols(Locale.US));
         format.setMinimumIntegerDigits(1);
         format.setMaximumFractionDigits(digits);
-        format.setMinimumFractionDigits(0);
+        format.setMinimumFractionDigits(1);
         format.setGroupingUsed(false);
         String s = format.format(resultVal);
         return s;
