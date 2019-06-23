@@ -39,9 +39,15 @@ public class ProjectConfigBuilder {
                 W3I w3I = prepareW3I(projectConfig, targetMap);
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
-                w3I.injectConfigsInJassScript(inputStream, sw);
 
-                scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
+                if (runArgs.isLua()) {
+                    // TODO apply config values in lua script
+                    scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
+                } else {
+                    w3I.injectConfigsInJassScript(inputStream, sw);
+                    scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
+                }
+
 
                 File w3iFile = new File("w3iFile");
                 if (runArgs.isLua()) {
@@ -60,12 +66,14 @@ public class ProjectConfigBuilder {
 
             Files.write(scriptBytes, file);
             Pjass.runPjass(file);
-            mpq.deleteFile("war3map.j");
-            mpq.deleteFile("war3map.lua");
-            String mapScriptName = "war3map.j";
+            String mapScriptName;
             if (runArgs.isLua()) {
                 mapScriptName = "war3map.lua";
+            } else {
+                mapScriptName = "war3map.j";
             }
+            mpq.deleteFile("war3map.lua");
+            mpq.deleteFile("war3map.j");
             mpq.insertFile(mapScriptName, scriptBytes);
 
             file.delete();
