@@ -28,6 +28,7 @@ public class ProgramState extends State {
     private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
+    private HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -181,6 +182,10 @@ public class ProgramState extends State {
 
     public ILconst getObjectByIndex(int val) {
         return indexToObject.get(val);
+    }
+
+    public ILconst getHandleByIndex(int val) {
+        return handleMap.get(val);
     }
 
     public ILconstObject toObject(ILconst val) {

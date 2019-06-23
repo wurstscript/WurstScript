@@ -403,10 +403,18 @@ public class EvaluateExpr {
             if (res instanceof ILconstObject) {
                 return ILconstInt.create(((ILconstObject) res).getObjectId());
             }
+            if (res instanceof IlConstHandle) {
+                int id = globalState.getHandleMap().size() + 1;
+                globalState.getHandleMap().put(id, (IlConstHandle) res);
+                return ILconstInt.create(id);
+            }
         }
-        if (imCast.getToType() instanceof ImClassType) {
-            if (res instanceof ILconstInt) {
+        if (res instanceof ILconstInt) {
+            if (imCast.getToType() instanceof ImClassType) {
                 return globalState.getObjectByIndex(((ILconstInt) res).getVal());
+            }
+            if (imCast.getToType() instanceof IlConstHandle) {
+                return globalState.getHandleByIndex(((ILconstInt) res).getVal());
             }
         }
         return res;
