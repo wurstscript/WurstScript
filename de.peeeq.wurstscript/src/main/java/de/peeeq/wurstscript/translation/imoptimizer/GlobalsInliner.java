@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imoptimizer;
 
 import com.google.common.collect.Sets;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -25,6 +26,12 @@ public class GlobalsInliner implements OptimizerPass {
                 // so it is important, that we do not optimize away the compiletime constant
                 continue;
             }
+            if (v.getType() instanceof ImArrayType
+                || v.getType() instanceof ImArrayTypeMulti) {
+                // cannot optimize arrays yet
+                continue;
+            }
+
             if (v.attrWrites().size() == 1) {
                 ImExpr right = null;
                 ImVarWrite obs = null;
@@ -49,17 +56,22 @@ public class GlobalsInliner implements OptimizerPass {
                 if (replacement != null || v.attrReads().size() == 0) {
                     obsoleteVars.add(v);
                 }
-            } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImArrayType
-                    || v.getType() instanceof ImTupleType)) {
+            } else if (v.attrWrites().size() > 1 && !(v.getType() instanceof ImTupleType)) {
                 List<ImVarWrite> initWrites = v.attrWrites().stream().filter(write -> {
                     ImFunction nearestFunc = write.getNearestFunc();
                     return isInInit(nearestFunc);
                 }).collect(Collectors.toList());
                 if (initWrites.size() == 1) {
-                    boolean isDefault = ImHelper.defaultValueForType((ImSimpleType) v.getType()).structuralEquals(v.attrWrites().iterator().next().getRight());
-                    if (isDefault) {
-                        // Assignment is default value and can be removed
-                        v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
+                    ImExpr write = v.attrWrites().iterator().next().getRight();
+                    try {
+                        ImExpr defaultValue = ImHelper.defaultValueForType((ImSimpleType) v.getType());
+                        boolean isDefault = defaultValue.structuralEquals(write);
+                        if (isDefault) {
+                            // Assignment is default value and can be removed
+                            v.attrWrites().iterator().next().replaceBy(ImHelper.nullExpr());
+                        }
+                    } catch (Exception e) {
+                        throw new CompileError(write.attrTrace().attrErrorPos(), "Could not inline " + Utils.printElementWithSource(v.getTrace()), CompileError.ErrorType.ERROR, e);
                     }
                 }
             }

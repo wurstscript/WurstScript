@@ -922,4 +922,37 @@ public class OptimizerTests extends WurstScriptTest {
             );
     }
 
+    @Test
+    public void multiArrayNoInline() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class AssistTimestamps",
+            "    int array[12] vals",
+            "let at = new AssistTimestamps",
+            "function foo()",
+            "    at.vals[3] = 72",
+            "init",
+            "    at.vals[4] = 42",
+            "    foo()",
+            "    if at.vals[4] == 42",
+            "        testSuccess()"
+            );
+    }
+
+
+    @Test
+    public void multiArrayNoInline2() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class AssistTimestamps",
+            "    int array[12] vals",
+            "let at = new AssistTimestamps",
+            "init",
+            "    at.vals[3] = 42",
+            "    if at.vals[4] == 0",
+            "        testSuccess()"
+        );
+    }
 }
