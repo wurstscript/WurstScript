@@ -1341,4 +1341,28 @@ public class BugTests extends WurstScriptTest {
         testAssertOkFile(new File(TEST_DIR + "MiddlewareOverload.wurst"), true);
     }
 
+    @Test
+    public void cycle_with_generics() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "public abstract class VoidFunction<T>",
+            "    abstract function call(T t)",
+            "int x = 0",
+            "function foo(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> bar(j - 1)",
+            "    f.call(i)",
+            "function bar(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> foo(j - 1)",
+            "    if i > 0",
+            "        f.call(i)",
+            "init",
+            "    bar(10)",
+            "    if x == 11",
+            "        testSuccess()"
+        );
+    }
+
 }

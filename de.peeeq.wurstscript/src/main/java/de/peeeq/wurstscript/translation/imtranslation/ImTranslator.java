@@ -522,6 +522,8 @@ public class ImTranslator {
         if (type instanceof ImSimpleType) {
             ImSimpleType imSimpleType = (ImSimpleType) type;
             return ImHelper.defaultValueForType(imSimpleType);
+        } else if (type instanceof ImAnyType) {
+            return JassIm.ImIntVal(0);
         } else if (type instanceof ImTupleType) {
             ImTupleType imTupleType = (ImTupleType) type;
             return getDefaultValueForJassType(imTupleType.getTypes().get(0));
