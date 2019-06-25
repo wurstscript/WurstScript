@@ -33,6 +33,7 @@ import java.util.stream.Stream;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_29;
+import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_31;
 
 /**
  * Created by peter on 16.05.16.
@@ -136,7 +137,12 @@ public class RunMap extends MapRequest {
                     if (W3Utils.getWc3PatchVersion() == null) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
-                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-windowmode", "windowed", "-loadfile", path);
+                    List<String> cmd;
+                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
+                        cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+                    } else {
+                        cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-windowmode", "windowed", "-loadfile", path);
+                    }
 
                     if (!System.getProperty("os.name").startsWith("Windows")) {
                         // run with wine
@@ -160,7 +166,6 @@ public class RunMap extends MapRequest {
         }
         return "ok"; // TODO
     }
-
 
 
     private void callJhcrUpdate(File mapScript) throws IOException, InterruptedException {
