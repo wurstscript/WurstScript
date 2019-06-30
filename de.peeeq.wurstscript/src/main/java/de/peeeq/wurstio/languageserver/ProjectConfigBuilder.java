@@ -40,8 +40,9 @@ public class ProjectConfigBuilder {
                 FileInputStream inputStream = new FileInputStream(compiledScript);
                 StringWriter sw = new StringWriter();
 
-                if (runArgs.isLua()) {
+                if (runArgs.isLua() || runArgs.isHotStartmap()) {
                     // TODO apply config values in lua script
+                    // TODO apply config for hot start before JHCR transformation
                     scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
                 } else {
                     w3I.injectConfigsInJassScript(inputStream, sw);
