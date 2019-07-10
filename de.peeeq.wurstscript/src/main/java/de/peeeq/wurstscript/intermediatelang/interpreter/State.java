@@ -1,9 +1,12 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
 import com.google.common.collect.Maps;
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
-import de.peeeq.wurstscript.intermediatelang.ILconstObject;
+import de.peeeq.wurstscript.jassIm.ImArrayLikeType;
+import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
+import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -26,7 +29,26 @@ public abstract class State {
     }
 
     protected ILconstArray getArray(ImVar v) {
-        return arrayValues.computeIfAbsent(v, k -> new ILconstArray(() -> v.getType().defaultValue()));
+        return arrayValues.computeIfAbsent(v, k -> createArrayConstantFromType(v.getType()));
+    }
+
+    static ILconstArray createArrayConstantFromType(ImType vType) {
+        ILconstArray r;
+        ImType componentType;
+        int size = Integer.MAX_VALUE;
+        if (vType instanceof ImArrayLikeType) {
+            componentType = ((ImArrayLikeType) vType).getEntryType();
+            if (vType instanceof ImArrayTypeMulti) {
+                List<Integer> arraySize = ((ImArrayTypeMulti) vType).getArraySize();
+                if (arraySize.size() > 0) {
+                    size = arraySize.get(0);
+                }
+            }
+        } else {
+            throw new InterpreterException("Cannot get array for variable of type " + vType);
+        }
+        r = new ILconstArray(size, componentType::defaultValue);
+        return r;
     }
 
     public void setArrayVal(ImVar v, List<Integer> indexes, ILconst val) {

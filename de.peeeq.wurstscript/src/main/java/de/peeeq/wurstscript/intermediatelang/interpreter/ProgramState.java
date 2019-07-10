@@ -257,7 +257,8 @@ public class ProgramState extends State {
     protected ILconstArray getArray(ImVar v) {
         ILconstArray r = arrayValues.get(v);
         if (r == null) {
-            r = new ILconstArray(v.getType()::defaultValue);
+            ImType vType = v.getType();
+            r = createArrayConstantFromType(vType);
             arrayValues.put(v, r);
             List<ImExpr> e = prog.getGlobalInits().get(v);
             if (e != null) {
@@ -270,6 +271,8 @@ public class ProgramState extends State {
         }
         return r;
     }
+
+
 
     public Collection<ILconstObject> getAllObjects() {
         return indexToObject.values();

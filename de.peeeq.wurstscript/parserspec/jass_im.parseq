@@ -21,13 +21,17 @@ ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type
 
 ImType = 
 	  ImSimpleType(String typename)
-	| ImArrayType(ref ImType entryType)
-	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
+	| ImArrayLikeType
 	| ImTupleType(java.util.List<ImType> types, java.util.List<String> names)
 	| ImVoid()
 	| ImClassType(ref ImClass classDef, ImTypeArguments typeArguments)
 	| ImTypeVarRef(ref ImTypeVar typeVariable)
 	| ImAnyType()
+
+ImArrayLikeType =
+	  ImArrayType(ref ImType entryType)
+	| ImArrayTypeMulti(ref ImType entryType, java.util.List<Integer> arraySize)
+
 
 ImTypeVars * ImTypeVar
 
