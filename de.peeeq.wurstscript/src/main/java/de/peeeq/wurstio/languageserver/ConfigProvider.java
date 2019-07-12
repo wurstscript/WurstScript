@@ -3,8 +3,11 @@ package de.peeeq.wurstio.languageserver;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.ConfigurationItem;
 import org.eclipse.lsp4j.ConfigurationParams;
+import org.eclipse.lsp4j.MessageParams;
+import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.util.Collections;
@@ -41,7 +44,10 @@ public class ConfigProvider {
             }
             return defaultValue;
         } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+            String msg = "Could not get config " + key + ", using default value " + defaultValue;
+            WLogger.warning(msg, e);
+            languageClient.showMessage(new MessageParams(MessageType.Warning, msg));
+            return defaultValue;
         }
     }
 
