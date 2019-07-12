@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
@@ -137,12 +138,20 @@ public class RunMap extends MapRequest {
                     if (W3Utils.getWc3PatchVersion() == null) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
-                    List<String> cmd;
-                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
-                        cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-window", "-loadfile", path);
+                    List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
+                    String wc3RunArgs = configProvider.getWc3RunArgs();
+                    if (wc3RunArgs == null) {
+	                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
+	                        cmd.add("-window");
+	                    } else {
+	                        cmd.add("-windowmode");
+	                        cmd.add("windowed");
+	                    }
                     } else {
-                        cmd = Lists.newArrayList(gameExe.getAbsolutePath(), "-windowmode", "windowed", "-loadfile", path);
+                    	cmd.addAll(Arrays.asList(wc3RunArgs.split("\\s+")));
                     }
+                    cmd.add("-loadfile");
+                    cmd.add(path);
 
                     if (!System.getProperty("os.name").startsWith("Windows")) {
                         // run with wine
