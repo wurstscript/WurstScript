@@ -54,6 +54,10 @@ public class ConfigProvider {
     public String getJhcrExe() {
         return getConfig("jhcrExe", "jhcr.exe");
     }
+    
+    public String getWc3RunArgs() {
+        return getConfig("wc3RunArgs", null);
+    }
 
     /**
      * The path where to put maps before running them
