@@ -92,14 +92,14 @@ public class GroupProvider extends Provider {
     }
     
     public ILconstInt BlzGroupAddGroupFast(IlConstHandle group, IlConstHandle groupAdd) {
-        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
-        groupList.addAll((LinkedHashSet<IlConstHandle>) groupAdd.getObj());
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) groupAdd.getObj();
+        groupList.addAll((LinkedHashSet<IlConstHandle>) group.getObj());
         return ILconstInt.create(groupList.size());
     }
 
     public ILconstInt BlzGroupRemoveGroupFast(IlConstHandle group, IlConstHandle groupRm) {
-        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) group.getObj();
-        groupList.removeAll((LinkedHashSet<IlConstHandle>) groupRm.getObj());
+        LinkedHashSet<IlConstHandle> groupList = (LinkedHashSet<IlConstHandle>) groupRm.getObj();
+        groupList.removeAll((LinkedHashSet<IlConstHandle>) group.getObj());
         return ILconstInt.create(groupList.size());
     }	
 }
