@@ -25,6 +25,25 @@ public class CompiletimeTests extends WurstScriptTest {
     }
 
     @Test
+    public void testSimpleCompiletimeReal() {
+        test().executeProg(true)
+            .runCompiletimeFunctions(true)
+            .lines("package Test",
+                "native testSuccess()",
+                "function compiletime(real r) returns real",
+                "    return r",
+                "real r = 0.",
+                "function next() returns real",
+                "    r++",
+                "    return r",
+                "constant a = compiletime(next())",
+                "constant b = compiletime(next())",
+                "init",
+                "    if a == 1. and b == 2.",
+                "        testSuccess()");
+    }
+
+    @Test
     public void testCompiletimeArray() {
         test().executeProg(true)
                 .runCompiletimeFunctions(true)
@@ -247,8 +266,5 @@ public class CompiletimeTests extends WurstScriptTest {
                 "		testSuccess()");
 
     }
-
-
-
 
 }

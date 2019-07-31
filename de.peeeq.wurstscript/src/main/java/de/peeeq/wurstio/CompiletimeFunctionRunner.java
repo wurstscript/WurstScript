@@ -288,6 +288,8 @@ public class CompiletimeFunctionRunner {
             return JassIm.ImBoolVal(((ILconstBool) value).getVal());
         } else if (value instanceof ILconstInt) {
             return JassIm.ImIntVal(((ILconstInt) value).getVal());
+        } else if (value instanceof ILconstReal) {
+            return JassIm.ImRealVal("" + ((ILconstReal) value).getVal());
         } else if (value instanceof ILconstString) {
             return JassIm.ImStringVal(((ILconstString) value).getVal());
         } else if (value instanceof ILconstTuple) {
