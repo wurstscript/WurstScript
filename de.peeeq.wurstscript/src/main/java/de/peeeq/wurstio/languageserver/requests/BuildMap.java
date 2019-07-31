@@ -44,7 +44,10 @@ public class BuildMap extends MapRequest {
         WLogger.info("buildMap " + map + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
-            if (map != null && !map.exists()) {
+            if (map == null) {
+                throw new RequestFailedException(MessageType.Error, "Map is null");
+            }
+            if (!map.exists()) {
                 throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
             }
 
@@ -53,7 +56,7 @@ public class BuildMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             String fileName = projectConfig.getBuildMapData().getFileName();
-            File targetMap = map == null ? null : new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() : fileName  + ".w3x");
+            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() : fileName + ".w3x");
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
@@ -62,13 +65,14 @@ public class BuildMap extends MapRequest {
             gui.sendProgress("Done.");
         } catch (CompileError e) {
             WLogger.info(e);
-            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map:\n" + e);
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
+            throw new RequestFailedException(MessageType.Error, "A compilation error occurred when building the map:\n" + e);
+        } catch (Exception e) {
+            WLogger.warning("Exception occurred", e);
+            throw new RequestFailedException(MessageType.Error, "An exception was thrown when building the map:\n" + e);
         } finally {
-            gui.sendFinished();
+            if (gui.getErrorCount() == 0) {
+                gui.sendFinished();
+            }
         }
         return "ok"; // TODO
     }

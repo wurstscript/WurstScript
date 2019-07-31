@@ -163,11 +163,11 @@ public class RunMap extends MapRequest {
                 }
             }
         } catch (CompileError e) {
-            throw new RequestFailedException(MessageType.Error, "There was an error when compiling the map: " + e.getMessage());
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (final Exception e) {
-            throw new RuntimeException(e);
+            WLogger.info(e);
+            throw new RequestFailedException(MessageType.Error, "A compilation error occurred when running the map:\n" + e);
+        } catch (Exception e) {
+            WLogger.warning("Exception occurred", e);
+            throw new RequestFailedException(MessageType.Error, "An exception was thrown when running the map:\n" + e);
         } finally {
             if (gui.getErrorCount() == 0) {
                 gui.sendFinished();
