@@ -11,6 +11,8 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageType;
+import systems.crigges.jmpq3.JMpqEditor;
+import systems.crigges.jmpq3.MPQOpenOption;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,6 +63,9 @@ public class BuildMap extends MapRequest {
 
             gui.sendProgress("Applying Map Config...");
             ProjectConfigBuilder.apply(projectConfig, targetMap, compiledScript, buildDir, runArgs);
+
+            JMpqEditor finalizer = new JMpqEditor(targetMap, MPQOpenOption.FORCE_V0);
+            finalizer.close();
 
             gui.sendProgress("Done.");
         } catch (CompileError e) {
