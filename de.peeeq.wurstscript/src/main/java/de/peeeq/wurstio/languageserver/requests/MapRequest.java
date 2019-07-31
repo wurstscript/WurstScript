@@ -22,7 +22,6 @@ import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.parser.WPos;
-import de.peeeq.wurstscript.translation.lua.printing.LuaPrinter;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.MessageParams;
@@ -205,7 +204,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                         for (CompileError err : pJassResult.getErrors()) {
                             gui.sendError(err);
                         }
-                        return null;
+                        throw new RuntimeException("Could not compile project (PJass error)");
                     }
                 }
 
