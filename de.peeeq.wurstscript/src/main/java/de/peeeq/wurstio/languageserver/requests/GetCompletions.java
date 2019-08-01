@@ -152,7 +152,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 WurstTypeNamedScope ct = (WurstTypeNamedScope) leftType;
                 for (DefLink nameLink : ct.nameLinks().values()) {
                     if (isSuitableCompletion(nameLink.getName())
-                            && nameLink.getReceiverType() != null
+                            && (nameLink.getReceiverType() != null || nameLink instanceof TypeDefLink)
                             && nameLink.getVisibility() == Visibility.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
                         completions.add(completion);

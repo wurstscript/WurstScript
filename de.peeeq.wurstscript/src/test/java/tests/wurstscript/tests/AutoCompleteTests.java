@@ -400,6 +400,22 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
 	}
 
 
+    @Test
+    public void testInnerClasses() {
+        CompletionTestData testData = input(true,
+            "package test",
+            "class A",
+            "    static class Blue",
+            "    static class Boris",
+            "    static int Banana = 42",
+            "init",
+            "    let u = A.|"
+
+        );
+
+        testCompletions(testData, "Banana", "Blue", "Boris");
+    }
+
 	private void testCompletions(CompletionTestData testData, String... expectedCompletions) {
         testCompletions(testData, Arrays.asList(expectedCompletions));
     }

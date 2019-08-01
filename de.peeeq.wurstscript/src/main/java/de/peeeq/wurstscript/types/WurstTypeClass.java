@@ -139,4 +139,13 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
         return JassIm.ImIntVal(0);
     }
 
+    public @Nullable TypeDef lookupInnerType(String typeName) {
+        return getDef().getInnerClasses()
+            .stream()
+            .filter(ic -> ic.getName().equals(typeName))
+            .findFirst()
+            .orElse(null);
+    }
+
+
 }
