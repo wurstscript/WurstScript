@@ -176,37 +176,16 @@ public class ImToJassTranslator {
 
     private String getUniqueGlobalName(String name) { // TODO find local names
         name = jassifyName(name);
-
-        if (!usedNames.contains(name)) {
-            // name not used yet
-            usedNames.add(name);
-            return name;
-        }
-        // otherwise, try to find an unused name by adding a counter at the end
-        String name2;
-        int i = 1;
-        do {
-            i++;
-            name2 = name + "_" + i;
-        } while (usedNames.contains(name2));
-        usedNames.add(name2);
-        return name2;
+        name = Utils.makeUniqueName(name, n -> !usedNames.contains(n));
+        usedNames.add(name);
+        return name;
     }
 
     private String getUniqueLocalName(ImFunction imFunction, String name) {
         name = jassifyName(name);
-        if (!usedNames.contains(name) && !usedLocalNames.containsEntry(imFunction, name)) {
-            usedLocalNames.put(imFunction, name);
-            return name;
-        }
-        String name2;
-        int i = 1;
-        do {
-            i++;
-            name2 = name + "_" + i;
-        } while (usedNames.contains(name2) || usedLocalNames.containsEntry(imFunction, name2));
-        usedLocalNames.put(imFunction, name2);
-        return name2;
+        name = Utils.makeUniqueName(name, n -> !usedNames.contains(n) && !usedLocalNames.containsEntry(imFunction, n));
+        usedLocalNames.put(imFunction, name);
+        return name;
     }
 
 

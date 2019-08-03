@@ -25,10 +25,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -1123,4 +1120,38 @@ public class Utils {
         }
         return new ExecResult(cIn.getContents(), cErr.getContents());
     }
+
+    public static String makeUniqueName(String baseName, Predicate<String> isValid) {
+        if (isValid.test(baseName)) {
+            return baseName;
+        }
+        int minI = 1;
+        int maxI = 1;
+        while (true) {
+            String name = baseName + "_" + maxI;
+            if (isValid.test(name)) {
+                break;
+            }
+            minI = maxI;
+            maxI *= 2;
+        }
+
+        while (minI < maxI) {
+            int mid = minI + (maxI - minI) / 2;
+            String name = baseName + "_" + mid;
+            if (isValid.test(name)) {
+                maxI = mid;
+            } else {
+                minI = mid + 1;
+            }
+        }
+        return baseName + "_" + maxI;
+
+
+
+    }
+
+
+
+
 }
