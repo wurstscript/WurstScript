@@ -304,6 +304,13 @@ public class AntlrWurstParseTreeTransformer {
     private WEntity transformExtensionFuncDef(ExtensionFuncDefContext f) {
         WPos src = source(f);
         Modifiers modifiers = transformModifiers(f.modifiersWithDoc());
+
+        if (f.functionKind.getType() == WurstParser.GET) {
+            modifiers.add(Ast.ModGetter(source(f.functionKind)));
+        } else if (f.functionKind.getType() == WurstParser.SET) {
+            modifiers.add(Ast.ModSetter(source(f.functionKind)));
+        }
+
         TypeExpr extendedType = transformTypeExpr(f.receiverType);
         FuncSig sig = transformFuncSig(f.funcSignature());
         WStatements body = transformStatements(f.statementsBlock());
@@ -491,7 +498,7 @@ public class AntlrWurstParseTreeTransformer {
         Modifiers modifiers = transformModifiers(i.modifiersWithDoc());
         Identifier name = text(i.name);
         EnumMembers members = Ast.EnumMembers();
-        for (Token m : i.enumMembers) {
+        for (IdContext m : i.enumMembers) {
             members.add(Ast.EnumMember(source(m), Ast.Modifiers(), text(m)));
         }
         return Ast.EnumDef(src, modifiers, name, members);
@@ -529,6 +536,13 @@ public class AntlrWurstParseTreeTransformer {
     private FuncDef transformFuncDef(FuncDefContext f) {
         FuncSig sig = transformFuncSig(f.funcSignature());
         Modifiers modifiers = transformModifiers(f.modifiersWithDoc());
+
+        if (f.functionKind.getType() == WurstParser.GET) {
+            modifiers.add(Ast.ModGetter(source(f.functionKind)));
+        } else if (f.functionKind.getType() == WurstParser.SET) {
+            modifiers.add(Ast.ModSetter(source(f.functionKind)));
+        }
+
         WStatements body = transformStatements(f.statementsBlock());
         return Ast.FuncDef(source(f), modifiers, sig.name, sig.typeParams,
                 sig.formalParameters, sig.returnType, body);
@@ -776,7 +790,7 @@ public class AntlrWurstParseTreeTransformer {
     }
 
     private NameRef transformExprMemberVarAccess2(WPos source,
-                                                  ExprContext e_expr, Token e_dots, Token e_varname,
+                                                  ExprContext e_expr, Token e_dots, IdContext e_varname,
                                                   @Nullable IndexesContext e_indexes) {
         Expr left = transformExpr(e_expr);
         Identifier varName = text(e_varname);
@@ -887,7 +901,7 @@ public class AntlrWurstParseTreeTransformer {
 
 
     private ExprMemberMethod transformMemberMethodCall2(WPos source,
-                                                        ExprContext receiver, Token dots, Token funcName,
+                                                        ExprContext receiver, Token dots, IdContext funcName,
                                                         TypeArgsContext typeArgs, ArgumentListContext args) {
         Expr left = transformExpr(receiver);
         if (dots.getType() == WurstParser.DOT) {

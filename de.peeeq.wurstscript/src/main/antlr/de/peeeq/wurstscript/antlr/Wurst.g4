@@ -25,7 +25,7 @@ jassGlobalsBlock:
 				;
 
 jassGlobalDecl:
-				  constant='constant'? typeExpr name=ID ('=' initial=expr)? NL
+				  constant='constant'? typeExpr name=id ('=' initial=expr)? NL
 			  ;
 
 jassFuncDef:
@@ -35,7 +35,7 @@ jassFuncDef:
 			   'endfunction' NL
 		   ;
 
-jassLocal: 'local' typeExpr name=ID ('=' initial=expr)? NL;
+jassLocal: 'local' typeExpr name=id ('=' initial=expr)? NL;
 
 jassStatements: stmts+=jassStatement*;
 
@@ -80,14 +80,14 @@ jassNativeDecl:
 			  ;
 
 jassFuncSignature:
-					 name=ID 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
+					 name=id 'takes' ('nothing' | args+=formalParameter (',' args+=formalParameter)*)
 					 'returns' ('nothing'|returnType=typeExpr)
 				 ;
 
-jassTypeDecl: 'type' name=ID 'extends' extended=typeExpr NL;
+jassTypeDecl: 'type' name=id 'extends' extended=typeExpr NL;
 
 
-wpackage: 'package' name=ID NL 
+wpackage: 'package' name=id NL 
 	(
 	imports+=wImport* entities+=entity*
 	| STARTBLOCK imports+=wImport* entities+=entity* ENDBLOCK
@@ -95,7 +95,7 @@ wpackage: 'package' name=ID NL
 	;
 
 wImport: 
-    'import' isPublic='public'? isInitLater='initlater'? importedPackage=ID NL 
+    'import' isPublic='public'? isInitLater='initlater'? importedPackage=id NL 
     ;
 
 
@@ -115,7 +115,7 @@ entity:
 ;
 
 interfaceDef:
-                modifiersWithDoc 'interface' name=ID typeParams 
+                modifiersWithDoc 'interface' name=id typeParams 
                 ('extends' extended+=typeExpr (',' extended+=typeExpr)*)? 
                 NL (STARTBLOCK
                     classSlots
@@ -124,7 +124,7 @@ interfaceDef:
              
  
 classDef:
-            modifiersWithDoc 'class' name=ID typeParams 
+            modifiersWithDoc 'class' name=id typeParams 
             ('extends' extended=typeExpr)? 
             ('implements' implemented+=typeExpr (',' implemented+=typeExpr)*)?
             NL (STARTBLOCK
@@ -133,7 +133,7 @@ classDef:
         ;
 
 typeclassDef:
-    modifiersWithDoc 'typeclass' name=ID typeParams
+    modifiersWithDoc 'typeclass' name=id typeParams
     ('extends' implemented+=typeExpr (',' implemented+=typeExpr)*)?
     NL (STARTBLOCK
        classSlots
@@ -141,12 +141,12 @@ typeclassDef:
     ;
 
 
-enumDef: modifiersWithDoc 'enum' name=ID NL (STARTBLOCK 
-      (enumMembers+=ID NL)*
+enumDef: modifiersWithDoc 'enum' name=id NL (STARTBLOCK 
+      (enumMembers+=id NL)*
 ENDBLOCK)?;
 
 moduleDef:
-            modifiersWithDoc 'module' name=ID typeParams
+            modifiersWithDoc 'module' name=id typeParams
             NL STARTBLOCK
                 classSlots
             ENDBLOCK
@@ -177,7 +177,7 @@ superCall:
 
 
 moduleUse: 
-         modifiersWithDoc 'use' moduleName=ID typeArgs NL
+         modifiersWithDoc 'use' moduleName=id typeArgs NL
          ;
 
 ondestroyDef:
@@ -186,7 +186,7 @@ ondestroyDef:
 
 
 funcDef:
-       modifiersWithDoc 'function' funcSignature NL statementsBlock
+       modifiersWithDoc functionKind=('function'|'get'|'set') funcSignature NL statementsBlock
        ;
 
 
@@ -218,27 +218,27 @@ annotation: name=ANNOTATION argumentList?;
 hotdocComment: HOTDOC_COMMENT;
 
 funcSignature:
-				 name=ID typeParams formalParameters ('returns' returnType=typeExpr)?
+				 name=id typeParams formalParameters ('returns' returnType=typeExpr)?
 			 ;
 
 formalParameters: '(' (params+=formalParameter (',' params+=formalParameter)*)? ')';
 
 formalParameter:
-				 vararg=VARARG? typeExpr name=ID
+				 vararg=VARARG? typeExpr name=id
 			   ;
 
 typeExpr:
 		  thistype='thistype'
-		| typeName=ID typeArgs
+		| typeName=id typeArgs
 		| typeExpr 'array' ('[' arraySize=expr ']')?
-		| typeExpr '.' typeName=ID typeArgs
+		| typeExpr '.' typeName=id typeArgs
 		| typeExpr '.' thistype='thistype'
 		;
 
 varDef:
 		  modifiersWithDoc 
 		  ('var'|constant='constant' varType=typeExpr?|constant='let'|varType=typeExpr)
-		  name=ID ('=' variableInit)? NL
+		  name=id ('=' variableInit)? NL
 	  ;		  
 
 variableInit: (arrayInit | initial=expr);
@@ -311,12 +311,12 @@ stmtWhile:
 
 localVarDef:
 		  (var='var'|let='let'|type=typeExpr)
-		  name=ID ('=' variableInit)?
+		  name=id ('=' variableInit)?
 	  ;
 
 
 localVarDefInline:
-					 typeExpr? name=ID
+					 typeExpr? name=id
 				 ;
 
 stmtSet:
@@ -334,12 +334,12 @@ exprAssignable:
 			  ;
 
 exprMemberVar: 
-				 expr dots=('.'|'..') varname=ID? indexes?
+				 expr dots=('.'|'..') varname=id? indexes?
 			 ;
 
 
 exprVarAccess:
-				 varname=ID indexes?
+				 varname=id indexes?
 			 ;
 
 
@@ -352,8 +352,8 @@ expr:
 		exprPrimary	
 	  | left=expr 'castTo' castToType=typeExpr
 	  | left=expr 'instanceof' instaneofType=typeExpr
-	  | receiver=expr dotsCall=('.'|'..') funcName=ID? typeArgs argumentList
-	  | receiver=expr dotsVar=('.'|'..') varName=ID? indexes?
+	  | receiver=expr dotsCall=('.'|'..') funcName=id? typeArgs argumentList
+	  | receiver=expr dotsVar=('.'|'..') varName=id? indexes?
       | left=expr op=('*'|'/'|'%'|'div'|'mod') right=expr
 	  | op='-' right=expr // TODO move unary minus one up to be compatible with Java etc.
 		                  // currently it is here to be backwards compatible with the old wurst parser
@@ -374,7 +374,7 @@ exprPrimary:
 	  | exprClosure
 	  | exprStatementsBlock
 	  | exprDestroy
-      | varname=ID indexes?
+      | varname=id indexes?
       | atom=(INT
       | REAL
 	  | STRING
@@ -387,7 +387,7 @@ exprPrimary:
       | '(' expr ')' 
 	;
 
-exprFuncRef: 'function' (scopeName=ID '.')? funcName=ID;
+exprFuncRef: 'function' (scopeName=id '.')? funcName=id;
 
 exprStatementsBlock:
 					   'begin' NL statementsBlock 'end'
@@ -398,10 +398,10 @@ argumentList:
     ;
 
 exprFunctionCall:
-					funcName=ID typeArgs argumentList
+					funcName=id typeArgs argumentList
 				;
 	  
-exprNewObject:'new' className=ID typeArgs argumentList?;
+exprNewObject:'new' className=id typeArgs argumentList?;
 
 exprClosure: shortFormalParameters arrow='->' (skip='skip'|expr);
 
@@ -411,11 +411,11 @@ shortFormalParameters:
     | /* empty */
     ;
 
-shortFormalParameter: typeExpr? name=ID;
+shortFormalParameter: typeExpr? name=id;
 
 typeParams: ('<' (params+=typeParam (',' params+=typeParam)*)? '>')?;
 
-typeParam: name=ID typeParamConstraints?;
+typeParam: name=id typeParamConstraints?;
 
 typeParamConstraints: ':' (constraints+=typeExpr ('and' constraints+=typeExpr)*)?;
 
@@ -445,11 +445,15 @@ exprList : exprs+=expr (',' exprs+=expr)*;
 
 
 
-nativeType: 'nativetype' name=ID ('extends' extended=ID)? NL;
+nativeType: 'nativetype' name=id ('extends' extended=id)? NL;
 initBlock: 'init' NL statementsBlock; 
 nativeDef: modifiersWithDoc 'native' funcSignature NL; 
-tupleDef: modifiersWithDoc 'tuple' name=ID formalParameters NL; 
-extensionFuncDef: modifiersWithDoc 'function' receiverType=typeExpr '.' funcSignature NL statementsBlock;
+tupleDef: modifiersWithDoc 'tuple' name=id formalParameters NL; 
+extensionFuncDef: modifiersWithDoc functionKind=('function'|'get'|'set') receiverType=typeExpr '.' funcSignature NL statementsBlock;
+
+// identifier-rule includes pseudo-keywords for backwards-compatibility:
+id: ID | 'get' | 'set';
+
 
 // Lexer:
 VARARG: 'vararg';
@@ -466,6 +470,7 @@ NULL: 'null';
 PACKAGE: 'package';
 ENDPACKAGE: 'endpackage';
 FUNCTION: 'function';
+GET: 'get';
 RETURNS: 'returns';
 PUBLIC: 'public';
 PULBICREAD: 'publicread';

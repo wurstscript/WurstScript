@@ -421,4 +421,14 @@ public class DescriptionHtml {
     public static String description(NoTypeParamConstraints noTypeParamConstraints) {
         return "no type parameter constraints";
     }
+
+    public static String description(ModGetter m) {
+        return "Defines a getter function (a call to this function looks like a member variable access)";
+
+    }
+
+    public static String description(ModSetter m) {
+        return "Defines a setter function (a call to this function looks like an assignment to a member variable)";
+
+    }
 }

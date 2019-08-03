@@ -307,6 +307,8 @@ Modifier =
 	| ModConstant(de.peeeq.wurstscript.parser.WPos source)
 	| WurstDoc(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, String rawComment)
 	| ModVararg(de.peeeq.wurstscript.parser.WPos source)
+	| ModGetter(de.peeeq.wurstscript.parser.WPos source)
+	| ModSetter(de.peeeq.wurstscript.parser.WPos source)
 
 // ElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //ElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition

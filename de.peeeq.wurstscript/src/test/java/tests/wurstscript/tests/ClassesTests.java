@@ -1269,6 +1269,58 @@ public class ClassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void getter_syntax1() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    get blub()",
+            "        return 5",
+            "init",
+            "    let a = new A",
+            "    if a.blub == 5",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+
+    @Test
+    public void getter_syntax_params() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    get blub(int i)",
+            "        return i*2",
+            "init",
+            "    let a = new A",
+            "    if a.blub[7] == 14",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+
+    @Test
+    public void getter_syntax_item() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    get item(int i)",
+            "        return i*2",
+            "init",
+            "    let a = new A",
+            "    if a[7] == 14",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+
+
 
 
 }

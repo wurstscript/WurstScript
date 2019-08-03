@@ -612,6 +612,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_ModSetter(ModSetter modSetter) {
+            return string("Defines a setter function.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_StmtForRangeUp(StmtForRangeUp stmtForRangeUp) {
             return string("Execute the body several times, counting up");
         }
@@ -644,6 +649,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ExprMemberArrayVarDot(ExprMemberArrayVarDot exprMemberArrayVarDot) {
             return description(exprMemberArrayVarDot);
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_ModGetter(ModGetter modGetter) {
+            return string("Defines a getter function.");
         }
 
         @Override

@@ -752,4 +752,12 @@ public class PrettyPrinter {
     public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
         // nothing
     }
+
+    public static void prettyPrint(ModSetter modSetter, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("set");
+    }
+
+    public static void prettyPrint(ModGetter m, Spacer spacer, StringBuilder sb, int indent) {
+        sb.append("get");
+    }
 }
