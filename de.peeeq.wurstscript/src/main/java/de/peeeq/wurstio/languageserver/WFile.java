@@ -55,7 +55,7 @@ public abstract class WFile {
         } catch (URISyntaxException e) {
             // ignore
         }
-        throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e);
+        throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.");
     }
 
     public static WFile create(TextDocumentIdentifier textDocument) {
