@@ -9,10 +9,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator.VarsForTupleR
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -23,31 +20,32 @@ import java.util.stream.Collectors;
  */
 public class EliminateTuples {
 
-
+    private final static HashSet<ImVar> shouldRemove = new HashSet<>();
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
-        List<ImVar> toRemove = transformVars(imProg.getGlobals(), translator);
+        transformVars(imProg.getGlobals(), translator);
         for (ImFunction f : imProg.getFunctions()) {
             transformFunctionReturnsAndParameters(f, translator);
         }
         for (ImFunction f : imProg.getFunctions()) {
             eliminateTuplesFunc(f, translator);
         }
-        imProg.getGlobals().removeAll(toRemove);
+        imProg.getGlobals().removeIf(shouldRemove::contains);
         translator.assertProperties(AssertProperty.NOTUPLES);
+        shouldRemove.clear();
     }
 
     private static void transformFunctionReturnsAndParameters(ImFunction f, ImTranslator translator) {
-        List<ImVar> toRemove = transformVars(f.getParameters(), translator);
-        f.getParameters().removeAll(toRemove);
+        transformVars(f.getParameters(), translator);
+        f.getParameters().removeIf(shouldRemove::contains);
         translator.setOriginalReturnValue(f, f.getReturnType());
         f.setReturnType(getFirstType(f.getReturnType()));
     }
 
 
     private static void eliminateTuplesFunc(ImFunction f, final ImTranslator translator) {
-        List<ImVar> toRemove = transformVars(f.getLocals(), translator);
-        f.getLocals().removeAll(toRemove);
+        transformVars(f.getLocals(), translator);
+        f.getLocals().removeIf(shouldRemove::contains);
 
         tryStep(f, translator, EliminateTuples::toTupleExpressions);
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
@@ -118,21 +116,21 @@ public class EliminateTuples {
     }
 
 
-    private static List<ImVar> transformVars(ImVars vars, ImTranslator translator) {
-        List<ImVar> varsToRemove = new ArrayList<>();
+    private static HashSet<ImVar> transformVars(ImVars vars, ImTranslator translator) {
+        shouldRemove.clear();
         ListIterator<ImVar> it = vars.listIterator();
         while (it.hasNext()) {
             ImVar v = it.next();
             Preconditions.checkNotNull(v.getParent(), "null parent: " + v);
             if (TypesHelper.typeContainsTuples(v.getType())) {
                 VarsForTupleResult varsForTuple = translator.getVarsForTuple(v);
-                varsToRemove.add(v);
+                shouldRemove.add(v);
                 for (ImVar nv : varsForTuple.allValues()) {
                     it.add(nv);
                 }
             }
         }
-        return varsToRemove;
+        return shouldRemove;
     }
 
 
