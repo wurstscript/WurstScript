@@ -26,27 +26,28 @@ public class EliminateTuples {
 
 
     public static void eliminateTuplesProg(ImProg imProg, ImTranslator translator) {
-
-        Runnable removeOldGlobals = transformVars(imProg.getGlobals(), translator);
+        List<ImVar> toRemove = transformVars(imProg.getGlobals(), translator);
         for (ImFunction f : imProg.getFunctions()) {
             transformFunctionReturnsAndParameters(f, translator);
         }
         for (ImFunction f : imProg.getFunctions()) {
             eliminateTuplesFunc(f, translator);
         }
-        removeOldGlobals.run();
+        imProg.getGlobals().removeAll(toRemove);
         translator.assertProperties(AssertProperty.NOTUPLES);
     }
 
     private static void transformFunctionReturnsAndParameters(ImFunction f, ImTranslator translator) {
-        transformVars(f.getParameters(), translator).run();
+        List<ImVar> toRemove = transformVars(f.getParameters(), translator);
+        f.getParameters().removeAll(toRemove);
         translator.setOriginalReturnValue(f, f.getReturnType());
         f.setReturnType(getFirstType(f.getReturnType()));
     }
 
 
     private static void eliminateTuplesFunc(ImFunction f, final ImTranslator translator) {
-        transformVars(f.getLocals(), translator).run();
+        List<ImVar> toRemove = transformVars(f.getLocals(), translator);
+        f.getLocals().removeAll(toRemove);
 
         tryStep(f, translator, EliminateTuples::toTupleExpressions);
         tryStep(f, translator, EliminateTuples::normalizeTuplesInStatementExprs);
@@ -117,7 +118,7 @@ public class EliminateTuples {
     }
 
 
-    private static Runnable transformVars(ImVars vars, ImTranslator translator) {
+    private static List<ImVar> transformVars(ImVars vars, ImTranslator translator) {
         List<ImVar> varsToRemove = new ArrayList<>();
         ListIterator<ImVar> it = vars.listIterator();
         while (it.hasNext()) {
@@ -131,7 +132,7 @@ public class EliminateTuples {
                 }
             }
         }
-        return () -> vars.removeAll(varsToRemove);
+        return varsToRemove;
     }
 
 

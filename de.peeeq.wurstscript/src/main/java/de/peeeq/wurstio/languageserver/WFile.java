@@ -38,19 +38,21 @@ public abstract class WFile {
 
     public static WFile create(String uri) {
         try {
+            return create(Paths.get(uri));
+        } catch (InvalidPathException e) {
+            // ignore
+        }
+        // if it is not a valid path, maybe it is a absolute URI?
+        try {
             URI u = new URI(uri);
             if (u.isAbsolute()) {
                 return create(u);
             }
+            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.");
         } catch (URISyntaxException e) {
-            // ignore
+            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e);
         }
-        // if it is not a valid absolute URI, maybe it is a valid path?
-        try {
-            return create(Paths.get(uri));
-        } catch (InvalidPathException e2) {
-            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
-        }
+
     }
 
     public static WFile create(TextDocumentIdentifier textDocument) {
