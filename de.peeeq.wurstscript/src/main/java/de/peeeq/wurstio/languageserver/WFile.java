@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -39,15 +38,6 @@ public abstract class WFile {
 
     public static WFile create(String uri) {
         try {
-            Path path = Paths.get(uri);
-            if (Files.exists(path)) {
-                return create(path);
-            }
-        } catch (InvalidPathException e) {
-            // ignore
-        }
-        // if it is not a valid path, maybe it is a absolute URI?
-        try {
             URI u = new URI(uri);
             if (u.isAbsolute()) {
                 return create(u);
@@ -55,7 +45,12 @@ public abstract class WFile {
         } catch (URISyntaxException e) {
             // ignore
         }
-        throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.");
+        // if it is not a valid absolute URI, maybe it is a valid path?
+        try {
+            return create(Paths.get(uri));
+        } catch (InvalidPathException e2) {
+            throw new RuntimeException("URI string '" + uri + "' is neither a correct URI nor a correct path.", e2);
+        }
     }
 
     public static WFile create(TextDocumentIdentifier textDocument) {
