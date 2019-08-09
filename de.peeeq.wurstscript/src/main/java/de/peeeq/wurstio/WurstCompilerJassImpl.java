@@ -487,7 +487,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
+
+        // Re-run to avoid #883
         optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
 
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
 
