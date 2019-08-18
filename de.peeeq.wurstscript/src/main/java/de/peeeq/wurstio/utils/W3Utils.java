@@ -5,6 +5,7 @@ import net.moonlightflower.wc3libs.bin.GameExe;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.NotFoundException;
 import net.moonlightflower.wc3libs.port.StdGameExeFinder;
+import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
 import java.io.IOException;
@@ -46,8 +47,13 @@ public class W3Utils {
      */
     public static GameVersion parsePatchVersion(File wc3Path) {
         try {
-            gameExe = StdGameExeFinder.fromDirIgnoreVersion(wc3Path);
-            WLogger.info("Game Executable: " + gameExe);
+            String os = System.getProperty("os.name");
+            if (os.toLowerCase().contains("windows")) {
+                gameExe = WinGameExeFinder.fromDirIgnoreVersion(wc3Path);
+                WLogger.info("Game Executable: " + gameExe);
+            } else {
+                WLogger.warning("Game path configuration only works on windows");
+            }
         } catch (NotFoundException e) {
             try {
                 gameExe = new StdGameExeFinder().get();

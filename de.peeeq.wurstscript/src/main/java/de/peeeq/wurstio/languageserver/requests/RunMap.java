@@ -153,7 +153,7 @@ public class RunMap extends MapRequest {
                     cmd.add("-loadfile");
                     cmd.add(path);
 
-                    if (!System.getProperty("os.name").startsWith("Windows")) {
+                    if (System.getProperty("os.name").toLowerCase().contains("linux")) {
                         // run with wine
                         cmd.add(0, "wine");
                     }
