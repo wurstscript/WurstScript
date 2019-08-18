@@ -4,7 +4,10 @@ import de.peeeq.wurstscript.WLogger;
 import net.moonlightflower.wc3libs.bin.GameExe;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.NotFoundException;
+import net.moonlightflower.wc3libs.port.Orient;
 import net.moonlightflower.wc3libs.port.StdGameExeFinder;
+import net.moonlightflower.wc3libs.port.mac.MacGameVersionFinder;
+import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,15 +16,12 @@ public class W3Utils {
     private static File gameExe;
 
     private static GameVersion version = null;
-    private static boolean isWindows() {
-        return System.getProperty("os.name").contains("win");
-    }
 
     /**
      * @return The wc3 patch version or -1 if none has been found
      */
     public static GameVersion getWc3PatchVersion() {
-        if (gameExe == null && isWindows()) {
+        if (gameExe == null && Orient.isWindowsSystem()) {
             try {
                 gameExe = new StdGameExeFinder().get();
             } catch (NotFoundException e) {
@@ -46,8 +46,13 @@ public class W3Utils {
      */
     public static GameVersion parsePatchVersion(File wc3Path) {
         try {
-            gameExe = StdGameExeFinder.fromDirIgnoreVersion(wc3Path);
-            WLogger.info("Game Executable: " + gameExe);
+            if (Orient.isWindowsSystem()) {
+                gameExe = WinGameExeFinder.fromDirIgnoreVersion(wc3Path);
+                WLogger.info("Game Executable: " + gameExe);
+            } else {
+                WLogger.warning("Game path configuration only works on windows");
+                throw new NotFoundException();
+            }
         } catch (NotFoundException e) {
             try {
                 gameExe = new StdGameExeFinder().get();
@@ -57,10 +62,14 @@ public class W3Utils {
         }
         if (gameExe != null) {
             try {
-                W3Utils.version = GameExe.getVersion(gameExe);
+                if (Orient.isWindowsSystem()) {
+                    W3Utils.version = GameExe.getVersion(gameExe);
+                } else if (Orient.isMacSystem()) {
+                    W3Utils.version = new MacGameVersionFinder().get();
+                }
                 WLogger.info("Parsed game version: " + version);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException | NotFoundException e) {
+                WLogger.severe(e);
             }
         }
         return version;
