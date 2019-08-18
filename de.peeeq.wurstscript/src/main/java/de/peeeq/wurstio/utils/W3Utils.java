@@ -6,6 +6,7 @@ import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.NotFoundException;
 import net.moonlightflower.wc3libs.port.Orient;
 import net.moonlightflower.wc3libs.port.StdGameExeFinder;
+import net.moonlightflower.wc3libs.port.mac.MacGameVersionFinder;
 import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
@@ -61,10 +62,14 @@ public class W3Utils {
         }
         if (gameExe != null) {
             try {
-                W3Utils.version = GameExe.getVersion(gameExe);
+                if (Orient.isWindowsSystem()) {
+                    W3Utils.version = GameExe.getVersion(gameExe);
+                } else if (Orient.isMacSystem()) {
+                    W3Utils.version = new MacGameVersionFinder().get();
+                }
                 WLogger.info("Parsed game version: " + version);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException | NotFoundException e) {
+                WLogger.severe(e);
             }
         }
         return version;
