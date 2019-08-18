@@ -145,6 +145,26 @@ public class ParserTests extends WurstScriptTest {
     }
 
     @Test
+    public void inconsistentIndentationWithin() {
+        CompilationResult res = test().executeProg(false).lines(
+            "package test",
+            "interface F",
+            "    function f()",
+            "int x = 0",
+            "function blub(F f)",
+            "    f.f()",
+            "function bar()",
+            "    blub(() -> begin",
+            "            x = x * 2",
+            "        end)");
+        Assert.assertEquals(
+            Collections.emptyList(),
+            res.getGui().getWarningList()
+        );
+    }
+
+
+    @Test
     public void alignWithSpacesAllowed() {
         CompilationResult res = test().executeProg(false).lines(
                 "package test",

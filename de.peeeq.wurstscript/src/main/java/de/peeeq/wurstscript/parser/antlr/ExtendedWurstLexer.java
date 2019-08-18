@@ -34,6 +34,8 @@ public class ExtendedWurstLexer implements TokenSource {
     // which character is used for indentation
     private TabChoice tabChoice = TabChoice.Unknown;
     private CompileError tabWarning = null;
+    // counts the number of open parentheses
+    private int parenthesesLevel = 0;
 
     enum State {
         INIT, NEWLINES, BEGIN_LINE
@@ -109,33 +111,34 @@ public class ExtendedWurstLexer implements TokenSource {
 
 
         for (; ; ) {
-            Token token = orig.nextToken();
+            Token token1 = orig.nextToken();
 
-            if (debug) WLogger.info("orig token = " + token);
+            if (debug) WLogger.info("orig token = " + token1);
 
-            if (token == null) {
+            if (token1 == null) {
                 continue;
             }
 
+
             if (isWurst) {
-                if (isJassOnlyKeyword(token)) {
-                    token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
-                    assert token != null;
-                } else if (token.getType() == WurstParser.ENDPACKAGE) {
-                    handleIndent(0, token, token.getStartIndex(), token.getStopIndex(), token);
+                if (isJassOnlyKeyword(token1)) {
+                    token1 = makeToken(WurstParser.ID, token1.getText(), token1.getStartIndex(), token1.getStopIndex());
+                    assert token1 != null;
+                } else if (token1.getType() == WurstParser.ENDPACKAGE) {
+                    handleIndent(0, token1, token1.getStartIndex(), token1.getStopIndex(), token1);
                     isWurst = false;
                 }
             } else {
-                if (token.getType() == WurstParser.PACKAGE) {
+                if (token1.getType() == WurstParser.PACKAGE) {
                     isWurst = true;
-                } else if (isWurstOnlyKeyword(token)) {
-                    token = makeToken(WurstParser.ID, token.getText(), token.getStartIndex(), token.getStopIndex());
-                    assert token != null;
-                } else if (token.getType() == WurstParser.HOTDOC_COMMENT) {
+                } else if (isWurstOnlyKeyword(token1)) {
+                    token1 = makeToken(WurstParser.ID, token1.getText(), token1.getStartIndex(), token1.getStopIndex());
+                    assert token1 != null;
+                } else if (token1.getType() == WurstParser.HOTDOC_COMMENT) {
                     continue;
                 }
             }
-
+            final Token token = token1;
 
             if (token.getType() == WurstParser.NL) {
                 int line = 0;
@@ -146,9 +149,11 @@ public class ExtendedWurstLexer implements TokenSource {
                         line++;
                     }
                 }
-            }
-
-            if (token.getType() == WurstParser.EOF) {
+            } else if (token.getType() == WurstParser.PAREN_LEFT) {
+                parenthesesLevel++;
+            } else if (token.getType() == WurstParser.PAREN_RIGHT) {
+                parenthesesLevel--;
+            } else if (token.getType() == WurstParser.EOF) {
                 // at EOF close all blocks and return an extra newline
                 handleIndent(0, token, token.getStartIndex(), token.getStopIndex(), token);
                 eof = token;
@@ -251,10 +256,12 @@ public class ExtendedWurstLexer implements TokenSource {
     private int tabWidth(Token token) {
         int len = 1 + token.getStopIndex() - token.getStartIndex();
         switch (token.getType()) {
-            case WurstParser.TAB: return len*4;
+            case WurstParser.TAB:
+                return len * 4;
             case WurstParser.SPACETAB:
                 return len;
-            default: throw new IllegalArgumentException();
+            default:
+                throw new IllegalArgumentException();
         }
     }
 
@@ -267,7 +274,7 @@ public class ExtendedWurstLexer implements TokenSource {
                     tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
                 }
             } else if (token.getType() == WurstParser.SPACETAB
-                    && tabChoice == TabChoice.Tabs) {
+                && tabChoice == TabChoice.Tabs) {
                 if (tabWidth(token) > 3) {
                     // up to 3 spaces is allowed for alignment
                     tabWarning = new CompileError(new WPos("", lineOffsets, token.getStartIndex(), token.getStopIndex()), "Mixing tabs and spaces for indentation.");
@@ -278,7 +285,7 @@ public class ExtendedWurstLexer implements TokenSource {
 
     private boolean isTab(Token token) {
         return token.getType() == WurstParser.TAB
-                || token.getType() == WurstParser.SPACETAB;
+            || token.getType() == WurstParser.SPACETAB;
     }
 
 
@@ -322,7 +329,7 @@ public class ExtendedWurstLexer implements TokenSource {
         if (n > indentationLevels.peek()) {
             if (spacesPerIndent < 0) {
                 spacesPerIndent = n;
-            } else if (tabWarning == null && n != indentationLevels.peek() + spacesPerIndent) {
+            } else if (parenthesesLevel == 0 && tabWarning == null && n != indentationLevels.peek() + spacesPerIndent) {
                 String message = "Inconsistent indentation: Earlier in this file " + spacesPerIndent + " spaces were used for indentation and here it is " + (n - indentationLevels.peek()) + " spaces.";
                 tabWarning = new CompileError(new WPos("", lineOffsets, lineOffsets.get(token.getLine()), token.getStopIndex()), message);
             }
