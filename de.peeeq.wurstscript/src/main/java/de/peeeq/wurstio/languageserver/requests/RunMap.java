@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
+import net.moonlightflower.wc3libs.port.Orient;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -153,7 +154,7 @@ public class RunMap extends MapRequest {
                     cmd.add("-loadfile");
                     cmd.add(path);
 
-                    if (System.getProperty("os.name").toLowerCase().contains("linux")) {
+                    if (Orient.isLinuxSystem()) {
                         // run with wine
                         cmd.add(0, "wine");
                     }

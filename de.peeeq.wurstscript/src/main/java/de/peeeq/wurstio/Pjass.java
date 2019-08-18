@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import de.peeeq.wurstscript.utils.Utils;
+import net.moonlightflower.wc3libs.port.Orient;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -95,23 +96,22 @@ public class Pjass {
             args.add(Utils.getResourceFile("common.j"));
             args.add(Utils.getResourceFile("blizzard.j"));
             args.add(outputFile.getPath());
-            String os = System.getProperty("os.name");
-            if (os.equals("Linux")) {
+            if (Orient.isLinuxSystem()) {
                 File fileName = Utils.getResourceFileF("pjass");
                 boolean success = fileName.setExecutable(true);
                 if (!success) {
                     throw new RuntimeException("Could not make pjass executable.");
                 }
                 args.set(0, fileName.getAbsolutePath());
-            } else if (os.startsWith("Mac OS X")) {
+            } else if (Orient.isMacSystem()) {
                 File fileName = Utils.getResourceFileF("pjass_osx");
                 boolean success = fileName.setExecutable(true);
                 if (!success) {
                     throw new RuntimeException("Could not make pjass_osx executable.");
                 }
                 args.set(0, fileName.getAbsolutePath());
-            } else if (!os.toLowerCase().contains("windows")) {
-                WLogger.info("Operation system " + os + " detected.");
+            } else if (!Orient.isWindowsSystem()) {
+                WLogger.info("Unknown operating system detected.");
                 WLogger.info("Trying to run with wine ...");
                 // try to run with wine
                 args.add(0, "wine");
