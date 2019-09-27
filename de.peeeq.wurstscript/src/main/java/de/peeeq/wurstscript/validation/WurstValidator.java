@@ -1958,11 +1958,13 @@ public class WurstValidator {
     }
 
     private void checkBannedFunctions(ExprFunctionCall e) {
-        String[] banned = new String[]{
-                "TriggerRegisterVariableEvent" /* , "ExecuteFunc" */};
-        for (String name : banned) {
-            if (e.getFuncName().equals(name)) {
-                e.addError("The function " + name + " is not allowed in Wurst.");
+        if (e.getFuncName().equals("TriggerRegisterVariableEvent")) {
+            if (e.getArgs().get(1) instanceof ExprStringVal) {
+                ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
+                TRVEHelper.TO_KEEP.add(varName.getValS());
+                return;
+            } else {
+                e.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
             }
         }
 

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.validation.TRVEHelper;
 
 public class ImCompressor {
 
@@ -23,9 +24,9 @@ public class ImCompressor {
 
     public void compressGlobals() {
         for (final ImVar global : prog.getGlobals()) {
-            if (global.getIsBJ()) {
-                // no not rename bj constants
-
+            if (global.getIsBJ() || TRVEHelper.TO_KEEP.contains(global.getName())) {
+                // do not rename bj constants
+                // do not rename TRVE vars
                 continue;
             }
 
