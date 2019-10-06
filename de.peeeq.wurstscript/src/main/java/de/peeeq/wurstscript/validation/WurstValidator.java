@@ -86,15 +86,17 @@ public class WurstValidator {
         ValidateClassMemberUsage.checkClassMembers(toCheck);
 
         trveWrapperFuncs.forEach(wrapper -> {
-            wrapperCalls.get(wrapper).forEach(call -> {
-                if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
-                    ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
-                    TRVEHelper.protectedVariables.add(varName.getValS());
-                    WLogger.info("keep: " + varName.getValS());
-                } else {
-                    call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
-                }
-            });
+            if (wrapperCalls.containsKey(wrapper)) {
+                wrapperCalls.get(wrapper).forEach(call -> {
+                    if (call.getArgs().size() > 1 && call.getArgs().get(1) instanceof ExprStringVal) {
+                        ExprStringVal varName = (ExprStringVal) call.getArgs().get(1);
+                        TRVEHelper.protectedVariables.add(varName.getValS());
+                        WLogger.info("keep: " + varName.getValS());
+                    } else {
+                        call.addError("Map contains TriggerRegisterVariableEvent with non-constant arguments. Can't be optimized.");
+                    }
+                });
+            }
         });
 
     }
@@ -1205,7 +1207,10 @@ public class WurstValidator {
     private void checkCall(StmtCall call) {
         String funcName;
         if (call instanceof FunctionCall) {
-            funcName = ((FunctionCall) call).getFuncName();
+            FunctionCall fcall = (FunctionCall) call;
+            funcName = fcall.getFuncName();
+            HashSet<FunctionCall> fcalls = wrapperCalls.computeIfAbsent(funcName, (String s) -> new HashSet<>());
+            fcalls.add(fcall);
         } else if (call instanceof ExprNewObject) {
             funcName = "constructor";
         } else {
