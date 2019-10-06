@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.PackageLink;
 import de.peeeq.wurstscript.jassIm.Element;
+import de.peeeq.wurstscript.jassIm.ImAnyType;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImClass;
@@ -41,6 +42,7 @@ import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import de.peeeq.wurstscript.validation.TRVEHelper;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -1024,6 +1026,11 @@ public class ImTranslator {
 //		for (ImFunction f : usedFunctions) {
 //			WLogger.info("	" + f.getName());
 //		}
+        imProg.getGlobals().forEach(global -> {
+            if (TRVEHelper.protectedVariables.contains(global.getName())) {
+                getReadVariables().add(global);
+            }
+        });
     }
 
     private void calculateCallRelations(ImFunction f) {
@@ -1279,7 +1286,6 @@ public class ImTranslator {
     public boolean isLuaTarget() {
         return runArgs.isLua();
     }
-
 
     interface VarsForTupleResult {
 
@@ -1656,14 +1662,14 @@ public class ImTranslator {
         // TODO divide by zero to crash thread:
 
 
-//		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
+//		stmts.add(JassAst.JassStmtCall("BJDebugMsg",
 //				JassAst.JassExprlist(JassAst.JassExprBinary(
-//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl), 
+//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl),
 //						JassAst.JassOpPlus(),
 //						s.getMessage().translate(translator)))));
 //		// crash thread (divide by zero)
 //		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), Jas
-//				               
+//
 
         List<FunctionFlag> flags = Lists.newArrayList();
 

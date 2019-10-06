@@ -8,10 +8,12 @@ import de.peeeq.wurstscript.validation.TRVEHelper;
 
 public class ImCompressor {
 
+    private ImTranslator trans;
     private ImProg prog;
     private NameGenerator ng;
 
     public ImCompressor(ImTranslator translator) {
+        this.trans = translator;
         this.prog = translator.getImProg();
         ng = new NameGenerator();
     }
@@ -24,7 +26,7 @@ public class ImCompressor {
 
     public void compressGlobals() {
         for (final ImVar global : prog.getGlobals()) {
-            if (global.getIsBJ() || TRVEHelper.TO_KEEP.contains(global.getName())) {
+            if (global.getIsBJ() || TRVEHelper.protectedVariables.contains(global.getName())) {
                 // do not rename bj constants
                 // do not rename TRVE vars
                 continue;

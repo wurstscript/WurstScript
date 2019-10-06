@@ -32,7 +32,7 @@ public class GlobalsInliner implements OptimizerPass {
                 // cannot optimize arrays yet
                 continue;
             }
-            if (TRVEHelper.TO_KEEP.contains(v.getName())) {
+            if (TRVEHelper.protectedVariables.contains(v.getName())) {
                 // keep TRVE vars
                 continue;
             }
