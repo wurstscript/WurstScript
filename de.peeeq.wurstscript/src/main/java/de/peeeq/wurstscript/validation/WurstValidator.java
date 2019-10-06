@@ -1982,7 +1982,7 @@ public class WurstValidator {
             if (e.getArgs().size() > 1) {
                 if (e.getArgs().get(1) instanceof ExprStringVal) {
                     ExprStringVal varName = (ExprStringVal) e.getArgs().get(1);
-                    trveWrapperFuncs.add(varName.getValS());
+                    TRVEHelper.protectedVariables.add(varName.getValS());
                     WLogger.info("keep: " + varName.getValS());
                     return;
                 } else if (e.getArgs().get(1) instanceof ExprVarAccess) {
