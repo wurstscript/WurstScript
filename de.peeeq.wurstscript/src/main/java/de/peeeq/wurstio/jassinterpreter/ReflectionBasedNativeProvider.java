@@ -52,6 +52,8 @@ public abstract class ReflectionBasedNativeProvider implements NativesProvider {
         }
         String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
+        msg += "\nwith types " + funcname + "(" +
+            Arrays.stream(args).map(o -> o.getClass().getSimpleName()).collect(Collectors.joining(", ")) + ")";
         if (candidate != null) {
             msg += "\nDid you mean " + funcname + "(" +
                     Arrays.stream(candidate.getParameterTypes()).map(Class::getSimpleName).collect(Collectors.joining(", ")) + ")?";

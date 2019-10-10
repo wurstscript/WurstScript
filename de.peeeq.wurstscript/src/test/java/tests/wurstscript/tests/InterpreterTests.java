@@ -1,5 +1,6 @@
 package tests.wurstscript.tests;
 
+import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import org.testng.annotations.Test;
 
 public class InterpreterTests extends WurstScriptTest {
@@ -21,6 +22,32 @@ public class InterpreterTests extends WurstScriptTest {
             "    if R2SW(1116.123, 10, 1) != \"1116.1    \"",
             "        testFail(\"failed B \" + R2SW(1116.123, 10, 1))",
             "    testSuccess()"
+        );
+    }
+
+    @Test(expectedExceptions = {InterpreterException.class})
+    public void arrayDefaultTestFail() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "let ar = [42]",
+            "init",
+            "    if ar[1] == 0", // Note: interpreter checks array bounds here, even though Jass code does not
+            "        testFail(\"should fail\")"
+        );
+    }
+
+    @Test
+    public void arrayDefault() {
+        test().executeProg(true).testLua(false).lines(
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "int array ar",
+            "init",
+            "    if ar[1] == 0",
+            "        testSuccess()"
         );
     }
 

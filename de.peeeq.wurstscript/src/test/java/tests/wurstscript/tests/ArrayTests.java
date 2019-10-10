@@ -181,9 +181,9 @@ public class ArrayTests extends WurstScriptTest {
     @Test
     public void conditionalWithArray() { // see #631
         testAssertOkLines(false,
+                "package test",
                 "bool cond = true",
-                "class TestClass",
-                "    int array[3] zzzz",
+                "int array[3] zzzz",
                 "function ffff() returns int",
                 "    return cond ? zzzz[1] : 0");
     }
@@ -197,5 +197,30 @@ public class ArrayTests extends WurstScriptTest {
                 "endpackage\n";
         testAssertOk(UtilsIO.getMethodName(1), executeProg, prog);
     }
+
+    @Test
+    public void classArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "Test array ar",
+            "class Test",
+            "    int x",
+            "init",
+            "    if ar[5] == null",
+            "        testSuccess()");
+    }
+
+    @Test
+    public void intArrayInit() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "int array ar",
+            "init",
+            "    if ar[5] == 0",
+            "        testSuccess()");
+    }
+
 
 }

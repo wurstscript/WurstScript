@@ -303,10 +303,16 @@ public class AttrFuncDef {
         List<FuncLink> funcs4 = Lists.newArrayListWithCapacity(funcs3.size());
         nextFunc:
         for (FuncLink f : funcs3) {
+            VariableBinding mapping = f.getVariableBinding();
             for (int i = 0; i < argumentTypes.size(); i++) {
-                if (!argumentTypes.get(i).isSubtypeOf(f.getParameterType(i), node)) {
+                // TODO use matching here
+                WurstType at = argumentTypes.get(i);
+                WurstType pt = f.getParameterType(i);
+                VariableBinding m2 = at.matchAgainstSupertype(pt, node, mapping, VariablePosition.RIGHT);
+                if (m2 == null) {
                     continue nextFunc;
                 }
+                mapping = m2;
             }
             funcs4.add(f);
         }

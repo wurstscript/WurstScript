@@ -747,7 +747,6 @@ public class WurstValidator {
     }
 
     private void checkStmtSet(StmtSet s) {
-
         NameLink nameLink = s.getUpdatedExpr().attrNameLink();
         if (nameLink == null) {
             s.getUpdatedExpr().addError("Could not find variable " + s.getUpdatedExpr().getVarName() + ".");
@@ -788,7 +787,9 @@ public class WurstValidator {
         if (a instanceof NameRef && b instanceof NameRef) {
             NameRef va = (NameRef) a;
             NameRef vb = (NameRef) b;
-            if (va.attrNameLink().getDef() == vb.attrNameLink().getDef()
+            NameLink nla = va.attrNameLink();
+            NameLink nlb = vb.attrNameLink();
+            if (nla != null && nlb != null && nla.getDef() == nlb.getDef()
                     && refersToSameVar(va.attrImplicitParameter(), vb.attrImplicitParameter())) {
                 if (va instanceof AstElementWithIndexes && vb instanceof AstElementWithIndexes) {
                     AstElementWithIndexes vai = (AstElementWithIndexes) va;
@@ -923,6 +924,13 @@ public class WurstValidator {
         checkVarName(s, false);
         if (s.getInitialExpr() instanceof Expr) {
             Expr initial = (Expr) s.getInitialExpr();
+            if ((s.getOptTyp() instanceof NoTypeExpr)) {
+                // TODO
+            } else {
+                if (initial instanceof ExprNewObject) {
+                    s.addWarning("Duplicated type information. Use 'var' or 'let' instead.");
+                }
+            }
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
 
@@ -2061,8 +2069,8 @@ public class WurstValidator {
     /**
      * checks if func1 can override func2
      */
-    public static boolean canOverride(FuncLink func1, FuncLink func2) {
-        return checkOverride(func1, func2, false) == null;
+    public static boolean canOverride(FuncLink func1, FuncLink func2, boolean allowStaticOverride) {
+        return checkOverride(func1, func2, allowStaticOverride) == null;
     }
 
     /**

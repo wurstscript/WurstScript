@@ -995,7 +995,7 @@ public class ClassesTests extends WurstScriptTest {
             "	module M",
             "		thistype x",
             "		static class B",
-            "			thistype.M parent",
+            "			M.thistype parent",
             "			construct(M.thistype parent)",
             "				this.parent = parent",
             "			function foo() returns M.thistype",
@@ -1202,6 +1202,73 @@ public class ClassesTests extends WurstScriptTest {
             "endpackage"
         );
     }
+
+    @Test
+    public void instanceof_null() {
+        testAssertOkLines(true,
+            "package test",
+            "	native testSuccess()",
+            "	class A",
+            "	class B extends A",
+            "	init",
+            "		A a = null",
+            "		if not a instanceof B",
+            "			testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void static_class_qualified_type() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    static function b() returns B",
+            "        return new B",
+            "    static class B",
+            "        int x = 5",
+            "",
+            "init",
+            "    A.B a = A.b()",
+            "    if a.x == 5",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void static_class_qualified_field() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    static class B",
+            "        static int x = 5",
+            "",
+            "init",
+            "    if A.B.x == 5",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void static_class_qualified_function() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    static class B",
+            "        static function f() returns int",
+            "            return 5",
+            "init",
+            "    if A.B.f() == 5",
+            "        testSuccess()",
+            "endpackage"
+        );
+    }
+
 
 
 }

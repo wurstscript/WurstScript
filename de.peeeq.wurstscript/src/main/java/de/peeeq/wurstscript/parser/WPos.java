@@ -75,7 +75,7 @@ public class WPos {
     }
 
     public String print() {
-        return "[" + file + ", line " + getLine() + "]";
+        return "[" + file + " line " + getLine() + "]";
     }
 
     public String printShort() {

@@ -4,7 +4,7 @@ grammar Wurst;
     package de.peeeq.wurstscript.antlr;
 }
 
-compilationUnit : NL* decls+=topLevelDeclaration*;
+compilationUnit : NL* decls+=topLevelDeclaration* EOF;
 
 topLevelDeclaration:
 					 wpackage

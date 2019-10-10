@@ -187,7 +187,7 @@ public class NameResolution {
         if (receiverType instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
             for (DefLink n : ct.nameLinks().get(name)) {
-                if (n instanceof VarLink) {
+                if (n instanceof VarLink || n instanceof TypeDefLink) {
                     if (n.getVisibility().isPublic()) {
                         return n;
                     }

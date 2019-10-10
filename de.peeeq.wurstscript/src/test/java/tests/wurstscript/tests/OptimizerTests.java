@@ -879,4 +879,80 @@ public class OptimizerTests extends WurstScriptTest {
         assertFalse(compiled.contains("cyc_cyc"));
     }
 
+    @Test
+    public void constantFolding() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function getDamage(int level) returns real",
+            "    switch level ",
+            "        case 1",
+            "            return 6. * 20 ",
+            "        case 2",
+            "            return 6. * 40",
+            "        case 3 ",
+            "            return 6. * 60",
+            "    return 0",
+            "init",
+            "    if getDamage(2) > 239 and getDamage(2) < 241",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void inlinerIntRealsConstantFolding() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "function getDamage(int level) returns real",
+            "    switch level ",
+            "        case 1",
+            "            return getDamageDuration(level) * 20 ",
+            "        case 2",
+            "            return getDamageDuration(level) * 40",
+            "        case 3 ",
+            "            return getDamageDuration(level) * 60",
+            "    return 0",
+            "",
+            "function getDamageDuration(int _level) returns real",
+            "    return 6.",
+            "init",
+            "    if getDamage(2) > 239 and getDamage(2) < 241",
+            "        testSuccess()"
+            );
+    }
+
+    @Test
+    public void multiArrayNoInline() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class AssistTimestamps",
+            "    int array[12] vals",
+            "let at = new AssistTimestamps",
+            "function foo()",
+            "    at.vals[3] = 72",
+            "init",
+            "    at.vals[4] = 42",
+            "    foo()",
+            "    if at.vals[4] == 42",
+            "        testSuccess()"
+            );
+    }
+
+
+    @Test
+    public void multiArrayNoInline2() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class AssistTimestamps",
+            "    int array[12] vals",
+            "let at = new AssistTimestamps",
+            "init",
+            "    at.vals[3] = 42",
+            "    if at.vals[4] == 0",
+            "        testSuccess()"
+        );
+    }
 }

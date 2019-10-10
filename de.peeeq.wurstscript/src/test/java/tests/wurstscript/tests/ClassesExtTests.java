@@ -733,7 +733,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void subTypeGenericInterface2() {
-        testAssertOkLines(false, "Cannot assign B<C> to A<C, integer>",
+        testAssertErrorsLines(false, "Cannot assign B<C> to A<C, integer>",
                 "package test",
                 "    class C",
                 "    interface A<X, Y>",
@@ -835,6 +835,73 @@ public class ClassesExtTests extends WurstScriptTest {
                 "    MyInterface b = new MyInterfaceAbstractImpl",
                 "    if a.getStr() == \"MyInterfaceImpl\" and b.getStr() == \"AAbstract\"",
                 "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void castToIntPointerArithmetic() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    init",
+            "        let a = new A(42)",
+            "        let b = new A(43)",
+            "        let i = a castTo int",
+            "        let j = b castTo int",
+            // don't do this please, we just allow this for backwards-compatibility
+            "        if (((2*i + j) - j - i) castTo A).x == 42",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void castToIntGenerics() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    function blub<T>(T x) returns int",
+            "        return x castTo int",
+            "    init",
+            "        let a = new A(42)",
+            "        let i = blub(a)",
+            // don't do this please, we just allow this for backwards-compatibility
+            "        if ((2*i - i) castTo A).x == 42",
+            "            testSuccess()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void castToIntGenerics2() {
+        testAssertOkLines(true,
+            "package test",
+            "    native testSuccess()",
+            "    class A",
+            "        int x = 1",
+            "        construct(int x)",
+            "            this.x = x",
+            "    class Cell<T>",
+            "        int x",
+            "        function set(T x)",
+            "            this.x = x castTo int",
+            "        function get() returns T",
+            "            return x castTo T",
+            "    init",
+            "        let a = new A(42)",
+            "        let c = new Cell<A>",
+            "        c.set(a)",
+            "        if c.get().x == 42",
+            "            testSuccess()",
+            "endpackage"
         );
     }
 

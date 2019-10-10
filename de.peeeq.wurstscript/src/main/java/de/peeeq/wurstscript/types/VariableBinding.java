@@ -111,6 +111,10 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
         return s.toString();
     }
 
+    public VariableBinding withTypeVariables(java.util.List<TypeParamDef> vars) {
+        return new VariableBinding(binding, typeVariablesLeft.append(List.iterableList(vars)), errors);
+    }
+
     public VariableBinding withTypeVariables(List<TypeParamDef> vars) {
         return new VariableBinding(binding, typeVariablesLeft.append(vars), errors);
     }

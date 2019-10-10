@@ -10,6 +10,8 @@ import de.peeeq.wurstscript.jassAst.JassExprVarArrayAccess;
 import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
+
 import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ExprTranslation {
@@ -49,6 +51,10 @@ public class ExprTranslation {
     }
 
     public static JassExpr translate(ImNull e, ImToJassTranslator translator) {
+        if (e.getType() instanceof ImAnyType
+            || TypesHelper.isIntType(e.getType())) {
+            return JassExprIntVal("0");
+        }
         return JassExprNull();
     }
 

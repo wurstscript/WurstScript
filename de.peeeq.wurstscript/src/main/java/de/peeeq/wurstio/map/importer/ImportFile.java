@@ -171,9 +171,11 @@ public class ImportFile {
             dataOut.write(normalizedWc3Path.getBytes("UTF-8"));
             dataOut.write((byte) 0);
             WLogger.info("importing file: " + normalizedWc3Path);
+            mpq.deleteFile(normalizedWc3Path);
             mpq.insertFile(normalizedWc3Path, f);
         }
         dataOut.flush();
+        mpq.deleteFile("war3map.imp");
         mpq.insertFile("war3map.imp", byteOut.toByteArray());
     }
 

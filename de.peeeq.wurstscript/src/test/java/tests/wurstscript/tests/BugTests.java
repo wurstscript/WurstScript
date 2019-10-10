@@ -906,7 +906,7 @@ public class BugTests extends WurstScriptTest {
                         "abstract class Hey\n" +
                         "	function foo()";
 
-        WurstModel model = test().executeProg(false).withStdLib(false).withCu(compilationUnit("testLine", "testLine")).run().getModel();
+        WurstModel model = test().executeProg(false).withStdLib(false).withCu(compilationUnit("testLine", input)).run().getModel();
 
         model.accept(new WurstModel.DefaultVisitor() {
             @Override
@@ -1308,5 +1308,61 @@ public class BugTests extends WurstScriptTest {
 		);
 	}
 
+    @Test
+    public void bitset_add() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string msg)",
+            "@extern native I2S(int i) returns string",
+            "public tuple bitset(int val)",
+            "public function int.pow(int x) returns int",
+            "    int result = 1",
+            "    for int i=1 to x",
+            "        result *= this",
+            "    return result",
+            "public function bitset.add(int v) returns bitset",
+            "    let pow = 2 .pow(v)",
+            "    return not this.containsPow(pow) ? bitset(this.val + pow) : this",
+            "function bitset.containsPow(int pow) returns boolean",
+            "    return (this.val mod (pow * 2)) >= pow",
+            "init",
+            "    let a = bitset(5)", // {0,2}
+            "    let res = a.add(1)",
+            "    if res.val == 7",
+            "        testSuccess()",
+            "    else",
+            "        testFail(I2S(res.val))"
+        );
+    }
+
+    @Test
+    public void middlewareOverload() throws IOException {
+        testAssertOkFile(new File(TEST_DIR + "MiddlewareOverload.wurst"), true);
+    }
+
+    @Test
+    public void cycle_with_generics() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "public abstract class VoidFunction<T>",
+            "    abstract function call(T t)",
+            "int x = 0",
+            "function foo(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> bar(j - 1)",
+            "    f.call(i)",
+            "function bar(int i)",
+            "    x++",
+            "    VoidFunction<int> f = j -> foo(j - 1)",
+            "    if i > 0",
+            "        f.call(i)",
+            "init",
+            "    bar(10)",
+            "    if x == 11",
+            "        testSuccess()"
+        );
+    }
 
 }

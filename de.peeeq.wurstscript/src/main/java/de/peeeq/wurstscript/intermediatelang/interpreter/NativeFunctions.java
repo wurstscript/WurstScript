@@ -8,7 +8,7 @@ public class NativeFunctions implements NativesProvider {
 
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
-        throw new NoSuchNativeException("No native function " + funcname + "found.");
+        throw new NoSuchNativeException("No native function " + funcname + " found.");
     }
 
     @Override

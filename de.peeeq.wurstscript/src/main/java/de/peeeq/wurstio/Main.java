@@ -8,34 +8,28 @@ import de.peeeq.wurstio.compilationserver.WurstServer;
 import de.peeeq.wurstio.gui.AboutDialog;
 import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
-import de.peeeq.wurstio.languageserver.*;
-import de.peeeq.wurstio.languageserver.requests.BuildMap;
+import de.peeeq.wurstio.languageserver.LanguageServerStarter;
+import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.gui.WurstGuiCliImpl;
 import de.peeeq.wurstscript.utils.Utils;
-import net.moonlightflower.wc3libs.bin.GameExe;
 import org.eclipse.jdt.annotation.Nullable;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileSystemView;
 import java.io.File;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Objects;
 
-import static de.peeeq.wurstio.languageserver.requests.BuildMap.FILE_NAME;
-import static javax.swing.SwingConstants.CENTER;
+import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 
 public class Main {
 
@@ -68,16 +62,6 @@ public class Main {
 
             if (runArgs.showAbout()) {
                 new AboutDialog(null, false).setVisible(true);
-                return;
-            }
-
-            if (runArgs.isFixInstall()) {
-                fixInstallation();
-                return;
-            }
-
-            if (runArgs.isCopyMap()) {
-                copyMap();
                 return;
             }
 
@@ -161,14 +145,16 @@ public class Main {
                     compiledScript = compilationProcess.doCompilation(null);
                 }
 
-                File scriptFile = new File("compiled.j.txt");
-                Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
+                if (compiledScript != null) {
+                    File scriptFile = new File("compiled.j.txt");
+                    Files.write(compiledScript.toString().getBytes(Charsets.UTF_8), scriptFile);
 
-                if (projectConfig != null && target != null) {
-                    BuildMap.applyProjectConfig(projectConfig, target.toFile(), scriptFile, buildDir.toFile());
+                    if (projectConfig != null && target != null) {
+                        ProjectConfigBuilder.apply(projectConfig, target.toFile(), scriptFile, buildDir.toFile(), runArgs);
 
-                    WLogger.info("map build success");
-                    System.out.println("Build succeeded. Output file: <" + target + ">");
+                        WLogger.info("map build success");
+                        System.out.println("Build succeeded. Output file: <" + target.toAbsolutePath() + ">");
+                    }
                 }
 
                 gui.sendProgress("Finished!");
@@ -220,144 +206,5 @@ public class Main {
         }
         WLogger.info("### ============================================");
     }
-
-    private static final String COMPAT_FOLDER = "compat\\";
-
-    /**
-     * Creates a copy of the wc3 game data files inside a compat/ folder that allows running JNGP.
-     */
-    private static void fixInstallation() throws Exception {
-        String wc3Path = W3Utils.getGamePath();
-        if (wc3Path == null) {
-            WLogger.severe("installation could not be found");
-        }
-        String compatPath = wc3Path + COMPAT_FOLDER;
-        WLogger.info("Wc3 Path: " + wc3Path);
-
-        GameExe.Version patchVersion = W3Utils.getWc3PatchVersion();
-        if (patchVersion.compareTo(new GameExe.Version("1.27")) > 0 && !new File(compatPath).exists()) {
-            JLabel notice = new JLabel("Patch 1.28 or higher has been detected on your system.\n" +
-                    "Selecting yes will create a compatibility copy of your installation.\n" +
-                    "Selecting no will leave everything as is and the editor won't start.", CENTER);
-
-            int result = JOptionPane.showConfirmDialog(null, notice, "Wurst Note", JOptionPane.YES_NO_OPTION);
-            if (result == JOptionPane.YES_OPTION) {
-                JOptionPane.showMessageDialog(null, "Wurst is now working. This may take a few minutes.\n " +
-                        "You will be notified about further progress.");
-                checkLoadFiles();
-                copyBinaries(wc3Path, compatPath);
-                insertKeys(compatPath);
-                WLogger.info("Compatibility installation created.");
-                JOptionPane.showMessageDialog(null, "Done. The editor should start momentarily");
-            }
-        }
-    }
-
-    private static void copyMap() throws Exception {
-        String wc3Path = Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent();
-        WLogger.info("Wc3 Path: " + wc3Path);
-
-        String documentPath = FileSystemView.getFileSystemView().getDefaultDirectory().getPath() + File.separator + "Warcraft III";
-        if (new File(documentPath).exists()) {
-            File compatMap = new File(wc3Path + COMPAT_FOLDER + "Maps\\Test\\WorldEditTestMap.w3x");
-            if (compatMap.exists()) {
-                Files.copy(compatMap, new File(documentPath + "\\Maps\\Test\\WorldEditTestMap.w3x"));
-                WLogger.info("Map copied");
-            }
-        }
-
-    }
-
-    private static void copyBinaries(String wc3Path, String compatPath) throws IOException {
-        File compatDir = new File(compatPath);
-        compatDir.mkdirs();
-        File compatExe = new File(compatPath + "war3.exe");
-        if (!compatExe.exists()) {
-            // Create copy war3.exe
-            File newExe = new File(wc3Path + "Warcraft III.exe");
-            if (newExe.exists()) {
-                Files.copy(newExe, compatExe);
-                WLogger.info("Copied war3.exe");
-            } else {
-                WLogger.severe("Could not find valid wc3 executable");
-            }
-        }
-
-        File compatEditor = new File(compatPath + "worldedit.exe");
-        if (!compatEditor.exists()) {
-            // Create copy war3.exe
-            File newEditor = new File(wc3Path + "World Editor.exe");
-            if (newEditor.exists()) {
-                Files.copy(newEditor, compatEditor);
-                WLogger.info("Created worldedit.exe");
-            } else {
-                WLogger.severe("Could not find valid editor executable");
-            }
-        }
-
-        File[] files = new File(wc3Path).listFiles((File pathname) -> pathname.getName().endsWith(".mpq") || pathname.getName().endsWith(".dll"));
-        for (File file : files) {
-            Files.copy(file, new File(compatPath, file.getName()));
-        }
-
-        File storm = new File(compatPath + "Storm.dll");
-        if (!storm.exists() || storm.delete()) {
-            Files.write(java.nio.file.Files.readAllBytes(stormDll), storm);
-            if (storm.exists()) {
-                WLogger.info("Storm.dll written");
-            }
-        }
-
-    }
-
-    private static void insertKeys(String compatPath) throws Exception {
-        File rocMpq = new File(compatPath + "War3.mpq");
-        File tftMpq = new File(compatPath + "War3x.mpq");
-        MpqEditor roceditor = MpqEditorFactory.getEditor(rocMpq);
-        boolean rocHasKeys = roceditor.hasFile("font\\font.ccd") && roceditor.hasFile("font\\font.gid") && roceditor.hasFile("font\\font.clh");
-        if (!rocHasKeys) {
-            JOptionPane.showMessageDialog(null, "Now inserting ROC mpq.\n"
-                    + "This might take a few minutes. Please be patient.");
-            roceditor.insertFile("font\\font.gid", fontGID.toFile());
-            roceditor.insertFile("font\\font.clh", fontCLH.toFile());
-            roceditor.insertFile("font\\font.ccd", fontROC.toFile());
-            roceditor.close();
-            WLogger.info("inserted roc keys");
-        } else {
-            WLogger.info("Already has roc keys");
-        }
-        MpqEditor tfteditor = MpqEditorFactory.getEditor(tftMpq);
-        boolean tftHasKeys = tfteditor.hasFile("font\\font.ccd") && tfteditor.hasFile("font\\font.exp");
-        if (!tftHasKeys) {
-            JOptionPane.showMessageDialog(null, "Now inserting TFT mpq.\n"
-                    + "This might take a few minutes. Please be patient.");
-            tfteditor.insertFile("font\\font.exp", fontEXP.toFile());
-            tfteditor.insertFile("font\\font.ccd", fontTFT.toFile());
-            tfteditor.close();
-            WLogger.info("inserted tft keys");
-        } else {
-            WLogger.info("Already has tft keys");
-        }
-    }
-
-    private static Path fontGID;
-    private static Path fontCLH;
-    private static Path fontROC;
-    private static Path fontEXP;
-    private static Path fontTFT;
-    private static Path stormDll;
-
-
-    private static void checkLoadFiles() {
-        String folder = "font/";
-        fontGID = Paths.get(Utils.getResourceFile(folder + "font.gid"));
-        fontCLH = Paths.get(Utils.getResourceFile(folder + "font.clh"));
-        fontROC = Paths.get(Utils.getResourceFile(folder + "font_roc.ccd"));
-        fontEXP = Paths.get(Utils.getResourceFile(folder + "font.exp"));
-        fontTFT = Paths.get(Utils.getResourceFile(folder + "font_tft.ccd"));
-        stormDll = Paths.get(Utils.getResourceFile(folder + "Storm.dll"));
-    }
-
-
 
 }

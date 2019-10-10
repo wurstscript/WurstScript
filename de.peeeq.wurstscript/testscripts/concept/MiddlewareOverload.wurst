@@ -1,0 +1,88 @@
+package Bug
+
+////////////////////////////////////////////////////////////////////
+////// Utility
+////////////////////////////////////////////////////////////////////
+
+/* Basic callbacks */
+
+public interface CallbackNullary
+    function call()
+    function callAndDestroy()
+        this.call()
+        destroy this
+
+public interface CallbackUnary<T>
+    function call(T t)
+    function callAndDestroy(T t)
+        this.call(t)
+        destroy this
+
+/* Middleware callbacks */
+
+public interface MiddlewareUnary<T>
+    /** Takes ownership of cb */
+    function call(T t, CallbackUnary<T> cb)
+
+/* Helpers */
+
+/** Create a MiddlewareUnary from a CallbackNullary
+  *
+  * Takes cb by reference.
+  * Caller takes ownership of returned value.
+  */
+public function mwUnary<T>(CallbackNullary cb) returns MiddlewareUnary<T>
+    return (T t, mwCb) -> begin
+        cb.call()
+        mwCb.callAndDestroy(t)
+    end
+
+/** Create a MiddlewareUnary from a CallbackUnary
+  *
+  * Takes cb by reference.
+  * Caller takes ownership of returned value.
+  */
+public function mwUnary<T>(CallbackUnary<T> cb) returns MiddlewareUnary<T>
+    return (T t, mwCb) -> begin
+        cb.call(t)
+        mwCb.callAndDestroy(t)
+    end
+
+/* List utils */
+native println(string msg)
+
+public function LinkedList<MiddlewareUnary<T0>>.call<T0>(T0 t0)
+    this.elem.call(t0, e -> println("called"))
+
+/** Add CallbackNullarys
+  *
+  * Takes cbs by reference */
+public function LinkedList<MiddlewareUnary<T0>>.add<T0>(vararg CallbackNullary cbs)
+    for cb in cbs
+        this.add(mwUnary<T0>(cb))
+
+/** Add CallbackUnarys
+  *
+  * Takes cbs by reference */
+public function LinkedList<MiddlewareUnary<T0>>.add<T0>(vararg CallbackUnary<T0> cbs)
+    for cb in cbs
+        this.add(mwUnary<T0>(cb))
+
+////////////////////////////////////////////////////////////////////
+////// Bug Finder
+////////////////////////////////////////////////////////////////////
+
+class LinkedList<T>
+    T elem
+    function add(T t)
+        this.elem = t
+
+
+class BugClass
+    static let mws = new LinkedList<MiddlewareUnary<BugClass>>
+
+native testSuccess()
+
+init
+    BugClass.mws.add(i -> testSuccess())
+    BugClass.mws.call(new BugClass)

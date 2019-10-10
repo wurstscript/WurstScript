@@ -327,6 +327,7 @@ public class NameLinks {
         addDefinedNames(result, c, c.getMethods());
         addDefinedNames(result, c, c.getVars());
         addDefinedNames(result, c, c.getModuleInstanciations());
+        addDefinedNames(result, c, c.getInnerClasses());
     }
 
     private static void addDefinedNames(Builder<String, DefLink> result, WScope definedIn, List<? extends NameDef> slots) {

@@ -4,7 +4,7 @@ grammar Jass;
     package de.peeeq.wurstscript.antlr;
 }
 
-compilationUnit : NL? decls+=jassTopLevelDeclaration*;
+compilationUnit : NL? decls+=jassTopLevelDeclaration* EOF;
 
 jassTopLevelDeclaration:
      jassGlobalsBlock

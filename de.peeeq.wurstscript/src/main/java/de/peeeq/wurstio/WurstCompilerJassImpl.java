@@ -37,7 +37,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.CompiletimeFunctions;
@@ -489,6 +488,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         optimizer.removeGarbage();
         imProg.flatten(imTranslator);
 
+        // Re-run to avoid #883
+        optimizer.removeGarbage();
+        imProg.flatten(imTranslator);
+
         printDebugImProg("./test-output/im " + stage++ + "_afterremoveGarbage1.im");
 
         if (runArgs.isHotStartmap() || runArgs.isHotReload()) {
@@ -581,7 +584,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     public @Nullable ImProg translateProgToIm(WurstModel root) {
         beginPhase(1, "to intermediate lang");
         // translate wurst to intermediate lang:
-        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode());
+        imTranslator = new ImTranslator(root, errorHandler.isUnitTestMode(), runArgs);
         imProg = getImTranslator().translateProg();
         int stage = 1;
         printDebugImProg("./test-output/im " + stage++ + ".im");
@@ -799,6 +802,18 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     }
 
     public LuaCompilationUnit transformProgToLua() {
+
+        if (runArgs.isNoDebugMessages()) {
+            beginPhase(3, "remove debug messages");
+            DebugMessageRemover.removeDebugMessages(imProg);
+        } else {
+            // debug: add stacktraces
+            if (runArgs.isIncludeStacktraces()) {
+                beginPhase(4, "add stack traces");
+                new StackTraceInjector2(imProg, imTranslator).transform(timeTaker);
+            }
+        }
+
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         return luaCode;

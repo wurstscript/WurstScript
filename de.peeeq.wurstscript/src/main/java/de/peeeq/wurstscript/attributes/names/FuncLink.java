@@ -43,7 +43,11 @@ public class FuncLink extends DefLink {
                 .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, VariableBinding.emptyMapping());
+        VariableBinding mapping = VariableBinding.emptyMapping();
+        if (func instanceof AstElementWithTypeParameters) {
+            mapping = mapping.withTypeVariables(((AstElementWithTypeParameters) func).getTypeParameters());
+        }
+        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, mapping);
     }
 
 

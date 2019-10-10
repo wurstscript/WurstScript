@@ -1,0 +1,118 @@
+package nullclosurebug
+
+import ChannelAbilityPreset
+import BuffObjEditing
+import ClosureEvents
+import Orders
+import DummyCaster
+import Assets
+import LinkedList
+import HashMap
+import StringUtils
+import InstantDummyCaster
+
+let ABIL_ID = compiletime(ABIL_ID_GEN.next())
+let DUMMY_ABIL_ID = compiletime(ABIL_ID_GEN.next())
+
+constant CAST_RANGE = 400.
+constant COOLDOWN = 35.
+constant MANACOST = 20
+constant DURATION = 10.
+constant TOOLTIP_NORM = "Magic Mist"
+constant TOOLTIP_EXTENDED = "The Priest creates an artificial fog preventing all combat within it."
+constant MS_FACTOR = -0.40
+constant AOE = 400.
+
+constant TARGET_ALLOWED = "air,debris,ground,notself,structure"
+constant BUFF_ID = compiletime(createDummyBuffObject("Smoke Cloud", "This unit's inside smoke cloud¸ it can't see and attack.", Icons.bTNCloudOfFog))
+
+
+let MAX_PLAYERS = PLAYER_NEUTRAL_AGGRESSIVE - 1
+
+public interface CommandHandler
+    function run(player triggerPlayer, LinkedList<string> arguments)
+
+let commands = new HashMap<player, HashMap<string, CommandHandler>>()
+
+public function registerCommand(player thePlayer, string command, CommandHandler handler)
+    commands.get(thePlayer).put(command, handler)
+
+public function registerCommandAll(string command, CommandHandler handler)
+    for i = 0 to MAX_PLAYERS
+        registerCommand(players[i], command, handler)
+
+public function deregisterCommand(player thePlayer, string command)
+    if commands.get(thePlayer).has(command)
+        commands.get(thePlayer).remove(command)
+
+public function deregisterCommandAll(string command)
+    for i = 0 to MAX_PLAYERS
+        deregisterCommand(players[i], command)
+
+@compiletime function createSpell()
+    new AbilityDefinitionCloudofFog(ABIL_ID)
+    ..setDummyAbility()
+
+	new ChannelAbilityPreset(DUMMY_ABIL_ID, 1, true)
+	..setHeroAbility(false)
+    ..setLevels(1)
+    ..setManaCost(1, 0)
+    ..setCastRange(1, CAST_RANGE)
+    ..setCooldown(1, COOLDOWN)
+    ..setName(TOOLTIP_NORM)
+    ..presetTargetTypes(Targettype.POINT)
+    ..setTooltipNormal(1,TOOLTIP_NORM)
+    ..setTooltipNormalExtended(1, TOOLTIP_EXTENDED)
+    ..setButtonPositionNormalX(0)
+    ..setButtonPositionNormalY(2)
+    ..presetHotkey("A")
+    ..setIconNormal(Icons.bTNCloudOfFog)
+    ..setAreaofEffect(1, AOE)
+    ..setFollowThroughTime(1, 1)
+    ..presetOption(Option.TARGETIMAGE, true)
+    ..setEditorSuffix("(Wurst)")
+
+init
+    let t = CreateTrigger()
+
+    for i = 0 to MAX_PLAYERS
+        commands.put(players[i], new HashMap<string, CommandHandler>())
+        t.registerPlayerChatEvent(players[i], "-", false)
+
+    t.addAction() ->
+        let triggerPlayer = GetTriggerPlayer()
+        let playerCommands = commands.get(triggerPlayer)
+        let tokens = GetEventPlayerChatString().substring(1).split(" ")
+        let command = tokens.get(0)
+        if playerCommands.has(command)
+            playerCommands.get(command).run(triggerPlayer, tokens)
+
+    registerCommandAll("test-wurst-commands") (triggerPlayer, args) ->
+        print("player " + triggerPlayer.getId().toString())
+        args.forEach(i -> print(i))
+
+
+
+    createUnit(players[0], UnitIds.arcanevault,  vec2(0,0), angle(0))
+    let a = createUnit(players[0], UnitIds.archmage, vec2(0,0), angle(0))..addAbility('AHtc')..setInt(500)
+
+
+    registerCommandAll("cast") (player triggerPlayer, LinkedList<string> arguments) ->
+        InstantDummyCaster.castImmediate(a.getOwner(), 'AHtc', 1, "thunderclap", a.getPos())
+        // if a.issueImmediateOrder("thunderclap") == false
+        //     print("ouch")
+
+    registerCommandAll("owner") (player triggerPlayer, LinkedList<string> arguments) ->
+        print(a.getName())
+        let units = CreateGroup()..enumUnitsSelected(triggerPlayer, null)
+        for u from units
+            u.setOwner(players[1], true)
+
+
+    EventListener.onPointCast(DUMMY_ABIL_ID) (unit caster, vec2 target) ->
+		print("Spell has been casted")
+		new DummyCaster()
+			..delay(3)
+			..owner(caster.getOwner())
+            ..origin(caster.getPos() + vec2(100,0))
+			..castPoint('AHbz', 1, OrderIds.blizzard, target)

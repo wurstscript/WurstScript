@@ -37,14 +37,15 @@ public class DefaultValue {
     }
 
     public static ILconst get(ImArrayTypeMulti t) {
-        return new ILconstArray(makeSupplier(t.getArraySize().size() - 1, t.getEntryType()));
+        List<Integer> sizes = t.getArraySize();
+        return new ILconstArray(sizes.get(0), makeSupplier(sizes.size() - 1, t.getEntryType()));
     }
 
     private static Supplier<ILconst> makeSupplier(int depth, ImType entryType) {
         if (depth <= 1) {
             return entryType::defaultValue;
         }
-        return () -> new ILconstArray(makeSupplier(depth - 1, entryType));
+        return () -> new ILconstArray(Integer.MAX_VALUE, makeSupplier(depth - 1, entryType));
     }
 
     public static ILconst get(ImTypeVarRef e) {
@@ -53,5 +54,9 @@ public class DefaultValue {
 
     public static ILconst get(ImClassType ct) {
         return new ILconstInt(0);
+    }
+
+    public static ILconst get(ImAnyType imAnyType) {
+        return ILconstNull.instance();
     }
 }

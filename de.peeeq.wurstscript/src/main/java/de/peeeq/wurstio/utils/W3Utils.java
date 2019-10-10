@@ -2,30 +2,36 @@ package de.peeeq.wurstio.utils;
 
 import de.peeeq.wurstscript.WLogger;
 import net.moonlightflower.wc3libs.bin.GameExe;
+import net.moonlightflower.wc3libs.port.GameVersion;
+import net.moonlightflower.wc3libs.port.NotFoundException;
+import net.moonlightflower.wc3libs.port.Orient;
+import net.moonlightflower.wc3libs.port.StdGameExeFinder;
+import net.moonlightflower.wc3libs.port.mac.MacGameVersionFinder;
+import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
 
 public class W3Utils {
-    private static GameExe gameExe;
-    private static GameExe.Version version = null;
+    private static File gameExe;
 
-    private static boolean isWindows() {
-        return System.getProperty("os.name").contains("win");
-    }
+    private static GameVersion version = null;
 
     /**
      * @return The wc3 patch version or -1 if none has been found
      */
-    public static GameExe.Version getWc3PatchVersion() {
-        if (gameExe == null && isWindows()) {
-            gameExe = GameExe.fromRegistry();
+    public static GameVersion getWc3PatchVersion() {
+        if (gameExe == null && Orient.isWindowsSystem()) {
+            try {
+                gameExe = new StdGameExeFinder().get();
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+            }
         }
         if (version == null && gameExe != null) {
             try {
-                WLogger.info("Parsed game version: " + gameExe.getVersion());
-                version = gameExe.getVersion();
+                version = GameExe.getVersion(gameExe);
+                WLogger.info("Parsed game version: " + version);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -38,24 +44,39 @@ public class W3Utils {
      *
      * @return The wc3 patch version or -1 if none has been found
      */
-    public static GameExe.Version parsePatchVersion(File wc3Path) {
+    public static GameVersion parsePatchVersion(File wc3Path) {
         try {
-            gameExe = GameExe.fromDir(wc3Path);
-            WLogger.info("Game Executable: " + gameExe);
-            if (gameExe != null) {
-                W3Utils.version = gameExe.getVersion();
-                WLogger.info("Parsed game version: " + version);
+            if (Orient.isWindowsSystem()) {
+                gameExe = WinGameExeFinder.fromDirIgnoreVersion(wc3Path);
+                WLogger.info("Game Executable: " + gameExe);
+            } else {
+                WLogger.warning("Game path configuration only works on windows");
+                throw new NotFoundException();
             }
-        } catch (IOException e) {
-            WLogger.severe(e);
+        } catch (NotFoundException e) {
+            try {
+                gameExe = new StdGameExeFinder().get();
+            } catch (NotFoundException ex) {
+                WLogger.severe(e);
+            }
+        }
+        if (gameExe != null) {
+            try {
+                if (Orient.isWindowsSystem()) {
+                    W3Utils.version = GameExe.getVersion(gameExe);
+                } else if (Orient.isMacSystem()) {
+                    W3Utils.version = new MacGameVersionFinder().get();
+                }
+                WLogger.info("Parsed game version: " + version);
+            } catch (IOException | NotFoundException e) {
+                WLogger.severe(e);
+            }
         }
         return version;
     }
 
-    /**
-     * @return The wc3 installation path
-     */
-    public static String getGamePath() {
-        return isWindows() ? Objects.requireNonNull(GameExe.fromRegistry()).getFile().getParent() : null;
+
+    public static File getGameExe() {
+        return gameExe;
     }
 }

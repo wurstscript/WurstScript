@@ -28,6 +28,7 @@ public class ProgramState extends State {
     private Deque<ILStackFrame> stackFrames = new ArrayDeque<>();
     private Deque<de.peeeq.wurstscript.jassIm.Element> lastStatements = new ArrayDeque<>();
     private boolean isCompiletime;
+    private HashMap<Integer, IlConstHandle> handleMap = new HashMap<>();
 
 
     public ProgramState(WurstGui gui, ImProg prog, boolean isCompiletime) {
@@ -109,6 +110,9 @@ public class ProgramState extends State {
     }
 
     public boolean isInstanceOf(ILconstObject obj, ImClass clazz, Element trace) {
+        if (obj == null) {
+            return false;
+        }
         assertAllocated(obj, trace);
         return obj.getImClass().isSubclassOf(clazz); // TODO more efficient check
     }
@@ -180,6 +184,14 @@ public class ProgramState extends State {
         return indexToObject.get(val);
     }
 
+    public HashMap<Integer, IlConstHandle> getHandleMap() {
+        return handleMap;
+    }
+
+    public ILconst getHandleByIndex(int val) {
+        return handleMap.get(val);
+    }
+
     public ILconstObject toObject(ILconst val) {
         if (val instanceof ILconstObject) {
             return (ILconstObject) val;
@@ -245,7 +257,8 @@ public class ProgramState extends State {
     protected ILconstArray getArray(ImVar v) {
         ILconstArray r = arrayValues.get(v);
         if (r == null) {
-            r = new ILconstArray(v.getType()::defaultValue);
+            ImType vType = v.getType();
+            r = createArrayConstantFromType(vType);
             arrayValues.put(v, r);
             List<ImExpr> e = prog.getGlobalInits().get(v);
             if (e != null) {
@@ -258,6 +271,8 @@ public class ProgramState extends State {
         }
         return r;
     }
+
+
 
     public Collection<ILconstObject> getAllObjects() {
         return indexToObject.values();

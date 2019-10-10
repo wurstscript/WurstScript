@@ -649,6 +649,31 @@ public class NewFeatureTests extends WurstScriptTest {
     }
 
     @Test
+    public void testIteratorStatic() { // see #866
+        testAssertErrorsLines(false, "Cannot use static iterator method from A on dynamic value.",
+            "package Test",
+            "class A",
+            "    static B itr",
+            "    static function iterator() returns B",
+            "        return itr",
+            "    construct()",
+            "        itr = new B()",
+            "",
+            "public class B",
+            "    construct()",
+            "    function hasNext() returns boolean",
+            "        return true",
+            "    function next() returns int",
+            "        return 0",
+            "    function close()",
+            "",
+            "init",
+            "    let list = new A()",
+            "    for i in list"
+        );
+    }
+
+    @Test
     public void testIfNotDefinedAnnotation1() {
         testAssertOkLines(true,
                 "function foo takes integer x returns integer",

@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Maps;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.objectreader.*;
@@ -19,8 +18,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
-
-import static com.google.common.io.Files.asCharSink;
 
 public class ProgramStateIO extends ProgramState {
 
@@ -225,7 +222,7 @@ public class ProgramStateIO extends ProgramState {
                     throw new RuntimeException("Map file must be given with '-injectobjects' option.");
                 }
                 String filenameInMpq = "war3map." + fileType.getExt();
-
+                mpqEditor.deleteFile(filenameInMpq);
                 mpqEditor.insertFile(filenameInMpq, w3u);
             }
         } catch (Exception e) {

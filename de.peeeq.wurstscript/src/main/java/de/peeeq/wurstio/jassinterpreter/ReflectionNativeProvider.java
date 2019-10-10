@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
+import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -39,6 +40,8 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new DialogProvider(interpreter));
         addProvider(new EffectProvider(interpreter));
         addProvider(new RegionProvider(interpreter));
+        addProvider(new ImageProvider(interpreter));
+        addProvider(new IntegerProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {
@@ -63,14 +66,14 @@ public class ReflectionNativeProvider implements NativesProvider {
     }
 
     @Override
-    public ILconst invoke(String funcname, ILconst[] args) {
+    public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
         String msg = "Calling method " + funcname + "(" +
                 Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
         WLogger.trace(msg);
 
         NativeJassFunction candidate = methodMap.get(funcname);
         if (candidate == null) {
-            throw new Error("The native <" + funcname + "> has not been implemented for compiletime!");
+            throw new NoSuchNativeException("");
         }
 
         if (candidate.getMethod().getParameterCount() == args.length) {
