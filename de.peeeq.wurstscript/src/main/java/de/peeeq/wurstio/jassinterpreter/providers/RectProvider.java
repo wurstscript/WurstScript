@@ -4,7 +4,6 @@ import de.peeeq.wurstio.jassinterpreter.mocks.RectMock;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class RectProvider extends Provider {
 
@@ -22,12 +21,12 @@ public class RectProvider extends Provider {
 
     public ILconstReal GetRectCenterX(IlConstHandle rect) {
         RectMock rectMock = (RectMock) rect.getObj();
-        return new ILconstReal((rectMock.minx.getVal() + rectMock.maxx.getVal() / 2.0));
+        return new ILconstReal((rectMock.minx.getVal() + rectMock.maxx.getVal()) / 2.0);
     }
 
     public ILconstReal GetRectCenterY(IlConstHandle rect) {
         RectMock rectMock = (RectMock) rect.getObj();
-        return new ILconstReal((rectMock.miny.getVal() + rectMock.maxy.getVal() / 2.0));
+        return new ILconstReal((rectMock.miny.getVal() + rectMock.maxy.getVal()) / 2.0);
     }
 
     public ILconstReal GetRectMinX(IlConstHandle rect) {
