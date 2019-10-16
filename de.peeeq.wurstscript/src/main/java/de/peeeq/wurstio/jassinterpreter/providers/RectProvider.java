@@ -59,10 +59,12 @@ public class RectProvider extends Provider {
 
     public void MoveRectTo(IlConstHandle rect, ILconstReal newCenterX, ILconstReal newCenterY) {
         RectMock rectMock = (RectMock) rect.getObj();
-        rectMock.minx = new ILconstReal(newCenterX.getVal() - (rectMock.getWidth() / 2.));
-        rectMock.maxx = new ILconstReal(newCenterX.getVal() + (rectMock.getWidth() / 2.));
-        rectMock.miny = new ILconstReal(newCenterY.getVal() - (rectMock.getHeight() / 2.));
-        rectMock.maxy = new ILconstReal(newCenterY.getVal() + (rectMock.getHeight() / 2.));
+        double hwidth = rectMock.getWidth() / 2.;
+        double hheight = rectMock.getHeight() / 2.;
+        rectMock.minx = new ILconstReal(newCenterX.getVal() - hwidth);
+        rectMock.maxx = new ILconstReal(newCenterX.getVal() + hwidth);
+        rectMock.miny = new ILconstReal(newCenterY.getVal() - hheight);
+        rectMock.maxy = new ILconstReal(newCenterY.getVal() + hheight);
     }
 
 }
