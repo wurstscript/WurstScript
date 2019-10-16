@@ -14,4 +14,12 @@ public class RectMock {
         this.maxx = maxx;
         this.maxy = maxy;
     }
+
+    public double getWidth() {
+        return maxx.getVal() - minx.getVal();
+    }
+
+    public double getHeight() {
+        return maxy.getVal() - miny.getVal();
+    }
 }
