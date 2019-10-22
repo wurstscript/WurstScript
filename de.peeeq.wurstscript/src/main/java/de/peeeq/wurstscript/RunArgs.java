@@ -20,7 +20,9 @@ public class RunArgs {
     private @Nullable String outFile = null;
     private @Nullable String workspaceroot = null;
     private @Nullable String inputmap = null;
+
     private List<RunOption> options = Lists.newArrayList();
+
     private List<File> libDirs = Lists.newArrayList();
     private RunOption optionHelp;
     private RunOption optionOpt;
@@ -47,7 +49,6 @@ public class RunArgs {
     private RunOption optionMeasureTimes;
     private RunOption optionHotStartmap;
     private RunOption optionHotReload;
-
     private RunOption optionBuild;
 
     public RunArgs with(String... additionalArgs) {
@@ -58,6 +59,7 @@ public class RunArgs {
     private class RunOption {
 
         final String name;
+
         final String descr;
         final @Nullable Consumer<String> argHandler;
         boolean isSet;
@@ -66,15 +68,14 @@ public class RunArgs {
             this.descr = descr;
             this.argHandler = null;
         }
-
         RunOption(String name, String descr, Consumer<String> argHandler2) {
             this.name = name;
             this.descr = descr;
             this.argHandler = argHandler2;
         }
 
-    }
 
+    }
     public static RunArgs defaults() {
         return new RunArgs();
     }
@@ -343,5 +344,6 @@ public class RunArgs {
     public boolean isLua() {
         return optionLua.isSet;
     }
+
 
 }
