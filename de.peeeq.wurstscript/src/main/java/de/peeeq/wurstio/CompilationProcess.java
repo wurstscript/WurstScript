@@ -38,7 +38,11 @@ public class CompilationProcess {
     }
 
     @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor) throws IOException {
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, null, gui, mpqEditor, runArgs);
+        return doCompilation(mpqEditor, null);
+    }
+
+    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor, @Nullable File projectFolder) throws IOException {
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, projectFolder, gui, mpqEditor, runArgs);
         gui.sendProgress("Check input map");
         if (mpqEditor != null && !mpqEditor.canWrite()) {
             WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
