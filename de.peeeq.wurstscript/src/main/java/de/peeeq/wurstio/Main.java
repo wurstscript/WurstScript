@@ -10,6 +10,7 @@ import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -30,6 +31,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
+import static de.peeeq.wurstio.languageserver.WurstCommands.getCompileArgs;
 
 public class Main {
 
@@ -128,7 +130,11 @@ public class Main {
                     bc.makeBackup(mapFilePath);
                 }
 
-                CompilationProcess compilationProcess = new CompilationProcess(gui, runArgs);
+                RunArgs compileArgs = runArgs;
+                if (runArgs.getWorkspaceroot() != null) {
+                    compileArgs = new RunArgs(getCompileArgs(WFile.create(Paths.get(runArgs.getWorkspaceroot()))));
+                }
+                CompilationProcess compilationProcess = new CompilationProcess(gui, compileArgs);
                 @Nullable CharSequence compiledScript;
 
                 if (mapFilePath != null) {
