@@ -58,7 +58,7 @@ public class BuildMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             String fileName = projectConfig.getBuildMapData().getFileName();
-            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() : fileName + ".w3x");
+            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
