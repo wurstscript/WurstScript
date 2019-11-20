@@ -1,5 +1,7 @@
 package de.peeeq.wurstscript.intermediatelang.interpreter;
 
+import de.peeeq.wurstio.jassinterpreter.mocks.TimerMock;
+
 import java.util.Comparator;
 import java.util.PriorityQueue;
 
@@ -42,6 +44,8 @@ public class TimerMockHandler {
     }
 
     public PausedTask pauseTask(RunTask t) {
+        TimerMock.TimerMockRunnable runnable = (TimerMock.TimerMockRunnable) t.runnable;
+        runnable.cancel();
         boolean removed = nextRunnable.remove(t);
         if (!removed) {
             return null;
@@ -50,6 +54,8 @@ public class TimerMockHandler {
     }
 
     public RunTask resumeTask(PausedTask t) {
+        TimerMock.TimerMockRunnable runnable = (TimerMock.TimerMockRunnable) t.runnable;
+        runnable.resume();
         return registerTimedAction(virtualTime + t.remainingTime, t.runnable);
     }
 
