@@ -47,6 +47,7 @@ public class RunArgs {
     private RunOption optionMeasureTimes;
     private RunOption optionHotStartmap;
     private RunOption optionHotReload;
+    private RunOption optionDisableMapConfig;
 
     private RunOption optionBuild;
 
@@ -124,7 +125,7 @@ public class RunArgs {
         addOptionWithArg("workspaceroot", "The next argument should be the root folder of the project to build.", arg -> workspaceroot = arg);
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
-
+        optionDisableMapConfig = addOption("disableMapConfig", "Disable map configuration when building or running maps");
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -344,4 +345,7 @@ public class RunArgs {
         return optionLua.isSet;
     }
 
+    public boolean isDisableMapConfig() {
+        return optionDisableMapConfig.isSet;
+    }
 }

@@ -119,8 +119,10 @@ public class RunMap extends MapRequest {
                     mpqEditor.insertFile(mapScriptName, compiledScript);
                 }
 
-                gui.sendProgress("Applying Map Config...");
-                ProjectConfigBuilder.apply(projectConfig, testMap, compiledScript, buildDir, runArgs);
+                if (!runArgs.isDisableMapConfig()) {
+                    gui.sendProgress("Applying Map Config...");
+                    ProjectConfigBuilder.apply(projectConfig, testMap, compiledScript, buildDir, runArgs);
+                }
 
                 File mapCopy = copyToWarcraftMapDir(testMap);
 
