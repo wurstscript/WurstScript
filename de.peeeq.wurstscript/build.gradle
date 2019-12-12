@@ -125,7 +125,6 @@ configurations.all {
 task genAst {
     description = 'Compile ast specifications'
     fileTree(dir: 'parserspec', include: '**/*.parseq').each { file ->
-
         Pattern PACKAGE_PATTERN = Pattern.compile("package\\s+(\\S+)\\s*;");
         String fileContents = file.text
 
@@ -154,34 +153,36 @@ task genAst {
 task versionInfoFile {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
+    String gitRevision = "unknown-version"
+    String gitRevisionlong = "unknown-version"
+
+    new ByteArrayOutputStream().withStream { os ->
+        def result = exec {
+            executable = 'git'
+            args = ['describe', '--tags', '--always']
+            standardOutput = os
+        }
+        gitRevision = os.toString().trim()
+    }
+
+    new ByteArrayOutputStream().withStream { os ->
+        def result = exec {
+            executable = 'git'
+            args = ['describe', '--tags', '--always', '--abbrev=0']
+            standardOutput = os
+        }
+        gitRevisionlong = os.toString().trim()
+    }
+
+    String wurstVersion = "${version}-${gitRevision}"
+    inputs.property("wurstVersion", wurstVersion)
+
+    def dir = new File('./src-gen/de/peeeq/wurstscript/')
+    def f = new File(dir, 'CompileTimeInfo.java')
+    outputs.file(f)
+
     doLast {
-        def dir = new File('./src-gen/de/peeeq/wurstscript/')
         dir.mkdirs()
-        def f = new File(dir, 'CompileTimeInfo.java')
-
-        String gitRevision = "unknown-version"
-        String gitRevisionlong = "unknown-version"
-
-        new ByteArrayOutputStream().withStream { os ->
-            def result = exec {
-                executable = 'git'
-                args = ['describe', '--tags', '--always']
-                standardOutput = os
-            }
-            gitRevision = os.toString().trim()
-        }
-
-        new ByteArrayOutputStream().withStream { os ->
-            def result = exec {
-                executable = 'git'
-                args = ['describe', '--tags', '--always', '--abbrev=0']
-                standardOutput = os
-            }
-            gitRevisionlong = os.toString().trim()
-        }
-
-        String wurstVersion = "${version}-${gitRevision}"
-
 
         String currentTime = new Date().format("yyyy/MM/dd KK:mm:ss")
 
