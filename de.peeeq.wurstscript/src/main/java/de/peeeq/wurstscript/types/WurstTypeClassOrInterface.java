@@ -7,9 +7,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.StructureDef;
 import de.peeeq.wurstscript.ast.TypeDef;
 import de.peeeq.wurstscript.attributes.CheckHelper;
-import de.peeeq.wurstscript.attributes.names.DefLink;
-import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.*;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -18,6 +16,7 @@ import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
@@ -140,5 +139,19 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         }
         return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }
+
+    @Override
+    public @Nullable NameLink getMemberVariable(String name) {
+        for (DefLink n : nameLinks().get(name)) {
+            if (n instanceof VarLink || n instanceof TypeDefLink) {
+                if (n.getVisibility().isPublic()) {
+                    return n;
+                }
+            }
+        }
+        return null;
+    }
+
+
 
 }

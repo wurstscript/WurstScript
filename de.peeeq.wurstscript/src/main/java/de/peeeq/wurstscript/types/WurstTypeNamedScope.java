@@ -216,6 +216,16 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
     @Override
+    public Stream<? extends NameLink> getMemberVariables() {
+        return nameLinks().values().stream()
+            .filter(n -> {
+                WurstType receiverType = n.getReceiverType();
+                return !(n instanceof FuncLink)
+                    && receiverType != null;
+            });
+    }
+
+    @Override
     public boolean isNestedInside(WurstType other) {
         if (other instanceof WurstTypeNamedScope) {
             WurstTypeNamedScope wtns = (WurstTypeNamedScope) other;

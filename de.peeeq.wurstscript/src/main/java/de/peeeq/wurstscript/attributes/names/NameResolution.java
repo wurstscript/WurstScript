@@ -184,30 +184,8 @@ public class NameResolution {
             scope = nextScope(scope);
         }
 
-        if (receiverType instanceof WurstTypeClassOrInterface) {
-            WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) receiverType;
-            for (DefLink n : ct.nameLinks().get(name)) {
-                if (n instanceof VarLink || n instanceof TypeDefLink) {
-                    if (n.getVisibility().isPublic()) {
-                        return n;
-                    }
-                }
-            }
-        } else if (receiverType instanceof WurstTypeArray && name.equals("length")) {
-            // special lookup for length
-            WurstTypeArray wta = (WurstTypeArray) receiverType;
-            if (wta.getDimensions() > 0) {
-                int size = wta.getSize(0);
-                return new OtherLink(Visibility.PUBLIC, name, WurstTypeInt.instance()) {
-                    @Override
-                    public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
-                        return JassIm.ImIntVal(size);
-                    }
-                };
-            }
-        }
-
-        return null;
+        // TODO move into lookup method on WurstType
+        return receiverType.getMemberVariable(name);
     }
 
     public static DefLink matchDefLinkReceiver(DefLink n, WurstType receiverType, Element node, boolean showErrors) {

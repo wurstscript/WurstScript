@@ -558,4 +558,26 @@ public class InterfaceTests extends WurstScriptTest {
 
 
     }
+
+    @Test
+    public void implFromTop() { // #898
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface Foo",
+            "    function doSomething()",
+            "",
+            "interface Bar",
+            "    function doSomething()",
+            "",
+            "class BaseFoo implements Foo",
+            "    override function doSomething()",
+            "        testSuccess()",
+            "",
+            "class FooBar extends BaseFoo implements Bar",
+            "init",
+            "    new FooBar().doSomething()"
+
+        );
+    }
 }

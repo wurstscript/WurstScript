@@ -149,8 +149,18 @@ public class NameLinks {
 
 
                 }
-
+                if (!isOverridden && def.getDef().attrIsAbstract()) {
+                    // check if abstract member is already implemented
+                    isOverridden = result.get(name).stream().anyMatch(otherFunc -> {
+                        if (otherFunc instanceof FuncLink) {
+                            String error = WurstValidator.checkOverride((FuncLink) otherFunc, func, allowStaticOverride);
+                            return error == null;
+                        }
+                        return false;
+                    });
+                }
             }
+
             if (!isOverridden) {
                 result.put(name, def.hidingPrivate());
             }
@@ -231,7 +241,8 @@ public class NameLinks {
                 NameDef n = (NameDef) e;
                 addNameDefDefLink(result, n, wEntities);
             }
-            if (e instanceof WScope && !(e instanceof ModuleDef)) {
+            if (e instanceof ModuleInstanciation) {
+                // elements from module instantiations are also visible in outer scope
                 WScope scope = (WScope) e;
                 List<TypeParamDef> typeParams;
                 if (scope instanceof AstElementWithTypeParameters) {

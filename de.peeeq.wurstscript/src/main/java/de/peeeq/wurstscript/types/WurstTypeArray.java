@@ -3,7 +3,11 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.Expr;
+import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.attributes.AttrConstantValue;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.OtherLink;
+import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
@@ -11,6 +15,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeArray extends WurstType {
@@ -141,6 +146,21 @@ public class WurstTypeArray extends WurstType {
     @Override
     protected boolean isNullable() {
         return false;
+    }
+
+    @Override
+    public Stream<NameLink> getMemberVariables() {
+        if (getDimensions() > 0) {
+            int size = getSize(0);
+            OtherLink lengthField = new OtherLink(Visibility.PUBLIC, "length", WurstTypeInt.instance()) {
+                @Override
+                public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
+                    return JassIm.ImIntVal(size);
+                }
+            };
+            return Stream.of(lengthField);
+        }
+        return Stream.empty();
     }
 
 }

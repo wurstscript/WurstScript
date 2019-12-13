@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
@@ -264,5 +265,16 @@ public abstract class WurstType {
      */
     public String toPrettyString() {
         return toString();
+    }
+
+    public Stream<? extends NameLink> getMemberVariables() {
+        return Stream.empty();
+    }
+
+    public @Nullable NameLink getMemberVariable(String name) {
+        return getMemberVariables()
+            .filter(v -> v.getName().equals(name))
+            .findFirst()
+            .orElse(null);
     }
 }

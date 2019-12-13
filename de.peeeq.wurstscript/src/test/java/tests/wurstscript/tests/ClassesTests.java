@@ -82,7 +82,7 @@ public class ClassesTests extends WurstScriptTest {
 
 //	@Test
 //	public void array_members() {
-//		testAssertErrorsLines(false, "must be static", 
+//		testAssertErrorsLines(false, "must be static",
 //				"package test",
 //				"	class C",
 //				"		int array blub",
@@ -127,13 +127,13 @@ public class ClassesTests extends WurstScriptTest {
 
 //		@Test
 //		public void constantVars2() {
-//			testAssertErrorsLines(false, "", // TODO "initial value", 
+//			testAssertErrorsLines(false, "", // TODO "initial value",
 //					"package test",
 //					"	class C",
 //					"		constant int i",
 //					"endpackage"
 //				);
-//		}	
+//		}
 
 
     @Test
@@ -1268,6 +1268,22 @@ public class ClassesTests extends WurstScriptTest {
             "endpackage"
         );
     }
+
+
+    @Test
+        public void simpleVar() {
+            testAssertOkLines(true,
+                "package test",
+                "native testSuccess()",
+                "class A",
+                "    int x = 2",
+                "init",
+                "    let a = new A",
+                "    a.x = a.x + 1",
+                "    if a.x == 3",
+                "        testSuccess()"
+            );
+        }
 
 
 

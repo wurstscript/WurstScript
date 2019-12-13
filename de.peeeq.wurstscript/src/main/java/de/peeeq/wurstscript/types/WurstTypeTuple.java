@@ -5,12 +5,15 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.VarLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeTuple extends WurstType {
@@ -83,5 +86,21 @@ public class WurstTypeTuple extends WurstType {
             throw new CompileError(varDef.getSource(), "Could not determine tuple index of " + Utils.printElementWithSource(varDef) + " in tuple " + this);
         }
         return index;
+    }
+
+    @Override
+    public Stream<NameLink> getMemberVariables() {
+        return getTupleDef().getParameters().stream()
+            .map(p -> VarLink.create(p, getTupleDef()));
+    }
+
+    @Override
+    public @Nullable NameLink getMemberVariable(String name) {
+        for (WParameter p : getTupleDef().getParameters()) {
+            if (p.getName().equals(name)) {
+                return VarLink.create(p, getTupleDef());
+            }
+        }
+        return null;
     }
 }
