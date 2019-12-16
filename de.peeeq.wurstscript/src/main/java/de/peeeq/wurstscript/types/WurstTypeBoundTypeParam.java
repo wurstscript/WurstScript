@@ -12,6 +12,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.types.VariablePosition.NONE;
@@ -204,4 +205,14 @@ public class WurstTypeBoundTypeParam extends WurstType {
         // TODO add type class binding
         return JassIm.ImTypeArgument(t, typeClassBinding);
     }
+
+    @Override
+    public WurstTypeBoundTypeParam rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newBaseType = baseType.rewrite(subst);
+        if (newBaseType == baseType) {
+            return this;
+        }
+        return new WurstTypeBoundTypeParam(typeParamDef, newBaseType, context);
+    }
+
 }

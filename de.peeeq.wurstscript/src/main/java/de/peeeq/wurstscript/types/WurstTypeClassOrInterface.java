@@ -144,9 +144,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
     public @Nullable NameLink getMemberVariable(String name) {
         for (DefLink n : nameLinks().get(name)) {
             if (n instanceof VarLink || n instanceof TypeDefLink) {
-                if (n.getVisibility().isPublic()) {
-                    return n;
-                }
+                return n;
             }
         }
         return null;

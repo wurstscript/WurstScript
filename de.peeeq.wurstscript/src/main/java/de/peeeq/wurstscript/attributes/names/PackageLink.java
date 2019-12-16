@@ -10,6 +10,7 @@ import fj.data.TreeMap;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 
 public class PackageLink extends DefLink {
@@ -61,6 +62,11 @@ public class PackageLink extends DefLink {
     }
 
     @Override
+    public DefLink rewriteTypes(Function<WurstType, WurstType> rewrite) {
+        return this;
+    }
+
+    @Override
     public WurstType getTyp() {
         return new WurstTypePackage(def);
     }
@@ -70,14 +76,6 @@ public class PackageLink extends DefLink {
         return new PackageLink(getVisibility(), getDefinedIn(), (WPackage) def);
     }
 
-
-    public PackageLink hidingPrivate() {
-        return (PackageLink) super.hidingPrivate();
-    }
-
-    public PackageLink hidingPrivateAndProtected() {
-        return (PackageLink) super.hidingPrivateAndProtected();
-    }
 
     @Override
     public boolean equals(Object o) {

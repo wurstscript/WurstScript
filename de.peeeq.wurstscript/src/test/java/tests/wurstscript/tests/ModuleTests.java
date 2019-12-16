@@ -601,4 +601,64 @@ public class ModuleTests extends WurstScriptTest {
             "    destroy b"
             );
     }
+
+    @Test
+    public void privateVarUse() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "module Blub",
+            "    private int x",
+            "    static function inc(thistype t) returns int",
+            "        t.x++",
+            "        return t.x",
+            "public class A",
+            "    use Blub",
+            "init",
+            "    let a = new A()",
+            "    if A.inc(a) == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void moduleNestedClass() {
+        testAssertOkLines(false,
+            "package LinkedListModule",
+            "public module LinkedListModule",
+            "    thistype next",
+            "    static class Iterator",
+            "        LinkedListModule.thistype current",
+            "        function next()",
+            "            current = current.next",
+            "endpackage",
+            "package Test",
+            "import LinkedListModule",
+            "native print(string s)",
+            "public class TestClass",
+            "    use LinkedListModule",
+            "init",
+            "    new TestClass()",
+            "endpackage"
+        );
+    }
+
+    @Test
+    public void typeInOtherPackage() {
+        testAssertOkLines(false,
+            "package P",
+            "enum E",
+            "    A",
+            "public module M",
+            "    E e",
+            "endpackage",
+            "package Test",
+            "import P",
+            "public class TestClass",
+            "    use M",
+            "init",
+            "    new TestClass()",
+            "endpackage"
+        );
+    }
 }

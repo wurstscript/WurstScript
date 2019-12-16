@@ -1,14 +1,20 @@
 package de.peeeq.wurstscript.attributes.names;
 
-public enum Visibility {
-    PRIVATE_OTHER, PUBLIC, LOCAL, PRIVATE_HERE, PROTECTED_HERE, PROTECTED_OTHER;
+import de.peeeq.wurstscript.ast.*;
 
-    public boolean isInherited() {
-        return this == PUBLIC || this == PROTECTED_HERE || this == PROTECTED_OTHER;
+public interface Visibility {
+
+    static VisibilityPrivate visibilityPrivate(NamedScope s) {
+        return new VisibilityPrivate(s);
     }
 
-    public boolean isPublic() {
-        return this == PUBLIC;
+    static VisibilityProtected visibilityProtected(StructureDef s) {
+        return new VisibilityProtected(s);
     }
 
+    boolean isInherited();
+
+    boolean isPublic();
+
+    boolean isVisibleAt(Element n);
 }

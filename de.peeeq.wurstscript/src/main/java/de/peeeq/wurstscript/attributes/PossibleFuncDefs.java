@@ -2,19 +2,15 @@ package de.peeeq.wurstscript.attributes;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeReal;
 import de.peeeq.wurstscript.types.WurstTypeString;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
-
-import java.util.List;
 
 import static de.peeeq.wurstscript.attributes.AttrFuncDef.filterAnnotation;
 
@@ -35,7 +31,7 @@ public class PossibleFuncDefs {
         } else {
             funcs = node.lookupFuncs(node.getFuncName());
         }
-        funcs = filterInvisible(node.getFuncName(), node, funcs);
+        funcs = AttrFuncDef.filterInvisible(node.getFuncName(), node, funcs);
         return ImmutableList.copyOf(funcs);
     }
 
@@ -94,7 +90,7 @@ public class PossibleFuncDefs {
         ImmutableCollection<FuncLink> funcs2 = filterAnnotation(node, funcs1);
 
         // filter out the methods which are private somewhere else
-        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs2);
+        ImmutableCollection<FuncLink> funcs = AttrFuncDef.filterInvisible(funcName, node, funcs2);
         if (funcs.size() <= 1) {
             return funcs;
         }
@@ -111,7 +107,7 @@ public class PossibleFuncDefs {
             return ImmutableList.of();
         }
         // filter out the methods which are private somewhere else
-        ImmutableCollection<FuncLink> funcs = filterInvisible(funcName, node, funcs1);
+        ImmutableCollection<FuncLink> funcs = AttrFuncDef.filterInvisible(funcName, node, funcs1);
         if (funcs.size() <= 1) {
             return funcs;
         }
@@ -122,58 +118,9 @@ public class PossibleFuncDefs {
     }
 
 
-    private static ImmutableCollection<FuncLink> filterInvisible(String funcName, Element node, ImmutableCollection<FuncLink> funcs) {
-        if (node.attrSource().getFile().equals("<REPL>")) {
-            // no filtering of invisible names in repl:
-            return funcs;
-        }
-        List<FuncLink> funcs2 = Lists.newArrayListWithCapacity(funcs.size());
-        for (FuncLink nl : funcs) {
-            if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
-                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)) {
-                funcs2.add(nl);
-            }
-        }
-
-        funcs2 = Utils.removedDuplicates(funcs2);
-
-        if (funcs2.size() == 0) {
-            node.addError("Function " + funcName + " is not visible here.");
-            return ImmutableList.of(Utils.getFirst(funcs));
-        }
-        return ImmutableList.copyOf(funcs2);
-    }
-
-
     private static ImmutableList<FuncLink> filterByReceiverType(Element node,
                                                                 String funcName, ImmutableCollection<FuncLink> funcs) {
-        ImmutableList.Builder<FuncLink> funcs3 = ImmutableList.builder();
-        for (FuncLink f : funcs) {
-            boolean existsMoreSpecific = false;
-            WurstType f_receiverType = f.getReceiverType();
-            if (f_receiverType != null) {
-                for (FuncLink g : funcs) {
-                    if (f != g) {
-                        WurstType g_receiverType = g.getReceiverType();
-                        if (g_receiverType != null
-                                && g_receiverType.isSubtypeOf(f_receiverType, node)
-                                && !g_receiverType.equalsType(f_receiverType, node)) {
-                            existsMoreSpecific = true;
-                            break;
-                        }
-                    }
-                }
-            }
-            if (!existsMoreSpecific) {
-                funcs3.add(f);
-            }
-        }
-        ImmutableList<FuncLink> funcs4 = funcs3.build();
-        if (funcs4.size() == 0) {
-            node.addError("Function " + funcName + " has a wrong receiver type.");
-            return ImmutableList.of(Utils.getFirst(funcs));
-        }
-        return funcs4;
+        return AttrFuncDef.filterByReceiverType(node, funcName, funcs);
     }
 
     public static ImmutableCollection<FuncLink> calculate(Annotation node) {

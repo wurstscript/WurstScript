@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.function.Function;
+
 
 public class WurstTypeVararg extends WurstType {
 
@@ -63,5 +65,14 @@ public class WurstTypeVararg extends WurstType {
             return this;
         }
         return new WurstTypeVararg(b);
+    }
+
+    @Override
+    public WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newBaseType = baseType.rewrite(subst);
+        if (newBaseType == baseType) {
+            return this;
+        }
+        return new WurstTypeVararg(newBaseType);
     }
 }

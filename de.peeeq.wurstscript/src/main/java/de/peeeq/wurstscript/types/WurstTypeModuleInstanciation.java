@@ -1,15 +1,20 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.ModuleInstanciation;
-import de.peeeq.wurstscript.ast.NamedScope;
+import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
@@ -40,7 +45,15 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
                 return mapping;
             }
         }
+        @Nullable NamedScope outerScope = moduleInst.getParent().attrNearestNamedScope();
+        if (outerScope instanceof StructureDef) {
+            return outerScope.attrTyp().matchAgainstSupertypeIntern(obj, location, mapping, variablePosition);
+        }
         return null;
+    }
+
+    private @Nullable ClassOrInterface outerClass() {
+        return moduleInst.getParent().attrNearestClassOrInterface();
     }
 
     /**
@@ -67,7 +80,18 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
 
     @Override
     public String getName() {
-        return getDef().getName() + printTypeParams() + " (module instanciation in " + moduleInst.getParent().attrNearestNamedScope().attrTyp() + ")";
+        ArrayDeque<String> scopes = new ArrayDeque<>();
+        NamedScope scope = getDef();
+        while (scope instanceof ModuleInstanciation) {
+            scopes.addFirst(scope.getName());
+            scope = scope.getParent().attrNearestNamedScope();
+        }
+        StringBuilder res = new StringBuilder();
+        res.append(outerClass().getName());
+        res.append(" (module instanciation ");
+        Utils.printSep(res, "/", scopes);
+        res.append(")");
+        return res.toString();
     }
 
     @Override
@@ -91,6 +115,21 @@ public class WurstTypeModuleInstanciation extends WurstTypeNamedScope {
     @Override
     public ImExprOpt getDefaultValue(ImTranslator tr) {
         return JassIm.ImNull(TypesHelper.imInt());
+    }
+
+    @Override
+    public boolean isNestedModuleInstantiationIn(WurstType other) {
+        if (other instanceof WurstTypeNamedScope) {
+            WurstTypeNamedScope otherScope = (WurstTypeNamedScope) other;
+
+            NamedScope outer = moduleInst;
+            while ((outer = outer.getParent().attrNearestNamedScope()) != null) {
+                if (outer == otherScope.getDef()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
 }

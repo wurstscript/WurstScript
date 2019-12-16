@@ -6,9 +6,11 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.function.Function;
 
 public class WurstTypeClosure extends WurstType {
 
@@ -29,7 +31,7 @@ public class WurstTypeClosure extends WurstType {
             }
             // contravariant parameter types
             for (int i = 0; i < paramTypes.size(); i++) {
-                mapping =  o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
+                mapping = o.paramTypes.get(i).matchAgainstSupertype(paramTypes.get(i), location, mapping, variablePosition.inverse());
                 if (mapping == null) {
                     return null;
                 }
@@ -131,4 +133,14 @@ public class WurstTypeClosure extends WurstType {
         return returnType;
     }
 
+    @Override
+    WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        List<WurstType> newParamtypes = Utils.smartMap(paramTypes, p -> p.rewrite(subst));
+        WurstType newReturnType = returnType.rewrite(subst);
+        if (newParamtypes == paramTypes
+            && newReturnType == returnType) {
+            return this;
+        }
+        return new WurstTypeClosure(newParamtypes, newReturnType);
+    }
 }

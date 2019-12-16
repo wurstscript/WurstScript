@@ -5,10 +5,12 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public abstract class WurstTypeNamedScope extends WurstType {
@@ -185,22 +187,7 @@ public abstract class WurstTypeNamedScope extends WurstType {
         for (DefLink defLink : nameLinks(name)) {
             if (defLink instanceof FuncLink) {
                 FuncLink f = (FuncLink) defLink;
-                if (f.getVisibility().isPublic()) {
-                    result.add(f);
-                } else if (f.getVisibility().isInherited()) {
-                    // for protected members:
-                    NamedScope def = getDef();
-                    if (def != null && node.attrNearestPackage() != def.attrNearestPackage()) {
-                        // if in different package, check if we are in a subclass:
-                        ClassDef nearestClass = node.attrNearestClassDef();
-                        if (nearestClass == null
-                                || !nearestClass.attrTypC().isSubtypeOf(this, node)) {
-                            // if not in a subclass, change to not visible
-                            f = f.withVisibility(Visibility.PROTECTED_OTHER);
-                        }
-                    }
-                    result.add(f);
-                }
+                result.add(f);
             }
         }
     }
@@ -247,4 +234,13 @@ public abstract class WurstTypeNamedScope extends WurstType {
     }
 
 
+    @Override
+    WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        List<WurstTypeBoundTypeParam> newTypes = (List<WurstTypeBoundTypeParam>) Utils.smartMap(typeParameters,
+            b -> b.rewriteChildren(subst));
+        if (newTypes == typeParameters) {
+            return this;
+        }
+        return replaceTypeVars(newTypes);
+    }
 }

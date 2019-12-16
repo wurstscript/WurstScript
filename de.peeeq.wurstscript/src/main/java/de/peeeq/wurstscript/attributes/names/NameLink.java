@@ -3,8 +3,6 @@ package de.peeeq.wurstscript.attributes.names;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
-import fj.data.TreeMap;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -59,25 +57,27 @@ public abstract class NameLink {
 
     protected static Visibility calcVisibility(WScope definedIn, NameDef nameDef) {
         if (definedIn.getParent() instanceof WPackage) {
+            WPackage packge = (WPackage) definedIn.getParent();
             if (nameDef.attrIsPublic()) {
-                return Visibility.PUBLIC;
+                return VisibilityE.PUBLIC;
             } else {
-                return Visibility.PRIVATE_HERE;
+                return packge.visibilityPrivate();
             }
         } else if (definedIn instanceof StructureDef) {
+            StructureDef structure = (StructureDef) definedIn;
             if (nameDef.attrIsPrivate()) {
-                return Visibility.PRIVATE_HERE;
+                return structure.visibilityPrivate();
             } else if (nameDef.attrIsProtected()) {
-                return Visibility.PROTECTED_HERE;
+                return structure.visibilityProtected();
             } else {
-                return Visibility.PUBLIC;
+                return VisibilityE.PUBLIC;
             }
         } else if (definedIn instanceof TupleDef) {
-            return Visibility.PUBLIC;
+            return VisibilityE.PUBLIC;
         } else if (definedIn instanceof EnumDef) {
-            return Visibility.PUBLIC;
+            return VisibilityE.PUBLIC;
         } else {
-            return Visibility.LOCAL;
+            return VisibilityE.LOCAL;
         }
     }
 
@@ -100,23 +100,6 @@ public abstract class NameLink {
 
     public List<TypeParamDef> getTypeParams() {
         return typeParams;
-    }
-
-    public NameLink hidingPrivate() {
-        if (visibility == Visibility.PRIVATE_HERE) {
-            return withVisibility(Visibility.PRIVATE_OTHER);
-        }
-        return this;
-    }
-
-    public NameLink hidingPrivateAndProtected() {
-        if (visibility == Visibility.PRIVATE_HERE) {
-            return withVisibility(Visibility.PRIVATE_OTHER);
-        }
-        if (visibility == Visibility.PROTECTED_HERE) {
-            return withVisibility(Visibility.PROTECTED_OTHER);
-        }
-        return this;
     }
 
 

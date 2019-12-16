@@ -1069,24 +1069,13 @@ public class ImTranslator {
         }
         Map<ClassDef, FuncDef> result = Maps.newLinkedHashMap();
         for (ClassDef c : instances) {
-            FuncLink funcNameLink = null;
-            WurstTypeClass cType = c.attrTypC();
-            for (FuncLink nameLink : func.lookupMemberFuncs(cType, func.getName())) {
-                if (nameLink.getDef() == func) {
-                    funcNameLink = nameLink;
-                }
-            }
-            if (funcNameLink == null) {
-                throw new Error("Could not find " + Utils.printElementWithSource(func) + " in " + Utils.printElementWithSource(c));
-            }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
-                NameDef nameDef = nameLink.getDef();
                 if (nameLink.getDefinedIn() == c) {
                     if (nameLink instanceof FuncLink && nameLink.getDef() instanceof FuncDef) {
                         FuncLink funcLink = (FuncLink) nameLink;
                         FuncDef f = (FuncDef) funcLink.getDef();
                         // check if function f overrides func
-                        if (WurstValidator.canOverride(funcLink, funcNameLink, false)) {
+                        if (WurstValidator.doesOverride(funcLink, func, false)) {
                             result.put(c, f);
                         }
                     }
@@ -1656,14 +1645,14 @@ public class ImTranslator {
         // TODO divide by zero to crash thread:
 
 
-//		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
+//		stmts.add(JassAst.JassStmtCall("BJDebugMsg",
 //				JassAst.JassExprlist(JassAst.JassExprBinary(
-//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl), 
+//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl),
 //						JassAst.JassOpPlus(),
 //						s.getMessage().translate(translator)))));
 //		// crash thread (divide by zero)
 //		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), Jas
-//				               
+//
 
         List<FunctionFlag> flags = Lists.newArrayList();
 

@@ -12,6 +12,7 @@ import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.types.VariablePosition.NONE;
@@ -170,6 +171,7 @@ public abstract class WurstType {
     }
 
 
+    // TODO make final and replace implementation with rewrite method
     public WurstType setTypeArgs(VariableBinding typeParamMapping) {
         return this;
     }
@@ -276,5 +278,32 @@ public abstract class WurstType {
             .filter(v -> v.getName().equals(name))
             .findFirst()
             .orElse(null);
+    }
+
+    /**
+     * Recursively rewrites this type using the given substitution.
+     *
+     * The substitution is a partial function returning null for no rewrites.
+     */
+    public final WurstType rewrite(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newThis = rewriteChildren(subst);
+        @Nullable WurstType res = subst.apply(newThis);
+        if (res == null) {
+            return newThis;
+        } else {
+            return res;
+        }
+    }
+
+    WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        return this;
+    }
+
+
+    /**
+     * checks if this type is a module instantiation in other (and not the same as other)
+     */
+    public boolean isNestedModuleInstantiationIn(WurstType other) {
+        return false;
     }
 }

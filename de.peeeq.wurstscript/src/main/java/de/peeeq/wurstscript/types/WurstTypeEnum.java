@@ -1,12 +1,18 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableCollection;
 import de.peeeq.wurstscript.ast.EnumDef;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 
 public class WurstTypeEnum extends WurstTypeNamedScope {
@@ -57,4 +63,17 @@ public class WurstTypeEnum extends WurstTypeNamedScope {
         return true;
     }
 
+    @Override
+    public Stream<? extends NameLink> getMemberVariables() {
+        return nameLinks().values().stream();
+    }
+
+    @Override
+    public @Nullable NameLink getMemberVariable(String name) {
+        ImmutableCollection<DefLink> links = nameLinks(name);
+        if (links.isEmpty()) {
+            return null;
+        }
+        return Utils.getFirst(links);
+    }
 }

@@ -4,10 +4,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImExpr;
-import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.JassIm;
-import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -84,7 +80,7 @@ public class NameResolution {
 
     public static ImmutableCollection<FuncLink> lookupMemberFuncs(Element node, WurstType receiverType, String name, boolean showErrors) {
         List<FuncLink> result = Lists.newArrayList();
-        addMemberMethods(node, receiverType, name, result);
+        receiverType.addMemberMethods(node, name, result);
 
         WScope scope = node.attrNearestScope();
         while (scope != null) {
@@ -101,11 +97,6 @@ public class NameResolution {
             scope = nextScope(scope);
         }
         return removeDuplicates(result);
-    }
-
-    public static void addMemberMethods(Element node,
-                                        WurstType receiverType, String name, List<FuncLink> result) {
-        receiverType.addMemberMethods(node, name, result);
     }
 
     public static NameLink lookupVarNoConfig(Element node, String name, boolean showErrors) {
@@ -127,27 +118,29 @@ public class NameResolution {
                 // inside a class one can write foo instead of this.foo()
                 // so the receiver type is implicitly given by the enclosing class
                 WurstTypeNamedScope receiverType = (WurstTypeNamedScope) nearestStructureDef.attrTyp();
-                for (DefLink link : receiverType.nameLinks(name)) {
-                    if (!(link instanceof FuncLink)) {
-                        return link;
-                    }
-                }
-            }
-            for (DefLink n : scope.attrNameLinks().get(name)) {
-                WurstType n_receiverType = n.getReceiverType();
-                if (n instanceof VarLink && n_receiverType == null) {
-
-                    if (n.getVisibility() != Visibility.PRIVATE_OTHER
-                            && n.getVisibility() != Visibility.PROTECTED_OTHER) {
+                @Nullable NameLink n = receiverType.getMemberVariable(name);
+                if (n != null) {
+                    if (n.getVisibility().isVisibleAt(node)) {
                         candidates.add(n);
                     } else if (privateCandidate == null) {
                         privateCandidate = n;
                     }
-
-                } else if (n instanceof TypeDefLink) {
-                    candidates.add(n);
                 }
+            } else {
+                for (DefLink n : scope.attrNameLinks().get(name)) {
+                    WurstType n_receiverType = n.getReceiverType();
+                    if (n instanceof VarLink && n_receiverType == null) {
 
+                        if (n.getVisibility().isVisibleAt(node)) {
+                            candidates.add(n);
+                        } else if (privateCandidate == null) {
+                            privateCandidate = n;
+                        }
+
+                    } else if (n instanceof TypeDefLink) {
+                        candidates.add(n);
+                    }
+                }
             }
             if (candidates.size() > 0) {
                 if (showErrors && candidates.size() > 1) {
@@ -161,7 +154,7 @@ public class NameResolution {
             if (privateCandidate == null) {
                 node.addError("Could not find variable " + name + ".");
             } else {
-                node.addError(Utils.printElementWithSource(privateCandidate.getDef()) + " is not visible inside this package." +
+                node.addError(Utils.toFirstUpper(Utils.printElementWithSource(privateCandidate.getDef())) + " is not visible here." +
                         " If you want to access it, declare it public.");
                 return privateCandidate;
             }
@@ -170,21 +163,6 @@ public class NameResolution {
     }
 
     public static NameLink lookupMemberVar(Element node, WurstType receiverType, String name, boolean showErrors) {
-        WScope scope = node.attrNearestScope();
-        while (scope != null) {
-            for (DefLink n : scope.attrNameLinks().get(name)) {
-                if (!(n instanceof VarLink)) {
-                    continue;
-                }
-                DefLink n2 = matchDefLinkReceiver(n, receiverType, node, showErrors);
-                if (n2 != null) {
-                    return n2;
-                }
-            }
-            scope = nextScope(scope);
-        }
-
-        // TODO move into lookup method on WurstType
         return receiverType.getMemberVariable(name);
     }
 
@@ -193,16 +171,14 @@ public class NameResolution {
         if (n_receiverType == null) {
             return null;
         }
+
         VariableBinding mapping = receiverType.matchAgainstSupertype(n_receiverType, node, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(n.getTypeParams())), VariablePosition.RIGHT);
         if (mapping == null) {
             return null;
         }
         if (showErrors) {
-            if (n.getVisibility() == Visibility.PRIVATE_OTHER) {
-                node.addError(Utils.printElement(n.getDef()) + " is private and cannot be used here.");
-            }
-            if (n.getVisibility() == Visibility.PROTECTED_OTHER) {
-                node.addError(Utils.printElement(n.getDef()) + " is protected and cannot be used here.");
+            if (!n.getVisibility().isVisibleAt(node)) {
+                node.addError(Utils.printElement(n.getDef()) + " is " + n.getVisibility() + " and cannot be used here.");
             }
         }
         return n.withTypeArgBinding(node, mapping);
@@ -217,8 +193,7 @@ public class NameResolution {
         while (scope != null) {
             for (NameLink n : scope.attrTypeNameLinks().get(name)) {
                 if (n.getDef() instanceof TypeDef) {
-                    if (n.getVisibility() != Visibility.PRIVATE_OTHER
-                            && n.getVisibility() != Visibility.PROTECTED_OTHER) {
+                    if (n.getVisibility().isVisibleAt(node)) {
                         candidates.add(n);
                     } else if (privateCandidate == null) {
                         privateCandidate = n;

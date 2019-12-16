@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.function.Function;
+
 public class WurstTypeUnion extends WurstType {
 
     WurstType typeA;
@@ -68,4 +70,14 @@ public class WurstTypeUnion extends WurstType {
         return typeB;
     }
 
+
+    @Override
+    WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newA = typeA.rewrite(subst);
+        WurstType newB = typeB.rewrite(subst);
+        if (newA == typeA && newB == typeB) {
+            return this;
+        }
+        return new WurstTypeUnion(newA, newB);
+    }
 }

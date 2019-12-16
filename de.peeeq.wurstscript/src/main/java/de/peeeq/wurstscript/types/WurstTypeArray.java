@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.ast.NameRef;
 import de.peeeq.wurstscript.attributes.AttrConstantValue;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.VisibilityE;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.jassIm.*;
@@ -15,6 +15,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 
@@ -24,6 +25,11 @@ public class WurstTypeArray extends WurstType {
     private WurstType baseType;
     private int[] sizes;
 
+    public WurstTypeArray(Expr arSize, WurstType baseType, int[] sizes) {
+        this.arSize = arSize;
+        this.baseType = baseType;
+        this.sizes = sizes;
+    }
 
     public WurstTypeArray(WurstType baseType, Expr arSize) {
         if (baseType instanceof WurstTypeArray) {
@@ -152,7 +158,7 @@ public class WurstTypeArray extends WurstType {
     public Stream<NameLink> getMemberVariables() {
         if (getDimensions() > 0) {
             int size = getSize(0);
-            OtherLink lengthField = new OtherLink(Visibility.PUBLIC, "length", WurstTypeInt.instance()) {
+            OtherLink lengthField = new OtherLink(VisibilityE.PUBLIC, "length", WurstTypeInt.instance()) {
                 @Override
                 public ImExpr translate(NameRef e, ImTranslator t, ImFunction f) {
                     return JassIm.ImIntVal(size);
@@ -161,6 +167,15 @@ public class WurstTypeArray extends WurstType {
             return Stream.of(lengthField);
         }
         return Stream.empty();
+    }
+
+    @Override
+    public WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newBaseType = baseType.rewrite(subst);
+        if (newBaseType == baseType) {
+            return this;
+        }
+        return new WurstTypeArray(arSize, newBaseType, sizes);
     }
 
 }

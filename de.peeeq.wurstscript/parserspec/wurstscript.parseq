@@ -1073,3 +1073,12 @@ Annotation.getAnnotationType()
 Annotation.getAnnotationMessage()
     returns String
     implemented by de.peeeq.wurstscript.attributes.Annotations.annotationMessage
+
+
+NamedScope.visibilityPrivate
+    returns de.peeeq.wurstscript.attributes.names.VisibilityPrivate
+    implemented by de.peeeq.wurstscript.attributes.names.Visibility.visibilityPrivate
+
+StructureDef.visibilityProtected
+    returns de.peeeq.wurstscript.attributes.names.VisibilityProtected
+    implemented by de.peeeq.wurstscript.attributes.names.Visibility.visibilityProtected

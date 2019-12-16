@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 
@@ -60,14 +61,6 @@ public abstract class DefLink extends NameLink {
     }
 
 
-    public DefLink hidingPrivate() {
-        return (DefLink) super.hidingPrivate();
-    }
-
-    public DefLink hidingPrivateAndProtected() {
-        return (DefLink) super.hidingPrivateAndProtected();
-    }
-
     @Override
     public boolean receiverCompatibleWith(WurstType receiverType, Element location) {
         if (this.receiverType == null) {
@@ -103,4 +96,6 @@ public abstract class DefLink extends NameLink {
     public abstract DefLink withTypeArgBinding(Element context, VariableBinding binding);
 
     public abstract DefLink withGenericTypeParams(List<TypeParamDef> typeParams);
+
+    public abstract DefLink rewriteTypes(Function<WurstType, WurstType> rewrite);
 }

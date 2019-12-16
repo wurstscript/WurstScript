@@ -9,6 +9,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
+import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
 import org.eclipse.jdt.annotation.Nullable;
@@ -30,6 +31,9 @@ public class NameLinks {
 
         // errors for functions with same name that it does not override
         fj.data.List<String> overrideErrors = fj.data.List.nil();
+
+        // errors for functions with same name that it does not override
+        fj.data.List<FuncLink> overriddenFuncs = fj.data.List.nil();
 
         public void addError(String error) {
             this.overrideErrors = overrideErrors.cons(error);
@@ -122,15 +126,18 @@ public class NameLinks {
     private static void addNewNameLinks(Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults, ImmutableMultimap<String, DefLink> newNameLinks, boolean allowStaticOverride) {
         for (Entry<String, DefLink> e : newNameLinks.entries()) {
             DefLink def = e.getValue();
+            String name = e.getKey();
+
             if (!def.getVisibility().isInherited()) {
+                result.put(name, def);
                 continue;
             }
-            String name = e.getKey();
+
             boolean isOverridden = false;
             if (def instanceof FuncLink) {
                 FuncLink func = (FuncLink) def;
 
-                // check if function is overridden by any other function in
+                // check if function is overridden by any other function in overrideCheckResults
                 Map<FuncLink, OverrideCheckResult> otherFuncs = overrideCheckResults.getOrDefault(name, Collections.emptyMap());
                 for (Entry<FuncLink, OverrideCheckResult> e2 : otherFuncs.entrySet()) {
                     FuncLink otherFunc = e2.getKey();
@@ -162,7 +169,7 @@ public class NameLinks {
             }
 
             if (!isOverridden) {
-                result.put(name, def.hidingPrivate());
+                result.put(name, def);
             }
         }
     }
@@ -330,8 +337,28 @@ public class NameLinks {
     private static void addNamesFromUsedModuleInstantiations(ClassOrModuleOrModuleInstanciation c,
                                                              Multimap<String, DefLink> result, Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults) {
         for (ModuleInstanciation m : c.getModuleInstanciations()) {
-            addNewNameLinks(result, overrideCheckResults, m.attrNameLinks(), true);
+            ImmutableMultimap<String, DefLink> nameLinks = m.attrNameLinks();
+            Builder<String, DefLink> newNameLinks = ImmutableMultimap.builder();
+            for (Entry<String, DefLink> entry : nameLinks.entries()) {
+                newNameLinks.put(entry.getKey(), replaceInnerModuleInstantiations(c, entry.getValue()));
+            }
+
+            addNewNameLinks(result, overrideCheckResults, newNameLinks.build(), true);
         }
+    }
+
+    private static DefLink replaceInnerModuleInstantiations(ClassOrModuleOrModuleInstanciation c, DefLink value) {
+        return value.rewriteTypes(t ->
+            t.rewrite(tt -> {
+                if (tt instanceof WurstTypeModuleInstanciation) {
+                    WurstTypeModuleInstanciation mi = (WurstTypeModuleInstanciation) tt;
+                    if (mi.getDef().isSubtreeOf(c)) {
+                        return c.attrTyp();
+                    }
+                }
+                return null;
+            })
+        );
     }
 
     private static void addDefinedNames(Multimap<String, DefLink> result, ClassOrModuleOrModuleInstanciation c) {
@@ -356,39 +383,39 @@ public class NameLinks {
 
     public static void addHidingPrivate(Builder<String, DefLink> result, Multimap<String, DefLink> adding, List<TypeParamDef> typeParams) {
         for (Entry<String, DefLink> e : adding.entries()) {
-            if (e.getValue().getVisibility() == Visibility.LOCAL) {
+            if (e.getValue().getVisibility() == VisibilityE.LOCAL) {
                 continue;
             }
-            result.put(e.getKey(), e.getValue().hidingPrivate().withGenericTypeParams(typeParams));
+            result.put(e.getKey(), e.getValue().withGenericTypeParams(typeParams));
         }
 
     }
 
     public static void addHidingPrivate(Multimap<String, DefLink> result, Multimap<String, DefLink> adding) {
         for (Entry<String, DefLink> e : adding.entries()) {
-            if (e.getValue().getVisibility() == Visibility.LOCAL) {
+            if (e.getValue().getVisibility() == VisibilityE.LOCAL) {
                 continue;
             }
-            result.put(e.getKey(), e.getValue().hidingPrivate());
+            result.put(e.getKey(), e.getValue());
         }
 
     }
 
     public static void addHidingPrivateAndProtected(ImmutableMultimap.Builder<String, DefLink> r, Multimap<String, ? extends DefLink> adding) {
         for (Entry<String, ? extends DefLink> e : adding.entries()) {
-            if (e.getValue().getVisibility() == Visibility.LOCAL) {
+            if (e.getValue().getVisibility() == VisibilityE.LOCAL) {
                 continue;
             }
-            r.put(e.getKey(), e.getValue().hidingPrivateAndProtected());
+            r.put(e.getKey(), e.getValue());
         }
     }
 
     public static void addTypesHidingPrivateAndProtected(ImmutableMultimap.Builder<String, TypeLink> r, Multimap<String, TypeLink> adding) {
         for (Entry<String, TypeLink> e : adding.entries()) {
-            if (e.getValue().getVisibility() == Visibility.LOCAL) {
+            if (e.getValue().getVisibility() == VisibilityE.LOCAL) {
                 continue;
             }
-            r.put(e.getKey(), e.getValue().hidingPrivateAndProtected());
+            r.put(e.getKey(), e.getValue());
         }
     }
 

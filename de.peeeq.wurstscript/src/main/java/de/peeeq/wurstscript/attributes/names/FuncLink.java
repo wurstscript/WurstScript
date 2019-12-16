@@ -12,6 +12,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -36,11 +37,11 @@ public class FuncLink extends DefLink {
         Visibility visibiliy = calcVisibility(definedIn, func);
         List<TypeParamDef> typeParams = typeParams(func).collect(Collectors.toList());
         List<String> lParameterNames = func.getParameters().stream()
-                .map(WParameter::getName)
-                .collect(Collectors.toList());
+            .map(WParameter::getName)
+            .collect(Collectors.toList());
         List<WurstType> lParameterTypes = func.getParameters().stream()
-                .map(WParameter::attrTyp)
-                .collect(Collectors.toList());
+            .map(WParameter::attrTyp)
+            .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
         VariableBinding mapping = VariableBinding.emptyMapping();
@@ -108,8 +109,8 @@ public class FuncLink extends DefLink {
         if (!typeParams.isEmpty()) {
             result.append("<");
             result.append(typeParams.stream()
-                    .map(TypeParamDef::getName)
-                    .collect(Collectors.joining(", ")));
+                .map(TypeParamDef::getName)
+                .collect(Collectors.joining(", ")));
             result.append(">");
         }
         result.append("(");
@@ -118,10 +119,10 @@ public class FuncLink extends DefLink {
         result.append(returnType);
         WPos src = def.attrSource();
         result.append(" (")
-                .append(src.getFile())
-                .append(":")
-                .append(src.getLine())
-                .append(")");
+            .append(src.getFile())
+            .append(":")
+            .append(src.getLine())
+            .append(")");
         return result.toString();
     }
 
@@ -155,8 +156,8 @@ public class FuncLink extends DefLink {
         if (changed) {
             // remove type parameters that are now bound:
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(tp -> !binding.contains(tp))
-                    .collect(Collectors.toList());
+                .filter(tp -> !binding.contains(tp))
+                .collect(Collectors.toList());
             return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType, binding);
         } else {
             return this;
@@ -170,6 +171,24 @@ public class FuncLink extends DefLink {
         }
         ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
         return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
+    }
+
+    @Override
+    public DefLink rewriteTypes(Function<WurstType, WurstType> rewrite) {
+        @Nullable WurstType receiverType = getReceiverType();
+        WurstType newReceiverType = rewrite.apply(receiverType);
+
+        List<WurstType> newParameterTypes = Utils.smartMap(parameterTypes, rewrite);
+        WurstType newReturnType = rewrite.apply(returnType);
+
+
+        if (newReceiverType == receiverType
+            && newParameterTypes == parameterTypes
+            && newReturnType == returnType) {
+            return this;
+        }
+
+        return new FuncLink(getVisibility(), getDefinedIn(), typeParams, newReceiverType, def, parameterNames, newParameterTypes, newReturnType, mapping);
     }
 
     @Override
@@ -225,15 +244,6 @@ public class FuncLink extends DefLink {
         FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
         return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
     }
-
-    public FuncLink hidingPrivate() {
-        return (FuncLink) super.hidingPrivate();
-    }
-
-    public FuncLink hidingPrivateAndProtected() {
-        return (FuncLink) super.hidingPrivateAndProtected();
-    }
-
 
     public List<String> getParameterNames() {
         return parameterNames;

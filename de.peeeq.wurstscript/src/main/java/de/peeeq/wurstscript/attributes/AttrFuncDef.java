@@ -6,7 +6,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.Visibility;
+import de.peeeq.wurstscript.attributes.names.VisibilityE;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -343,15 +343,14 @@ public class AttrFuncDef {
     }
 
 
-    private static List<FuncLink> filterInvisible(String funcName, Element node, Collection<FuncLink> funcs1) {
+    static ImmutableList<FuncLink> filterInvisible(String funcName, Element node, Collection<FuncLink> funcs) {
         if (node.attrSource().getFile().equals("<REPL>")) {
             // no filtering of invisible names in repl:
-            return Lists.newArrayList(funcs1);
+            return ImmutableList.copyOf(funcs);
         }
-        List<FuncLink> funcs2 = Lists.newArrayListWithCapacity(funcs1.size());
-        for (FuncLink nl : funcs1) {
-            if (!(nl.getVisibility() == Visibility.PRIVATE_OTHER
-                    || nl.getVisibility() == Visibility.PROTECTED_OTHER)) {
+        List<FuncLink> funcs2 = Lists.newArrayListWithCapacity(funcs.size());
+        for (FuncLink nl : funcs) {
+            if (nl.getVisibility().isVisibleAt(node)) {
                 funcs2.add(nl);
             }
         }
@@ -360,14 +359,14 @@ public class AttrFuncDef {
 
         if (funcs2.size() == 0) {
             node.addError("Function " + funcName + " is not visible here.");
-            return ImmutableList.of(Utils.getFirst(funcs1));
+            return ImmutableList.of(Utils.getFirst(funcs));
         }
-        return funcs2;
+        return ImmutableList.copyOf(funcs2);
     }
 
 
-    private static List<FuncLink> filterByReceiverType(Element node,
-                                                       String funcName, List<FuncLink> funcs2) {
+    static ImmutableList<FuncLink> filterByReceiverType(Element node,
+                                                        String funcName, Collection<FuncLink> funcs2) {
         List<FuncLink> funcs3 = Lists.newArrayListWithCapacity(funcs2.size());
         for (FuncLink f : funcs2) {
             boolean existsMoreSpecific = false;
@@ -379,6 +378,10 @@ public class AttrFuncDef {
                         if (g_receiverType != null
                                 && g_receiverType.isSubtypeOf(f_receiverType, node)
                                 && !g_receiverType.equalsType(f_receiverType, node)) {
+                            existsMoreSpecific = true;
+                            break;
+                        }
+                        if (g_receiverType.isNestedModuleInstantiationIn(f_receiverType)) {
                             existsMoreSpecific = true;
                             break;
                         }
@@ -394,7 +397,7 @@ public class AttrFuncDef {
             node.addError("Function " + funcName + " dfopsdfmpso.");
             return ImmutableList.of(Utils.getFirst(funcs2));
         }
-        return funcs3;
+        return ImmutableList.copyOf(funcs3);
     }
 
 

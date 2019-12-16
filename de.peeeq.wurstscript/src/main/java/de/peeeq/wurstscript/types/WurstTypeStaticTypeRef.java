@@ -6,6 +6,8 @@ import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.function.Function;
+
 public class WurstTypeStaticTypeRef extends WurstType {
 
     private final WurstType base;
@@ -50,6 +52,16 @@ public class WurstTypeStaticTypeRef extends WurstType {
     @Override
     public WurstType dynamic() {
         return base;
+    }
+
+
+    @Override
+    public WurstType rewriteChildren(Function<WurstType, @Nullable WurstType> subst) {
+        WurstType newBaseType = base.rewrite(subst);
+        if (newBaseType == base) {
+            return this;
+        }
+        return new WurstTypeStaticTypeRef(newBaseType);
     }
 
 }

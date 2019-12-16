@@ -3,9 +3,11 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.attributes.names.VisibilityE;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeEnum;
 import de.peeeq.wurstscript.types.WurstTypeModule;
+import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 /**
@@ -57,8 +59,7 @@ public class AttrNameDef {
         if (t instanceof WurstTypeEnum) {
             WurstTypeEnum e = (WurstTypeEnum) t;
             // if we expect an enum type we can as well directly look into the enum
-            EnumDef eDef = e.getDef();
-            return eDef.lookupMemberVar(e, varName, false);
+            return e.getMemberVariable(varName);
         }
         return null;
     }
@@ -95,12 +96,21 @@ public class AttrNameDef {
             node.addError("Could not resolve reference to variable " + varName + " for receiver of type " +
                     receiverType + ".");
 
+        } else if (!result.getVisibility().isVisibleAt(node)) {
+            node.addError("Cannot access private variable " + varName + " from outside the class.");
         }
         if (receiverType instanceof WurstTypeModule) {
             WurstTypeModule wurstTypeModule = (WurstTypeModule) receiverType;
             ModuleDef module = wurstTypeModule.getDef();
             if (!left.isSubtreeOf(module)) {
-                node.addError("Can only reference module variables from within the module.");
+                Element p = left;
+                while (p != null) {
+                    System.out.println(Utils.printElementWithSource(p));
+                    p = p.getParent();
+                }
+
+
+                node.addError("Can only reference module variable " + varName + " from within the module.");
             }
         }
 

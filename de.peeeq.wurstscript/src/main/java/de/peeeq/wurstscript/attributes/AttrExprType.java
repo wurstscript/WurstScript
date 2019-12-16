@@ -161,8 +161,7 @@ public class AttrExprType {
                 @SuppressWarnings("null")
                 @Override
                 public WurstType case_ModuleInstanciation(ModuleInstanciation moduleInstanciation) {
-                    ClassOrModule parent = moduleInstanciation.attrNearestClassOrModule();
-                    return parent.attrTyp().dynamic();
+                    return moduleInstanciation.attrTyp().dynamic();
                 }
 
                 @SuppressWarnings("null")

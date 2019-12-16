@@ -22,6 +22,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
 
@@ -2122,6 +2123,32 @@ public class WurstValidator {
         // no error
         return null;
     }
+
+    /** Checks if the given funcLink overrides superTypeFunc */
+    public static boolean doesOverride(FuncLink funcLink, FuncDef superTypeFunc, boolean allowStaticOverride) {
+        ClassOrInterface superTypeDef = superTypeFunc.attrNearestClassOrInterface();
+        ClassOrInterface classOrInterface = funcLink.getDef().attrNearestClassOrInterface();
+        if (classOrInterface == null) {
+            return false;
+        }
+        WurstTypeClassOrInterface c = (WurstTypeClassOrInterface) classOrInterface.attrTyp();
+        return findFuncLinks(c, funcLink.getName(), superTypeDef, superTypeFunc)
+            .anyMatch(superTypeFuncLink -> canOverride(funcLink, superTypeFuncLink, allowStaticOverride));
+
+    }
+
+    private static Stream<FuncLink> findFuncLinks(WurstTypeClassOrInterface c, String name, ClassOrInterface superTypeDef, FuncDef superTypeFunc) {
+        return c.directSupertypes().stream().flatMap((WurstTypeClassOrInterface directSuperType) -> {
+            if (directSuperType.getDef() == superTypeDef) {
+                return directSuperType.nameLinks(name).stream()
+                    .filter(l -> l.getDef() == superTypeFunc)
+                    .map(l -> (FuncLink) l);
+            } else {
+                return findFuncLinks(directSuperType, name, superTypeDef, superTypeFunc);
+            }
+        });
+    }
+
 
     private void checkForDuplicateNames(WScope scope) {
         ImmutableMultimap<String, DefLink> links = scope.attrNameLinks();

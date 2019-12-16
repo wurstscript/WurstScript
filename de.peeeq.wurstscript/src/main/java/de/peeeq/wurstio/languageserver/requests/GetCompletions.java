@@ -153,7 +153,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 for (DefLink nameLink : ct.nameLinks().values()) {
                     if (isSuitableCompletion(nameLink.getName())
                             && (nameLink.getReceiverType() != null || nameLink instanceof TypeDefLink)
-                            && nameLink.getVisibility() == Visibility.PUBLIC) {
+                            && nameLink.getVisibility() == VisibilityE.PUBLIC) {
                         CompletionItem completion = makeNameDefCompletion(nameLink);
                         completions.add(completion);
                     }
@@ -436,7 +436,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             DefLink defLink = e.getValue();
 
             // remove invisible functions
-            if (defLink.getVisibility() == Visibility.PRIVATE_OTHER || defLink.getVisibility() == Visibility.PROTECTED_OTHER) {
+            if (!defLink.getVisibility().isVisibleAt(pos)) {
                 continue;
             }
 

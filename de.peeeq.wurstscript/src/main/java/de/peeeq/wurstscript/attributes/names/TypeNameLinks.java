@@ -12,9 +12,9 @@ public class TypeNameLinks {
         for (ClassDef innerClass : c.getInnerClasses()) {
             result.put(innerClass.getName(), TypeLink.create(innerClass, c));
         }
-        WScope nextScope = c.attrNextScope();
-        if (nextScope != null) {
-            result.put(c.getName(), TypeLink.create(c, nextScope));
+        WScope nearestScope = c.getParent().attrNearestScope();
+        if (nearestScope != null) {
+            result.put(c.getName(), TypeLink.create(c, nearestScope));
         }
         return result.build();
     }

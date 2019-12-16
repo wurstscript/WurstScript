@@ -123,7 +123,7 @@ public class ClassesExtTests extends WurstScriptTest {
 
     @Test
     public void privateVar() {
-        testAssertErrorsLines(false, "Could not find variable i",
+        testAssertErrorsLines(false, "is not visible",
                 "package test",
                 "    native testSuccess()",
                 "    class C",

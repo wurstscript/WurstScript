@@ -101,6 +101,11 @@ public class AttrNearest {
         return e.getParent().attrNearestScope();
     }
 
+    /**
+     * Next scope during lookup.
+     * This is usually the nearest scope, except for module instantiations, where it is the nearest
+     * scope with respect to the original module definition.
+     */
     public static @Nullable WScope nextScope(WScope scope) {
         if (scope instanceof ModuleInstanciation) {
             ModuleInstanciation mi = (ModuleInstanciation) scope;

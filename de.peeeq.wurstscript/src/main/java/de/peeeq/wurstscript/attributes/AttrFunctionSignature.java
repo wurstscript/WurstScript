@@ -35,7 +35,13 @@ public class AttrFunctionSignature {
             List<WurstType> argTypes, StmtCall location) {
         if (sigs.isEmpty()) {
             if (!isInitTrigFunc(location)) {
-                location.addError("Could not find " + name(location) + ".");
+                String receiverInfo = "";
+                Expr receiver = location.attrCallSignature().getReceiver();
+                if (receiver != null) {
+                    receiverInfo = " for receiver of type " + receiver.attrTyp();
+                }
+
+                location.addError("Could not find " + name(location) + receiverInfo + ".");
             }
             return FunctionSignature.empty;
         }

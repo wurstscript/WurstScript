@@ -16,6 +16,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
@@ -169,6 +170,18 @@ public class VarLink extends DefLink {
     }
 
     @Override
+    public DefLink rewriteTypes(Function<WurstType, WurstType> rewrite) {
+        @Nullable WurstType receiverType = getReceiverType();
+        WurstType newReceiverType = rewrite.apply(receiverType);
+        Deferred<WurstType> newType = type.map(rewrite);
+        if (newReceiverType == receiverType
+            && newType == type) {
+            return this;
+        }
+        return new VarLink(getVisibility(), getDefinedIn(), typeParams, newReceiverType, def, newType);
+    }
+
+    @Override
     public WurstType getTyp() {
         return type.get();
     }
@@ -185,14 +198,6 @@ public class VarLink extends DefLink {
     }
 
 
-
-    public VarLink hidingPrivate() {
-        return (VarLink) super.hidingPrivate();
-    }
-
-    public VarLink hidingPrivateAndProtected() {
-        return (VarLink) super.hidingPrivateAndProtected();
-    }
 
     public VarLink adaptToReceiverType(WurstType receiverType) {
         return (VarLink) super.adaptToReceiverType(receiverType);

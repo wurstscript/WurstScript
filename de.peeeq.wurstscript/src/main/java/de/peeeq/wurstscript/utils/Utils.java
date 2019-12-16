@@ -88,6 +88,17 @@ public class Utils {
         }
     }
 
+    public static <T> void printSep(StringBuilder sb, String seperator, Iterable<T> args) {
+        boolean first = true;
+        for (T arg : args) {
+            if (!first) {
+                sb.append(seperator);
+            }
+            sb.append(arg);
+            first = false;
+
+        }
+    }
 
     public static int parseInt(String yytext) {
         if (yytext.startsWith("0")) {
@@ -297,6 +308,9 @@ public class Utils {
         } else if (e instanceof WImport) {
             WImport wImport = (WImport) e;
             return "import " + wImport.getPackagename();
+        } else if (e instanceof ModuleUse) {
+            ModuleUse mu = (ModuleUse) e;
+            return "module-use " + mu.getModuleName();
         } else if (e instanceof TypeExprSimple) {
             TypeExprSimple t = (TypeExprSimple) e;
             name = t.getTypeName();
@@ -382,7 +396,7 @@ public class Utils {
     }
 
     public static Element getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
-//		System.out.println("get element " + Utils.printElement(elem)  
+//		System.out.println("get element " + Utils.printElement(elem)
 //			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
         if (elem instanceof ModuleInstanciation) {
             // do not helicopter into module instantiations
@@ -473,6 +487,14 @@ public class Utils {
         WPos src = e.attrSource();
         return printElement(e) + " (" + src.getFile() + ":"
                 + src.getLine() + ")";
+    }
+
+    /** print elements and its parents (for debugging) */
+    public static fj.data.List<String> elementsWithParents(Element e) {
+        if (e == null)
+            return fj.data.List.nil();
+        else
+            return fj.data.List.cons(printElementWithSource(e), elementsWithParents(e.getParent()));
     }
 
     public static int[] copyArray(int[] ar) {
@@ -868,12 +890,20 @@ public class Utils {
         return result.toString();
     }
 
+    /**
+     * Checks whether element "e" is equal to or contained in "in".
+     * Also considers module instantiations and jumps to the original module definition.
+     */
     public static boolean elementContained(Element e, Element in) {
         while (e != null) {
             if (e == in) {
                 return true;
             }
-            e = e.getParent();
+            if (e instanceof ModuleInstanciation) {
+                e = ((ModuleInstanciation) e).attrModuleOrigin();
+            } else {
+                e = e.getParent();
+            }
         }
         return false;
     }
@@ -1055,6 +1085,28 @@ public class Utils {
      */
     public static <T> List<T> init(List<T> list) {
         return list.stream().limit(list.size() - 1).collect(Collectors.toList());
+    }
+
+    /**
+     * Maps the function f over the list.
+     *
+     * The smart part is that it returns the same list if all elements are unchanged (w.r.t reference equality)
+     */
+    public static <T> List<T> smartMap(List<T> list, java.util.function.Function<T, T> f) {
+        boolean changed = false;
+        Builder<T> builder = ImmutableList.builderWithExpectedSize(list.size());
+        for (T t : list) {
+            T newT = f.apply(t);
+            if (newT != t) {
+                changed = true;
+            }
+            builder.add(newT);
+        }
+        if (changed) {
+            return builder.build();
+        } else {
+            return list;
+        }
     }
 
     public static class ExecResult {

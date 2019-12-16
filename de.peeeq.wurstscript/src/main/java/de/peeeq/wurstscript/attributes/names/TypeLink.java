@@ -75,14 +75,6 @@ public class TypeLink extends NameLink {
     }
 
 
-    public TypeLink hidingPrivate() {
-        return (TypeLink) super.hidingPrivate();
-    }
-
-    public TypeLink hidingPrivateAndProtected() {
-        return (TypeLink) super.hidingPrivateAndProtected();
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
