@@ -82,7 +82,7 @@ public class ClassesTests extends WurstScriptTest {
 
 //	@Test
 //	public void array_members() {
-//		testAssertErrorsLines(false, "must be static", 
+//		testAssertErrorsLines(false, "must be static",
 //				"package test",
 //				"	class C",
 //				"		int array blub",
@@ -127,13 +127,13 @@ public class ClassesTests extends WurstScriptTest {
 
 //		@Test
 //		public void constantVars2() {
-//			testAssertErrorsLines(false, "", // TODO "initial value", 
+//			testAssertErrorsLines(false, "", // TODO "initial value",
 //					"package test",
 //					"	class C",
 //					"		constant int i",
 //					"endpackage"
 //				);
-//		}	
+//		}
 
 
     @Test
@@ -1268,6 +1268,47 @@ public class ClassesTests extends WurstScriptTest {
             "endpackage"
         );
     }
+
+
+    @Test
+    public void initialization_static_inner1() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "@extern native S2I(string i) returns int",
+            "class A",
+            "    B b = new B()",
+            "    function get() returns int",
+            "        return S2I(b.get())",
+            "    static class B",
+            "        function get() returns string",
+            "            return \"1\"",
+            "init",
+            "    let a = new A()",
+            "    if a.get() == 1",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void initialization_static_inner2() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class A",
+            "    B b = new B()",
+            "    function get() returns int",
+            "        return b.get()",
+            "    static class B",
+            "        function get() returns int",
+            "            return 1",
+            "init",
+            "    let a = new A()",
+            "    if a.get() == 1",
+            "        testSuccess()"
+        );
+    }
+
 
 
 
