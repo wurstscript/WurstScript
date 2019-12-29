@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -140,7 +141,7 @@ public class RunMap extends MapRequest {
                     }
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
                     String wc3RunArgs = configProvider.getWc3RunArgs();
-                    if (wc3RunArgs == null) {
+                    if (wc3RunArgs == null || StringUtils.isBlank(wc3RunArgs)) {
                         if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_32) >= 0) {
                             cmd.add("-launch");
                         }
