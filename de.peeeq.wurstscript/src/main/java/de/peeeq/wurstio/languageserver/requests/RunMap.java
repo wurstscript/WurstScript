@@ -34,8 +34,7 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_29;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_31;
+import static net.moonlightflower.wc3libs.port.GameVersion.*;
 
 /**
  * Created by peter on 16.05.16.
@@ -142,6 +141,9 @@ public class RunMap extends MapRequest {
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
                     String wc3RunArgs = configProvider.getWc3RunArgs();
                     if (wc3RunArgs == null) {
+                        if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_32) >= 0) {
+                            cmd.add("-launch");
+                        }
 	                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
 	                        cmd.add("-window");
 	                    } else {
