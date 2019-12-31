@@ -442,6 +442,7 @@ public class ExprTranslation {
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
+        WurstTypeTypeParam typeParamDispatchOn = null;
 
         FunctionDefinition calledFunc = e.attrFuncDef();
 
@@ -453,6 +454,12 @@ public class ExprTranslation {
             // TODO why would I add the implicit parameter here, if it is
             // not a dynamic dispatch?
             leftExpr = (Expr) e.attrImplicitParameter();
+
+            if (leftExpr.attrTyp() instanceof WurstTypeTypeParam) {
+                WurstTypeTypeParam tp = (WurstTypeTypeParam) leftExpr.attrTyp();
+                typeParamDispatchOn = tp;
+            }
+
         }
 
         // get real func def (override of module function)
@@ -509,7 +516,13 @@ public class ExprTranslation {
 
 
         ImExpr call;
-        if (dynamicDispatch) {
+        if (typeParamDispatchOn != null) {
+            ImTypeClassFunc typeClassFunc = t.getTypeClassFuncFor((FuncDef) calledFunc);
+            if (receiver != null) {
+                imArgs.add(0, receiver);
+            }
+            call = JassIm.ImTypeVarDispatch(e, typeClassFunc, imArgs, t.getTypeVar(typeParamDispatchOn.getDef()));
+        } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
@@ -545,10 +558,8 @@ public class ExprTranslation {
             if (!t.isTemplateTypeParameter()) {
                 continue;
             }
-            ImType type = t.imTranslateType(tr);
-            // TODO handle constraints
-            Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-            res.add(ImTypeArgument(type, typeClassBinding));
+            ImTypeArgument imTypeArgument = t.imTranslateToTypeArgument(tr);
+            res.add(imTypeArgument);
         }
         return res;
     }

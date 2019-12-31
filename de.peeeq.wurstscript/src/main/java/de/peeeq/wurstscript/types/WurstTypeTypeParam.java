@@ -1,14 +1,20 @@
 package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.TypeExpr;
 import de.peeeq.wurstscript.ast.TypeExprList;
 import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import fj.data.Option;
 import org.eclipse.jdt.annotation.Nullable;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WurstTypeTypeParam extends WurstType {
 
@@ -96,4 +102,30 @@ public class WurstTypeTypeParam extends WurstType {
         return !hasTypeConstraints();
     }
 
+    @Override
+    public void addMemberMethods(Element node, String name, List<FuncLink> result) {
+        getMemberMethods(node)
+            .filter(fl -> fl.getName().equals(name))
+            .collect(Collectors.toCollection(() -> result));
+    }
+
+    @Override
+    public Stream<FuncLink> getMemberMethods(Element node) {
+        return getTypeConstraints()
+            .flatMap(i ->
+                i.getMemberMethods(node))
+            .map(fl -> fl.withReceiverType(this));
+    }
+
+    private Stream<WurstTypeInterface> getTypeConstraints() {
+        if (def.getTypeParamConstraints() instanceof TypeExprList) {
+            TypeExprList constraints = (TypeExprList) def.getTypeParamConstraints();
+            return constraints.stream()
+                .map(TypeExpr::attrTyp)
+                .filter(t -> t instanceof WurstTypeInterface)
+                .map(t -> (WurstTypeInterface) t);
+        } else {
+            return Stream.empty();
+        }
+    }
 }

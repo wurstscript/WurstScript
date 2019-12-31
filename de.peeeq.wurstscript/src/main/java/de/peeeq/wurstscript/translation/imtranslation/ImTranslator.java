@@ -1596,6 +1596,23 @@ public class ImTranslator {
         return m;
     }
 
+    private Map<FuncDef, ImTypeClassFunc> typeClassFuncForFuncDef = Maps.newLinkedHashMap();
+
+    public ImTypeClassFunc getTypeClassFuncFor(FuncDef f) {
+        ImTypeClassFunc m = typeClassFuncForFuncDef.get(f);
+        if (m == null) {
+            ImTypeVars typeVars = ImTypeVars();
+            ImVars params = ImVars();
+            ImType returnType = JassIm.ImVoid();
+            m = JassIm.ImTypeClassFunc(f, f.getName(), typeVars, params, returnType);
+            typeClassFuncForFuncDef.put(f, m);
+        }
+        return m;
+    }
+
+
+
+
     public ClassManagementVars getClassManagementVarsFor(ImClass c) {
         return getClassManagementVars().get(c);
     }
@@ -1656,14 +1673,14 @@ public class ImTranslator {
         // TODO divide by zero to crash thread:
 
 
-//		stmts.add(JassAst.JassStmtCall("BJDebugMsg", 
+//		stmts.add(JassAst.JassStmtCall("BJDebugMsg",
 //				JassAst.JassExprlist(JassAst.JassExprBinary(
-//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl), 
+//						JassAst.JassExprStringVal("|cffFF3A29Wurst Error:|r" + nl),
 //						JassAst.JassOpPlus(),
 //						s.getMessage().translate(translator)))));
 //		// crash thread (divide by zero)
 //		stmts.add(JassAst.JassStmtCall("I2S", JassAst.JassExprlist(JassAst.JassExprBinary(JassAst.JassExprIntVal("1"), JassAst.JassOpDiv(), Jas
-//				               
+//
 
         List<FunctionFlag> flags = Lists.newArrayList();
 

@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -287,5 +288,9 @@ public class FuncLink extends DefLink {
 
     public boolean hasIfNotDefinedAnnotation() {
         return def.attrHasAnnotation("ifNotDefined");
+    }
+
+    public FuncLink withReceiverType(WurstType newReceiverType) {
+        return new FuncLink(getVisibility(), def, typeParams, newReceiverType, def, parameterNames, parameterTypes, returnType, mapping);
     }
 }

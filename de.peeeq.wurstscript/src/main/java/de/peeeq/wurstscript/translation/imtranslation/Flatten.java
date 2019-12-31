@@ -58,8 +58,9 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
-    public static Result flatten(ImTypeVarDispatch imTypeVarDispatch, ImTranslator translator, ImFunction f) {
-        throw new RuntimeException("called too early");
+    public static Result flatten(ImTypeVarDispatch e, ImTranslator t, ImFunction f) {
+        MultiResult r = flattenExprs(t, f, e.getArguments());
+        return new Result(r.stmts, ImTypeVarDispatch(e.getTrace(), e.getTypeClassFunc(), ImExprs(r.exprs), e.getTypeVariable()));
     }
 
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {

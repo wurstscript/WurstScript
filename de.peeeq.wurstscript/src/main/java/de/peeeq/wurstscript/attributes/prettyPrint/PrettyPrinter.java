@@ -752,4 +752,11 @@ public class PrettyPrinter {
     public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
         // nothing
     }
+
+    public static String print(Element element) {
+        Spacer spacer = new DefaultSpacer();
+        StringBuilder sb = new StringBuilder();
+        element.prettyPrint(spacer, sb, 0);
+        return sb.toString();
+    }
 }

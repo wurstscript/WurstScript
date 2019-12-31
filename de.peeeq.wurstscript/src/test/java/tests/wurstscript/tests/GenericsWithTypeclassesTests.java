@@ -1274,4 +1274,66 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void typeClassMustBeInterface1() {
+        testAssertErrorsLines(false, "Could not find type ToIndex",
+            "package test",
+            "native testSuccess()",
+            "function foo<T: ToIndex>(T x)",
+            "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void typeClassMustBeInterface2() {
+        testAssertErrorsLines(false, "Invalid type constraint ToIndex. Type constraint must be an interface type.",
+            "package test",
+            "native testSuccess()",
+            "tuple ToIndex(int x)",
+            "function foo<T: ToIndex>(T x)",
+            "    testSuccess()"
+        );
+    }
+
+    @Test
+    public void callMustSatisfyConstraint() {
+        testAssertErrorsLines(false, "Type integer does not satisfy constraint T: ToIndex",
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex",
+            "    function toIndex() returns int",
+            "function foo<T: ToIndex>(T x)",
+            "    testSuccess()",
+            "init",
+            "    foo(42)"
+        );
+    }
+
+    @Test
+    @Ignore
+    public void simpleTypeClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface ToIndex",
+            "	function toIndex() returns int",
+            "class A implements ToIndex",
+            "	override function toIndex() returns int",
+            "		return 42",
+            "function foo<T: ToIndex>(T x)",
+            "    if x.toIndex() == 42",
+            "        testSuccess()",
+            "init",
+            "    let a = new A",
+            "    if a.toIndex() != 42",
+            "        testFail(\"a\")",
+            "    ToIndex i = a",
+            "    if i.toIndex() != 42",
+            "        testFail(\"b\")",
+            "    foo(a)"
+        );
+    }
+
 }

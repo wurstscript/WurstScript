@@ -339,6 +339,8 @@ public class WurstValidator {
                 checkForInvalidStmts((WStatements) e);
             if (e instanceof StmtExitwhen)
                 visit((StmtExitwhen) e);
+            if (e instanceof TypeParamDef)
+                checkTypeParamDef(((TypeParamDef) e));
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
@@ -347,6 +349,18 @@ public class WurstValidator {
             WLogger.info(cde);
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
+        }
+    }
+
+    private void checkTypeParamDef(TypeParamDef e) {
+        TypeParamConstraints constraints = e.getTypeParamConstraints();
+        if (constraints instanceof TypeExprList) {
+            TypeExprList typeExprs = (TypeExprList) constraints;
+            for (TypeExpr te : typeExprs) {
+                if (!(te.attrTyp() instanceof WurstTypeInterface)) {
+                    te.addError("Invalid type constraint " + te.attrTyp() + ". Type constraint must be an interface type.");
+                }
+            }
         }
     }
 

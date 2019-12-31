@@ -7,7 +7,11 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
+import de.peeeq.wurstscript.utils.Pair;
+import fj.data.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -47,8 +51,13 @@ public class AttrPossibleFunctionSignatures {
         List<WurstType> argTypes = AttrFuncDef.argumentTypes(fc);
         for (FunctionSignature sig : res) {
             FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
-            if (sig2 != null) {
-                resultBuilder2.add(sig2);
+            Pair<FunctionSignature, List<CompileError>> typeClassMatched = findTypeClasses(sig2, fc);
+            if (typeClassMatched.getB().isEmpty()) {
+                resultBuilder2.add(typeClassMatched.getA());
+            } else {
+                for (CompileError err : typeClassMatched.getB()) {
+                    fc.getErrorHandler().sendError(err);
+                }
             }
         }
         ImmutableCollection<FunctionSignature> res2 = resultBuilder2.build();
@@ -74,6 +83,40 @@ public class AttrPossibleFunctionSignatures {
         } else {
             return res2;
         }
+    }
+
+    private static Pair<FunctionSignature, List<CompileError>> findTypeClasses(FunctionSignature sig, StmtCall fc) {
+        List<CompileError> errors = new ArrayList<>();
+        VariableBinding mapping = sig.getMapping();
+        for (TypeParamDef tp : sig.getDefinitionTypeVariables()) {
+            Option<WurstTypeBoundTypeParam> matchedTypeOpt = mapping.get(tp);
+            List<WurstTypeInterface> constraints = new ArrayList<>();
+            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                for (TypeExpr c : ((TypeExprList) tp.getTypeParamConstraints())) {
+                    WurstType ct = c.attrTyp();
+                    if (ct instanceof WurstTypeInterface) {
+                        constraints.add((WurstTypeInterface) ct);
+                    }
+                }
+            }
+            if (matchedTypeOpt.isNone()) {
+                if (!constraints.isEmpty()) {
+                    errors.add(new CompileError(fc.attrSource(), "Type parameter " + tp.getName() + " is not bound, so type constraints cannot be solved."));
+                }
+                continue;
+            }
+            WurstTypeBoundTypeParam matchedType = matchedTypeOpt.some();
+            for (WurstTypeInterface constraint : constraints) {
+                VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
+                if (mapping2 == null) {
+                    errors.add(new CompileError(fc.attrSource(), "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint + "."));
+                } else {
+                    mapping = mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(constraint)));
+                }
+            }
+        }
+        sig = sig.setTypeArgs(fc, mapping);
+        return Pair.create(sig, errors);
     }
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {
