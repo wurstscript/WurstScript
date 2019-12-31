@@ -10,7 +10,7 @@ public class PositionTests extends WurstScriptTest {
 
     @Test
     public void testFuncCallPos() {
-        WurstModel model = testScript("blub", false, String.join("\n",
+        WurstModel model = testScript("blub", false, String.join(System.lineSeparator(),
                 "package Test",
                 "function foo() returns int",
                 "    return foo()",
