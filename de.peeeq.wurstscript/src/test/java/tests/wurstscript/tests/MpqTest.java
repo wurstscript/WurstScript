@@ -30,16 +30,7 @@ public class MpqTest {
         }
     }
 
-    @Test
-    public void test_extract() throws Exception {
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
-            byte[] f = edit.extractFile("war3map.j");
-            Assert.assertTrue(f.length > 5);
-        }
-
-    }
-
-    @Test
+    @Test(priority = 1)
     public void test_insert() throws Exception {
         try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
             edit.insertFile("test.txt", new File("./testscripts/mpq/test.txt"));
@@ -48,7 +39,16 @@ public class MpqTest {
 
     }
 
-    @Test
+    @Test(priority = 2)
+    public void test_extract() throws Exception {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+            byte[] f = edit.extractFile("war3map.j");
+            Assert.assertTrue(f.length > 5);
+        }
+
+    }
+
+    @Test(priority = 3)
     public void test_delete() throws Exception {
         try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
             edit.deleteFile("test.txt");
