@@ -10,6 +10,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -50,6 +51,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
+    @Nullable protected final String wc3Path;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -60,12 +62,13 @@ public abstract class MapRequest extends UserRequest<Object> {
         QuickAndDirty, KindOfSafe
     }
 
-    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot) {
+    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot, String wc3Path) {
         this.configProvider = configProvider;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
+        this.wc3Path = wc3Path;
     }
 
     @Override
@@ -350,6 +353,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.copy(map, testMap);
         }
 
+        parseCustomPatchVersion();
+
         // first compile the script:
         File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
 
@@ -360,5 +365,14 @@ public abstract class MapRequest extends UserRequest<Object> {
             println("We will try to start the map now, but it will probably fail. ");
         }
         return compiledScript;
+    }
+
+    private void parseCustomPatchVersion() {
+        if (wc3Path != null) {
+            W3Utils.parsePatchVersion(new File(wc3Path));
+            if (W3Utils.getWc3PatchVersion() == null) {
+                throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
+            }
+        }
     }
 }
