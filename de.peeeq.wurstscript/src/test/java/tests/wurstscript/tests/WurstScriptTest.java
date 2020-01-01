@@ -59,7 +59,7 @@ public class WurstScriptTest {
         private List<CU> additionalCompilationUnits = new ArrayList<>();
         private boolean stopOnFirstError = true;
         private boolean runCompiletimeFunctions;
-        private boolean testLua = true;
+        private boolean testLua = false;
 
         TestConfig(String name) {
             this.name = name;
