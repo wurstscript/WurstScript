@@ -21,8 +21,8 @@ public class BinaryDataStreamsTest {
                      outStream, true)) {
             int[] numbers = {1 << 23, 1, 2, 3, 0, 1 << 8, 1 << 16, 1 << 24,
                     Integer.MAX_VALUE, Integer.MIN_VALUE}; // getRandomInts();
-            for (int i = 0; i < numbers.length; i++) {
-                out.writeInt(numbers[i]);
+            for (int number : numbers) {
+                out.writeInt(number);
             }
             // 2 0000 000 0000
             out.flush();
@@ -32,10 +32,10 @@ public class BinaryDataStreamsTest {
 
             try (BinaryDataInputStream in = new BinaryDataInputStream(
                     new ByteArrayInputStream(bytes), true)) {
-                for (int i = 0; i < numbers.length; i++) {
+                for (int number : numbers) {
                     int read = in.readInt();
                     WLogger.info("read = " + read);
-                    assertEquals(numbers[i], read);
+                    assertEquals(number, read);
                 }
             }
         }

@@ -361,7 +361,7 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    private class TestTimeOutException extends Throwable {
+    private static class TestTimeOutException extends Throwable {
 
 
         @Override

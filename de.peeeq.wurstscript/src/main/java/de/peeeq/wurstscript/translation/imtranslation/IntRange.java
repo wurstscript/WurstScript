@@ -61,13 +61,11 @@ public class IntRange implements Iterable<Integer> {
                 max = i;
                 start = false;
             } else {
-                if (i == max + 1) {
-                    max = i;
-                } else {
+                if (i != max + 1) {
                     result.add(new IntRange(min, max));
                     min = i;
-                    max = i;
                 }
+                max = i;
             }
         }
         if (!start) {

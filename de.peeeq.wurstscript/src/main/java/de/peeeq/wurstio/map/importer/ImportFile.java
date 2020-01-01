@@ -12,6 +12,7 @@ import javax.swing.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.LinkedList;
 
@@ -168,7 +169,7 @@ public class ImportFile {
             p = directory.toPath().relativize(p);
             String normalizedWc3Path = p.toString().replaceAll("/", "\\\\");
             dataOut.writeByte((byte) 13);
-            dataOut.write(normalizedWc3Path.getBytes("UTF-8"));
+            dataOut.write(normalizedWc3Path.getBytes(StandardCharsets.UTF_8));
             dataOut.write((byte) 0);
             WLogger.info("importing file: " + normalizedWc3Path);
             mpq.deleteFile(normalizedWc3Path);

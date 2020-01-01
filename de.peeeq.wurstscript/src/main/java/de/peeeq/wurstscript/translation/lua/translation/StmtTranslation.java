@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.List;
 

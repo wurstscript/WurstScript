@@ -124,7 +124,7 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(ExprBoolVal e, Spacer spacer, StringBuilder sb, int indent) {
-        sb.append(String.valueOf(e.getValB()));
+        sb.append(e.getValB());
     }
 
     public static void prettyPrint(ExprCast e, Spacer spacer, StringBuilder sb, int indent) {

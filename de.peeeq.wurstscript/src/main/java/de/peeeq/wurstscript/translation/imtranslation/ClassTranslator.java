@@ -22,7 +22,6 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.SmallHelpers.superArgs;
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ClassTranslator {
 

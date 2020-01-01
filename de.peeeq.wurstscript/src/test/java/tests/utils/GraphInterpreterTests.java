@@ -117,7 +117,7 @@ public class GraphInterpreterTests {
     }
 
 
-    class Node {
+    static class Node {
         final String val;
         final List<Node> nextNodes;
 

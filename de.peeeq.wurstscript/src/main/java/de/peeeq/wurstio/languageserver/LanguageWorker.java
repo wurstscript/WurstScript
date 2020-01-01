@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -16,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LanguageWorker implements Runnable {
 
-    private class Workitem {
+    private static class Workitem {
         private String description;
         private Runnable runnable;
 

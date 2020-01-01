@@ -33,8 +33,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
-
 /**
  * flattening expressions and statements
  * after flattening there will be no more StatementExprs

@@ -23,8 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static de.peeeq.wurstscript.jassIm.JassIm.*;
-
 public class ExprTranslation {
 
     public static ImExpr translate(ExprBinary e, ImTranslator t, ImFunction f) {

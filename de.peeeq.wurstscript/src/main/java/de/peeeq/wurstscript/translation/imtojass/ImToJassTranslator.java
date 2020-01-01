@@ -22,8 +22,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static de.peeeq.wurstscript.jassAst.JassAst.*;
-
 public class ImToJassTranslator {
 
     private ImProg imProg;

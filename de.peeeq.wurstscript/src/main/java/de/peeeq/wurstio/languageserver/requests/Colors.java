@@ -4,7 +4,6 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.jassIm.ImIntVal;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.lsp4j.*;
 

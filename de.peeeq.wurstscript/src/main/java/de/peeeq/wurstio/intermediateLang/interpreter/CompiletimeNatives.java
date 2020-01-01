@@ -1,12 +1,9 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
-import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;

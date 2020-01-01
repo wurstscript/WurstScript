@@ -425,8 +425,8 @@ public class AutoCompleteTests extends WurstLanguageServerTest {
         CompletionList result = calculateCompletions(testData);
 
         List<String> completionLabels = result.getItems().stream()
-                .sorted(Comparator.comparing(i -> i.getSortText()))
-                .map(completion -> completion.getLabel())
+                .sorted(Comparator.comparing(CompletionItem::getSortText))
+                .map(CompletionItem::getLabel)
                 .collect(Collectors.toList());
 
 

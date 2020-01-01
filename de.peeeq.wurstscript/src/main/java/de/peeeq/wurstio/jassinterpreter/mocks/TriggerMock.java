@@ -22,12 +22,8 @@ public class TriggerMock {
 
     public ILconstBool evaluate(AbstractInterpreter interpreter) {
         if (interpreter != null) {
-            conditions.forEach(cond -> {
-                interpreter.runFuncRef(((ILconstFuncRef) cond.getObj()), null);
-            });
-            actions.forEach(funcRef -> {
-                interpreter.runFuncRef(funcRef, null);
-            });
+            conditions.forEach(cond -> interpreter.runFuncRef(((ILconstFuncRef) cond.getObj()), null));
+            actions.forEach(funcRef -> interpreter.runFuncRef(funcRef, null));
         }
 
         return ILconstBool.instance(true);

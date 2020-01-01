@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -37,7 +38,7 @@ public class WurstCommands {
     public static final String WURST_PERFORM_CODE_ACTION = "wurst.perform_code_action";
 
     static List<String> providedCommands() {
-        return Arrays.asList(
+        return Collections.singletonList(
                 WURST_CLEAN
         );
     }

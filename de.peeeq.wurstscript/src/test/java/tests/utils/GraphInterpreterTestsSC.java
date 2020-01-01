@@ -95,8 +95,8 @@ public class GraphInterpreterTestsSC {
         }
 
         private void increment(boolean[][] adj) {
-            for (int i = 0; i < adj.length; i++) {
-                if (incrementRow(adj[i])) {
+            for (boolean[] booleans : adj) {
+                if (incrementRow(booleans)) {
                     break;
                 }
             }

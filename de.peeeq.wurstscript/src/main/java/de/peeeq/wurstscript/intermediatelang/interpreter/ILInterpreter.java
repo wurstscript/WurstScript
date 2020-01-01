@@ -45,9 +45,7 @@ public class ILInterpreter implements AbstractInterpreter {
             if (f.hasFlag(FunctionFlagEnum.IS_VARARG)) {
                 // for vararg functions, rewrite args and put last argument
                 ILconst[] newArgs = new ILconst[f.getParameters().size()];
-                for (int i = 0; i < newArgs.length - 1; i++) {
-                    newArgs[i] = args[i];
-                }
+                if (newArgs.length - 1 >= 0) System.arraycopy(args, 0, newArgs, 0, newArgs.length - 1);
 
                 ILconst[] varargArray = new ILconst[1 + args.length - newArgs.length];
                 for (int i = newArgs.length - 1, j = 0; i < args.length; i++, j++) {

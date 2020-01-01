@@ -83,7 +83,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
                 if (!first) {
                     s.append(", ");
                 }
-                s.append(t.getName() + " line " + t.getSource().getLine());
+                s.append(t.getName()).append(" line ").append(t.getSource().getLine());
                 first = false;
             }
             s.append(">");

@@ -19,7 +19,6 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -243,7 +242,7 @@ public class ModelManagerTests {
         manager.onCompilationResult((PublishDiagnosticsParams res) -> {
 
             String errors = res.getDiagnostics().stream()
-                    .map(e -> e.toString())
+                    .map(Diagnostic::toString)
                     .collect(Collectors.joining("\n"));
 
             results.put(WFile.create(res.getUri()), errors);

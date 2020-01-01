@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 

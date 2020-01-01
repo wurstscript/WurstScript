@@ -447,7 +447,7 @@ public class OptimizerTests extends WurstScriptTest {
                 "endpackage");
         String output1 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_inlopt.j"), Charsets.UTF_8);
         String output2 = Files.toString(new File("./test-output/OptimizerTests_test_mult3rewrite_opt.j"), Charsets.UTF_8);
-        assertTrue(!output1.contains("foo()"));
+        assertFalse(output1.contains("foo()"));
         assertTrue(output2.contains("foo() + foo()"));
     }
 

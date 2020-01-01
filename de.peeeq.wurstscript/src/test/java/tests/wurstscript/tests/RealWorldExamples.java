@@ -35,7 +35,7 @@ public class RealWorldExamples extends WurstScriptTest {
 
     @Test
     public void linkedHashMap() throws IOException { // see bug #478
-        Iterable<File> inputFiles = Arrays.asList(new File(BUG_DIR + "LinkedHashMap.wurst"));
+        Iterable<File> inputFiles = Collections.singletonList(new File(BUG_DIR + "LinkedHashMap.wurst"));
 
         Map<String, String> inputs = Collections.emptyMap();
         String name = "linkedHashMap";

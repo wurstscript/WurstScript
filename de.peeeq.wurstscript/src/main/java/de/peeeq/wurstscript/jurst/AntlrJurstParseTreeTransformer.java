@@ -1162,7 +1162,7 @@ public class AntlrJurstParseTreeTransformer {
                 s.formalParameters(), false);
         OptTypeExpr returnType = transformOptionalType(s.returnType);
         return new FuncSig(text(s.name), typeParams, formalParameters,
-                returnType);
+            returnType);
     }
 
     private FuncSig transformFuncSig(JassFuncSignatureContext s) {
@@ -1173,7 +1173,7 @@ public class AntlrJurstParseTreeTransformer {
         }
         OptTypeExpr returnType = transformOptionalType(s.returnType);
         return new FuncSig(text(s.name), typeParams, formalParameters,
-                returnType);
+            returnType);
     }
 
     private OptTypeExpr transformOptionalType(@Nullable TypeExprContext t) {
@@ -1280,7 +1280,7 @@ public class AntlrJurstParseTreeTransformer {
         return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
-    class FuncSig {
+    static class FuncSig {
         Identifier name;
         TypeParamDefs typeParams;
         WParameters formalParameters;
@@ -1296,7 +1296,7 @@ public class AntlrJurstParseTreeTransformer {
 
     }
 
-    class ClassSlotResult {
+    static class ClassSlotResult {
 
         public ClassDefs innerClasses = Ast.ClassDefs();
         public ConstructorDefs constructors = Ast.ConstructorDefs();

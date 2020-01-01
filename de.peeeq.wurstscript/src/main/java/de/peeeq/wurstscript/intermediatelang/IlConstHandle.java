@@ -18,8 +18,7 @@ public class IlConstHandle implements ILconst {
 
     @Override
     public boolean isEqualTo(ILconst other) {
-        if (other == this) return true;
-        return false;
+        return other == this;
     }
 
     @Override

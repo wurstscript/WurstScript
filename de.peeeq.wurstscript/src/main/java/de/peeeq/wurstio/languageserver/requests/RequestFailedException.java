@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.languageserver.requests;
 
-import de.peeeq.wurstscript.attributes.CompileError;
 import org.eclipse.lsp4j.MessageType;
 
 /**

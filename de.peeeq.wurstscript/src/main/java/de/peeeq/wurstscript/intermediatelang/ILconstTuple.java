@@ -4,9 +4,7 @@ import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeString;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class ILconstTuple extends ILconstAbstract {
 

@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Constants;
 
 /**

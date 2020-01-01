@@ -77,7 +77,7 @@ public class BackupController {
             String name = f.getName();
             if (name.lastIndexOf("-") > 0) {
                 if (name.length() > 4 && name.substring(0, name.lastIndexOf("-")).equals(mapName)) {
-                    files[Integer.valueOf(name.substring(name.lastIndexOf("-") + 1, name.lastIndexOf("."))) - 1] = f;
+                    files[Integer.parseInt(name.substring(name.lastIndexOf("-") + 1, name.lastIndexOf("."))) - 1] = f;
                 }
             }
         }

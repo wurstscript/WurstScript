@@ -3,7 +3,6 @@ package tests.utils;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.datastructures.TransitiveClosure;
-import de.peeeq.wurstio.languageserver.WFile;
 import org.testng.annotations.Test;
 
 import java.util.Arrays;

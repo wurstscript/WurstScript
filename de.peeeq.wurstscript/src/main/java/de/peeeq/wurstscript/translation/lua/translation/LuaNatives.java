@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.luaAst.LuaFunction;
 import de.peeeq.wurstscript.luaAst.LuaVariable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -47,7 +48,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
         });
 
-        addNative(Arrays.asList("S2I"), f -> {
+        addNative(Collections.singletonList("S2I"), f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
         });
@@ -62,9 +63,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return x.id"));
         });
 
-        addNative("GetRandomReal", f -> {
-            f.getBody().add(LuaAst.LuaLiteral("return math.random"));
-        });
+        addNative("GetRandomReal", f -> f.getBody().add(LuaAst.LuaLiteral("return math.random")));
 
         addNative("GetRandomInt", f -> {
             f.getParams().add(LuaAst.LuaVariable("l", LuaAst.LuaNoExpr()));
@@ -98,9 +97,7 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return math.floor(x)"));
         });
 
-        addNative("InitHashtable", f -> {
-            f.getBody().add(LuaAst.LuaLiteral("return {}"));
-        });
+        addNative("InitHashtable", f -> f.getBody().add(LuaAst.LuaLiteral("return {}")));
 
         addNative(Arrays.asList("SaveInteger", "SaveBoolean", "SaveReal", "SaveStr", "SaveBoolean"), f -> {
             f.getParams().add(LuaAst.LuaVariable("h", LuaAst.LuaNoExpr()));

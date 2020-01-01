@@ -8,14 +8,12 @@ import com.google.common.collect.Sets;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
