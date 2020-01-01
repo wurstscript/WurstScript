@@ -36,6 +36,10 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
 
         List<FoldingRange> result = new ArrayList<>();
         cu.accept(new Element.DefaultVisitor() {
+            private void addFoldingRange(Element element) {
+                addFoldingRange(element, 0, 0);
+            }
+
             private void addFoldingRange(Element element, int startOffset, int endOffset) {
                 addFoldingRange(element, startOffset, endOffset, "");
             }
@@ -98,56 +102,68 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
 
             @Override
             public void visit(StmtWhile stmtWhile) {
-                addFoldingRange(stmtWhile, 0, 0);
+                addFoldingRange(stmtWhile);
                 super.visit(stmtWhile);
             }
 
             @Override
             public void visit(StmtForIn stmtForIn) {
-                addFoldingRange(stmtForIn, 0, 0);
+                addFoldingRange(stmtForIn);
                 super.visit(stmtForIn);
             }
 
             @Override
             public void visit(StmtForFrom stmtForFrom) {
-                addFoldingRange(stmtForFrom, 0, 0);
+                addFoldingRange(stmtForFrom);
                 super.visit(stmtForFrom);
             }
 
             @Override
             public void visit(StmtForRangeDown stmtForRangeDown) {
-                addFoldingRange(stmtForRangeDown, 0, 0);
+                addFoldingRange(stmtForRangeDown);
                 super.visit(stmtForRangeDown);
             }
 
             @Override
             public void visit(StmtForRangeUp stmtForRangeUp) {
-                addFoldingRange(stmtForRangeUp, 0, 0);
+                addFoldingRange(stmtForRangeUp);
                 super.visit(stmtForRangeUp);
             }
 
             @Override
             public void visit(InitBlock initBlock) {
-                addFoldingRange(initBlock, 0, 0);
+                addFoldingRange(initBlock);
                 super.visit(initBlock);
             }
 
             @Override
             public void visit(EnumDef enumDef) {
-                addFoldingRange(enumDef, 0, 0);
+                addFoldingRange(enumDef);
                 super.visit(enumDef);
             }
 
             @Override
             public void visit(SwitchStmt switchStmt) {
-                addFoldingRange(switchStmt, 0, 0);
+                addFoldingRange(switchStmt);
                 super.visit(switchStmt);
             }
 
             @Override
             public void visit(SwitchCase switchCase) {
-                addFoldingRange(switchCase, 0, 0);
+                addFoldingRange(switchCase);
                 super.visit(switchCase);
+            }
+
+            @Override
+            public void visit(OnDestroyDef onDestroyDef) {
+                addFoldingRange(onDestroyDef);
+                super.visit(onDestroyDef);
+            }
+
+            @Override
+            public void visit(ConstructorDef constructorDef) {
+                addFoldingRange(constructorDef);
+                super.visit(constructorDef);
             }
 
         });
