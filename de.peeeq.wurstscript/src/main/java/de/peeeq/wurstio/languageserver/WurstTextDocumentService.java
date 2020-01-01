@@ -154,6 +154,6 @@ public class WurstTextDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
-        return worker.handle(new ImportFoldRequest(params));
+        return worker.handle(new FoldingRangeRequest(params));
     }
 }

@@ -18,11 +18,11 @@ import java.util.regex.Pattern;
 /**
  *
  */
-public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
+public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
 
     private final TextDocumentIdentifier textDocument;
 
-    public ImportFoldRequest(FoldingRangeRequestParams params) {
+    public FoldingRangeRequest(FoldingRangeRequestParams params) {
         textDocument = params.getTextDocument();
     }
 
@@ -43,9 +43,10 @@ public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
             private void addFoldingRange(Element element, int startOffset, int endOffset, String kind) {
                 Range range = Convert.range(element);
                 range.getStart().setLine(range.getStart().getLine() + startOffset);
-                range.getEnd().setLine(range.getEnd().getLine() + endOffset);
                 if (range.getEnd().getCharacter() == 0) {
                     range.getEnd().setLine(range.getEnd().getLine() - 1);
+                } else {
+                    range.getEnd().setLine(range.getEnd().getLine() + endOffset);
                 }
                 if (range.getStart().getLine() < range.getEnd().getLine()) {
                     FoldingRange foldingRange = new FoldingRange(range.getStart().getLine(), range.getEnd().getLine());
@@ -61,7 +62,7 @@ public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
 
             @Override
             public void visit(ClassDef classDef) {
-                addFoldingRange(classDef, StringUtils.isEmpty(classDef.attrComment()) ? 0 : 1, -1);
+                addFoldingRange(classDef, StringUtils.isEmpty(classDef.attrComment()) ? 0 : 1, 0);
                 super.visit(classDef);
             }
 
@@ -72,6 +73,12 @@ public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
             }
 
             @Override
+            public void visit(ExtensionFuncDef extensionFuncDef) {
+                addFoldingRange(extensionFuncDef.getBody(), -1, 0);
+                super.visit(extensionFuncDef);
+            }
+
+            @Override
             public void visit(StmtIf ifStmt) {
                 addFoldingRange(ifStmt, 0, -1);
                 super.visit(ifStmt);
@@ -79,7 +86,7 @@ public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
 
             @Override
             public void visit(InterfaceDef interfaceDef) {
-                addFoldingRange(interfaceDef, StringUtils.isBlank(interfaceDef.description()) ? 0 : 1, -1);
+                addFoldingRange(interfaceDef, StringUtils.isEmpty(interfaceDef.description()) ? 0 : 1, -1);
                 super.visit(interfaceDef);
             }
 
@@ -90,9 +97,57 @@ public class ImportFoldRequest extends UserRequest<List<FoldingRange>> {
             }
 
             @Override
-            public void visit(StmtWhile stmtLoop) {
-                addFoldingRange(stmtLoop, 0, 0);
-                super.visit(stmtLoop);
+            public void visit(StmtWhile stmtWhile) {
+                addFoldingRange(stmtWhile, 0, 0);
+                super.visit(stmtWhile);
+            }
+
+            @Override
+            public void visit(StmtForIn stmtForIn) {
+                addFoldingRange(stmtForIn, 0, 0);
+                super.visit(stmtForIn);
+            }
+
+            @Override
+            public void visit(StmtForFrom stmtForFrom) {
+                addFoldingRange(stmtForFrom, 0, 0);
+                super.visit(stmtForFrom);
+            }
+
+            @Override
+            public void visit(StmtForRangeDown stmtForRangeDown) {
+                addFoldingRange(stmtForRangeDown, 0, 0);
+                super.visit(stmtForRangeDown);
+            }
+
+            @Override
+            public void visit(StmtForRangeUp stmtForRangeUp) {
+                addFoldingRange(stmtForRangeUp, 0, 0);
+                super.visit(stmtForRangeUp);
+            }
+
+            @Override
+            public void visit(InitBlock initBlock) {
+                addFoldingRange(initBlock, 0, 0);
+                super.visit(initBlock);
+            }
+
+            @Override
+            public void visit(EnumDef enumDef) {
+                addFoldingRange(enumDef, 0, 0);
+                super.visit(enumDef);
+            }
+
+            @Override
+            public void visit(SwitchStmt switchStmt) {
+                addFoldingRange(switchStmt, 0, 0);
+                super.visit(switchStmt);
+            }
+
+            @Override
+            public void visit(SwitchCase switchCase) {
+                addFoldingRange(switchCase, 0, 0);
+                super.visit(switchCase);
             }
 
         });
