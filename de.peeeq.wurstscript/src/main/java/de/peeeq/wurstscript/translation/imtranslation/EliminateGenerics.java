@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import fj.data.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -146,7 +147,7 @@ public class EliminateGenerics {
                     .stream()
                     .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
                     .collect(Collectors.toList());
-            rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
+            rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables(), newTypeVars);
         }
     }
 
@@ -188,11 +189,11 @@ public class EliminateGenerics {
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
         prog.getFunctions().add(newF);
-        newF.getTypeVariables().removeAll();
+        List<ImTypeVar> newTypeVars = newF.getTypeVariables().removeAll();
         List<ImTypeVar> typeVars = f.getTypeVariables();
 
         newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
-        rewriteGenerics(newF, generics, typeVars);
+        rewriteGenerics(newF, generics, typeVars, newTypeVars);
         collectGenericUsages(newF);
         return newF;
     }
@@ -253,7 +254,7 @@ public class EliminateGenerics {
     /**
      * Replaces all uses of the given typeVars with the type arguments given in parameter generics.
      */
-    private void rewriteGenerics(Element element, GenericTypes generics, List<ImTypeVar> typeVars) {
+    private void rewriteGenerics(Element element, GenericTypes generics, List<ImTypeVar> typeVars, List<ImTypeVar> newTypeVars) {
         if (generics.getTypeArguments().size() != typeVars.size()) {
             throw new RuntimeException("Rewrite generics with wrong sizes\n" +
                     "generics: " + generics + "\n" +
@@ -321,6 +322,32 @@ public class EliminateGenerics {
                 super.visit(e);
             }
 
+            @Override
+            public void visit(ImTypeVarDispatch e) {
+                super.visit(e);
+                ImTypeVar tv = e.getTypeVariable();
+                int index = newTypeVars.indexOf(tv);
+                if (index < 0) {
+                    throw new CompileError(e.attrTrace(), "Could not find type variable " + tv + " in " + newTypeVars);
+                }
+                ImTypeArgument ta = generics.getTypeArguments().get(index);
+                Either<ImMethod, ImFunction> impl = ta.getTypeClassBinding().get(e.getTypeClassFunc());
+                if (impl == null) {
+                    throw new CompileError(e.attrTrace(), "Could not find func " + e.getTypeClassFunc().getName() + " in " + ta.getTypeClassBinding().keySet());
+                }
+                ImExpr newExpr;
+                if (impl.isLeft()) {
+                    ImMethod m = impl.left().value();
+                    ImExpr receiver = e.getArguments().remove(0);
+                    e.getArguments().setParent(null);
+                    newExpr = JassIm.ImMethodCall(e.getTrace(), m, JassIm.ImTypeArguments(), receiver, e.getArguments(), false);
+                } else {
+                    ImFunction f = impl.right().value();
+                    e.getArguments().setParent(null);
+                    newExpr = JassIm.ImFunctionCall(e.getTrace(), f, JassIm.ImTypeArguments(), e.getArguments(), false, CallType.NORMAL);
+                }
+                e.replaceBy(newExpr);
+            }
         });
     }
 
@@ -346,11 +373,11 @@ public class EliminateGenerics {
         newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
-        newC.getTypeVariables().removeAll();
+        List<ImTypeVar> newTypeVars = newC.getTypeVariables().removeAll();
 
         newC.setName(c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
-        rewriteGenerics(newC, generics, typeVars);
+        rewriteGenerics(newC, generics, typeVars, newTypeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
         // we don't collect generic usages to avoid infinite loops
         // in cases like class C<T> { C<C<T>> x; }

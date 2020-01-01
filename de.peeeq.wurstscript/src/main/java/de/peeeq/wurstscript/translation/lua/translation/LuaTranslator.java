@@ -70,6 +70,24 @@ public class LuaTranslator {
         }
     };
 
+    GetAForB<ImTypeVar, LuaVariable> luaTypeClassDictionaryVar = new GetAForB<ImTypeVar, LuaVariable>() {
+        @Override
+        public LuaVariable initFor(ImTypeVar a) {
+            String name = uniqueName(a.getName());
+            return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
+        }
+    };
+
+    GetAForB<ImTypeClassFunc, String> typeClassFuncName = new GetAForB<ImTypeClassFunc, String>() {
+        @Override
+        public String initFor(ImTypeClassFunc a) {
+            return uniqueName(a.getName());
+        }
+    };
+
+
+
+
     GetAForB<ImFunction, LuaFunction> luaFunc = new GetAForB<ImFunction, LuaFunction>() {
 
         @Override

@@ -1311,7 +1311,6 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
-    @Ignore
     public void simpleTypeClass() {
         testAssertOkLines(true,
             "package test",
