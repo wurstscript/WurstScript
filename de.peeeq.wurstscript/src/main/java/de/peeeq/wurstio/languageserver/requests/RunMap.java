@@ -133,10 +133,12 @@ public class RunMap extends MapRequest {
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
                     String wc3RunArgs = configProvider.getWc3RunArgs();
                     if (StringUtils.isBlank(wc3RunArgs)) {
+                        if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_32) >= 0) {
+                            cmd.add("-launch");
+                        }
 	                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
 	                        cmd.add("-window");
 	                    } else {
-                            cmd.add("-launch");
 	                        cmd.add("-windowmode");
 	                        cmd.add("windowed");
 	                    }
