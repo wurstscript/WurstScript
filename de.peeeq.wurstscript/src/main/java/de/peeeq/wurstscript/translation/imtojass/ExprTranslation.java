@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.jassAst.JassExprlist;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
+import static de.peeeq.wurstscript.jassAst.JassAst.*;
 
 public class ExprTranslation {
 

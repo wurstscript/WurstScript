@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
+import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
 public class ImTranslator {
 
