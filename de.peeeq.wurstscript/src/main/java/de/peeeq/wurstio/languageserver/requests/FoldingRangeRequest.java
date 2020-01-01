@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.*;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,7 +27,6 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
         textDocument = params.getTextDocument();
     }
 
-
     @Override
     public List<FoldingRange> execute(ModelManager modelManager) {
         CompilationUnit cu = modelManager.getCompilationUnit(WFile.create(textDocument));
@@ -34,6 +34,11 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
             return Collections.emptyList();
         }
 
+        return calculateFoldingRanges(cu);
+    }
+
+    @NotNull
+    public static List<FoldingRange> calculateFoldingRanges(CompilationUnit cu) {
         List<FoldingRange> result = new ArrayList<>();
         cu.accept(new Element.DefaultVisitor() {
             private void addFoldingRange(Element element) {
@@ -90,7 +95,7 @@ public class FoldingRangeRequest extends UserRequest<List<FoldingRange>> {
 
             @Override
             public void visit(InterfaceDef interfaceDef) {
-                addFoldingRange(interfaceDef, StringUtils.isEmpty(interfaceDef.description()) ? 0 : 1, -1);
+                addFoldingRange(interfaceDef, StringUtils.isEmpty(interfaceDef.attrComment()) ? 0 : 1, 0);
                 super.visit(interfaceDef);
             }
 
