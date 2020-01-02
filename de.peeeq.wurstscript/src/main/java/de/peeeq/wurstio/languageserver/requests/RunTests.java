@@ -140,7 +140,7 @@ public class RunTests extends UserRequest<Object> {
         WurstGui gui = new TestGui();
 
         // dummy translator
-        ImTranslator tr = new ImTranslator(cu.getModel(), false, RunArgs.defaults());
+        ImTranslator tr = new ImTranslator(imProg.getTrace().getModel(), false, RunArgs.defaults());
         CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(tr, imProg, null, null, gui, CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
