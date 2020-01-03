@@ -3,12 +3,25 @@ package de.peeeq.wurstscript.intermediatelang.optimizer;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import de.peeeq.datastructures.Worklist;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
+import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
+import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import io.vavr.collection.HashSet;
+import io.vavr.collection.Set;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * merges local variable, if they have disjoint live-spans
@@ -109,7 +122,7 @@ public class LocalMerger implements OptimizerPass {
     private Multimap<ImVar, ImVar> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
         Multimap<ImVar, ImVar> inferenceGraph = HashMultimap.create();
         for (ImStmt s : livenessInfo.keySet()) {
-            Collection<ImVar> live = livenessInfo.get(s);
+            Set<ImVar> live = livenessInfo.get(s);
             for (ImVar v1 : live) {
                 for (ImVar v2 : live) {
                     if (v1.getType().equalsType(v2.getType())) {
@@ -151,32 +164,35 @@ public class LocalMerger implements OptimizerPass {
         Map<Node, Set<ImVar>> in = new HashMap<>();
         Map<Node, Set<ImVar>> out = new HashMap<>();
 
-        Deque<Node> todo = new ArrayDeque<>();
+        Worklist<Node> todo = new Worklist<>();
+
+        Map<Node, Integer> index = new HashMap<>();
 
         // init in and out with empty sets
         for (Node node : cfg.getNodes()) {
-            in.put(node, Collections.emptySet());
-            out.put(node, Collections.emptySet());
+            in.put(node, HashSet.empty());
+            out.put(node, HashSet.empty());
             todo.addFirst(node);
+            index.put(node, 1+ index.size());
         }
+
         // calculate def- and use- sets for each node
-        Multimap<Node, ImVar> def = calculateDefs(cfg.getNodes());
-        Multimap<Node, ImVar> use = calculateUses(cfg.getNodes());
-//        boolean changes = true;
-//        int iterations = 0;
+        Map<Node, Set<ImVar>> def = calculateDefs(cfg.getNodes());
+        Map<Node, Set<ImVar>> use = calculateUses(cfg.getNodes());
         while (!todo.isEmpty()) {
             Node node = todo.poll();
-//            iterations++;
-            // in[n] = use[n] + (out[n] - def[n])
-            Set<ImVar> newIn = new HashSet<>(out.get(node));
-            newIn.removeAll(def.get(node));
-            newIn.addAll(use.get(node));
 
             // out[n] = union s in succ[n]: in[s]
-            Set<ImVar> newOut = new HashSet<>();
-            for (Node s : node.getSuccessors()) {
-                newOut.addAll(in.get(s));
-            }
+            Set<ImVar> newOut = node.getSuccessors()
+                .stream()
+                .map(in::get)
+                .reduce(HashSet.empty(), Set::union);
+
+            // in[n] = use[n] + (out[n] - def[n])
+            Set<ImVar> newIn = newOut;
+            newIn = newIn.diff(def.get(node));
+            newIn = newIn.union(use.get(node));
+
 
             if (!newIn.equals(in.get(node))) {
                 in.put(node, newIn);
@@ -187,8 +203,6 @@ public class LocalMerger implements OptimizerPass {
             }
             if (!newOut.equals(out.get(node))) {
                 out.put(node, newOut);
-                // if out changes, then this node has to be recalculated
-                todo.addLast(node);
             }
         }
 //		System.out.println("result after " + iterations + " iterations in func " + func.getName());
@@ -204,15 +218,16 @@ public class LocalMerger implements OptimizerPass {
         for (Node node : cfg.getNodes()) {
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
-                result.put(stmt, ImmutableSet.copyOf(out.get(node)));
+                result.put(stmt, out.get(node));
             }
         }
         return result;
     }
 
-    private Multimap<Node, ImVar> calculateUses(List<Node> nodes) {
-        Multimap<Node, ImVar> result = HashMultimap.create();
+    private Map<Node, Set<ImVar>> calculateUses(List<Node> nodes) {
+        Map<Node, Set<ImVar>> result = new HashMap<>();
         for (Node node : nodes) {
+            List<ImVar> uses = new ArrayList<>();
             ImStmt stmt = node.getStmt();
             if (stmt != null) {
                 stmt.accept(new ImStmt.DefaultVisitor() {
@@ -220,25 +235,27 @@ public class LocalMerger implements OptimizerPass {
                     public void visit(ImVarAccess va) {
                         super.visit(va);
                         if (!va.getVar().isGlobal()) {
-                            result.put(node, va.getVar());
+                            uses.add(va.getVar());
                         }
                     }
                 });
             }
+            result.put(node, HashSet.ofAll(uses));
         }
         return result;
     }
 
-    private Multimap<Node, ImVar> calculateDefs(List<Node> nodes) {
-        Multimap<Node, ImVar> result = HashMultimap.create();
+    private Map<Node, Set<ImVar>> calculateDefs(List<Node> nodes) {
+        Map<Node, Set<ImVar>>result = new HashMap<>();
         for (Node node : nodes) {
+            result.put(node, HashSet.empty());
             ImStmt stmt = node.getStmt();
             if (stmt instanceof ImSet) {
                 ImSet imSet = (ImSet) stmt;
                 if (imSet.getLeft() instanceof ImVarAccess) {
                     ImVar v = ((ImVarAccess) imSet.getLeft()).getVar();
                     if (!v.isGlobal()) {
-                        result.put(node, v);
+                        result.put(node, HashSet.of(v));
                     }
                 }
             }
