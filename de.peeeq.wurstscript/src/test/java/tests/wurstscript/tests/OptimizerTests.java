@@ -955,4 +955,61 @@ public class OptimizerTests extends WurstScriptTest {
             "        testSuccess()"
         );
     }
+
+
+    @Test
+    public void copyPropagation() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "init",
+            "    let a = S2I(\"7\")",
+            "    let b = a",
+            "    let c = b",
+            "    if c == 7",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation_opt.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        assertTrue(compiled.contains("if a == 7 then"));
+    }
+
+    @Test
+    public void copyPropagation2() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "integer test_x=0",
+            "integer array B_nextFree",
+            "integer B_firstFree=0",
+            "integer B_maxIndex=0",
+            "integer array B_typeId",
+            "integer array B_y",
+            "function destroyA(int this0)",
+            "    let this_1 = this0",
+            "    integer this_2",
+            "    integer obj",
+            "    test_x = test_x + B_y[this_1]",
+            "    this_2 = this_1",
+            "    test_x = test_x * B_y[this_2]",
+            "    obj = this0",
+            "    if B_typeId[obj] == 0",
+            "    else",
+            "        B_nextFree[B_firstFree] = obj",
+            "        B_firstFree = B_firstFree + 1",
+            "        B_typeId[obj] = 0",
+            "        if B_nextFree[B_firstFree - 1] == 42",
+            "            testSuccess()",
+            "init",
+            "    B_typeId[42] = 1",
+            "    destroyA(42)"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation2_opt.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        // copy propagation obj -> this0
+        assertTrue(compiled.contains("set Test_B_nextFree[Test_B_firstFree] = this0"));
+    }
+
 }
