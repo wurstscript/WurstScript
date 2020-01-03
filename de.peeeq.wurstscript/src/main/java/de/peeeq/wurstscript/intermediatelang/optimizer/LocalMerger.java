@@ -56,7 +56,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
     private void mergeLocals(Map<ImStmt, Set<ImVar>> livenessInfo, ImFunction func) {
-        Multimap<ImVar, ImVar> inferenceGraph = calculateInferenceGraph(livenessInfo);
+        Map<ImVar, Set<ImVar>> inferenceGraph = calculateInferenceGraph(livenessInfo);
 
         // priority queue, sorted by number of inferring vars
         PriorityQueue<ImVar> vars = new PriorityQueue<>((ImVar a, ImVar b) ->
@@ -119,16 +119,21 @@ public class LocalMerger implements OptimizerPass {
         });
     }
 
-    private Multimap<ImVar, ImVar> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
-        Multimap<ImVar, ImVar> inferenceGraph = HashMultimap.create();
-        for (ImStmt s : livenessInfo.keySet()) {
+    /**
+     * for each variable: the set of variables which share some lifetime-range
+     */
+    private Map<ImVar, Set<ImVar>> calculateInferenceGraph(Map<ImStmt, Set<ImVar>> livenessInfo) {
+        Map<ImVar, Set<ImVar>> inferenceGraph = new HashMap<>();
+        java.util.Set<ImStmt> keys = livenessInfo.keySet();
+        int i  = 0;
+        for (ImStmt s : keys) {
+            i++;
             Set<ImVar> live = livenessInfo.get(s);
+            System.out.println("stmt " + i + "/" + keys.size() + " live vars: " + live.size());
             for (ImVar v1 : live) {
-                for (ImVar v2 : live) {
-                    if (v1.getType().equalsType(v2.getType())) {
-                        inferenceGraph.put(v1, v2);
-                    }
-                }
+                Set<ImVar> inferenceSet = inferenceGraph.getOrDefault(v1, HashSet.empty());
+                inferenceSet = inferenceSet.addAll(live.filter(v2 -> v1.getType().equalsType(v2.getType())));
+                inferenceGraph.put(v1, inferenceSet);
             }
         }
         return inferenceGraph;
@@ -159,7 +164,7 @@ public class LocalMerger implements OptimizerPass {
     }
 
 
-    private Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
+    public Map<ImStmt, Set<ImVar>> calculateLiveness(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Set<ImVar>> in = new HashMap<>();
         Map<Node, Set<ImVar>> out = new HashMap<>();
@@ -237,6 +242,46 @@ public class LocalMerger implements OptimizerPass {
                         if (!va.getVar().isGlobal()) {
                             uses.add(va.getVar());
                         }
+                    }
+
+                    @Override
+                    public void visit(ImSet set) {
+                        set.getRight().accept(this);
+                        Element.DefaultVisitor outerThis = this;
+                        set.getLeft().match(new ImLExpr.MatcherVoid() {
+                            @Override
+                            public void case_ImTupleSelection(ImTupleSelection e) {
+                                ((ImLExpr) (e.getTupleExpr())).match(this);
+                            }
+
+                            @Override
+                            public void case_ImVarAccess(ImVarAccess e) {
+                            }
+
+                            @Override
+                            public void case_ImVarArrayAccess(ImVarArrayAccess e) {
+                                e.getIndexes().accept(outerThis);
+                            }
+
+                            @Override
+                            public void case_ImMemberAccess(ImMemberAccess e) {
+                                e.getReceiver().accept(outerThis);
+                                e.getIndexes().accept(outerThis);
+                            }
+
+                            @Override
+                            public void case_ImStatementExpr(ImStatementExpr e) {
+                                e.getStatements().accept(outerThis);
+                                ((ImLExpr) e.getExpr()).match(this);
+                            }
+
+                            @Override
+                            public void case_ImTupleExpr(ImTupleExpr e) {
+                                for (ImExpr expr : e.getExprs()) {
+                                    ((ImLExpr) expr).match(this);
+                                }
+                            }
+                        });
                     }
                 });
             }

@@ -3,12 +3,22 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.collection.HashSet;
+import io.vavr.collection.Set;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.testng.AssertJUnit.*;
 
@@ -1010,6 +1020,34 @@ public class OptimizerTests extends WurstScriptTest {
         System.out.println(compiled);
         // copy propagation obj -> this0
         assertTrue(compiled.contains("set Test_B_nextFree[Test_B_firstFree] = this0"));
+    }
+
+
+    @Test
+    public void localMergerLiveness() throws IOException {
+        LocalMerger localMerger = new LocalMerger();
+
+        Element trace = Ast.NoExpr();
+        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar d = JassIm.ImVar(trace, TypesHelper.imInt(), "d", false);
+        ImVar e = JassIm.ImVar(trace, TypesHelper.imInt(), "e", false);
+        ImVars locals = JassIm.ImVars(a,b,c,d,e);
+
+        ImStmts body = JassIm.ImStmts(
+            JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(b), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(d), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(e), JassIm.ImIntVal(0))
+        );
+        ImFunction func = JassIm.ImFunction(trace, "blub", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), locals, body, Collections.emptyList());
+        Map<ImStmt, Set<ImVar>> liveness = localMerger.calculateLiveness(func);
+
+        for (ImStmt node : body) {
+            assertEquals(HashSet.empty(), liveness.get(node));
+        }
     }
 
 }
