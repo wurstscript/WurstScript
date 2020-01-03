@@ -14,6 +14,7 @@ import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum;
+import de.peeeq.wurstscript.translation.imtranslation.ImHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
@@ -162,7 +163,11 @@ public class ILInterpreter implements AbstractInterpreter {
             }
         }
         globalState.compilationError("function " + f.getName() + " cannot be used from the Wurst interpreter.\n" + errors);
-        return new LocalState();
+        if (f.getReturnType() instanceof ImVoid) {
+            return new LocalState();
+        }
+        ILconst returnValue = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+        return new LocalState(returnValue);
     }
 
     private static boolean isCompiletimeNative(ImFunction f) {

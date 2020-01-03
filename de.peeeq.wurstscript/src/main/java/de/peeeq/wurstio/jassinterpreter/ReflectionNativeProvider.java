@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconstNull;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NativesProvider;
 import de.peeeq.wurstscript.intermediatelang.interpreter.NoSuchNativeException;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -42,6 +43,7 @@ public class ReflectionNativeProvider implements NativesProvider {
         addProvider(new RegionProvider(interpreter));
         addProvider(new ImageProvider(interpreter));
         addProvider(new IntegerProvider(interpreter));
+        addProvider(new FrameProvider(interpreter));
     }
 
     public NativeJassFunction getFunctionPair(String funcName) {
@@ -68,7 +70,7 @@ public class ReflectionNativeProvider implements NativesProvider {
     @Override
     public ILconst invoke(String funcname, ILconst[] args) throws NoSuchNativeException {
         String msg = "Calling method " + funcname + "(" +
-                Arrays.stream(args).map(Object::toString).collect(Collectors.joining(", ")) + ")";
+            Utils.printSep(", ", args) + ")";
         WLogger.trace(msg);
 
         NativeJassFunction candidate = methodMap.get(funcname);

@@ -25,7 +25,7 @@ public abstract class ILconstAbstract implements ILconst {
 
     @Override
     public int hashCode() {
-        throw new Error("hashcode not implemented");
+        throw new Error("hashcode not implemented for " + getClass() + "/" + this);
     }
 
 }

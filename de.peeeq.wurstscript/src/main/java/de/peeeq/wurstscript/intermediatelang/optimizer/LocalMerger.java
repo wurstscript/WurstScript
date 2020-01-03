@@ -73,7 +73,6 @@ public class LocalMerger implements OptimizerPass {
         nextVar:
         while (!vars.isEmpty()) {
             ImVar v = vars.poll();
-//			System.out.println("v = " + v + " // " + inferenceGraph.get(v));
 
             // check if there is some other variable which is already assigned, has the same type and does not interfere
             nextAssigned:
@@ -95,7 +94,6 @@ public class LocalMerger implements OptimizerPass {
 
         totalLocalsMerged += merges.size();
 
-//		System.out.println("merges = " + merges);
         func.accept(new ImFunction.DefaultVisitor() {
             @Override
             public void visit(ImVarAccess va) {
@@ -129,7 +127,6 @@ public class LocalMerger implements OptimizerPass {
         for (ImStmt s : keys) {
             i++;
             Set<ImVar> live = livenessInfo.get(s);
-            System.out.println("stmt " + i + "/" + keys.size() + " live vars: " + live.size());
             for (ImVar v1 : live) {
                 Set<ImVar> inferenceSet = inferenceGraph.getOrDefault(v1, HashSet.empty());
                 inferenceSet = inferenceSet.addAll(live.filter(v2 -> v1.getType().equalsType(v2.getType())));
@@ -210,14 +207,6 @@ public class LocalMerger implements OptimizerPass {
                 out.put(node, newOut);
             }
         }
-//		System.out.println("result after " + iterations + " iterations in func " + func.getName());
-//		System.out.println("//#########################################");
-//		System.out.println("// liveness for " + func.getName());
-//		for (Node node : nodes) {
-//			System.out.println(" // " + in.get(node));
-//			System.out.println(node);
-//			System.out.println(" // " + out.get(node));
-//		}
 
         Map<ImStmt, Set<ImVar>> result = new HashMap<>();
         for (Node node : cfg.getNodes()) {

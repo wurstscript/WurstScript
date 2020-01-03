@@ -84,7 +84,7 @@ public class Utils {
             if (i > 0) {
                 sb.append(seperator);
             }
-            sb.append(args[i].toString());
+            sb.append(args[i]);
         }
     }
 
@@ -130,14 +130,14 @@ public class Utils {
         }
     }
 
-    public static String printSep(String sep, String[] args) {
+    public static <T> String printSep(String sep, T[] args) {
         StringBuilder sb = new StringBuilder();
         printSep(sb, sep, args);
         return sb.toString();
     }
 
     public static String printSep(String sep, List<?> args) {
-        return args.stream().map(Object::toString).collect(Collectors.joining(sep));
+        return args.stream().map(String::valueOf).collect(Collectors.joining(sep));
     }
 
     /**
