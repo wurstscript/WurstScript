@@ -304,6 +304,7 @@ public class RunTests extends UserRequest<Object> {
         ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false, runArgs);
         // will ignore udg_ variables which are not found
         imTranslator.setEclipseMode(true);
+        imTranslator.translateProg();
         return imTranslator;
     }
 
