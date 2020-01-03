@@ -86,6 +86,9 @@ dependencies {
     // Functional data structures:
     compile group: 'org.functionaljava', name: 'functionaljava', version: '4.8.1'
 
+    // Better functional data structures:
+    compile 'io.vavr:vavr:1.0.0-alpha-3'
+
     // Support for the vscode language server protocol
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.7.0'
 
