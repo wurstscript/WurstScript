@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.ImCompiletimeExpr;
 import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.parser.WPos;
-import fj.data.Either;
+import io.vavr.control.Either;
 
 import java.io.File;
 
@@ -30,7 +30,7 @@ public class ILStackFrame {
     public String getMessage() {
         StringBuilder sb = new StringBuilder();
         if (f.isLeft()) {
-            sb.append("... when calling ").append(f.left().value().getName()).append("(");
+            sb.append("... when calling ").append(f.getLeft().getName()).append("(");
             boolean first = true;
             for (ILconst arg : args) {
                 if (!first) {

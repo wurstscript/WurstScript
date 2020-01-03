@@ -6,7 +6,7 @@ import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import fj.data.Either;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.HashMap;

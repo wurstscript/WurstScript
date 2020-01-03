@@ -16,8 +16,8 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.Either;
-import fj.data.Option;
+import io.vavr.control.Either;
+import io.vavr.control.Option;
 
 import java.util.HashMap;
 import java.util.List;
@@ -538,10 +538,10 @@ public class ExprTranslation {
         for (ImTypeVar tv : typeVariables) {
             TypeParamDef tp = tr.getTypeParamDef(tv);
             Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
-            if (to.isNone()) {
+            if (to.isEmpty()) {
                 throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
             }
-            WurstTypeBoundTypeParam t = to.some();
+            WurstTypeBoundTypeParam t = to.get();
             if (!t.isTemplateTypeParameter()) {
                 continue;
             }

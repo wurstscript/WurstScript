@@ -313,9 +313,8 @@ public class ClosureTranslator {
         WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) e.attrExpectedTyp();
         ClassOrInterface classDef = t.getDef();
         t = (WurstTypeClassOrInterface) classDef.attrTyp();
-        fj.data.List<TypeParamDef> typeParameters = fj.data.List.iterableList(classDef.getTypeParameters());
         VariableBinding mapping = VariableBinding.emptyMapping()
-                .withTypeVariables(typeParameters);
+                .withTypeVariables(classDef.getTypeParameters());
         WurstType closureType = e.attrTyp();
         VariableBinding mapping2 = closureType.matchAgainstSupertype(t, e, mapping, VariablePosition.RIGHT);
         if (mapping2 == null) {

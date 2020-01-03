@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import fj.data.Option;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
@@ -44,9 +44,9 @@ public class WurstTypeClass extends WurstTypeClassOrInterface {
     private VariableBinding extendMapping(VariableBinding m1, VariableBinding m2, Element location) {
         for (TypeParamDef t : m2.keys()) {
             Option<WurstTypeBoundTypeParam> currentVal = m1.get(t);
-            WurstTypeBoundTypeParam m2Val = m2.get(t).some();
-            if (currentVal.isSome()) {
-                WurstTypeBoundTypeParam m1Val = currentVal.some();
+            WurstTypeBoundTypeParam m2Val = m2.get(t).get();
+            if (currentVal.isDefined()) {
+                WurstTypeBoundTypeParam m1Val = currentVal.get();
                 if (!m1Val.equalsType(m2Val, location)) {
                     // no match
                     return null;

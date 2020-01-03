@@ -91,7 +91,7 @@ public abstract class DefLink extends NameLink {
             }
         }
         NameDef def = getDef();
-        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams)), VariablePosition.LEFT);
+        VariableBinding match = this.receiverType.matchAgainstSupertype(receiverType, def, VariableBinding.emptyMapping().withTypeVariables(typeParams), VariablePosition.LEFT);
         if (match == null) {
             return null;
         }

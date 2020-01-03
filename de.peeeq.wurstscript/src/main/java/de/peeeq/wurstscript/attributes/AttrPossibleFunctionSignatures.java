@@ -96,7 +96,7 @@ public class AttrPossibleFunctionSignatures {
             }
             List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
             List<TypeParamDef> typeParams = classDef.getTypeParameters();
-            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
+            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(typeParams);
             FunctionSignature sig = new FunctionSignature(f, mapping, null, "construct", paramTypes, pNames, returnType);
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);

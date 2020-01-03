@@ -16,7 +16,7 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
-import fj.P2;
+import io.vavr.Tuple2;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -1532,7 +1532,7 @@ public class WurstValidator {
             return;
         }
 
-        for (P2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
             WurstTypeBoundTypeParam boundTyp = t._2();
             WurstType typ = boundTyp.getBaseType();
 

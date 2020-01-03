@@ -93,7 +93,7 @@ public class FunctionSignature {
         if (f instanceof AstElementWithTypeParameters) {
             typeParams = ((AstElementWithTypeParameters) f).getTypeParameters();
         }
-        return new FunctionSignature(f, VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams)), f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
+        return new FunctionSignature(f, VariableBinding.emptyMapping().withTypeVariables(typeParams), f.attrReceiverType(), f.getName(), paramTypes, paramNames, returnType);
     }
 
 
@@ -106,7 +106,7 @@ public class FunctionSignature {
 
     public static FunctionSignature fromNameLink(FuncLink f) {
         VariableBinding mapping = f.getVariableBinding();
-        mapping = mapping.withTypeVariables(fj.data.List.iterableList(f.getTypeParams()));
+        mapping = mapping.withTypeVariables(f.getTypeParams());
         return new FunctionSignature(f.getDef(), mapping, f.getReceiverType(), f.getName(), f.getParameterTypes(), getParamNames(f.getDef().getParameters()), f.getReturnType());
     }
 

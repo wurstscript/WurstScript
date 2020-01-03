@@ -7,7 +7,7 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import fj.data.Option;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 public class WurstTypeTypeParam extends WurstType {
@@ -22,9 +22,9 @@ public class WurstTypeTypeParam extends WurstType {
     VariableBinding matchAgainstSupertypeIntern(WurstType other, @Nullable Element location, VariableBinding mapping, VariablePosition variablePosition) {
         if (variablePosition == VariablePosition.LEFT) {
             Option<WurstTypeBoundTypeParam> binding = mapping.get(def);
-            if (binding.isSome()) {
+            if (binding.isDefined()) {
                 // already bound, use bound type
-                return binding.some().matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
+                return binding.get().matchAgainstSupertypeIntern(other, location, mapping, variablePosition);
             } else if (mapping.isVar(def)) {
                 // not bound -> add mapping
                 return mapping.set(def, new WurstTypeBoundTypeParam(def, other, location));
@@ -62,7 +62,7 @@ public class WurstTypeTypeParam extends WurstType {
     @Override
     public WurstType setTypeArgs(VariableBinding typeParamBounds) {
         if (typeParamBounds.contains(def)) {
-            return typeParamBounds.get(def).some();
+            return typeParamBounds.get(def).get();
         }
         return this;
     }

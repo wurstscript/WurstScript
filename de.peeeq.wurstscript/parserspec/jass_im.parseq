@@ -148,7 +148,7 @@ ImConst =
 
 ImTypeArguments * ImTypeArgument
 
-ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, fj.data.Either<ImMethod, ImFunction>> typeClassBinding)
+ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, io.vavr.control.Either<ImMethod, ImFunction>> typeClassBinding)
 
 // helper types:
 
