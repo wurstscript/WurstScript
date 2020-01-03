@@ -25,7 +25,7 @@ public class AttrImportedPackage {
     }
 
     public static WurstModel getModel(Element elem) {
-        Element e = elem.attrCompilationUnit();
+        Element e = elem;
         while (e != null) {
             if (e instanceof WurstModel) {
                 return (WurstModel) e;

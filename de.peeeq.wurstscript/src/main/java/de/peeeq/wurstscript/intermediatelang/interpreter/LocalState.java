@@ -4,7 +4,7 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.jassIm.*;
-import fj.data.Either;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;

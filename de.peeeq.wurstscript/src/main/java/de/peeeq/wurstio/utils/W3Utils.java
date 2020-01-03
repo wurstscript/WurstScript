@@ -67,7 +67,7 @@ public class W3Utils {
                 } else if (Orient.isMacSystem()) {
                     W3Utils.version = new MacGameVersionFinder().get();
                 }
-                WLogger.info("Parsed game version: " + version);
+                WLogger.info("Parsed custom game version: " + version);
             } catch (IOException | NotFoundException e) {
                 WLogger.severe(e);
             }

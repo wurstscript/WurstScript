@@ -53,7 +53,7 @@ public class OverrideUtils {
                 WurstTypeTypeParam bt = (WurstTypeTypeParam) paramType; // TODO also bound type params?
                 TypeParamDef tpDef = bt.getDef();
                 if (typeBinding.contains(tpDef)) {
-                    WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).some();
+                    WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).get();
                     if (btp.getToIndex() != null) {
                         needConversion = true;
                         argFromIndexFuncs.add(btp.getFromIndex());
@@ -69,7 +69,7 @@ public class OverrideUtils {
             WurstTypeTypeParam bt = (WurstTypeTypeParam) retType;
             TypeParamDef tpDef = bt.getDef();
             if (typeBinding.contains(tpDef)) {
-                WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).some();
+                WurstTypeBoundTypeParam btp = typeBinding.get(tpDef).get();
                 if (btp.getToIndex() != null) {
                     needConversion = true;
                     retToIndexFunc = btp.getToIndex();

@@ -6,6 +6,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.RunArgs;
 import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
@@ -46,14 +47,13 @@ public class ProjectConfigBuilder {
                     // TODO apply config for hot start before JHCR transformation
                     scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
                 } else {
-                    w3I.injectConfigsInJassScript(inputStream, sw);
+                    w3I.injectConfigsInJassScript(inputStream, sw, W3Utils.getWc3PatchVersion());
                     scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
                 }
 
-
                 File w3iFile = new File("w3iFile");
                 if (runArgs.isLua()) {
-                    w3I.setScriptLang(W3I.SCRIPT_LANG_LUA);
+                    w3I.setScriptLang(W3I.ScriptLang.LUA);
                     w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
                 }
                 w3I.write(w3iFile);

@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.Either;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -162,7 +162,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public boolean supportsGenerics() {
         return baseType.supportsGenerics()
-            || getFromIndex() != null && getToIndex() != null;
+                || getFromIndex() != null && getToIndex() != null;
     }
 
     @Override

@@ -83,8 +83,8 @@ dependencies {
     // Google guava
     compile 'com.google.guava:guava:26.0-jre'
 
-    // Functional data structures:
-    compile group: 'org.functionaljava', name: 'functionaljava', version: '4.8.1'
+    // Better functional data structures:
+    compile 'io.vavr:vavr:1.0.0-alpha-3'
 
     // Support for the vscode language server protocol
     compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.7.0'
@@ -102,10 +102,10 @@ dependencies {
     compile group: 'net.sourceforge.jchardet', name: 'jchardet', version: '1.0'
 
     // Crigges' jmpq
-    compile group: 'com.github.inwc3', name: 'jmpq3', version: '1.7.7'
+    compile 'com.github.inwc3:jmpq3:1.7.14'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:06de7ae12b'
+    compile 'com.github.inwc3:wc3libs:257fcbd610'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:e038293d07'

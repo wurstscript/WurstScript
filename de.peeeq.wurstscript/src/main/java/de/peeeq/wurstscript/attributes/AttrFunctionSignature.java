@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeUnknown;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;

@@ -571,7 +571,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         });
     }
 
-    private ImTranslator getImTranslator() {
+    public ImTranslator getImTranslator() {
         final ImTranslator t = imTranslator;
         if (t != null) {
             return t;

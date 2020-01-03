@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImMethod;
 import de.peeeq.wurstscript.jassIm.ImTypeClassFunc;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import fj.data.Either;
+import io.vavr.control.Either;
 
 import java.util.Map;
 

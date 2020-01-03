@@ -18,6 +18,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -34,21 +35,18 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_29;
-import static net.moonlightflower.wc3libs.port.GameVersion.VERSION_1_31;
+import static net.moonlightflower.wc3libs.port.GameVersion.*;
 
 /**
  * Created by peter on 16.05.16.
  */
 public class RunMap extends MapRequest {
-    private final @Nullable
-    String wc3Path;
+
     private File customTarget = null;
 
 
     public RunMap(ConfigProvider configProvider, WFile workspaceRoot, @Nullable String wc3Path, @Nullable File map, List<String> compileArgs) {
-        super(configProvider, map, compileArgs, workspaceRoot);
-        this.wc3Path = wc3Path;
+        super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
     }
 
     @Override
@@ -74,13 +72,6 @@ public class RunMap extends MapRequest {
         WLogger.info("received runMap command: map=" + map + ", wc3dir=" + wc3Path + ", args=" + compileArgs);
         WurstGui gui = new WurstGuiImpl(getWorkspaceAbsolute());
         try {
-            if (wc3Path != null) {
-                W3Utils.parsePatchVersion(new File(wc3Path));
-                if (W3Utils.getWc3PatchVersion() == null) {
-                    throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation!");
-                }
-            }
-
             if (map != null && !map.exists()) {
                 throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
             }
@@ -141,7 +132,10 @@ public class RunMap extends MapRequest {
                     }
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
                     String wc3RunArgs = configProvider.getWc3RunArgs();
-                    if (wc3RunArgs == null) {
+                    if (StringUtils.isBlank(wc3RunArgs)) {
+                        if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_32) >= 0) {
+                            cmd.add("-launch");
+                        }
 	                    if (W3Utils.getWc3PatchVersion().compareTo(VERSION_1_31) < 0) {
 	                        cmd.add("-window");
 	                    } else {
@@ -160,7 +154,7 @@ public class RunMap extends MapRequest {
                     }
 
                     gui.sendProgress("running " + cmd);
-                    Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]));
+                    Runtime.getRuntime().exec(cmd.toArray(new String[0]));
                 }
             }
         } catch (CompileError e) {

@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
-import fj.data.Either;
+import io.vavr.control.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -337,12 +337,12 @@ public class EliminateGenerics {
                 }
                 ImExpr newExpr;
                 if (impl.isLeft()) {
-                    ImMethod m = impl.left().value();
+                    ImMethod m = impl.getLeft();
                     ImExpr receiver = e.getArguments().remove(0);
                     e.getArguments().setParent(null);
                     newExpr = JassIm.ImMethodCall(e.getTrace(), m, JassIm.ImTypeArguments(), receiver, e.getArguments(), false);
                 } else {
-                    ImFunction f = impl.right().value();
+                    ImFunction f = impl.get();
                     e.getArguments().setParent(null);
                     newExpr = JassIm.ImFunctionCall(e.getTrace(), f, JassIm.ImTypeArguments(), e.getArguments(), false, CallType.NORMAL);
                 }

@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.intermediatelang;
 
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInfer;
+import org.eclipse.jdt.annotation.Nullable;
 
 public class ILconstNull extends ILconstAbstract implements ILconstAddable {
 
@@ -39,4 +40,10 @@ public class ILconstNull extends ILconstAbstract implements ILconstAddable {
             throw new Error("unsupported: " + other + " // " + other.getClass());
         }
     }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(this);
+    }
+
 }

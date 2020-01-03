@@ -2,25 +2,28 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.TypeParamDef;
 import de.peeeq.wurstscript.attributes.CompileError;
-import fj.P2;
-import fj.data.List;
-import fj.data.Option;
-import fj.data.TreeMap;
+import io.vavr.Tuple2;
+import io.vavr.collection.List;
+import io.vavr.collection.Set;
+import io.vavr.collection.SortedSet;
+import io.vavr.collection.HashMap;
+import io.vavr.control.Option;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
+import java.util.Spliterators;
 
 /**
  * VariableBinding
  */
-public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBoundTypeParam>> {
-    public static final VariableBinding EMPTY_MAPPING = new VariableBinding(TreeMap.empty(TypeParamOrd.instance()), List.nil(), List.nil());
-    private final TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding;
+public class VariableBinding implements Iterable<Tuple2<TypeParamDef, WurstTypeBoundTypeParam>> {
+    public static final VariableBinding EMPTY_MAPPING = new VariableBinding(HashMap.empty(), List.empty(), List.empty());
+    private final HashMap<TypeParamDef, WurstTypeBoundTypeParam> binding;
     private final List<TypeParamDef> typeVariablesLeft;
     private final List<CompileError> errors;
 
 
-    public VariableBinding(TreeMap<TypeParamDef, WurstTypeBoundTypeParam> binding, List<TypeParamDef> typeVariablesLeft, List<CompileError> errors) {
+    public VariableBinding(HashMap<TypeParamDef, WurstTypeBoundTypeParam> binding, List<TypeParamDef> typeVariablesLeft, List<CompileError> errors) {
         this.binding = binding;
         this.typeVariablesLeft = typeVariablesLeft;
         this.errors = errors;
@@ -32,7 +35,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
     }
 
     public boolean contains(TypeParamDef v) {
-        return binding.contains(v);
+        return binding.containsKey(v);
     }
 
 
@@ -41,7 +44,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
     }
 
     public VariableBinding set(TypeParamDef v, WurstTypeBoundTypeParam b) {
-        return new VariableBinding(binding.set(v, b), typeVariablesLeft.removeAll(v::equals), errors);
+        return new VariableBinding(binding.put(v, b), typeVariablesLeft.removeAll(v::equals), errors);
     }
 
     public boolean isEmpty() {
@@ -54,21 +57,21 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
         } else if (other.isEmpty() && other.errors.isEmpty()) {
             return this;
         }
-        VariableBinding res = new VariableBinding(binding, typeVariablesLeft, errors.append(errors));
-        for (P2<TypeParamDef, WurstTypeBoundTypeParam> e : other.binding) {
+        VariableBinding res = new VariableBinding(binding, typeVariablesLeft, errors.appendAll(other.errors));
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> e : other.binding) {
             res = res.set(e._1(), e._2());
         }
         return res;
     }
 
 
-    public List<TypeParamDef> keys() {
-        return binding.keys();
+    public Set<TypeParamDef> keys() {
+        return binding.keySet();
     }
 
     @NotNull
     @Override
-    public Iterator<P2<TypeParamDef, WurstTypeBoundTypeParam>> iterator() {
+    public Iterator<Tuple2<TypeParamDef, WurstTypeBoundTypeParam>> iterator() {
         return binding.iterator();
     }
 
@@ -91,7 +94,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
 
         s.append("[");
         first = true;
-        for (P2<TypeParamDef, WurstTypeBoundTypeParam> e : binding) {
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> e : binding) {
             if (!first) {
                 s.append(", ");
             }
@@ -101,7 +104,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
             first = false;
         }
         s.append("]");
-        if (errors.isNotEmpty()) {
+        if (!errors.isEmpty()) {
             s.append("{");
             for (CompileError error : errors) {
                 s.append(error);
@@ -111,12 +114,8 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
         return s.toString();
     }
 
-    public VariableBinding withTypeVariables(java.util.List<TypeParamDef> vars) {
-        return new VariableBinding(binding, typeVariablesLeft.append(List.iterableList(vars)), errors);
-    }
-
-    public VariableBinding withTypeVariables(List<TypeParamDef> vars) {
-        return new VariableBinding(binding, typeVariablesLeft.append(vars), errors);
+    public VariableBinding withTypeVariables(Iterable<TypeParamDef> vars) {
+        return new VariableBinding(binding, typeVariablesLeft.appendAll(vars), errors);
     }
 
     public boolean isVar(TypeParamDef def) {
@@ -139,7 +138,7 @@ public class VariableBinding implements Iterable<P2<TypeParamDef, WurstTypeBound
     }
 
     public VariableBinding withError(CompileError err) {
-        return new VariableBinding(binding, typeVariablesLeft, errors.cons(err));
+        return new VariableBinding(binding, typeVariablesLeft, errors.prepend(err));
     }
 
     public List<CompileError> getErrors() {

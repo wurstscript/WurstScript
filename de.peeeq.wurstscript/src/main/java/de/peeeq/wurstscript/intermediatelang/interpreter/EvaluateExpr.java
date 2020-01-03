@@ -9,7 +9,7 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
-import fj.data.Either;
+import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -407,7 +407,7 @@ public class EvaluateExpr {
             .map(arg -> arg.evaluate(globalState, localState))
             .toArray(ILconst[]::new);
 
-        return impl.either(
+        return impl.fold(
             (ImMethod m) -> {
                 ILconst receiver1 = eArgs[0];
                 ILconstObject receiver = globalState.toObject(receiver1);

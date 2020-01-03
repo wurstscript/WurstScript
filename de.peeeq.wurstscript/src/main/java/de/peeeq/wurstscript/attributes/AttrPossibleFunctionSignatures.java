@@ -8,7 +8,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.utils.Pair;
-import fj.data.Option;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -99,13 +99,13 @@ public class AttrPossibleFunctionSignatures {
                     }
                 }
             }
-            if (matchedTypeOpt.isNone()) {
+            if (matchedTypeOpt.isEmpty()) {
                 if (!constraints.isEmpty()) {
                     errors.add(new CompileError(fc.attrSource(), "Type parameter " + tp.getName() + " is not bound, so type constraints cannot be solved."));
                 }
                 continue;
             }
-            WurstTypeBoundTypeParam matchedType = matchedTypeOpt.some();
+            WurstTypeBoundTypeParam matchedType = matchedTypeOpt.get();
             for (WurstTypeInterface constraint : constraints) {
                 VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
                 if (mapping2 == null) {
@@ -139,7 +139,7 @@ public class AttrPossibleFunctionSignatures {
             }
             List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
             List<TypeParamDef> typeParams = classDef.getTypeParameters();
-            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
+            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(typeParams);
             FunctionSignature sig = new FunctionSignature(f, mapping, null, "construct", paramTypes, pNames, returnType);
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);
