@@ -63,9 +63,9 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     public String getName() {
-//        return baseType.getName();
-        String is = instances == null ? "" : " | " + Utils.printSep(", ", instances);
-        return "[" + typeParamDef.getName() + ": " + baseType + is + "]";
+        return baseType.getName();
+//        String is = instances == null ? "" : " | " + Utils.printSep(", ", instances);
+//        return "[" + typeParamDef.getName() + ": " + baseType + is + "]";
     }
 
     @Override
