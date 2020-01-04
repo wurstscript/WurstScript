@@ -501,6 +501,15 @@ public class ImPrinter {
     }
 
 
+    public static void print(ImTypeVarDispatch e, Appendable sb, int indent) {
+        append(sb, "<");
+        append(sb, e.getTypeVariable().getName());
+        append(sb, smallHash(e.getTypeVariable()));
+        append(sb, ">.");
+        append(sb, e.getTypeClassFunc().getName());
+        printArgumentList(sb, indent, e.getArguments());
+    }
+
     public static void print(ImTypeVarRef e, Appendable sb, int indent) {
         append(sb, e.getTypeVariable().getName());
         append(sb, smallHash(e.getTypeVariable()));
@@ -543,6 +552,9 @@ public class ImPrinter {
                     .collect(Collectors.joining(", ")) + "]";
     }
 
+    public static String asString(ImTypeClassFunc s) {
+        return s.getName() + smallHash(s);
+    }
 
     public static String asString(ImClass s) {
         return s.getName() + smallHash(s);
@@ -553,7 +565,7 @@ public class ImPrinter {
     }
 
     public static String asString(ImTypeArgument s) {
-        return s.getType().toString();
+        return s.getType() + "" + s.getTypeClassBinding();
     }
 
     public static void print(ImCast e, Appendable sb, int indent) {

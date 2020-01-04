@@ -212,6 +212,10 @@ public class ImAttrType {
         return e.getExpr().attrTyp();
     }
 
+    public static ImType getType(ImTypeVarDispatch e) {
+        return e.getTypeClassFunc().getReturnType();
+    }
+
     public static ImType getType(ImCast imCast) {
         return imCast.getToType();
     }

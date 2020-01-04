@@ -330,6 +330,11 @@ public class ExprTranslation {
         throw new Error("not implemented");
     }
 
+    public static LuaExpr translate(ImTypeVarDispatch e, LuaTranslator tr) {
+        LuaVariable dict = tr.luaTypeClassDictionaryVar.getFor(e.getTypeVariable());
+        LuaExprFieldAccess f = LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(dict), tr.typeClassFuncName.getFor(e.getTypeClassFunc()));
+        return LuaAst.LuaExprFunctionCallE(f, tr.translateExprList(e.getArguments()));
+    }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);

@@ -42,7 +42,6 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
-import io.vavr.Tuple2;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -54,7 +53,6 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
-import static de.peeeq.wurstscript.utils.Utils.emptyList;
 
 public class ImTranslator {
 
@@ -109,7 +107,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
         this.runArgs = runArgs;
     }
 
@@ -613,7 +611,7 @@ public class ImTranslator {
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv)));
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -1282,72 +1280,6 @@ public class ImTranslator {
         return runArgs.isLua();
     }
 
-    private GetAForB<FuncDef, ImMethod> typeClassMethodForFuncDef = new GetAForB<FuncDef, ImMethod>() {
-        @Override
-        public ImMethod initFor(FuncDef f) {
-            ImFunction impl = JassIm.ImFunction(f, f.getName(),
-                ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
-            InterfaceDef interfaceDef = (InterfaceDef) f.attrNearestStructureDef();
-            ImClassType typeClass = ImClassType(typeClassDictClass.getFor(interfaceDef), ImTypeArguments());
-            return JassIm.ImMethod(
-                f,
-                typeClass,
-                f.getName(),
-                impl,
-                new ArrayList<>(),
-                true
-                );
-        }
-    };
-
-    public ImMethod getTypeClassMethodFor(FuncDef f) {
-        return typeClassMethodForFuncDef.getFor(f);
-    }
-
-    private GetAForB<InterfaceDef, ImClass> typeClassDictClass = new GetAForB<InterfaceDef, ImClass>() {
-        @Override
-        public ImClass initFor(InterfaceDef a) {
-            return JassIm.ImClass(
-                a,
-                "TypeClassDict_" + a.getName(),
-                ImTypeVars(),
-                ImVars(),
-                ImMethods(),
-                ImFunctions(),
-                emptyList()
-            );
-        }
-    };
-
-    private GetAForB<TypeParamDef, List<ImVar>> varsForTypeParam = new GetAForB<TypeParamDef, List<ImVar>>() {
-        @Override
-        public List<ImVar> initFor(TypeParamDef a) {
-            WurstTypeTypeParam tp = new WurstTypeTypeParam(a);
-            return tp.getTypeConstraints()
-                .map(constraint -> {
-                    ImClass c = typeClassDictClass.getFor(constraint.getDef());
-                    ImType constraintT = constraint.imTranslateType(ImTranslator.this);
-                    String name = "type_class_dict_" + a.getName() + "_" + constraint.getName();
-                    return JassIm.ImVar(a, constraintT, name, false);
-                })
-                .collect(Collectors.toList());
-        }
-    };
-
-    public ImVar getTypeClassDict(WurstTypeTypeParam tp, FuncDef f) {
-        List<ImVar> vars = varsForTypeParam.getFor(tp.getDef());
-        // find the var that has the function
-        ImMethod m = getTypeClassMethodFor(f);
-        for (ImVar v : vars) {
-            ImClassType ct = (ImClassType) v.getType();
-            if (ct.getClassDef().getMethods().contains(m)) {
-                return v;
-            }
-        }
-
-        throw new RuntimeException("Did not find function" + f.getName() + " in type parameter " + tp);
-    }
-
 
     interface VarsForTupleResult {
 
@@ -1664,6 +1596,19 @@ public class ImTranslator {
         return m;
     }
 
+    private Map<FuncDef, ImTypeClassFunc> typeClassFuncForFuncDef = Maps.newLinkedHashMap();
+
+    public ImTypeClassFunc getTypeClassFuncFor(FuncDef f) {
+        ImTypeClassFunc m = typeClassFuncForFuncDef.get(f);
+        if (m == null) {
+            ImTypeVars typeVars = ImTypeVars();
+            ImVars params = ImVars();
+            ImType returnType = JassIm.ImVoid();
+            m = JassIm.ImTypeClassFunc(f, f.getName(), typeVars, params, returnType);
+            typeClassFuncForFuncDef.put(f, m);
+        }
+        return m;
+    }
 
 
 

@@ -79,6 +79,7 @@ public class ILInterpreter implements AbstractInterpreter {
             }
 
             LocalState localState = new LocalState();
+            localState.setTypeArguments(f.getTypeVariables(), typeArguments);
 
             int i = 0;
             for (ImVar p : f.getParameters()) {
