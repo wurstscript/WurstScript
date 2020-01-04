@@ -145,7 +145,7 @@ public class EliminateGenerics {
             f.getTypeVariables().addAll(0, newTypeVars);
             List<ImTypeArgument> typeArgs = newTypeVars
                     .stream()
-                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
+                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta)))
                     .collect(Collectors.toList());
             rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables(), newTypeVars);
         }
@@ -322,32 +322,6 @@ public class EliminateGenerics {
                 super.visit(e);
             }
 
-            @Override
-            public void visit(ImTypeVarDispatch e) {
-                super.visit(e);
-                ImTypeVar tv = e.getTypeVariable();
-                int index = newTypeVars.indexOf(tv);
-                if (index < 0) {
-                    throw new CompileError(e.attrTrace(), "Could not find type variable " + tv + " in " + newTypeVars);
-                }
-                ImTypeArgument ta = generics.getTypeArguments().get(index);
-                Either<ImMethod, ImFunction> impl = ta.getTypeClassBinding().get(e.getTypeClassFunc());
-                if (impl == null) {
-                    throw new CompileError(e.attrTrace(), "Could not find func " + e.getTypeClassFunc().getName() + " in " + ta.getTypeClassBinding().keySet());
-                }
-                ImExpr newExpr;
-                if (impl.isLeft()) {
-                    ImMethod m = impl.getLeft();
-                    ImExpr receiver = e.getArguments().remove(0);
-                    e.getArguments().setParent(null);
-                    newExpr = JassIm.ImMethodCall(e.getTrace(), m, JassIm.ImTypeArguments(), receiver, e.getArguments(), false);
-                } else {
-                    ImFunction f = impl.get();
-                    e.getArguments().setParent(null);
-                    newExpr = JassIm.ImFunctionCall(e.getTrace(), f, JassIm.ImTypeArguments(), e.getArguments(), false, CallType.NORMAL);
-                }
-                e.replaceBy(newExpr);
-            }
         });
     }
 
@@ -697,7 +671,7 @@ public class EliminateGenerics {
     private List<ImTypeArgument> specializeTypeArgs(ImTypeArguments typeArgs) {
         return typeArgs
                 .stream()
-                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding()))
+                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType())))
                 .collect(Collectors.toList());
     }
 

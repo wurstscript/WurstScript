@@ -117,7 +117,7 @@ public class WurstTypeTypeParam extends WurstType {
             .map(fl -> fl.withReceiverType(this));
     }
 
-    private Stream<WurstTypeInterface> getTypeConstraints() {
+    public Stream<WurstTypeInterface> getTypeConstraints() {
         if (def.getTypeParamConstraints() instanceof TypeExprList) {
             TypeExprList constraints = (TypeExprList) def.getTypeParamConstraints();
             return constraints.stream()

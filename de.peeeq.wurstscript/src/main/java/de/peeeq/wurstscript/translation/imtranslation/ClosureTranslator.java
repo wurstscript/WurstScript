@@ -64,7 +64,7 @@ public class ClosureTranslator {
     private ImTypeArguments getClassTypeArguments() {
         ImTypeArguments res = JassIm.ImTypeArguments();
         for (ImTypeVar typeVar : typeVars.keySet()) {
-            res.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar), Collections.emptyMap()));
+            res.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar)));
         }
         return res;
     }
@@ -229,9 +229,7 @@ public class ClosureTranslator {
                     result.put(oldTypevar, newTypevar);
                     c.getTypeVariables().add(newTypevar);
                     thisType.getTypeArguments().add(
-                            JassIm.ImTypeArgument(
-                                    JassIm.ImTypeVarRef(newTypevar),
-                                    Collections.emptyMap()));
+                            JassIm.ImTypeArgument(JassIm.ImTypeVarRef(newTypevar)));
                 }
                 return JassIm.ImTypeVarRef(newTypevar);
             }

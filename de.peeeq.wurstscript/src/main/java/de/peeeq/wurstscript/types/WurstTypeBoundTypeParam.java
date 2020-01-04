@@ -210,12 +210,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
-        ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-        for (TypeClassInstance instance : instances) {
-            instance.addTypeClassBinding(tr, typeClassBinding);
-        }
-        return JassIm.ImTypeArgument(t, typeClassBinding);
+        return JassIm.ImTypeArgument(imTranslateType(tr));
     }
 
     public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassInstance instance) {

@@ -124,7 +124,7 @@ public class ClassTranslator {
 
     private ImClassType imClassType() {
         ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv)))
                 .collect(Collectors.toCollection(JassIm::ImTypeArguments));
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -372,7 +372,7 @@ public class ClassTranslator {
         }
         ImTypeArguments typeArgs = ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv)));
         }
         f.getBody().add(ImFunctionCall(trace, constrFunc, typeArgs, arguments, false, CallType.NORMAL));
 
@@ -412,7 +412,7 @@ public class ClassTranslator {
         // call classInitFunc:
         ImTypeArguments typeArguments = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+            typeArguments.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv)));
         }
         f.getBody().add(ImFunctionCall(trace, classInitFunc, typeArguments, JassIm.ImExprs(JassIm.ImVarAccess(thisVar)), false, CallType.NORMAL));
         // constructor user code

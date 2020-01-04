@@ -451,13 +451,11 @@ public class ExprTranslation {
                 dynamicDispatch = true;
             }
             // add implicit parameter to front
-            // TODO why would I add the implicit parameter here, if it is
-            // not a dynamic dispatch?
+            // note: might not be dynamic, in case of extension function)
             leftExpr = (Expr) e.attrImplicitParameter();
 
             if (leftExpr.attrTyp() instanceof WurstTypeTypeParam) {
-                WurstTypeTypeParam tp = (WurstTypeTypeParam) leftExpr.attrTyp();
-                typeParamDispatchOn = tp;
+                typeParamDispatchOn = (WurstTypeTypeParam) leftExpr.attrTyp();
             }
 
         }
@@ -517,11 +515,12 @@ public class ExprTranslation {
 
         ImExpr call;
         if (typeParamDispatchOn != null) {
-            ImTypeClassFunc typeClassFunc = t.getTypeClassFuncFor((FuncDef) calledFunc);
-            if (receiver != null) {
-                imArgs.add(0, receiver);
-            }
-            call = JassIm.ImTypeVarDispatch(e, typeClassFunc, imArgs, t.getTypeVar(typeParamDispatchOn.getDef()));
+
+            FuncDef calledFuncDef = (FuncDef) calledFunc;
+            ImMethod typeClassMethod = t.getTypeClassMethodFor(calledFuncDef);
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, typeClassMethod.getImplementation().getTypeVariables());
+            ImVar typeClassDict = t.getTypeClassDict(typeParamDispatchOn, calledFuncDef);
+            call = JassIm.ImMethodCall(e, typeClassMethod, typeArguments, JassIm.ImVarAccess(typeClassDict), imArgs, false);
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
