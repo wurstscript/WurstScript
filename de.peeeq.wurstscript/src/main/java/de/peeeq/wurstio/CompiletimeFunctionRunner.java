@@ -20,6 +20,7 @@ import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.intermediatelang.interpreter.LocalState;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ProgramState;
+import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
@@ -108,6 +109,8 @@ public class CompiletimeFunctionRunner {
             }
             runDelayedActions();
 
+            partitionCompiletimeStateInitFunction();
+
         } catch (InterpreterException e) {
             Element origin = e.getTrace();
             sendErrors(origin, e.getMessage(), e);
@@ -129,6 +132,14 @@ public class CompiletimeFunctionRunner {
             }
         }
 
+    }
+
+    private void partitionCompiletimeStateInitFunction() {
+        if (compiletimeStateInitFunction == null) {
+            return;
+        }
+
+        FunctionSplitter.splitFunc(translator, compiletimeStateInitFunction);
     }
 
     private boolean isUnitTestMode() {

@@ -86,7 +86,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
     }
 
-    private void optimizeFunc(ImFunction func) {
+    void optimizeFunc(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Knowledge> knowledge = calculateKnowledge(cfg);
         rewriteCode(cfg, knowledge);
