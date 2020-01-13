@@ -28,7 +28,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private FuncDef fromIndex;
     private FuncDef toIndex;
     // type class instances (null for old generics)
-    private final @Nullable List<TypeClassInstance> instances;
+    private final @Nullable List<TypeClassFuncInstance> instances;
     private boolean indexInitialized = false;
     private Element context;
 
@@ -46,7 +46,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         }
     }
 
-    public WurstTypeBoundTypeParam(TypeParamDef typeParamDef, WurstType baseType, FuncDef fromIndex, FuncDef toIndex, @Nullable List<TypeClassInstance> instances, boolean indexInitialized, Element context) {
+    public WurstTypeBoundTypeParam(TypeParamDef typeParamDef, WurstType baseType, FuncDef fromIndex, FuncDef toIndex, @Nullable List<TypeClassFuncInstance> instances, boolean indexInitialized, Element context) {
         this.typeParamDef = typeParamDef;
         this.baseType = baseType;
         this.fromIndex = fromIndex;
@@ -211,16 +211,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
         ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-        for (TypeClassInstance instance : instances) {
+        Map<ImTypeClassFunc, TypeClassFuncInstance> typeClassBinding = new HashMap<>();
+        for (TypeClassFuncInstance instance : instances) {
             instance.addTypeClassBinding(tr, typeClassBinding);
         }
         return JassIm.ImTypeArgument(t, typeClassBinding);
     }
 
-    public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassInstance instance) {
-        ImmutableList<TypeClassInstance> newInstances =
-            ImmutableList.<TypeClassInstance>builderWithExpectedSize(instances.size() + 1)
+    public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassFuncInstance instance) {
+        ImmutableList<TypeClassFuncInstance> newInstances =
+            ImmutableList.<TypeClassFuncInstance>builderWithExpectedSize(instances.size() + 1)
                 .addAll(instances)
                 .add(instance)
                 .build();

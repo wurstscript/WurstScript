@@ -11,10 +11,7 @@ import de.peeeq.wurstscript.utils.Pair;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
 import static de.peeeq.wurstscript.attributes.GenericsHelper.typeParameters;
@@ -51,6 +48,9 @@ public class AttrPossibleFunctionSignatures {
         List<WurstType> argTypes = AttrFuncDef.argumentTypes(fc);
         for (FunctionSignature sig : res) {
             FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
+            if (sig2 == null) {
+                continue;
+            }
             Pair<FunctionSignature, List<CompileError>> typeClassMatched = findTypeClasses(sig2, fc);
             if (typeClassMatched.getB().isEmpty()) {
                 resultBuilder2.add(typeClassMatched.getA());
@@ -107,16 +107,36 @@ public class AttrPossibleFunctionSignatures {
             }
             WurstTypeBoundTypeParam matchedType = matchedTypeOpt.get();
             for (WurstTypeInterface constraint : constraints) {
-                VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
+                VariableBinding mapping2 = findTypeClass(fc, errors, mapping, tp, matchedType, constraint);
                 if (mapping2 == null) {
                     errors.add(new CompileError(fc.attrSource(), "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint + "."));
                 } else {
-                    mapping = mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(constraint)));
+                    mapping = mapping2;
                 }
             }
         }
         sig = sig.setTypeArgs(fc, mapping);
         return Pair.create(sig, errors);
+    }
+
+    private static VariableBinding findTypeClass(StmtCall fc, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint) {
+        // option 1: the matched type is a subtype of the constraint
+        VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
+        if (mapping2 != null) {
+            return mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(constraint)));
+        }
+        // option 2: the matched type is a type param that also has the right constraint:
+        if (matchedType.getBaseType() instanceof WurstTypeTypeParam) {
+            WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
+            Optional<WurstTypeInterface> matchingConstraint = wtp.getTypeConstraints().filter(c -> c.isSubtypeOf(constraint, fc)).findFirst();
+            if (matchingConstraint.isPresent()) {
+                return mapping.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.fromTypeParam(wtp, matchingConstraint.get())));
+            }
+        }
+        // option 3: find methods elsewhere
+
+
+        return null;
     }
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {

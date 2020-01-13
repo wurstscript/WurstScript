@@ -1335,4 +1335,27 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void forwardTypeClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "interface ToIndex",
+            "	function toIndex() returns int",
+            "class A implements ToIndex",
+            "	override function toIndex() returns int",
+            "		return 42",
+            "function foo<T: ToIndex>(T x)",
+            "    if x.toIndex() == 42",
+            "        testSuccess()",
+            "function bar<T: ToIndex>(T x)",
+            "    foo(x)",
+            "init",
+            "    let a = new A",
+            "    bar(a)"
+        );
+    }
+
+
+
 }
