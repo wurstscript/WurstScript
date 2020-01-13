@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.UsedVariables;
 
-import javax.sound.midi.Soundbank;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,12 +16,13 @@ import java.util.stream.Collectors;
  */
 public class FunctionSplitter {
 
-    private static final int OP_LIMIT = 10000;
+    private final int op_limit;
     private final ImTranslator tr;
     private final ImFunction func;
     private final Map<ImFunction, Integer> fuelVisited;
 
-    private FunctionSplitter(ImTranslator tr, ImFunction func) {
+    private FunctionSplitter(int op_limit, ImTranslator tr, ImFunction func) {
+        this.op_limit = op_limit;
         this.tr = tr;
         this.func = func;
         this.fuelVisited = new LinkedHashMap<>();
@@ -30,7 +30,7 @@ public class FunctionSplitter {
     }
 
     public static void splitFunc(ImTranslator tr, ImFunction func) {
-        new FunctionSplitter(tr, func).optimize();
+        new FunctionSplitter(tr.getRunArgs().getFunctionSplitLimit(), tr, func).optimize();
 
     }
 
@@ -88,7 +88,7 @@ public class FunctionSplitter {
         int fuel = 0;
         for (ImStmt s : body) {
             fuel += estimateFuel(s);
-            if (result.isEmpty() || fuel > OP_LIMIT) {
+            if (result.isEmpty() || fuel > op_limit) {
                 result.add(new ArrayList<>());
                 fuel = 0;
             }
