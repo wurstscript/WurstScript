@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.translation.imtranslation.CallType;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.translation.imtranslation.UsedVariables;
 
+import javax.sound.midi.Soundbank;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -91,7 +92,7 @@ public class FunctionSplitter {
                 result.add(new ArrayList<>());
                 fuel = 0;
             }
-            result.get(0).add(s);
+            result.get(result.size() - 1).add(s);
         }
         return result;
     }
@@ -198,7 +199,7 @@ public class FunctionSplitter {
 
             @Override
             public Integer case_ImMemberAccess(ImMemberAccess s) {
-                return estimateFuel(s.getReceiver())
+                return 1 + estimateFuel(s.getReceiver())
                     + estimateFuel(s.getIndexes());
             }
 
@@ -209,12 +210,12 @@ public class FunctionSplitter {
 
             @Override
             public Integer case_ImTupleExpr(ImTupleExpr s) {
-                return estimateFuel(s.getExprs());
+                return 1 + estimateFuel(s.getExprs());
             }
 
             @Override
             public Integer case_ImTypeIdOfObj(ImTypeIdOfObj s) {
-                return estimateFuel(s.getObj());
+                return 1 + estimateFuel(s.getObj());
             }
 
             @Override
@@ -224,17 +225,17 @@ public class FunctionSplitter {
 
             @Override
             public Integer case_ImStatementExpr(ImStatementExpr s) {
-                return estimateFuel(s.getStatements()) + estimateFuel(s.getExpr());
+                return 1 + estimateFuel(s.getStatements()) + estimateFuel(s.getExpr());
             }
 
             @Override
             public Integer case_ImCompiletimeExpr(ImCompiletimeExpr s) {
-                return 0;
+                return 1;
             }
 
             @Override
             public Integer case_ImIf(ImIf s) {
-                return estimateFuel(s.getCondition()) + Math.max(estimateFuel(s.getThenBlock()), estimateFuel(s.getElseBlock()));
+                return 1 + estimateFuel(s.getCondition()) + Math.max(estimateFuel(s.getThenBlock()), estimateFuel(s.getElseBlock()));
             }
 
             @Override
@@ -249,7 +250,7 @@ public class FunctionSplitter {
 
             @Override
             public Integer case_ImInstanceof(ImInstanceof s) {
-                return estimateFuel(s.getObj()) + 10 * tr.getImProg().getClasses().size();
+                return 1 + estimateFuel(s.getObj()) + 10 * tr.getImProg().getClasses().size();
             }
         });
     }
