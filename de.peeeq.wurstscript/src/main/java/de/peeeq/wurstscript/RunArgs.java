@@ -47,6 +47,7 @@ public class RunArgs {
     private RunOption optionMeasureTimes;
     private RunOption optionHotStartmap;
     private RunOption optionHotReload;
+    private int functionSplitLimit = 10000;
 
     private RunOption optionBuild;
 
@@ -125,6 +126,8 @@ public class RunArgs {
         addOptionWithArg("inputmap", "The next argument should be the input map.", arg -> inputmap = arg);
         optionLua = addOption("lua", "Choose Lua as the compilation target.");
 
+        addOptionWithArg("functionSplitLimit", "The maximum number of operations in a function before it is split by the function splitter (used for compiletime functions)",
+            s -> functionSplitLimit = Integer.parseInt(s, 10));
 
         nextArg:
         for (int i = 0; i < args.length; i++) {
@@ -342,6 +345,11 @@ public class RunArgs {
 
     public boolean isLua() {
         return optionLua.isSet;
+    }
+
+
+    public int getFunctionSplitLimit() {
+        return functionSplitLimit;
     }
 
 }

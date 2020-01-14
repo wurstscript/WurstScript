@@ -43,7 +43,7 @@ public class TempMerger implements OptimizerPass {
         return totalMerged;
     }
 
-    private void optimizeFunc(ImFunction f) {
+    void optimizeFunc(ImFunction f) {
         optimizeStatements(f.getBody());
     }
 

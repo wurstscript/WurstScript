@@ -3,10 +3,14 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.ast.Ast;
 import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
 import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.collection.HashSet;
@@ -17,6 +21,7 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -1050,4 +1055,32 @@ public class OptimizerTests extends WurstScriptTest {
         }
     }
 
+    @Test
+    public void testFunctionSplitter() {
+        WurstModel model = Ast.WurstModel();
+
+        ImTranslator tr = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = tr.getImProg();
+
+        ImFunction func = JassIm.ImFunction(model, "blub", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(func);
+
+        for (int i = 0; i < 10000; i++) {
+            ImVar l = JassIm.ImVar(model, TypesHelper.imInt(), "l" + i, false);
+            func.getLocals().add(l);
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            prog.getGlobals().add(g);
+            func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(l), JassIm.ImIntVal(i)));
+            func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(g), JassIm.ImVarAccess(l)));
+        }
+
+        FunctionSplitter.splitFunc(tr, func);
+
+        System.out.println(prog);
+        // should at least add one additional function
+        assertTrue(prog.getFunctions().size() >= 2);
+
+
+
+    }
 }
