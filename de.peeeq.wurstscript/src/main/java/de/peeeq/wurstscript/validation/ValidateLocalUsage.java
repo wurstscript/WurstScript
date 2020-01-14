@@ -42,10 +42,24 @@ public class ValidateLocalUsage {
                 NameLink nameLink = set.getUpdatedExpr().attrNameLink();
                 locals.remove(nameLink.getDef());
 
+                if (set.getUpdatedExpr() instanceof ExprMemberVar) {
+                    checkLeftExpr((ExprMemberVar) set.getUpdatedExpr());
+                }
+
+            }
+
+            private void checkLeftExpr(ExprMemberVar updatedExpr) {
+                if (updatedExpr.getLeft() instanceof ExprMemberVar) {
+                    checkLeftExpr((ExprMemberVar) updatedExpr.getLeft());
+                } else {
+                    locals.remove(updatedExpr.getLeft().tryGetNameDef());
+                }
             }
         });
 
         locals.forEach(local -> local.addWarning("Constant local variables should be defined using 'let'."));
 
     }
+
+
 }
