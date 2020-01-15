@@ -2,8 +2,6 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.VarLink;
-import de.peeeq.wurstscript.jassIm.ImVarWrite;
 
 import java.util.*;
 
@@ -15,12 +13,12 @@ public class ValidateLocalUsage {
         Map<NameDef, Element> usedGlobals = new HashMap<>();
         for (CompilationUnit cu : toCheck) {
             for (WPackage p : cu.getPackages()) {
-                checkGlobalsUsage(p);
+                checkLocalsUsage(p);
             }
         }
     }
 
-    private static void checkGlobalsUsage(WPackage p) {
+    private static void checkLocalsUsage(WPackage p) {
         HashSet<NameDef> locals = new HashSet<>();
 
         p.accept(new WPackage.DefaultVisitor() {
