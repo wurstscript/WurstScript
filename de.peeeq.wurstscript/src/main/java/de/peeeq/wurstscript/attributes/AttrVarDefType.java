@@ -42,16 +42,34 @@ public class AttrVarDefType {
 //        WurstType expectedTyp = parentClosure.attrExpectedTypRaw();
 //        return WurstTypeInfer.instance();
         WurstType expectedTyp = parentClosure.attrExpectedTyp();
+        return getParameterTypeFromClosureType(p, paramIndex, expectedTyp, true);
+    }
+
+    public static WurstType getParameterTypeFromClosureType(WShortParameter p, int paramIndex, WurstType expectedTyp, boolean addError) {
+        if (expectedTyp instanceof WurstTypeUnion) {
+            WurstTypeUnion union = (WurstTypeUnion) expectedTyp;
+            WurstType t1 = getParameterTypeFromClosureType(p, paramIndex, union.getTypeA(), addError);
+            if (t1 instanceof WurstTypeInfer) {
+                return t1;
+            }
+            WurstType t2 = getParameterTypeFromClosureType(p, paramIndex, union.getTypeB(), addError);
+            return WurstTypeUnion.create(t1, t2, p);
+        }
+
         FunctionSignature sig = AttrClosureAbstractMethod.getAbstractMethodSignature(expectedTyp);
         if (sig == null) {
-            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+            if (addError) {
+                p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "The target type could not be uniquely determined for expected type " + expectedTyp + ".");
+            }
             return WurstTypeInfer.instance();
         }
 
         if (sig.getParamTypes().size() <= paramIndex) {
-            p.addError("Could not infer type for parameter " + p.getName() + ". " +
+            if (addError) {
+                p.addError("Could not infer type for parameter " + p.getName() + ". " +
                     "Closure type " + expectedTyp + " does not take so many parameters.");
+            }
             return WurstTypeInfer.instance();
         }
         // we call normalize here, because we do not want to get implicit conversions

@@ -416,7 +416,7 @@ public class HoverInfo extends UserRequest<Hover> {
 
         @Override
         public List<Either<String, MarkedString>> case_ExprClosure(ExprClosure exprClosure) {
-            return string("Closure with type " + exprClosure.attrTyp() + " (implements " + exprClosure.attrExpectedTyp() + ")");
+            return string("Closure with type " + exprClosure.attrTyp() + " (implements " + exprClosure.attrExpectedTypAfterOverloading() + ")");
         }
 
         @Override

@@ -40,7 +40,7 @@ public class ClosureTranslator {
 
 
     public ImExpr translate() {
-        if (e.attrExpectedTyp() instanceof WurstTypeCode) {
+        if (e.attrExpectedTypAfterOverloading() instanceof WurstTypeCode) {
             return translateAnonFunc();
         } else {
             ImClass c = createClass();
@@ -71,7 +71,7 @@ public class ClosureTranslator {
 
 
     private void callSuperConstructor(ImVar clVar, ImStmts stmts, ImClass c) {
-        WurstType t = e.attrExpectedTyp();
+        WurstType t = e.attrExpectedTypAfterOverloading();
         if (t instanceof WurstTypeClass) {
             WurstTypeClass ct = (WurstTypeClass) t;
             ClassDef cd = ct.getClassDef();
@@ -310,7 +310,7 @@ public class ClosureTranslator {
 
     private ImClassType getSuperClass() {
         // since the expected type is just an approximation, we calculate the exact type here again:
-        WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) e.attrExpectedTyp();
+        WurstTypeClassOrInterface t = (WurstTypeClassOrInterface) e.attrExpectedTypAfterOverloading();
         ClassOrInterface classDef = t.getDef();
         t = (WurstTypeClassOrInterface) classDef.attrTyp();
         VariableBinding mapping = VariableBinding.emptyMapping()
