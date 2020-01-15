@@ -188,7 +188,7 @@ JASS_ELSEIF: 'elseif';
 NL: [\r\n]+;
 ID: [a-zA-Z_][a-zA-Z0-9_]* ;
 
-STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') )* '"';
+STRING: '"' ( EscapeSequence | ~('\\'|'"'|'\r'|'\n') | NL )* '"';
 REAL: [0-9]+ '.' [0-9]* | '.'[0-9]+;
 
 fragment HexInt: '$'[0-9a-fA-F]+ | '0'[xX][0-9a-fA-F]+;
