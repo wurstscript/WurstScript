@@ -37,13 +37,17 @@ public class ValidateLocalUsage {
             @Override
             public void visit(StmtSet set) {
                 super.visit(set);
-                NameLink nameLink = set.getUpdatedExpr().attrNameLink();
-                locals.remove(nameLink.getDef());
+                LExpr updatedExpr = set.getUpdatedExpr();
+                if (updatedExpr != null) {
+                    NameLink nameLink = updatedExpr.attrNameLink();
+                    if (nameLink != null) {
+                        locals.remove(nameLink.getDef());
+                    }
 
-                if (set.getUpdatedExpr() != null && set.getUpdatedExpr() instanceof ExprMemberVar) {
-                    checkLeftExpr((ExprMemberVar) set.getUpdatedExpr());
+                    if (updatedExpr instanceof ExprMemberVar) {
+                        checkLeftExpr((ExprMemberVar) updatedExpr);
+                    }
                 }
-
             }
 
             private void checkLeftExpr(ExprMemberVar updatedExpr) {
