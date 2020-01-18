@@ -201,7 +201,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 if (!runArgs.isDisablePjass()) {
                     gui.sendProgress("Running PJass");
-                    Pjass.Result pJassResult = Pjass.runPjass(outFile);
+                    Pjass.Result pJassResult = Pjass.runPjass(outFile,
+                        new File(buildDir, "common.j").getAbsolutePath(),
+                        new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getMessage());
                     if (!pJassResult.isOk()) {
                         for (CompileError err : pJassResult.getErrors()) {
@@ -224,9 +226,9 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
-        File mapScriptFolder = mapScript.getParentFile();
-        File commonJ = new File(mapScriptFolder, "common.j");
-        File blizzardJ = new File(mapScriptFolder, "blizzard.j");
+        File buildDir = getBuildDir();
+        File commonJ = new File(buildDir, "common.j");
+        File blizzardJ = new File(buildDir, "blizzard.j");
 
         if (!commonJ.exists()) {
             throw new IOException("Could not find file " + commonJ.getAbsolutePath());
@@ -237,9 +239,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
-        pb.directory(mapScriptFolder);
+        pb.directory(buildDir);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
-        return new File(mapScriptFolder, "jhcr_war3map.j");
+        return new File(buildDir, "jhcr_war3map.j");
     }
 
     /**

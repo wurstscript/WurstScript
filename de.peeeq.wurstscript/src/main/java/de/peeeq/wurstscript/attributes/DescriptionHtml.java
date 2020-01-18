@@ -144,7 +144,7 @@ public class DescriptionHtml {
     }
 
     public static String description(ExprClosure e) {
-        return "This is a closure of type " + htmlType(e.attrExpectedTyp());
+        return "This is a closure of type " + htmlType(e.attrExpectedTypAfterOverloading());
     }
 
     public static String description(FuncRef fr) {

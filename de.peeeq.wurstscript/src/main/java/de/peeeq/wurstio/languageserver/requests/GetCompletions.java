@@ -605,18 +605,23 @@ public class GetCompletions extends UserRequest<CompletionList> {
                 if (singleAbstractMethod != null) {
                     paramNames = Utils.init(paramNames);
 
-                    lambdaReplacement = new StringBuilder(" (");
-                    for (int i = 0; i < singleAbstractMethod.getParameterTypes().size(); i++) {
-                        if (i > 0) {
-                            lambdaReplacement.append(", ");
+                    if (singleAbstractMethod.getParameterTypes().size() == 0) {
+                        lambdaReplacement = new StringBuilder(" -> \n");
+                        cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
+                    } else {
+                        lambdaReplacement = new StringBuilder(" (");
+                        for (int i = 0; i < singleAbstractMethod.getParameterTypes().size(); i++) {
+                            if (i > 0) {
+                                lambdaReplacement.append(", ");
+                            }
+                            lambdaReplacement.append(singleAbstractMethod.getParameterType(i));
+                            lambdaReplacement.append(" ");
+                            lambdaReplacement.append(singleAbstractMethod.getParameterName(i));
                         }
-                        lambdaReplacement.append(singleAbstractMethod.getParameterType(i));
-                        lambdaReplacement.append(" ");
-                        lambdaReplacement.append(singleAbstractMethod.getParameterName(i));
+                        lambdaReplacement.append(") ->\n");
+                        // only need to add one indent here, because \n already indents to the same line as before
+                        cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
                     }
-                    lambdaReplacement.append(") ->\n");
-                    // only need to add one indent here, because \n already indents to the same line as before
-                    cu.getCuInfo().getIndentationMode().appendIndent(lambdaReplacement, 1);
                 }
             }
         }

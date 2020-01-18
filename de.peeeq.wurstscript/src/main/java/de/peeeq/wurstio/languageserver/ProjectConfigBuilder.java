@@ -34,7 +34,7 @@ public class ProjectConfigBuilder {
 
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-            File file = new File(buildDir, "wc3libs.j");
+            File file = new File(buildDir, "wc3libs_injected.j");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
@@ -67,7 +67,10 @@ public class ProjectConfigBuilder {
             }
 
             Files.write(scriptBytes, file);
-            Pjass.runPjass(file);
+            if (!runArgs.isDisablePjass()) {
+                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
+                    new File(buildDir, "blizzard.j").getAbsolutePath());
+            }
             String mapScriptName;
             if (runArgs.isLua()) {
                 mapScriptName = "war3map.lua";

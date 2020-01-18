@@ -49,7 +49,7 @@ public class LocalMerger implements OptimizerPass {
         return "Local variables merged";
     }
 
-    private void optimizeFunc(ImFunction func) {
+    void optimizeFunc(ImFunction func) {
         Map<ImStmt, Set<ImVar>> livenessInfo = calculateLiveness(func);
         eliminateDeadCode(livenessInfo);
         mergeLocals(livenessInfo, func);

@@ -117,7 +117,15 @@ public class CompilationProcess {
     }
 
     private boolean runPjass(File outputMapscript) {
-        Pjass.Result pJassResult = Pjass.runPjass(outputMapscript);
+        File commonJ = new File(outputMapscript.getParent(), "common.j");
+        File blizzJ = new File(outputMapscript.getParent(), "blizzard.j");
+
+        Pjass.Result pJassResult;
+        if (commonJ.exists() && blizzJ.exists()) {
+            pJassResult = Pjass.runPjass(outputMapscript, commonJ.getAbsolutePath(), blizzJ.getAbsolutePath());
+        } else {
+            pJassResult = Pjass.runPjass(outputMapscript);
+        }
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk()) {
             for (CompileError err : pJassResult.getErrors()) {

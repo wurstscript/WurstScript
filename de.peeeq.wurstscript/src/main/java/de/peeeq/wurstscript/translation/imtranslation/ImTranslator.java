@@ -1707,5 +1707,7 @@ public class ImTranslator {
         return compiletimeExpressionsOrder.getOrDefault(fc, 0);
     }
 
-
+    public RunArgs getRunArgs() {
+        return runArgs;
+    }
 }

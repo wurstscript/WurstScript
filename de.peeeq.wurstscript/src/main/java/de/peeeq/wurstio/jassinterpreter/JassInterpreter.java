@@ -459,9 +459,20 @@ public class JassInterpreter implements AbstractInterpreter {
     }
 
     private ExecutableJassFunction searchNativeJassFunction(String name) {
+        if (name.equals("ExecuteFunc")) {
+            return executeFuncNative();
+        }
         ReflectionNativeProvider nf = new ReflectionNativeProvider(this);
         ExecutableJassFunction functionPair = nf.getFunctionPair(name);
         return functionPair != null ? functionPair : new UnknownJassFunction(name);
+    }
+
+    private ExecutableJassFunction executeFuncNative() {
+        return (jassInterpreter, arguments) -> {
+            ILconstString funcName = (ILconstString) arguments[0];
+            jassInterpreter.executeFunction(funcName.getVal());
+            return ILconstBool.TRUE;
+        };
     }
 
     public void trace(boolean b) {

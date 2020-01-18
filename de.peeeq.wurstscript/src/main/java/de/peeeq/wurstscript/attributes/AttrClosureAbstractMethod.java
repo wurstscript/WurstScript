@@ -10,7 +10,7 @@ import org.eclipse.jdt.annotation.Nullable;
 public class AttrClosureAbstractMethod {
 
     public static FuncLink calculate(ExprClosure e) {
-        WurstType expected = e.attrExpectedTyp();
+        WurstType expected = e.attrExpectedTypAfterOverloading();
         if (expected instanceof WurstTypeClassOrInterface) {
             WurstTypeClassOrInterface ct = (WurstTypeClassOrInterface) expected;
             return ct.findSingleAbstractMethod(e);

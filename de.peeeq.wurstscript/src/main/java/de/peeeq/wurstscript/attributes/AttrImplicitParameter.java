@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 public class AttrImplicitParameter {
 
@@ -67,6 +68,17 @@ public class AttrImplicitParameter {
 
     private static OptExpr getImplicitParameterCaseNormalFunctionCall(FunctionCall e) {
         FuncLink calledFunc = e.attrFuncLink();
+        return getFunctionCallImplicitParameter(e, calledFunc, true);
+    }
+
+    static OptExpr getFunctionCallImplicitParameter(FunctionCall e, FuncLink calledFunc, boolean showError) {
+        if (e instanceof HasReceiver) {
+            HasReceiver hasReceiver = (HasReceiver) e;
+            Expr res = getImplicitParameterUsingLeft(hasReceiver);
+            if (res != null) {
+                return res;
+            }
+        }
         if (calledFunc == null) {
             return Ast.NoExpr();
         }
@@ -77,13 +89,15 @@ public class AttrImplicitParameter {
                 ExprThis t = Ast.ExprThis(e.getSource());
                 t.setParent(e);
                 // check if 'this' has correct type
-                if (!t.attrTyp().isSubtypeOf(calledFunc.getReceiverType(), e)) {
+                if (showError && !t.attrTyp().isSubtypeOf(calledFunc.getReceiverType(), e)) {
                     e.addError("Cannot access dynamic function " + e.getFuncName() + " from context of type " +
                             t.attrTyp() + ".");
                 }
                 return t;
             } else {
-                e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
+                if (showError) {
+                    e.addError("Cannot call dynamic function " + e.getFuncName() + " from static context.");
+                }
                 return Ast.NoExpr();
             }
         } else {
