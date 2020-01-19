@@ -136,7 +136,9 @@ public class AttrPossibleFunctionSignatures {
         }
         // option 3: find methods elsewhere
 
+        // TODO find instance declaration
 
+        errors.add(new CompileError(fc, "Could not find type class instance " + constraint.getName() + " for type " + matchedType));
         return null;
     }
 

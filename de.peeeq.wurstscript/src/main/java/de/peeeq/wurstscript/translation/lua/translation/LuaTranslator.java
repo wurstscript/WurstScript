@@ -78,14 +78,6 @@ public class LuaTranslator {
         }
     };
 
-    GetAForB<ImTypeClassFunc, String> typeClassFuncName = new GetAForB<ImTypeClassFunc, String>() {
-        @Override
-        public String initFor(ImTypeClassFunc a) {
-            return uniqueName(a.getName());
-        }
-    };
-
-
 
 
     GetAForB<ImFunction, LuaFunction> luaFunc = new GetAForB<ImFunction, LuaFunction>() {

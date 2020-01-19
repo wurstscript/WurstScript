@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.attributes.CheckHelper;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.ImTypeArguments;
 import de.peeeq.wurstscript.jassIm.JassIm;
@@ -141,4 +142,6 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }
 
+    public ImClassType imTranslateToTypeClass(ImTranslator tr) {
+    }
 }

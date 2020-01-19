@@ -107,7 +107,7 @@ public class ImTranslator {
         this.wurstProg = wurstProg;
         this.lasttranslatedThing = wurstProg;
         this.isUnitTestMode = isUnitTestMode;
-        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), JassIm.ImTypeClassFuncs(), new LinkedHashMap<>());
+        imProg = ImProg(wurstProg, ImVars(), ImFunctions(), ImMethods(), JassIm.ImClasses(), new LinkedHashMap<>());
         this.runArgs = runArgs;
     }
 
@@ -611,7 +611,8 @@ public class ImTranslator {
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()));
+            // TODO include type impls? (add constraints to ImTypeVar)
+            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), ImTypeClassImpls()));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -1570,16 +1571,31 @@ public class ImTranslator {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
             ImTypeVars typeVariables = JassIm.ImTypeVars();
-            if (s instanceof AstElementWithTypeParameters) {
-                for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
-                    if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                        ImTypeVar tv = getTypeVar(tp);
-                        typeVariables.add(tv);
-                    }
+            for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                    ImTypeVar tv = getTypeVar(tp);
+                    typeVariables.add(tv);
                 }
             }
 
             return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+        });
+    }
+
+    private Map<ClassOrInterface, @Nullable ImClass> typeClassStructFor = Maps.newLinkedHashMap();
+
+    public ImClass getTypeClassStructFor(ClassOrInterface s) {
+        Preconditions.checkNotNull(s);
+        return typeClassStructFor.computeIfAbsent(s, s1 -> {
+            ImTypeVars typeVariables = JassIm.ImTypeVars();
+            for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                    ImTypeVar tv = getTypeVar(tp);
+                    typeVariables.add(tv);
+                }
+            }
+
+            return JassIm.ImClass(s1, "typeclass_" + s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 
@@ -1595,22 +1611,6 @@ public class ImTranslator {
         }
         return m;
     }
-
-    private Map<FuncDef, ImTypeClassFunc> typeClassFuncForFuncDef = Maps.newLinkedHashMap();
-
-    public ImTypeClassFunc getTypeClassFuncFor(FuncDef f) {
-        ImTypeClassFunc m = typeClassFuncForFuncDef.get(f);
-        if (m == null) {
-            ImTypeVars typeVars = ImTypeVars();
-            ImVars params = ImVars();
-            ImType returnType = JassIm.ImVoid();
-            m = JassIm.ImTypeClassFunc(f, f.getName(), typeVars, params, returnType);
-            typeClassFuncForFuncDef.put(f, m);
-        }
-        return m;
-    }
-
-
 
 
     public ClassManagementVars getClassManagementVarsFor(ImClass c) {

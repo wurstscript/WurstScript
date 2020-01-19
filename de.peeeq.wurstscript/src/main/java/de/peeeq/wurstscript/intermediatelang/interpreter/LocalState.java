@@ -14,7 +14,7 @@ import java.util.Map;
 public class LocalState extends State {
 
     private @Nullable ILconst returnVal = null;
-    private Table<ImTypeVar, ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassImplementations = HashBasedTable.create();
+    private Table<ImTypeVar, ImClassType, ImTypeClassImpl> typeClassImplementations = HashBasedTable.create();
 
     public LocalState(ILconst returnVal) {
         this.setReturnVal(returnVal);
@@ -33,16 +33,16 @@ public class LocalState extends State {
     }
 
 
-    public Either<ImMethod, ImFunction> getImplementation(ImTypeVar typeVariable, ImTypeClassFunc typeClassFunc) {
-        return typeClassImplementations.get(typeVariable, typeClassFunc);
+    public @Nullable ImTypeClassImpl getImplementation(ImTypeVar typeVariable, ImClassType classType) {
+        return typeClassImplementations.get(typeVariable, classType);
     }
 
     public void setTypeArguments(ImTypeVars typeVariables, List<ImTypeArgument> typeArguments) {
         for (int i = 0; i < typeVariables.size() && i < typeArguments.size(); i++) {
             ImTypeVar typeVariable = typeVariables.get(i);
             ImTypeArgument typeArgument = typeArguments.get(i);
-            for (Map.Entry<ImTypeClassFunc, Either<ImMethod, ImFunction>> e : typeArgument.getTypeClassBinding().entrySet()) {
-                typeClassImplementations.put(typeVariable, e.getKey(), e.getValue());
+            for (ImTypeClassImpl e : typeArgument.getTypeClassImplementations()) {
+                typeClassImplementations.put(typeVariable, e.getTypeClass(), e);
             }
         }
     }

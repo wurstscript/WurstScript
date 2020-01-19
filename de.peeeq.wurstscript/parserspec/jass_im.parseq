@@ -9,13 +9,11 @@ ImProg(
 	ImFunctions functions,
 	ImMethods methods,
 	ImClasses classes,
-	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
-ImTypeClassFuncs * ImTypeClassFunc
 
 ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
 
@@ -46,11 +44,6 @@ ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	ImStmts body, 
 	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
-ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
-	String name,
-	ImTypeVars typeVariables,
-	ImVars parameters,
-	ref ImType returnType)
 
 
 ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
@@ -100,7 +93,7 @@ ImExpr =
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
-    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
+    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImMethod method, ImExprs arguments
                        , ref ImTypeVar typeVariable)
 	| ImCast(ImExpr expr, ref ImType toType)
 
@@ -148,13 +141,13 @@ ImConst =
 
 ImTypeArguments * ImTypeArgument
 
-ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, de.peeeq.wurstscript.types.TypeClassFuncInstance> typeClassBinding)
+ImTypeArgument(ref ImType type, ImTypeClassImpls typeClassImplementations)
 
 ImTypeClassImpls * ImTypeClassImpl
 
 ImTypeClassImpl =
-      ImTypeClassImplFromInterface(ref ImClass typeClass, ref ImClass implementingClass)
-    | ImTypeClassImplFromOther(ref ImClass typeClass, ref ImTypeClassImpl otherImpl)
+      ImTypeClassImplFromInterface(ref ImClassType typeClass, ref ImClassType implementingClass)
+    | ImTypeClassImplFromOther(ref ImClassType typeClass, ref ImTypeClassImpl otherImpl)
 
 // helper types:
 

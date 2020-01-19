@@ -7,8 +7,6 @@ import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import de.peeeq.wurstscript.utils.Utils;
-import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -28,7 +26,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     private FuncDef fromIndex;
     private FuncDef toIndex;
     // type class instances (null for old generics)
-    private final @Nullable List<TypeClassFuncInstance> instances;
+    private final @Nullable List<TypeClassInstance> instances;
     private boolean indexInitialized = false;
     private Element context;
 
@@ -46,7 +44,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         }
     }
 
-    public WurstTypeBoundTypeParam(TypeParamDef typeParamDef, WurstType baseType, FuncDef fromIndex, FuncDef toIndex, @Nullable List<TypeClassFuncInstance> instances, boolean indexInitialized, Element context) {
+    public WurstTypeBoundTypeParam(TypeParamDef typeParamDef, WurstType baseType, FuncDef fromIndex, FuncDef toIndex, @Nullable List<TypeClassInstance> instances, boolean indexInitialized, Element context) {
         this.typeParamDef = typeParamDef;
         this.baseType = baseType;
         this.fromIndex = fromIndex;
@@ -211,16 +209,16 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
         ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, TypeClassFuncInstance> typeClassBinding = new HashMap<>();
-        for (TypeClassFuncInstance instance : instances) {
-            instance.addTypeClassBinding(tr, typeClassBinding);
+        ImTypeClassImpls typeClassImpls = JassIm.ImTypeClassImpls();
+        for (TypeClassInstance instance : instances) {
+            typeClassImpls.add(instance.translate(tr));
         }
-        return JassIm.ImTypeArgument(t, typeClassBinding);
+        return JassIm.ImTypeArgument(t, typeClassImpls);
     }
 
-    public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassFuncInstance instance) {
-        ImmutableList<TypeClassFuncInstance> newInstances =
-            ImmutableList.<TypeClassFuncInstance>builderWithExpectedSize(instances.size() + 1)
+    public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassInstance instance) {
+        ImmutableList<TypeClassInstance> newInstances =
+            ImmutableList.<TypeClassInstance>builderWithExpectedSize(instances.size() + 1)
                 .addAll(instances)
                 .add(instance)
                 .build();
