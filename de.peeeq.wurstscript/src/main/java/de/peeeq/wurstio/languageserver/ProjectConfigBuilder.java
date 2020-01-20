@@ -12,6 +12,7 @@ import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
+import net.moonlightflower.wc3libs.port.GameVersion;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
 
@@ -47,7 +48,11 @@ public class ProjectConfigBuilder {
                     // TODO apply config for hot start before JHCR transformation
                     scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
                 } else {
-                    w3I.injectConfigsInJassScript(inputStream, sw, W3Utils.getWc3PatchVersion());
+                    if (W3Utils.getWc3PatchVersion() != null) {
+                        w3I.injectConfigsInJassScript(inputStream, sw, W3Utils.getWc3PatchVersion());
+                    } else {
+                        w3I.injectConfigsInJassScript(inputStream, sw, GameVersion.VERSION_1_32);
+                    }
                     scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
                 }
 
