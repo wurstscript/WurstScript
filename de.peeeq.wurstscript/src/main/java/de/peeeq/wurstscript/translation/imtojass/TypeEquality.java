@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class TypeEquality {
 
@@ -75,13 +76,32 @@ public class TypeEquality {
                 if (!x.getType().equalsType(y.getType())) {
                     return false;
                 }
-                if (!x.getTypeClassBinding().equals(y.getTypeClassBinding())) {
+                if (!equalTypeClassImplementations(x.getTypeClassImplementations(), y.getTypeClassImplementations())) {
                     return false;
                 }
             }
             return true;
         }
         return false;
+    }
+
+    private static boolean equalTypeClassImplementations(ImTypeClassImpls xs, ImTypeClassImpls ys) {
+        return Utils.listEquals(xs, ys, TypeEquality::equalTypeClassImplementation);
+    }
+
+    private static boolean equalTypeClassImplementation(ImTypeClassImpl x, ImTypeClassImpl y) {
+        if (!x.getClass().equals(y.getClass())) {
+            return false;
+        }
+        if (x instanceof ImTypeClassImplFromInterface) {
+            ImTypeClassImplFromInterface xc = (ImTypeClassImplFromInterface) x;
+            ImTypeClassImplFromInterface yc = (ImTypeClassImplFromInterface) y;
+            return isEqualType(xc.getImplementingClass(), yc.getImplementingClass());
+        } else {
+            ImTypeClassImplFromOther xc = (ImTypeClassImplFromOther) x;
+            ImTypeClassImplFromOther yc = (ImTypeClassImplFromOther) y;
+            return xc.getOtherImpl() == yc.getOtherImpl();
+        }
     }
 
     public static boolean isEqualType(ImAnyType t, ImType other) {

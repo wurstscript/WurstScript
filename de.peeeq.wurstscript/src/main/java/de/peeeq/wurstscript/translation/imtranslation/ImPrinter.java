@@ -552,9 +552,6 @@ public class ImPrinter {
                     .collect(Collectors.joining(", ")) + "]";
     }
 
-    public static String asString(ImTypeClassFunc s) {
-        return s.getName() + smallHash(s);
-    }
 
     public static String asString(ImClass s) {
         return s.getName() + smallHash(s);
@@ -565,7 +562,7 @@ public class ImPrinter {
     }
 
     public static String asString(ImTypeArgument s) {
-        return s.getType() + "" + s.getTypeClassBinding();
+        return s.getType() + "" + s.;
     }
 
     public static void print(ImCast e, Appendable sb, int indent) {

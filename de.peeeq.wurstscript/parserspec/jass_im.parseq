@@ -35,9 +35,18 @@ ImTypeVars * ImTypeVar
 
 ImTypeVar(String name)
 
+ImTypeClassConstraints * ImTypeClassConstraint
+
+ImTypeClassConstraint(
+    @ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
+    String name,
+    ImClassType classType)
+
+
 ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
 	String name,
 	ImTypeVars typeVariables,
+	ImTypeClassConstraints typeClassConstraints,
 	ImVars parameters, 
 	ref ImType returnType, 
 	ImVars locals, 
@@ -49,10 +58,14 @@ ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
 	String name,
 	ImTypeVars typeVariables,
+	ImTypeClassConstraints typeClassConstraints,
 	ImVars fields, 
 	ImMethods methods,
 	ImFunctions functions,
 	java.util.List<ImClassType> superClasses)
+
+
+ImElementWithTypeVars = ImFunction | ImClass
 
 ImMethods * ImMethod
 
@@ -147,7 +160,7 @@ ImTypeClassImpls * ImTypeClassImpl
 
 ImTypeClassImpl =
       ImTypeClassImplFromInterface(ref ImClassType typeClass, ref ImClassType implementingClass)
-    | ImTypeClassImplFromOther(ref ImClassType typeClass, ref ImTypeClassImpl otherImpl)
+    | ImTypeClassImplFromOther(ref ImClassType typeClass, ref ImTypeClassConstraint otherImpl)
 
 // helper types:
 

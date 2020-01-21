@@ -131,7 +131,7 @@ public class AttrPossibleFunctionSignatures {
             WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
             Optional<WurstTypeInterface> matchingConstraint = wtp.getTypeConstraints().filter(c -> c.isSubtypeOf(constraint, fc)).findFirst();
             if (matchingConstraint.isPresent()) {
-                return mapping.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.fromTypeParam(wtp, matchingConstraint.get())));
+                return mapping.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.fromTypeParam(fc, wtp, matchingConstraint.get())));
             }
         }
         // option 3: find methods elsewhere

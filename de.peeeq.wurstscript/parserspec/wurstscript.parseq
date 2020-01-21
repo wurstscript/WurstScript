@@ -117,7 +117,12 @@ TypeParamDefs * TypeParamDef
 
 TypeParamDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamConstraints typeParamConstraints)
 
-TypeParamConstraints = NoTypeParamConstraints() | TypeExprList
+TypeParamConstraints = NoTypeParamConstraints() | TypeParamConstraintList
+
+TypeParamConstraintList * TypeParamConstraint
+
+TypeParamConstraint(TypeExpr constraint)
+
 
 
 WParameters * WParameter
