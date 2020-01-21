@@ -1652,7 +1652,14 @@ public class ImTranslator {
         ImStmts body = JassIm.ImStmts();
 
         // print message:
-        body.add(ImFunctionCall(emptyTrace, getDebugPrintFunction(), ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(msgVar)), false, CallType.NORMAL));
+        // msg = msg + stacktrace
+        ImExpr msg = JassIm.ImOperatorCall(WurstOperator.PLUS, ImExprs(JassIm.ImVarAccess(msgVar),
+            JassIm.ImOperatorCall(WurstOperator.PLUS,
+                ImExprs(
+                    JassIm.ImStringVal("\n"),
+                    JassIm.ImGetStackTrace()))));
+
+        body.add(ImFunctionCall(emptyTrace, getDebugPrintFunction(), ImTypeArguments(), JassIm.ImExprs(msg), false, CallType.NORMAL));
         // TODO divide by zero to crash thread:
 
 
@@ -1667,7 +1674,9 @@ public class ImTranslator {
 
         List<FunctionFlag> flags = Lists.newArrayList();
 
-        return ImFunction(emptyTrace, "error", ImTypeVars(), parameters, returnType, locals, body, flags);
+        ImFunction errorFunc = ImFunction(emptyTrace, "error", ImTypeVars(), parameters, returnType, locals, body, flags);
+        imProg.getFunctions().add(errorFunc);
+        return errorFunc;
     }
 
 

@@ -155,6 +155,8 @@ ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, io.vavr.control.E
 
 JassImElementWithName = ImVar | ImFunction | ImClass | ImMethod
 
+ImFuncRefOrCall = ImFuncRef | ImFunctionCall
+
 ElementWithTrace = ImVar | ImFunction | ImClass | ImMethod | ImIf | ImLoop | ImExitwhen | ImReturn
  | ImSet | ImSetTuple | ImSetArray | ImSetArrayMulti | ImSetArrayTuple 
  | ImMethodCall | ImFunctionCall | ImCompiletimeExpr | ImVarArrayAccess | ImMemberAccess

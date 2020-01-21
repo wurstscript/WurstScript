@@ -1365,4 +1365,23 @@ public class BugTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void executeFuncWithStackTrace() {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native ExecuteFunc(string f)",
+            "function getStackTraceString() returns string",
+            "    return \"foo\"",
+            "class A",
+            "    function bar()",
+            "        testSuccess()",
+            "A a = new A",
+            "function foo()",
+            "    a.bar()", // calling a function to ensure stacktraces are needed
+            "init",
+            "    ExecuteFunc(\"foo\")"
+        );
+    }
+
 }
