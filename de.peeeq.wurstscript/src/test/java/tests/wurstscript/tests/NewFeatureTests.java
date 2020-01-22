@@ -713,4 +713,15 @@ public class NewFeatureTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void constant_local_var_warning() {
+        testAssertErrorsLines(false, "Constant local variables should be defined using 'let'.",
+            "package Test",
+            "native print(int i)",
+            "function foo()",
+            "    var i = 1337",
+            "    print(i)"
+        );
+    }
+
 }
