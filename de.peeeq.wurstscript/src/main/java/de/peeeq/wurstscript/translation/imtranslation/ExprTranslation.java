@@ -16,12 +16,10 @@ import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
-import io.vavr.control.Either;
 import io.vavr.control.Option;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -298,7 +296,7 @@ public class ExprTranslation {
         } else {
             // if tupleExpr is not an l-value (e.g. foo().x)
             // store result in intermediate variable first:
-            ImVar v = ImVar(left.attrTrace(), left.attrTyp(), "temp_tuple", false);
+            ImVar v = ImVar(left.attrTrace(), left.attrTyp(), "temp_tuple", Collections.emptyList());
             f.getLocals().add(v);
             return JassIm.ImStatementExpr(
                     JassIm.ImStmts(
@@ -507,7 +505,7 @@ public class ExprTranslation {
         if (returnReveiver) {
             if (leftExpr == null)
                 throw new Error("impossible");
-            tempVar = JassIm.ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", false);
+            tempVar = ImVar(leftExpr, leftExpr.attrTyp().imTranslateType(t), "receiver", Collections.emptyList());
             f.getLocals().add(tempVar);
             stmts = JassIm.ImStmts(ImSet(e, ImVarAccess(tempVar), receiver));
             receiver = JassIm.ImVarAccess(tempVar);
@@ -517,11 +515,13 @@ public class ExprTranslation {
 
         ImExpr call;
         if (typeParamDispatchOn != null) {
-            ImTypeClassFunc typeClassFunc = t.getTypeClassFuncFor((FuncDef) calledFunc);
+            ImMethod method = t.getTypeClassMethodFor((FuncDef) calledFunc);
             if (receiver != null) {
                 imArgs.add(0, receiver);
             }
-            call = JassIm.ImTypeVarDispatch(e, typeClassFunc, imArgs, t.getTypeVar(typeParamDispatchOn.getDef()));
+            ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn, calledFunc));
+            call = JassIm.ImMethodCall(e, method, typeArguments, typeClassDict, imArgs, false);
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
@@ -536,8 +536,6 @@ public class ExprTranslation {
         }
 
         if (returnReveiver) {
-            if (stmts == null)
-                throw new Error("impossible");
             stmts.add(call);
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(tempVar));
         } else {
@@ -685,7 +683,7 @@ public class ExprTranslation {
         ImExpr ifTrue = e.getIfTrue().imTranslateExpr(t, f);
         ImExpr ifFalse = e.getIfFalse().imTranslateExpr(t, f);
         // TODO common super type of both
-        ImVar res = JassIm.ImVar(e, ifTrue.attrTyp(), "cond_result", false);
+        ImVar res = ImVar(e, ifTrue.attrTyp(), "cond_result", Collections.emptyList());
         f.getLocals().add(res);
         return JassIm.ImStatementExpr(
                 ImStmts(

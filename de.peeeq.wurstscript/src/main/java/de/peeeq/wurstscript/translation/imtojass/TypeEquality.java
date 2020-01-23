@@ -76,33 +76,12 @@ public class TypeEquality {
                 if (!x.getType().equalsType(y.getType())) {
                     return false;
                 }
-                if (!equalTypeClassImplementations(x.getTypeClassImplementations(), y.getTypeClassImplementations())) {
-                    return false;
-                }
             }
             return true;
         }
         return false;
     }
 
-    private static boolean equalTypeClassImplementations(ImTypeClassImpls xs, ImTypeClassImpls ys) {
-        return Utils.listEquals(xs, ys, TypeEquality::equalTypeClassImplementation);
-    }
-
-    private static boolean equalTypeClassImplementation(ImTypeClassImpl x, ImTypeClassImpl y) {
-        if (!x.getClass().equals(y.getClass())) {
-            return false;
-        }
-        if (x instanceof ImTypeClassImplFromInterface) {
-            ImTypeClassImplFromInterface xc = (ImTypeClassImplFromInterface) x;
-            ImTypeClassImplFromInterface yc = (ImTypeClassImplFromInterface) y;
-            return isEqualType(xc.getImplementingClass(), yc.getImplementingClass());
-        } else {
-            ImTypeClassImplFromOther xc = (ImTypeClassImplFromOther) x;
-            ImTypeClassImplFromOther yc = (ImTypeClassImplFromOther) y;
-            return xc.getOtherImpl() == yc.getOtherImpl();
-        }
-    }
 
     public static boolean isEqualType(ImAnyType t, ImType other) {
         return other instanceof ImAnyType;

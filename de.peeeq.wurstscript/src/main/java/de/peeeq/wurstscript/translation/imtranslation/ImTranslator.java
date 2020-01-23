@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 import static de.peeeq.wurstscript.translation.imtranslation.FunctionFlagEnum.*;
 import static de.peeeq.wurstscript.utils.Utils.elementNameWithPath;
+import static de.peeeq.wurstscript.utils.Utils.emptyList;
 
 public class ImTranslator {
 
@@ -93,7 +94,7 @@ public class ImTranslator {
 
     private boolean isUnitTestMode;
 
-    private ImVar lastInitFunc = JassIm.ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", false);
+    private ImVar lastInitFunc = ImVar(emptyTrace, WurstTypeString.instance().imTranslateType(this), "lastInitFunc", Collections.emptyList());
 
     private int compiletimeOrderCounter = 1;
     private final Map<TranslatedToImFunction, FunctionFlagCompiletime> compiletimeFlags = new HashMap<>();
@@ -117,10 +118,9 @@ public class ImTranslator {
      */
     public ImProg translateProg() {
         try {
-            globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImTypeVars(), ImTypeClassConstraints(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+            globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
-            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImTypeClassConstraints(), ImVars(JassIm.ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "msg",
-                    false)), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+            debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImVars(ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "msg", Collections.emptyList())), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
 
             calculateCompiletimeOrder();
 
@@ -129,11 +129,11 @@ public class ImTranslator {
             }
 
             if (mainFunc == null) {
-                mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImTypeClassConstraints(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+                mainFunc = ImFunction(emptyTrace, "main", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
                 addFunction(mainFunc);
             }
             if (configFunc == null) {
-                configFunc = ImFunction(emptyTrace, "config", ImTypeVars(), ImTypeClassConstraints(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
+                configFunc = ImFunction(emptyTrace, "config", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
                 addFunction(configFunc);
             }
             finishInitFunctions();
@@ -146,8 +146,8 @@ public class ImTranslator {
         } catch (Throwable t) {
             WLogger.severe(t);
             throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t
-                    .getMessage() +
-                    "\nPlease open a ticket with source code and the error log.", t);
+                .getMessage() +
+                "\nPlease open a ticket with source code and the error log.", t);
         }
     }
 
@@ -259,7 +259,7 @@ public class ImTranslator {
                 ImFunction existing = natives.get(f.getName());
                 if (!compatibleTypes(f, existing)) {
                     throw new CompileError(f, "Native function definition conflicts with other native function defined in " +
-                            existing.attrTrace().attrErrorPos());
+                        existing.attrTrace().attrErrorPos());
                 }
                 // remove duplicate
                 it.remove();
@@ -344,13 +344,13 @@ public class ImTranslator {
         ImFunction native_DestroyTrigger = getNativeFunc("DestroyTrigger");
         if (native_DestroyTrigger != null) {
             getMainFunc().getBody().add(JassIm.ImFunctionCall(emptyTrace, native_DestroyTrigger, ImTypeArguments(),
-                    JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
+                JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
         }
     }
 
     @NotNull
     private ImVar prepareTrigger() {
-        ImVar initTrigVar = JassIm.ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", false);
+        ImVar initTrigVar = ImVar(emptyTrace, JassIm.ImSimpleType("trigger"), "initTrig", Collections.emptyList());
         getMainFunc().getLocals().add(initTrigVar);
 
         // initTrigVar = CreateTrigger()
@@ -406,11 +406,11 @@ public class ImTranslator {
         ImFunction native_GetLocalPlayer = getNativeFunc("GetLocalPlayer");
 
         if (native_ClearTrigger == null
-                || native_TriggerAddCondition == null
-                || native_Condition == null
-                || native_TriggerEvaluate == null
-                || native_DisplayTimedTextToPlayer == null
-                || native_GetLocalPlayer == null
+            || native_TriggerAddCondition == null
+            || native_Condition == null
+            || native_TriggerEvaluate == null
+            || native_DisplayTimedTextToPlayer == null
+            || native_GetLocalPlayer == null
         ) {
             return false;
         }
@@ -431,21 +431,21 @@ public class ImTranslator {
 
         // TriggerAddCondition(initTrigVar, Condition(function myInit))
         mainBody.add(ImFunctionCall(trace, native_TriggerAddCondition, ImTypeArguments(), JassIm.ImExprs(
-                JassIm.ImVarAccess(initTrigVar),
-                ImFunctionCall(trace, native_Condition, ImTypeArguments(), JassIm.ImExprs(
-                        JassIm.ImFuncRef(trace, initFunc)), false, CallType.NORMAL)
+            JassIm.ImVarAccess(initTrigVar),
+            ImFunctionCall(trace, native_Condition, ImTypeArguments(), JassIm.ImExprs(
+                JassIm.ImFuncRef(trace, initFunc)), false, CallType.NORMAL)
         ), true, CallType.NORMAL));
         // if not TriggerEvaluate(initTrigVar) ...
         mainBody.add(JassIm.ImIf(trace,
-                JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(
-                        ImFunctionCall(trace, native_TriggerEvaluate, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL)
-                )),
-                // then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
-                JassIm.ImStmts(
-                    imError(trace, JassIm.ImStringVal("Could not initialize package " + p.getName() + "."))
-                ),
-                // else:
-                JassIm.ImStmts()));
+            JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(
+                ImFunctionCall(trace, native_TriggerEvaluate, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL)
+            )),
+            // then: DisplayTimedTextToPlayer(GetLocalPlayer(), 0., 0., 45., "Could not initialize package")
+            JassIm.ImStmts(
+                imError(trace, JassIm.ImStringVal("Could not initialize package " + p.getName() + "."))
+            ),
+            // else:
+            JassIm.ImStmts()));
         mainBody.add(ImFunctionCall(trace, native_ClearTrigger, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(initTrigVar)), false, CallType.NORMAL));
         return true;
     }
@@ -491,7 +491,7 @@ public class ImTranslator {
         if (initialExpr instanceof Expr) {
             Expr expr = (Expr) initialExpr;
             ImExpr translated = expr.imTranslateExpr(this, f);
-            if (!v.getIsBJ()) {
+            if (!v.isBJ()) {
                 // add init statement for non-bj vars
                 // bj-vars are already initalized by blizzard
                 f.getBody().add(ImSet(trace, ImVarAccess(v), translated));
@@ -500,8 +500,8 @@ public class ImTranslator {
         } else if (initialExpr instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) initialExpr;
             List<ImExpr> translatedExprs = arInit.getValues().stream()
-                    .map(expr -> expr.imTranslateExpr(this, f))
-                    .collect(Collectors.toList());
+                .map(expr -> expr.imTranslateExpr(this, f))
+                .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
                 f.getBody().add(ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
@@ -536,9 +536,9 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(StructureDef classDef) {
-            ImVars params = ImVars(JassIm.ImVar(classDef, selfType(classDef), "this", false));
+            ImVars params = ImVars(ImVar(classDef, selfType(classDef), "this", Collections.emptyList()));
 
-            ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), ImTypeClassConstraints(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
+            ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
             addFunction(f, classDef);
             return f;
         }
@@ -550,7 +550,7 @@ public class ImTranslator {
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
             ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
-                    impl, Lists.<ImMethod>newArrayList(), false);
+                impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
     };
@@ -611,8 +611,7 @@ public class ImTranslator {
     public ImClassType selfType(ImClass imClass) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
-            // TODO include type impls? (add constraints to ImTypeVar)
-            typeArgs.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), ImTypeClassImpls()));
+            typeArgs.add(ImTypeArgument(JassIm.ImTypeVarRef(tv)));
         }
         return JassIm.ImClassType(imClass, typeArgs);
     }
@@ -622,7 +621,7 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(ImClass c) {
 
-            return ImFunction(c.getTrace(), "alloc_" + c.getName(), ImTypeVars(), ImTypeClassConstraints(), JassIm.ImVars(), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            return ImFunction(c.getTrace(), "alloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(), TypesHelper.imInt(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
         }
 
     };
@@ -632,7 +631,7 @@ public class ImTranslator {
         @Override
         public ImFunction initFor(ImClass c) {
 
-            return ImFunction(c.getTrace(), "dealloc_" + c.getName(), ImTypeVars(), ImTypeClassConstraints(), JassIm.ImVars(JassIm.ImVar(c.getTrace(), TypesHelper.imInt(), "obj", false)), TypesHelper.imVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
+            return ImFunction(c.getTrace(), "dealloc_" + c.getName(), ImTypeVars(), JassIm.ImVars(ImVar(c.getTrace(), TypesHelper.imInt(), "obj", Collections.emptyList())), TypesHelper.imVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.<FunctionFlag>emptyList());
         }
 
     };
@@ -649,20 +648,19 @@ public class ImTranslator {
         }
     };
 
-    // type class constraints for type parameters
-    private final GetAForB<TypeParamConstraint, ImTypeClassConstraint> constraint = new GetAForB<TypeParamConstraint, ImTypeClassConstraint>() {
+    // type class parameter for type parameters
+    private final GetAForB<TypeParamConstraint, ImVar> constraint = new GetAForB<TypeParamConstraint, ImVar>() {
         @Override
-        public ImTypeClassConstraint initFor(TypeParamConstraint a) {
+        public ImVar initFor(TypeParamConstraint a) {
             ImType t = a.getConstraint().attrTyp().imTranslateType(ImTranslator.this);
-            return ImTypeClassConstraint(a, Utils.printElement(a), (ImClassType) t);
+            return ImVar(a, t, Utils.printElement(a), emptyList());
         }
 
     };
 
-    public ImTypeClassConstraint getConstraintFor(TypeParamConstraint c) {
+    public ImVar getConstraintFor(TypeParamConstraint c) {
         return constraint.getFor(c);
     }
-
 
 
     public ImFunction getFuncFor(TranslatedToImFunction funcDef) {
@@ -717,8 +715,7 @@ public class ImTranslator {
         }
 
         ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
-        ImTypeClassConstraints typeClassConstraints = collectTypeClassConstraintsForFunction(funcDef);
-        ImFunction f = ImFunction(funcDef, name, typeVars, typeClassConstraints,  ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
+        ImFunction f = ImFunction(funcDef, name, typeVars, ImVars(), ImVoid(), ImVars(), ImStmts(), flags);
         funcDef.imCreateFuncSkeleton(this, f);
 
         addFunction(f, funcDef);
@@ -831,64 +828,6 @@ public class ImTranslator {
         return typeVars;
     }
 
-    private ImTypeClassConstraints collectTypeClassConstraintsForFunction(TranslatedToImFunction funcDef) {
-        ImTypeClassConstraints constraints = ImTypeClassConstraints();
-        funcDef.match(new TranslatedToImFunction.MatcherVoid() {
-            @Override
-            public void case_FuncDef(FuncDef funcDef) {
-                handleTypeParameters(funcDef.getTypeParameters());
-            }
-
-
-            private void handleTypeParameters(TypeParamDefs tps) {
-                for (TypeParamDef tp : tps) {
-                    handleTypeParameter(tp);
-                }
-            }
-
-            private void handleTypeParameter(TypeParamDef tp) {
-                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
-                    TypeParamConstraintList cs = (TypeParamConstraintList) tp.getTypeParamConstraints();
-                    for (TypeParamConstraint c : cs) {
-                        constraints.add(getConstraintFor(c));
-                    }
-                }
-            }
-
-            @Override
-            public void case_ConstructorDef(ConstructorDef constructorDef) {
-            }
-
-            @Override
-            public void case_NativeFunc(NativeFunc nativeFunc) {
-            }
-
-            @Override
-            public void case_OnDestroyDef(OnDestroyDef onDestroyDef) {
-            }
-
-            @Override
-            public void case_TupleDef(TupleDef tupleDef) {
-            }
-
-            @Override
-            public void case_ExprClosure(ExprClosure exprClosure) {
-                // TODO where to set closure parameters?
-            }
-
-            @Override
-            public void case_InitBlock(InitBlock initBlock) {
-
-            }
-
-            @Override
-            public void case_ExtensionFuncDef(ExtensionFuncDef funcDef) {
-                handleTypeParameters(funcDef.getTypeParameters());
-            }
-        });
-        return constraints;
-    }
-
 
 
     private boolean isExtern(TranslatedToImFunction funcDef) {
@@ -914,7 +853,7 @@ public class ImTranslator {
 
     public ImFunction getInitFuncFor(WPackage p) {
         // TODO more precise trace
-        return initFuncMap.computeIfAbsent(p, p1 -> ImFunction(p1, "init_" + p1.getName(), ImTypeVars(), ImTypeClassConstraints(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
+        return initFuncMap.computeIfAbsent(p, p1 -> ImFunction(p1, "init_" + p1.getName(), ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags()));
     }
 
     /**
@@ -971,7 +910,7 @@ public class ImTranslator {
         if (thisVarMap.containsKey(f)) {
             return thisVarMap.get(f);
         }
-        ImVar v = JassIm.ImVar(f, selfType(f), "this", false);
+        ImVar v = ImVar(f, selfType(f), "this", Collections.emptyList());
         thisVarMap.put(f, v);
         return v;
     }
@@ -1020,7 +959,7 @@ public class ImTranslator {
                 name = getNameFor(varDef.attrNearestNamedScope()) + "_" + name;
             }
             boolean isBj = isBJ(varDef.getSource());
-            v = JassIm.ImVar(varDef, type, name, isBj);
+            v = ImVar(varDef, type, name, isBj ? Collections.singletonList(VarFlag.BJ) : Collections.emptyList());
             varMap.put(varDef, v);
         }
         return v;
@@ -1192,7 +1131,7 @@ public class ImTranslator {
                 params.add(getVarFor(p));
             }
 
-            f = ImFunction(constr, name, ImTypeVars(), ImTypeClassConstraints(), params, ImVoid(), ImVars(), ImStmts(), flags());
+            f = ImFunction(constr, name, ImTypeVars(), params, ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(f, constr);
             constructorFuncs.put(constr, f);
         }
@@ -1225,7 +1164,7 @@ public class ImTranslator {
         if (f == null) {
             String name = "new_" + constr.attrNearestClassDef().getName();
 
-            f = ImFunction(constr, name, ImTypeVars(), ImTypeClassConstraints(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), flags());
+            f = ImFunction(constr, name, ImTypeVars(), ImVars(), selfType(constr.attrNearestClassOrInterface()), ImVars(), ImStmts(), flags());
             addFunction(f, constr);
             constrNewFuncs.put(constr, f);
         }
@@ -1356,6 +1295,14 @@ public class ImTranslator {
         return runArgs.isLua();
     }
 
+    public ImMethod getTypeClassMethodFor(FuncDef calledFunc) {
+        throw new RuntimeException("TODO");
+    }
+
+    public ImVar getTypeClassParamFor(WurstTypeTypeParam typeParamDispatchOn, FunctionDefinition method) {
+        throw new RuntimeException();
+    }
+
 
     interface VarsForTupleResult {
 
@@ -1462,7 +1409,7 @@ public class ImTranslator {
                     return new TupleResult(ts.build());
                 }
                 // otherwise just create the array variable
-                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+                return new SingleVarResult(ImVar(tr, type, name, Collections.emptyList()));
             }
 
             @Override
@@ -1484,7 +1431,7 @@ public class ImTranslator {
                     return new TupleResult(ts.build());
                 }
                 // otherwise just create the array variable
-                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+                return new SingleVarResult(ImVar(tr, type, name, Collections.emptyList()));
             }
 
             @Override
@@ -1495,19 +1442,19 @@ public class ImTranslator {
             @Override
             public VarsForTupleResult case_ImClassType(ImClassType st) {
                 ImType type = typeConstructor.apply(st);
-                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+                return new SingleVarResult(ImVar(tr, type, name, Collections.emptyList()));
             }
 
             @Override
             public VarsForTupleResult case_ImSimpleType(ImSimpleType st) {
                 ImType type = typeConstructor.apply(st);
-                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+                return new SingleVarResult(ImVar(tr, type, name, Collections.emptyList()));
             }
 
             @Override
             public VarsForTupleResult case_ImAnyType(ImAnyType at) {
                 ImType type = typeConstructor.apply(at);
-                return new SingleVarResult(JassIm.ImVar(tr, type, name, false));
+                return new SingleVarResult(ImVar(tr, type, name, Collections.emptyList()));
             }
 
             @Override
@@ -1538,7 +1485,7 @@ public class ImTranslator {
         } else if (type instanceof ImVoid) {
             // nothing to add
         } else {
-            result.add(JassIm.ImVar(tr, type, name, false));
+            result.add(ImVar(tr, type, name, Collections.emptyList()));
         }
 
     }
@@ -1636,7 +1583,7 @@ public class ImTranslator {
 
     public ImClass getClassForClosure(ExprClosure s) {
         Preconditions.checkNotNull(s);
-        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), ImTypeClassConstraints(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
+        return classForClosure.computeIfAbsent(s, s1 -> JassIm.ImClass(s1, "Closure", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList()));
     }
 
 
@@ -1645,20 +1592,7 @@ public class ImTranslator {
     public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
-            ImTypeVars typeVariables = JassIm.ImTypeVars();
-            ImTypeClassConstraints typeClassConstraints = ImTypeClassConstraints();
-            for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
-                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
-                    ImTypeVar tv = getTypeVar(tp);
-                    TypeParamConstraintList cs = (TypeParamConstraintList) tp.getTypeParamConstraints();
-                    typeVariables.add(tv);
-                    for (TypeParamConstraint c : cs) {
-                        typeClassConstraints.add(getConstraintFor(c));
-                    }
-                }
-            }
-
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, typeClassConstraints, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            return JassIm.ImClass(s1, s1.getName(), ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 
@@ -1667,20 +1601,7 @@ public class ImTranslator {
     public ImClass getTypeClassStructFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return typeClassStructFor.computeIfAbsent(s, s1 -> {
-            ImTypeVars typeVariables = JassIm.ImTypeVars();
-            ImTypeClassConstraints typeClassConstraints = ImTypeClassConstraints();
-            for (TypeParamDef tp : ((AstElementWithTypeParameters) s).getTypeParameters()) {
-                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
-                    ImTypeVar tv = getTypeVar(tp);
-                    TypeParamConstraintList cs = (TypeParamConstraintList) tp.getTypeParamConstraints();
-                    typeVariables.add(tv);
-                    for (TypeParamConstraint c : cs) {
-                        typeClassConstraints.add(getConstraintFor(c));
-                    }
-                }
-            }
-
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, typeClassConstraints, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            return JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 
@@ -1747,7 +1668,7 @@ public class ImTranslator {
     }
 
     private ImFunction makeDefaultErrorFunc() {
-        ImVar msgVar = JassIm.ImVar(emptyTrace, TypesHelper.imString(), "msg", false);
+        ImVar msgVar = ImVar(emptyTrace, TypesHelper.imString(), "msg", Collections.emptyList());
         ImVars parameters = JassIm.ImVars(msgVar);
         ImType returnType = JassIm.ImVoid();
         ImVars locals = JassIm.ImVars();
@@ -1769,7 +1690,7 @@ public class ImTranslator {
 
         List<FunctionFlag> flags = Lists.newArrayList();
 
-        return ImFunction(emptyTrace, "error", ImTypeVars(), ImTypeClassConstraints(), parameters, returnType, locals, body, flags);
+        return ImFunction(emptyTrace, "error", ImTypeVars(), parameters, returnType, locals, body, flags);
     }
 
 

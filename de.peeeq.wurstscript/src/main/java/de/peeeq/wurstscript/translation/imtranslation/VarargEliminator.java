@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,7 +85,7 @@ public class VarargEliminator {
         ImType type = varargParam.getType();
         List<ImVar> newParams = new ArrayList<>();
         for (int i = 0; i < argumentSize; i++) {
-            ImVar param = JassIm.ImVar(func.getTrace(), type, varargParam.getName() + "_" + i, false);
+            ImVar param = JassIm.ImVar(func.getTrace(), type, varargParam.getName() + "_" + i, Collections.emptyList());
             newParams.add(param);
             newFunc.getParameters().add(param);
         }

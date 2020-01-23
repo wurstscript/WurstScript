@@ -15,8 +15,8 @@ public abstract class TypeClassInstance {
     public static TypeClassInstance asSubtype(WurstTypeClassOrInterface subType, WurstTypeClassOrInterface constraint) {
         return new TypeClassInstance(constraint) {
             @Override
-            public ImTypeClassImpl translate(ImTranslator tr) {
-                return JassIm.ImTypeClassImplFromInterface(translateConstraintType(tr), subType.imTranslateToTypeClass(tr));
+            public ImExpr translate(ImTranslator tr) {
+                throw new RuntimeException("TODO");
             }
         };
     }
@@ -25,14 +25,11 @@ public abstract class TypeClassInstance {
         return constraint.imTranslateToTypeClass(tr);
     }
 
-    public static TypeClassInstance fromTypeParam(Element trace, WurstTypeTypeParam wtp, WurstTypeClassOrInterface wurstTypeInterface, WurstTypeClassOrInterface constraint) {
+    public static TypeClassInstance fromTypeParam(Element trace, WurstTypeTypeParam wtp, WurstTypeClassOrInterface constraint) {
         return new TypeClassInstance(constraint) {
             @Override
-            public ImTypeClassImpl translate(ImTranslator tr) {
-                ImTypeVar tv = tr.getTypeVar(wtp.getDef());
-                ImClassType constr = tr.getConstraintFor(wtp, wurstTypeInterface);
-                ImTypeClassConstraint otherImpl = JassIm.ImTypeClassConstraint(trace, constraint.getName(), constr);
-                return JassIm.ImTypeClassImplFromOther(translateConstraintType(tr), otherImpl);
+            public ImExpr translate(ImTranslator tr) {
+                throw new RuntimeException("TODO");
             }
         };
     }
@@ -41,5 +38,5 @@ public abstract class TypeClassInstance {
         return constraint;
     }
 
-    public abstract ImTypeClassImpl translate(ImTranslator tr);
+    public abstract ImExpr translate(ImTranslator tr);
 }

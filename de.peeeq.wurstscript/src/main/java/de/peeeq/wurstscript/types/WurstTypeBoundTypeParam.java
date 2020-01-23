@@ -10,9 +10,7 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.types.VariablePosition.NONE;
@@ -209,11 +207,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
         ImType t = imTranslateType(tr);
-        ImTypeClassImpls typeClassImpls = JassIm.ImTypeClassImpls();
-        for (TypeClassInstance instance : instances) {
-            typeClassImpls.add(instance.translate(tr));
-        }
-        return JassIm.ImTypeArgument(t, typeClassImpls);
+        return JassIm.ImTypeArgument(t);
     }
 
     public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassInstance instance) {

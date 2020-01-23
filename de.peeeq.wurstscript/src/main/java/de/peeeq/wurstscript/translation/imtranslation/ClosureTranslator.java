@@ -45,7 +45,7 @@ public class ClosureTranslator {
         } else {
             ImClass c = createClass();
             ImClassType ct = JassIm.ImClassType(c, getClassTypeArguments());
-            ImVar clVar = JassIm.ImVar(e, ct, "clVar", false);
+            ImVar clVar = JassIm.ImVar(e, ct, "clVar", Collections.emptyList());
             f.getLocals().add(clVar);
             ImStmts stmts = JassIm.ImStmts();
             // allocate closure
@@ -64,7 +64,7 @@ public class ClosureTranslator {
     private ImTypeArguments getClassTypeArguments() {
         ImTypeArguments res = JassIm.ImTypeArguments();
         for (ImTypeVar typeVar : typeVars.keySet()) {
-            res.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar), Collections.emptyMap()));
+            res.add(JassIm.ImTypeArgument(JassIm.ImTypeVarRef(typeVar)));
         }
         return res;
     }
@@ -229,9 +229,7 @@ public class ClosureTranslator {
                     result.put(oldTypevar, newTypevar);
                     c.getTypeVariables().add(newTypevar);
                     thisType.getTypeArguments().add(
-                            JassIm.ImTypeArgument(
-                                    JassIm.ImTypeVarRef(newTypevar),
-                                    Collections.emptyMap()));
+                        JassIm.ImTypeArgument(JassIm.ImTypeVarRef(newTypevar)));
                 }
                 return JassIm.ImTypeVarRef(newTypevar);
             }
@@ -271,7 +269,7 @@ public class ClosureTranslator {
     private ImVar getClosureVarFor(ImVar var) {
         ImVar v = closureVars.get(var);
         if (v == null) {
-            v = JassIm.ImVar(e, var.getType(), var.getName(), false);
+            v = JassIm.ImVar(e, var.getType(), var.getName(), Collections.emptyList());
             c.getFields().add(v);
             closureVars.put(var, v);
         }

@@ -70,8 +70,8 @@ public class DescriptionHtml {
             descr = "";
         }
         descr += "<pre><hr /><b><font color=\"rgb(127,0,85)\">" +
-                "construct</font></b>(" + getParameterString(constr) + ") "
-                + "<br /></pre>" + "defined in class " + c.getName();
+            "construct</font></b>(" + getParameterString(constr) + ") "
+            + "<br /></pre>" + "defined in class " + c.getName();
         return descr;
     }
 
@@ -104,7 +104,7 @@ public class DescriptionHtml {
             additionalProposalInfo = "";
         }
         additionalProposalInfo += "<pre><hr />" + htmlType(n.attrTyp()) + " " + n.getName()
-                + "<br /></pre>" + "defined in " + nearestScopeName(n);
+            + "<br /></pre>" + "defined in " + nearestScopeName(n);
         return additionalProposalInfo;
     }
 
@@ -130,7 +130,7 @@ public class DescriptionHtml {
         FuncLink f = e.attrFuncLink();
         if (f != null) {
             return "This is an overloaded operator:<br/>" +
-                    f.getDef().descriptionHtml();
+                f.getDef().descriptionHtml();
         }
         return null;
     }
@@ -205,7 +205,7 @@ public class DescriptionHtml {
 
     public static String description(ExprTypeId exprTypeId) {
         return "typeId: returns the typeId of an object or class. The typeId is "
-                + "a unique number for each class in the same type hierarchy.";
+            + "a unique number for each class in the same type hierarchy.";
     }
 
     public static @Nullable String description(ExprUnary exprUnary) {
@@ -214,7 +214,7 @@ public class DescriptionHtml {
 
 
     public static @Nullable String description(
-            IdentifierWithTypeArgs identifierWithTypeArgs) {
+        IdentifierWithTypeArgs identifierWithTypeArgs) {
         return null;
     }
 
@@ -223,13 +223,13 @@ public class DescriptionHtml {
     }
 
     public static @Nullable String description(
-            IdentifierWithTypeParamDefs identifierWithTypeParamDefs) {
+        IdentifierWithTypeParamDefs identifierWithTypeParamDefs) {
         return null;
     }
 
     public static String description(ModAbstract modAbstract) {
         return "abstract: This function provides no implementation. Other classes have to provide "
-                + "an implementation for this method.";
+            + "an implementation for this method.";
     }
 
     public static String description(ModConstant modConstant) {
@@ -243,7 +243,7 @@ public class DescriptionHtml {
 
     public static String description(ModStatic modStatic) {
         return "static: This function or variable is just like a function outside of a class. "
-                + "It is not bound to an instance. No dynamic dispatch is used.";
+            + "It is not bound to an instance. No dynamic dispatch is used.";
     }
 
     public static String description(ModuleUse m) {
@@ -264,7 +264,7 @@ public class DescriptionHtml {
 
     public static String description(OnDestroyDef s) {
         return "ondestroy block: These statements are executed when an object of this class "
-                + "is destroyed." + s.getSource().getLeftPos() + " - " + s.getSource().getRightPos();
+            + "is destroyed." + s.getSource().getLeftPos() + " - " + s.getSource().getRightPos();
     }
 
     public static @Nullable String description(StartFunctionStatement s) {
@@ -335,7 +335,7 @@ public class DescriptionHtml {
     }
 
     public static String description(
-            SwitchDefaultCaseStatements switchDefaultCaseStatements) {
+        SwitchDefaultCaseStatements switchDefaultCaseStatements) {
         return "The default case for this switch statement";
     }
 
@@ -420,5 +420,24 @@ public class DescriptionHtml {
 
     public static String description(NoTypeParamConstraints noTypeParamConstraints) {
         return "no type parameter constraints";
+    }
+
+    public static String description(TypeParamConstraint tp) {
+        TypeParamDef d = findTypeParamDef(tp);
+        if (d == null) {
+            return "Type parameter constraint.";
+        }
+        return "Constraints the type parameter " + d.getName() + " to implement the type class " + tp.getConstraint().attrTyp();
+    }
+
+    private static TypeParamDef findTypeParamDef(TypeParamConstraint tp) {
+        Element e = tp;
+        while (e != null) {
+            if (e instanceof TypeParamDef) {
+                return (TypeParamDef) e;
+            }
+            e = e.getParent();
+        }
+        return null;
     }
 }

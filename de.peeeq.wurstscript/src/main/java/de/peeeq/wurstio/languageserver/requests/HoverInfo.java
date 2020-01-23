@@ -632,6 +632,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_TypeParamConstraintList(TypeParamConstraintList typeParamConstraintList) {
+            return string("Type parameter constraints define type classes that must be implemented for type parameters.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ClassDefs(ClassDefs classDefs) {
             return string("A list of class definitions.");
         }
@@ -734,6 +739,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ExprIfElse(ExprIfElse exprIfElse) {
             return string("A conditional expression (condition ? ifTrue : ifFalse).");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_TypeParamConstraint(TypeParamConstraint t) {
+            return string(t.description());
         }
 
         @Override

@@ -398,28 +398,6 @@ public class EvaluateExpr {
     }
 
 
-    public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
-        Either<ImMethod, ImFunction> impl = localState.getImplementation(e.getTypeVariable(), e.getTypeClassFunc());
-        if (impl == null) {
-            throw new InterpreterException(globalState, "Could not find implementation for " + e.getTypeVariable() + "." + e.getTypeClassFunc().getName());
-        }
-        ILconst[] eArgs = e.getArguments().stream()
-            .map(arg -> arg.evaluate(globalState, localState))
-            .toArray(ILconst[]::new);
-
-        return impl.fold(
-            (ImMethod m) -> {
-                ILconst receiver1 = eArgs[0];
-                ILconstObject receiver = globalState.toObject(receiver1);
-                globalState.assertAllocated(receiver, e.attrTrace());
-                ImMethod mostPreciseMethod = findMostPreciseMethod(e.attrTrace(), globalState, receiver, m);
-                return evaluateFunc(globalState, mostPreciseMethod.getImplementation(), e, Collections.emptyList(), eArgs);
-            },
-            (ImFunction f) ->
-                evaluateFunc(globalState, f, e, Collections.emptyList(), eArgs) // TODO type var dispatch should also have type arguments?
-        );
-    }
-
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
         ILconst res = imCast.getExpr().evaluate(globalState, localState);
         if (TypesHelper.isIntType(imCast.getToType())) {

@@ -241,7 +241,7 @@ public class CompiletimeFunctionRunner {
         public ImVar initFor(ILconstObject obj) {
 
 
-            ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", false);
+            ImVar res = JassIm.ImVar(obj.getTrace(), obj.getType(), obj.getType() + "_compiletime", Collections.emptyList());
             imProg.getGlobals().add(res);
             ImAlloc alloc = JassIm.ImAlloc(obj.getTrace(), obj.getType());
             addCompiletimeStateInitAlloc(alloc.getTrace(), res, alloc);
@@ -281,7 +281,7 @@ public class CompiletimeFunctionRunner {
                 @SuppressWarnings("unchecked")
                 ArrayListMultimap<HashtableProvider.KeyPair, Object> map = (ArrayListMultimap<HashtableProvider.KeyPair, Object>) obj;
                 ImType type = TypesHelper.imHashTable();
-                ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", false);
+                ImVar res = JassIm.ImVar(trace, type, type + "_compiletime", Collections.emptyList());
                 imProg.getGlobals().add(res);
 
                 init = constantToExprHashtable(trace, res, a, map);

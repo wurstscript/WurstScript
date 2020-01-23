@@ -110,7 +110,7 @@ public class ImInliner {
         for (int pi = 0; pi < called.getParameters().size(); pi++) {
             ImVar param = called.getParameters().get(pi);
             ImExpr arg = args.get(pi);
-            ImVar tempVar = JassIm.ImVar(arg.attrTrace(), param.getType(), param.getName(), false);
+            ImVar tempVar = JassIm.ImVar(arg.attrTrace(), param.getType(), param.getName(), Collections.emptyList());
             f.getLocals().add(tempVar);
             varSubtitutions.put(param, tempVar);
             // set temp var
@@ -118,7 +118,7 @@ public class ImInliner {
         }
         // add locals
         for (ImVar l : called.getLocals()) {
-            ImVar newL = JassIm.ImVar(l.getTrace(), l.getType(), l.getName(), false);
+            ImVar newL = JassIm.ImVar(l.getTrace(), l.getType(), l.getName(), Collections.emptyList());
             f.getLocals().add(newL);
             varSubtitutions.put(l, newL);
         }

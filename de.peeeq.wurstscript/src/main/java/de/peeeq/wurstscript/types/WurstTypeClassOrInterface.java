@@ -143,5 +143,6 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
     }
 
     public ImClassType imTranslateToTypeClass(ImTranslator tr) {
+        throw new RuntimeException("TODO");
     }
 }

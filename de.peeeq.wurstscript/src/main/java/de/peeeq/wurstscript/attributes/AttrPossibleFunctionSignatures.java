@@ -124,14 +124,17 @@ public class AttrPossibleFunctionSignatures {
         // option 1: the matched type is a subtype of the constraint
         VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
         if (mapping2 != null) {
-            return mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(constraint)));
+            WurstTypeClassOrInterface subType = (WurstTypeClassOrInterface) matchedType.getBaseType();
+            return mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(subType, constraint)));
         }
         // option 2: the matched type is a type param that also has the right constraint:
         if (matchedType.getBaseType() instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
             Optional<WurstTypeInterface> matchingConstraint = wtp.getTypeConstraints().filter(c -> c.isSubtypeOf(constraint, fc)).findFirst();
             if (matchingConstraint.isPresent()) {
-                return mapping.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.fromTypeParam(fc, wtp, matchingConstraint.get())));
+                TypeClassInstance instance = TypeClassInstance.fromTypeParam(
+                    fc, wtp, matchingConstraint.get());
+                return mapping.set(tp, matchedType.withTypeClassInstance(instance));
             }
         }
         // option 3: find methods elsewhere

@@ -1306,9 +1306,10 @@ public class AntlrWurstParseTreeTransformer {
         if (tc == null) {
             return Ast.NoTypeParamConstraints();
         }
-        TypeExprList res = Ast.TypeExprList();
+        TypeParamConstraintList res = Ast.TypeParamConstraintList();
         for (TypeExprContext t : tc.constraints) {
-            res.add(transformTypeExpr(t));
+            TypeExpr te = transformTypeExpr(t);
+            res.add(Ast.TypeParamConstraint(te));
         }
         return res;
     }

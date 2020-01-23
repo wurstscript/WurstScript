@@ -5,6 +5,7 @@ import com.google.common.collect.Sets;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -114,7 +115,7 @@ public class NullSetter {
             if (exprContainsVar(returnExpr, handleVars)) {
                 // if the returnExpr contains some handleVar, we have to add a temporary var
 
-                ImVar tempReturn = JassIm.ImVar(imReturn.attrTrace(), returnExpr.attrTyp(), f.getName() + "tempReturn", false);
+                ImVar tempReturn = JassIm.ImVar(imReturn.attrTrace(), returnExpr.attrTyp(), f.getName() + "tempReturn", Collections.emptyList());
                 if (isHandleType(returnExpr.attrTyp())) {
                     // use global variables for handle types
                     prog.getGlobals().add(tempReturn);

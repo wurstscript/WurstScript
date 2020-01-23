@@ -58,11 +58,6 @@ import static de.peeeq.wurstscript.jassIm.JassIm.*;
 public class Flatten {
 
 
-    public static Result flatten(ImTypeVarDispatch e, ImTranslator t, ImFunction f) {
-        MultiResult r = flattenExprs(t, f, e.getArguments());
-        return new Result(r.stmts, ImTypeVarDispatch(e.getTrace(), e.getTypeClassFunc(), ImExprs(r.exprs), e.getTypeVariable()));
-    }
-
     public static Result flatten(ImCast imCast, ImTranslator translator, ImFunction f) {
         Result res = imCast.getExpr().flatten(translator, f);
         return new Result(res.stmts, ImCast(res.expr, imCast.getToType()));
@@ -321,7 +316,7 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.AND, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
+                    ImVar tempVar = ImVar(e.attrTrace(), WurstTypeBool.instance().imTranslateType(t), "andLeft", Collections.emptyList());
                     f.getLocals().add(tempVar);
                     ImStmts thenBlock = JassIm.ImStmts();
                     // if left is true then check right
@@ -341,7 +336,7 @@ public class Flatten {
                     return new Result(left.stmts, JassIm.ImOperatorCall(WurstOperator.OR, ImExprs(left.expr, right.expr)));
                 } else {
                     ArrayList<ImStmt> stmts = Lists.newArrayList(left.stmts);
-                    ImVar tempVar = JassIm.ImVar(trace, WurstTypeBool.instance().imTranslateType(t), "andLeft", false);
+                    ImVar tempVar = ImVar(trace, WurstTypeBool.instance().imTranslateType(t), "andLeft", Collections.emptyList());
                     f.getLocals().add(tempVar);
                     // if left is true then result is ture
                     ImStmts thenBlock = JassIm.ImStmts(ImSet(trace, ImVarAccess(tempVar), JassIm.ImBoolVal(true)));
@@ -412,7 +407,7 @@ public class Flatten {
         } else {
             // in the unlikely event that this is not an l-value (e.g. foo().x)
             // we create a temporary variable and store the result there
-            ImVar v = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "tuple_temp", false);
+            ImVar v = ImVar(e.attrTrace(), r.expr.attrTyp(), "tuple_temp", Collections.emptyList());
             f.getLocals().add(v);
             stmts = new ArrayList<>(r.stmts);
             stmts.add(JassIm.ImSet(e.attrTrace(), ImVarAccess(v), r.expr));
@@ -487,7 +482,7 @@ public class Flatten {
                     || i >= withStmts) {
                 newExprs.add(r.expr);
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
+                ImVar tempVar = ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", Collections.emptyList());
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));
@@ -518,7 +513,7 @@ public class Flatten {
                     || i >= withStmts) {
                 newExprs.add(r.getExpr());
             } else {
-                ImVar tempVar = JassIm.ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", false);
+                ImVar tempVar = ImVar(e.attrTrace(), r.expr.attrTyp(), "temp", Collections.emptyList());
                 f.getLocals().add(tempVar);
                 stmts.add(ImSet(e.attrTrace(), ImVarAccess(tempVar), r.expr));
                 newExprs.add(JassIm.ImVarAccess(tempVar));

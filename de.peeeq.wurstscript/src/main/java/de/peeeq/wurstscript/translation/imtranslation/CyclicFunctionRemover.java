@@ -46,7 +46,7 @@ public class CyclicFunctionRemover {
 
         de.peeeq.wurstscript.ast.Element trace = funcs.get(0).getTrace();
 
-        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(tr), "funcChoice", false);
+        ImVar choiceVar = JassIm.ImVar(trace, WurstTypeInt.instance().imTranslateType(tr), "funcChoice", Collections.emptyList());
 
         List<FunctionFlag> flags = Lists.newArrayList();
 
@@ -212,7 +212,7 @@ public class CyclicFunctionRemover {
         String typeName = t.translateType();
         ImVar r = tempReturnVars.get(typeName);
         if (r == null) {
-            r = JassIm.ImVar(t.attrTrace(), t, "tempReturn_" + typeName, false);
+            r = JassIm.ImVar(t.attrTrace(), t, "tempReturn_" + typeName, Collections.emptyList());
             prog.getGlobals().add(r);
             tempReturnVars.put(typeName, r);
         }
@@ -239,7 +239,7 @@ public class CyclicFunctionRemover {
                     }
                 }
                 // otherwise, we have to create a new var:
-                ImVar newVar = JassIm.ImVar(v.getTrace(), (ImType) v.getType().copy(), v.getName(), false);
+                ImVar newVar = JassIm.ImVar(v.getTrace(), (ImType) v.getType().copy(), v.getName(), Collections.emptyList());
                 oldToNewVar.put(v, newVar);
                 newParameters.add(newVar);
                 pos = newParameters.size() + 1;

@@ -543,7 +543,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
 
 
-        ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", false);
+        ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", Collections.emptyList());
         mainFunc.getLocals().add(trig);
         // TriggerRegisterPlayerEventEndCinematic(trig, Player(0))
         stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(trig), callExtern(trace, CallType.NORMAL, "CreateTrigger")));

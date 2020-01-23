@@ -1,14 +1,12 @@
 package de.peeeq.wurstscript.translation.lua.translation;
 
 import de.peeeq.datastructures.UnionFind;
-import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.luaAst.*;
-import de.peeeq.wurstscript.translation.imoptimizer.ImOptimizer;
 import de.peeeq.wurstscript.translation.imtranslation.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Lazy;
@@ -16,7 +14,6 @@ import de.peeeq.wurstscript.utils.Utils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.translation.lua.translation.ExprTranslation.WURST_SUPERTYPES;
@@ -63,7 +60,7 @@ public class LuaTranslator {
         @Override
         public LuaVariable initFor(ImVar a) {
             String name = a.getName();
-            if (!a.getIsBJ()) {
+            if (!a.isBJ()) {
                 name = uniqueName(name);
             }
             return LuaAst.LuaVariable(name, LuaAst.LuaNoExpr());
@@ -228,7 +225,7 @@ public class LuaTranslator {
         }
 
         for (ImVar global : prog.getGlobals()) {
-            if (global.getIsBJ()) {
+            if (global.isBJ()) {
                 setNameFromTrace(global);
                 usedNames.add(global.getName());
             }
@@ -585,7 +582,7 @@ public class LuaTranslator {
 
 
     private void translateGlobal(ImVar v) {
-        if (v.getIsBJ()) {
+        if (v.isBJ()) {
             // do not translate blizzard variables
             return;
         }
