@@ -354,6 +354,11 @@ public class ImPrinter {
 
 
     public static void print(ImVar v, Appendable sb, int indent) {
+        for (VarFlag varFlag : v.getVarFlags()) {
+            append(sb, "@");
+            append(sb, varFlag);
+            append(sb, " ");
+        }
         v.getType().print(sb, indent);
         append(sb, " ");
         append(sb, v.getName());

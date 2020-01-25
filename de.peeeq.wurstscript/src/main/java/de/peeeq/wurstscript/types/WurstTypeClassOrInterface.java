@@ -17,6 +17,7 @@ import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -133,16 +134,23 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
 
     @Override
     public final ImType imTranslateType(ImTranslator tr) {
+        ImTypeArguments typeArgs = translateTypeArguments(tr);
+        return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
+    }
+
+    @NotNull
+    private ImTypeArguments translateTypeArguments(ImTranslator tr) {
         ImTypeArguments typeArgs = JassIm.ImTypeArguments();
         for (WurstTypeBoundTypeParam btp : getTypeParameters()) {
             if (btp.isTemplateTypeParameter()) {
                 typeArgs.add(btp.imTranslateToTypeArgument(tr));
             }
         }
-        return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
+        return typeArgs;
     }
 
     public ImClassType imTranslateToTypeClass(ImTranslator tr) {
-        throw new RuntimeException("TODO");
+        ImTypeArguments typeArgs = translateTypeArguments(tr);
+        return JassIm.ImClassType(tr.getTypeClassStructFor(getDef()), typeArgs);
     }
 }

@@ -367,7 +367,7 @@ public class ImTranslator {
         if (wurstFunc.isEmpty()) {
             return null;
         }
-        return getFuncFor((TranslatedToImFunction) Utils.getFirst(wurstFunc).getDef());
+        return getFuncFor(Utils.getFirst(wurstFunc).getDef());
     }
 
     private void callInitFunc(Set<WPackage> calledInitializers, WPackage p, ImVar initTrigVar) {
@@ -504,7 +504,7 @@ public class ImTranslator {
                 .collect(Collectors.toList());
             for (int i = 0; i < arInit.getValues().size(); i++) {
                 ImExpr translated = translatedExprs.get(i);
-                f.getBody().add(ImSet(trace, ImVarArrayAccess(trace, v, ImExprs((ImExpr) JassIm.ImIntVal(i))), translated));
+                f.getBody().add(ImSet(trace, ImVarArrayAccess(trace, v, ImExprs(JassIm.ImIntVal(i))), translated));
             }
             // add list of init-values to translatedExprs
             imProg.getGlobalInits().put(v, translatedExprs);
@@ -514,7 +514,7 @@ public class ImTranslator {
     public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
         getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
-        imProg.getGlobalInits().put(g, Collections.singletonList((ImExpr) initial.copy()));
+        imProg.getGlobalInits().put(g, Collections.singletonList(initial.copy()));
     }
 
 
@@ -723,6 +723,56 @@ public class ImTranslator {
         return f;
     }
 
+    private final Map<FuncDef, ImFunction> typeClassFuncMap = new LinkedHashMap<>();
+
+    public ImFunction getTypeClassFuncFor(FuncDef funcDef) {
+        if (typeClassFuncMap.containsKey(funcDef)) {
+            return typeClassFuncMap.get(funcDef);
+        }
+        String name = getNameFor(funcDef);
+        List<FunctionFlag> flags = flags();
+        if (funcDef.attrIsCompiletime()) {
+            throw new CompileError(funcDef.getSource(), "Compiletime flag not supported here.");
+        }
+
+        // Check if last parameter is vararg
+        WParameters params = ((AstElementWithParameters) funcDef).getParameters();
+        if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
+            flags.add(IS_VARARG);
+        }
+
+
+        for (Modifier m : funcDef.getModifiers()) {
+            if (m instanceof Annotation) {
+                Annotation annotation = (Annotation) m;
+                flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
+            }
+        }
+
+        ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
+        ImVars parameters = ImVars();
+        ImVar thisVar = getThisVar(funcDef).copy();
+        parameters.add(thisVar);
+        for (WParameter p : params) {
+            parameters.add(getVarFor(p).copy());
+        }
+
+        ImFunction f = ImFunction(
+            funcDef,
+            name,
+            typeVars,
+            parameters,
+            funcDef.attrReturnTyp().imTranslateType(this),
+            ImVars(),
+            ImStmts(),
+            flags);
+
+
+        addFunction(f, funcDef);
+        typeClassFuncMap.put(funcDef, f);
+        return f;
+    }
+
     private ImClass getClassForFunc(TranslatedToImFunction funcDef) {
         if (funcDef == null) {
             return null;
@@ -789,7 +839,7 @@ public class ImTranslator {
             }
 
             private void handleTypeParameter(TypeParamDef tp) {
-                if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
                     typeVars.add(typeVariable.getFor(tp));
                 }
             }
@@ -827,7 +877,6 @@ public class ImTranslator {
         });
         return typeVars;
     }
-
 
 
     private boolean isExtern(TranslatedToImFunction funcDef) {
@@ -1295,12 +1344,31 @@ public class ImTranslator {
         return runArgs.isLua();
     }
 
-    public ImMethod getTypeClassMethodFor(FuncDef calledFunc) {
-        throw new RuntimeException("TODO");
+
+    private Map<FuncDef, ImMethod> typeClassMethodForFuncDef = Maps.newLinkedHashMap();
+
+    public ImMethod getTypeClassMethodFor(FuncDef f) {
+        ImMethod m = typeClassMethodForFuncDef.get(f);
+        if (m == null) {
+            ImFunction imFunc = getTypeClassFuncFor(f);
+            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
+            typeClassMethodForFuncDef.put(f, m);
+        }
+        return m;
     }
 
-    public ImVar getTypeClassParamFor(WurstTypeTypeParam typeParamDispatchOn, FunctionDefinition method) {
-        throw new RuntimeException();
+    private Map<TypeParamConstraint, ImVar> typeClassParamFor = new LinkedHashMap<>();
+
+    public ImVar getTypeClassParamFor(TypeParamConstraint tc) {
+        ImVar v = typeClassParamFor.get(tc);
+        if (v == null) {
+            TypeParamDef tp = (TypeParamDef) tc.getParent().getParent();
+            WurstTypeInterface wti = (WurstTypeInterface) tc.getConstraint().attrTyp();
+            ImClassType t = wti.imTranslateToTypeClass(this);
+            v = JassIm.ImVar(tc, t, "typeClassDict_" + tp.getName() + "_" + tc.getConstraint().attrTyp(), Collections.singletonList(VarFlag.SPECIALIZE));
+            typeClassParamFor.put(tc, v);
+        }
+        return v;
     }
 
 
@@ -1606,7 +1674,7 @@ public class ImTranslator {
     }
 
 
-    Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
+    private Map<FuncDef, ImMethod> methodForFuncDef = Maps.newLinkedHashMap();
 
     public ImMethod getMethodFor(FuncDef f) {
         ImMethod m = methodForFuncDef.get(f);

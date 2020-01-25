@@ -202,7 +202,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
     }
 
     public boolean isTemplateTypeParameter() {
-        return typeParamDef.getTypeParamConstraints() instanceof TypeExprList;
+        return typeParamDef.getTypeParamConstraints() instanceof TypeParamConstraintList;
     }
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {

@@ -354,11 +354,11 @@ public class WurstValidator {
 
     private void checkTypeParamDef(TypeParamDef e) {
         TypeParamConstraints constraints = e.getTypeParamConstraints();
-        if (constraints instanceof TypeExprList) {
-            TypeExprList typeExprs = (TypeExprList) constraints;
-            for (TypeExpr te : typeExprs) {
-                if (!(te.attrTyp() instanceof WurstTypeInterface)) {
-                    te.addError("Invalid type constraint " + te.attrTyp() + ". Type constraint must be an interface type.");
+        if (constraints instanceof TypeParamConstraintList) {
+            TypeParamConstraintList typeExprs = (TypeParamConstraintList) constraints;
+            for (TypeParamConstraint te : typeExprs) {
+                if (!(te.getConstraint().attrTyp() instanceof WurstTypeInterface)) {
+                    te.addError("Invalid type constraint " + te.getConstraint().attrTyp() + ". Type constraint must be an interface type.");
                 }
             }
         }
@@ -1552,7 +1552,7 @@ public class WurstValidator {
             WurstType typ = boundTyp.getBaseType();
 
             TypeParamDef tp = t._1();
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
                 // new style generics
             } else { // old style generics
 

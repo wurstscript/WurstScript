@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -22,33 +21,35 @@ public class FuncLink extends DefLink {
     private final List<String> parameterNames;
     private final List<WurstType> parameterTypes;
     private final VariableBinding mapping;
+    private final TypeParamConstraint typeParamConstraint;
 
     public FuncLink(Visibility visibility, WScope definedIn, List<TypeParamDef> typeParams,
-                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType, VariableBinding mapping) {
+                    @Nullable WurstType receiverType, FunctionDefinition def, List<String> parameterNames, List<WurstType> parameterTypes, WurstType returnType, VariableBinding mapping, TypeParamConstraint typeParamConstraint) {
         super(visibility, definedIn, typeParams, receiverType);
         this.def = def;
         this.returnType = returnType;
         this.parameterTypes = parameterTypes;
         this.parameterNames = parameterNames;
         this.mapping = mapping;
+        this.typeParamConstraint = typeParamConstraint;
     }
 
     public static FuncLink create(FunctionDefinition func, WScope definedIn) {
         Visibility visibiliy = calcVisibility(definedIn, func);
         List<TypeParamDef> typeParams = typeParams(func).collect(Collectors.toList());
         List<String> lParameterNames = func.getParameters().stream()
-                .map(WParameter::getName)
-                .collect(Collectors.toList());
+            .map(WParameter::getName)
+            .collect(Collectors.toList());
         List<WurstType> lParameterTypes = func.getParameters().stream()
-                .map(WParameter::attrTyp)
-                .collect(Collectors.toList());
+            .map(WParameter::attrTyp)
+            .collect(Collectors.toList());
         WurstType lreturnType = func.attrReturnTyp();
         WurstType lreceiverType = calcReceiverType(definedIn, func);
         VariableBinding mapping = VariableBinding.emptyMapping();
         if (func instanceof AstElementWithTypeParameters) {
             mapping = mapping.withTypeVariables(((AstElementWithTypeParameters) func).getTypeParameters());
         }
-        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, mapping);
+        return new FuncLink(visibiliy, definedIn, typeParams, lreceiverType, func, lParameterNames, lParameterTypes, lreturnType, mapping, null);
     }
 
 
@@ -78,7 +79,7 @@ public class FuncLink extends DefLink {
         if (newVis == getVisibility()) {
             return this;
         }
-        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
+        return new FuncLink(newVis, getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping, typeParamConstraint);
     }
 
 
@@ -109,8 +110,8 @@ public class FuncLink extends DefLink {
         if (!typeParams.isEmpty()) {
             result.append("<");
             result.append(typeParams.stream()
-                    .map(TypeParamDef::getName)
-                    .collect(Collectors.joining(", ")));
+                .map(TypeParamDef::getName)
+                .collect(Collectors.joining(", ")));
             result.append(">");
         }
         result.append("(");
@@ -119,10 +120,10 @@ public class FuncLink extends DefLink {
         result.append(returnType);
         WPos src = def.attrSource();
         result.append(" (")
-                .append(src.getFile())
-                .append(":")
-                .append(src.getLine())
-                .append(")");
+            .append(src.getFile())
+            .append(":")
+            .append(src.getLine())
+            .append(")");
         return result.toString();
     }
 
@@ -156,9 +157,9 @@ public class FuncLink extends DefLink {
         if (changed) {
             // remove type parameters that are now bound:
             List<TypeParamDef> newTypeParams = getTypeParams().stream()
-                    .filter(tp -> !binding.contains(tp))
-                    .collect(Collectors.toList());
-            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType, binding);
+                .filter(tp -> !binding.contains(tp))
+                .collect(Collectors.toList());
+            return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, newReceiverType, def, parameterNames, newParamTypes, newReturnType, binding, typeParamConstraint);
         } else {
             return this;
         }
@@ -170,7 +171,7 @@ public class FuncLink extends DefLink {
             return this;
         }
         ImmutableList<TypeParamDef> newTypeParams = Utils.concatLists(getTypeParams(), typeParams);
-        return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
+        return new FuncLink(getVisibility(), getDefinedIn(), newTypeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping, typeParamConstraint);
     }
 
     @Override
@@ -180,7 +181,7 @@ public class FuncLink extends DefLink {
 
     @Override
     public FuncLink withDef(NameDef def) {
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType(), mapping);
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), (FunctionDefinition) def, getParameterNames(), getParameterTypes(), getReturnType(), mapping, typeParamConstraint);
     }
 
     private WurstType adjustType(Element context, WurstType t, VariableBinding binding) {
@@ -224,7 +225,7 @@ public class FuncLink extends DefLink {
 
     public FuncLink withConfigDef() {
         FunctionDefinition def = (FunctionDefinition) this.def.attrConfigActualNameDef();
-        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping);
+        return new FuncLink(getVisibility(), getDefinedIn(), getTypeParams(), getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping, typeParamConstraint);
     }
 
     public FuncLink hidingPrivate() {
@@ -291,6 +292,14 @@ public class FuncLink extends DefLink {
     }
 
     public FuncLink withReceiverType(WurstType newReceiverType) {
-        return new FuncLink(getVisibility(), def, typeParams, newReceiverType, def, parameterNames, parameterTypes, returnType, mapping);
+        return new FuncLink(getVisibility(), def, typeParams, newReceiverType, def, parameterNames, parameterTypes, returnType, mapping, typeParamConstraint);
+    }
+
+    public FuncLink withTypeParamConstraint(TypeParamConstraint typeParamConstraint) {
+        return new FuncLink(getVisibility(), def, typeParams, getReceiverType(), def, parameterNames, parameterTypes, returnType, mapping, typeParamConstraint);
+    }
+
+    public @Nullable TypeParamConstraint getTypeParamConstraint() {
+        return typeParamConstraint;
     }
 }

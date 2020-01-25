@@ -440,7 +440,7 @@ public class ExprTranslation {
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
-        WurstTypeTypeParam typeParamDispatchOn = null;
+        TypeParamConstraint typeParamDispatchOn = e.attrFuncLink().getTypeParamConstraint();
 
         FunctionDefinition calledFunc = e.attrFuncDef();
 
@@ -452,12 +452,6 @@ public class ExprTranslation {
             // TODO why would I add the implicit parameter here, if it is
             // not a dynamic dispatch?
             leftExpr = (Expr) e.attrImplicitParameter();
-
-            if (leftExpr.attrTyp() instanceof WurstTypeTypeParam) {
-                WurstTypeTypeParam tp = (WurstTypeTypeParam) leftExpr.attrTyp();
-                typeParamDispatchOn = tp;
-            }
-
         }
 
         // get real func def (override of module function)
@@ -520,7 +514,7 @@ public class ExprTranslation {
                 imArgs.add(0, receiver);
             }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
-            ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn, calledFunc));
+            ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn));
             call = JassIm.ImMethodCall(e, method, typeArguments, typeClassDict, imArgs, false);
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);

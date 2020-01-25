@@ -1,9 +1,6 @@
 package de.peeeq.wurstscript.types;
 
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.TypeExpr;
-import de.peeeq.wurstscript.ast.TypeExprList;
-import de.peeeq.wurstscript.ast.TypeParamDef;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
@@ -81,9 +78,11 @@ public class WurstTypeTypeParam extends WurstType {
         return JassIm.ImAnyType();
     }
 
-    /** Using the new template generics with type constraints*/
+    /**
+     * Using the new template generics with type constraints
+     */
     private boolean hasTypeConstraints() {
-        return def.getTypeParamConstraints() instanceof TypeExprList;
+        return def.getTypeParamConstraints() instanceof TypeParamConstraintList;
     }
 
     @Override
@@ -111,16 +110,29 @@ public class WurstTypeTypeParam extends WurstType {
 
     @Override
     public Stream<FuncLink> getMemberMethods(Element node) {
-        return getTypeConstraints()
-            .flatMap(i ->
-                i.getMemberMethods(node))
-            .map(fl -> fl.withReceiverType(this));
+        if (def.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+            TypeParamConstraintList constraints = (TypeParamConstraintList) def.getTypeParamConstraints();
+            return constraints.stream()
+                .flatMap((TypeParamConstraint constr) -> {
+                    WurstType t = constr.getConstraint().attrTyp();
+                    if (t instanceof WurstTypeInterface) {
+                        WurstTypeInterface wti = (WurstTypeInterface) t;
+                        return wti.getMemberMethods(node)
+                            .map(f -> f.withReceiverType(this).withTypeParamConstraint(constr));
+                    } else {
+                        return Stream.empty();
+                    }
+                });
+        } else {
+            return Stream.empty();
+        }
     }
 
     public Stream<WurstTypeInterface> getTypeConstraints() {
-        if (def.getTypeParamConstraints() instanceof TypeExprList) {
-            TypeExprList constraints = (TypeExprList) def.getTypeParamConstraints();
+        if (def.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+            TypeParamConstraintList constraints = (TypeParamConstraintList) def.getTypeParamConstraints();
             return constraints.stream()
+                .map(TypeParamConstraint::getConstraint)
                 .map(TypeExpr::attrTyp)
                 .filter(t -> t instanceof WurstTypeInterface)
                 .map(t -> (WurstTypeInterface) t);

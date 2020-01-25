@@ -1,9 +1,9 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
-import de.peeeq.wurstscript.ast.WParameter;
-import de.peeeq.wurstscript.ast.WParameters;
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.jassIm.Element;
 import de.peeeq.wurstscript.utils.Constants;
 
 import java.util.ArrayList;
@@ -12,9 +12,17 @@ import java.util.Map;
 
 public class ImHelper {
 
-    static void translateParameters(WParameters params, ImVars result, ImTranslator t) {
+    static void translateParameters(WParameters params, List<TypeParamDef> typeParameters, ImVars result, ImTranslator t) {
         for (WParameter p : params) {
             result.add(t.getVarFor(p));
+        }
+        for (TypeParamDef tp : typeParameters) {
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                TypeParamConstraintList cList = (TypeParamConstraintList) tp.getTypeParamConstraints();
+                for (TypeParamConstraint c : cList) {
+                    result.add(t.getTypeClassParamFor(c));
+                }
+            }
         }
     }
 

@@ -92,9 +92,9 @@ public class AttrPossibleFunctionSignatures {
         for (TypeParamDef tp : sig.getDefinitionTypeVariables()) {
             Option<WurstTypeBoundTypeParam> matchedTypeOpt = mapping.get(tp);
             List<WurstTypeInterface> constraints = new ArrayList<>();
-            if (tp.getTypeParamConstraints() instanceof TypeExprList) {
-                for (TypeExpr c : ((TypeExprList) tp.getTypeParamConstraints())) {
-                    WurstType ct = c.attrTyp();
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                for (TypeParamConstraint c : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
+                    WurstType ct = c.getConstraint().attrTyp();
                     if (ct instanceof WurstTypeInterface) {
                         constraints.add((WurstTypeInterface) ct);
                     }
