@@ -417,6 +417,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(2, "translate classes");
 
         ClassesOptimizer.optimizeProg(imTranslator2);
+        printDebugImProg("./test-output/im " + stage++ + "_classes_optimized.im");
 
         new EliminateClasses(imTranslator2, imProg2, !runArgs.isUncheckedDispatch()).eliminateClasses();
         imTranslator2.assertProperties();
