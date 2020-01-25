@@ -751,8 +751,14 @@ public class ImTranslator {
 
         ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
         ImVars parameters = ImVars();
-        ImVar thisVar = getThisVar(funcDef).copy();
-        parameters.add(thisVar);
+        // add parameter for type class struct
+        ImClass typeClassStruct = getTypeClassStructFor(funcDef.attrNearestClassOrInterface());
+        parameters.add(JassIm.ImVar(funcDef, selfType(typeClassStruct), "thisDict", emptyList()));
+
+        if (!funcDef.attrIsStatic()) {
+            ImVar thisVar = getThisVar(funcDef).copy();
+            parameters.add(thisVar);
+        }
         for (WParameter p : params) {
             parameters.add(getVarFor(p).copy());
         }
@@ -768,7 +774,6 @@ public class ImTranslator {
             flags);
 
 
-        addFunction(f, funcDef);
         typeClassFuncMap.put(funcDef, f);
         return f;
     }
@@ -1351,7 +1356,8 @@ public class ImTranslator {
         ImMethod m = typeClassMethodForFuncDef.get(f);
         if (m == null) {
             ImFunction imFunc = getTypeClassFuncFor(f);
-            m = JassIm.ImMethod(f, selfType(f), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
+            ImClass typeClassStruct = getTypeClassStructFor(f.attrNearestClassOrInterface());
+            m = JassIm.ImMethod(f, selfType(typeClassStruct), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
             typeClassMethodForFuncDef.put(f, m);
         }
         return m;
@@ -1370,6 +1376,7 @@ public class ImTranslator {
         }
         return v;
     }
+
 
 
     interface VarsForTupleResult {
@@ -1669,7 +1676,7 @@ public class ImTranslator {
     public ImClass getTypeClassStructFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return typeClassStructFor.computeIfAbsent(s, s1 -> {
-            return JassIm.ImClass(s1, s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            return JassIm.ImClass(s1, "TypeClassDict_" + s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 

@@ -5,6 +5,8 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
+import static de.peeeq.wurstscript.utils.Utils.emptyList;
+
 public abstract class TypeClassInstance {
     private final WurstTypeClassOrInterface constraint;
 
@@ -15,8 +17,11 @@ public abstract class TypeClassInstance {
     public static TypeClassInstance asSubtype(WurstTypeClassOrInterface subType, WurstTypeClassOrInterface constraint) {
         return new TypeClassInstance(constraint) {
             @Override
-            public ImExpr translate(ImTranslator tr) {
-                throw new RuntimeException("TODO");
+            public ImExpr translate(Element trace, ImTranslator tr) {
+                // using can alloc here, which we will later rewrite to a constant
+                // variable access (the dict class has no fields and no constructor/destructor code)
+                ImClassType ct = subType.imTranslateToTypeClass(tr);
+                return JassIm.ImAlloc(trace, ct);
             }
         };
     }
@@ -28,7 +33,7 @@ public abstract class TypeClassInstance {
     public static TypeClassInstance fromTypeParam(Element trace, WurstTypeTypeParam wtp, WurstTypeClassOrInterface constraint) {
         return new TypeClassInstance(constraint) {
             @Override
-            public ImExpr translate(ImTranslator tr) {
+            public ImExpr translate(Element trace, ImTranslator tr) {
                 throw new RuntimeException("TODO");
             }
         };
@@ -38,5 +43,5 @@ public abstract class TypeClassInstance {
         return constraint;
     }
 
-    public abstract ImExpr translate(ImTranslator tr);
+    public abstract ImExpr translate(Element trace, ImTranslator tr);
 }

@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -73,6 +72,7 @@ public class TLDTranslation {
             translate(extendedClass.getClassDef(), translator);
         }
         ClassTranslator.translate(classDef, translator);
+        TypeClassTranslator.translateClassOrInterface(classDef, translator);
         translator.setTranslated(classDef);
     }
 
@@ -112,7 +112,7 @@ public class TLDTranslation {
 
     public static void translate(InterfaceDef interfaceDef, ImTranslator translator) {
         new InterfaceTranslator(interfaceDef, translator).translate();
-
+        TypeClassTranslator.translateClassOrInterface(interfaceDef, translator);
     }
 
 

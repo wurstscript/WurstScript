@@ -514,11 +514,13 @@ public class ExprTranslation {
                 imArgs.add(0, receiver);
             }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
             ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn));
             call = JassIm.ImMethodCall(e, method, typeArguments, typeClassDict, imArgs, false);
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
@@ -526,6 +528,7 @@ public class ExprTranslation {
                 imArgs.add(0, receiver);
             }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables(), imArgs);
             call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
@@ -534,6 +537,28 @@ public class ExprTranslation {
             return JassIm.ImStatementExpr(stmts, JassIm.ImVarAccess(tempVar));
         } else {
             return call;
+        }
+    }
+
+    /**
+     * For each type parameter constraint adds an argument containing the type class dictionary.
+     */
+    private static void addTypeClassDictArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables, ImExprs imArgs) {
+        VariableBinding mapping = sig.getMapping();
+        for (ImTypeVar tv : typeVariables) {
+            TypeParamDef tp = tr.getTypeParamDef(tv);
+            Option<WurstTypeBoundTypeParam> to = mapping.get(tp);
+            if (to.isEmpty()) {
+                throw new CompileError(location, "Type variable " + tp.getName() + " not bound in mapping.");
+            }
+            WurstTypeBoundTypeParam t = to.get();
+            if (!t.isTemplateTypeParameter()) {
+                continue;
+            }
+            for (TypeClassInstance instance : t.getInstances()) {
+                ImExpr arg = instance.translate(location, tr);
+                imArgs.add(arg);
+            }
         }
     }
 
