@@ -1667,7 +1667,14 @@ public class ImTranslator {
     public ImClass getClassFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
-            return JassIm.ImClass(s1, s1.getName(), ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            ImTypeVars typeVariables = JassIm.ImTypeVars();
+            for (TypeParamDef tp : s.getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                    ImTypeVar tv = getTypeVar(tp);
+                    typeVariables.add(tv);
+                }
+            }
+            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 
@@ -1676,7 +1683,14 @@ public class ImTranslator {
     public ImClass getTypeClassStructFor(ClassOrInterface s) {
         Preconditions.checkNotNull(s);
         return typeClassStructFor.computeIfAbsent(s, s1 -> {
-            return JassIm.ImClass(s1, "TypeClassDict_" + s1.getName(), JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+            ImTypeVars typeVariables = JassIm.ImTypeVars();
+            for (TypeParamDef tp : s.getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                    ImTypeVar tv = getTypeVar(tp);
+                    typeVariables.add(tv.copy());
+                }
+            }
+            return JassIm.ImClass(s1, "TypeClassDict_" + s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 
