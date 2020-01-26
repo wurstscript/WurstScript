@@ -18,11 +18,14 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.utils.Utils;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.Orient;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.eclipse.lsp4j.MessageType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -268,7 +271,26 @@ public class RunMap extends MapRequest {
         File testFolder = new File(documentPath, "Maps" + File.separator + "Test");
         if (testFolder.mkdirs() || testFolder.exists()) {
             File testMap2 = new File(testFolder, testMapName);
-            Files.copy(testMap, testMap2);
+            while (true) {
+                try {
+                    Files.copy(testMap, testMap2);
+                    break;
+                } catch (IOException ex) {
+                    JFrame jf = new JFrame();
+                    jf.setAlwaysOnTop(true);
+                    Object[] options = { "Retry", "Rename", "Cancel" };
+                    int result = JOptionPane.showOptionDialog(jf, "Can't write to target map file, it's probably in use.",
+                        "Run Map", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE,
+                        null, options, null);
+                    if (result == JOptionPane.CANCEL_OPTION) {
+                        return null;
+                    } else if(result == JOptionPane.NO_OPTION) {
+                        testMap2 = new File(testFolder, testMapName + RandomStringUtils.randomNumeric(3));
+                    }
+                }
+
+            }
+
             return testMap2;
         } else {
             WLogger.severe("Could not create Test folder");
