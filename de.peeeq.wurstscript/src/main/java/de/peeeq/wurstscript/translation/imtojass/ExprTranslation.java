@@ -143,4 +143,8 @@ public class ExprTranslation {
     public static JassExpr translate(ImCast imCast, ImToJassTranslator translator) {
         return imCast.getExpr().translate(translator);
     }
+
+    public static JassExpr translate(ImTypeClassDictValue e, ImToJassTranslator translator) {
+        throw new CompileError(e.getTrace().attrSource(), "Dependent type classes should be elimnated: " + e);
+    }
 }

@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class NameLinks {
@@ -48,6 +49,7 @@ public class NameLinks {
             addNamesFromImplementedInterfaces(result, classType, overrideCheckResults);
         }
 
+        addTypeParametersIfAny(result::put, c);
         reportOverrideErrors(overrideCheckResults);
         return ImmutableMultimap.copyOf(result);
     }
@@ -96,6 +98,7 @@ public class NameLinks {
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults);
         reportOverrideErrors(overrideCheckResults);
+        addTypeParametersIfAny(result::put, i);
         return ImmutableMultimap.copyOf(result);
     }
 
@@ -170,7 +173,17 @@ public class NameLinks {
         WScope s = (WScope) c;
         addVarDefIfAny(result, s);
         addParametersIfAny(result, s);
+        addTypeParametersIfAny(result::put, s);
         return result.build();
+    }
+
+    private static void addTypeParametersIfAny(BiConsumer<String, DefLink> result, WScope s) {
+        if (s instanceof AstElementWithTypeParameters) {
+            AstElementWithTypeParameters tps = (AstElementWithTypeParameters) s;
+            for (TypeParamDef tp : tps.getTypeParameters()) {
+                result.accept(tp.getName(), VarLink.create(tp, s));
+            }
+        }
     }
 
 

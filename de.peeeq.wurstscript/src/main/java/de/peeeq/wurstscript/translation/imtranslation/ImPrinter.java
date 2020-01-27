@@ -572,4 +572,10 @@ public class ImPrinter {
     public static void print(ImAnyType at, Appendable sb, int indent) {
         append(sb, "any");
     }
+
+    public static void print(ImTypeClassDictValue e, Appendable sb, int indent) {
+        append(sb, "TypeClassDict");
+        e.getClassType().print(sb, indent);
+        printArgumentList(sb, indent, e.getArguments());
+    }
 }

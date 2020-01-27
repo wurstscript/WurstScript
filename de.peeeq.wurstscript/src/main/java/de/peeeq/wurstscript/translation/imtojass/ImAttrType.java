@@ -215,4 +215,8 @@ public class ImAttrType {
     public static ImType getType(ImCast imCast) {
         return imCast.getToType();
     }
+
+    public static ImType getType(ImTypeClassDictValue e) {
+        return e.getClassType();
+    }
 }

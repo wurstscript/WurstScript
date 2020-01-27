@@ -388,6 +388,17 @@ public class PrettyPrinter {
         e.getMethods().prettyPrint(spacer, sb, indent);
     }
 
+
+    public static void prettyPrint(InstanceDecl e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("instance");
+        e.getTypeParameters().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        e.getImplementedInterface().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
+    }
+
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
     }
 

@@ -72,7 +72,6 @@ public class TLDTranslation {
             translate(extendedClass.getClassDef(), translator);
         }
         ClassTranslator.translate(classDef, translator);
-        TypeClassTranslator.translateClassOrInterface(classDef, translator);
         translator.setTranslated(classDef);
     }
 
@@ -112,7 +111,6 @@ public class TLDTranslation {
 
     public static void translate(InterfaceDef interfaceDef, ImTranslator translator) {
         new InterfaceTranslator(interfaceDef, translator).translate();
-        TypeClassTranslator.translateClassOrInterface(interfaceDef, translator);
     }
 
 
@@ -134,4 +132,7 @@ public class TLDTranslation {
         // nothing to do?
     }
 
+    public static void translate(InstanceDecl instanceDecl, ImTranslator translator) {
+        TypeClassTranslator.translateTypeClass(instanceDecl, translator);
+    }
 }

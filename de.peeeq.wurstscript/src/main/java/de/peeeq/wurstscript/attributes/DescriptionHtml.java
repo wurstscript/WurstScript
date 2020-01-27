@@ -440,4 +440,8 @@ public class DescriptionHtml {
         }
         return null;
     }
+
+    public static String description(InstanceDecl instanceDecl) {
+        return "Type class instance declaration.";
+    }
 }

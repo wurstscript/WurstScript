@@ -8,10 +8,13 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
 import static de.peeeq.wurstscript.attributes.GenericsHelper.typeParameters;
@@ -96,7 +99,13 @@ public class AttrPossibleFunctionSignatures {
                 for (TypeParamConstraint c : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
                     WurstType ct = c.getConstraint().attrTyp();
                     if (ct instanceof WurstTypeInterface) {
-                        constraints.add((WurstTypeInterface) ct);
+                        WurstTypeInterface wti = (WurstTypeInterface) ct;
+
+                        TypeParamDef lastTypeParam = Utils.getLast(wti.getDef().getTypeParameters());
+                        wti = (WurstTypeInterface) wti.setTypeArgs(wti.getTypeArgBinding()
+                            .set(lastTypeParam, new WurstTypeBoundTypeParam(lastTypeParam, new WurstTypeTypeParam(tp), c)));
+
+                        constraints.add(wti);
                     }
                 }
             }
@@ -120,14 +129,13 @@ public class AttrPossibleFunctionSignatures {
         return Pair.create(sig, errors);
     }
 
-    private static VariableBinding findTypeClass(StmtCall fc, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint) {
-        // option 1: the matched type is a subtype of the constraint
-        VariableBinding mapping2 = matchedType.matchAgainstSupertype(constraint, fc, mapping, VariablePosition.RIGHT);
-        if (mapping2 != null) {
-            WurstTypeClassOrInterface subType = (WurstTypeClassOrInterface) matchedType.getBaseType();
-            return mapping2.set(tp, matchedType.withTypeClassInstance(TypeClassInstance.asSubtype(subType, constraint)));
-        }
-        // option 2: the matched type is a type param that also has the right constraint:
+    private static VariableBinding findTypeClass(StmtCall fc, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1) {
+        WurstTypeInterface constraint = (WurstTypeInterface) constraint1.setTypeArgs(mapping);
+        System.out.println("mapping = " + mapping);
+        System.out.println("constraint1 = " + constraint1);
+        System.out.println("constraint = " + constraint);
+
+        // option 1: the matched type is a type param that also has the right constraint:
         if (matchedType.getBaseType() instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
             Optional<WurstTypeInterface> matchingConstraint = wtp.getTypeConstraints().filter(c -> c.isSubtypeOf(constraint, fc)).findFirst();
@@ -137,12 +145,50 @@ public class AttrPossibleFunctionSignatures {
                 return mapping.set(tp, matchedType.withTypeClassInstance(instance));
             }
         }
-        // option 3: find methods elsewhere
+        // option 2: find instance declarations
+        // TODO create index to make this faster and use normal scoped lookup (ony search imports)
+        WurstModel model = fc.getModel();
+        List<TypeClassInstance> instances = model.stream()
+            .flatMap(cu -> cu.getPackages().stream())
+            .flatMap(p -> p.getElements().stream())
+            .filter(e -> e instanceof InstanceDecl)
+            .map(e -> (InstanceDecl) e)
+            .flatMap(instance -> {
+                WurstType instanceType = instance.getImplementedInterface().attrTyp();
+                System.out.println("checking instance " + instanceType + " // " + constraint);
+                VariableBinding match = constraint.matchAgainstSupertype(instanceType, fc, VariableBinding.emptyMapping(), VariablePosition.RIGHT);
 
-        // TODO find instance declaration
+                if (match == null) {
+                    return Stream.empty();
+                }
+                instanceType = instanceType.setTypeArgs(match);
 
-        errors.add(new CompileError(fc, "Could not find type class instance " + constraint.getName() + " for type " + matchedType));
-        return null;
+                List<WurstType> typeArgs = new ArrayList<>();
+                List<TypeClassInstance> deps = new ArrayList<>();
+
+                // TODO resolve dependencies
+
+                TypeClassInstance result = TypeClassInstance.fromInstance(instance, typeArgs, deps, (WurstTypeInterface) instanceType);
+
+                return Stream.of(result);
+
+            }).collect(Collectors.toList());
+
+        if (instances.isEmpty()) {
+            errors.add(new CompileError(fc,
+                "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint.getName()));
+            // "Could not find type class instance " + constraint.getName() + " for type " + matchedType));
+            return null;
+        } else {
+            if (instances.size() > 1) {
+                errors.add(new CompileError(fc,
+                                "There are multiple instances for type  " + matchedType + " and constraint " + tp.getName() + ": " + constraint.getName() + "\n" +
+                    Utils.printSep("\n", instances)));
+
+            }
+            TypeClassInstance instance = Utils.getFirst(instances);
+            return mapping.set(tp, matchedType.withTypeClassInstance(instance));
+        }
     }
 
     public static ImmutableCollection<FunctionSignature> calculate(ExprNewObject fc) {

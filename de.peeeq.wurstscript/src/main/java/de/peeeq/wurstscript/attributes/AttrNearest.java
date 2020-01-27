@@ -159,4 +159,7 @@ public class AttrNearest {
     }
 
 
+    public static TypeParamDef parentTypeParam(TypeParamConstraint tp) {
+        return (TypeParamDef) tp.getParent().getParent();
+    }
 }

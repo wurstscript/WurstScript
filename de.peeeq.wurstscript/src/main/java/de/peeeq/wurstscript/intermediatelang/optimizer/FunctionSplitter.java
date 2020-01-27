@@ -235,6 +235,11 @@ public class FunctionSplitter {
             }
 
             @Override
+            public Integer case_ImTypeClassDictValue(ImTypeClassDictValue imTypeClassDictValue) {
+                return 1;
+            }
+
+            @Override
             public Integer case_ImCast(ImCast s) {
                 return estimateFuel(s.getExpr());
             }

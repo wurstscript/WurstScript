@@ -1377,6 +1377,9 @@ public class ImTranslator {
         return v;
     }
 
+    public ImClass getInstanceClassFor(InstanceDecl decl) {
+        throw new RuntimeException("TODOO");
+    }
 
 
     interface VarsForTupleResult {

@@ -420,4 +420,14 @@ public class EvaluateExpr {
         }
         return res;
     }
+
+    public static ILconst eval(ImTypeClassDictValue e, ProgramState globalState, LocalState localState) {
+        ILconstObject obj = globalState.allocate(e.getClassType(), e.attrTrace());
+        int i = 0;
+        for (ImExpr arg : e.getArguments()) {
+            ILconst argV = arg.evaluate(globalState, localState);
+            obj.set(e.getClassType().getClassDef().getFields().get(i), Collections.emptyList(), argV);
+        }
+        return obj;
+    }
 }

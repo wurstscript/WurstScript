@@ -36,6 +36,7 @@ WEntity =
 	| ModuleDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters,
 			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
+	| InstanceDecl(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, TypeParamDefs typeParameters, TypeExpr implementedInterface, FuncDefs methods)
 
 
 
@@ -510,6 +511,10 @@ Element.attrNearestNamedScope()
 Element.attrNearestScope()
 	returns @Nullable WScope
 	implemented by de.peeeq.wurstscript.attributes.AttrNearest.nearestScope
+
+TypeParamConstraint.parentTypeParam()
+    returns TypeParamDef
+    implemented by de.peeeq.wurstscript.attributes.AttrNearest.parentTypeParam
 
 WScope.attrNextScope "returns the scope surrounding this scope"
 	returns @Nullable WScope

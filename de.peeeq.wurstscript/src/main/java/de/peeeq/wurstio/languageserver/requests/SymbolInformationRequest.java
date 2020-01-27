@@ -112,6 +112,11 @@ public class SymbolInformationRequest extends UserRequest<List<? extends SymbolI
             }
 
             @Override
+            public void case_InstanceDecl(InstanceDecl instanceDecl) {
+                // ignore
+            }
+
+            @Override
             public void case_FuncDef(FuncDef funcDef) {
                 SymbolKind kind = funcDef.attrIsDynamicClassMember() ? SymbolKind.Method : SymbolKind.Function;
                 add(funcDef.getName(), kind);

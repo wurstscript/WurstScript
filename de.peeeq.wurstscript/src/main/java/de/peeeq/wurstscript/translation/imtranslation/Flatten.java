@@ -88,6 +88,11 @@ public class Flatten {
         return new Result(e);
     }
 
+    public static Result flatten(ImTypeClassDictValue e, ImTranslator translator, ImFunction f) {
+        MultiResult r = flattenExprs(translator, f, e.getArguments());
+        return new Result(r.stmts, JassIm.ImTypeClassDictValue(e.getTrace(), e.getClassType(), JassIm.ImExprs(e.getArguments())));
+    }
+
 
     public static class Result {
 

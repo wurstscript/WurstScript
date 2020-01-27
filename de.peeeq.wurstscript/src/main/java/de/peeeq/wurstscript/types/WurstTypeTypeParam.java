@@ -6,6 +6,7 @@ import de.peeeq.wurstscript.jassIm.ImExprOpt;
 import de.peeeq.wurstscript.jassIm.ImType;
 import de.peeeq.wurstscript.jassIm.JassIm;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -115,8 +116,18 @@ public class WurstTypeTypeParam extends WurstType {
             return constraints.stream()
                 .flatMap((TypeParamConstraint constr) -> {
                     WurstType t = constr.getConstraint().attrTyp();
+
                     if (t instanceof WurstTypeInterface) {
                         WurstTypeInterface wti = (WurstTypeInterface) t;
+
+                        // adjust last type parameter to be the type from the contraint
+                        // e.g.  <T: Foo> requires implementation Foo<T>
+                        VariableBinding binding = wti.getTypeArgBinding();
+                        TypeParamDef lastParam = Utils.getLast(wti.getDef().getTypeParameters());
+                        VariableBinding newBinding = binding.set(lastParam, new WurstTypeBoundTypeParam(lastParam, this, node));
+                        wti = (WurstTypeInterface) wti.setTypeArgs(newBinding);
+
+
                         return wti.getMemberMethods(node)
                             .map(f -> f.withReceiverType(this).withTypeParamConstraint(constr));
                     } else {

@@ -777,6 +777,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_InstanceDecl(InstanceDecl instanceDecl) {
+            return string("An instance declaration for the type-class " + instanceDecl.getImplementedInterface().attrTyp());
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_TypeExprResolved(TypeExprResolved typeExprResolved) {
             return typeExpr(typeExprResolved);
         }
