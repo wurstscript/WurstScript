@@ -3,20 +3,17 @@ package de.peeeq.wurstscript.types;
 
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.ast.InstanceDecl;
+import de.peeeq.wurstscript.ast.StmtCall;
+import de.peeeq.wurstscript.ast.TypeParamConstraint;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
 
 public abstract class TypeClassInstance {
-    private final WurstTypeClassOrInterface constraint;
-
-    public TypeClassInstance(WurstTypeClassOrInterface constraint) {
-        this.constraint = constraint;
-    }
 
     public static TypeClassInstance fromInstance(InstanceDecl decl, List<WurstType> typeArgs, List<TypeClassInstance> dependencies, WurstTypeInterface constraint) {
-        return new TypeClassInstance(constraint) {
+        return new TypeClassInstance() {
             @Override
             public ImExpr translate(Element trace, ImTranslator tr) {
                 ImClass c = tr.getClassFor(decl);
@@ -35,18 +32,18 @@ public abstract class TypeClassInstance {
         };
     }
 
-    public static TypeClassInstance fromTypeParam(Element trace, WurstTypeTypeParam wtp, WurstTypeInterface constraint) {
-        return new TypeClassInstance(constraint) {
+    public static TypeClassInstance fromTypeParam(Element trace, TypeParamConstraint constraint) {
+        return new TypeClassInstance() {
             @Override
             public ImExpr translate(Element trace, ImTranslator tr) {
-                throw new RuntimeException("TODO");
+                ImVar param = tr.getTypeClassParamFor(constraint);
+                // TODO if it is a class field do something different
+                return JassIm.ImVarAccess(param);
             }
         };
     }
 
-    public WurstTypeClassOrInterface getConstraintType() {
-        return constraint;
-    }
+
 
     public abstract ImExpr translate(Element trace, ImTranslator tr);
 }

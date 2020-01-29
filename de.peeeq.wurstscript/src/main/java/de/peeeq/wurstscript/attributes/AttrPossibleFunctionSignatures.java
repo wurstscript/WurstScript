@@ -127,17 +127,15 @@ public class AttrPossibleFunctionSignatures {
 
     private static VariableBinding findTypeClass(StmtCall fc, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1) {
         WurstTypeInterface constraint = (WurstTypeInterface) constraint1.setTypeArgs(mapping);
-        System.out.println("mapping = " + mapping);
-        System.out.println("constraint1 = " + constraint1);
-        System.out.println("constraint = " + constraint);
 
         // option 1: the matched type is a type param that also has the right constraint:
         if (matchedType.getBaseType() instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
-            Optional<WurstTypeInterface> matchingConstraint = wtp.getTypeConstraints().filter(c -> c.isSubtypeOf(constraint, fc)).findFirst();
+            Optional<TypeParamConstraint> matchingConstraint = wtp.getTypeConstraints().stream()
+                .filter(c -> c.attrConstraintTyp().isSubtypeOf(constraint, fc)).findFirst();
             if (matchingConstraint.isPresent()) {
                 TypeClassInstance instance = TypeClassInstance.fromTypeParam(
-                    fc, wtp, matchingConstraint.get());
+                    fc, matchingConstraint.get());
                 return mapping.set(tp, matchedType.withTypeClassInstance(instance));
             }
         }
@@ -151,7 +149,6 @@ public class AttrPossibleFunctionSignatures {
             .map(e -> (InstanceDecl) e)
             .flatMap(instance -> {
                 WurstType instanceType = instance.getImplementedInterface().attrTyp();
-                System.out.println("checking instance " + instanceType + " // " + constraint);
                 VariableBinding match = constraint.matchAgainstSupertype(instanceType, fc, VariableBinding.emptyMapping(), VariablePosition.RIGHT);
 
                 if (match == null) {

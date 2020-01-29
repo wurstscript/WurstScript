@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -133,16 +134,12 @@ public class WurstTypeTypeParam extends WurstType {
         }
     }
 
-    public Stream<WurstTypeInterface> getTypeConstraints() {
+    public List<TypeParamConstraint> getTypeConstraints() {
         if (def.getTypeParamConstraints() instanceof TypeParamConstraintList) {
             TypeParamConstraintList constraints = (TypeParamConstraintList) def.getTypeParamConstraints();
-            return constraints.stream()
-                .map(TypeParamConstraint::getConstraint)
-                .map(TypeExpr::attrTyp)
-                .filter(t -> t instanceof WurstTypeInterface)
-                .map(t -> (WurstTypeInterface) t);
+            return constraints;
         } else {
-            return Stream.empty();
+            return Collections.emptyList();
         }
     }
 

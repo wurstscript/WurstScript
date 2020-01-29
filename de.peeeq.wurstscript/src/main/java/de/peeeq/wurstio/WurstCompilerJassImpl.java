@@ -410,7 +410,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(2, "Eliminate generics");
         new EliminateGenerics(imTranslator2, imProg2).transform();
         printDebugImProg("./test-output/im " + stage++ + "_genericsEliminated.im");
-
+        if (!runArgs.isLua()) {
+            EliminateTypeClasses.transform(imTranslator2);
+        }
+        printDebugImProg("./test-output/im " + stage++ + "_typeClassesEliminated.im");
 
 
         // eliminate classes

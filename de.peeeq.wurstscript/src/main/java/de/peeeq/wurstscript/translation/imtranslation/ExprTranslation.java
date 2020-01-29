@@ -510,7 +510,6 @@ public class ExprTranslation {
 
         ImExpr call;
         if (typeParamDispatchOn != null) {
-            System.out.println("TypeParam dispatch for " + PrettyPrinter.print(e) + "\n" + typeParamDispatchOn);
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
 //            if (receiver != null) {
 //                imArgs.add(0, receiver);
