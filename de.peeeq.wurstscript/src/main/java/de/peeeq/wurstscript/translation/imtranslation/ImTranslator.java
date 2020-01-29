@@ -536,7 +536,7 @@ public class ImTranslator {
 
         @Override
         public ImFunction initFor(StructureDef classDef) {
-            ImVars params = ImVars(ImVar(classDef, selfType(classDef), "this", Collections.emptyList()));
+            ImVars params = ImVars(ImVar(classDef, selfTypeS(classDef), "this", Collections.emptyList()));
 
             ImFunction f = ImFunction(classDef.getOnDestroy(), "destroy" + classDef.getName(), ImTypeVars(), params, TypesHelper.imVoid(), ImVars(), ImStmts(), flags());
             addFunction(f, classDef);
@@ -549,7 +549,7 @@ public class ImTranslator {
         @Override
         public ImMethod initFor(StructureDef classDef) {
             ImFunction impl = destroyFunc.getFor(classDef);
-            ImMethod m = JassIm.ImMethod(classDef, selfType(classDef), "destroy" + classDef.getName(),
+            ImMethod m = JassIm.ImMethod(classDef, selfTypeS(classDef), "destroy" + classDef.getName(),
                 impl, Lists.<ImMethod>newArrayList(), false);
             return m;
         }
@@ -600,11 +600,16 @@ public class ImTranslator {
     }
 
     private ImClassType selfType(FuncDef f) {
-        return selfType(f.attrNearestClassOrInterface());
+        return selfType(f.attrNearestClassOrInterfaceOrInstance());
     }
 
-    public ImClassType selfType(StructureDef classDef) {
-        ImClass imClass = getClassFor(classDef.attrNearestClassOrInterface());
+    public ImClassType selfType(ClassOrInterfaceOrInstance classDef) {
+        ImClass imClass = getClassFor(classDef.attrNearestClassOrInterfaceOrInstance());
+        return selfType(imClass);
+    }
+
+    public ImClassType selfTypeS(StructureDef classDef) {
+        ImClass imClass = getClassFor(classDef.attrNearestClassOrInterfaceOrInstance());
         return selfType(imClass);
     }
 
@@ -652,7 +657,7 @@ public class ImTranslator {
     private final GetAForB<TypeParamConstraint, ImVar> constraint = new GetAForB<TypeParamConstraint, ImVar>() {
         @Override
         public ImVar initFor(TypeParamConstraint a) {
-            ImType t = a.getConstraint().attrTyp().imTranslateType(ImTranslator.this);
+            ImType t = a.attrConstraintTyp().imTranslateType(ImTranslator.this);
             return ImVar(a, t, Utils.printElement(a), emptyList());
         }
 
@@ -723,60 +728,6 @@ public class ImTranslator {
         return f;
     }
 
-    private final Map<FuncDef, ImFunction> typeClassFuncMap = new LinkedHashMap<>();
-
-    public ImFunction getTypeClassFuncFor(FuncDef funcDef) {
-        if (typeClassFuncMap.containsKey(funcDef)) {
-            return typeClassFuncMap.get(funcDef);
-        }
-        String name = getNameFor(funcDef);
-        List<FunctionFlag> flags = flags();
-        if (funcDef.attrIsCompiletime()) {
-            throw new CompileError(funcDef.getSource(), "Compiletime flag not supported here.");
-        }
-
-        // Check if last parameter is vararg
-        WParameters params = ((AstElementWithParameters) funcDef).getParameters();
-        if (params.size() >= 1 && params.get(params.size() - 1).attrIsVararg()) {
-            flags.add(IS_VARARG);
-        }
-
-
-        for (Modifier m : funcDef.getModifiers()) {
-            if (m instanceof Annotation) {
-                Annotation annotation = (Annotation) m;
-                flags.add(new FunctionFlagAnnotation(annotation.getAnnotationType()));
-            }
-        }
-
-        ImTypeVars typeVars = collectTypeVarsForFunction(funcDef);
-        ImVars parameters = ImVars();
-        // add parameter for type class struct
-        ImClass typeClassStruct = getTypeClassStructFor(funcDef.attrNearestClassOrInterface());
-        parameters.add(JassIm.ImVar(funcDef, selfType(typeClassStruct), "thisDict", emptyList()));
-
-        if (!funcDef.attrIsStatic()) {
-            ImVar thisVar = getThisVar(funcDef).copy();
-            parameters.add(thisVar);
-        }
-        for (WParameter p : params) {
-            parameters.add(getVarFor(p).copy());
-        }
-
-        ImFunction f = ImFunction(
-            funcDef,
-            name,
-            typeVars,
-            parameters,
-            funcDef.attrReturnTyp().imTranslateType(this),
-            ImVars(),
-            ImStmts(),
-            flags);
-
-
-        typeClassFuncMap.put(funcDef, f);
-        return f;
-    }
 
     private ImClass getClassForFunc(TranslatedToImFunction funcDef) {
         if (funcDef == null) {
@@ -791,7 +742,11 @@ public class ImTranslator {
             @Override
             public ImClass case_FuncDef(FuncDef funcDef) {
                 if (funcDef.attrIsDynamicClassMember()) {
-                    return getClassFor(funcDef.attrNearestClassOrInterface());
+                    return getClassFor(funcDef.attrNearestClassOrInterfaceOrInstance());
+                }
+                @Nullable WScope nearestScope = funcDef.getParent().attrNearestScope();
+                if (nearestScope instanceof InstanceDecl) {
+                    return getClassFor((InstanceDecl) nearestScope);
                 }
                 return null;
             }
@@ -1350,35 +1305,18 @@ public class ImTranslator {
     }
 
 
-    private Map<FuncDef, ImMethod> typeClassMethodForFuncDef = Maps.newLinkedHashMap();
-
-    public ImMethod getTypeClassMethodFor(FuncDef f) {
-        ImMethod m = typeClassMethodForFuncDef.get(f);
-        if (m == null) {
-            ImFunction imFunc = getTypeClassFuncFor(f);
-            ImClass typeClassStruct = getTypeClassStructFor(f.attrNearestClassOrInterface());
-            m = JassIm.ImMethod(f, selfType(typeClassStruct), elementNameWithPath(f), imFunc, Lists.<ImMethod>newArrayList(), false);
-            typeClassMethodForFuncDef.put(f, m);
-        }
-        return m;
-    }
-
     private Map<TypeParamConstraint, ImVar> typeClassParamFor = new LinkedHashMap<>();
 
     public ImVar getTypeClassParamFor(TypeParamConstraint tc) {
         ImVar v = typeClassParamFor.get(tc);
         if (v == null) {
             TypeParamDef tp = (TypeParamDef) tc.getParent().getParent();
-            WurstTypeInterface wti = (WurstTypeInterface) tc.getConstraint().attrTyp();
-            ImClassType t = wti.imTranslateToTypeClass(this);
-            v = JassIm.ImVar(tc, t, "typeClassDict_" + tp.getName() + "_" + tc.getConstraint().attrTyp(), Collections.singletonList(VarFlag.SPECIALIZE));
+            WurstTypeInterface wti = (WurstTypeInterface) tc.attrConstraintTyp();
+            ImClassType t = wti.imTranslateType(this);
+            v = JassIm.ImVar(tc, t, "typeClassDict_" + tp.getName() + "_" + tc.attrConstraintTyp(), Collections.singletonList(VarFlag.SPECIALIZE));
             typeClassParamFor.put(tc, v);
         }
         return v;
-    }
-
-    public ImClass getInstanceClassFor(InstanceDecl decl) {
-        throw new RuntimeException("TODOO");
     }
 
 
@@ -1665,9 +1603,9 @@ public class ImTranslator {
     }
 
 
-    private Map<ClassOrInterface, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
+    private Map<ClassOrInterfaceOrInstance, @Nullable ImClass> classForStructureDef = Maps.newLinkedHashMap();
 
-    public ImClass getClassFor(ClassOrInterface s) {
+    public ImClass getClassFor(ClassOrInterfaceOrInstance s) {
         Preconditions.checkNotNull(s);
         return classForStructureDef.computeIfAbsent(s, s1 -> {
             ImTypeVars typeVariables = JassIm.ImTypeVars();
@@ -1677,23 +1615,23 @@ public class ImTranslator {
                     typeVariables.add(tv);
                 }
             }
-            return JassIm.ImClass(s1, s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
-        });
-    }
-
-    private Map<ClassOrInterface, @Nullable ImClass> typeClassStructFor = Maps.newLinkedHashMap();
-
-    public ImClass getTypeClassStructFor(ClassOrInterface s) {
-        Preconditions.checkNotNull(s);
-        return typeClassStructFor.computeIfAbsent(s, s1 -> {
-            ImTypeVars typeVariables = JassIm.ImTypeVars();
-            for (TypeParamDef tp : s.getTypeParameters()) {
-                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
-                    ImTypeVar tv = getTypeVar(tp);
-                    typeVariables.add(tv.copy());
+            String name = s.match(new ClassOrInterfaceOrInstance.Matcher<String>() {
+                @Override
+                public String case_InstanceDecl(InstanceDecl i) {
+                    return "TypeClassDict_" + i.getImplementedInterface().attrTyp();
                 }
-            }
-            return JassIm.ImClass(s1, "TypeClassDict_" + s1.getName(), typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
+
+                @Override
+                public String case_ClassDef(ClassDef c) {
+                    return c.getName();
+                }
+
+                @Override
+                public String case_InterfaceDef(InterfaceDef i) {
+                    return i.getName();
+                }
+            });
+            return JassIm.ImClass(s1, name, typeVariables, JassIm.ImVars(), JassIm.ImMethods(), JassIm.ImFunctions(), Lists.newArrayList());
         });
     }
 

@@ -133,7 +133,7 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
     }
 
     @Override
-    public final ImType imTranslateType(ImTranslator tr) {
+    public final ImClassType imTranslateType(ImTranslator tr) {
         ImTypeArguments typeArgs = translateTypeArguments(tr);
         return JassIm.ImClassType(tr.getClassFor(getDef()), typeArgs);
     }
@@ -149,8 +149,4 @@ public abstract class WurstTypeClassOrInterface extends WurstTypeNamedScope {
         return typeArgs;
     }
 
-    public ImClassType imTranslateToTypeClass(ImTranslator tr) {
-        ImTypeArguments typeArgs = translateTypeArguments(tr);
-        return JassIm.ImClassType(tr.getTypeClassStructFor(getDef()), typeArgs);
-    }
 }

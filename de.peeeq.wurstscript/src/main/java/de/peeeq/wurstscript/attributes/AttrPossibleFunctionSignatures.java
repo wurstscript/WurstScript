@@ -10,7 +10,6 @@ import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Option;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -97,15 +96,12 @@ public class AttrPossibleFunctionSignatures {
             List<WurstTypeInterface> constraints = new ArrayList<>();
             if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
                 for (TypeParamConstraint c : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
-                    WurstType ct = c.getConstraint().attrTyp();
+                    WurstType ct = c.attrConstraintTyp();
                     if (ct instanceof WurstTypeInterface) {
                         WurstTypeInterface wti = (WurstTypeInterface) ct;
-
-                        TypeParamDef lastTypeParam = Utils.getLast(wti.getDef().getTypeParameters());
-                        wti = (WurstTypeInterface) wti.setTypeArgs(wti.getTypeArgBinding()
-                            .set(lastTypeParam, new WurstTypeBoundTypeParam(lastTypeParam, new WurstTypeTypeParam(tp), c)));
-
                         constraints.add(wti);
+
+
                     }
                 }
             }

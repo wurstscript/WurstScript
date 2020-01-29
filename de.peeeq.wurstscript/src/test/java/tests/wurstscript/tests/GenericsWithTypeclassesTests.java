@@ -1316,7 +1316,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "native testFail(string s)",
-            "interface ToIndex<T>",
+            "interface ToIndex<T:>",
             "	function toIndex(T x) returns int", // 5
             "class A",
             "instance ToIndex<A>",

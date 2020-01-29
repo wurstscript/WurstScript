@@ -158,6 +158,10 @@ public class ReadVariables {
         return generic(e);
     }
 
+    public static ImmutableList<NameDef> calculate(InstanceDecl e) {
+        return generic(e);
+    }
+
     public static ImmutableList<NameDef> calculate(ModuleDef e) {
         return generic(e);
     }
@@ -201,4 +205,6 @@ public class ReadVariables {
     public static ImmutableList<NameDef> calculate(ExprIfElse e) {
         return generic(e);
     }
+
+
 }

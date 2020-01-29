@@ -16,10 +16,12 @@ import java.util.stream.Stream;
 
 public class WurstTypeTypeParam extends WurstType {
 
-    private TypeParamDef def;
+    private final boolean isStaticRef;
+    private final TypeParamDef def;
 
-    public WurstTypeTypeParam(TypeParamDef t) {
+    public WurstTypeTypeParam(TypeParamDef t, boolean isStaticRef) {
         this.def = t;
+        this.isStaticRef = isStaticRef;
     }
 
     @Override
@@ -115,18 +117,10 @@ public class WurstTypeTypeParam extends WurstType {
             TypeParamConstraintList constraints = (TypeParamConstraintList) def.getTypeParamConstraints();
             return constraints.stream()
                 .flatMap((TypeParamConstraint constr) -> {
-                    WurstType t = constr.getConstraint().attrTyp();
+                    WurstType t = constr.attrConstraintTyp();
 
                     if (t instanceof WurstTypeInterface) {
                         WurstTypeInterface wti = (WurstTypeInterface) t;
-
-                        // adjust last type parameter to be the type from the contraint
-                        // e.g.  <T: Foo> requires implementation Foo<T>
-                        VariableBinding binding = wti.getTypeArgBinding();
-                        TypeParamDef lastParam = Utils.getLast(wti.getDef().getTypeParameters());
-                        VariableBinding newBinding = binding.set(lastParam, new WurstTypeBoundTypeParam(lastParam, this, node));
-                        wti = (WurstTypeInterface) wti.setTypeArgs(newBinding);
-
 
                         return wti.getMemberMethods(node)
                             .map(f -> f.withReceiverType(this).withTypeParamConstraint(constr));
@@ -150,5 +144,10 @@ public class WurstTypeTypeParam extends WurstType {
         } else {
             return Stream.empty();
         }
+    }
+
+    @Override
+    public boolean isStaticRef() {
+        return isStaticRef;
     }
 }

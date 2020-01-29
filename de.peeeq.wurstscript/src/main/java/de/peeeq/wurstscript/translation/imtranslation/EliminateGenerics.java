@@ -400,7 +400,7 @@ public class EliminateGenerics {
                 super.visit(v);
                 if (isGenericType(v.getType())) {
                     if (containsTypeVariable(v.getType())) {
-                        throw new CompileError(v, "Var should not have type variables.");
+                        throw new CompileError(v, "Var " + v + " should not have type variables.");
                     }
                     genericsUses.add(new GenericVar(v));
                 }

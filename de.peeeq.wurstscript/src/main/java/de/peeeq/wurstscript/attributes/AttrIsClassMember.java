@@ -26,7 +26,7 @@ public class AttrIsClassMember {
         if (f.attrNearestNamedScope() instanceof StructureDef) {
             return !f.attrIsStatic();
         }
-        return false;
+        return f.attrNearestClassOrInterfaceOrInstance() instanceof InstanceDecl;
     }
 
     public static boolean calculate(ExtensionFuncDef f) {

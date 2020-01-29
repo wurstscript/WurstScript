@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.ImClass;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
@@ -509,10 +510,11 @@ public class ExprTranslation {
 
         ImExpr call;
         if (typeParamDispatchOn != null) {
-            ImMethod method = t.getTypeClassMethodFor((FuncDef) calledFunc);
-            if (receiver != null) {
-                imArgs.add(0, receiver);
-            }
+            System.out.println("TypeParam dispatch for " + PrettyPrinter.print(e) + "\n" + typeParamDispatchOn);
+            ImMethod method = t.getMethodFor((FuncDef) calledFunc);
+//            if (receiver != null) {
+//                imArgs.add(0, receiver);
+//            }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
             ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn));

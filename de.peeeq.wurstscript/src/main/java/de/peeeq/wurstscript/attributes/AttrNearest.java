@@ -162,4 +162,14 @@ public class AttrNearest {
     public static TypeParamDef parentTypeParam(TypeParamConstraint tp) {
         return (TypeParamDef) tp.getParent().getParent();
     }
+
+    public static ClassOrInterfaceOrInstance attrNearestClassOrInterfaceOrInstance(Element e) {
+        while (e != null) {
+            if (e instanceof ClassOrInterfaceOrInstance) {
+                return (ClassOrInterfaceOrInstance) e;
+            }
+            e = e.getParent();
+        }
+        return null;
+    }
 }

@@ -8,8 +8,6 @@ import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 
 import java.util.List;
 
-import static de.peeeq.wurstscript.utils.Utils.emptyList;
-
 public abstract class TypeClassInstance {
     private final WurstTypeClassOrInterface constraint;
 
@@ -21,7 +19,7 @@ public abstract class TypeClassInstance {
         return new TypeClassInstance(constraint) {
             @Override
             public ImExpr translate(Element trace, ImTranslator tr) {
-                ImClass c = tr.getInstanceClassFor(decl);
+                ImClass c = tr.getClassFor(decl);
                 ImTypeArguments imTypeArgs = JassIm.ImTypeArguments();
                 for (WurstType ta : typeArgs) {
                     imTypeArgs.add(JassIm.ImTypeArgument(ta.imTranslateType(tr)));
@@ -35,10 +33,6 @@ public abstract class TypeClassInstance {
                 return JassIm.ImTypeClassDictValue(trace, ct, args);
             }
         };
-    }
-
-    protected ImClassType translateConstraintType(ImTranslator tr) {
-        return constraint.imTranslateToTypeClass(tr);
     }
 
     public static TypeClassInstance fromTypeParam(Element trace, WurstTypeTypeParam wtp, WurstTypeInterface constraint) {

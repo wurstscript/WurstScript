@@ -7,7 +7,9 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -20,6 +22,8 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class NameLinks {
+
+
 
     static private class OverrideCheckResult {
         // does this override some other function
@@ -97,6 +101,20 @@ public class NameLinks {
         addDefinedNames(result, i, i.getMethods());
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults);
+        reportOverrideErrors(overrideCheckResults);
+        addTypeParametersIfAny(result::put, i);
+        return ImmutableMultimap.copyOf(result);
+    }
+
+
+    public static ImmutableMultimap<String, DefLink> calculate(InstanceDecl i) {
+        Multimap<String, DefLink> result = HashMultimap.create();
+        addDefinedNames(result, i, i.getMethods());
+        Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
+        WurstType implementedI = i.getImplementedInterface().attrTyp();
+        if (implementedI instanceof WurstTypeInterface) {
+            addNamesFromExtendedInterfaces(result, (WurstTypeInterface) implementedI, overrideCheckResults);
+        }
         reportOverrideErrors(overrideCheckResults);
         addTypeParametersIfAny(result::put, i);
         return ImmutableMultimap.copyOf(result);

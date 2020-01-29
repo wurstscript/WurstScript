@@ -357,9 +357,7 @@ public class WurstValidator {
         if (constraints instanceof TypeParamConstraintList) {
             TypeParamConstraintList typeExprs = (TypeParamConstraintList) constraints;
             for (TypeParamConstraint te : typeExprs) {
-                if (!(te.getConstraint().attrTyp() instanceof WurstTypeInterface)) {
-                    te.addError("Invalid type constraint " + te.getConstraint().attrTyp() + ". Type constraint must be an interface type.");
-                }
+                te.attrConstraintTyp();
             }
         }
     }
