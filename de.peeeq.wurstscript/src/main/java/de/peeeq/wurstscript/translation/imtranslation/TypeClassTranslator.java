@@ -19,6 +19,14 @@ public class TypeClassTranslator {
         WurstType implementedInterface = instance.getImplementedInterface().attrTyp();
         c.getSuperClasses().add((ImClassType) implementedInterface.imTranslateType(tr));
 
+        for (TypeParamDef tp : instance.getTypeParameters()) {
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                for (TypeParamConstraint constraint : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
+                    ImVar v = tr.getTypeClassParamFor(constraint);
+                    c.getFields().add(v);
+                }
+            }
+        }
 
         for (FuncDef method : instance.getMethods()) {
             translateMethod(instance, c, method, implementedInterface, tr);

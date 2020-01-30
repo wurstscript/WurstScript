@@ -1403,4 +1403,31 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void buildInstance() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface A<X:>",
+            "	function x(X x) returns int",
+            "interface B<Y:>",
+            "	function y(Y y) returns int",
+            "class C",
+            "instance A<C>",
+            "    function x(C c) returns int",
+            "        return 41",
+            "instance <T: A> implements B<T>",
+            "    function y(T t) returns int",
+            "        return T.x(t) + 1",
+            "function foo<Q: B>(Q q)",
+            "    if Q.y(q) == 42",
+            "        testSuccess()",
+            "init",
+            "    let c = new C",
+            "    foo(c)"
+        );
+    }
+
+
 }

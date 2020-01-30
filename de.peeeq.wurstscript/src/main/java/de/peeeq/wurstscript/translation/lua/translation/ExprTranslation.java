@@ -159,7 +159,7 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImTypeClassDictValue e, LuaTranslator tr) {
-        ImClass c = e.getClassType().getClassDef();
+        ImClass c = e.getClazz().getClassDef();
         LuaMethod m = tr.luaClassInitMethod.getFor(c);
         LuaVariable classVar = tr.luaClassVar.getFor(c);
 

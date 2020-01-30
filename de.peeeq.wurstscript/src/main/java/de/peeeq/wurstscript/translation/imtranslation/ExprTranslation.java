@@ -516,7 +516,20 @@ public class ExprTranslation {
 //            }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
             addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
-            ImVarAccess typeClassDict = JassIm.ImVarAccess(t.getTypeClassParamFor(typeParamDispatchOn));
+            ImVar typeClassParam = t.getTypeClassParamFor(typeParamDispatchOn);
+            ImExpr typeClassDict;
+            if (typeClassParam.getParent().getParent() instanceof ImFunction) {
+                // parameter
+                typeClassDict = JassIm.ImVarAccess(typeClassParam);
+            } else {
+                // field
+                ImVar thisVar = t.getThisVarForNode(f, e);
+                typeClassDict = JassIm.ImMemberAccess(e,
+                    JassIm.ImVarAccess(thisVar),
+                    JassIm.ImTypeArguments(),
+                    typeClassParam,
+                    JassIm.ImExprs());
+            }
             call = JassIm.ImMethodCall(e, method, typeArguments, typeClassDict, imArgs, false);
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);

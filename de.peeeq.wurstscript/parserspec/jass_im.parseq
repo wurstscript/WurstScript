@@ -98,7 +98,7 @@ ImExpr =
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
 	| ImCast(ImExpr expr, ref ImType toType)
-	| ImTypeClassDictValue(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType classType, ImExprs arguments)
+
 
 
 // an expression which can be used on the left hand side of an assignment
@@ -126,7 +126,7 @@ ImClassRelatedExprWithClass =
 	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfClass(ref ImClassType clazz)
-	
+	| ImTypeClassDictValue(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExprs arguments)
 
 
 

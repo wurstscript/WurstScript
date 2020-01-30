@@ -4,7 +4,6 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ImAttrType {
@@ -217,6 +216,6 @@ public class ImAttrType {
     }
 
     public static ImType getType(ImTypeClassDictValue e) {
-        return e.getClassType();
+        return e.getClazz();
     }
 }

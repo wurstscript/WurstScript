@@ -330,7 +330,7 @@ AstElementWithNameId = WPackage | NativeFunc | ModuleDef | TypeDef | ModuleInsta
 
 AstElementWithParameters = FunctionDefinition | ExtensionFuncDef | NativeFunc | TupleDef | ConstructorDef | FuncDef
 
-AstElementWithTypeParameters = ExtensionFuncDef | ModuleDef | ClassOrInterface | FuncDef
+AstElementWithTypeParameters = ExtensionFuncDef | ModuleDef | ClassOrInterfaceOrInstance | FuncDef
 
 AstElementWithArgs = StmtCall | ExprFunctionCall | ExprNewObject | ExprMemberMethod
 

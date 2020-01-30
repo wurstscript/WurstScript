@@ -619,6 +619,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
+        // basic sanity check
+        getImTranslator().assertProperties(AssertProperty.rooted(getImProg()));
     }
 
     private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {

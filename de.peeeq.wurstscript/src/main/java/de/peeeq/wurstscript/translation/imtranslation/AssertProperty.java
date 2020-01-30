@@ -91,7 +91,7 @@ public interface AssertProperty {
                         }
                         Element parent = e.getParent();
                         if (parent == null) {
-                            break;
+                            throw new CompileError(location,"Element " + el + " has no parent");
                         }
                         checkContains(location, parent, e);
                         if (parent instanceof ImFunction && parent != currentFunction) {

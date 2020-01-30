@@ -468,6 +468,14 @@ public class EliminateGenerics {
                 }
             }
 
+            @Override
+            public void visit(ImTypeClassDictValue f) {
+                super.visit(f);
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
         });
     }
 

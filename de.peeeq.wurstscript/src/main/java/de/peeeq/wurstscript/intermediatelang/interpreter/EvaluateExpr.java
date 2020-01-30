@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.ast.WPackage;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
-import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
@@ -422,11 +421,11 @@ public class EvaluateExpr {
     }
 
     public static ILconst eval(ImTypeClassDictValue e, ProgramState globalState, LocalState localState) {
-        ILconstObject obj = globalState.allocate(e.getClassType(), e.attrTrace());
+        ILconstObject obj = globalState.allocate(e.getClazz(), e.attrTrace());
         int i = 0;
         for (ImExpr arg : e.getArguments()) {
             ILconst argV = arg.evaluate(globalState, localState);
-            obj.set(e.getClassType().getClassDef().getFields().get(i), Collections.emptyList(), argV);
+            obj.set(e.getClazz().getClassDef().getFields().get(i), Collections.emptyList(), argV);
         }
         return obj;
     }

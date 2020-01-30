@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
+import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 
@@ -35,7 +36,7 @@ public class EliminateTypeClasses {
     private final ImTranslator tr;
     private final ArrayDeque<ImTypeClassDictValue> workList = new ArrayDeque<>();
     private final Table<ImFunction, TypeClassInstanceKey, ImFunction> specializedFunctions = HashBasedTable.create();
-    private final Map<ImFunction, ImFunction> outOfClassFuncs = new LinkedHashMap<>();
+    private final Table<ImFunction, TypeClassInstanceKey, ImFunction> outOfClassFuncs = HashBasedTable.create();
 
     public EliminateTypeClasses(ImTranslator tr) {
         this.tr = tr;
@@ -83,7 +84,7 @@ public class EliminateTypeClasses {
             ImMethodCall mc = (ImMethodCall) parent;
             assert mc.getReceiver() == dictV;
 
-            ImMethod m = findMostConcreteMethod(mc.getMethod(), dictV.getClassType());
+            ImMethod m = findMostConcreteMethod(mc.getMethod(), dictV.getClazz());
 
             // allow to move
             mc.getTypeArguments().setParent(null);
@@ -95,13 +96,24 @@ public class EliminateTypeClasses {
             }
             mc.replaceBy(JassIm.ImFunctionCall(
                 mc.getTrace(),
-                getOutOfClassFunc(m.getImplementation()),
+                getOutOfClassFunc(m.getImplementation(), key(dictV, 0)),
                 mc.getTypeArguments(),
                 mc.getArguments(),
                 false,
                 CallType.NORMAL
             ));
 
+            return;
+        } else if (parent instanceof ImMemberAccess) {
+            ImMemberAccess ma = (ImMemberAccess) parent;
+            ImVar field = ma.getVar();
+            int index = ((ImVars) field.getParent()).indexOf(field);
+            ImExpr tc = dictV.getArguments().get(index);
+            ImExpr copy = tc.copyWithRefs();
+            ma.replaceBy(copy);
+            if (copy instanceof ImTypeClassDictValue) {
+                workList.add((ImTypeClassDictValue) copy);
+            }
             return;
         }
 
@@ -110,15 +122,33 @@ public class EliminateTypeClasses {
             "Unhandled parent for dict: " + parent + " // " + parent.getClass());
     }
 
-    private ImFunction getOutOfClassFunc(ImFunction impl) {
-        ImFunction res = outOfClassFuncs.get(impl);
+    private ImFunction getOutOfClassFunc(ImFunction impl, TypeClassInstanceKey key) {
+        ImFunction res = outOfClassFuncs.get(impl, key);
         if (res != null) {
             return res;
         }
         ImFunction copy = impl.copyWithRefs();
+        tr.getImProg().getFunctions().add(copy);
         // remove implicit parameter
-        copy.getParameters().remove(0);
-        outOfClassFuncs.put(impl, copy);
+        ImVar thisVar = copy.getParameters().remove(0);
+        List<ImVarAccess> vars = new ArrayList<>();
+        copy.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImVarAccess v) {
+
+                if (v.getVar() == thisVar) {
+                    vars.add(v);
+                }
+            }
+        });
+
+        for (ImVarAccess va : vars) {
+            ImTypeClassDictValue newDict = key.makeDictValue(va.attrTrace());
+            va.replaceBy(newDict);
+            workList.add(newDict);
+        }
+
+        outOfClassFuncs.put(impl, key, copy);
         return copy;
     }
 
@@ -195,12 +225,13 @@ public class EliminateTypeClasses {
     }
 
     private TypeClassInstanceKey key(ImTypeClassDictValue dictV, int index) {
-        return new TypeClassInstanceKey(dictV.getClassType().getClassDef(), index,
+        return new TypeClassInstanceKey(dictV.getClazz().getClassDef(), index,
             dictV.getArguments().stream()
                 .map(v -> key((ImTypeClassDictValue) v, index))
                 .collect(Collectors.toList()));
     }
 
+    // TODO remove index here and make another class for parameter index
     static class TypeClassInstanceKey {
         private final ImClass base;
         private int index;

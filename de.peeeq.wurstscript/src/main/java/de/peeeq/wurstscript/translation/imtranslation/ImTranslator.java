@@ -101,7 +101,7 @@ public class ImTranslator {
     private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
-    private boolean debug = false;
+    private boolean debug = true;
     private final RunArgs runArgs;
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
@@ -121,6 +121,7 @@ public class ImTranslator {
             globalInitFunc = ImFunction(emptyTrace, "initGlobals", ImTypeVars(), ImVars(), ImVoid(), ImVars(), ImStmts(), flags());
             addFunction(getGlobalInitFunc());
             debugPrintFunction = ImFunction(emptyTrace, $DEBUG_PRINT, ImTypeVars(), ImVars(ImVar(wurstProg, WurstTypeString.instance().imTranslateType(this), "msg", Collections.emptyList())), ImVoid(), ImVars(), ImStmts(), flags(IS_NATIVE, IS_BJ));
+            imProg.getFunctions().add(debugPrintFunction);
 
             calculateCompiletimeOrder();
 
@@ -946,7 +947,7 @@ public class ImTranslator {
         return getThisVarForNode(f, e);
     }
 
-    private ImVar getThisVarForNode(ImFunction f, de.peeeq.wurstscript.ast.Element node1) {
+    ImVar getThisVarForNode(ImFunction f, de.peeeq.wurstscript.ast.Element node1) {
         de.peeeq.wurstscript.ast.Element node = node1;
         while (node != null) {
             if (node instanceof TranslatedToImFunction && !(node instanceof ExprClosure)) {
@@ -1327,7 +1328,8 @@ public class ImTranslator {
             TypeParamDef tp = (TypeParamDef) tc.getParent().getParent();
             WurstTypeInterface wti = (WurstTypeInterface) tc.attrConstraintTyp();
             ImClassType t = wti.imTranslateType(this);
-            v = JassIm.ImVar(tc, t, "typeClassDict_" + tp.getName() + "_" + tc.attrConstraintTyp(), Collections.singletonList(VarFlag.SPECIALIZE));
+            int i = ((TypeParamConstraintList) tp.getTypeParamConstraints()).indexOf(tc);
+            v = JassIm.ImVar(tc, t, "typeClassDict_" + tp.getName() + ((i > 0) ? i : ""), Collections.singletonList(VarFlag.SPECIALIZE));
             typeClassParamFor.put(tc, v);
         }
         return v;
@@ -1558,18 +1560,26 @@ public class ImTranslator {
             checkVar(((ElementWithVar) e).getVar(), properties);
         }
         properties.forEach(p -> p.check(e));
-        if (properties.contains(AssertProperty.NOTUPLES)) {
-
-        }
-        if (properties.contains(AssertProperty.FLAT)) {
-
-        }
         for (int i = 0; i < e.size(); i++) {
             Element child = e.get(i);
             if (child.getParent() == null) {
                 throw new Error("Child " + i + " (" + child + ") of " + e + " not attached to tree");
             }
-            assertProperties(properties, child);
+            try {
+                assertProperties(properties, child);
+            } catch (Throwable t) {
+                de.peeeq.wurstscript.ast.Element trace = e.attrTrace();
+                if (trace instanceof WurstModel || trace instanceof NoExpr) {
+                    throw t;
+                }
+                WPos source;
+                if (t instanceof CompileError) {
+                    source = ((CompileError) t).getSource();
+                } else {
+                    source = trace.attrSource();
+                }
+                throw new CompileError(source, "When checking element:\n" + e, CompileError.ErrorType.ERROR, t);
+            }
         }
     }
 
@@ -1632,7 +1642,19 @@ public class ImTranslator {
             String name = s.match(new ClassOrInterfaceOrInstance.Matcher<String>() {
                 @Override
                 public String case_InstanceDecl(InstanceDecl i) {
-                    return "TypeClassDict_" + i.getImplementedInterface().attrTyp();
+                    WurstType t = i.getImplementedInterface().attrTyp();
+                    String name = "TypeClassDict";
+                    if (t instanceof WurstTypeInterface) {
+                        WurstTypeInterface wti = (WurstTypeInterface) t;
+                        name += "_" + wti.getDef().getName();
+                        if (!wti.getTypeParameters().isEmpty()) {
+                            WurstTypeBoundTypeParam last = Utils.getLast(wti.getTypeParameters());
+                            name += "_" + last.getBaseType().getName().replaceAll("[<>]", "");
+                        }
+
+
+                    }
+                    return name;
                 }
 
                 @Override
@@ -1706,6 +1728,7 @@ public class ImTranslator {
         if (ef == null) {
             Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);
             ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
+            imProg.getFunctions().add(errorFunc);
         }
         ImExprs arguments = JassIm.ImExprs(message);
         return ImFunctionCall(trace, ef, ImTypeArguments(), arguments, false, CallType.NORMAL);

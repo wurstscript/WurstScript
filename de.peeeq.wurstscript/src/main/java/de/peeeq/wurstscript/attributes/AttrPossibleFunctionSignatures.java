@@ -9,7 +9,9 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.Tuple2;
 import io.vavr.control.Option;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,8 +69,8 @@ public class AttrPossibleFunctionSignatures {
         if (res2.isEmpty()) {
             // no signature matches precisely --> try to match as good as possible
             ImmutableList<ArgsMatchResult> match3 = res.stream()
-                    .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
-                    .collect(ImmutableList.toImmutableList());
+                .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
+                .collect(ImmutableList.toImmutableList());
 
             if (match3.isEmpty()) {
                 return ImmutableList.of();
@@ -80,8 +82,8 @@ public class AttrPossibleFunctionSignatures {
                 }
 
                 return match3.stream()
-                        .map(ArgsMatchResult::getSig)
-                        .collect(ImmutableList.toImmutableList());
+                    .map(ArgsMatchResult::getSig)
+                    .collect(ImmutableList.toImmutableList());
             }
         } else {
             return res2;
@@ -93,18 +95,7 @@ public class AttrPossibleFunctionSignatures {
         VariableBinding mapping = sig.getMapping();
         for (TypeParamDef tp : sig.getDefinitionTypeVariables()) {
             Option<WurstTypeBoundTypeParam> matchedTypeOpt = mapping.get(tp);
-            List<WurstTypeInterface> constraints = new ArrayList<>();
-            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
-                for (TypeParamConstraint c : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
-                    WurstType ct = c.attrConstraintTyp();
-                    if (ct instanceof WurstTypeInterface) {
-                        WurstTypeInterface wti = (WurstTypeInterface) ct;
-                        constraints.add(wti);
-
-
-                    }
-                }
-            }
+            List<WurstTypeInterface> constraints = getConstraints(tp);
             if (matchedTypeOpt.isEmpty()) {
                 if (!constraints.isEmpty()) {
                     errors.add(new CompileError(fc.attrSource(), "Type parameter " + tp.getName() + " is not bound, so type constraints cannot be solved."));
@@ -123,6 +114,23 @@ public class AttrPossibleFunctionSignatures {
         }
         sig = sig.setTypeArgs(fc, mapping);
         return Pair.create(sig, errors);
+    }
+
+    @NotNull
+    private static List<WurstTypeInterface> getConstraints(TypeParamDef tp) {
+        List<WurstTypeInterface> constraints = new ArrayList<>();
+        if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+            for (TypeParamConstraint c : ((TypeParamConstraintList) tp.getTypeParamConstraints())) {
+                WurstType ct = c.attrConstraintTyp();
+                if (ct instanceof WurstTypeInterface) {
+                    WurstTypeInterface wti = (WurstTypeInterface) ct;
+                    constraints.add(wti);
+
+
+                }
+            }
+        }
+        return constraints;
     }
 
     private static VariableBinding findTypeClass(StmtCall fc, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1) {
@@ -149,14 +157,39 @@ public class AttrPossibleFunctionSignatures {
             .map(e -> (InstanceDecl) e)
             .flatMap(instance -> {
                 WurstType instanceType = instance.getImplementedInterface().attrTyp();
-                VariableBinding match = instanceType.matchAgainstSupertype(constraint, fc, VariableBinding.emptyMapping(), VariablePosition.LEFT);
+                VariableBinding initialMapping = VariableBinding.emptyMapping().withTypeVariables(instance.getTypeParameters());
+                VariableBinding match = instanceType.matchAgainstSupertype(constraint, fc, initialMapping, VariablePosition.LEFT);
+
+
                 if (match == null) {
                     return Stream.empty();
                 }
                 instanceType = instanceType.setTypeArgs(match);
 
-                List<WurstType> typeArgs = new ArrayList<>();
+
+                for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> m : match) {
+                    TypeParamDef instanceTp = m._1();
+                    WurstTypeBoundTypeParam mType = m._2();
+                    List<WurstTypeInterface> instanceConstraints = getConstraints(instanceTp);
+                    for (WurstTypeInterface instanceConstraint : instanceConstraints) {
+                        VariableBinding match2 = findTypeClass(fc, errors, match, instanceTp, mType, instanceConstraint);
+                        if (match2 == null) {
+                            return Stream.empty();
+                        }
+                        match = match2;
+                    }
+                }
+
                 List<TypeClassInstance> deps = new ArrayList<>();
+                List<WurstType> typeArgs = new ArrayList<>();
+                for (TypeParamDef instanceTp : instance.getTypeParameters()) {
+                    WurstTypeBoundTypeParam i = match.get(instanceTp).get();
+                    deps.addAll(i.getInstances());
+                    if (instanceTp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                        typeArgs.add(i);
+                    }
+                }
+
 
                 // TODO resolve dependencies
 
@@ -174,8 +207,8 @@ public class AttrPossibleFunctionSignatures {
         } else {
             if (instances.size() > 1) {
                 errors.add(new CompileError(fc,
-                                "There are multiple instances for type " + matchedType + " and constraint " + tp.getName() + ": " + constraint.getName() + "\n" +
-                    Utils.printSep("\n", instances)));
+                    "There are multiple instances for type " + matchedType + " and constraint " + tp.getName() + ": " + constraint.getName() + "\n" +
+                        Utils.printSep("\n", instances)));
 
             }
             TypeClassInstance instance = Utils.getFirst(instances);
