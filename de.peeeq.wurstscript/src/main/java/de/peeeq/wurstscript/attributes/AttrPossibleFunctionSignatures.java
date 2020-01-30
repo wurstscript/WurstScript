@@ -149,8 +149,7 @@ public class AttrPossibleFunctionSignatures {
             .map(e -> (InstanceDecl) e)
             .flatMap(instance -> {
                 WurstType instanceType = instance.getImplementedInterface().attrTyp();
-                VariableBinding match = constraint.matchAgainstSupertype(instanceType, fc, VariableBinding.emptyMapping(), VariablePosition.RIGHT);
-
+                VariableBinding match = instanceType.matchAgainstSupertype(constraint, fc, VariableBinding.emptyMapping(), VariablePosition.LEFT);
                 if (match == null) {
                     return Stream.empty();
                 }
@@ -175,7 +174,7 @@ public class AttrPossibleFunctionSignatures {
         } else {
             if (instances.size() > 1) {
                 errors.add(new CompileError(fc,
-                                "There are multiple instances for type  " + matchedType + " and constraint " + tp.getName() + ": " + constraint.getName() + "\n" +
+                                "There are multiple instances for type " + matchedType + " and constraint " + tp.getName() + ": " + constraint.getName() + "\n" +
                     Utils.printSep("\n", instances)));
 
             }

@@ -471,8 +471,13 @@ public class Utils {
 
     public static String printElementWithSource(Element e) {
         WPos src = e.attrSource();
-        return printElement(e) + " (" + src.getFile() + ":"
-                + src.getLine() + ")";
+        return printElement(e) + " " + printElementSource(e);
+    }
+
+    public static String printElementSource(Element e) {
+        WPos src = e.attrSource();
+        return "(" + src.getFile() + ":"
+            + src.getLine() + ")";
     }
 
     public static int[] copyArray(int[] ar) {

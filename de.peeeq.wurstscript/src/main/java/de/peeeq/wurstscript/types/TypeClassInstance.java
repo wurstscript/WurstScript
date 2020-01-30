@@ -7,6 +7,8 @@ import de.peeeq.wurstscript.ast.StmtCall;
 import de.peeeq.wurstscript.ast.TypeParamConstraint;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.utils.Utils;
+import org.eclipse.xtend.lib.annotations.ToString;
 
 import java.util.List;
 
@@ -29,6 +31,11 @@ public abstract class TypeClassInstance {
                 }
                 return JassIm.ImTypeClassDictValue(trace, ct, args);
             }
+
+            @Override
+            public String toString() {
+                return "Instance "  + decl.getImplementedInterface().attrTyp() + " " + Utils.printElementSource(decl);
+            }
         };
     }
 
@@ -39,6 +46,11 @@ public abstract class TypeClassInstance {
                 ImVar param = tr.getTypeClassParamFor(constraint);
                 // TODO if it is a class field do something different
                 return JassIm.ImVarAccess(param);
+            }
+
+            @Override
+            public String toString() {
+                return "Instance from constraint of type parameter " + constraint.parentTypeParam().getName() + " " + Utils.printElementSource(constraint);
             }
         };
     }
