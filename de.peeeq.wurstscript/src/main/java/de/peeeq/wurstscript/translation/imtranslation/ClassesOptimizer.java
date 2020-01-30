@@ -100,7 +100,7 @@ public class ClassesOptimizer {
             // create singleton variable
             ImClassType classType = JassIm.ImClassType(c, JassIm.ImTypeArguments());
             ImVar singletonVar = JassIm.ImVar(c.getTrace(), classType, c.getName() + "_singleton", Collections.emptyList());
-            tr.addGlobalWithInitalizer(singletonVar, JassIm.ImAlloc(c.getTrace(), classType));
+            tr.addGlobalWithInitializer(singletonVar, JassIm.ImAlloc(c.getTrace(), classType));
 
             // replace all allocations with singleton variable
             for (ImAlloc cAlloc : cAllocs) {

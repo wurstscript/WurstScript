@@ -34,10 +34,10 @@ public class ClassManagementVars {
         prog.getGlobals().add(free);
 
         freeCount = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_firstFree", Collections.emptyList());
-        translator.addGlobalWithInitalizer(freeCount, JassIm.ImIntVal(0));
+        translator.addGlobalWithInitializerFront(freeCount, JassIm.ImIntVal(0));
 
         maxIndex = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_maxIndex", Collections.emptyList());
-        translator.addGlobalWithInitalizer(maxIndex, JassIm.ImIntVal(0));
+        translator.addGlobalWithInitializerFront(maxIndex, JassIm.ImIntVal(0));
 
         typeId = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_typeId", Collections.emptyList());
         prog.getGlobals().add(typeId);

@@ -511,10 +511,24 @@ public class ImTranslator {
         }
     }
 
-    public void addGlobalWithInitalizer(ImVar g, ImExpr initial) {
+    public void addGlobalWithInitializer(ImVar g, ImExpr initial) {
         imProg.getGlobals().add(g);
         getGlobalInitFunc().getBody().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
         imProg.getGlobalInits().put(g, Collections.singletonList(initial.copy()));
+    }
+
+    public void addGlobalWithInitializerFront(ImVar g, ImExpr initial) {
+        imProg.getGlobals().add(g);
+        imProg.getGlobalInits().put(g, Collections.singletonList(initial.copy()));
+        ImStmts body = getGlobalInitFunc().getBody();
+        ImStatementExpr init;
+        if (body.isEmpty() || !(body.get(0) instanceof ImStatementExpr)) {
+            init = JassIm.ImStatementExpr(JassIm.ImStmts(), JassIm.ImNull(ImVoid()));
+            body.add(0, init);
+        } else {
+            init = (ImStatementExpr) body.get(0);
+        }
+        init.getStatements().add(ImSet(g.getTrace(), ImVarAccess(g), initial));
     }
 
 

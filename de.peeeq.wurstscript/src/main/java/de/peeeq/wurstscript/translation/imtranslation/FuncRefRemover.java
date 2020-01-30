@@ -51,7 +51,7 @@ public class FuncRefRemover {
                 // create global variable containing a reference to the function:
                 g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(tr), "ref_function_" + func.getName(), Collections.emptyList());
                 refs.put(func, g);
-                tr.addGlobalWithInitalizer(g, fr.copy());
+                tr.addGlobalWithInitializer(g, fr.copy());
             }
             fr.replaceBy(JassIm.ImVarAccess(g));
         }
