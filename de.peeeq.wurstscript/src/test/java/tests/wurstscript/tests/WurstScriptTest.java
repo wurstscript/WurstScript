@@ -309,6 +309,10 @@ public class WurstScriptTest {
         test().executeProg(executeProg).expectError(errorMessage).lines(input);
     }
 
+    public void testAssertErrorsLinesWithStdLib(boolean executeProg, String errorMessage, String... input) {
+        test().withStdLib().executeProg(executeProg).expectError(errorMessage).lines(input);
+    }
+
     protected void testAssertOk(String name, boolean executeProg, String prog) {
         testAssertOkLines(executeProg, prog);
     }

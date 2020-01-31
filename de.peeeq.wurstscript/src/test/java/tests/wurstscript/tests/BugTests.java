@@ -1385,14 +1385,13 @@ public class BugTests extends WurstScriptTest {
     }
 
     @Test
-    public void agentTypeComparisons() {
-        testAssertOkLinesWithStdLib(true,
+    public void agentTypeComparisonsWurst() {
+        testAssertErrorsLinesWithStdLib(true,
             "package Test",
             "function compare(sound s, rect r) returns boolean",
             "    return s == r",
             "init",
-            "    compare(null, null)",
-            "    testSuccess()"
+            "    compare(null, null)"
         );
     }
 
