@@ -1386,7 +1386,7 @@ public class BugTests extends WurstScriptTest {
 
     @Test
     public void agentTypeComparisonsWurst() {
-        testAssertErrorsLinesWithStdLib(true,
+        testAssertErrorsLinesWithStdLib(true, "Cannot compare types sound with rect",
             "package Test",
             "function compare(sound s, rect r) returns boolean",
             "    return s == r",
