@@ -151,4 +151,9 @@ public class WurstTextDocumentService implements TextDocumentService {
     public CompletableFuture<List<ColorPresentation>> colorPresentation(ColorPresentationParams params) {
         return worker.handle(new Colors.ColorPresentationRequest(params));
     }
+
+    @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        return worker.handle(new FoldingRangeRequest(params));
+    }
 }

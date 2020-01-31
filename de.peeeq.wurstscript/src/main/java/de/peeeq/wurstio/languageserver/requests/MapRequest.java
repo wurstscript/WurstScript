@@ -10,6 +10,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -50,6 +51,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
+    @Nullable protected final String wc3Path;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -60,12 +62,13 @@ public abstract class MapRequest extends UserRequest<Object> {
         QuickAndDirty, KindOfSafe
     }
 
-    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot) {
+    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot, String wc3Path) {
         this.configProvider = configProvider;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
+        this.wc3Path = wc3Path;
     }
 
     @Override
@@ -198,7 +201,9 @@ public abstract class MapRequest extends UserRequest<Object> {
 
                 if (!runArgs.isDisablePjass()) {
                     gui.sendProgress("Running PJass");
-                    Pjass.Result pJassResult = Pjass.runPjass(outFile);
+                    Pjass.Result pJassResult = Pjass.runPjass(outFile,
+                        new File(buildDir, "common.j").getAbsolutePath(),
+                        new File(buildDir, "blizzard.j").getAbsolutePath());
                     WLogger.info(pJassResult.getMessage());
                     if (!pJassResult.isOk()) {
                         for (CompileError err : pJassResult.getErrors()) {
@@ -221,9 +226,9 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
     private File runJassHotCodeReload(File mapScript) throws IOException, InterruptedException {
-        File mapScriptFolder = mapScript.getParentFile();
-        File commonJ = new File(mapScriptFolder, "common.j");
-        File blizzardJ = new File(mapScriptFolder, "blizzard.j");
+        File buildDir = getBuildDir();
+        File commonJ = new File(buildDir, "common.j");
+        File blizzardJ = new File(buildDir, "blizzard.j");
 
         if (!commonJ.exists()) {
             throw new IOException("Could not find file " + commonJ.getAbsolutePath());
@@ -234,9 +239,9 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
 
         ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
-        pb.directory(mapScriptFolder);
+        pb.directory(buildDir);
         Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
-        return new File(mapScriptFolder, "jhcr_war3map.j");
+        return new File(buildDir, "jhcr_war3map.j");
     }
 
     /**
@@ -350,6 +355,8 @@ public abstract class MapRequest extends UserRequest<Object> {
             Files.copy(map, testMap);
         }
 
+        parseCustomPatchVersion();
+
         // first compile the script:
         File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
 
@@ -360,5 +367,14 @@ public abstract class MapRequest extends UserRequest<Object> {
             println("We will try to start the map now, but it will probably fail. ");
         }
         return compiledScript;
+    }
+
+    private void parseCustomPatchVersion() {
+        if (wc3Path != null) {
+            W3Utils.parsePatchVersion(new File(wc3Path));
+            if (W3Utils.getWc3PatchVersion() == null) {
+                throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
+            }
+        }
     }
 }

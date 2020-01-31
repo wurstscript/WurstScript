@@ -584,4 +584,21 @@ public class ModuleTests extends WurstScriptTest {
                 "endpackage"
         );
     }
+
+    @Test
+    public void subclassModuleOnDestroy() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "module OnDestroy",
+            "    ondestroy",
+            "        testSuccess()",
+            "public abstract class A",
+            "public class B extends A",
+            "    use OnDestroy",
+            "init",
+            "    A b = new B()",
+            "    destroy b"
+            );
+    }
 }

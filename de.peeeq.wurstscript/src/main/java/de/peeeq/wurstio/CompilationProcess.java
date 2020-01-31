@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.interpreter.ILStackFrame;
 import de.peeeq.wurstscript.jassAst.JassProg;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -38,7 +39,11 @@ public class CompilationProcess {
     }
 
     @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor) throws IOException {
-        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, null, gui, mpqEditor, runArgs);
+        return doCompilation(mpqEditor, null);
+    }
+
+    @Nullable CharSequence doCompilation(@Nullable MpqEditor mpqEditor, @Nullable File projectFolder) throws IOException {
+        WurstCompilerJassImpl compiler = new WurstCompilerJassImpl(timeTaker, projectFolder, gui, mpqEditor, runArgs);
         gui.sendProgress("Check input map");
         if (mpqEditor != null && !mpqEditor.canWrite()) {
             WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
@@ -76,7 +81,7 @@ public class CompilationProcess {
 
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
-                    () -> runTests(compiler));
+                    () -> runTests(compiler.getImTranslator(), compiler));
         }
 
         timeTaker.measure("Run compiletime functions",
@@ -112,7 +117,15 @@ public class CompilationProcess {
     }
 
     private boolean runPjass(File outputMapscript) {
-        Pjass.Result pJassResult = Pjass.runPjass(outputMapscript);
+        File commonJ = new File(outputMapscript.getParent(), "common.j");
+        File blizzJ = new File(outputMapscript.getParent(), "blizzard.j");
+
+        Pjass.Result pJassResult;
+        if (commonJ.exists() && blizzJ.exists()) {
+            pJassResult = Pjass.runPjass(outputMapscript, commonJ.getAbsolutePath(), blizzJ.getAbsolutePath());
+        } else {
+            pJassResult = Pjass.runPjass(outputMapscript);
+        }
         WLogger.info(pJassResult.getMessage());
         if (!pJassResult.isOk()) {
             for (CompileError err : pJassResult.getErrors()) {
@@ -141,7 +154,7 @@ public class CompilationProcess {
         }
     }
 
-    private void runTests(WurstCompilerJassImpl compiler) {
+    private void runTests(ImTranslator translator, WurstCompilerJassImpl compiler) {
         PrintStream out = System.out;
         // tests
         gui.sendProgress("Running tests");
@@ -152,7 +165,7 @@ public class CompilationProcess {
                 out.print(message);
             }
         };
-        runTests.runTests(compiler.getImProg(), null, null);
+        runTests.runTests(translator, compiler.getImProg(), null, null);
 
         for (RunTests.TestFailure e : runTests.getFailTests()) {
             gui.sendError(new CompileError(e.getFunction(), e.getMessage()));

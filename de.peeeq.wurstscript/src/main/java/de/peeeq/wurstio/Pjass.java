@@ -88,13 +88,17 @@ public class Pjass {
     }
 
     public static Result runPjass(File outputFile) {
+        return runPjass(outputFile, Utils.getResourceFile("common.j"), Utils.getResourceFile("blizzard.j"));
+    }
+
+    public static Result runPjass(File outputFile, String commonJPath, String blizzardJPath) {
         try {
             Process p;
             WLogger.info("Starting pjass");
             List<String> args = new ArrayList<>();
             args.add(Utils.getResourceFile("pjass.exe"));
-            args.add(Utils.getResourceFile("common.j"));
-            args.add(Utils.getResourceFile("blizzard.j"));
+            args.add(commonJPath);
+            args.add(blizzardJPath);
             args.add(outputFile.getPath());
             if (Orient.isLinuxSystem()) {
                 File fileName = Utils.getResourceFileF("pjass");

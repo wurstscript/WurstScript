@@ -219,11 +219,10 @@ public class UselessFunctionCallsRemover implements OptimizerPass {
                     "LoadRegionHandle", "LoadSoundHandle", "LoadStr", "LoadTextTagHandle", "LoadTimerDialogHandle",
                     "LoadTimerHandle", "LoadTrackableHandle", "LoadTriggerActionHandle", "LoadTriggerConditionHandle",
                     "LoadTriggerEventHandle", "LoadTriggerHandle", "LoadUbersplatHandle", "LoadUnitHandle",
-                    "LoadUnitPoolHandle", "LoadWidgetHandle", "Not", "Or", "OrderId", "OrderId2String", "Pow", "R2I",
+                    "LoadUnitPoolHandle", "LoadWidgetHandle", "Not", "Or", "OrderId", "OrderId2String", "Player", "Pow", "R2I",
                     "R2S", "R2SW", "Rad2Deg", "S2I", "S2R", "Sin", "SquareRoot", "StringCase", "StringHash",
                     "StringLength", "SubString", "Tan", "TimerGetElapsed", "TimerGetRemaining", "TimerGetTimeout",
-                    "VersionGet", "WaygateGetDestinationX", "WaygateGetDestinationY", "WaygateIsActive",
-                    "WaygateSetDestination");
+                    "VersionGet", "WaygateGetDestinationX", "WaygateGetDestinationY", "WaygateIsActive");
             // just to be sure, sort it again
             Collections.sort(functionsWithoutSideEffects);
         }

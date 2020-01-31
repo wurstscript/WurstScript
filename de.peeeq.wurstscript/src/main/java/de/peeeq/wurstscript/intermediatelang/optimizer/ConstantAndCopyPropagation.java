@@ -1,16 +1,15 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
+import de.peeeq.datastructures.Worklist;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import io.vavr.Tuple2;
+import io.vavr.collection.HashMap;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 
 public class ConstantAndCopyPropagation implements OptimizerPass {
     private int totalPropagated = 0;
@@ -32,8 +31,10 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
     static class Value {
         // one of the two is null
-        final @Nullable ImVar copyVar;
-        final @Nullable ImConst constantValue;
+        final @Nullable
+        ImVar copyVar;
+        final @Nullable
+        ImConst constantValue;
 
         public Value(ImVar copyVar) {
             this.copyVar = copyVar;
@@ -74,9 +75,8 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
     }
 
     static class Knowledge {
-
-        Map<ImVar, Value> varKnowledge = new HashMap<>();
-        Map<ImVar, Value> varKnowledgeOut = new HashMap<>();
+        HashMap<ImVar, Value> varKnowledge = HashMap.empty();
+        HashMap<ImVar, Value> varKnowledgeOut = HashMap.empty();
 
         @Override
         public String toString() {
@@ -86,7 +86,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
 
     }
 
-    private void optimizeFunc(ImFunction func) {
+    void optimizeFunc(ImFunction func) {
         ControlFlowGraph cfg = new ControlFlowGraph(func.getBody());
         Map<Node, Knowledge> knowledge = calculateKnowledge(cfg);
         rewriteCode(cfg, knowledge);
@@ -121,7 +121,7 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                     if (va.isUsedAsLValue()) {
                         return;
                     }
-                    Value val = kn.varKnowledge.get(va.getVar());
+                    Value val = kn.varKnowledge.get(va.getVar()).getOrNull();
                     if (val == null) {
                         return;
                     }
@@ -141,14 +141,14 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
     }
 
     private Map<Node, Knowledge> calculateKnowledge(ControlFlowGraph cfg) {
-        Map<Node, Knowledge> knowledge = new HashMap<>();
+        Map<Node, Knowledge> knowledge = new java.util.HashMap<>();
 
         // initialize with empty knowledge:
         for (Node n : cfg.getNodes()) {
             knowledge.put(n, new Knowledge());
         }
 
-        Deque<Node> todo = new ArrayDeque<>(cfg.getNodes());
+        Worklist<Node> todo = new Worklist<>(cfg.getNodes());
 
         while (!todo.isEmpty()) {
             Node n = todo.poll();
@@ -156,30 +156,35 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
             Knowledge kn = knowledge.get(n);
 
             // get knowledge from predecessor out
-            HashMap<ImVar, Value> newKnowledge = new HashMap<>();
+            HashMap<ImVar, Value> newKnowledge = HashMap.empty();
             if (!n.getPredecessors().isEmpty()) {
                 Node pred1 = n.getPredecessors().get(0);
-                Map<ImVar, Value> predKnowledgeOut = knowledge.get(pred1).varKnowledgeOut;
-                for (Entry<ImVar, Value> e : predKnowledgeOut.entrySet()) {
-                    ImVar var = e.getKey();
-                    Value val = e.getValue();
-                    boolean allSame = true;
-                    for (int i = 1; i < n.getPredecessors().size(); i++) {
-                        Node predi = n.getPredecessors().get(i);
-                        Value predi_val = knowledge.get(predi).varKnowledgeOut.get(var);
-                        if (predi_val == null || !predi_val.equalValue(val)) {
-                            allSame = false;
-                            break;
+                HashMap<ImVar, Value> predKnowledgeOut = knowledge.get(pred1).varKnowledgeOut;
+
+                // only keep knowledge that is the same for all predecessors:
+                newKnowledge = predKnowledgeOut;
+                if (n.getPredecessors().size() > 1) {
+                    for (Tuple2<ImVar, Value> e : predKnowledgeOut) {
+                        ImVar var = e._1();
+                        Value val = e._2();
+                        boolean allSame = true;
+                        for (int i = 1; i < n.getPredecessors().size(); i++) {
+                            Node predi = n.getPredecessors().get(i);
+                            Value predi_val = knowledge.get(predi).varKnowledgeOut.get(var).getOrNull();
+                            if (predi_val == null || !predi_val.equalValue(val)) {
+                                allSame = false;
+                                break;
+                            }
                         }
-                    }
-                    if (allSame) {
-                        newKnowledge.put(var, val);
+                        if (!allSame) {
+                            newKnowledge = newKnowledge.remove(var);
+                        }
                     }
                 }
             }
 
             // at the output get all from the input knowledge
-            HashMap<ImVar, Value> newOut = new HashMap<>(newKnowledge);
+            HashMap<ImVar, Value> newOut = newKnowledge;
 
             ImStmt stmt = n.getStmt();
             if (stmt instanceof ImSet) {
@@ -199,16 +204,21 @@ public class ConstantAndCopyPropagation implements OptimizerPass {
                         }
                         if (newValue == null) {
                             // invalidate old value
-                            newOut.remove(var);
+                            newOut = newOut.remove(var);
                         } else {
-                            newOut.put(var, newValue);
+                            newOut = newOut.put(var, newValue);
                         }
                         // invalidate copies of the lhs
                         // for example:
                         // x = a; [x->a]
                         // y = b; [x->a, y->b]
                         // a = 5; [y->b, a->5] // here [x->a] has been invalidated
-                        newOut.entrySet().removeIf(entry -> entry.getValue().equalValue(new Value(var)));
+                        Value varAsValue = new Value(var);
+                        for (Tuple2<ImVar, Value> p : newOut) {
+                            if (p._2().equalValue(varAsValue)) {
+                                newOut = newOut.remove(p._1());
+                            }
+                        }
                     }
                 }
             }

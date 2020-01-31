@@ -3,12 +3,27 @@ package tests.wurstscript.tests;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
 import de.peeeq.wurstio.UtilsIO;
+import de.peeeq.wurstscript.RunArgs;
+import de.peeeq.wurstscript.ast.Ast;
+import de.peeeq.wurstscript.ast.Element;
+import de.peeeq.wurstscript.ast.WurstModel;
+import de.peeeq.wurstscript.intermediatelang.optimizer.FunctionSplitter;
+import de.peeeq.wurstscript.intermediatelang.optimizer.LocalMerger;
+import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.collection.HashSet;
+import io.vavr.collection.Set;
 import org.testng.annotations.Ignore;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.testng.AssertJUnit.*;
 
@@ -954,5 +969,118 @@ public class OptimizerTests extends WurstScriptTest {
             "    if at.vals[4] == 0",
             "        testSuccess()"
         );
+    }
+
+
+    @Test
+    public void copyPropagation() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "init",
+            "    let a = S2I(\"7\")",
+            "    let b = a",
+            "    let c = b",
+            "    if c == 7",
+            "        testSuccess()"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation_opt.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        assertTrue(compiled.contains("if a == 7 then"));
+    }
+
+    @Test
+    public void copyPropagation2() throws IOException {
+        testAssertOkLines(true,
+            "package Test",
+            "native testSuccess()",
+            "@extern native S2I(string s) returns int",
+            "integer test_x=0",
+            "integer array B_nextFree",
+            "integer B_firstFree=0",
+            "integer B_maxIndex=0",
+            "integer array B_typeId",
+            "integer array B_y",
+            "function destroyA(int this0)",
+            "    let this_1 = this0",
+            "    integer this_2",
+            "    integer obj",
+            "    test_x = test_x + B_y[this_1]",
+            "    this_2 = this_1",
+            "    test_x = test_x * B_y[this_2]",
+            "    obj = this0",
+            "    if B_typeId[obj] == 0",
+            "    else",
+            "        B_nextFree[B_firstFree] = obj",
+            "        B_firstFree = B_firstFree + 1",
+            "        B_typeId[obj] = 0",
+            "        if B_nextFree[B_firstFree - 1] == 42",
+            "            testSuccess()",
+            "init",
+            "    B_typeId[42] = 1",
+            "    destroyA(42)"
+        );
+        String compiled = Files.toString(new File("test-output/OptimizerTests_copyPropagation2_opt.j"), Charsets.UTF_8);
+        System.out.println(compiled);
+        // copy propagation obj -> this0
+        assertTrue(compiled.contains("set Test_B_nextFree[Test_B_firstFree] = this0"));
+    }
+
+
+    @Test
+    public void localMergerLiveness() throws IOException {
+        LocalMerger localMerger = new LocalMerger();
+
+        Element trace = Ast.NoExpr();
+        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", false);
+        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", false);
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
+        ImVar d = JassIm.ImVar(trace, TypesHelper.imInt(), "d", false);
+        ImVar e = JassIm.ImVar(trace, TypesHelper.imInt(), "e", false);
+        ImVars locals = JassIm.ImVars(a,b,c,d,e);
+
+        ImStmts body = JassIm.ImStmts(
+            JassIm.ImSet(trace, JassIm.ImVarAccess(a), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(b), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(c), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(d), JassIm.ImIntVal(0)),
+            JassIm.ImSet(trace, JassIm.ImVarAccess(e), JassIm.ImIntVal(0))
+        );
+        ImFunction func = JassIm.ImFunction(trace, "blub", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), locals, body, Collections.emptyList());
+        Map<ImStmt, Set<ImVar>> liveness = localMerger.calculateLiveness(func);
+
+        for (ImStmt node : body) {
+            assertEquals(HashSet.empty(), liveness.get(node));
+        }
+    }
+
+    @Test
+    public void testFunctionSplitter() {
+        WurstModel model = Ast.WurstModel();
+
+        ImTranslator tr = new ImTranslator(model, false, new RunArgs());
+        ImProg prog = tr.getImProg();
+
+        ImFunction func = JassIm.ImFunction(model, "blub", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), JassIm.ImStmts(), Collections.emptyList());
+        prog.getFunctions().add(func);
+
+        for (int i = 0; i < 10000; i++) {
+            ImVar l = JassIm.ImVar(model, TypesHelper.imInt(), "l" + i, false);
+            func.getLocals().add(l);
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            prog.getGlobals().add(g);
+            func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(l), JassIm.ImIntVal(i)));
+            func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(g), JassIm.ImVarAccess(l)));
+        }
+
+        FunctionSplitter.splitFunc(tr, func);
+
+        System.out.println(prog);
+        // should at least add one additional function
+        assertTrue(prog.getFunctions().size() >= 2);
+
+
+
     }
 }

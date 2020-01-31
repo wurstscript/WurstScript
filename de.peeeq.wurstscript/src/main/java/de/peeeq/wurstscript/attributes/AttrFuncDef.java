@@ -129,6 +129,51 @@ public class AttrFuncDef {
                 if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
                     argType = arg.attrTyp();
                 } else {
+                    WurstType expected = arg.attrExpectedTyp();
+
+                    List<WurstType> paramTypes = new ArrayList<>();
+                    boolean hasInferredType = false;
+                    int pIndex = 0;
+                    for (WShortParameter p : closure.getShortParameters()) {
+                        if (p.getTypOpt() instanceof TypeExpr) {
+                            paramTypes.add(p.getTypOpt().attrTyp());
+                        } else {
+                            WurstType pt = AttrVarDefType.getParameterTypeFromClosureType(p, pIndex, expected, false);
+                            paramTypes.add(pt);
+                            if (pt instanceof WurstTypeInfer) {
+                                hasInferredType = true;
+                            }
+                        }
+                        pIndex++;
+                    }
+                    if (hasInferredType) {
+                        // if there are unknown parameter types, use an approximated function type for overloading resolution
+                        WurstType resultType = WurstTypeInfer.instance();
+                        argType = new WurstTypeClosure(paramTypes, resultType);
+                    } else {
+                        // if there are no unknown types for the argument, then it should be safe to directly calculate the type
+                        argType = arg.attrTyp();
+                    }
+                }
+            } else {
+                argType = arg.attrTyp();
+            }
+            result.add(argType);
+        }
+        return result;
+    }
+
+    /** very simple calculation of argument types without using expected types in closures */
+    public static List<WurstType> argumentTypesPre(StmtCall node) {
+        List<WurstType> result = Lists.newArrayList();
+        for (Expr arg : node.getArgs()) {
+            WurstType argType;
+            if (arg instanceof ExprClosure) {
+                // for closures, we only calculate the type, if all argument types are specified:
+                ExprClosure closure = (ExprClosure) arg;
+                if (closure.getShortParameters().stream().allMatch(p -> p.getTypOpt() instanceof TypeExpr)) {
+                    argType = arg.attrTyp();
+                } else {
                     List<WurstType> paramTypes = new ArrayList<>();
                     for (WShortParameter p : closure.getShortParameters()) {
                         if (p.getTypOpt() instanceof TypeExpr) {
@@ -200,7 +245,7 @@ public class AttrFuncDef {
             return Utils.getFirst(funcs);
         }
 
-        node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n "
+        node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n"
                 + Utils.printAlternatives(funcs));
         return Utils.getFirst(funcs);
     }

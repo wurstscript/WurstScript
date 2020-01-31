@@ -11,6 +11,7 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageType;
+import org.jetbrains.annotations.Nullable;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.MPQOpenOption;
 
@@ -25,10 +26,9 @@ import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
  */
 public class BuildMap extends MapRequest {
 
-    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, File map, List<String> compileArgs) {
-        super(configProvider, map, compileArgs, workspaceRoot);
+    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, @Nullable String wc3Path, File map, List<String> compileArgs) {
+        super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
     }
-
 
     @Override
     public Object execute(ModelManager modelManager) throws IOException {
@@ -58,7 +58,7 @@ public class BuildMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             String fileName = projectConfig.getBuildMapData().getFileName();
-            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() : fileName + ".w3x");
+            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");

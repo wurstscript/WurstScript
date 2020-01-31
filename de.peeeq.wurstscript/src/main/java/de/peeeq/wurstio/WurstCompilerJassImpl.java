@@ -181,8 +181,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
             if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
                 mapFile = file;
             } else if (file.isDirectory()) {
-                if (projectFolder != null) {
-                    throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to " + projectFolder);
+                if (projectFolder != null && !file.getParent().equals(projectFolder.getAbsolutePath())) {
+                    throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to non parent " + projectFolder);
                 }
                 projectFolder = file;
             }
@@ -498,7 +498,6 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         if (runArgs.isHotStartmap() || runArgs.isHotReload()) {
             addJassHotCodeReloadCode();
         }
-
         if (runArgs.isOptimize()) {
             beginPhase(12, "froptimize");
             optimizer.optimize();
@@ -573,7 +572,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         });
     }
 
-    private ImTranslator getImTranslator() {
+    public ImTranslator getImTranslator() {
         final ImTranslator t = imTranslator;
         if (t != null) {
             return t;

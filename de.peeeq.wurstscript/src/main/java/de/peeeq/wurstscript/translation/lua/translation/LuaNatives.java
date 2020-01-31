@@ -47,6 +47,11 @@ public class LuaNatives {
             f.getBody().add(LuaAst.LuaLiteral("return tostring(x)"));
         });
 
+        addNative(Arrays.asList("S2I"), f -> {
+            f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
+            f.getBody().add(LuaAst.LuaLiteral("return tonumber(x)"));
+        });
+
         addNative("Player", f -> {
             f.getParams().add(LuaAst.LuaVariable("x", LuaAst.LuaNoExpr()));
             f.getBody().add(LuaAst.LuaLiteral("return { id = x }"));

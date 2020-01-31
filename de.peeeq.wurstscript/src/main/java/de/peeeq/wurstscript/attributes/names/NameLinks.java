@@ -29,10 +29,10 @@ public class NameLinks {
         boolean requiresOverrideMod = false;
 
         // errors for functions with same name that it does not override
-        fj.data.List<String> overrideErrors = fj.data.List.nil();
+        io.vavr.collection.List<String> overrideErrors = io.vavr.collection.List.empty();
 
         public void addError(String error) {
-            this.overrideErrors = overrideErrors.cons(error);
+            this.overrideErrors = overrideErrors.prepend(error);
         }
     }
 

@@ -16,7 +16,7 @@ import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.controlflow.DataflowAnomalyAnalysis;
 import de.peeeq.wurstscript.validation.controlflow.ReturnsAnalysis;
-import fj.P2;
+import io.vavr.Tuple2;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -84,6 +84,7 @@ public class WurstValidator {
         checkUnusedImports(toCheck);
         ValidateGlobalsUsage.checkGlobalsUsage(toCheck);
         ValidateClassMemberUsage.checkClassMembers(toCheck);
+        ValidateLocalUsage.checkLocalsUsage(toCheck);
 
         trveWrapperFuncs.forEach(wrapper -> {
             if (wrapperCalls.containsKey(wrapper)) {
@@ -98,7 +99,6 @@ public class WurstValidator {
                 });
             }
         });
-
     }
 
     private void checkUnusedImports(List<CompilationUnit> toCheck) {
@@ -644,7 +644,8 @@ public class WurstValidator {
     }
 
     private void checkClosure(ExprClosure e) {
-        if (e.attrExpectedTyp() instanceof WurstTypeCode) {
+        WurstType expectedTyp = e.attrExpectedTypAfterOverloading();
+        if (expectedTyp instanceof WurstTypeCode) {
             // TODO check if no vars are captured
             if (!e.attrCapturedVariables().isEmpty()) {
                 for (Entry<Element, VarDef> elem : e.attrCapturedVariables().entries()) {
@@ -652,13 +653,13 @@ public class WurstValidator {
                             + "' in anonymous function. This is only possible with closures.");
                 }
             }
-        } else if (e.attrExpectedTyp() instanceof WurstTypeUnknown || e.attrExpectedTyp() instanceof WurstTypeClosure) {
+        } else if (expectedTyp instanceof WurstTypeUnknown || expectedTyp instanceof WurstTypeClosure) {
             e.addError("Closures can only be used when a interface or class type is given.");
 
-        } else if (!(e.attrExpectedTyp() instanceof WurstTypeClass
-                || e.attrExpectedTyp() instanceof WurstTypeInterface)) {
+        } else if (!(expectedTyp instanceof WurstTypeClass
+                || expectedTyp instanceof WurstTypeInterface)) {
             e.addError("Closures can only be used when a interface or class type is given, " + "but at this position a "
-                    + e.attrExpectedTyp() + " is expected.");
+                    + expectedTyp + " is expected.");
         }
         e.attrCapturedVariables();
 
@@ -667,8 +668,8 @@ public class WurstValidator {
             new DataflowAnomalyAnalysis(false).execute(block);
         }
 
-        if (e.attrExpectedTyp() instanceof WurstTypeClass) {
-            WurstTypeClass ct = (WurstTypeClass) e.attrExpectedTyp();
+        if (expectedTyp instanceof WurstTypeClass) {
+            WurstTypeClass ct = (WurstTypeClass) expectedTyp;
 
             ClassDef cd = ct.getClassDef();
             if (cd.getConstructors().stream().noneMatch(constr -> constr.getParameters().isEmpty())) {
@@ -1552,7 +1553,7 @@ public class WurstValidator {
             return;
         }
 
-        for (P2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
+        for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> t : mapping) {
             WurstTypeBoundTypeParam boundTyp = t._2();
             WurstType typ = boundTyp.getBaseType();
 

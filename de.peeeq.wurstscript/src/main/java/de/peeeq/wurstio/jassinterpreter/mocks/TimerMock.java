@@ -9,9 +9,6 @@ import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 import de.peeeq.wurstscript.intermediatelang.interpreter.TimerMockHandler;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class TimerMock {
     private AbstractInterpreter interpreter;
     private TimerMockHandler timerMockHandler;
@@ -20,7 +17,7 @@ public class TimerMock {
     private TimerMockHandler.RunTask runTask;
     private TimerMockHandler.PausedTask pausedTask;
 
-    private class TimerMockRunnable implements Runnable {
+    public class TimerMockRunnable implements Runnable {
 
         private ILconstFuncRef handlerFunc;
         private boolean periodic;
@@ -48,6 +45,10 @@ public class TimerMock {
 
         public void cancel() {
             this.cancelled = true;
+        }
+
+        public void resume() {
+            this.cancelled = false;
         }
     }
 

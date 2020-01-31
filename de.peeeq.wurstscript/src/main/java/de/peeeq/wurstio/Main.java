@@ -10,6 +10,7 @@ import de.peeeq.wurstio.gui.WurstGuiImpl;
 import de.peeeq.wurstio.hotdoc.HotdocGenerator;
 import de.peeeq.wurstio.languageserver.LanguageServerStarter;
 import de.peeeq.wurstio.languageserver.ProjectConfigBuilder;
+import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.map.importer.ImportFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
@@ -27,9 +28,12 @@ import java.lang.management.RuntimeMXBean;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.LinkedList;
 import java.util.List;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
+import static de.peeeq.wurstio.languageserver.WurstCommands.getCompileArgs;
+import static java.util.Arrays.asList;
 
 public class Main {
 
@@ -105,8 +109,9 @@ public class Main {
                 WurstProjectConfigData projectConfig = null;
                 Path buildDir = null;
                 Path target = null;
-                if (runArgs.isBuild() && runArgs.getInputmap() != null && runArgs.getWorkspaceroot() != null) {
-                    Path root = Paths.get(runArgs.getWorkspaceroot());
+                String workspaceroot = runArgs.getWorkspaceroot();
+                if (runArgs.isBuild() && runArgs.getInputmap() != null && workspaceroot != null) {
+                    Path root = Paths.get(workspaceroot);
                     Path inputMap = root.resolve(runArgs.getInputmap());
                     projectConfig = WurstProjectConfig.INSTANCE.loadProject(root.resolve(FILE_NAME));
 
@@ -120,26 +125,30 @@ public class Main {
                 }
 
                 String mapFilePath = runArgs.getMapFile();
-                if (mapFilePath != null) {
-                    // tempfolder
-                    File tempFolder = new File("./temp/");
-                    tempFolder.mkdirs();
-                    BackupController bc = new BackupController();
-                    bc.makeBackup(mapFilePath);
-                }
 
-                CompilationProcess compilationProcess = new CompilationProcess(gui, runArgs);
+                RunArgs compileArgs = runArgs;
+                if (workspaceroot != null) {
+                    WLogger.info("workspaceroot: " + workspaceroot);
+                    List<String> argList = new LinkedList<>(asList(args));
+                    List<String> argsList = getCompileArgs(WFile.create(workspaceroot));
+                    WLogger.info("workspaceroot: " + (argsList == null));
+                    argList.addAll(argsList);
+                    compileArgs = new RunArgs(argList);
+                }
+                CompilationProcess compilationProcess = new CompilationProcess(gui, compileArgs);
                 @Nullable CharSequence compiledScript;
 
-                if (mapFilePath != null) {
+                if (mapFilePath != null && workspaceroot != null) {
                     try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(new File(mapFilePath))) {
-                        compiledScript = compilationProcess.doCompilation(mpqEditor);
+                        File projectFolder = Paths.get(workspaceroot).toFile();
+                        compiledScript = compilationProcess.doCompilation(mpqEditor, projectFolder);
                         if (compiledScript != null) {
                             gui.sendProgress("Writing to map");
                             mpqEditor.deleteFile("war3map.j");
                             byte[] war3map = compiledScript.toString().getBytes(Charsets.UTF_8);
                             mpqEditor.insertFile("war3map.j", war3map);
                         }
+                        ImportFile.importFilesFromImportDirectory(projectFolder, mpqEditor);
                     }
                 } else {
                     compiledScript = compilationProcess.doCompilation(null);

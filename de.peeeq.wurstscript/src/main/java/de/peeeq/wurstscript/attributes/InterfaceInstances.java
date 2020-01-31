@@ -10,7 +10,7 @@ import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
-import fj.data.TreeMap;
+import io.vavr.collection.TreeMap;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Map;

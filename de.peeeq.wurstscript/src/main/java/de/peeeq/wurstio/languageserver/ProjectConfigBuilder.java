@@ -6,10 +6,13 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
+import de.peeeq.wurstio.utils.W3Utils;
 import de.peeeq.wurstscript.RunArgs;
+import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
 import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
+import net.moonlightflower.wc3libs.port.GameVersion;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
 
@@ -32,7 +35,7 @@ public class ProjectConfigBuilder {
 
 
         try (MpqEditor mpq = MpqEditorFactory.getEditor((targetMap))) {
-            File file = new File(buildDir, "wc3libs.j");
+            File file = new File(buildDir, "wc3libs_injected.j");
             byte[] scriptBytes;
             if (!projectConfig.getBuildMapData().getName().isEmpty()) {
                 // Apply w3i config values
@@ -45,14 +48,17 @@ public class ProjectConfigBuilder {
                     // TODO apply config for hot start before JHCR transformation
                     scriptBytes = java.nio.file.Files.readAllBytes(compiledScript.toPath());
                 } else {
-                    w3I.injectConfigsInJassScript(inputStream, sw);
+                    if (W3Utils.getWc3PatchVersion() != null) {
+                        w3I.injectConfigsInJassScript(inputStream, sw, W3Utils.getWc3PatchVersion());
+                    } else {
+                        w3I.injectConfigsInJassScript(inputStream, sw, GameVersion.VERSION_1_32);
+                    }
                     scriptBytes = sw.toString().getBytes(StandardCharsets.UTF_8);
                 }
 
-
                 File w3iFile = new File("w3iFile");
                 if (runArgs.isLua()) {
-                    w3I.setScriptLang(W3I.SCRIPT_LANG_LUA);
+                    w3I.setScriptLang(W3I.ScriptLang.LUA);
                     w3I.setFileVersion(W3I.EncodingFormat.W3I_0x1C.getVersion());
                 }
                 w3I.write(w3iFile);
@@ -66,7 +72,10 @@ public class ProjectConfigBuilder {
             }
 
             Files.write(scriptBytes, file);
-            Pjass.runPjass(file);
+            if (!runArgs.isDisablePjass()) {
+                Pjass.runPjass(file, new File(buildDir, "common.j").getAbsolutePath(),
+                    new File(buildDir, "blizzard.j").getAbsolutePath());
+            }
             String mapScriptName;
             if (runArgs.isLua()) {
                 mapScriptName = "war3map.lua";
@@ -103,8 +112,19 @@ public class ProjectConfigBuilder {
             if (buildMapData.getForces().size() > 0) {
                 applyForces(projectConfig, w3I);
             }
+            applyOptionFlags(projectConfig, w3I);
+
             return w3I;
         }
+    }
+
+    private static void applyOptionFlags(WurstProjectConfigData projectConfig, W3I w3I) {
+        WurstProjectBuildOptionFlagsData optionsFlags = projectConfig.getBuildMapData().getOptionsFlags();
+        w3I.setFlag(MapFlag.HIDE_MINIMAP, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.HIDE_MINIMAP));
+        w3I.setFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.FIXED_PLAYER_FORCE_SETTING));
+        w3I.setFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE, optionsFlags.getForcesFixed() || w3I.getFlag(MapFlag.MASKED_AREAS_PARTIALLY_VISIBLE));
+        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES, optionsFlags.getShowWavesOnCliffShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_CLIFF_SHORES));
+        w3I.setFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES, optionsFlags.getShowWavesOnRollingShores() || w3I.getFlag(MapFlag.SHOW_WATER_WAVES_ON_ROLLING_SHORES));
     }
 
     private static void applyScenarioData(W3I w3I, WurstProjectBuildMapData buildMapData) {
@@ -132,7 +152,6 @@ public class ProjectConfigBuilder {
         ArrayList<WurstProjectBuildForce> forces = projectConfig.getBuildMapData().getForces();
         for (WurstProjectBuildForce wforce : forces) {
             W3I.Force force = w3I.addForce();
-            System.err.println("Setting name: " + wforce.getName());
             force.setName(wforce.getName());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED, wforce.getFlags().getAllied());
             force.setFlag(W3I.Force.Flags.Flag.ALLIED_VICTORY, wforce.getFlags().getAlliedVictory());
@@ -141,6 +160,7 @@ public class ProjectConfigBuilder {
             force.setFlag(W3I.Force.Flags.Flag.SHARED_UNIT_CONTROL_ADVANCED, wforce.getFlags().getSharedControlAdvanced());
             force.addPlayerNums(wforce.getPlayerIds());
         }
+        w3I.setFlag(MapFlag.USE_CUSTOM_FORCES, true);
     }
 
     private static void applyPlayers(WurstProjectConfigData projectConfig, W3I w3I) {

@@ -80,13 +80,14 @@ public class WurstCommands {
         }
         JsonObject options = (JsonObject) params.getArguments().get(0);
         String mapPath = getString(options, "mappath");
+        String wc3Path = getString(options, "wc3path");
         if (mapPath == null) {
             throw new RuntimeException("No mappath given");
         }
 
         File map = new File(mapPath);
         List<String> compileArgs = getCompileArgs(workspaceRoot);
-        return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, map, compileArgs)).thenApply(x -> x);
+        return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static CompletableFuture<Object> startmap(WurstLanguageServer server, ExecuteCommandParams params, String... additionalArgs) {

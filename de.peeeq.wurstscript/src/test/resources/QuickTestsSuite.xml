@@ -38,6 +38,7 @@
             <class name="tests.wurstscript.tests.TupleTests"/>
             <class name="tests.wurstscript.utils.UtilsTest"/>
             <class name="tests.wurstscript.tests.VarargTests"/>
+            <class name="tests.wurstscript.tests.FoldingTests"/>
         </classes>
     </test>
 </suite>

@@ -23,8 +23,9 @@ public class AttrPossibleFunctionSignatures {
         for (FuncLink f : fs) {
             FunctionSignature sig = FunctionSignature.fromNameLink(f);
 
-            if (fc.attrImplicitParameter() instanceof Expr) {
-                Expr expr = (Expr) fc.attrImplicitParameter();
+            OptExpr implicitParameterOpt = AttrImplicitParameter.getFunctionCallImplicitParameter(fc, f, false);
+            if (implicitParameterOpt instanceof Expr) {
+                Expr expr = (Expr) implicitParameterOpt;
                 VariableBinding mapping = expr.attrTyp().matchAgainstSupertype(sig.getReceiverType(), fc, sig.getMapping(), VariablePosition.RIGHT);
                 if (mapping == null) {
                     // TODO error message? Or just ignore wrong parameter type?
@@ -44,7 +45,7 @@ public class AttrPossibleFunctionSignatures {
 
     private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc, ImmutableCollection<FunctionSignature> res) {
         ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
-        List<WurstType> argTypes = AttrFuncDef.argumentTypes(fc);
+        List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(fc);
         for (FunctionSignature sig : res) {
             FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
             if (sig2 != null) {
@@ -96,7 +97,7 @@ public class AttrPossibleFunctionSignatures {
             }
             List<String> pNames = FunctionSignature.getParamNames(f.getParameters());
             List<TypeParamDef> typeParams = classDef.getTypeParameters();
-            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(fj.data.List.iterableList(typeParams));
+            VariableBinding mapping = VariableBinding.emptyMapping().withTypeVariables(typeParams);
             FunctionSignature sig = new FunctionSignature(f, mapping, null, "construct", paramTypes, pNames, returnType);
             sig = sig.setTypeArgs(fc, binding2);
             res.add(sig);

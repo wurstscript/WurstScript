@@ -138,10 +138,30 @@ public class ClassTranslator {
         }
         if (sc.getOnDestroy().attrHasEmptyBody()) {
             WurstTypeClass superClass = (WurstTypeClass) sc.getExtendedClass().attrTyp();
-            return hasOwnDestroy(superClass.getClassDef(), classDef2);
+            if (hasOwnDestroy(superClass.getClassDef(), classDef2)) {
+                return true;
+            }
+            for (ModuleInstanciation mi : sc.getModuleInstanciations()) {
+                if (hasOwnDestroy(mi)) {
+                    return true;
+                }
+            }
+            return false;
         } else {
             return true;
         }
+    }
+
+    private boolean hasOwnDestroy(ModuleInstanciation mi) {
+        if (!mi.getOnDestroy().attrHasEmptyBody()) {
+            return true;
+        }
+        for (ModuleInstanciation subMod : mi.getModuleInstanciations()) {
+            if (hasOwnDestroy(subMod)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void createOnDestroyMethod() {

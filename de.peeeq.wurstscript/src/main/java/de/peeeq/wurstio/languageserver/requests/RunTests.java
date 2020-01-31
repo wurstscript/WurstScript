@@ -106,13 +106,14 @@ public class RunTests extends UserRequest<Object> {
         WLogger.info("test.funcToTest = " + Utils.printElement(funcToTest));
 
 
-        ImProg imProg = translateProg(modelManager);
+        ImTranslator translator = translateProg(modelManager);
+        ImProg imProg = translator.getImProg();
         if (imProg == null) {
             println("Could not run tests, because program did not compile.\n");
             return "Could not translate program";
         }
 
-        runTests(imProg, funcToTest, cu);
+        runTests(translator, imProg, funcToTest, cu);
         return "ok";
     }
 
@@ -136,10 +137,10 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public TestResult runTests(ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
+    public TestResult runTests(ImTranslator translator, ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(null, imProg, null, null, gui, CompiletimeFunctions);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, null, null, gui, CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
@@ -297,11 +298,14 @@ public class RunTests extends UserRequest<Object> {
         System.err.print(message);
     }
 
-    private ImProg translateProg(ModelManager modelManager) {
-        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false, new RunArgs());
+    private ImTranslator translateProg(ModelManager modelManager) {
+        // need to run compiletime functions for running unit tests
+        RunArgs runArgs = new RunArgs("-runcompiletimefunctions");
+        ImTranslator imTranslator = new ImTranslator(modelManager.getModel(), false, runArgs);
         // will ignore udg_ variables which are not found
         imTranslator.setEclipseMode(true);
-        return imTranslator.translateProg();
+        imTranslator.translateProg();
+        return imTranslator;
     }
 
 

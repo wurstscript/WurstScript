@@ -5,7 +5,7 @@ import de.peeeq.wurstscript.types.VariableBinding;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeBoundTypeParam;
 import de.peeeq.wurstscript.types.WurstTypePackage;
-import fj.data.TreeMap;
+import io.vavr.collection.TreeMap;
 
 import java.util.Collections;
 import java.util.List;

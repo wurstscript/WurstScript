@@ -186,7 +186,7 @@ public class ImPrinter {
     public static void print(ImIf p, Appendable sb, int indent) {
         append(sb, "if ");
         p.getCondition().print(sb, indent);
-        append(sb, "{\n");
+        append(sb, " {\n");
         p.getThenBlock().print(sb, indent + 1);
         indent(sb, indent);
         append(sb, "} else {\n");
@@ -241,6 +241,9 @@ public class ImPrinter {
 
 
     public static void print(ImFunctionCall p, Appendable sb, int indent) {
+        if (p.getCallType() == CallType.EXECUTE) {
+            append(sb, "EXECUTE ");
+        }
         append(sb, p.getFunc().getName());
         append(sb, smallHash(p.getFunc()));
         printTypeArguments(p.getTypeArguments(), indent, sb);
