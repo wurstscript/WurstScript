@@ -116,7 +116,7 @@ entity:
 ;
 
 instanceDeclaration:
-    'instance' (name=ID? typeParams 'implements')? implemented=typeExpr
+    'implements' implemented=typeExpr ('for' (params+=typeParam (',' params+=typeParam)*))?
     NL (STARTBLOCK
         funcDef*
     ENDBLOCK)?

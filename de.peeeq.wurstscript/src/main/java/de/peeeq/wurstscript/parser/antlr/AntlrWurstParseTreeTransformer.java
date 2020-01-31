@@ -306,10 +306,20 @@ public class AntlrWurstParseTreeTransformer {
     private WEntity transformInstanceDeclaration(InstanceDeclarationContext i) {
         return Ast.InstanceDecl(
             source(i),
-            transformTypeParams(i.typeParams()),
+            transformInstanceTypeParams(i.params),
             transformTypeExpr(i.implemented),
             transformFuncDefs(i.funcDef())
         );
+    }
+
+    private TypeParamDefs transformInstanceTypeParams(List<TypeParamContext> params) {
+        TypeParamDefs result = Ast.TypeParamDefs();
+        if (params != null) {
+            for (TypeParamContext p : params) {
+                result.add(transformTypeParam(p));
+            }
+        }
+        return result;
     }
 
     private FuncDefs transformFuncDefs(List<FuncDefContext> funcDef) {
