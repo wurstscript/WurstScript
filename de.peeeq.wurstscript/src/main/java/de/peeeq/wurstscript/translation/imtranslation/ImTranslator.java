@@ -101,7 +101,7 @@ public class ImTranslator {
     private final Map<ExprFunctionCall, Integer> compiletimeExpressionsOrder = new HashMap<>();
 
     de.peeeq.wurstscript.ast.Element lasttranslatedThing;
-    private boolean debug = true;
+    private boolean debug = false;
     private final RunArgs runArgs;
 
     public ImTranslator(WurstModel wurstProg, boolean isUnitTestMode, RunArgs runArgs) {
@@ -1728,7 +1728,6 @@ public class ImTranslator {
         if (ef == null) {
             Optional<ImFunction> f = findErrorFunc().map(this::getFuncFor);
             ef = errorFunc = f.orElseGet(this::makeDefaultErrorFunc);
-            imProg.getFunctions().add(errorFunc);
         }
         ImExprs arguments = JassIm.ImExprs(message);
         return ImFunctionCall(trace, ef, ImTypeArguments(), arguments, false, CallType.NORMAL);
@@ -1757,7 +1756,9 @@ public class ImTranslator {
 
         List<FunctionFlag> flags = Lists.newArrayList();
 
-        return ImFunction(emptyTrace, "error", ImTypeVars(), parameters, returnType, locals, body, flags);
+        ImFunction result = ImFunction(emptyTrace, "error", ImTypeVars(), parameters, returnType, locals, body, flags);
+        imProg.getFunctions().add(result);
+        return result;
     }
 
 
