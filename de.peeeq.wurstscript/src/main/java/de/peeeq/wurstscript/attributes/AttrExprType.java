@@ -230,6 +230,12 @@ public class AttrExprType {
                         // in jass code it is allowed to compare an integer with 'null'. wat?
                         return WurstTypeBool.instance();
                     }
+
+                }
+
+                if (leftType.isSubtypeOf(WurstNativeType.instance("agent", WurstTypeNull.instance()), term) && rightType.isSubtypeOf(WurstNativeType.instance("agent", WurstTypeNull.instance()), term)) {
+                    // in jass code it is allowed to compare agents
+                    return WurstTypeBool.instance();
                 }
 
                 // TODO check if the intersection of the basetypes of lefttpye and righttype is
