@@ -125,13 +125,6 @@ public class Main {
                 }
 
                 String mapFilePath = runArgs.getMapFile();
-                if (mapFilePath != null) {
-                    // tempfolder
-                    File tempFolder = new File("./temp/");
-                    tempFolder.mkdirs();
-                    BackupController bc = new BackupController();
-                    bc.makeBackup(mapFilePath);
-                }
 
                 RunArgs compileArgs = runArgs;
                 if (workspaceroot != null) {
