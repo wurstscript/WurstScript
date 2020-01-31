@@ -1,13 +1,10 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.jassIm.ImClass;
-import de.peeeq.wurstscript.jassIm.ImProg;
-import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.jassIm.JassIm;
+import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
-import java.lang.reflect.Type;
+import java.util.Collections;
 
 public class ClassManagementVars {
     /**
@@ -33,16 +30,16 @@ public class ClassManagementVars {
     public ClassManagementVars(ImClass repClass, ImTranslator translator) {
         Element tr = repClass.getTrace();
         ImProg prog = translator.getImProg();
-        free = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_nextFree", false);
+        free = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_nextFree", Collections.emptyList());
         prog.getGlobals().add(free);
 
-        freeCount = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_firstFree", false);
-        translator.addGlobalWithInitalizer(freeCount, JassIm.ImIntVal(0));
+        freeCount = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_firstFree", Collections.emptyList());
+        translator.addGlobalWithInitializerFront(freeCount, JassIm.ImIntVal(0));
 
-        maxIndex = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_maxIndex", false);
-        translator.addGlobalWithInitalizer(maxIndex, JassIm.ImIntVal(0));
+        maxIndex = JassIm.ImVar(tr, TypesHelper.imInt(), repClass.getName() + "_maxIndex", Collections.emptyList());
+        translator.addGlobalWithInitializerFront(maxIndex, JassIm.ImIntVal(0));
 
-        typeId = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_typeId", false);
+        typeId = JassIm.ImVar(tr, JassIm.ImArrayType(TypesHelper.imInt()), repClass.getName() + "_typeId", Collections.emptyList());
         prog.getGlobals().add(typeId);
     }
 

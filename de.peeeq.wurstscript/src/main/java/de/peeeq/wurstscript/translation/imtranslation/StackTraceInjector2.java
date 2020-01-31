@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -16,7 +15,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -85,9 +83,9 @@ public class StackTraceInjector2 {
         });
 
         de.peeeq.wurstscript.ast.Element trace = prog.attrTrace();
-        stackSize = JassIm.ImVar(trace, TypesHelper.imInt(), "wurst_stack_depth", false);
+        stackSize = JassIm.ImVar(trace, TypesHelper.imInt(), "wurst_stack_depth", Collections.emptyList());
         prog.getGlobals().add(stackSize);
-        stack = JassIm.ImVar(trace, TypesHelper.imStringArray(), "wurst_stack", false);
+        stack = JassIm.ImVar(trace, TypesHelper.imStringArray(), "wurst_stack", Collections.emptyList());
         prog.getGlobals().add(stack);
         prog.getGlobalInits().put(stackSize, Collections.singletonList(JassIm.ImIntVal(0)));
 
@@ -199,7 +197,7 @@ public class StackTraceInjector2 {
                     if (count > 1) {
                         tempReturnName += "_" + count;
                     }
-                    ImVar temp = JassIm.ImVar(trace, f.getReturnType(), tempReturnName, false);
+                    ImVar temp = JassIm.ImVar(trace, f.getReturnType(), tempReturnName, Collections.emptyList());
                     f.getLocals().add(temp);
                     stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(temp), (ImExpr) returnedValue));
                     newReturn = JassIm.ImReturn(trace, JassIm.ImVarAccess(temp));
@@ -271,7 +269,7 @@ public class StackTraceInjector2 {
             Collection<ImFunctionCall> callsForF = calls.get(f);
             // add stackPos parameter
 
-            f.getParameters().add(getStacktraceIndex(f), JassIm.ImVar(f.getTrace(), TypesHelper.imString(), STACK_POS_PARAM, false));
+            f.getParameters().add(getStacktraceIndex(f), JassIm.ImVar(f.getTrace(), TypesHelper.imString(), STACK_POS_PARAM, Collections.emptyList()));
             // pass the stacktrace parameter at all calls
             for (ImFunctionCall call : callsForF) {
                 String callPos = getCallPos(call.attrTrace().attrErrorPos());
@@ -419,11 +417,11 @@ public class StackTraceInjector2 {
             }
 
             de.peeeq.wurstscript.ast.Element trace = s.attrTrace();
-            ImVar traceStr = JassIm.ImVar(trace, TypesHelper.imString(), "stacktraceStr", false);
+            ImVar traceStr = JassIm.ImVar(trace, TypesHelper.imString(), "stacktraceStr", Collections.emptyList());
             f.getLocals().add(traceStr);
-            ImVar traceI = JassIm.ImVar(trace, TypesHelper.imInt(), "stacktraceIndex", false);
+            ImVar traceI = JassIm.ImVar(trace, TypesHelper.imInt(), "stacktraceIndex", Collections.emptyList());
             f.getLocals().add(traceI);
-            ImVar traceLimit = JassIm.ImVar(trace, TypesHelper.imInt(), "stacktraceLimit", false);
+            ImVar traceLimit = JassIm.ImVar(trace, TypesHelper.imInt(), "stacktraceLimit", Collections.emptyList());
             f.getLocals().add(traceLimit);
             ImStmts stmts = JassIm.ImStmts();
             stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(traceStr), JassIm.ImStringVal("")));

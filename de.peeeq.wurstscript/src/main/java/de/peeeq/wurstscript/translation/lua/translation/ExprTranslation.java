@@ -158,6 +158,36 @@ public class ExprTranslation {
         throw new Error("not implemented: " + e);
     }
 
+    public static LuaExpr translate(ImTypeClassDictValue e, LuaTranslator tr) {
+        ImClass c = e.getClazz().getClassDef();
+        LuaMethod m = tr.luaClassInitMethod.getFor(c);
+        LuaVariable classVar = tr.luaClassVar.getFor(c);
+
+        LuaStatements body = LuaAst.LuaStatements();
+        LuaVariable r = LuaAst.LuaVariable("res", LuaAst.LuaExprMethodCall(
+            LuaAst.LuaExprVarAccess(classVar),
+            m,
+            LuaAst.LuaExprlist()
+        ));
+        body.add(r);
+        int i = 0;
+        for (ImVar field : c.getFields()) {
+            if (i >= e.getArguments().size()) {
+                break;
+            }
+            ImExpr arg = e.getArguments().get(i);
+
+            LuaVariable lField = tr.luaVar.getFor(field);
+            body.add(LuaAst.LuaAssignment(
+                LuaAst.LuaExprFieldAccess(LuaAst.LuaExprVarAccess(r), lField.getName()),
+                arg.translateToLua(tr)));
+        }
+        body.add(LuaAst.LuaReturn(LuaAst.LuaExprVarAccess(r)));
+        return LuaAst.LuaExprFunctionCallE(
+            LuaAst.LuaExprFunctionAbstraction(LuaAst.LuaParams(), body),
+            LuaAst.LuaExprlist());
+    }
+
     static class TupleFunc {
         final ImTupleType tupleType;
         final LuaFunction func;
@@ -330,9 +360,6 @@ public class ExprTranslation {
         throw new Error("not implemented");
     }
 
-    public static LuaExpr translate(ImTypeVarDispatch imTypeVarDispatch, LuaTranslator tr) {
-        throw new Error("not implemented");
-    }
 
     public static LuaExpr translate(ImCast imCast, LuaTranslator tr) {
         LuaExpr translated = imCast.getExpr().translateToLua(tr);

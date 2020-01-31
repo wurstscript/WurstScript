@@ -112,7 +112,15 @@ entity:
       | interfaceDef
       | tupleDef
       | extensionFuncDef
+      | instanceDeclaration
 ;
+
+instanceDeclaration:
+    'instance' (name=ID? typeParams 'implements')? implemented=typeExpr
+    NL (STARTBLOCK
+        funcDef*
+    ENDBLOCK)?
+    ;
 
 interfaceDef:
                 modifiersWithDoc 'interface' name=ID typeParams 

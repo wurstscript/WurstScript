@@ -21,8 +21,6 @@ import org.testng.annotations.Test;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.testng.AssertJUnit.*;
@@ -1033,11 +1031,11 @@ public class OptimizerTests extends WurstScriptTest {
         LocalMerger localMerger = new LocalMerger();
 
         Element trace = Ast.NoExpr();
-        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", false);
-        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", false);
-        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", false);
-        ImVar d = JassIm.ImVar(trace, TypesHelper.imInt(), "d", false);
-        ImVar e = JassIm.ImVar(trace, TypesHelper.imInt(), "e", false);
+        ImVar a = JassIm.ImVar(trace, TypesHelper.imInt(), "a", Collections.emptyList());
+        ImVar b = JassIm.ImVar(trace, TypesHelper.imInt(), "b", Collections.emptyList());
+        ImVar c = JassIm.ImVar(trace, TypesHelper.imInt(), "c", Collections.emptyList());
+        ImVar d = JassIm.ImVar(trace, TypesHelper.imInt(), "d", Collections.emptyList());
+        ImVar e = JassIm.ImVar(trace, TypesHelper.imInt(), "e", Collections.emptyList());
         ImVars locals = JassIm.ImVars(a,b,c,d,e);
 
         ImStmts body = JassIm.ImStmts(
@@ -1066,9 +1064,9 @@ public class OptimizerTests extends WurstScriptTest {
         prog.getFunctions().add(func);
 
         for (int i = 0; i < 10000; i++) {
-            ImVar l = JassIm.ImVar(model, TypesHelper.imInt(), "l" + i, false);
+            ImVar l = JassIm.ImVar(model, TypesHelper.imInt(), "l" + i, Collections.emptyList());
             func.getLocals().add(l);
-            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, false);
+            ImVar g = JassIm.ImVar(model, TypesHelper.imInt(), "g" + i, Collections.emptyList());
             prog.getGlobals().add(g);
             func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(l), JassIm.ImIntVal(i)));
             func.getBody().add(JassIm.ImSet(model, JassIm.ImVarAccess(g), JassIm.ImVarAccess(l)));

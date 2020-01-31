@@ -632,6 +632,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_TypeParamConstraintList(TypeParamConstraintList typeParamConstraintList) {
+            return string("Type parameter constraints define type classes that must be implemented for type parameters.");
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_ClassDefs(ClassDefs classDefs) {
             return string("A list of class definitions.");
         }
@@ -737,6 +742,11 @@ public class HoverInfo extends UserRequest<Hover> {
         }
 
         @Override
+        public List<Either<String, MarkedString>> case_TypeParamConstraint(TypeParamConstraint t) {
+            return string(t.description());
+        }
+
+        @Override
         public List<Either<String, MarkedString>> case_WurstDoc(WurstDoc wurstDoc) {
             return wurstDoc.getParent().match(this);
         }
@@ -764,6 +774,11 @@ public class HoverInfo extends UserRequest<Hover> {
         @Override
         public List<Either<String, MarkedString>> case_ModVararg(ModVararg modVararg) {
             return string("Declares the parameter to be a array of variable length");
+        }
+
+        @Override
+        public List<Either<String, MarkedString>> case_InstanceDecl(InstanceDecl instanceDecl) {
+            return string("An instance declaration for the type-class " + instanceDecl.getImplementedInterface().attrTyp());
         }
 
         @Override

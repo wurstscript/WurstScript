@@ -12,6 +12,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -29,21 +30,21 @@ public class EvaluateExpr {
     public static @Nullable ILconst eval(ImFunctionCall e, ProgramState globalState, LocalState localState) {
         ImFunction f = e.getFunc();
         ImExprs arguments = e.getArguments();
-        return evaluateFunc(globalState, localState, f, arguments, e);
+        return evaluateFunc(globalState, localState, f, e.getTypeArguments(), arguments, e);
     }
 
     public static @Nullable ILconst evaluateFunc(ProgramState globalState,
-                                                 LocalState localState, ImFunction f, List<ImExpr> args2, Element trace) {
+                                                 LocalState localState, ImFunction f, List<ImTypeArgument> typeArguments, List<ImExpr> args2, Element trace) {
         ILconst[] args = new ILconst[args2.size()];
         for (int i = 0; i < args2.size(); i++) {
             args[i] = args2.get(i).evaluate(globalState, localState);
         }
-        return evaluateFunc(globalState, f, trace, args);
+        return evaluateFunc(globalState, f, trace, typeArguments, args);
     }
 
     @Nullable
-    private static ILconst evaluateFunc(ProgramState globalState, ImFunction f, Element trace, ILconst[] args) {
-        LocalState r = ILInterpreter.runFunc(globalState, f, trace, args);
+    private static ILconst evaluateFunc(ProgramState globalState, ImFunction f, Element trace, List<ImTypeArgument> typeArguments, ILconst[] args) {
+        LocalState r = ILInterpreter.runFunc(globalState, f, trace, typeArguments, args);
         return r.getReturnVal();
     }
 
@@ -185,26 +186,30 @@ public class EvaluateExpr {
 
         List<ImExpr> args = mc.getArguments();
 
+        ImMethod mostPrecise = findMostPreciseMethod(mc.attrTrace(), globalState, receiver, mc.getMethod());
 
-        ImMethod mostPrecise = mc.getMethod();
-
-        // find correct implementation:
-        for (ImMethod m : mc.getMethod().getSubMethods()) {
-
-            if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
-                if (globalState.isInstanceOf(receiver, m.attrClass(), mc.attrTrace())) {
-                    // found more precise method
-                    mostPrecise = m;
-                }
-            }
-        }
         // execute most precise method
         ILconst[] eargs = new ILconst[args.size() + 1];
         eargs[0] = receiver;
         for (int i = 0; i < args.size(); i++) {
             eargs[i + 1] = args.get(i).evaluate(globalState, localState);
         }
-        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, eargs);
+        return evaluateFunc(globalState, mostPrecise.getImplementation(), mc, mc.getTypeArguments(), eargs);
+    }
+
+    private static ImMethod findMostPreciseMethod(de.peeeq.wurstscript.ast.Element position, ProgramState globalState, ILconstObject receiver, ImMethod originalMethod) {
+        // find correct implementation:
+        ImMethod mostPrecise = originalMethod;
+        for (ImMethod m : originalMethod.getSubMethods()) {
+
+            if (m.attrClass().isSubclassOf(mostPrecise.attrClass())) {
+                if (globalState.isInstanceOf(receiver, m.attrClass(), position)) {
+                    // found more precise method
+                    mostPrecise = m;
+                }
+            }
+        }
+        return mostPrecise;
     }
 
     public static ILconst eval(ImMemberAccess ma, ProgramState globalState, LocalState localState) {
@@ -392,11 +397,6 @@ public class EvaluateExpr {
     }
 
 
-    public static ILconst eval(ImTypeVarDispatch e, ProgramState globalState, LocalState localState) {
-        // TODO store type arguments in localState with the required dispatch functions
-        throw new InterpreterException(e.attrTrace(), "Cannot evaluate " + e);
-    }
-
     public static ILconst eval(ImCast imCast, ProgramState globalState, LocalState localState) {
         ILconst res = imCast.getExpr().evaluate(globalState, localState);
         if (TypesHelper.isIntType(imCast.getToType())) {
@@ -418,5 +418,15 @@ public class EvaluateExpr {
             }
         }
         return res;
+    }
+
+    public static ILconst eval(ImTypeClassDictValue e, ProgramState globalState, LocalState localState) {
+        ILconstObject obj = globalState.allocate(e.getClazz(), e.attrTrace());
+        int i = 0;
+        for (ImExpr arg : e.getArguments()) {
+            ILconst argV = arg.evaluate(globalState, localState);
+            obj.set(e.getClazz().getClassDef().getFields().get(i), Collections.emptyList(), argV);
+        }
+        return obj;
     }
 }

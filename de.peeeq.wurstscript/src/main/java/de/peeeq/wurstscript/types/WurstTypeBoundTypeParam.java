@@ -1,17 +1,16 @@
 package de.peeeq.wurstscript.types;
 
+import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
-import io.vavr.control.Either;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import static de.peeeq.wurstscript.types.VariablePosition.NONE;
@@ -24,7 +23,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
     // the fromIndex and toIndex functions for old-generics:
     private FuncDef fromIndex;
     private FuncDef toIndex;
-    private final @Nullable Map<FuncDef, FuncLink> typeConstraintFunctions;
+    // type class instances (null for old generics)
+    private final @Nullable List<TypeClassInstance> instances;
     private boolean indexInitialized = false;
     private Element context;
 
@@ -36,10 +36,20 @@ public class WurstTypeBoundTypeParam extends WurstType {
         this.baseType = baseType;
         this.context = context;
         if (def.getTypeParamConstraints() instanceof NoTypeParamConstraints) {
-            this.typeConstraintFunctions = null;
+            this.instances = null;
         } else {
-            this.typeConstraintFunctions = new HashMap<>();
+            this.instances = Collections.emptyList();
         }
+    }
+
+    public WurstTypeBoundTypeParam(TypeParamDef typeParamDef, WurstType baseType, FuncDef fromIndex, FuncDef toIndex, @Nullable List<TypeClassInstance> instances, boolean indexInitialized, Element context) {
+        this.typeParamDef = typeParamDef;
+        this.baseType = baseType;
+        this.fromIndex = fromIndex;
+        this.toIndex = toIndex;
+        this.instances = instances;
+        this.indexInitialized = indexInitialized;
+        this.context = context;
     }
 
     @Override
@@ -50,7 +60,8 @@ public class WurstTypeBoundTypeParam extends WurstType {
     @Override
     public String getName() {
         return baseType.getName();
-//		return "[" + typeParamDef.getName() + ": " + baseType + "]";
+//        String is = instances == null ? "" : " | " + Utils.printSep(", ", instances);
+//        return "[" + typeParamDef.getName() + ": " + baseType + is + "]";
     }
 
     @Override
@@ -130,7 +141,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         if (indexInitialized) {
             return;
         }
-        if (typeConstraintFunctions == null) {
+        if (instances == null) {
             if (!baseType.supportsGenerics()) {
                 // if type does support generics natively, try to find implicit conversion functions
                 fromIndex = ImplicitFuncs.findFromIndexFunc(baseType, context);
@@ -190,18 +201,25 @@ public class WurstTypeBoundTypeParam extends WurstType {
         return baseType.isTranslatedToInt();
     }
 
-    public @Nullable Map<FuncDef, FuncLink> getTypeConstraintFunctions() {
-        return typeConstraintFunctions;
-    }
-
     public boolean isTemplateTypeParameter() {
-        return typeParamDef.getTypeParamConstraints() instanceof TypeExprList;
+        return typeParamDef.getTypeParamConstraints() instanceof TypeParamConstraintList;
     }
 
     public ImTypeArgument imTranslateToTypeArgument(ImTranslator tr) {
         ImType t = imTranslateType(tr);
-        Map<ImTypeClassFunc, Either<ImMethod, ImFunction>> typeClassBinding = new HashMap<>();
-        // TODO add type class binding
-        return JassIm.ImTypeArgument(t, typeClassBinding);
+        return JassIm.ImTypeArgument(t);
+    }
+
+    public WurstTypeBoundTypeParam withTypeClassInstance(TypeClassInstance instance) {
+        ImmutableList<TypeClassInstance> newInstances =
+            ImmutableList.<TypeClassInstance>builderWithExpectedSize(instances.size() + 1)
+                .addAll(instances)
+                .add(instance)
+                .build();
+        return new WurstTypeBoundTypeParam(typeParamDef, baseType, fromIndex, toIndex, newInstances, indexInitialized, context);
+    }
+
+    public List<TypeClassInstance> getInstances() {
+        return instances;
     }
 }

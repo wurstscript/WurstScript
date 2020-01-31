@@ -145,7 +145,7 @@ public class VarLink extends DefLink {
         }
         Deferred<WurstType> newType = type.map(oldType -> oldType.setTypeArgs(binding));
         boolean changed = newType != type;
-        WurstType newReceiverType = getReceiverType().setTypeArgs(binding);
+        WurstType newReceiverType = getReceiverType() == null ? null : getReceiverType().setTypeArgs(binding);
         changed |= newReceiverType != getReceiverType();
 
 

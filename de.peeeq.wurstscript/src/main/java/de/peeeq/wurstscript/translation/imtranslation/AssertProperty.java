@@ -43,16 +43,11 @@ public interface AssertProperty {
                     ImFunction f = (ImFunction) e;
                     currentFunction = f;
                     checkType(e, (f).getReturnType());
-                } else if (e instanceof ImTypeClassFunc) {
-                    checkType(e, ((ImTypeClassFunc) e).getReturnType());
                 } else if (e instanceof ImMethod) {
                     checkType(e, ((ImMethod) e).getMethodClass());
                     checkRooted(e, ((ImMethod) e).getImplementation());
                 } else if (e instanceof ImVarargLoop) {
                     checkRooted(e, ((ImVarargLoop) e).getLoopVar());
-                } else if (e instanceof ImTypeVarDispatch) {
-                    checkRooted(e, ((ImTypeVarDispatch) e).getTypeClassFunc());
-                    checkRooted(e, ((ImTypeVarDispatch) e).getTypeVariable());
                 } else if (e instanceof ImVarAccess) {
                     checkRooted(e, ((ImVarAccess) e).getVar());
                 } else if (e instanceof ImVarArrayAccess) {
@@ -96,7 +91,7 @@ public interface AssertProperty {
                         }
                         Element parent = e.getParent();
                         if (parent == null) {
-                            break;
+                            throw new CompileError(location,"Element " + el + " has no parent");
                         }
                         checkContains(location, parent, e);
                         if (parent instanceof ImFunction && parent != currentFunction) {

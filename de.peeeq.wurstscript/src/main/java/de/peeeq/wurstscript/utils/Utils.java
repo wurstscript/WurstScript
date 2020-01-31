@@ -471,8 +471,13 @@ public class Utils {
 
     public static String printElementWithSource(Element e) {
         WPos src = e.attrSource();
-        return printElement(e) + " (" + src.getFile() + ":"
-                + src.getLine() + ")";
+        return printElement(e) + " " + printElementSource(e);
+    }
+
+    public static String printElementSource(Element e) {
+        WPos src = e.attrSource();
+        return "(" + src.getFile() + ":"
+            + src.getLine() + ")";
     }
 
     public static int[] copyArray(int[] ar) {
@@ -1055,6 +1060,23 @@ public class Utils {
      */
     public static <T> List<T> init(List<T> list) {
         return list.stream().limit(list.size() - 1).collect(Collectors.toList());
+    }
+
+    /** checks if two lists are equal using a custom equality function */
+    public static <T> boolean listEquals(List<T> xs, List<T> ys, BiPredicate<T, T> cmp) {
+        if (xs.size() != ys.size()) {
+            return false;
+        }
+        Iterator<T> xi = xs.iterator();
+        Iterator<T> yi = ys.iterator();
+        while (xi.hasNext()) {
+            T x = xi.next();
+            T y = yi.next();
+            if (!cmp.test(x, y)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public static class ExecResult {

@@ -3,7 +3,6 @@ package de.peeeq.wurstscript.attributes;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.*;
 import org.eclipse.jdt.annotation.Nullable;
 
@@ -80,7 +79,7 @@ public class AttrVarDefType {
     public static WurstTypeClass calculate(ClassDef c) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : c.getTypeParameters()) {
-            WurstTypeTypeParam typParam = new WurstTypeTypeParam(tp);
+            WurstTypeTypeParam typParam = new WurstTypeTypeParam(tp, false);
             typeArgs.add(new WurstTypeBoundTypeParam(tp, typParam, tp));
         }
         return new WurstTypeClass(c, typeArgs, true);
@@ -155,13 +154,13 @@ public class AttrVarDefType {
     }
 
     public static WurstType calculate(TypeParamDef t) {
-        return new WurstTypeTypeParam(t);
+        return new WurstTypeTypeParam(t, true);
     }
 
     public static WurstTypeInterface calculate(InterfaceDef i) {
         List<WurstTypeBoundTypeParam> typeArgs = Lists.newArrayList();
         for (TypeParamDef tp : i.getTypeParameters()) {
-            WurstTypeTypeParam tpType = new WurstTypeTypeParam(tp);
+            WurstTypeTypeParam tpType = new WurstTypeTypeParam(tp, false);
             typeArgs.add(new WurstTypeBoundTypeParam(tp, tpType, tp));
         }
         return new WurstTypeInterface(i, typeArgs, true);

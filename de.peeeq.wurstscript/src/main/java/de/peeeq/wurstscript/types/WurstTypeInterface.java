@@ -60,7 +60,7 @@ public class WurstTypeInterface extends WurstTypeClassOrInterface {
     }
 
     @Override
-    public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
+    public WurstTypeInterface replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes) {
         return new WurstTypeInterface(getInterfaceDef(), newTypes);
     }
 

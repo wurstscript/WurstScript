@@ -12,7 +12,6 @@ import de.peeeq.wurstscript.types.WurstTypeClass;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -67,7 +66,7 @@ public class InterfaceTranslator {
 
     private ImClassType imClassType() {
         ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv), Collections.emptyMap()))
+                .map(tv -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(tv)))
                 .collect(Collectors.toCollection(JassIm::ImTypeArguments));
         return JassIm.ImClassType(imClass, typeArgs);
     }

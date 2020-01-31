@@ -97,4 +97,26 @@ public class AttrTypeExprType {
     }
 
 
+    public static WurstType constraintType(TypeParamConstraint c) {
+        WurstType t = c.getConstraint().attrTyp();
+        if (t instanceof WurstTypeInterface) {
+            WurstTypeInterface wti = (WurstTypeInterface) t;
+
+            TypeParamDefs tps = wti.getDef().getTypeParameters();
+            if (tps.isEmpty()) {
+                c.addError("Constraint " + t + " must be an interface type with at least one type parameter.\n" +
+                    "Maybe change interface " + t + " to interface " + t + "<T> ?");
+            } else {
+                TypeParamDef lastTypeParam = Utils.getLast(tps);
+                TypeParamDef tp = c.parentTypeParam();
+                // TODO check that type param is not yet set
+                wti = (WurstTypeInterface) wti.setTypeArgs(wti.getTypeArgBinding()
+                    .set(lastTypeParam, new WurstTypeBoundTypeParam(lastTypeParam, new WurstTypeTypeParam(tp, false), c)));
+            }
+            return wti;
+        } else {
+            c.addError("Invalid type constraint " + t + ". Type constraint must be an interface type.");
+            return WurstTypeUnknown.instance();
+        }
+    }
 }

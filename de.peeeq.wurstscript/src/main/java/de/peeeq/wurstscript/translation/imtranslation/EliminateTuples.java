@@ -182,7 +182,7 @@ public class EliminateTuples {
                     for (ImExpr ie : indexes) {
                         if (sideEffects) {
                             // use temp variables if there are side effects
-                            ImVar tempIndex = JassIm.ImVar(ie.attrTrace(), TypesHelper.imInt(), "tempIndex", false);
+                            ImVar tempIndex = JassIm.ImVar(ie.attrTrace(), TypesHelper.imInt(), "tempIndex", Collections.emptyList());
                             indexExprs.add(JassIm.ImVarAccess(tempIndex));
                             f.getLocals().add(tempIndex);
                             ie.setParent(null);
@@ -392,7 +392,7 @@ public class EliminateTuples {
         List<ImVar> tempVars = new ArrayList<>();
         // 2) assign right hand side to temporary variables:
         for (ImExpr expr : right.getExprs()) {
-            ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_temp", false);
+            ImVar temp = JassIm.ImVar(expr.attrTrace(), expr.attrTyp(), "tuple_temp", Collections.emptyList());
             expr.setParent(null);
             stmts.add(JassIm.ImSet(expr.attrTrace(), JassIm.ImVarAccess(temp), expr));
             tempVars.add(temp);
@@ -452,7 +452,7 @@ public class EliminateTuples {
                         // TODO maybe this assumption should be validated ...
                         result = extractSideEffect(te, stmts);
                     } else {
-                        ImVar temp = JassIm.ImVar(trace, te.attrTyp(), "tupleSelection", false);
+                        ImVar temp = JassIm.ImVar(trace, te.attrTyp(), "tupleSelection", Collections.emptyList());
                         f.getLocals().add(temp);
                         stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(temp), te));
                         result = JassIm.ImVarAccess(temp);

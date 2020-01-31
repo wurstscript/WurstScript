@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.WurstTypeCode;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +49,9 @@ public class FuncRefRemover {
                 g = refs.get(func);
             } else {
                 // create global variable containing a reference to the function:
-                g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(tr),
-                        "ref_function_" + func.getName(), false);
+                g = JassIm.ImVar(fr.attrTrace(), WurstTypeCode.instance().imTranslateType(tr), "ref_function_" + func.getName(), Collections.emptyList());
                 refs.put(func, g);
-                tr.addGlobalWithInitalizer(g, fr.copy());
+                tr.addGlobalWithInitializer(g, fr.copy());
             }
             fr.replaceBy(JassIm.ImVarAccess(g));
         }

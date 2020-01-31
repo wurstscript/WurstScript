@@ -357,6 +357,11 @@ public class ImPrinter {
 
 
     public static void print(ImVar v, Appendable sb, int indent) {
+        for (VarFlag varFlag : v.getVarFlags()) {
+            append(sb, "@");
+            append(sb, varFlag);
+            append(sb, " ");
+        }
         v.getType().print(sb, indent);
         append(sb, " ");
         append(sb, v.getName());
@@ -504,14 +509,6 @@ public class ImPrinter {
     }
 
 
-    public static void print(ImTypeVarDispatch e, Appendable sb, int indent) {
-        append(sb, "<");
-        append(sb, e.getTypeVariable().getName());
-        append(sb, ">.");
-        append(sb, e.getTypeClassFunc().getName());
-        printArgumentList(sb, indent, e.getArguments());
-    }
-
     public static void print(ImTypeVarRef e, Appendable sb, int indent) {
         append(sb, e.getTypeVariable().getName());
         append(sb, smallHash(e.getTypeVariable()));
@@ -554,9 +551,6 @@ public class ImPrinter {
                     .collect(Collectors.joining(", ")) + "]";
     }
 
-    public static String asString(ImTypeClassFunc s) {
-        return s.getName() + smallHash(s);
-    }
 
     public static String asString(ImClass s) {
         return s.getName() + smallHash(s);
@@ -567,7 +561,7 @@ public class ImPrinter {
     }
 
     public static String asString(ImTypeArgument s) {
-        return s.getType() + "" + s.getTypeClassBinding();
+        return s.getType() + "";
     }
 
     public static void print(ImCast e, Appendable sb, int indent) {
@@ -580,5 +574,11 @@ public class ImPrinter {
 
     public static void print(ImAnyType at, Appendable sb, int indent) {
         append(sb, "any");
+    }
+
+    public static void print(ImTypeClassDictValue e, Appendable sb, int indent) {
+        append(sb, "Dict#");
+        e.getClazz().print(sb, indent);
+        printArgumentList(sb, indent, e.getArguments());
     }
 }

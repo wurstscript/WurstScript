@@ -7,7 +7,9 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
+import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -16,9 +18,12 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class NameLinks {
+
+
 
     static private class OverrideCheckResult {
         // does this override some other function
@@ -48,6 +53,7 @@ public class NameLinks {
             addNamesFromImplementedInterfaces(result, classType, overrideCheckResults);
         }
 
+        addTypeParametersIfAny(result::put, c);
         reportOverrideErrors(overrideCheckResults);
         return ImmutableMultimap.copyOf(result);
     }
@@ -96,6 +102,21 @@ public class NameLinks {
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         addNamesFromExtendedInterfaces(result, i.attrTypI(), overrideCheckResults);
         reportOverrideErrors(overrideCheckResults);
+        addTypeParametersIfAny(result::put, i);
+        return ImmutableMultimap.copyOf(result);
+    }
+
+
+    public static ImmutableMultimap<String, DefLink> calculate(InstanceDecl i) {
+        Multimap<String, DefLink> result = HashMultimap.create();
+        addDefinedNames(result, i, i.getMethods());
+        Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
+        WurstType implementedI = i.getImplementedInterface().attrTyp();
+        if (implementedI instanceof WurstTypeInterface) {
+            addNamesFromExtendedInterfaces(result, (WurstTypeInterface) implementedI, overrideCheckResults);
+        }
+        reportOverrideErrors(overrideCheckResults);
+        addTypeParametersIfAny(result::put, i);
         return ImmutableMultimap.copyOf(result);
     }
 
@@ -170,7 +191,17 @@ public class NameLinks {
         WScope s = (WScope) c;
         addVarDefIfAny(result, s);
         addParametersIfAny(result, s);
+        addTypeParametersIfAny(result::put, s);
         return result.build();
+    }
+
+    private static void addTypeParametersIfAny(BiConsumer<String, DefLink> result, WScope s) {
+        if (s instanceof AstElementWithTypeParameters) {
+            AstElementWithTypeParameters tps = (AstElementWithTypeParameters) s;
+            for (TypeParamDef tp : tps.getTypeParameters()) {
+                result.accept(tp.getName(), VarLink.create(tp, s));
+            }
+        }
     }
 
 

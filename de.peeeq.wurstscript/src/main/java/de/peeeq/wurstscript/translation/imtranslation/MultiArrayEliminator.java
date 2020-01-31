@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +47,7 @@ public class MultiArrayEliminator {
                     int size0 = arraySize.get(0);
                     List<ImVar> newArrays = Lists.newArrayList();
                     for (int i = 0; i < size0; i++) {
-                        ImVar newVar = JassIm.ImVar(v.getTrace(), JassIm.ImArrayType(type.getEntryType()), v.getName() + "_" + i, false);
+                        ImVar newVar = JassIm.ImVar(v.getTrace(), JassIm.ImArrayType(type.getEntryType()), v.getName() + "_" + i, Collections.emptyList());
                         newArrays.add(newVar);
                     }
                     ImFunction setFunc = generateSetFunc(v, newArrays);
@@ -168,9 +169,9 @@ public class MultiArrayEliminator {
     private ImFunction generateSetFunc(ImVar aVar, List<ImVar> newArrays) {
         ImArrayTypeMulti mtype = (ImArrayTypeMulti) aVar.getType();
         ImVars locals = JassIm.ImVars();
-        ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "instanceId", false);
-        ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "arrayIndex", false);
-        ImVar value = JassIm.ImVar(aVar.getTrace(), mtype.getEntryType(), "value", false);
+        ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "instanceId", Collections.emptyList());
+        ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "arrayIndex", Collections.emptyList());
+        ImVar value = JassIm.ImVar(aVar.getTrace(), mtype.getEntryType(), "value", Collections.emptyList());
         ImFunctionCall error = imError(aVar, "Index out of Bounds");
         ImStmts thenBlock = JassIm.ImStmts(error);
         ImStmts elseBlock = JassIm.ImStmts();
@@ -183,7 +184,7 @@ public class MultiArrayEliminator {
 
         ImFunction setFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_set", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex, value), JassIm.ImVoid(), locals, body, Lists.<FunctionFlag>newArrayList());
         if (generateStacktraces) {
-            ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
+            ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", Collections.emptyList());
             setFunc.getParameters().add(stackPos);
             if (error.getFunc().getParameters().size() == 2) {
                 error.getArguments().add(JassIm.ImVarAccess(stackPos));
@@ -220,10 +221,10 @@ public class MultiArrayEliminator {
 
     private ImFunction generateGetFunc(ImVar aVar, List<ImVar> newArrays) {
         ImArrayTypeMulti mtype = (ImArrayTypeMulti) aVar.getType();
-        ImVar returnVal = JassIm.ImVar(aVar.getTrace(), mtype.getEntryType(), "returnVal", false);
+        ImVar returnVal = JassIm.ImVar(aVar.getTrace(), mtype.getEntryType(), "returnVal", Collections.emptyList());
         ImVars locals = JassIm.ImVars(returnVal);
-        ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index1", false);
-        ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index2", false);
+        ImVar instanceId = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index1", Collections.emptyList());
+        ImVar arrayIndex = JassIm.ImVar(aVar.getTrace(), TypesHelper.imInt(), "index2", Collections.emptyList());
         ImFunctionCall error = imError(aVar, "Index out of Bounds");
         ImStmts thenBlock = JassIm.ImStmts(error);
         ImStmts elseBlock = JassIm.ImStmts();
@@ -237,7 +238,7 @@ public class MultiArrayEliminator {
 
         ImFunction getFunc = JassIm.ImFunction(aVar.getTrace(), aVar.getName() + "_get", JassIm.ImTypeVars(), JassIm.ImVars(instanceId, arrayIndex), mtype.getEntryType(), locals, body, Lists.<FunctionFlag>newArrayList());
         if (generateStacktraces) {
-            ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", false);
+            ImVar stackPos = JassIm.ImVar(aVar.getTrace(), TypesHelper.imString(), "stackPos", Collections.emptyList());
             getFunc.getParameters().add(stackPos);
             if (error.getFunc().getParameters().size() == 2) {
                 error.getArguments().add(JassIm.ImVarAccess(stackPos));

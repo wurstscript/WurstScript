@@ -100,10 +100,6 @@ public class FunctionSplitter {
 
     private int estimateFuel(ImStmt s) {
         return s.match(new ImStmt.Matcher<Integer>() {
-            @Override
-            public Integer case_ImTypeVarDispatch(ImTypeVarDispatch s) {
-                return estimateFuel(s.getArguments()) + 100;
-            }
 
             @Override
             public Integer case_ImDealloc(ImDealloc s) {
@@ -236,6 +232,11 @@ public class FunctionSplitter {
             @Override
             public Integer case_ImIf(ImIf s) {
                 return 1 + estimateFuel(s.getCondition()) + Math.max(estimateFuel(s.getThenBlock()), estimateFuel(s.getElseBlock()));
+            }
+
+            @Override
+            public Integer case_ImTypeClassDictValue(ImTypeClassDictValue imTypeClassDictValue) {
+                return 1;
             }
 
             @Override

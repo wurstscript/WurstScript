@@ -410,9 +410,17 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         beginPhase(2, "Eliminate generics");
         new EliminateGenerics(imTranslator2, imProg2).transform();
         printDebugImProg("./test-output/im " + stage++ + "_genericsEliminated.im");
+        if (!runArgs.isLua()) {
+            EliminateTypeClasses.transform(imTranslator2);
+        }
+        printDebugImProg("./test-output/im " + stage++ + "_typeClassesEliminated.im");
+
 
         // eliminate classes
         beginPhase(2, "translate classes");
+
+        ClassesOptimizer.optimizeProg(imTranslator2);
+        printDebugImProg("./test-output/im " + stage++ + "_classes_optimized.im");
 
         new EliminateClasses(imTranslator2, imProg2, !runArgs.isUncheckedDispatch()).eliminateClasses();
         imTranslator2.assertProperties();
@@ -543,7 +551,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         ImFunction jhcr_reload = JassIm.ImFunction(trace, "jhcr_reload_on_escape", JassIm.ImTypeVars(), JassIm.ImVars(), JassIm.ImVoid(), JassIm.ImVars(), reloadBody, Collections.emptyList());
 
 
-        ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", false);
+        ImVar trig = JassIm.ImVar(trace, TypesHelper.imTrigger(), "trig", Collections.emptyList());
         mainFunc.getLocals().add(trig);
         // TriggerRegisterPlayerEventEndCinematic(trig, Player(0))
         stmts.add(JassIm.ImSet(trace, JassIm.ImVarAccess(trig), callExtern(trace, CallType.NORMAL, "CreateTrigger")));
@@ -611,6 +619,8 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         } catch (IOException e) {
             ErrorReporting.instance.handleSevere(e, getCompleteSourcecode());
         }
+        // basic sanity check
+        getImTranslator().assertProperties(AssertProperty.rooted(getImProg()));
     }
 
     private WurstModel mergeCompilationUnits(List<CompilationUnit> compilationUnits) {

@@ -3,8 +3,9 @@ package de.peeeq.wurstscript.translation.imtranslation;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.utils.Constants;
+
+import java.util.Collections;
 
 /**
  * Manages object ids in a queue. This way the time each object is
@@ -20,7 +21,7 @@ public class RecycleCodeGeneratorQueue implements RecycleCodeGenerator {
         ImStmts body = f.getBody();
         Element tr = c.getTrace();
 
-        ImVar thisVar = JassIm.ImVar(tr, translator.selfType(c), "this", false); // TODO change type
+        ImVar thisVar = JassIm.ImVar(tr, translator.selfType(c), "this", Collections.emptyList()); // TODO change type
         locals.add(thisVar);
 
         ClassManagementVars mVars = translator.getClassManagementVarsFor(c);

@@ -4,6 +4,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
+import de.peeeq.wurstscript.types.WurstTypeTypeParam;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
@@ -77,6 +78,11 @@ public class AttrImplicitParameter {
             Expr res = getImplicitParameterUsingLeft(hasReceiver);
             if (res != null) {
                 return res;
+            }
+            if (hasReceiver.getLeft().attrTyp() instanceof WurstTypeTypeParam) {
+                // for type parameters we have no implicit parameter here,
+                // (one is added later in the translation when constraints are resolved)
+                return Ast.NoExpr();
             }
         }
         if (calledFunc == null) {

@@ -19,6 +19,8 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class ILInterpreter implements AbstractInterpreter {
@@ -38,7 +40,7 @@ public class ILInterpreter implements AbstractInterpreter {
     }
 
     public static LocalState runFunc(ProgramState globalState, ImFunction f, @Nullable Element caller,
-                                     ILconst... args) {
+                                     List<ImTypeArgument> typeArguments, ILconst... args) {
         if (Thread.currentThread().isInterrupted()) {
             throw new InterpreterException(globalState, "Execution interrupted");
         }
@@ -77,6 +79,7 @@ public class ILInterpreter implements AbstractInterpreter {
             }
 
             LocalState localState = new LocalState();
+
             int i = 0;
             for (ImVar p : f.getParameters()) {
                 localState.setVal(p, args[i]);
@@ -189,7 +192,7 @@ public class ILInterpreter implements AbstractInterpreter {
         globalState.resetStackframes();
         for (ImFunction f : prog.getFunctions()) {
             if (f.getName().equals(funcName)) {
-                return runFunc(globalState, f, trace);
+                return runFunc(globalState, f, trace, Collections.emptyList());
             }
         }
 
@@ -203,7 +206,7 @@ public class ILInterpreter implements AbstractInterpreter {
             // this should only happen because of added stacktrace parameter
             args = new ILconstString[]{new ILconstString("initial call")};
         }
-        runFunc(globalState, f, trace, args);
+        runFunc(globalState, f, trace, Collections.emptyList(), args);
     }
 
     public Element getLastStatement() {

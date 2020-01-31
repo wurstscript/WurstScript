@@ -23,7 +23,7 @@ public class ImCompressor {
 
     public void compressGlobals() {
         for (final ImVar global : prog.getGlobals()) {
-            if (global.getIsBJ()) {
+            if (global.isBJ()) {
                 // no not rename bj constants
 
                 continue;

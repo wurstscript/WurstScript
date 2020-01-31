@@ -8,6 +8,7 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
+import io.vavr.control.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -144,9 +145,9 @@ public class EliminateGenerics {
             f.getTypeVariables().addAll(0, newTypeVars);
             List<ImTypeArgument> typeArgs = newTypeVars
                     .stream()
-                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta), Collections.emptyMap()))
+                    .map(ta -> JassIm.ImTypeArgument(JassIm.ImTypeVarRef(ta)))
                     .collect(Collectors.toList());
-            rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables());
+            rewriteGenerics(f, new GenericTypes(typeArgs), c.getTypeVariables(), newTypeVars);
         }
     }
 
@@ -188,11 +189,11 @@ public class EliminateGenerics {
         ImFunction newF = f.copyWithRefs();
         specializedFunctions.put(f, generics, newF);
         prog.getFunctions().add(newF);
-        newF.getTypeVariables().removeAll();
+        List<ImTypeVar> newTypeVars = newF.getTypeVariables().removeAll();
         List<ImTypeVar> typeVars = f.getTypeVariables();
 
         newF.setName(f.getName() + "⟪" + generics.makeName() + "⟫");
-        rewriteGenerics(newF, generics, typeVars);
+        rewriteGenerics(newF, generics, typeVars, newTypeVars);
         collectGenericUsages(newF);
         return newF;
     }
@@ -253,7 +254,7 @@ public class EliminateGenerics {
     /**
      * Replaces all uses of the given typeVars with the type arguments given in parameter generics.
      */
-    private void rewriteGenerics(Element element, GenericTypes generics, List<ImTypeVar> typeVars) {
+    private void rewriteGenerics(Element element, GenericTypes generics, List<ImTypeVar> typeVars, List<ImTypeVar> newTypeVars) {
         if (generics.getTypeArguments().size() != typeVars.size()) {
             throw new RuntimeException("Rewrite generics with wrong sizes\n" +
                     "generics: " + generics + "\n" +
@@ -346,11 +347,11 @@ public class EliminateGenerics {
         newC.setSuperClasses(new ArrayList<>(newC.getSuperClasses()));
         specializedClasses.put(c, generics, newC);
         prog.getClasses().add(newC);
-        newC.getTypeVariables().removeAll();
+        List<ImTypeVar> newTypeVars = newC.getTypeVariables().removeAll();
 
         newC.setName(c.getName() + "⟪" + generics.makeName() + "⟫");
         List<ImTypeVar> typeVars = c.getTypeVariables();
-        rewriteGenerics(newC, generics, typeVars);
+        rewriteGenerics(newC, generics, typeVars, newTypeVars);
         newC.getSuperClasses().replaceAll(this::specializeType);
         // we don't collect generic usages to avoid infinite loops
         // in cases like class C<T> { C<C<T>> x; }
@@ -399,7 +400,7 @@ public class EliminateGenerics {
                 super.visit(v);
                 if (isGenericType(v.getType())) {
                     if (containsTypeVariable(v.getType())) {
-                        throw new CompileError(v, "Var should not have type variables.");
+                        throw new CompileError(v, "Var " + v + " should not have type variables.");
                     }
                     genericsUses.add(new GenericVar(v));
                 }
@@ -462,6 +463,14 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeIdOfClass f) {
+                if (isGenericType(f.getClazz())) {
+                    genericsUses.add(new GenericClazzUse(f));
+                }
+            }
+
+            @Override
+            public void visit(ImTypeClassDictValue f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -670,7 +679,9 @@ public class EliminateGenerics {
     private List<ImTypeArgument> specializeTypeArgs(ImTypeArguments typeArgs) {
         return typeArgs
                 .stream()
-                .map(ta -> JassIm.ImTypeArgument(specializeType(ta.getType()), ta.getTypeClassBinding()))
+                .map(ta -> {
+                    return JassIm.ImTypeArgument(specializeType(ta.getType()));
+                })
                 .collect(Collectors.toList());
     }
 

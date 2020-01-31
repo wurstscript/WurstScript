@@ -4,10 +4,7 @@ import com.google.common.collect.Maps;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstArray;
-import de.peeeq.wurstscript.jassIm.ImArrayLikeType;
-import de.peeeq.wurstscript.jassIm.ImArrayTypeMulti;
-import de.peeeq.wurstscript.jassIm.ImType;
-import de.peeeq.wurstscript.jassIm.ImVar;
+import de.peeeq.wurstscript.jassIm.*;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;

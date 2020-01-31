@@ -208,12 +208,12 @@ public class ImToJassTranslator {
             } else {
                 if (isGlobal(v) && v.getType() instanceof ImSimpleType) {
                     JassExpr initialVal = ImHelper.defaultValueForType((ImSimpleType) v.getType()).translate(this);
-                    result = JassAst.JassInitializedVar(type, name, initialVal, v.getIsBJ());
+                    result = JassAst.JassInitializedVar(type, name, initialVal, v.isBJ());
                 } else {
                     result = JassAst.JassSimpleVar(type, name);
                 }
             }
-            if (isGlobal(v) && (!v.getIsBJ() || result instanceof JassInitializedVar)) {
+            if (isGlobal(v) && (!v.isBJ() || result instanceof JassInitializedVar)) {
                 prog.getGlobals().add(result);
             }
             jassVars.put(v, result);

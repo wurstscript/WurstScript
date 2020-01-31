@@ -62,6 +62,11 @@ public class SideEffectAnalyzer {
             }
 
             @Override
+            public Boolean case_ImTypeClassDictValue(ImTypeClassDictValue e) {
+                return e.getArguments().stream().anyMatch(SideEffectAnalyzer::quickcheckHasSideeffects);
+            }
+
+            @Override
             public Boolean case_ImInstanceof(ImInstanceof e) {
                 return quickcheckHasSideeffects(e.getObj());
             }
@@ -93,11 +98,6 @@ public class SideEffectAnalyzer {
 
             @Override
             public Boolean case_ImGetStackTrace(ImGetStackTrace imGetStackTrace) {
-                return true;
-            }
-
-            @Override
-            public Boolean case_ImTypeVarDispatch(ImTypeVarDispatch imTypeVarDispatch) {
                 return true;
             }
 

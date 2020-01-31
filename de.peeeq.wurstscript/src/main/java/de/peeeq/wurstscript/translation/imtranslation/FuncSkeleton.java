@@ -5,11 +5,14 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.TypesHelper;
 
+import java.util.Collections;
+
 public class FuncSkeleton {
 
     public static void create(ConstructorDef constr, ImTranslator translator, ImFunction f) {
         f.setReturnType(TypesHelper.imInt());
-        ImHelper.translateParameters(constr.getParameters(), f.getParameters(), translator);
+        // TODO add type parameters from class
+        ImHelper.translateParameters(constr.getParameters(), Collections.emptyList(), f.getParameters(), translator);
     }
 
     public static void create(ExtensionFuncDef funcDef, ImTranslator translator, ImFunction f) {
@@ -19,7 +22,7 @@ public class FuncSkeleton {
         ImVar thisVar = translator.getThisVar(funcDef);
         thisVar.setType(funcDef.getExtendedType().attrTyp().imTranslateType(translator));
         f.getParameters().add(thisVar);
-        ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
+        ImHelper.translateParameters(funcDef.getParameters(), funcDef.getTypeParameters(), f.getParameters(), translator);
     }
 
     public static void create(FuncDef funcDef, ImTranslator translator, ImFunction f) {
@@ -30,7 +33,7 @@ public class FuncSkeleton {
             ImVar thisVar = translator.getThisVar(funcDef);
             f.getParameters().add(thisVar);
         }
-        ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
+        ImHelper.translateParameters(funcDef.getParameters(), funcDef.getTypeParameters(), f.getParameters(), translator);
     }
 
     public static void create(InitBlock initBlock, ImTranslator translator, ImFunction f) {
@@ -38,7 +41,7 @@ public class FuncSkeleton {
 
     public static void create(NativeFunc funcDef, ImTranslator translator, ImFunction f) {
         f.setReturnType(funcDef.attrReturnTyp().imTranslateType(translator));
-        ImHelper.translateParameters(funcDef.getParameters(), f.getParameters(), translator);
+        ImHelper.translateParameters(funcDef.getParameters(), Collections.emptyList(), f.getParameters(), translator);
     }
 
     public static void create(TupleDef tupleDef, ImTranslator translator, ImFunction f) {

@@ -81,8 +81,8 @@ public class PrettyPrinter {
     public static void prettyPrint(ConstructorDefs e, Spacer spacer, StringBuilder sb, int indent) {
         for (ConstructorDef constructorDef : e) {
             if (!constructorDef.getParameters().isEmpty()
-                    || constructorDef.getSuperConstructorCall() instanceof SomeSuperConstructorCall
-                    || constructorDef.getBody().size() > 2) {
+                || constructorDef.getSuperConstructorCall() instanceof SomeSuperConstructorCall
+                || constructorDef.getBody().size() > 2) {
                 constructorDef.prettyPrint(spacer, sb, indent);
             }
         }
@@ -386,6 +386,17 @@ public class PrettyPrinter {
         e.getVars().prettyPrint(spacer, sb, indent);
         e.getConstructors().prettyPrint(spacer, sb, indent);
         e.getMethods().prettyPrint(spacer, sb, indent);
+    }
+
+
+    public static void prettyPrint(InstanceDecl e, Spacer spacer, StringBuilder sb, int indent) {
+        printIndent(sb, indent);
+        sb.append("instance");
+        e.getTypeParameters().prettyPrint(spacer, sb, indent);
+        spacer.addSpace(sb);
+        e.getImplementedInterface().prettyPrint(spacer, sb, indent);
+        sb.append("\n");
+        e.getMethods().prettyPrint(spacer, sb, indent + 1);
     }
 
     public static void prettyPrint(JassGlobalBlock e, Spacer spacer, StringBuilder sb, int indent) {
@@ -723,11 +734,11 @@ public class PrettyPrinter {
 
     public static void prettyPrint(ExprIfElse e, Spacer spacer, StringBuilder sb, int indent) {
         sb.append("(");
-        e.getCond().prettyPrint(spacer, sb, indent+1);
+        e.getCond().prettyPrint(spacer, sb, indent + 1);
         sb.append(" ? ");
-        e.getIfTrue().prettyPrint(spacer, sb, indent+1);
+        e.getIfTrue().prettyPrint(spacer, sb, indent + 1);
         sb.append(" : ");
-        e.getIfFalse().prettyPrint(spacer, sb, indent+1);
+        e.getIfFalse().prettyPrint(spacer, sb, indent + 1);
         sb.append(")");
     }
 
@@ -752,4 +763,21 @@ public class PrettyPrinter {
     public static void prettyPrint(NoTypeParamConstraints noTypeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
         // nothing
     }
+
+    public static String print(Element element) {
+        Spacer spacer = new DefaultSpacer();
+        StringBuilder sb = new StringBuilder();
+        element.prettyPrint(spacer, sb, 0);
+        return sb.toString();
+    }
+
+    public static void prettyPrint(TypeParamConstraint t, Spacer spacer, StringBuilder sb, int indent) {
+        t.getConstraint().prettyPrint(spacer, sb, indent);
+    }
+
+    public static void prettyPrint(TypeParamConstraintList typeParamConstraints, Spacer spacer, StringBuilder sb, int indent) {
+        commaSeparatedList(typeParamConstraints, spacer, sb, indent);
+    }
+
+
 }

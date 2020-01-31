@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -112,7 +111,6 @@ public class TLDTranslation {
 
     public static void translate(InterfaceDef interfaceDef, ImTranslator translator) {
         new InterfaceTranslator(interfaceDef, translator).translate();
-
     }
 
 
@@ -134,4 +132,7 @@ public class TLDTranslation {
         // nothing to do?
     }
 
+    public static void translate(InstanceDecl instanceDecl, ImTranslator translator) {
+        TypeClassTranslator.translateTypeClass(instanceDecl, translator);
+    }
 }

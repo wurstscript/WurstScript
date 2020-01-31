@@ -45,6 +45,12 @@ public class TypeNameLinks {
         return result.build();
     }
 
+    public static ImmutableMultimap<String, TypeLink> calculate(InstanceDecl i) {
+        ImmutableMultimap.Builder<String, TypeLink> result = ImmutableSetMultimap.builder();
+        addTypeParametersIfAny(result, i);
+        return result.build();
+    }
+
     public static ImmutableMultimap<String, TypeLink> calculate(NativeFunc nativeFunc) {
         return ImmutableMultimap.of();
     }
@@ -116,4 +122,6 @@ public class TypeNameLinks {
     public static ImmutableMultimap<String, TypeLink> calculate(ExprClosure exprClosure) {
         return ImmutableMultimap.of();
     }
+
+
 }

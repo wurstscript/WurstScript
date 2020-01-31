@@ -9,15 +9,14 @@ ImProg(
 	ImFunctions functions,
 	ImMethods methods,
 	ImClasses classes,
-	ImTypeClassFuncs typeClassFunctions,
 	java.util.Map<ImVar, java.util.List<ImExpr>> globalInits)
 
 ImVars * ImVar
 ImFunctions * ImFunction
 ImClasses * ImClass
-ImTypeClassFuncs * ImTypeClassFunc
 
-ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name, boolean isBJ)
+ImVar(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImType type, String name,
+    java.util.List<de.peeeq.wurstscript.translation.imtranslation.VarFlag> varFlags)
 
 ImType = 
 	  ImSimpleType(String typename)
@@ -37,29 +36,27 @@ ImTypeVars * ImTypeVar
 
 ImTypeVar(String name)
 
-ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
+ImFunction(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
 	String name,
 	ImTypeVars typeVariables,
-	ImVars parameters, 
+	ImVars parameters,
 	ref ImType returnType, 
 	ImVars locals, 
 	ImStmts body, 
 	java.util.List<de.peeeq.wurstscript.translation.imtranslation.FunctionFlag> flags)
 
-ImTypeClassFunc(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace,
-	String name,
-	ImTypeVars typeVariables,
-	ImVars parameters,
-	ref ImType returnType)
 
 
 ImClass(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, 
 	String name,
 	ImTypeVars typeVariables,
-	ImVars fields, 
+	ImVars fields,
 	ImMethods methods,
 	ImFunctions functions,
 	java.util.List<ImClassType> superClasses)
+
+
+ImElementWithTypeVars = ImFunction | ImClass
 
 ImMethods * ImMethod
 
@@ -100,9 +97,9 @@ ImExpr =
 	| ImGetStackTrace()
 	| ImCompiletimeExpr(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ImExpr expr, int executionOrderIndex)
     | ImLExpr
-    | ImTypeVarDispatch(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImTypeClassFunc typeClassFunc, ImExprs arguments
-                       , ref ImTypeVar typeVariable)
 	| ImCast(ImExpr expr, ref ImType toType)
+
+
 
 // an expression which can be used on the left hand side of an assignment
 ImLExpr =
@@ -129,7 +126,7 @@ ImClassRelatedExprWithClass =
 	| ImInstanceof(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfObj(ImExpr obj, ref ImClassType clazz)
 	| ImTypeIdOfClass(ref ImClassType clazz)
-	
+	| ImTypeClassDictValue(@ignoreForEquality de.peeeq.wurstscript.ast.Element trace, ref ImClassType clazz, ImExprs arguments)
 
 
 
@@ -148,7 +145,7 @@ ImConst =
 
 ImTypeArguments * ImTypeArgument
 
-ImTypeArgument(ref ImType type, java.util.Map<ImTypeClassFunc, io.vavr.control.Either<ImMethod, ImFunction>> typeClassBinding)
+ImTypeArgument(ref ImType type)
 
 // helper types:
 
@@ -382,3 +379,6 @@ ImLExpr.isUsedAsLValue()
     returns boolean
     implemented by de.peeeq.wurstscript.translation.imtranslation.LValues.isUsedAsLValue
 		
+ImVar.isBJ()
+    returns boolean
+    implemented by de.peeeq.wurstscript.translation.imtranslation.VarFlag.isBj

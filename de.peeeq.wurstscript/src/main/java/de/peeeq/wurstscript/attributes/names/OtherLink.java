@@ -120,6 +120,11 @@ public abstract class OtherLink extends NameLink {
         }
 
         @Override
+        public @Nullable ClassOrInterfaceOrInstance attrNearestClassOrInterfaceOrInstance() {
+            return null;
+        }
+
+        @Override
         public @Nullable ClassOrModule attrNearestClassOrModule() {
             return null;
         }

@@ -1,6 +1,7 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.utils.Utils;
 
 public class TypeEquality {
 
@@ -75,14 +76,12 @@ public class TypeEquality {
                 if (!x.getType().equalsType(y.getType())) {
                     return false;
                 }
-                if (!x.getTypeClassBinding().equals(y.getTypeClassBinding())) {
-                    return false;
-                }
             }
             return true;
         }
         return false;
     }
+
 
     public static boolean isEqualType(ImAnyType t, ImType other) {
         return other instanceof ImAnyType;

@@ -19,6 +19,7 @@ import de.peeeq.wurstscript.types.TypesHelper;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeVararg;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -84,7 +85,7 @@ public class StmtTranslation {
             } else {
                 // store from-expression in variable, so that it is only evaluated once
                 ImExpr iterationTargetTr = iterationTarget.imTranslateExpr(t, f);
-                ImVar fromVar = ImVar(s, iterationTargetTr.attrTyp(), "from", false);
+                ImVar fromVar = ImVar(s, iterationTargetTr.attrTyp(), "from", Collections.emptyList());
                 f.getLocals().add(fromVar);
                 result.add(ImSet(s, ImVarAccess(fromVar), iterationTargetTr));
                 fromTarget = JassIm.ImExprs(ImVarAccess(fromVar));
@@ -147,7 +148,7 @@ public class StmtTranslation {
             // call XX.iterator()
             ImFunctionCall iteratorCall = ImFunctionCall(forIn, iteratorFuncIm, ImTypeArguments(), iterationTargetList, false, CallType.NORMAL);
             // create IM-variable for iterator
-            ImVar iteratorVar = JassIm.ImVar(forIn.getLoopVar(), iteratorCall.attrTyp(), "iterator", false);
+            ImVar iteratorVar = ImVar(forIn.getLoopVar(), iteratorCall.attrTyp(), "iterator", Collections.emptyList());
 
             f.getLocals().add(iteratorVar);
             f.getLocals().add(t.getVarFor(forIn.getLoopVar()));
@@ -254,7 +255,7 @@ public class StmtTranslation {
         if (r instanceof ImConst) {
             return r;
         }
-        ImVar tempVar = JassIm.ImVar(toCache, type, "temp", false);
+        ImVar tempVar = ImVar(toCache, type, "temp", Collections.emptyList());
         f.getLocals().add(tempVar);
         result.add(ImSet(toCache, ImVarAccess(tempVar), r));
         return ImVarAccess(tempVar);

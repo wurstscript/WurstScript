@@ -288,6 +288,8 @@ public class AntlrWurstParseTreeTransformer {
                 return transformTupleDef(e.tupleDef());
             } else if (e.extensionFuncDef() != null) {
                 return transformExtensionFuncDef(e.extensionFuncDef());
+            } else if (e.instanceDeclaration() != null) {
+                return transformInstanceDeclaration(e.instanceDeclaration());
             }
 
             if (e.exception != null) {
@@ -299,6 +301,26 @@ public class AntlrWurstParseTreeTransformer {
             WLogger.warning("Error transforming entity in line " + line(e), npe);
             return null;
         }
+    }
+
+    private WEntity transformInstanceDeclaration(InstanceDeclarationContext i) {
+        return Ast.InstanceDecl(
+            source(i),
+            transformTypeParams(i.typeParams()),
+            transformTypeExpr(i.implemented),
+            transformFuncDefs(i.funcDef())
+        );
+    }
+
+    private FuncDefs transformFuncDefs(List<FuncDefContext> funcDef) {
+        FuncDefs res = Ast.FuncDefs();
+        if (funcDef == null) {
+            return res;
+        }
+        for (FuncDefContext f : funcDef) {
+            res.add(transformFuncDef(f));
+        }
+        return res;
     }
 
     private WEntity transformExtensionFuncDef(ExtensionFuncDefContext f) {
@@ -1306,9 +1328,10 @@ public class AntlrWurstParseTreeTransformer {
         if (tc == null) {
             return Ast.NoTypeParamConstraints();
         }
-        TypeExprList res = Ast.TypeExprList();
+        TypeParamConstraintList res = Ast.TypeParamConstraintList();
         for (TypeExprContext t : tc.constraints) {
-            res.add(transformTypeExpr(t));
+            TypeExpr te = transformTypeExpr(t);
+            res.add(Ast.TypeParamConstraint(te));
         }
         return res;
     }
