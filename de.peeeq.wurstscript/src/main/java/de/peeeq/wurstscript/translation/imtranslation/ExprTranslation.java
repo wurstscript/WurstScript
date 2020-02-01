@@ -445,7 +445,7 @@ public class ExprTranslation {
 
         FunctionDefinition calledFunc = e.attrFuncDef();
 
-        if (e.attrImplicitParameter() instanceof Expr) {
+        if (typeParamDispatchOn == null && e.attrImplicitParameter() instanceof Expr) {
             if (isCalledOnDynamicRef(e) && calledFunc instanceof FuncDef) {
                 dynamicDispatch = true;
             }
@@ -624,7 +624,13 @@ public class ExprTranslation {
         WurstTypeClass wurstType = (WurstTypeClass) e.attrTyp();
         ImClass imClass = t.getClassFor(wurstType.getClassDef());
         ImTypeArguments typeArgs = getFunctionCallTypeArguments(t, sig, e, imClass.getTypeVariables());
-        return ImFunctionCall(e, constructorImFunc, typeArgs, translateExprs(e.getArgs(), t, f), false, CallType.NORMAL);
+        ImExprs args = translateExprs(e.getArgs(), t, f);
+
+        // translate type constraints:
+        ImTypeVars tps = t.getClassFor(constructorFunc.attrNearestClassDef()).getTypeVariables();
+        addTypeClassDictArguments(t, e.attrFunctionSignature(), e, tps, args);
+
+        return ImFunctionCall(e, constructorImFunc, typeArgs, args, false, CallType.NORMAL);
     }
 
     public static ImExprOpt translate(NoExpr e, ImTranslator translator, ImFunction f) {

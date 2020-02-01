@@ -147,4 +147,9 @@ public class WurstTypeTypeParam extends WurstType {
     public boolean isStaticRef() {
         return isStaticRef;
     }
+
+    @Override
+    public boolean allowsDynamicDispatch() {
+        return false;
+    }
 }

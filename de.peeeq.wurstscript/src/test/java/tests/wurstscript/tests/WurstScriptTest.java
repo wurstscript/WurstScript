@@ -22,6 +22,7 @@ import de.peeeq.wurstscript.jassIm.ImProg;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 import de.peeeq.wurstscript.jassprinter.JassPrinter;
+import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.translation.lua.translation.LuaTranslator;
 import de.peeeq.wurstscript.luaAst.LuaCompilationUnit;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -116,7 +117,26 @@ public class WurstScriptTest {
         CompilationResult lines(String... lines) {
             String testName = UtilsIO.getMethodName(WurstScriptTest.class.getName());
             additionalCompilationUnits.add(new CU(testName, Utils.join(lines, "\n") + "\n"));
-            return run();
+            try {
+                return run();
+            } catch (CompileError e) {
+                WPos source = e.getSource();
+                if (source.getFile().equals(testName)
+                    && source.getLine() >= 1
+                    && source.getLine() <= lines.length) {
+                    StringBuilder msg = new StringBuilder();
+                    for (int i = Math.max(0, source.getLine() - 3); i < source.getLine(); i++) {
+                        msg.append(lines[i]).append("\n");
+                    }
+                    msg.append(Utils.repeat(' ', source.getStartColumn() - 1));
+                    msg.append(Utils.repeat('^', source.getEndColumn() - source.getStartColumn()));
+                    msg.append("\n");
+                    msg.append(e.getMessage());
+                    throw new CompileError(source, msg.toString(), e.getErrorType(), e);
+                } else {
+                    throw e;
+                }
+            }
         }
 
         CompilationResult compilationUnits(CU... units) {
@@ -133,7 +153,7 @@ public class WurstScriptTest {
                     } else {
                         List<CompileError> errors = res.getGui().getErrorList();
                         if (errors.stream()
-                                .noneMatch(e -> e.getMessage().toLowerCase().contains(expectedError.toLowerCase()))) {
+                            .noneMatch(e -> e.getMessage().toLowerCase().contains(expectedError.toLowerCase()))) {
                             for (CompileError error : errors) {
                                 System.err.println("Unexpected error:" + error);
                             }
@@ -347,15 +367,15 @@ public class WurstScriptTest {
     }
 
     private void testWithInliningAndOptimizationsAndStacktraces(String name, boolean executeProg, boolean executeTests, WurstGui gui,
-                                                  WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
+                                                                WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs) throws Error {
         // test with inlining and local optimization
         compiler.setRunArgs(runArgs.with("-inline", "-localOptimizations", "-stacktraces"));
         translateAndTest(name + "_stacktraceinlopt", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
     }
 
     private void testWithInlining(String name, boolean executeProg, boolean executeTests, WurstGui gui
-            , WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms
-            , RunArgs runArgs) throws Error {
+        , WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms
+        , RunArgs runArgs) throws Error {
         // test with inlining
         compiler.setRunArgs(runArgs.with("-inline"));
         translateAndTest(name + "_inl", executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
@@ -370,7 +390,7 @@ public class WurstScriptTest {
 
     private void testWithoutInliningAndOptimization(String name, boolean executeProg, boolean executeTests,
                                                     WurstGui gui, WurstCompilerJassImpl compiler, WurstModel model, boolean executeProgOnlyAfterTransforms, RunArgs runArgs)
-            throws Error {
+        throws Error {
         compiler.setRunArgs(runArgs);
         // test without inlining and optimization
         translateAndTest(name, executeProg, executeTests, gui, compiler, model, executeProgOnlyAfterTransforms);
@@ -504,8 +524,8 @@ public class WurstScriptTest {
                           Map<String, String> inputs, boolean withStdLib,
                           WurstCompilerJassImpl compiler) {
         List<CU> inputList = inputs.entrySet().stream()
-                .map(e -> new CU(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
+            .map(e -> new CU(e.getKey(), e.getValue()))
+            .collect(Collectors.toList());
         return parseFiles(inputFiles, inputList, withStdLib, compiler);
     }
 
@@ -553,7 +573,7 @@ public class WurstScriptTest {
     }
 
     private void executeJassProg(JassProg prog)
-            throws TestFailException {
+        throws TestFailException {
         try {
             // run the interpreter with the optimized program
             JassInterpreter interpreter = new JassInterpreter();
@@ -571,7 +591,7 @@ public class WurstScriptTest {
         RunTests.TestResult res = runTests.runTests(translator, imProg, null, null);
         if (res.getPassedTests() < res.getTotalTests()) {
             throw new Error("tests failed: " + res.getPassedTests() + " / " + res.getTotalTests() + "\n" +
-                    gui.getErrors());
+                gui.getErrors());
         }
     }
 

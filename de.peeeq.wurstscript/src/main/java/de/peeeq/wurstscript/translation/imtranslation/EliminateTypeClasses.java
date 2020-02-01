@@ -19,7 +19,7 @@ import java.util.stream.Stream;
  * Look at where the dict is used:
  * When used as a function parameter: specialize the function
  * When used as a method parameter: specialize the method (including submethods and implementation)
- * When used as an alloc parameter: specialize the whole class
+ * When assigned to a class field: That must be in a constructor. Specialize the class with all the assignments used in the constructor.
  * When used as receiver in a method call: Specialize method (if no submethods, replace by function call)
  * No other uses should be possible --> compilation error.
  * <p>
@@ -37,6 +37,7 @@ public class EliminateTypeClasses {
     private final ArrayDeque<ImTypeClassDictValue> workList = new ArrayDeque<>();
     private final Table<ImFunction, TypeClassInstanceKey, ImFunction> specializedFunctions = HashBasedTable.create();
     private final Table<ImFunction, TypeClassInstanceKey, ImFunction> outOfClassFuncs = HashBasedTable.create();
+    private final Map<TypeClassInstanceKey, ImClass> typeClassSpecialization = new HashMap<>();
 
     public EliminateTypeClasses(ImTranslator tr) {
         this.tr = tr;
@@ -117,9 +118,28 @@ public class EliminateTypeClasses {
             return;
         }
 
+        // if used in other places (e.g. class parameters), don't monomorphize and
+        // just use the dynamic version here:
+        dictV.replaceBy(typeClassAlloc(dictV));
+    }
 
-        throw new CompileError(dictV.getTrace(),
-            "Unhandled parent for dict: " + parent + " // " + parent.getClass());
+    /**
+     * Dynamically allocate an instance of this type-class-instance.
+     */
+    private Element typeClassAlloc(ImTypeClassDictValue dictV) {
+        ImClass clazz = getSpecializedTypeClassDict(key(dictV, 0));
+        return JassIm.ImAlloc(dictV.getTrace(), JassIm.ImClassType(clazz, JassIm.ImTypeArguments()));
+    }
+
+    private ImClass getSpecializedTypeClassDict(TypeClassInstanceKey key) {
+
+        return typeClassSpecialization.computeIfAbsent(key, k -> {
+          if (key.args.isEmpty()) {
+              return key.base;
+          } else {
+              throw new RuntimeException("TODO specialize: " + key);
+          }
+        });
     }
 
     private ImFunction getOutOfClassFunc(ImFunction impl, TypeClassInstanceKey key) {

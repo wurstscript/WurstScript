@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Utils {
 
@@ -1077,6 +1078,23 @@ public class Utils {
             }
         }
         return true;
+    }
+
+    public static <A,B> Iterable<Pair<A, B>> zip(Collection<A> as, Collection<B> bs) {
+        return () -> new Iterator<Pair<A, B>>() {
+            Iterator<A> ia = as.iterator();
+            Iterator<B> ib = bs.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return ia.hasNext() && ib.hasNext();
+            }
+
+            @Override
+            public Pair<A, B> next() {
+                return Pair.create(ia.next(), ib.next());
+            }
+        };
     }
 
     public static class ExecResult {

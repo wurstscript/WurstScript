@@ -1325,7 +1325,7 @@ public class ImTranslator {
     public ImVar getTypeClassParamFor(TypeParamConstraint tc) {
         ImVar v = typeClassParamFor.get(tc);
         if (v == null) {
-            TypeParamDef tp = (TypeParamDef) tc.getParent().getParent();
+            TypeParamDef tp = tc.parentTypeParam();
             WurstTypeInterface wti = (WurstTypeInterface) tc.attrConstraintTyp();
             ImClassType t = wti.imTranslateType(this);
             int i = ((TypeParamConstraintList) tp.getTypeParamConstraints()).indexOf(tc);

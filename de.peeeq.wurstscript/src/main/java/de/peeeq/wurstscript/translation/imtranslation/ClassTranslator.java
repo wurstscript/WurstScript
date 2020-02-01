@@ -14,7 +14,9 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.jassIm.ImVarAccess;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,7 @@ public class ClassTranslator {
     private ImClass imClass;
     private ImProg prog;
     private ImFunction classInitFunc;
+    private final List<ImVar> typeConstraintVars = new ArrayList<>();
 
     public ClassTranslator(ClassDef classDef, ImTranslator translator) {
         this.classDef = classDef;
@@ -70,6 +73,7 @@ public class ClassTranslator {
         List<ClassDef> subClasses = translator.getSubClasses(classDef);
 
         // order is important here
+        addTypeConstraintVars(classDef);
         translateMethods(classDef, subClasses);
         translateVars(classDef);
         translateClassInitFunc();
@@ -79,6 +83,18 @@ public class ClassTranslator {
 
     }
 
+    private void addTypeConstraintVars(ClassDef classDef) {
+        for (TypeParamDef tp : classDef.getTypeParameters()) {
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                TypeParamConstraintList cList = (TypeParamConstraintList) tp.getTypeParamConstraints();
+                for (TypeParamConstraint c : cList) {
+                    ImVar v = translator.getTypeClassParamFor(c);
+                    typeConstraintVars.add(v);
+                }
+            }
+        }
+        imClass.getFields().addAll(typeConstraintVars);
+    }
 
 
     private void addSuperClasses() {
@@ -124,8 +140,8 @@ public class ClassTranslator {
 
     private ImClassType imClassType() {
         ImTypeArguments typeArgs = imClass.getTypeVariables().stream()
-                .map(tv -> ImTypeArgument(JassIm.ImTypeVarRef(tv)))
-                .collect(Collectors.toCollection(JassIm::ImTypeArguments));
+            .map(tv -> ImTypeArgument(JassIm.ImTypeVarRef(tv)))
+            .collect(Collectors.toCollection(JassIm::ImTypeArguments));
         return JassIm.ImClassType(imClass, typeArgs);
     }
 
@@ -167,7 +183,14 @@ public class ClassTranslator {
     private void createOnDestroyMethod() {
         OnDestroyDef onDestroy = classDef.getOnDestroy();
         ImFunction f = translator.getFuncFor(onDestroy);
-        addOnDestroyActions(f, f.getBody(), classDef, translator.getThisVar(onDestroy));
+        ImVar thisVar = translator.getThisVar(onDestroy);
+        addOnDestroyActions(f, f.getBody(), classDef, thisVar);
+        // destroy type
+        for (ImVar tc : typeConstraintVars) {
+            ImClassType t = (ImClassType) tc.getType();
+            f.getBody().add(JassIm.ImDealloc(onDestroy, t,
+                JassIm.ImMemberAccess(onDestroy, JassIm.ImVarAccess(thisVar), JassIm.ImTypeArguments(), tc, JassIm.ImExprs())));
+        }
     }
 
     private void addOnDestroyActions(ImFunction f, List<ImStmt> addTo, ClassOrModuleInstanciation c, ImVar thisVar) {
@@ -344,21 +367,29 @@ public class ClassTranslator {
         createConstructFunc(constr);
     }
 
-
+    /**
+     * The new function contains the generic part:
+     * 1. allocating memory
+     * 2. calling the construct function
+     * 3. return a reference to the new instance
+     */
     private void createNewFunc(ConstructorDef constr) {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructNewFunc(constr);
-        Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
             ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), Collections.emptyList());
-            varReplacements.put(translator.getVarFor(p), imP);
             f.getParameters().add(imP);
         }
 
+        // add type constraint parameters:
+        List<ImVar> typeConstraintParams = this.typeConstraintVars.stream()
+            .map(ImVar::copy)
+            .collect(Collectors.toList());
+        f.getParameters().addAll(typeConstraintParams);
+
 
         ImVar thisVar = ImVar(constr, imClassType(), "this", Collections.emptyList());
-        varReplacements.put(translator.getThisVar(constr), thisVar);
         f.getLocals().add(thisVar);
 
         // allocate class
@@ -383,10 +414,31 @@ public class ClassTranslator {
     }
 
 
+    /**
+     * The construct function contains the class-specific code:
+     * - calls super constructor (if there is a super-class)
+     * - call function to init class variables
+     * - custom user defined constructor code
+     */
     private void createConstructFunc(ConstructorDef constr) {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructFunc(constr);
         ImVar thisVar = translator.getThisVar(constr);
+
+        // add type constraint parameters:
+        List<ImVar> typeConstraintParams = this.typeConstraintVars.stream()
+            .map(ImVar::copy)
+            .collect(Collectors.toList());
+        f.getParameters().addAll(typeConstraintParams);
+
+        // set typeConstraintParams
+        for (Pair<ImVar, ImVar> p : Utils.zip(typeConstraintVars, typeConstraintParams)) {
+            ImVar pField = p.getA();
+            ImVar pParam = p.getB();
+            f.getBody().add(ImSet(trace, ImMemberAccess(trace, ImVarAccess(thisVar), JassIm.ImTypeArguments(), pField, JassIm.ImExprs()),
+                JassIm.ImVarAccess(pParam)));
+        }
+
         ConstructorDef superConstr = constr.attrSuperConstructor();
         if (superConstr != null) {
             // call super constructor
@@ -407,8 +459,11 @@ public class ClassTranslator {
                     }
                 }
             }
+            // TODO add super-constructor type constraint parameters
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
+
+
         // call classInitFunc:
         ImTypeArguments typeArguments = JassIm.ImTypeArguments();
         for (ImTypeVar tv : imClass.getTypeVariables()) {
