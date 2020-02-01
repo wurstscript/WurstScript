@@ -65,6 +65,7 @@ public class ClassesOptimizer {
 
             @Override
             public void visit(ImOperatorCall c) {
+                super.visit(c);
                 WurstOperator op = c.getOp();
                 if (op == WurstOperator.EQ || op == WurstOperator.NOTEQ) {
                     for (ImExpr arg : c.getArguments()) {
@@ -86,6 +87,7 @@ public class ClassesOptimizer {
 
             @Override
             public void visit(ImCast c) {
+                super.visit(c);
                 if (c.getToType().equalsType(TypesHelper.imInt())) {
                     markNotStateless(c.getExpr().attrTyp());
                 }
