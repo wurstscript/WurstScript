@@ -7,24 +7,45 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class WPos {
-    private final String file;
-    private final @Nullable LineOffsets lineOffsets;
+
+    private FileInfo fileInfo;
     private final int leftPos;
     private final int rightPos;
 
-    public WPos(String file, @Nullable LineOffsets lineOffsets, int leftPos, int rightPos) {
-        this.file = file;
-        this.lineOffsets = lineOffsets;
+    public static WPos noSource() {
+        return new WPos(new FileInfo("", null), 0, 0);
+    }
+
+    public FileInfo getFileInfo() {
+        return fileInfo;
+    }
+
+    public static class FileInfo {
+        private final String file;
+        private final @Nullable LineOffsets lineOffsets;
+
+        public FileInfo(String file, @Nullable LineOffsets lineOffsets) {
+            this.file = file;
+            this.lineOffsets = lineOffsets;
+        }
+    }
+
+    public WPos(String file, LineOffsets lo, int leftPos, int rightPos) {
+        this(new FileInfo(file, lo), leftPos, rightPos);
+    }
+
+    public WPos(FileInfo fileInfo, int leftPos, int rightPos) {
+        this.fileInfo = fileInfo;
         this.leftPos = leftPos;
         this.rightPos = rightPos;
     }
 
     public String getFile() {
-        return file;
+        return fileInfo.file;
     }
 
     public @Nullable LineOffsets getLineOffsets() {
-        return lineOffsets;
+        return fileInfo.lineOffsets;
     }
 
     public int getLeftPos() {
@@ -37,35 +58,35 @@ public class WPos {
 
 
     public int getLine() {
-        LineOffsets lo = lineOffsets;
+        LineOffsets lo = getLineOffsets();
         if (lo == null)
             return 0;
         return lo.getLine(leftPos);
     }
 
     public int getEndLine() {
-        LineOffsets lo = lineOffsets;
+        LineOffsets lo = getLineOffsets();
         if (lo == null)
             return 0;
         return lo.getLine(rightPos);
     }
 
     public int getStartColumn() {
-        LineOffsets lo = lineOffsets;
+        LineOffsets lo = getLineOffsets();
         if (lo == null)
             return 0;
         return lo.getColumn(leftPos);
     }
 
     public int getEndColumn() {
-        LineOffsets lo = lineOffsets;
+        LineOffsets lo = getLineOffsets();
         if (lo == null)
             return 0;
         return lo.getColumn(rightPos);
     }
 
     public WPos withRightPos(int rightPos) {
-        return new WPos(file, lineOffsets, leftPos, rightPos);
+        return new WPos(fileInfo, leftPos, rightPos);
     }
 
     @Override
@@ -75,13 +96,13 @@ public class WPos {
     }
 
     public String print() {
-        return "[" + file + " line " + getLine() + "]";
+        return "[" + getFile() + " line " + getLine() + "]";
     }
 
     public String printShort() {
         Pattern p = Pattern.compile("^.*[/\\\\]([^/\\\\]+)\\.[^.]*$");
-        String shortFile = file;
-        Matcher m = p.matcher(file);
+        String shortFile = getFile();
+        Matcher m = p.matcher(getFile());
         if (m.find()) {
             shortFile = m.group(1);
         }
@@ -89,11 +110,11 @@ public class WPos {
     }
 
     public WPos withLeftPos(int leftPos) {
-        return new WPos(file, lineOffsets, leftPos, rightPos);
+        return new WPos(fileInfo, leftPos, rightPos);
     }
 
     public WPos withFile(String file) {
-        return new WPos(file, lineOffsets, leftPos, rightPos);
+        return new WPos(new FileInfo(file, fileInfo.lineOffsets), leftPos, rightPos);
     }
 
     public String shortFile() {
@@ -107,7 +128,7 @@ public class WPos {
      * makes this position artificial by setting the rightPost = leftPos-1
      */
     public WPos artificial() {
-        return new WPos(file, lineOffsets, leftPos, leftPos - 1);
+        return new WPos(fileInfo, leftPos, leftPos - 1);
     }
 
     /**

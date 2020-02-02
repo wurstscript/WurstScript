@@ -467,6 +467,7 @@ public class WurstScriptTest {
     private void translateAndTest(String name, boolean executeProg,
                                   boolean executeTests, WurstGui gui, WurstCompilerJassImpl compiler,
                                   WurstModel model, boolean executeProgOnlyAfterTransforms) throws Error {
+        compiler.clear();
         ImProg imProg = compiler.translateProgToIm(model);
 
 

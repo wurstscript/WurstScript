@@ -346,7 +346,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private CompilationUnit loadLibPackage(Function<File, CompilationUnit> addCompilationUnit, String imp) {
         File file = getLibs().get(imp);
         if (file == null) {
-            gui.sendError(new CompileError(new WPos("", null, 0, 0), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
+            gui.sendError(new CompileError(WPos.noSource(), "Could not find lib-package " + imp + ". Are you missing your wurst.dependencies file?"));
             return Ast.CompilationUnit(new CompilationUnitInfo(errorHandler), Ast.JassToplevelDeclarations(), Ast.WPackages());
         } else {
             return addCompilationUnit.apply(file);
@@ -830,5 +830,13 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         LuaTranslator luaTranslator = new LuaTranslator(imProg, imTranslator);
         LuaCompilationUnit luaCode = luaTranslator.translate();
         return luaCode;
+    }
+
+    /**
+     * Clears the intermediate output programs to allow collection by garbage collector
+     */
+    public void clear() {
+        imProg = null;
+        prog = null;
     }
 }

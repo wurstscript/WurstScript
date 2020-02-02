@@ -31,7 +31,7 @@ public class AttrPos {
                 min = Math.min(min, childSource.getLeftPos());
                 max = Math.max(max, childSource.getRightPos());
             }
-            return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
+            return new WPos(e.get(0).attrSource().getFileInfo(), min, max);
         }
         // if no childs exist, search a parent element with a explicit position
         return getParentSource(e);
@@ -49,7 +49,7 @@ public class AttrPos {
             max = Math.max(max, childSource.getRightPos());
         }
         if (min != Integer.MAX_VALUE) {
-            return new WPos(e.get(0).attrSource().getFile(), e.get(0).attrSource().getLineOffsets(), min, max);
+            return new WPos(e.get(0).attrSource().getFileInfo(), min, max);
         } else {
             return getParentSource(e);
         }
@@ -62,7 +62,7 @@ public class AttrPos {
             if (parent instanceof AstElementWithSource) {
                 WPos parentSource = ((AstElementWithSource) parent).getSource();
                 // use parent position but with size -1, so we do not go into this
-                return new WPos(parentSource.getFile(), parentSource.getLineOffsets(), parentSource.getLeftPos(), parentSource.getLeftPos() - 1);
+                return new WPos(parentSource.getFileInfo(), parentSource.getLeftPos(), parentSource.getLeftPos() - 1);
             }
             parent = parent.getParent();
         }

@@ -20,9 +20,10 @@ import java.util.List;
 
 public class AntlrJurstParseTreeTransformer {
 
-    private String file;
-    private ErrorHandler cuErrorHandler;
-    private LineOffsets lineOffsets;
+    private final WPos.FileInfo fileInfo;
+    private final String file;
+    private final ErrorHandler cuErrorHandler;
+    private final LineOffsets lineOffsets;
     private boolean isJassCode = true;
 
     public AntlrJurstParseTreeTransformer(String file,
@@ -30,6 +31,7 @@ public class AntlrJurstParseTreeTransformer {
         this.file = file;
         this.cuErrorHandler = cuErrorHandler;
         this.lineOffsets = lineOffsets;
+        this.fileInfo = new WPos.FileInfo(file, lineOffsets);
     }
 
     public CompilationUnit transform(CompilationUnitContext cu) {
@@ -74,7 +76,7 @@ public class AntlrJurstParseTreeTransformer {
 
     private Identifier text(@Nullable ParserRuleContext c) {
         if (c == null) {
-            return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
+            return Ast.Identifier(new WPos(fileInfo, 1, 0), "");
         }
         return Ast.Identifier(source(c), c.getText());
     }
@@ -1272,12 +1274,12 @@ public class AntlrJurstParseTreeTransformer {
     }
 
     private WPos source(ParserRuleContext p) {
-        return new WPos(file, lineOffsets, p.start.getStartIndex(),
+        return new WPos(fileInfo, p.start.getStartIndex(),
                 p.stop.getStopIndex() + 1);
     }
 
     private WPos source(Token p) {
-        return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
+        return new WPos(fileInfo, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
     class FuncSig {

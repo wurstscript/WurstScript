@@ -22,15 +22,17 @@ import java.util.List;
 
 public class AntlrWurstParseTreeTransformer {
 
-    private String file;
-    private ErrorHandler cuErrorHandler;
-    private LineOffsets lineOffsets;
+    private final String file;
+    private final ErrorHandler cuErrorHandler;
+    private final LineOffsets lineOffsets;
+    private final WPos.FileInfo fileInfo;
 
     public AntlrWurstParseTreeTransformer(String file,
                                           ErrorHandler cuErrorHandler, LineOffsets lineOffsets) {
         this.file = file;
         this.cuErrorHandler = cuErrorHandler;
         this.lineOffsets = lineOffsets;
+        this.fileInfo = new WPos.FileInfo(file, lineOffsets);
     }
 
     public CompilationUnit transform(CompilationUnitContext cu) {
@@ -74,14 +76,14 @@ public class AntlrWurstParseTreeTransformer {
 
     private Identifier text(@Nullable Token t) {
         if (t == null) {
-            return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
+            return Ast.Identifier(new WPos(fileInfo, 1, 0), "");
         }
         return Ast.Identifier(source(t), t.getText());
     }
 
     private Identifier text(@Nullable ParserRuleContext c) {
         if (c == null) {
-            return Ast.Identifier(new WPos(file, lineOffsets, 1, 0), "");
+            return Ast.Identifier(new WPos(fileInfo, 1, 0), "");
         }
         return Ast.Identifier(source(c), c.getText());
     }
@@ -1362,11 +1364,11 @@ public class AntlrWurstParseTreeTransformer {
         } else {
             stopIndex = p.stop.getStopIndex() + 1;
         }
-        return new WPos(file, lineOffsets, p.start.getStartIndex(), stopIndex);
+        return new WPos(fileInfo, p.start.getStartIndex(), stopIndex);
     }
 
     private WPos source(Token p) {
-        return new WPos(file, lineOffsets, p.getStartIndex(), p.getStopIndex() + 1);
+        return new WPos(fileInfo, p.getStartIndex(), p.getStopIndex() + 1);
     }
 
     class FuncSig {
