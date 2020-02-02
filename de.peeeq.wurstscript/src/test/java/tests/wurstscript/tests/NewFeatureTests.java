@@ -510,6 +510,7 @@ public class NewFeatureTests extends WurstScriptTest {
                 "native testSuccess()",
                 "native instanceCount(int typeId) returns int",
                 "class A",
+                "    int x = 42",
                 "init",
                 "	let a = new A",
                 "	let b = new A",
@@ -520,7 +521,7 @@ public class NewFeatureTests extends WurstScriptTest {
                 "	destroy a",
                 "	destroy e",
                 "	let count2 = instanceCount(A.typeId)",
-                "	if count1 == 5 and count2 == 3",
+                "	if count1 == 5 and count2 == 3 and b.x == 42",
                 "		testSuccess()"
             );
     }
@@ -534,6 +535,7 @@ public class NewFeatureTests extends WurstScriptTest {
             "native testSuccess()",
             "native maxInstanceCount(int typeId) returns int",
             "class A",
+            "    int x = 42",
             "init",
             "	let a = new A",
             "	let b = new A",
@@ -544,7 +546,7 @@ public class NewFeatureTests extends WurstScriptTest {
             "	destroy a",
             "	destroy e",
             "	let count2 = maxInstanceCount(A.typeId)",
-            "	if count1 == 5 and count2 == 5",
+            "	if count1 == 5 and count2 == 5 and b.x == 42",
             "		testSuccess()"
         );
     }

@@ -5,6 +5,7 @@ import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.OtherLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
@@ -18,6 +19,7 @@ import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.control.Option;
+import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
 import java.util.List;
@@ -441,7 +443,7 @@ public class ExprTranslation {
         List<Expr> arguments = Lists.newArrayList(e.getArgs());
         Expr leftExpr = null;
         boolean dynamicDispatch = false;
-        TypeParamConstraint typeParamDispatchOn = e.attrFuncLink().getTypeParamConstraint();
+        TypeParamConstraint typeParamDispatchOn = getTypeParamConstraint(e);
 
         FunctionDefinition calledFunc = e.attrFuncDef();
 
@@ -552,6 +554,15 @@ public class ExprTranslation {
         } else {
             return call;
         }
+    }
+
+    @Nullable
+    private static TypeParamConstraint getTypeParamConstraint(FunctionCall e) {
+        FuncLink funcLink = e.attrFuncLink();
+        if (funcLink == null) {
+            return null;
+        }
+        return funcLink.getTypeParamConstraint();
     }
 
     /**
