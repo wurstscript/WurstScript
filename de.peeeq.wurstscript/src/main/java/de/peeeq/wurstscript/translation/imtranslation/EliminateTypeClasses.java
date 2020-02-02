@@ -4,6 +4,9 @@ import com.google.common.collect.*;
 import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
+import de.peeeq.wurstscript.types.TypeClassInstance;
+import org.eclipse.xtend.lib.annotations.ToString;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,7 +38,7 @@ import java.util.stream.Stream;
 public class EliminateTypeClasses {
     private final ImTranslator tr;
     private final ArrayDeque<ImTypeClassDictValue> workList = new ArrayDeque<>();
-    private final Table<ImFunction, TypeClassInstanceKey, ImFunction> specializedFunctions = HashBasedTable.create();
+    private final Table<ImFunction, ParameterSpecializationKey, ImFunction> specializedFunctions = HashBasedTable.create();
     private final Table<ImFunction, TypeClassInstanceKey, ImFunction> outOfClassFuncs = HashBasedTable.create();
     private final Map<TypeClassInstanceKey, ImClass> typeClassSpecialization = new HashMap<>();
 
@@ -97,7 +100,7 @@ public class EliminateTypeClasses {
             }
             mc.replaceBy(JassIm.ImFunctionCall(
                 mc.getTrace(),
-                getOutOfClassFunc(m.getImplementation(), key(dictV, 0)),
+                getOutOfClassFunc(m.getImplementation(), key(dictV)),
                 mc.getTypeArguments(),
                 mc.getArguments(),
                 false,
@@ -127,19 +130,95 @@ public class EliminateTypeClasses {
      * Dynamically allocate an instance of this type-class-instance.
      */
     private Element typeClassAlloc(ImTypeClassDictValue dictV) {
-        ImClass clazz = getSpecializedTypeClassDict(key(dictV, 0));
+        ImClass clazz = getSpecializedTypeClassDict(key(dictV));
         return JassIm.ImAlloc(dictV.getTrace(), JassIm.ImClassType(clazz, JassIm.ImTypeArguments()));
     }
 
     private ImClass getSpecializedTypeClassDict(TypeClassInstanceKey key) {
 
         return typeClassSpecialization.computeIfAbsent(key, k -> {
-          if (key.args.isEmpty()) {
-              return key.base;
-          } else {
-              throw new RuntimeException("TODO specialize: " + key);
-          }
+            if (key.args.isEmpty()) {
+                return key.base;
+            } else {
+                return specializeClass(key);
+            }
         });
+    }
+
+    private ImClass specializeClass(TypeClassInstanceKey key) {
+        ImProg imProg = tr.getImProg();
+        ImClass base = key.base;
+        // create new subclass
+        ImClass sub = JassIm.ImClass(
+            base.getTrace(),
+            base.getName() + key.args,
+            JassIm.ImTypeVars(),
+            JassIm.ImVars(),
+            JassIm.ImMethods(),
+            JassIm.ImFunctions(),
+            Collections.singletonList(JassIm.ImClassType(base, JassIm.ImTypeArguments()))
+        );
+        imProg.getClasses().add(sub);
+
+
+        // specialize methods using the fields
+        final ImVars baseFields = base.getFields();
+
+
+        List<ImMethod> toSpecialize = imProg.getMethods()
+            .stream()
+            .filter(m -> m.getMethodClass().getClassDef() == base
+                && !collectFieldAccesses(m.getImplementation(), baseFields).isEmpty())
+            .collect(Collectors.toList());
+
+
+        // if one of the fields is used, create a new submethod:
+        for (ImMethod m : toSpecialize) {
+
+            ImFunction impl = m.getImplementation();
+
+
+            ImFunction newImpl = impl.copyWithRefs();
+            List<ImMemberAccess> fieldAccesses = collectFieldAccesses(newImpl, baseFields);
+            for (ImMemberAccess fa : fieldAccesses) {
+                int index = baseFields.indexOf(fa.getVar());
+                TypeClassInstanceKey tc = key.args.get(index);
+                ImTypeClassDictValue dictValue = tc.makeDictValue(fa.getTrace());
+                fa.replaceBy(dictValue);
+                workList.add(dictValue);
+            }
+
+            ImMethod newM = JassIm.ImMethod(
+                m.getTrace(),
+                JassIm.ImClassType(sub, JassIm.ImTypeArguments()),
+                m.getName(),
+                newImpl,
+                new ArrayList<>(),
+                false
+            );
+
+            m.getSubMethods().add(newM);
+
+            imProg.getFunctions().add(newImpl);
+            imProg.getMethods().add(newM);
+        }
+
+        return sub;
+    }
+
+    @NotNull
+    private List<ImMemberAccess> collectFieldAccesses(ImFunction impl, ImVars baseFields) {
+        List<ImMemberAccess> fieldAccesses = new ArrayList<>();
+        impl.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImMemberAccess e) {
+                super.visit(e);
+                if (baseFields.contains(e.getVar())) {
+                    fieldAccesses.add(e);
+                }
+            }
+        });
+        return fieldAccesses;
     }
 
     private ImFunction getOutOfClassFunc(ImFunction impl, TypeClassInstanceKey key) {
@@ -192,7 +271,7 @@ public class EliminateTypeClasses {
             .anyMatch(sc -> isSubClass(sc.getClassDef(), sup));
     }
 
-    private ImFunction getSpecializeFunc(ImFunction func, TypeClassInstanceKey key) {
+    private ImFunction getSpecializeFunc(ImFunction func, ParameterSpecializationKey key) {
         ImFunction res = specializedFunctions.get(func, key);
         if (res != null) {
             return res;
@@ -202,7 +281,7 @@ public class EliminateTypeClasses {
         return res;
     }
 
-    private ImFunction specializeFunc(ImFunction func, TypeClassInstanceKey key) {
+    private ImFunction specializeFunc(ImFunction func, ParameterSpecializationKey key) {
         ImFunction copy = func.copyWithRefs();
         copy.setName(func.getName() + "_" + key);
         ImVar removedParam = copy.getParameters().remove(key.index);
@@ -218,7 +297,7 @@ public class EliminateTypeClasses {
         });
 
         for (ImVarAccess use : uses) {
-            ImTypeClassDictValue newDict = key.makeDictValue(use.attrTrace());
+            ImTypeClassDictValue newDict = key.key.makeDictValue(use.attrTrace());
             use.replaceBy(newDict);
             workList.add(newDict);
         }
@@ -244,28 +323,64 @@ public class EliminateTypeClasses {
         return dynamicArgsStream(dv).collect(Collectors.toList());
     }
 
-    private TypeClassInstanceKey key(ImTypeClassDictValue dictV, int index) {
-        return new TypeClassInstanceKey(dictV.getClazz().getClassDef(), index,
+    private ParameterSpecializationKey key(ImTypeClassDictValue dictV, int index) {
+        return new ParameterSpecializationKey(index,
+            new TypeClassInstanceKey(dictV.getClazz().getClassDef(),
+                dictV.getArguments().stream()
+                    .map(v -> key((ImTypeClassDictValue) v))
+                    .collect(Collectors.toList())));
+    }
+
+    private TypeClassInstanceKey key(ImTypeClassDictValue dictV) {
+        return new TypeClassInstanceKey(dictV.getClazz().getClassDef(),
             dictV.getArguments().stream()
-                .map(v -> key((ImTypeClassDictValue) v, index))
+                .map(v -> key((ImTypeClassDictValue) v))
                 .collect(Collectors.toList()));
+    }
+
+    static class ParameterSpecializationKey {
+        private int index;
+        private TypeClassInstanceKey key;
+
+        public ParameterSpecializationKey(int index, TypeClassInstanceKey key) {
+            this.index = index;
+            this.key = key;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ParameterSpecializationKey that = (ParameterSpecializationKey) o;
+            return index == that.index &&
+                key.equals(that.key);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(index, key);
+        }
+
+        @Override
+        public String toString() {
+            return key + "@" + index;
+        }
     }
 
     // TODO remove index here and make another class for parameter index
     static class TypeClassInstanceKey {
         private final ImClass base;
-        private int index;
+
         private final List<TypeClassInstanceKey> args;
 
-        TypeClassInstanceKey(ImClass base, int index, List<TypeClassInstanceKey> args) {
+        TypeClassInstanceKey(ImClass base, List<TypeClassInstanceKey> args) {
             this.base = base;
-            this.index = index;
             this.args = args;
         }
 
         @Override
         public String toString() {
-            return "#" + base + "@" + index + args;
+            return "#" + base + args;
         }
 
         @Override
@@ -273,14 +388,13 @@ public class EliminateTypeClasses {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             TypeClassInstanceKey that = (TypeClassInstanceKey) o;
-            return index == that.index &&
-                base.equals(that.base) &&
-                args.equals(that.args);
+            return Objects.equals(base, that.base) &&
+                Objects.equals(args, that.args);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(base, index, args);
+            return Objects.hash(base, args);
         }
 
         public ImTypeClassDictValue makeDictValue(de.peeeq.wurstscript.ast.Element trace) {

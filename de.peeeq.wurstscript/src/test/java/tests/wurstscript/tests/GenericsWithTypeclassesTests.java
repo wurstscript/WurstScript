@@ -1452,7 +1452,40 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "    c.set(\"42\")",
             "    if c.get() == 42",
             "        testSuccess()"
-            );
+        );
+    }
+
+    @Test
+    public void classParameterConstraintBuild() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "@extern native S2I(string s) returns int",
+            "interface ToInt<X:>",
+            "	function toInt(X x) returns int",
+            "class C<T: ToInt>",
+            "    int elem",
+            "    function set(T e)",
+            "        this.elem = T.toInt(e)",
+            "    function get() returns int",
+            "        return elem",
+            "class Cell<T:>",
+            "    T elem",
+            "implements ToInt<string>",
+            "    function toInt(string s) returns int",
+            "        return S2I(s)",
+            "implements ToInt<Cell<T>> for T: ToInt",
+            "    function toInt(Cell<T> c) returns int",
+            "        return T.toInt(c.elem)",
+            "init",
+            "    let cell = new Cell<string>",
+            "    cell.elem = \"42\"",
+            "    let c = new C<Cell<string>>",
+            "    c.set(cell)",
+            "    if c.get() == 42",
+            "        testSuccess()"
+        );
     }
 
 
