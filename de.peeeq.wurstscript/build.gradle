@@ -213,7 +213,7 @@ compileJava.dependsOn gen
 
 test {
     // set minimal heap size required to run tests:
-    jvmArgs = ['-Xms256m']
+    maxHeapSize = "1G"
 
     useTestNG() {
         suites 'src/test/resources/AllTestsSuite.xml'
