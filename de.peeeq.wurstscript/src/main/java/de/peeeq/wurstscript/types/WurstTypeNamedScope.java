@@ -3,12 +3,17 @@ package de.peeeq.wurstscript.types;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
+import de.peeeq.wurstscript.TypeClasses;
 import de.peeeq.wurstscript.ast.*;
+import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.*;
+import io.vavr.Tuple2;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public abstract class WurstTypeNamedScope extends WurstType {
@@ -119,19 +124,50 @@ public abstract class WurstTypeNamedScope extends WurstType {
             typeArgs.addError("Expected " + typeParameters.size() + " type arguments, but got " + typeArgs.size());
         }
 
+        List<CompileError> errors = new ArrayList<>();
+        VariableBinding mapping = VariableBinding.emptyMapping();
+
         for (int i = 0; i < typeArgs.size() && i < typeParameters.size(); i++) {
             WurstTypeBoundTypeParam tp = typeParameters.get(i);
             TypeParamDef tpDef = tp.getTypeParamDef();
             TypeExpr typeArg = typeArgs.get(i);
             WurstType baseType = typeArg.attrTyp().dynamic();
-            typeParams.add(new WurstTypeBoundTypeParam(tpDef, baseType, typeArg));
+            WurstTypeBoundTypeParam wtbt = new WurstTypeBoundTypeParam(tpDef, baseType, typeArg);
+            mapping = mapping.set(tpDef, wtbt);
         }
 
-//		List<WurstType> newTypes = node.getTypeArgs().stream()
-//				.map((TypeExpr te) -> te.attrTyp().dynamic())
-//				.collect(Collectors.toList());
+        for (int i = 0; i < typeArgs.size() && i < typeParameters.size(); i++) {
+            WurstTypeBoundTypeParam tp = typeParameters.get(i);
+            TypeParamDef tpDef = tp.getTypeParamDef();
+            WurstTypeBoundTypeParam wtbt = mapping.get(tpDef).get();
+            TypeExpr typeArg = typeArgs.get(i);
+            for (WurstTypeInterface constraint : TypeClasses.getConstraints(tpDef)) {
+                VariableBinding mapping2 = TypeClasses.findTypeClass(
+                    typeArg,
+                    errors,
+                    mapping,
+                    tpDef,
+                    wtbt,
+                    constraint
+                );
+                if (mapping2 != null) {
+                    mapping = mapping2;
+                }
+            }
+        }
 
-        return replaceTypeVars(typeParams);
+        for (CompileError error : errors) {
+            typeArgs.get(0).getErrorHandler().sendError(error);
+        }
+
+
+//        return setTypeArgs(mapping);
+        VariableBinding finalMapping = mapping;
+        List<WurstTypeBoundTypeParam> newTypes =
+            typeParameters.stream()
+            .map(t -> finalMapping.get(t.getTypeParamDef()).get())
+            .collect(Collectors.toList());
+        return replaceTypeVars(newTypes);
     }
 
 

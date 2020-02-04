@@ -517,7 +517,7 @@ public class ExprTranslation {
 //                imArgs.add(0, receiver);
 //            }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
-            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs, getThisVar(f));
             ImVar typeClassParam = t.getTypeClassParamFor(typeParamDispatchOn);
             ImExpr typeClassDict;
             if (typeClassParam.getParent().getParent() instanceof ImFunction) {
@@ -536,7 +536,7 @@ public class ExprTranslation {
         } else if (dynamicDispatch) {
             ImMethod method = t.getMethodFor((FuncDef) calledFunc);
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables());
-            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs);
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, method.getImplementation().getTypeVariables(), imArgs, getThisVar(f));
             call = ImMethodCall(e, method, typeArguments, receiver, imArgs, false);
         } else {
             ImFunction calledImFunc = t.getFuncFor(calledFunc);
@@ -544,7 +544,7 @@ public class ExprTranslation {
                 imArgs.add(0, receiver);
             }
             ImTypeArguments typeArguments = getFunctionCallTypeArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables());
-            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables(), imArgs);
+            addTypeClassDictArguments(t, e.attrFunctionSignature(), e, calledImFunc.getTypeVariables(), imArgs, getThisVar(f));
             call = ImFunctionCall(e, calledImFunc, typeArguments, imArgs, false, CallType.NORMAL);
         }
 
@@ -554,6 +554,11 @@ public class ExprTranslation {
         } else {
             return call;
         }
+    }
+
+    @org.jetbrains.annotations.Nullable
+    private static ImVar getThisVar(ImFunction f) {
+        return f.getParameters().isEmpty() ? null : Utils.getFirst(f.getParameters());
     }
 
     @Nullable
@@ -568,7 +573,7 @@ public class ExprTranslation {
     /**
      * For each type parameter constraint adds an argument containing the type class dictionary.
      */
-    private static void addTypeClassDictArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables, ImExprs imArgs) {
+    private static void addTypeClassDictArguments(ImTranslator tr, FunctionSignature sig, Element location, ImTypeVars typeVariables, ImExprs imArgs, ImVar thisVar) {
         VariableBinding mapping = sig.getMapping();
         for (ImTypeVar tv : typeVariables) {
             TypeParamDef tp = tr.getTypeParamDef(tv);
@@ -581,7 +586,7 @@ public class ExprTranslation {
                 continue;
             }
             for (TypeClassInstance instance : t.getInstances()) {
-                ImExpr arg = instance.translate(location, tr);
+                ImExpr arg = instance.translate(location, thisVar, tr);
                 imArgs.add(arg);
             }
         }
@@ -639,7 +644,7 @@ public class ExprTranslation {
 
         // translate type constraints:
         ImTypeVars tps = t.getClassFor(constructorFunc.attrNearestClassDef()).getTypeVariables();
-        addTypeClassDictArguments(t, e.attrFunctionSignature(), e, tps, args);
+        addTypeClassDictArguments(t, e.attrFunctionSignature(), e, tps, args, getThisVar(f));
 
         return ImFunctionCall(e, constructorImFunc, typeArgs, args, false, CallType.NORMAL);
     }

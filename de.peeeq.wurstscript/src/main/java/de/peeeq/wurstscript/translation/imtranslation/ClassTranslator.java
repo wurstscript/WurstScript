@@ -354,7 +354,7 @@ public class ClassTranslator {
     private ImFunction createStaticCallFunc(FuncDef funcDef) {
         ImFunction f = translator.getFuncFor(funcDef);
         f.getBody().addAll(translator.translateStatements(f, funcDef.getBody()));
-        // TODO add return for abstract function
+        // add dummy return for abstract function
         if (funcDef.attrIsAbstract() && !(funcDef.attrReturnType() instanceof WurstTypeVoid)) {
             f.getBody().add(ImReturn(funcDef, funcDef.attrReturnType().getDefaultValue(translator)));
         }
@@ -456,10 +456,14 @@ public class ClassTranslator {
                 for (WurstTypeBoundTypeParam bt : extendedTypeC.getTypeParameters()) {
                     if (bt.isTemplateTypeParameter()) {
                         typeArgs.add(bt.imTranslateToTypeArgument(translator));
+                        // add super-constructor type constraint parameters:
+                        for (TypeClassInstance instance : bt.getInstances()) {
+                            arguments.add(instance.translate(trace, thisVar, translator));
+                        }
                     }
                 }
             }
-            // TODO add super-constructor type constraint parameters
+
             f.getBody().add(ImFunctionCall(trace, superConstrFunc, typeArgs, arguments, false, CallType.NORMAL));
         }
 

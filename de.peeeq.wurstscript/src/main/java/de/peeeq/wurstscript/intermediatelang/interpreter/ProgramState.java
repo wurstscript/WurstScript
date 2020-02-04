@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstscript.ast.Element;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.gui.WurstGui;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.jassIm.*;
@@ -102,7 +103,9 @@ public class ProgramState extends State {
 
     public void assertAllocated(ILconstObject obj, Element trace) {
         if (obj == null) {
-            throw new InterpreterException(trace, "Null pointer dereference");
+            throw new InterpreterException(trace, "Null pointer dereference in " +
+                PrettyPrinter.print(trace)
+                );
         }
         if (obj.isDestroyed()) {
             throw new InterpreterException(trace, "Object already destroyed");

@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtojass.ImAttrType;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
-import io.vavr.control.Either;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -100,13 +99,12 @@ public class EliminateGenerics {
     }
 
     private static Iterable<ImClassType> superTypes(ImClassType ct) {
-        GenericTypes generics = new GenericTypes(ct.getTypeArguments());
         List<ImTypeVar> typeVars = ct.getClassDef().getTypeVariables();
         return () ->
                 ct.getClassDef()
                         .getSuperClasses()
                         .stream()
-                        .map(sc -> (ImClassType) transformType(sc, generics, typeVars))
+                        .map(sc -> (ImClassType) ImAttrType.substituteType(sc, ct.getTypeArguments(), typeVars))
                         .iterator();
     }
 
@@ -435,6 +433,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImAlloc f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -442,6 +441,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImDealloc f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -449,6 +449,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImInstanceof f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -456,6 +457,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeIdOfObj f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }
@@ -463,6 +465,7 @@ public class EliminateGenerics {
 
             @Override
             public void visit(ImTypeIdOfClass f) {
+                super.visit(f);
                 if (isGenericType(f.getClazz())) {
                     genericsUses.add(new GenericClazzUse(f));
                 }

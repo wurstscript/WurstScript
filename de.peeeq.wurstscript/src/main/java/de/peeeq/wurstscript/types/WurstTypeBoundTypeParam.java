@@ -7,6 +7,7 @@ import de.peeeq.wurstscript.attributes.ImplicitFuncs;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
+import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.Collections;
@@ -168,6 +169,10 @@ public class WurstTypeBoundTypeParam extends WurstType {
 
     @Override
     public WurstTypeBoundTypeParam setTypeArgs(VariableBinding typeParamMapping) {
+//        Option<WurstTypeBoundTypeParam> m = typeParamMapping.get(typeParamDef);
+//        if (m.isDefined()) {
+//            return m.get();
+//        }
         return this.withBaseType(baseType.setTypeArgs(typeParamMapping));
     }
 
