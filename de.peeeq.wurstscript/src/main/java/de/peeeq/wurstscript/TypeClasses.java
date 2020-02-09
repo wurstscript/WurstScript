@@ -1,5 +1,6 @@
 package de.peeeq.wurstscript;
 
+import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
@@ -63,6 +64,7 @@ public class TypeClasses {
 
     /**
      * Finds an instance of a type class
+     *
      * @param location
      * @param errors
      * @param mapping
@@ -70,7 +72,7 @@ public class TypeClasses {
      * @param matchedType
      * @param constraint1
      * @return the updated type var mapping if any was found
-     *
+     * <p>
      * TODO change to stream return type to allow backtracking
      */
     public static VariableBinding findTypeClass(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1) {
@@ -90,11 +92,12 @@ public class TypeClasses {
         // option 2: find instance declarations
         // TODO create index to make this faster and use normal scoped lookup (ony search imports)
         WurstModel model = location.getModel();
-        List<TypeClassInstance> instances = model.stream()
-            .flatMap(cu -> cu.getPackages().stream())
-            .flatMap(p -> p.getElements().stream())
-            .filter(e -> e instanceof InstanceDecl)
-            .map(e -> (InstanceDecl) e)
+        @Nullable PackageOrGlobal wPackageG = location.attrNearestPackage();
+        if (!(wPackageG instanceof WPackage)) {
+            return null;
+        }
+        WPackage wPackage = (WPackage) wPackageG;
+        List<TypeClassInstance> instances = wPackage.attrTypeClasses().stream()
             .flatMap(instance -> {
                 WurstType instanceType;
                 try {
@@ -109,7 +112,6 @@ public class TypeClasses {
                     return Stream.empty();
                 }
                 instanceType = instanceType.setTypeArgs(match);
-
 
 
                 for (Tuple2<TypeParamDef, WurstTypeBoundTypeParam> m : match) {
@@ -162,5 +164,28 @@ public class TypeClasses {
             TypeClassInstance instance = Utils.getFirst(instances);
             return mapping.set(tp, matchedType.withTypeClassInstance(instance));
         }
+    }
+
+    public static List<InstanceDecl> availableTypeClasses(WPackage p) {
+        return Stream.concat(
+            p.attrDefinedTypeClasses().stream(),
+            p.getImports().stream()
+                .map(WImport::attrImportedPackage)
+                .flatMap(ip -> {
+                    if (ip == null) {
+                        return Stream.empty();
+                    } else {
+                        return ip.attrDefinedTypeClasses().stream()
+                            .filter(InstanceDecl::attrIsPublic);
+                    }
+                }))
+            .collect(Collectors.toList());
+    }
+
+    public static List<InstanceDecl> definedTypeClasses(WPackage p) {
+        return p.getElements().stream()
+            .filter(e -> e instanceof InstanceDecl)
+            .map(e -> (InstanceDecl) e)
+            .collect(Collectors.toList());
     }
 }

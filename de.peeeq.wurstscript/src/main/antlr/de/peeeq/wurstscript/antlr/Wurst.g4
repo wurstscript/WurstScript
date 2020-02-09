@@ -117,7 +117,7 @@ entity:
 ;
 
 instanceDeclaration:
-    'implements' implemented=typeExpr ('for' (params+=typeParam (',' params+=typeParam)*))?
+    modifiersWithDoc 'implements' implemented=typeExpr ('for' (params+=typeParam (',' params+=typeParam)*))?
     NL (STARTBLOCK
         funcDef*
     ENDBLOCK)?

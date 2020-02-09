@@ -77,7 +77,6 @@ public class EliminateTypeClasses {
     private void doSpecialize(ImTypeClassDictValue dictV) {
         Element parent = dictV.getParent();
         if (parent == null) {
-            System.out.println("already replaced1: " + dictV);
             return;
         } else if (parent instanceof ImExprs) {
             Element parent2 = parent.getParent();
@@ -92,7 +91,6 @@ public class EliminateTypeClasses {
         } else if (parent instanceof ImMethodCall) {
             ImMethodCall mc = (ImMethodCall) parent;
             if (mc.getParent() == null) {
-                System.out.println("already replaced2: " + mc);
                 return;
             }
             assert mc.getReceiver() == dictV;

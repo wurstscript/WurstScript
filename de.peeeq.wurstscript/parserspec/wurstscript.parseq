@@ -36,7 +36,7 @@ WEntity =
 	| ModuleDef(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, Identifier nameId, TypeParamDefs typeParameters,
 			ClassDefs innerClasses, FuncDefs methods, GlobalVarDefs vars, ConstructorDefs constructors,
 			ModuleInstanciations p_moduleInstanciations, ModuleUses moduleUses, OnDestroyDef onDestroy)
-	| InstanceDecl(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, TypeParamDefs typeParameters, TypeExpr implementedInterface, FuncDefs methods)
+	| InstanceDecl(@ignoreForEquality de.peeeq.wurstscript.parser.WPos source, Modifiers modifiers, TypeParamDefs typeParameters, TypeExpr implementedInterface, FuncDefs methods)
 
 
 
@@ -317,7 +317,7 @@ Modifier =
 
 // ElementWithBody = FunctionImplementation | InitBlock | ConstructorDef | OnDestroyDef
 //ElementWithModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
-HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition
+HasModifier = NameDef | TypeDef | ModuleDef | ConstructorDef | GlobalVarDef | FunctionDefinition | InstanceDecl
 HasTypeArgs =  ExprNewObject | FunctionCall | ModuleUse | StmtCall | TypeExprSimple
 
 AstElementWithFuncName = ExprFunctionCall | ExprMemberMethod | ExprFuncRefc
@@ -914,6 +914,13 @@ WPackage.attrExportedTypeNameLinks
 	returns com.google.common.collect.ImmutableMultimap<String, de.peeeq.wurstscript.attributes.names.TypeLink>
 	implemented by de.peeeq.wurstscript.attributes.names.Exports.exportedTypeNameLinks
 
+WPackage.attrTypeClasses
+	returns java.util.List<InstanceDecl>
+	implemented by de.peeeq.wurstscript.TypeClasses.availableTypeClasses
+
+WPackage.attrDefinedTypeClasses
+	returns java.util.List<InstanceDecl>
+	implemented by de.peeeq.wurstscript.TypeClasses.definedTypeClasses
 
 Element.lookupType(String name, boolean showErrors)
 	returns @Nullable TypeDef

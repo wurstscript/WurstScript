@@ -308,6 +308,7 @@ public class AntlrWurstParseTreeTransformer {
     private WEntity transformInstanceDeclaration(InstanceDeclarationContext i) {
         return Ast.InstanceDecl(
             source(i),
+            transformModifiers(i.modifiersWithDoc()),
             transformInstanceTypeParams(i.params),
             transformTypeExpr(i.implemented),
             transformFuncDefs(i.funcDef())

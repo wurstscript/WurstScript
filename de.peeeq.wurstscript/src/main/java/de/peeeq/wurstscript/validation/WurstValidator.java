@@ -1840,6 +1840,11 @@ public class WurstValidator {
                     check();
                 }
 
+                @Override
+                public void case_InstanceDecl(InstanceDecl instanceDecl) {
+                    check(VisibilityPublic.class);
+                }
+
             });
             if (error.length() > 0) {
                 if (m.attrSource().getFile().endsWith(".jurst")) {
