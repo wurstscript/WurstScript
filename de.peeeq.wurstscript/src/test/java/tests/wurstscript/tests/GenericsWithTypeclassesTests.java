@@ -1641,4 +1641,56 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void anyRefClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface AnyRef<T:>",
+            "	function toIndex(T x) returns int",
+            "	function fromIndex(int index) returns T",
+            "class A",
+            "class Cell<T: AnyRef>",
+            "    int x",
+            "    function set(T x)",
+            "        this.x = T.toIndex(x)",
+            "    function get() returns T",
+            "        return T.fromIndex(this.x)",
+            "init",
+            "    let a = new A",
+            "    let c = new Cell<A>",
+            "    c.set(a)",
+            "    if c.get() == a",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    @Ignore
+    public void toIndexFromIndexClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface ToIndex<T:>",
+            "	function toIndex(T x) returns int",
+            "interface FromIndex<T:>",
+            "	function fromIndex(int index) returns T",
+            "class A",
+            "class Cell<T: ToIndex and FromIndex>",
+            "    int x",
+            "    function set(T x)",
+            "        this.x = T.toIndex(x)",
+            "    function get() returns T",
+            "        return T.fromIndex(this.x)",
+            "init",
+            "    let a = new A",
+            "    let c = new Cell<A>",
+            "    c.set(a)",
+            "    if c.get() == a",
+            "        testSuccess()"
+        );
+    }
+
 }

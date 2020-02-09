@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Pair;
@@ -17,9 +16,7 @@ import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,6 +26,7 @@ public class TypeClasses {
      */
     private static final int DERIVATION_MAX_INSTANCE_USES = 10;
 
+    private static final ImmutableList<String> OBJ_INSTANCES = ImmutableList.of("FromIndex", "ToIndex", "AnyRef");
 
     public static Pair<FunctionSignature, List<CompileError>> findTypeClasses(FunctionSignature sig, StmtCall fc) {
         List<CompileError> errors = new ArrayList<>();
@@ -94,6 +92,31 @@ public class TypeClasses {
         WurstTypeInterface constraint = (WurstTypeInterface) constraint1.setTypeArgs(mapping);
 
         // option 1: the matched type is a type param that also has the right constraint:
+        VariableBinding mapping2 = findDerived(location, matchedType, constraint, tp, mapping);
+        if (mapping2 != null) {
+            return mapping2;
+        }
+        // option 2: find instance declarations
+        mapping2 = findInstanceDeclarations(location, errors, mapping, tp, matchedType, uses, constraint);
+        if (mapping2 != null) {
+            return mapping2;
+        }
+        // option 3: built-in instance for objects
+        if (OBJ_INSTANCES.contains(constraint.getDef().getName())) {
+            if (matchedType.getBaseType() instanceof WurstTypeClassOrInterface) {
+                WurstTypeClassOrInterface objectType = (WurstTypeClassOrInterface) matchedType.getBaseType();
+
+                TypeClassInstance instance = TypeClassInstance.fromObject(objectType, constraint.getDef());
+                return mapping.set(tp, matchedType.withTypeClassInstance(instance));
+            }
+        }
+        // not found:
+        errors.add(new CompileError(location,
+                        "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint.getName()));
+        return null;
+    }
+
+    private static VariableBinding findDerived(Element location, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint, TypeParamDef tp, VariableBinding mapping) {
         if (matchedType.getBaseType() instanceof WurstTypeTypeParam) {
             WurstTypeTypeParam wtp = (WurstTypeTypeParam) matchedType.getBaseType();
             Optional<TypeParamConstraint> matchingConstraint = wtp.getTypeConstraints().stream()
@@ -104,7 +127,12 @@ public class TypeClasses {
                 return mapping.set(tp, matchedType.withTypeClassInstance(instance));
             }
         }
-        // option 2: find instance declarations
+        return null;
+    }
+
+
+    @org.jetbrains.annotations.Nullable
+    private static VariableBinding findInstanceDeclarations(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, HashMap<InstanceDecl, Integer> uses, WurstTypeInterface constraint) {
         // TODO create index to make this faster and use normal scoped lookup (ony search imports)
         WurstModel model = location.getModel();
         @Nullable PackageOrGlobal wPackageG = location.attrNearestPackage();
@@ -171,9 +199,6 @@ public class TypeClasses {
             }).collect(Collectors.toList());
 
         if (instances.isEmpty()) {
-            errors.add(new CompileError(location,
-                "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint.getName()));
-            // "Could not find type class instance " + constraint.getName() + " for type " + matchedType));
             return null;
         } else {
             if (instances.size() > 1) {

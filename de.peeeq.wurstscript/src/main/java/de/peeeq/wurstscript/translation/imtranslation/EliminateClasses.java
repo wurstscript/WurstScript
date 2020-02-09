@@ -200,6 +200,11 @@ public class EliminateClasses {
             public ImType case_ImClassType(ImClassType t) {
                 return imInt();
             }
+
+            @Override
+            public ImType case_ImAnyType(ImAnyType t) {
+                return imInt();
+            }
         });
     }
 

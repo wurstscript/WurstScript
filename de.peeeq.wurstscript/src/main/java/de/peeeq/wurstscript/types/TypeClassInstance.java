@@ -1,10 +1,8 @@
 package de.peeeq.wurstscript.types;
 
 
+import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.ast.InstanceDecl;
-import de.peeeq.wurstscript.ast.StmtCall;
-import de.peeeq.wurstscript.ast.TypeParamConstraint;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
@@ -70,6 +68,37 @@ public abstract class TypeClassInstance {
         return param != null
             && param.getParent() != null
             && param.getParent().getParent() instanceof ImFunction;
+    }
+
+    public static TypeClassInstance fromObject(WurstTypeClassOrInterface objectType, InterfaceDef supI) {
+        return new TypeClassInstance() {
+            @Override
+            public ImExpr translate(Element trace, ImVar thisVar, ImTranslator tr) {
+                ImClass sup = tr.getClassFor(supI);
+                ImClass cd = tr.getGenericObjectTypeClassInstance();
+                // add instance as superclass if not present yet
+                if (cd.getSuperClasses().stream().noneMatch(sc -> sc.getClassDef() == sup)) {
+                    cd.getSuperClasses().add(JassIm.ImClassType(sup,
+                        JassIm.ImTypeArguments(JassIm.ImTypeArgument(objectType.imTranslateType(tr)))));
+                    // add sub methods
+                    for (FuncDef m : supI.getMethods()) {
+                        ImMethod imMethod = tr.getMethodFor(m);
+                        for (ImMethod cdM : cd.getMethods()) {
+                            if (cdM.getName().equals(m.getName())) {
+                                imMethod.getSubMethods().add(cdM);
+                            }
+                        }
+                    }
+                }
+                ImClassType c = JassIm.ImClassType(cd, JassIm.ImTypeArguments());
+                return JassIm.ImTypeClassDictValue(trace, c, JassIm.ImExprs());
+            }
+
+            @Override
+            public String toString() {
+                return "Object type class instance";
+            }
+        };
     }
 
 

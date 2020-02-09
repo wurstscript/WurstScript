@@ -52,6 +52,9 @@ public class RunStatement {
         if (s.getReturnValue() instanceof ImExpr) {
             ImExpr e = (ImExpr) s.getReturnValue();
             r = e.evaluate(globalState, localState);
+            if (r == null) {
+                throw new InterpreterException(s.getTrace(), "Returned value was null.");
+            }
         }
         throw new ReturnException(r);
     }
@@ -59,6 +62,9 @@ public class RunStatement {
     public static void run(ImSet s, ProgramState globalState, LocalState localState) {
         ILaddress v = s.getLeft().evaluateLvalue(globalState, localState);
         ILconst right = s.getRight().evaluate(globalState, localState);
+        if (right == null) {
+            throw new InterpreterException(s.getTrace(), "Right hand side of assignment was null.");
+        }
         v.set(right);
     }
 

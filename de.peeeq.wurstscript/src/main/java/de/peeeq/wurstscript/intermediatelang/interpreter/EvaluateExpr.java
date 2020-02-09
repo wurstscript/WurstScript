@@ -410,7 +410,9 @@ public class EvaluateExpr {
             }
         }
         if (res instanceof ILconstInt) {
-            if (imCast.getToType() instanceof ImClassType) {
+            if (imCast.getToType() instanceof ImClassType
+                || imCast.getToType() instanceof ImAnyType
+                || imCast.getToType() instanceof ImTypeVarRef) {
                 return globalState.getObjectByIndex(((ILconstInt) res).getVal());
             }
             if (imCast.getToType() instanceof IlConstHandle) {
