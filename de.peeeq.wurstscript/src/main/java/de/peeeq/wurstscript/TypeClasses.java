@@ -1,8 +1,11 @@
 package de.peeeq.wurstscript;
 
+import com.google.common.collect.ImmutableMultimap;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.names.DefLink;
+import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
@@ -187,5 +190,33 @@ public class TypeClasses {
             .filter(e -> e instanceof InstanceDecl)
             .map(e -> (InstanceDecl) e)
             .collect(Collectors.toList());
+    }
+
+    public static void checkInstance(InstanceDecl c) {
+        ImmutableMultimap<String, DefLink> nameLinks = c.attrNameLinks();
+        if (!c.attrIsAbstract()) {
+            StringBuilder toImplement = new StringBuilder();
+            // should have no abstract methods
+            for (DefLink link : nameLinks.values()) {
+                NameDef f = link.getDef();
+                if (f.attrIsAbstract()) {
+                    if (f.attrNearestStructureDef() == c) {
+                        Element loc = f.getModifiers().stream()
+                            .filter(m -> m instanceof ModAbstract)
+                            .<Element>map(x -> x)
+                            .findFirst()
+                            .orElse(f);
+                        loc.addError(Utils.printElementWithSource(c) + " cannot have abstract functions like " + f.getName());
+                    } else if (link instanceof FuncLink) {
+                        toImplement.append("\n    ");
+                        toImplement.append(((FuncLink) link).printFunctionTemplate());
+                    }
+                }
+            }
+            if (toImplement.length() > 0) {
+                c.addError(Utils.printElementWithSource(c) + " must implement the following functions:" + toImplement);
+            }
+        }
+
     }
 }

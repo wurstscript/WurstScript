@@ -10,6 +10,7 @@ import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.DefaultSpacer;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.JassImElementWithName;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.WurstType;
@@ -317,6 +318,9 @@ public class Utils {
                 name += "}";
             }
             type = "type";
+        } else if (e instanceof InstanceDecl) {
+            InstanceDecl i = (InstanceDecl) e;
+            return "Type class instance for " + PrettyPrinter.print(i.getImplementedInterface());
         }
         return type + " " + name;
     }

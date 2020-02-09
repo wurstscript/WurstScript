@@ -9,7 +9,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import de.peeeq.wurstscript.types.WurstTypeInt;
 import de.peeeq.wurstscript.types.WurstTypeInterface;
 import de.peeeq.wurstscript.utils.Utils;
 import de.peeeq.wurstscript.validation.WurstValidator;
@@ -113,7 +112,8 @@ public class NameLinks {
         Map<String, Map<FuncLink, OverrideCheckResult>> overrideCheckResults = initOverrideMap(result);
         WurstType implementedI = i.getImplementedInterface().attrTyp();
         if (implementedI instanceof WurstTypeInterface) {
-            addNamesFromExtendedInterfaces(result, (WurstTypeInterface) implementedI, overrideCheckResults);
+            WurstTypeInterface wti = (WurstTypeInterface) implementedI;
+            addNewNameLinks(result, overrideCheckResults, wti.nameLinks(), false);
         }
         reportOverrideErrors(overrideCheckResults);
         addTypeParametersIfAny(result::put, i);

@@ -1604,5 +1604,19 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void missingFunction() {
+        testAssertErrorsLines(false, "must implement the following functions",
+            "package test",
+            "interface Blub<T:>",
+            "	function foo(T x) returns int",
+            "	function bar(T x) returns int",
+            "class A",
+            "implements Blub<A>",
+            "    function foo(A x) returns int",
+            "        return 42"
+        );
+    }
+
 
 }

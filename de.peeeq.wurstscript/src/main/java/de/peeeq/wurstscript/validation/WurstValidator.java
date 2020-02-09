@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import com.google.common.collect.*;
 import de.peeeq.wurstio.utils.FileUtils;
+import de.peeeq.wurstscript.TypeClasses;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CofigOverridePackages;
@@ -341,6 +342,8 @@ public class WurstValidator {
                 visit((StmtExitwhen) e);
             if (e instanceof TypeParamDef)
                 checkTypeParamDef(((TypeParamDef) e));
+            if (e instanceof InstanceDecl)
+                TypeClasses.checkInstance(((InstanceDecl) e));
         } catch (CyclicDependencyError cde) {
             cde.printStackTrace();
             Element element = cde.getElement();
