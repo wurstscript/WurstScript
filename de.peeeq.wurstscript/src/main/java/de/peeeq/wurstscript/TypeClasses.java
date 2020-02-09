@@ -2,11 +2,13 @@ package de.peeeq.wurstscript;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.Tuple2;
 import io.vavr.control.Option;
+import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -94,10 +96,14 @@ public class TypeClasses {
             .filter(e -> e instanceof InstanceDecl)
             .map(e -> (InstanceDecl) e)
             .flatMap(instance -> {
-                WurstType instanceType = instance.getImplementedInterface().attrTyp();
+                WurstType instanceType;
+                try {
+                    instanceType = instance.getImplementedInterface().attrTyp();
+                } catch (CyclicDependencyError e) {
+                    return Stream.empty();
+                }
                 VariableBinding initialMapping = VariableBinding.emptyMapping().withTypeVariables(instance.getTypeParameters());
                 VariableBinding match = instanceType.matchAgainstSupertype(constraint, location, initialMapping, VariablePosition.LEFT);
-
 
                 if (match == null) {
                     return Stream.empty();
@@ -123,7 +129,10 @@ public class TypeClasses {
                 List<WurstType> typeArgs = new ArrayList<>();
                 for (TypeParamDef instanceTp : instance.getTypeParameters()) {
                     WurstTypeBoundTypeParam i = match.get(instanceTp).get();
-                    deps.addAll(i.getInstances());
+                    @Nullable List<TypeClassInstance> is = i.getInstances();
+                    if (is != null) {
+                        deps.addAll(is);
+                    }
                     if (instanceTp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
                         typeArgs.add(i);
                     }

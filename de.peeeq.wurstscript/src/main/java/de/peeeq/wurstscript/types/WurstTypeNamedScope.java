@@ -1,12 +1,14 @@
 package de.peeeq.wurstscript.types;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.TypeClasses;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.attributes.names.*;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import io.vavr.Tuple2;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.NonNull;
@@ -113,15 +115,29 @@ public abstract class WurstTypeNamedScope extends WurstType {
 
     abstract public WurstType replaceTypeVars(List<WurstTypeBoundTypeParam> newTypes);
 
-    public WurstType replaceTypeVarsUsingTypeArgs(TypeExprList typeArgs) {
+    public WurstType replaceTypeVarsUsingTypeArgs(TypeExprList typeArgs1) {
+
+        List<TypeExpr> typeArgs = typeArgs1;
+
+        if (typeArgs1.getParent().getParent() instanceof TypeParamConstraint) {
+            // if used as type parameter constraint, then add type param as last type argument
+            TypeParamConstraint constraint = (TypeParamConstraint) typeArgs1.getParent().getParent();
+            WurstTypeTypeParam tp = new WurstTypeTypeParam(constraint.parentTypeParam(), true);
+            typeArgs = ImmutableList.<TypeExpr>builder()
+                .addAll(typeArgs)
+                .add(Ast.TypeExprResolved(typeArgs1.attrSource(), tp))
+                .build();
+        }
+
         if (typeArgs.isEmpty()) {
             // TODO replace with unknown types?
             return this;
         }
-        List<WurstTypeBoundTypeParam> typeParams = new ArrayList<>();
+
+
 
         if (typeArgs.size() != typeParameters.size()) {
-            typeArgs.addError("Expected " + typeParameters.size() + " type arguments, but got " + typeArgs.size());
+            typeArgs1.addError("Expected " + typeParameters.size() + " type arguments, but got " + typeArgs.size());
         }
 
         List<CompileError> errors = new ArrayList<>();
@@ -165,7 +181,8 @@ public abstract class WurstTypeNamedScope extends WurstType {
         VariableBinding finalMapping = mapping;
         List<WurstTypeBoundTypeParam> newTypes =
             typeParameters.stream()
-            .map(t -> finalMapping.get(t.getTypeParamDef()).get())
+            .map(t -> finalMapping.get(t.getTypeParamDef())
+                .getOrElse(() -> new WurstTypeBoundTypeParam(t.getTypeParamDef(), WurstTypeUnknown.instance(), typeArgs1)))
             .collect(Collectors.toList());
         return replaceTypeVars(newTypes);
     }

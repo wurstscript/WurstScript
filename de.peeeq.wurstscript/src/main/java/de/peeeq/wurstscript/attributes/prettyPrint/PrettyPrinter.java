@@ -581,6 +581,12 @@ public class PrettyPrinter {
     }
 
     public static void prettyPrint(TypeExprList e, Spacer spacer, StringBuilder sb, int indent) {
+        if (e.isEmpty()) {
+            return;
+        }
+        sb.append("<");
+        commaSeparatedList(e, spacer, sb, indent);
+        sb.append(">");
     }
 
     public static void prettyPrint(TypeExprResolved e, Spacer spacer, StringBuilder sb, int indent) {

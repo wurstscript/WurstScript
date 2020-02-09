@@ -1549,5 +1549,60 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void iteratorExample() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "@extern native S2I(string s) returns int",
+            "interface Iterable<E:, I: Iterator<E>, T:>",
+//            "interface Iterable<E:, I: , T:>",
+            "    function iterator(T t) returns I",
+            "interface Iterator<T:, I:>",
+            "    function hasNext(I i) returns bool",
+            "    function next(I i) returns T",
+            "interface Group<T:>",
+            "    function zero() returns T",
+            "    function plus(T a, T b) returns T",
+            "function sum<T: Group, C: Iterable<T, I>, I: Iterator<T>>(C coll) returns T",
+            "    var res = T.zero()",
+            "    let iter = C.iterator(coll)",
+            "    while I.hasNext(iter)",
+            "        res = T.plus(res, I.next(iter))",
+            "    return res",
+            "implements Group<int>",
+            "    function zero() returns int",
+            "        return 0",
+            "    function plus(int a, int b) returns int",
+            "        return a + b",
+            "class List<T>",
+            "    T elem",
+            "    List<T> next",
+            "    construct(T elem, List<T> next)",
+            "        this.elem = elem",
+            "        this.next = next",
+            "class ListIterator<T>",
+            "    List<T> current",
+            "    construct(List<T> list)",
+            "        this.current = list",
+            "implements Iterator<T, ListIterator<T>> for T",
+            "    function hasNext(ListIterator<T> iter) returns bool",
+            "        return iter.current != null",
+            "    function next(ListIterator<T> iter) returns T",
+            "        let res = iter.current.elem",
+            "        iter.current = iter.current.next",
+            "        return res",
+            "implements Iterable<E, ListIterator<E>, List<E>> for E",
+            "    function iterator(List<E> list) returns ListIterator<E>",
+            "         return new ListIterator<E>(list)",
+            "init",
+            "    let list = new List<int>(100, new List<int>(20, new List<int>(3, null)))",
+//            "    if sum(list) == 123",
+            "    if sum<int, List<int>, ListIterator<int>>(list) == 123",
+            "        testSuccess()"
+        );
+    }
+
 
 }

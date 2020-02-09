@@ -26,19 +26,23 @@ public class IsDynamicContext {
                 if (origElem.isSubtreeOf(a.getExtendedClass())) {
                     return true;
                 }
+                if (origElem.isSubtreeOf(a.getImplementsList())) {
+                    return true;
+                }
+                if (origElem.isSubtreeOf(a.getTypeParameters())) {
+                    return true;
+                }
             }
             if (elem instanceof InterfaceDef) {
                 InterfaceDef a = (InterfaceDef) elem;
                 if (origElem.isSubtreeOf(a.getExtendsList())) {
                     return true;
                 }
-            }
-            if (elem instanceof ClassDef) {
-                ClassDef a = (ClassDef) elem;
-                if (origElem.isSubtreeOf(a.getImplementsList())) {
+                if (origElem.isSubtreeOf(a.getTypeParameters())) {
                     return true;
                 }
-            } else if (elem instanceof ModuleUse) {
+            }
+            if (elem instanceof ModuleUse) {
                 ModuleUse mu = (ModuleUse) elem;
                 if (origElem.isSubtreeOf(mu.getTypeArgs())) {
                     return true;

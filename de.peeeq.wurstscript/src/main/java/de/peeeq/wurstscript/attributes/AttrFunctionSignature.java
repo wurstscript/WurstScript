@@ -1,11 +1,11 @@
 package de.peeeq.wurstscript.attributes;
 
+import de.peeeq.wurstscript.TypeClasses;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.types.FunctionSignature;
-import de.peeeq.wurstscript.types.VariableBinding;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeUnknown;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
+import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+import io.vavr.Tuple2;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;

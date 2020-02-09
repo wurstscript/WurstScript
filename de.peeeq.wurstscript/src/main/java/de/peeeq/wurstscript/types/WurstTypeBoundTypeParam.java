@@ -224,7 +224,7 @@ public class WurstTypeBoundTypeParam extends WurstType {
         return new WurstTypeBoundTypeParam(typeParamDef, baseType, fromIndex, toIndex, newInstances, indexInitialized, context);
     }
 
-    public List<TypeClassInstance> getInstances() {
+    public @Nullable List<TypeClassInstance> getInstances() {
         return instances;
     }
 }

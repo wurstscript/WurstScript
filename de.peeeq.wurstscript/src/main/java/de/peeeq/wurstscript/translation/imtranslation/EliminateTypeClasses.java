@@ -1,11 +1,9 @@
 package de.peeeq.wurstscript.translation.imtranslation;
 
 import com.google.common.collect.*;
-import de.peeeq.datastructures.Partitions;
 import de.peeeq.wurstscript.attributes.CompileError;
+import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.types.TypeClassInstance;
-import org.eclipse.xtend.lib.annotations.ToString;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -55,15 +53,7 @@ public class EliminateTypeClasses {
     private void run() {
         ImProg prog = tr.getImProg();
 
-        prog.accept(new Element.DefaultVisitor() {
-            @Override
-            public void visit(ImTypeClassDictValue dv) {
-                // no super visit
-                if (!dynamicArgsStream(dv).findAny().isPresent()) {
-                    workList.add(dv);
-                }
-            }
-        });
+        addTypeClassDictValuesToWorkList(prog);
 
         while (!workList.isEmpty()) {
             ImTypeClassDictValue dictV = workList.removeFirst();
@@ -72,9 +62,24 @@ public class EliminateTypeClasses {
         }
     }
 
+    private void addTypeClassDictValuesToWorkList(Element e) {
+        e.accept(new Element.DefaultVisitor() {
+            @Override
+            public void visit(ImTypeClassDictValue dv) {
+                // no super visit
+                if (!dynamicArgsStream(dv).findAny().isPresent()) {
+                    workList.add(dv);
+                }
+            }
+        });
+    }
+
     private void doSpecialize(ImTypeClassDictValue dictV) {
         Element parent = dictV.getParent();
-        if (parent instanceof ImExprs) {
+        if (parent == null) {
+            System.out.println("already replaced1: " + dictV);
+            return;
+        } else if (parent instanceof ImExprs) {
             Element parent2 = parent.getParent();
             if (parent2 instanceof ImFunctionCall) {
                 ImFunctionCall fc = (ImFunctionCall) parent2;
@@ -86,6 +91,10 @@ public class EliminateTypeClasses {
             }
         } else if (parent instanceof ImMethodCall) {
             ImMethodCall mc = (ImMethodCall) parent;
+            if (mc.getParent() == null) {
+                System.out.println("already replaced2: " + mc);
+                return;
+            }
             assert mc.getReceiver() == dictV;
 
             ImMethod m = findMostConcreteMethod(mc.getMethod(), dictV.getClazz());
@@ -199,6 +208,7 @@ public class EliminateTypeClasses {
 
             m.getSubMethods().add(newM);
 
+            addTypeClassDictValuesToWorkList(newImpl);
             imProg.getFunctions().add(newImpl);
             imProg.getMethods().add(newM);
         }
@@ -301,6 +311,7 @@ public class EliminateTypeClasses {
             use.replaceBy(newDict);
             workList.add(newDict);
         }
+        addTypeClassDictValuesToWorkList(copy);
         tr.getImProg().getFunctions().add(copy);
         return copy;
     }

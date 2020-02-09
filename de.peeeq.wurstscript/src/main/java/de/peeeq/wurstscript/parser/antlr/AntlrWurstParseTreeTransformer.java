@@ -318,7 +318,7 @@ public class AntlrWurstParseTreeTransformer {
         TypeParamDefs result = Ast.TypeParamDefs();
         if (params != null) {
             for (TypeParamContext p : params) {
-                result.add(transformTypeParam(p));
+                result.add(transformTypeParam(p, true));
             }
         }
         return result;
@@ -1324,21 +1324,25 @@ public class AntlrWurstParseTreeTransformer {
         TypeParamDefs result = Ast.TypeParamDefs();
         if (typeParams != null && typeParams.params != null) {
             for (TypeParamContext p : typeParams.params) {
-                result.add(transformTypeParam(p));
+                result.add(transformTypeParam(p, false));
             }
         }
         return result;
     }
 
-    private TypeParamDef transformTypeParam(TypeParamContext p) {
+    private TypeParamDef transformTypeParam(TypeParamContext p, boolean defaultsToNewGenerics) {
         Modifiers modifiers = Ast.Modifiers();
-        TypeParamConstraints typeParamClasses = tranformTypeParamConstraints(p.typeParamConstraints());
+        TypeParamConstraints typeParamClasses = tranformTypeParamConstraints(p.typeParamConstraints(), defaultsToNewGenerics);
         return Ast.TypeParamDef(source(p), modifiers, text(p.name), typeParamClasses);
     }
 
-    private TypeParamConstraints tranformTypeParamConstraints(TypeParamConstraintsContext tc) {
+    private TypeParamConstraints tranformTypeParamConstraints(TypeParamConstraintsContext tc, boolean defaultsToNewGenerics) {
         if (tc == null) {
-            return Ast.NoTypeParamConstraints();
+            if (defaultsToNewGenerics) {
+                return Ast.TypeParamConstraintList();
+            } else {
+                return Ast.NoTypeParamConstraints();
+            }
         }
         TypeParamConstraintList res = Ast.TypeParamConstraintList();
         for (TypeExprContext t : tc.constraints) {
