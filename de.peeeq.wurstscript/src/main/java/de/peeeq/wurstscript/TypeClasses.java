@@ -8,9 +8,11 @@ import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.prettyPrint.PrettyPrinter;
 import de.peeeq.wurstscript.types.*;
+import de.peeeq.wurstscript.utils.Lazy;
 import de.peeeq.wurstscript.utils.Pair;
 import de.peeeq.wurstscript.utils.Utils;
 import io.vavr.Tuple2;
+import io.vavr.collection.HashMap;
 import io.vavr.control.Option;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jetbrains.annotations.NotNull;
@@ -22,6 +24,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TypeClasses {
+    /**
+     * How often an instance declaration can be used in a single derivation.
+     */
+    private static final int DERIVATION_MAX_INSTANCE_USES = 10;
+
+
     public static Pair<FunctionSignature, List<CompileError>> findTypeClasses(FunctionSignature sig, StmtCall fc) {
         List<CompileError> errors = new ArrayList<>();
         VariableBinding mapping = sig.getMapping();
@@ -73,12 +81,16 @@ public class TypeClasses {
      * @param mapping
      * @param tp
      * @param matchedType
-     * @param constraint1
+     * @param constraint
      * @return the updated type var mapping if any was found
      * <p>
      * TODO change to stream return type to allow backtracking
      */
-    public static VariableBinding findTypeClass(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1) {
+    public static VariableBinding findTypeClass(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint) {
+        return findTypeClassH(location, errors, mapping, tp, matchedType, constraint, HashMap.empty());
+    }
+
+    private static VariableBinding findTypeClassH(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, WurstTypeInterface constraint1, HashMap<InstanceDecl, Integer> uses) {
         WurstTypeInterface constraint = (WurstTypeInterface) constraint1.setTypeArgs(mapping);
 
         // option 1: the matched type is a type param that also has the right constraint:
@@ -102,6 +114,12 @@ public class TypeClasses {
         WPackage wPackage = (WPackage) wPackageG;
         List<TypeClassInstance> instances = wPackage.attrTypeClasses().stream()
             .flatMap(instance -> {
+                int instanceUses = uses.getOrElse(instance, 0);
+                if (instanceUses > 10) {
+                    return Stream.empty();
+                }
+                Lazy<HashMap<InstanceDecl, Integer>> uses2 = Lazy.create(() -> uses.put(instance, instanceUses + 1));
+
                 WurstType instanceType;
                 try {
                     instanceType = instance.getImplementedInterface().attrTyp();
@@ -122,7 +140,7 @@ public class TypeClasses {
                     WurstTypeBoundTypeParam mType = m._2();
                     List<WurstTypeInterface> instanceConstraints = getConstraints(instanceTp);
                     for (WurstTypeInterface instanceConstraint : instanceConstraints) {
-                        VariableBinding match2 = findTypeClass(location, errors, match, instanceTp, mType, instanceConstraint);
+                        VariableBinding match2 = findTypeClassH(location, errors, match, instanceTp, mType, instanceConstraint, uses2.get());
                         if (match2 == null) {
                             return Stream.empty();
                         }

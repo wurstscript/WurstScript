@@ -1619,4 +1619,26 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
 
+    @Test
+    public void cyclicImplements() {
+        testAssertErrorsLines(false, "Type A does not satisfy constraint Y: Apfel<A>",
+            "package test",
+            "interface Apfel<T:>",
+            "	function a(T x) returns int",
+            "interface Birne<T:>",
+            "	function b(T x) returns int",
+            "class A",
+            "implements Apfel<X> for X: Birne",
+            "    function a(X t) returns int",
+            "        return X.b(t)",
+            "implements Birne<Y> for Y: Apfel",
+            "    function b(Y t) returns int",
+            "        return Y.a(t)",
+            "function foo<T: Apfel>(T t)",
+            "init",
+            "    let a = new A()",
+            "    foo(a)"
+        );
+    }
+
 }
