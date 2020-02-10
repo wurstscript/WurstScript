@@ -1327,6 +1327,31 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void twoTypeClasses() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface Plus<T:>",
+            "	function plus(T x, T y) returns T",
+            "interface Times<T:>",
+            "	function times(T x, T y) returns T",
+            "implements Plus<int>",
+            "    function plus(int x, int y) returns int",
+            "        return x + y",
+            "implements Times<int>",
+            "    function times(int x, int y) returns int",
+            "        return x * y",
+            "function calc<Q: Plus and Times>(Q x) returns Q",
+            "    return Q.plus(x, Q.times(x, x))",
+            "init",
+            "    if calc(6) == 42",
+            "        testSuccess()"
+        );
+    }
+
     @Test
     public void forwardTypeClass() {
         testAssertOkLines(true,
@@ -1667,7 +1692,6 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     }
 
     @Test
-    @Ignore
     public void toIndexFromIndexClass() {
         testAssertOkLines(true,
             "package test",

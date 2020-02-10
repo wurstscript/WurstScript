@@ -144,4 +144,11 @@ public class VariableBinding implements Iterable<Tuple2<TypeParamDef, WurstTypeB
     public List<CompileError> getErrors() {
         return errors;
     }
+
+    public VariableBinding withTypeClassInstance(TypeParamDef tp, WurstTypeBoundTypeParam matchedType, TypeClassInstance instance) {
+        WurstTypeBoundTypeParam bound = get(tp)
+            .getOrElse(matchedType);
+        bound = bound.withTypeClassInstance(instance);
+        return set(tp, bound);
+    }
 }

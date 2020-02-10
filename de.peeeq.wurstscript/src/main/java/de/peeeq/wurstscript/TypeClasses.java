@@ -107,7 +107,7 @@ public class TypeClasses {
                 WurstTypeClassOrInterface objectType = (WurstTypeClassOrInterface) matchedType.getBaseType();
 
                 TypeClassInstance instance = TypeClassInstance.fromObject(objectType, constraint.getDef());
-                return mapping.set(tp, matchedType.withTypeClassInstance(instance));
+                return mapping.withTypeClassInstance(tp, matchedType, instance);
             }
         }
         // not found:
@@ -124,7 +124,7 @@ public class TypeClasses {
             if (matchingConstraint.isPresent()) {
                 TypeClassInstance instance = TypeClassInstance.fromTypeParam(
                     location, matchingConstraint.get());
-                return mapping.set(tp, matchedType.withTypeClassInstance(instance));
+                return mapping.withTypeClassInstance(tp, matchedType, instance);
             }
         }
         return null;
@@ -134,7 +134,7 @@ public class TypeClasses {
     @org.jetbrains.annotations.Nullable
     private static VariableBinding findInstanceDeclarations(Element location, List<CompileError> errors, VariableBinding mapping, TypeParamDef tp, WurstTypeBoundTypeParam matchedType, HashMap<InstanceDecl, Integer> uses, WurstTypeInterface constraint) {
         // TODO create index to make this faster and use normal scoped lookup (ony search imports)
-        WurstModel model = location.getModel();
+
         @Nullable PackageOrGlobal wPackageG = location.attrNearestPackage();
         if (!(wPackageG instanceof WPackage)) {
             return null;
@@ -154,6 +154,8 @@ public class TypeClasses {
                 } catch (CyclicDependencyError e) {
                     return Stream.empty();
                 }
+                // TODO instead of initialMapping should use previous mapping here
+                // but that would require fresh variables (needs refactoring)
                 VariableBinding initialMapping = VariableBinding.emptyMapping().withTypeVariables(instance.getTypeParameters());
                 VariableBinding match = instanceType.matchAgainstSupertype(constraint, location, initialMapping, VariablePosition.LEFT);
 
@@ -208,7 +210,7 @@ public class TypeClasses {
 
             }
             TypeClassInstance instance = Utils.getFirst(instances);
-            return mapping.set(tp, matchedType.withTypeClassInstance(instance));
+            return mapping.withTypeClassInstance(tp, matchedType, instance);
         }
     }
 
