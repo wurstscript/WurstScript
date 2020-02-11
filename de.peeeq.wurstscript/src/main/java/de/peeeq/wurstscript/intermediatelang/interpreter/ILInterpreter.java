@@ -159,7 +159,12 @@ public class ILInterpreter implements AbstractInterpreter {
         StringBuilder errors = new StringBuilder();
         for (NativesProvider natives : globalState.getNativeProviders()) {
             try {
-                return new LocalState(natives.invoke(f.getName(), args));
+                ILconst res = natives.invoke(f.getName(), args);
+                if (res == null && !(f.getReturnType() instanceof ImVoid)) {
+                    // use default value for function stub
+                    res = ImHelper.defaultValueForComplexType(f.getReturnType()).evaluate(globalState, new LocalState());
+                }
+                return new LocalState(res);
             } catch (NoSuchNativeException e) {
                 errors.append("\n").append(e.getMessage());
                 // ignore

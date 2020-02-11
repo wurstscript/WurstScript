@@ -53,7 +53,7 @@ public class RunStatement {
             ImExpr e = (ImExpr) s.getReturnValue();
             r = e.evaluate(globalState, localState);
             if (r == null) {
-                throw new InterpreterException(s.getTrace(), "Returned value was null.");
+                throw new InterpreterException(s.getTrace(), "Returned value was null");
             }
         }
         throw new ReturnException(r);
