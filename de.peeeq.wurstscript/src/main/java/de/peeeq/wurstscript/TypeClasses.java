@@ -26,7 +26,7 @@ public class TypeClasses {
      */
     private static final int DERIVATION_MAX_INSTANCE_USES = 10;
 
-    private static final ImmutableList<String> OBJ_INSTANCES = ImmutableList.of("FromIndex", "ToIndex", "AnyRef");
+    private static final ImmutableList<String> OBJ_INSTANCES = ImmutableList.of("FromIndex", "ToIndex", "Default", "AnyRef");
 
     public static Pair<FunctionSignature, List<CompileError>> findTypeClasses(FunctionSignature sig, StmtCall fc) {
         List<CompileError> errors = new ArrayList<>();

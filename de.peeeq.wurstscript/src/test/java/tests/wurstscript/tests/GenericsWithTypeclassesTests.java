@@ -1717,4 +1717,26 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void defaultForClass() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface Default<T:>",
+            "	function defaultValue() returns T",
+            "class A",
+            "function d<X: Default>() returns X",
+            "    return X.defaultValue()",
+            "implements Default<int>",
+            "    function defaultValue() returns int",
+            "        return 42",
+            "init",
+            "    let a = d<A>()",
+            "    let i = d<int>()",
+            "    if a == null and i == 42",
+            "        testSuccess()"
+        );
+    }
+
 }

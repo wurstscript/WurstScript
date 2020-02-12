@@ -1397,6 +1397,26 @@ public class ImTranslator {
                 emptyList(),
                 false));
 
+            // add defaultValue function:
+            thiz = JassIm.ImVar(t, classType(res), "this", emptyList());
+            ImFunction defaultValue = JassIm.ImFunction(t,
+                "defaultValue",
+                JassIm.ImTypeVars(),
+                JassIm.ImVars(thiz),
+                ImAnyType(),
+                JassIm.ImVars(),
+                ImStmts(
+                    ImReturn(t, ImNull(classType(res)))
+                ),
+                emptyList());
+            functions.add(defaultValue);
+            methods.add(JassIm.ImMethod(t,
+                classType(res),
+                "defaultValue",
+                defaultValue,
+                emptyList(),
+                false));
+
             imProg.getClasses().add(res);
 
             genericObjectTypeClassInstance = res;
