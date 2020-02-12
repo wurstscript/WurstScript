@@ -55,6 +55,13 @@ public class AttrFunctionSignature {
             return candidates.get(0);
         }
 
+        candidates = filterByHasTypeClasses(candidates);
+        if (candidates.isEmpty()) {
+            // parameters match for no element, just return the first signature
+            return Utils.getFirst(sigs);
+        } else if (candidates.size() == 1) {
+            return candidates.get(0);
+        }
 
 
 
@@ -68,6 +75,16 @@ public class AttrFunctionSignature {
             location.addError("Call to " + name(location) + " is ambiguous, alternatives are: " + alternatives);
         }
         return candidates.get(0);
+    }
+
+    private static List<FunctionSignature> filterByHasTypeClasses(List<FunctionSignature> candidates) {
+        List<FunctionSignature> res = candidates.stream()
+            .filter(sig -> !sig.hasTypeClassConstraints())
+            .collect(Collectors.toList());
+        if (res.isEmpty()) {
+            return candidates;
+        }
+        return res;
     }
 
     private static List<FunctionSignature> filterByIfNotDefinedAnnotation(List<FunctionSignature> candidates) {

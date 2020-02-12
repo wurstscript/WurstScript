@@ -264,6 +264,18 @@ public class FunctionSignature {
         return false;
     }
 
+    public boolean hasTypeClassConstraints() {
+        for (TypeParamDef tp : getDefinitionTypeVariables()) {
+            if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                TypeParamConstraintList list = (TypeParamConstraintList) tp.getTypeParamConstraints();
+                if (!list.isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     public static class ArgsMatchResult {
         private final FunctionSignature sig;
         private final ImmutableList<CompileError> errors;
