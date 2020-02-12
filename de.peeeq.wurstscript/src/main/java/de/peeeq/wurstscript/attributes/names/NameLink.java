@@ -102,6 +102,20 @@ public abstract class NameLink {
         return typeParams;
     }
 
+    public boolean hasTypeClassConstraints() {
+        if (getDef() instanceof AstElementWithTypeParameters)
+            for (TypeParamDef tp : ((AstElementWithTypeParameters) getDef()).getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                    TypeParamConstraintList cs = (TypeParamConstraintList) tp.getTypeParamConstraints();
+                    if (!cs.isEmpty()) {
+                        return true;
+                    }
+                }
+            }
+        return false;
+    }
+
+
     public NameLink hidingPrivate() {
         if (visibility == Visibility.PRIVATE_HERE) {
             return withVisibility(Visibility.PRIVATE_OTHER);

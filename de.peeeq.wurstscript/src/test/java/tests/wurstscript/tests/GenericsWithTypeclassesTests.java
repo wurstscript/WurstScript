@@ -1739,4 +1739,23 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+    @Test
+    public void overloadMiss() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "@extern native I2S(int i) returns string",
+            "interface Show<T:>",
+            "	function toString(T t) returns string",
+            "function T.toString<T: Show>() returns string",
+            "    return T.toString(this)",
+            "function int.toString() returns string",
+            "    return I2S(this)",
+            "init",
+            "    if 42 .toString() == \"42\"",
+            "        testSuccess()"
+        );
+    }
+
 }

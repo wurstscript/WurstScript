@@ -54,10 +54,6 @@ public class AttrPossibleFunctionSignatures {
             Pair<FunctionSignature, List<CompileError>> typeClassMatched = TypeClasses.findTypeClasses(sig2, fc);
             if (typeClassMatched.getB().isEmpty()) {
                 resultBuilder2.add(typeClassMatched.getA());
-            } else {
-                for (CompileError err : typeClassMatched.getB()) {
-                    fc.getErrorHandler().sendError(err);
-                }
             }
         }
         ImmutableCollection<FunctionSignature> res2 = resultBuilder2.build();

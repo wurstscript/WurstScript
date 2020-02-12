@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 import de.peeeq.wurstscript.WurstOperator;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
+import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.attributes.names.Visibility;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
@@ -324,8 +325,24 @@ public class AttrFuncDef {
             return Utils.getFirst(funcs);
         }
 
+        // if still ambiguous, remove methods with type classes to be resolved
+        funcs = filterMethodsWithTypeClasses(node, funcs);
+        if (funcs.size() == 1) {
+            return Utils.getFirst(funcs);
+        }
+
         node.addError("Call to function " + funcName + " is ambiguous. Alternatives are:\n" + Utils.printAlternatives(funcs));
         return Utils.getFirst(funcs);
+    }
+
+    private static List<FuncLink> filterMethodsWithTypeClasses(Expr node, List<FuncLink> funcs) {
+        List<FuncLink> funcs2 = funcs.stream()
+            .filter(n -> !n.hasTypeClassConstraints())
+            .collect(Collectors.toList());
+        if (funcs2.isEmpty()) {
+            return funcs;
+        }
+        return funcs2;
     }
 
 
