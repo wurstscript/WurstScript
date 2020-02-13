@@ -215,9 +215,7 @@ test {
     // set minimal heap size required to run tests:
     maxHeapSize = "1G"
 
-    useTestNG() {
-        suites 'src/test/resources/AllTestsSuite.xml'
-    }
+    useTestNG()
 }
 
 // delete the generated sources on clean
