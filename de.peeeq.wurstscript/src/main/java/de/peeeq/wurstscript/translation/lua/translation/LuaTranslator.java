@@ -24,7 +24,7 @@ public class LuaTranslator {
     final LuaCompilationUnit luaModel;
     private final Set<String> usedNames = new HashSet<>(Arrays.asList(
         // reserved function names
-        "print", "tostring", "error",
+        "print", "tostring", "error", "main",
         // keywords:
         "and",
         "break",
@@ -82,7 +82,9 @@ public class LuaTranslator {
         @Override
         public LuaFunction initFor(ImFunction a) {
             String name = a.getName();
-            if (!a.isExtern() && !a.isBj() && !a.isNative()) {
+            if (!a.isExtern() && !a.isBj() && !a.isNative()
+                && imTr.getMainFunc() != a
+                && imTr.getConfFunc() != a) {
                 name = uniqueName(name);
             }
 
@@ -501,8 +503,9 @@ public class LuaTranslator {
         LuaTableFields initialFieldValues = LuaAst.LuaTableFields();
         LuaVariable newInst = LuaAst.LuaVariable("new_inst", LuaAst.LuaTableConstructor(initialFieldValues));
         for (ImVar field : c.getFields()) {
+            LuaVariable fieldL = luaVar.getFor(field);
             initialFieldValues.add(
-                LuaAst.LuaTableNamedField(field.getName(), defaultValue(field.getType()))
+                LuaAst.LuaTableNamedField(fieldL.getName(), defaultValue(field.getType()))
             );
         }
 
