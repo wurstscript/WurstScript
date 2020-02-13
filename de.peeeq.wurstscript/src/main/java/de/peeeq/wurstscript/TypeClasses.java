@@ -43,9 +43,7 @@ public class TypeClasses {
             WurstTypeBoundTypeParam matchedType = matchedTypeOpt.get();
             for (WurstTypeInterface constraint : constraints) {
                 VariableBinding mapping2 = findTypeClass(fc, errors, mapping, tp, matchedType, constraint);
-                if (mapping2 == null) {
-                    errors.add(new CompileError(fc.attrSource(), "Type " + matchedType + " does not satisfy constraint " + tp.getName() + ": " + constraint + "."));
-                } else {
+                if (mapping2 != null) {
                     mapping = mapping2;
                 }
             }

@@ -1373,7 +1373,7 @@ public class ImTranslator {
                 classType(res),
                 "toIndex",
                 toIndex,
-                emptyList(),
+                new ArrayList<>(),
                 false));
 
             // add fromIndex function:
@@ -1394,7 +1394,7 @@ public class ImTranslator {
                 classType(res),
                 "fromIndex",
                 fromIndex,
-                emptyList(),
+                new ArrayList<>(),
                 false));
 
             // add defaultValue function:
@@ -1408,13 +1408,13 @@ public class ImTranslator {
                 ImStmts(
                     ImReturn(t, ImNull(classType(res)))
                 ),
-                emptyList());
+                new ArrayList<>());
             functions.add(defaultValue);
             methods.add(JassIm.ImMethod(t,
                 classType(res),
                 "defaultValue",
                 defaultValue,
-                emptyList(),
+                new ArrayList<>(),
                 false));
 
             imProg.getClasses().add(res);

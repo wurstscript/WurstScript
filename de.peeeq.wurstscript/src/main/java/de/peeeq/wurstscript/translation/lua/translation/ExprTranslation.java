@@ -86,7 +86,8 @@ public class ExprTranslation {
     }
 
     public static LuaExpr translate(ImMemberAccess e, LuaTranslator tr) {
-        LuaExpr res = LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), e.getVar().getName());
+        LuaVariable luaV = tr.luaVar.getFor(e.getVar());
+        LuaExpr res = LuaAst.LuaExprFieldAccess(e.getReceiver().translateToLua(tr), luaV.getName());
         if (!e.getIndexes().isEmpty()) {
             LuaExprlist indexes = LuaAst.LuaExprlist();
             for (ImExpr index : e.getIndexes()) {
@@ -172,6 +173,7 @@ public class ExprTranslation {
         body.add(r);
         int i = 0;
         for (ImVar field : c.getFields()) {
+            System.out.println("field: " + field);
             if (i >= e.getArguments().size()) {
                 break;
             }

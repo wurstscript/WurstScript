@@ -170,6 +170,12 @@ public class RemoveGarbage {
             }
 
             @Override
+            public void visit(ImTypeClassDictValue e) {
+                super.visit(e);
+                visitClass(e.getClazz().getClassDef(), used);
+            }
+
+            @Override
             public void visit(ImMethodCall e) {
                 super.visit(e);
                 visitMethod(e.getMethod(), used);

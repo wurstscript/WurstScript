@@ -11,10 +11,7 @@ import de.peeeq.wurstscript.translation.imtojass.TypeRewriteMatcher;
 import de.peeeq.wurstscript.translation.imtojass.TypeRewriter;
 import de.peeeq.wurstscript.types.*;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import static java.util.Collections.singletonList;
@@ -153,7 +150,7 @@ public class ClosureTranslator {
         tr.getImProg().getFunctions().remove(impl);
         c.getFunctions().add(impl);
         ImClassType methodClass = JassIm.ImClassType(c, JassIm.ImTypeArguments());
-        ImMethod m = JassIm.ImMethod(e, methodClass, superMethod.getName(), impl, JassIm.ImMethods(), false);
+        ImMethod m = JassIm.ImMethod(e, methodClass, superMethod.getName(), impl, new ArrayList<>(), false);
         c.getMethods().add(m);
 
         OverrideUtils.addOverrideClosure(tr, superMethod, m, e);

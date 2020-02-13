@@ -9,8 +9,10 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.types.FunctionSignature.ArgsMatchResult;
 import de.peeeq.wurstscript.utils.Pair;
+import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static de.peeeq.wurstscript.attributes.GenericsHelper.givenBinding;
 import static de.peeeq.wurstscript.attributes.GenericsHelper.typeParameters;
@@ -45,6 +47,7 @@ public class AttrPossibleFunctionSignatures {
 
     private static ImmutableCollection<FunctionSignature> findBestSignature(StmtCall fc, ImmutableCollection<FunctionSignature> res) {
         ImmutableCollection.Builder<FunctionSignature> resultBuilder2 = ImmutableList.builder();
+        ImmutableCollection.Builder<Pair<FunctionSignature, List<CompileError>>> typeClassErrors = ImmutableList.builder();
         List<WurstType> argTypes = AttrFuncDef.argumentTypesPre(fc);
         for (FunctionSignature sig : res) {
             FunctionSignature sig2 = sig.matchAgainstArgs(argTypes, fc);
@@ -54,30 +57,46 @@ public class AttrPossibleFunctionSignatures {
             Pair<FunctionSignature, List<CompileError>> typeClassMatched = TypeClasses.findTypeClasses(sig2, fc);
             if (typeClassMatched.getB().isEmpty()) {
                 resultBuilder2.add(typeClassMatched.getA());
+            } else {
+                typeClassErrors.add(typeClassMatched);
             }
         }
         ImmutableCollection<FunctionSignature> res2 = resultBuilder2.build();
-        if (res2.isEmpty()) {
-            // no signature matches precisely --> try to match as good as possible
-            ImmutableList<ArgsMatchResult> match3 = res.stream()
-                .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
-                .collect(ImmutableList.toImmutableList());
-
-            if (match3.isEmpty()) {
-                return ImmutableList.of();
-            } else {
-                // add errors from best match (minimal badness)
-                ArgsMatchResult min = Collections.min(match3, Comparator.comparing(ArgsMatchResult::getBadness));
-                for (CompileError c : min.getErrors()) {
-                    fc.getErrorHandler().sendError(c);
-                }
-
-                return match3.stream()
-                    .map(ArgsMatchResult::getSig)
-                    .collect(ImmutableList.toImmutableList());
-            }
-        } else {
+        if (!res2.isEmpty()) {
             return res2;
+        }
+        // if no precise matches, check if there are any matches that just miss some type class constraints:
+        ImmutableCollection<Pair<FunctionSignature, List<CompileError>>> typeClassErrorsL = typeClassErrors.build();
+        if (!typeClassErrorsL.isEmpty()) {
+            CompileError err = typeClassErrorsL.stream()
+                .flatMap(x -> x.getB().stream())
+                .findFirst()
+                .get();
+
+            fc.getErrorHandler().sendError(err);
+
+            return typeClassErrorsL.stream()
+                .map(Pair::getA)
+                .collect(ImmutableList.toImmutableList());
+        }
+
+        // no signature matches precisely --> try to match as good as possible
+        ImmutableList<ArgsMatchResult> match3 = res.stream()
+            .map(sig -> sig.tryMatchAgainstArgs(argTypes, fc.getArgs(), fc))
+            .collect(ImmutableList.toImmutableList());
+
+        if (match3.isEmpty()) {
+            return ImmutableList.of();
+        } else {
+            // add errors from best match (minimal badness)
+            ArgsMatchResult min = Collections.min(match3, Comparator.comparing(ArgsMatchResult::getBadness));
+            for (CompileError c : min.getErrors()) {
+                fc.getErrorHandler().sendError(c);
+            }
+
+            return match3.stream()
+                .map(ArgsMatchResult::getSig)
+                .collect(ImmutableList.toImmutableList());
         }
     }
 

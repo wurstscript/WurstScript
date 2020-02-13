@@ -1780,4 +1780,30 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void typeClassFindSupertypeInstance() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
+            "interface ToIndex<T:>",
+            "	function toIndex(T x) returns int",
+            "interface FromIndex<T:>",
+            "	function fromIndex(int i) returns T",
+            "class A",
+            "implements ConvertIndex<string>",
+            "    function toIndex(string x) returns int",
+            "        return 42",
+            "    function fromIndex(int i) returns string",
+            "        return \"42\"",
+            "function foo<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "init",
+            "    let a = new A",
+            "    if foo(\"x\") == 42 and foo(a) != 42",
+            "        testSuccess()"
+            );
+    }
 }

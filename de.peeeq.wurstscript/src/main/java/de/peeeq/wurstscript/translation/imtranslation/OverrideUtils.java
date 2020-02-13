@@ -116,8 +116,7 @@ public class OverrideUtils {
         ImFunction implementation = JassIm.ImFunction(e, subMethod.getName() + "_wrapper", JassIm.ImTypeVars(), parameters, rType, locals, body, flags);
         tr.getImProg().getFunctions().add(implementation);
 
-        List<ImMethod> subMethods = Collections.emptyList();
-        ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, subMethods, false);
+        ImMethod wrapperMethod = JassIm.ImMethod(e, subMethod.getMethodClass(), subMethod.getName() + "_wrapper", implementation, new ArrayList<>(), false);
         subClass.getMethods().add(wrapperMethod);
         superMethodIm.getSubMethods().add(wrapperMethod);
     }
