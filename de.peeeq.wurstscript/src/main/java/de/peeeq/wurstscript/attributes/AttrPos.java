@@ -85,6 +85,10 @@ public class AttrPos {
         return e.attrSource();
     }
 
+    public static WPos getErrorPos(InstanceDecl e) {
+        return e.getImplementedInterface().attrErrorPos();
+    }
+
     public static WPos getErrorPos(SomeSuperConstructorCall e) {
         return e.getKeywordSource();
     }

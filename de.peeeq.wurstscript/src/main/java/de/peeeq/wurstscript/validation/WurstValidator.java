@@ -1786,7 +1786,11 @@ public class WurstValidator {
                             }
                         }
                     } else {
-                        check(VisibilityPublic.class, Annotation.class);
+                        if (isInInstanceDecl(f)) {
+                            check(VisibilityPublic.class, Annotation.class, ModOverride.class);
+                        } else {
+                            check(VisibilityPublic.class, Annotation.class);
+                        }
                     }
                     if (f.attrIsCompiletime()) {
                         if (f.getParameters().size() > 0) {
@@ -1858,6 +1862,17 @@ public class WurstValidator {
                 }
             }
         }
+    }
+
+    private boolean isInInstanceDecl(FuncDef f) {
+        Element e = f;
+        while (e != null) {
+            if (e instanceof InstanceDecl) {
+                return true;
+            }
+            e = e.getParent();
+        }
+        return false;
     }
 
     private static String printMod(Class<? extends Modifier> c) {

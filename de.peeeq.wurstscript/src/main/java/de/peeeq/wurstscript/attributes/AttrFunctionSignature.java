@@ -47,6 +47,7 @@ public class AttrFunctionSignature {
             return candidates.get(0);
         }
 
+        sigs = candidates;
         candidates = filterByIfNotDefinedAnnotation(candidates);
         if (candidates.isEmpty()) {
             // parameters match for no element, just return the first signature
@@ -55,6 +56,7 @@ public class AttrFunctionSignature {
             return candidates.get(0);
         }
 
+        sigs = candidates;
         candidates = filterByHasTypeClasses(candidates);
         if (candidates.isEmpty()) {
             // parameters match for no element, just return the first signature
@@ -62,7 +64,6 @@ public class AttrFunctionSignature {
         } else if (candidates.size() == 1) {
             return candidates.get(0);
         }
-
 
 
         if (argTypes.stream().noneMatch(t -> t instanceof WurstTypeUnknown)) {
