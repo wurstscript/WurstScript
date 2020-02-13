@@ -1383,10 +1383,10 @@ public class ImTranslator {
                 "fromIndex",
                 JassIm.ImTypeVars(),
                 JassIm.ImVars(thiz, p),
-                ImAnyType(),
+                classType(res),
                 JassIm.ImVars(),
                 ImStmts(
-                    ImReturn(t, ImCast(ImVarAccess(p), ImAnyType()))
+                    ImReturn(t, ImCast(ImVarAccess(p), classType(res)))
                 ),
                 emptyList());
             functions.add(fromIndex);
@@ -1403,7 +1403,7 @@ public class ImTranslator {
                 "defaultValue",
                 JassIm.ImTypeVars(),
                 JassIm.ImVars(thiz),
-                ImAnyType(),
+                classType(res),
                 JassIm.ImVars(),
                 ImStmts(
                     ImReturn(t, ImNull(classType(res)))
