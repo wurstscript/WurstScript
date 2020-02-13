@@ -26,7 +26,7 @@ public class TypeClasses {
      */
     private static final int DERIVATION_MAX_INSTANCE_USES = 10;
 
-    private static final ImmutableList<String> OBJ_INSTANCES = ImmutableList.of("FromIndex", "ToIndex", "Default", "AnyRef");
+    private static final ImmutableList<String> OBJ_INSTANCES = ImmutableList.of("FromIndex", "ToIndex", "ConvertIndex", "Default", "AnyRef");
 
     public static Pair<FunctionSignature, List<CompileError>> findTypeClasses(FunctionSignature sig, StmtCall fc) {
         List<CompileError> errors = new ArrayList<>();
@@ -213,19 +213,34 @@ public class TypeClasses {
     }
 
     public static List<InstanceDecl> availableTypeClasses(WPackage p) {
-        return Stream.concat(
-            p.attrDefinedTypeClasses().stream(),
-            p.getImports().stream()
-                .map(WImport::attrImportedPackage)
-                .flatMap(ip -> {
-                    if (ip == null) {
-                        return Stream.empty();
-                    } else {
-                        return ip.attrDefinedTypeClasses().stream()
-                            .filter(InstanceDecl::attrIsPublic);
-                    }
-                }))
-            .collect(Collectors.toList());
+        List<InstanceDecl> result = new ArrayList<>(p.attrDefinedTypeClasses());
+        Set<WPackage> visited = new HashSet<>();
+        for (WImport imp : p.getImports()) {
+            @Nullable WPackage impP = imp.attrImportedPackage();
+            collectImportedInstances(result, visited, impP);
+        }
+        return result;
+    }
+
+    private static void collectImportedInstances(List<InstanceDecl> result, Set<WPackage> visited, WPackage p) {
+        if (p == null) {
+            return;
+        }
+        if (visited.contains(p)) {
+            return;
+        }
+        visited.add(p);
+        for (InstanceDecl inst : p.attrDefinedTypeClasses()) {
+            if (inst.attrIsPublic()) {
+                result.add(inst);
+            }
+        }
+        for (WImport imp : p.getImports()) {
+            if (imp.getIsPublic()) {
+                @Nullable WPackage impP = imp.attrImportedPackage();
+                collectImportedInstances(result, visited, impP);
+            }
+        }
     }
 
     public static List<InstanceDecl> definedTypeClasses(WPackage p) {

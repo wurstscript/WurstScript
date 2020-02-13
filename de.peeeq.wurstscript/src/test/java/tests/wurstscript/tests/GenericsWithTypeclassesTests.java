@@ -1806,4 +1806,28 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "        testSuccess()"
             );
     }
+
+    @Test
+    public void instanceViaPublicImport() {
+        testAssertOkLines(true,
+            "package a",
+            "public interface ToIndex<T:>",
+            "	function toIndex(T x) returns int",
+            "public implements ToIndex<int>",
+            "    function toIndex(int x) returns int",
+            "        return x",
+            "endpackage",
+            "package b",
+            "import public a",
+            "endpackage",
+            "package test",
+            "import b",
+            "native testSuccess()",
+            "function foo<Q: ToIndex>(Q x)",
+            "    if Q.toIndex(x) == 42",
+            "        testSuccess()",
+            "init",
+            "    foo(42)"
+        );
+    }
 }
