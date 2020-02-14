@@ -1814,9 +1814,6 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
-            // TODO should work without these 2 lines:
-            "	function toIndex(T x) returns int",
-            "	function fromIndex(int i) returns T",
             "interface ToIndex<T:>",
             "	function toIndex(T x) returns int",
             "interface FromIndex<T:>",

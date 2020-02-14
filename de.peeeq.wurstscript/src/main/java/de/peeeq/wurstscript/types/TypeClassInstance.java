@@ -81,14 +81,14 @@ public abstract class TypeClassInstance {
                     cd.getSuperClasses().add(JassIm.ImClassType(sup,
                         JassIm.ImTypeArguments(JassIm.ImTypeArgument(objectType.imTranslateType(tr)))));
                     // add sub methods
-                    for (FuncDef m : supI.getMethods()) {
-                        ImMethod imMethod = tr.getMethodFor(m);
+                    supI.attrTyp().getMemberMethods(trace).forEach(m -> {
+                        ImMethod imMethod = tr.getMethodFor((FuncDef) m.getDef());
                         for (ImMethod cdM : cd.getMethods()) {
                             if (cdM.getName().equals(m.getName())) {
                                 imMethod.getSubMethods().add(cdM);
                             }
                         }
-                    }
+                    });
                 }
                 ImClassType c = JassIm.ImClassType(cd, JassIm.ImTypeArguments());
                 return JassIm.ImTypeClassDictValue(trace, c, JassIm.ImExprs());
