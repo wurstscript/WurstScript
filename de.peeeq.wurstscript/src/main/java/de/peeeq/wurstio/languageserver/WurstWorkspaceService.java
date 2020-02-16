@@ -27,13 +27,13 @@ public class WurstWorkspaceService implements WorkspaceService {
 
     @Override
     public void didChangeConfiguration(DidChangeConfigurationParams params) {
-        WLogger.info("didChangeConfiguration");
+        WLogger.trace("didChangeConfiguration");
 
     }
 
     @Override
     public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
-        WLogger.info("didChangeWatchedFiles");
+        WLogger.trace("didChangeWatchedFiles");
         server.worker().handleFileChanged(params);
     }
 
