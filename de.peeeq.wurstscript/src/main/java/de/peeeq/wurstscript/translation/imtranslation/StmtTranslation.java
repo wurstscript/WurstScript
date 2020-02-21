@@ -9,15 +9,13 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.jassIm.ImExprs;
 import de.peeeq.wurstscript.jassIm.ImFunction;
-import de.peeeq.wurstscript.jassIm.ImFunctionCall;
 import de.peeeq.wurstscript.jassIm.ImIf;
 import de.peeeq.wurstscript.jassIm.ImReturn;
 import de.peeeq.wurstscript.jassIm.ImSet;
 import de.peeeq.wurstscript.jassIm.ImStmts;
 import de.peeeq.wurstscript.jassIm.ImVar;
-import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeVararg;
+import de.peeeq.wurstscript.types.*;
+import io.vavr.control.Option;
 
 import java.util.Collections;
 import java.util.List;
@@ -73,10 +71,6 @@ public class StmtTranslation {
             FuncLink nextFunc = nextFuncOpt.get();
             FuncLink hasNextFunc = hasNextFuncOpt.get();
 
-            // get the iterator function in the intermediate language
-            ImFunction nextFuncIm = t.getFuncFor(nextFunc.getDef());
-            ImFunction hasNextFuncIm = t.getFuncFor(hasNextFunc.getDef());
-
             f.getLocals().add(t.getVarFor(s.getLoopVar()));
 
             ImExprs fromTarget;
@@ -93,10 +87,9 @@ public class StmtTranslation {
 
             ImStmts imBody = ImStmts();
             // exitwhen not #hasNext()
-            imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(ImFunctionCall(s, hasNextFuncIm, ImTypeArguments(), fromTarget, false, CallType
-                    .NORMAL)))));
+            imBody.add(ImExitwhen(s, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(functionCall(s, hasNextFunc, fromTarget, t)))));
             // elem = next()
-            ImFunctionCall nextCall = ImFunctionCall(s, nextFuncIm, ImTypeArguments(), fromTarget.copy(), false, CallType.NORMAL);
+            ImExpr nextCall = functionCall(s, nextFunc, fromTarget.copy(), t);
 
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(s, t, nextCall, nextReturn, loopVarType);
@@ -131,11 +124,6 @@ public class StmtTranslation {
             // Type of loop Variable:
             WurstType loopVarType = forIn.getLoopVar().attrTyp();
 
-            // get the iterator function in the intermediate language
-            ImFunction iteratorFuncIm = t.getFuncFor(iteratorFunc.getDef());
-            ImFunction nextFuncIm = t.getFuncFor(nextFunc.getDef());
-            ImFunction hasNextFuncIm = t.getFuncFor(hasNextFunc.getDef());
-
             // translate target:
             ImExprs iterationTargetList;
             if (forIn.getIn().attrTyp().isStaticRef()) {
@@ -146,7 +134,8 @@ public class StmtTranslation {
             }
 
             // call XX.iterator()
-            ImFunctionCall iteratorCall = ImFunctionCall(forIn, iteratorFuncIm, ImTypeArguments(), iterationTargetList, false, CallType.NORMAL);
+            // TODO use method calls if method, set type args (reuse code if possible)
+            ImExpr iteratorCall = functionCall(forIn, iteratorFunc, iterationTargetList, t);
             // create IM-variable for iterator
             ImVar iteratorVar = ImVar(forIn.getLoopVar(), iteratorCall.attrTyp(), "iterator", Collections.emptyList());
 
@@ -160,11 +149,11 @@ public class StmtTranslation {
 
             ImStmts imBody = ImStmts();
             // exitwhen not #hasNext()
-            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(ImFunctionCall(forIn, hasNextFuncIm, ImTypeArguments(), JassIm.ImExprs
-                    (JassIm
-                            .ImVarAccess(iteratorVar)), false, CallType.NORMAL)))));
+            imBody.add(ImExitwhen(forIn, JassIm.ImOperatorCall(WurstOperator.NOT, JassIm.ImExprs(functionCall(forIn, hasNextFunc, JassIm.ImExprs
+                (JassIm
+                    .ImVarAccess(iteratorVar)), t)))));
             // elem = next()
-            ImFunctionCall nextCall = ImFunctionCall(forIn, nextFuncIm, ImTypeArguments(), JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL);
+            ImExpr nextCall = functionCall(forIn, nextFunc, JassIm.ImExprs(JassIm.ImVarAccess(iteratorVar)), t);
             WurstType nextReturn = nextFunc.getReturnType();
             ImExpr nextCallWrapped = ExprTranslation.wrapTranslation(forIn, t, nextCall, nextReturn, loopVarType);
 
@@ -180,8 +169,8 @@ public class StmtTranslation {
                     @Override
                     public void visit(ImReturn imReturn) {
                         super.visit(imReturn);
-                        imReturn.replaceBy(ImHelper.statementExprVoid(JassIm.ImStmts(ImFunctionCall(forIn, t.getFuncFor(funcLink.getDef()), ImTypeArguments(), JassIm
-                                .ImExprs(JassIm.ImVarAccess(iteratorVar)), false, CallType.NORMAL), imReturn.copy())));
+                        imReturn.replaceBy(ImHelper.statementExprVoid(JassIm.ImStmts(functionCall(forIn, funcLink, JassIm
+                            .ImExprs(JassIm.ImVarAccess(iteratorVar)), t), imReturn.copy())));
                     }
 
                 });
@@ -190,13 +179,45 @@ public class StmtTranslation {
 
             result.add(ImLoop(forIn, imBody));
             // close iterator after loop
-            closeFunc.ifPresent(nameLink -> result.add(ImFunctionCall(forIn, t.getFuncFor(nameLink.getDef()), ImTypeArguments(), JassIm.ImExprs(JassIm
-                    .ImVarAccess(iteratorVar)), false, CallType.NORMAL)));
+            closeFunc.ifPresent(nameLink -> result.add(functionCall(forIn, nameLink, JassIm.ImExprs(JassIm
+                .ImVarAccess(iteratorVar)), t)));
 
         }
 
 
         return ImHelper.statementExprVoid(ImStmts(result));
+    }
+
+    private static ImExpr functionCall(Element trace, FuncLink funcLink, ImExprs args, ImTranslator tr) {
+        FunctionDefinition def = funcLink.getDef();
+        ImTypeArguments typeParams = JassIm.ImTypeArguments();
+        if (def instanceof AstElementWithTypeParameters) {
+            VariableBinding binding = funcLink.getVariableBinding();
+            for (TypeParamDef tp : ((AstElementWithTypeParameters) def).getTypeParameters()) {
+                if (tp.getTypeParamConstraints() instanceof TypeParamConstraintList) {
+                    WurstTypeBoundTypeParam t = binding.get(tp).get();
+                    typeParams.add(JassIm.ImTypeArgument(t.imTranslateType(tr)));
+                }
+            }
+        }
+        if (def.attrIsDynamicClassMember()) {
+            FuncDef funcDef = (FuncDef) def;
+
+            // translate as method call
+            args = args.copyWithRefs();
+            ImExpr receiver = args.remove(0);
+            return JassIm.ImMethodCall(trace, tr.getMethodFor(funcDef),
+                typeParams, receiver, args, false);
+        }
+        // otherwise it is a function call:
+        return JassIm.ImFunctionCall(
+            trace,
+            tr.getFuncFor(def),
+            typeParams,
+            args,
+            false,
+            CallType.NORMAL
+        );
     }
 
     /**
@@ -216,13 +237,13 @@ public class StmtTranslation {
 
     public static ImStmt translate(StmtForRangeUp s, ImTranslator t, ImFunction f) {
         return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(), WurstOperator.PLUS,
-                WurstOperator.GREATER, s);
+            WurstOperator.GREATER, s);
     }
 
 
     public static ImStmt translate(StmtForRangeDown s, ImTranslator t, ImFunction f) {
         return case_StmtForRange(t, f, s.getLoopVar(), s.getTo(), s.getStep(), s.getBody(),
-                WurstOperator.MINUS, WurstOperator.LESS, s);
+            WurstOperator.MINUS, WurstOperator.LESS, s);
     }
 
     private static ImStmt case_StmtForRange(ImTranslator t, ImFunction f, LocalVarDef loopVar,
@@ -263,7 +284,7 @@ public class StmtTranslation {
 
     public static ImStmt translate(StmtIf s, ImTranslator t, ImFunction f) {
         return ImIf(s, s.getCond().imTranslateExpr(t, f), ImStmts(t.translateStatements(f, s.getThenBlock())), ImStmts(t.translateStatements(f, s
-                .getElseBlock())));
+            .getElseBlock())));
     }
 
 
@@ -314,17 +335,17 @@ public class StmtTranslation {
             cse = switchStmt.getCases().get(i);
             if (lastIf == null) {
                 lastIf = ImIf(switchStmt, translateSwitchCase(cse, tempVar, f, t), ImStmts(t
-                        .translateStatements(f, cse.getStmts())), ImStmts());
+                    .translateStatements(f, cse.getStmts())), ImStmts());
                 result.add(lastIf);
             } else if (i == switchStmt.getCases().size() - 1
-                    && switchStmt.getSwitchDefault() instanceof NoDefaultCase
-                    && switchStmt.calculateHandlesAllCases()) {
+                && switchStmt.getSwitchDefault() instanceof NoDefaultCase
+                && switchStmt.calculateHandlesAllCases()) {
                 // if this is the last case and all cases are covered, then just add
                 // the code to the else statement without checking the condition:
                 lastIf.setElseBlock(ImStmts(t.translateStatements(f, cse.getStmts())));
             } else {
                 ImIf tmp = ImIf(switchStmt, translateSwitchCase(cse, tempVar, f, t), ImStmts
-                        (t.translateStatements(f, cse.getStmts())), ImStmts());
+                    (t.translateStatements(f, cse.getStmts())), ImStmts());
                 lastIf.setElseBlock(ImStmts(tmp));
                 lastIf = tmp;
             }
@@ -359,10 +380,10 @@ public class StmtTranslation {
      */
     private static ImExpr translateSwitchCase(SwitchCase cse, ImExpr tempVar, ImFunction f, ImTranslator t) {
         return cse.getExpressions()
-                .stream()
-                .<ImExpr>map(e -> ImOperatorCall(WurstOperator.EQ, ImExprs(tempVar.copy(), e.imTranslateExpr(t, f))))
-                .reduce((x, y) -> ImOperatorCall(WurstOperator.OR, ImExprs(x, y)))
-                .orElseGet(() -> JassIm.ImBoolVal(true));
+            .stream()
+            .<ImExpr>map(e -> ImOperatorCall(WurstOperator.EQ, ImExprs(tempVar.copy(), e.imTranslateExpr(t, f))))
+            .reduce((x, y) -> ImOperatorCall(WurstOperator.OR, ImExprs(x, y)))
+            .orElseGet(() -> JassIm.ImBoolVal(true));
     }
 
     public static ImStmt translate(EndFunctionStatement endFunctionStatement, ImTranslator translator, ImFunction f) {

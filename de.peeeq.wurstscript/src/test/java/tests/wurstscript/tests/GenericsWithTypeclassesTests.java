@@ -10,14 +10,14 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identity() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function identity<A:>(A a) returns A",
-            "		return a",
-            "	init",
-            "		int x = identity(3)",
-            "		string s = identity(\"a\")",
-            "		if x == 3 and s == \"a\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function identity<A:>(A a) returns A",
+            "        return a",
+            "    init",
+            "        int x = identity(3)",
+            "        string s = identity(\"a\")",
+            "        if x == 3 and s == \"a\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -26,18 +26,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityTrans() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function identity1<A:>(A a) returns A",
-            "		return a",
-            "	function identity2<B:>(B a) returns B",
-            "		return identity1(a)",
-            "	function identity3<C:>(C a) returns C",
-            "		return identity2(a)",
-            "	init",
-            "		int x = identity3(3)",
-            "		string s = identity3(\"a\")",
-            "		if x == 3 and s == \"a\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function identity1<A:>(A a) returns A",
+            "        return a",
+            "    function identity2<B:>(B a) returns B",
+            "        return identity1(a)",
+            "    function identity3<C:>(C a) returns C",
+            "        return identity2(a)",
+            "    init",
+            "        int x = identity3(3)",
+            "        string s = identity3(\"a\")",
+            "        if x == 3 and s == \"a\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -46,16 +46,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityRec() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function identity<A:>(int i, A a) returns A",
-            "		if i > 0",
-            "			return identity(i - 1, a)",
-            "		return a",
-            "	init",
-            "		int x = identity(5, 3)",
-            "		string s = identity(5, \"a\")",
-            "		if x == 3 and s == \"a\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function identity<A:>(int i, A a) returns A",
+            "        if i > 0",
+            "            return identity(i - 1, a)",
+            "        return a",
+            "    init",
+            "        int x = identity(5, 3)",
+            "        string s = identity(5, \"a\")",
+            "        if x == 3 and s == \"a\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -65,17 +65,17 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityRecTypeCreation() {
         testAssertErrorsLines(true, "some error message",
             "package test",
-            "	native testSuccess()",
-            "	class C<T>",
-            "		construct(T t)",
-            "	function blub<A:>(int i, A a) returns int",
-            "		if i <= 0",
-            "			return 0",
-            "		return 1 + blub<C<A>>(i-1, new C(a))",
-            "	init",
-            "		int x = blub(5, 3)",
-            "		if x == 5",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    class C<T>",
+            "        construct(T t)",
+            "    function blub<A:>(int i, A a) returns int",
+            "        if i <= 0",
+            "            return 0",
+            "        return 1 + blub<C<A>>(i-1, new C(a))",
+            "    init",
+            "        int x = blub(5, 3)",
+            "        if x == 5",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -84,20 +84,20 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityRecMut() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function identity1<A:>(int i, A a) returns A",
-            "		if i > 0",
-            "			return identity2(i - 1, a)",
-            "		return a",
-            "	function identity2<A:>(int i, A a) returns A",
-            "		if i > 0",
-            "			return identity1(i - 1, a)",
-            "		return a",
-            "	init",
-            "		int x = identity1(5, 3)",
-            "		string s = identity1(5, \"a\")",
-            "		if x == 3 and s == \"a\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function identity1<A:>(int i, A a) returns A",
+            "        if i > 0",
+            "            return identity2(i - 1, a)",
+            "        return a",
+            "    function identity2<A:>(int i, A a) returns A",
+            "        if i > 0",
+            "            return identity1(i - 1, a)",
+            "        return a",
+            "    init",
+            "        int x = identity1(5, 3)",
+            "        string s = identity1(5, \"a\")",
+            "        if x == 3 and s == \"a\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -106,16 +106,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void extensionFunc() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function boolean.choice<A:>(A x, A y) returns A",
-            "		if this",
-            "			return x",
-            "		return y",
-            "	init",
-            "		int x = true.choice(5, 3)",
-            "		string s = false.choice(\"a\", \"b\")",
-            "		if x == 5 and s == \"b\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function boolean.choice<A:>(A x, A y) returns A",
+            "        if this",
+            "            return x",
+            "        return y",
+            "    init",
+            "        int x = true.choice(5, 3)",
+            "        string s = false.choice(\"a\", \"b\")",
+            "        if x == 5 and s == \"b\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -125,16 +125,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void extensionFuncReceiver() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function A.choice<A:>(boolean b, A y) returns A",
-            "		if b",
-            "			return this",
-            "		return y",
-            "	init",
-            "		int x = (5).choice(true, 3)",
-            "		string s = \"a\".choice(false, \"b\")",
-            "		if x == 5 and s == \"b\"",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function A.choice<A:>(boolean b, A y) returns A",
+            "        if b",
+            "            return this",
+            "        return y",
+            "    init",
+            "        int x = (5).choice(true, 3)",
+            "        string s = \"a\".choice(false, \"b\")",
+            "        if x == 5 and s == \"b\"",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -145,14 +145,14 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "class Cell<T:>",
-            "	T o",
+            "    T o",
             "init",
-            "	Cell<int> x = new Cell<int>()",
-            "	Cell<string> y = new Cell<string>()",
-            "	x.o = 3",
-            "	y.o = \"a\"",
-            "	if x.o == 3 and y.o == \"a\"",
-            "		testSuccess()"
+            "    Cell<int> x = new Cell<int>()",
+            "    Cell<string> y = new Cell<string>()",
+            "    x.o = 3",
+            "    y.o = \"a\"",
+            "    if x.o == 3 and y.o == \"a\"",
+            "        testSuccess()"
         );
     }
 
@@ -161,15 +161,15 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identity2() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class C",
-            "	function identity<A:>(A a) returns A",
-            "		return a",
-            "	init",
-            "		C a = new C()",
-            "		C b = identity(a)",
-            "		if a == b",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    class C",
+            "    function identity<A:>(A a) returns A",
+            "        return a",
+            "    init",
+            "        C a = new C()",
+            "        C b = identity(a)",
+            "        if a == b",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -179,28 +179,28 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void function() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class List<T:>",
-            "		function iterator() returns Iterator<T>",
-            "			return new Iterator<T>(this)",
-            "	class Iterator<S:>",
-            "		S t",
-            "		construct(List<S> t)",
-            "			int x = 1",
-            "		function hasNext() returns boolean",
-            "			return true",
-            "		function next() returns S",
-            "			return t",
-            "	class A",
-            "	class B",
-            "	class C",
-            "	init",
-            "		List<B> a = new List<B>()",
-//				"		for B b in a",
-            "		Iterator<B> iterator = a.iterator()",
-            "		while iterator.hasNext()",
-            "			B b = iterator.next()",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    class List<T:>",
+            "        function iterator() returns Iterator<T>",
+            "            return new Iterator<T>(this)",
+            "    class Iterator<S:>",
+            "        S t",
+            "        construct(List<S> t)",
+            "            int x = 1",
+            "        function hasNext() returns boolean",
+            "            return true",
+            "        function next() returns S",
+            "            return t",
+            "    class A",
+            "    class B",
+            "    class C",
+            "    init",
+            "        List<B> a = new List<B>()",
+//                "        for B b in a",
+            "        Iterator<B> iterator = a.iterator()",
+            "        while iterator.hasNext()",
+            "            B b = iterator.next()",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -209,10 +209,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void testSubtypeGenericClass() {
         testAssertOkLines(false,
             "package test",
-            "	class A<T:>",
-            "	class B<S:> extends A<S>",
-            "	init",
-            "		A<int> x = new B<int>",
+            "    class A<T:>",
+            "    class B<S:> extends A<S>",
+            "    init",
+            "        A<int> x = new B<int>",
             "endpackage"
         );
     }
@@ -221,10 +221,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void testSubtypeGenericClass2() {
         testAssertOkLines(false,
             "package test",
-            "	class A<T:>",
-            "	class B<S:> extends A<S>",
-            "	function foo<X>()",
-            "		A<X> x = new B<X>",
+            "    class A<T:>",
+            "    class B<S:> extends A<S>",
+            "    function foo<X>()",
+            "        A<X> x = new B<X>",
             "endpackage"
         );
     }
@@ -233,10 +233,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void testSubtypeGenericInterface() {
         testAssertOkLines(false,
             "package test",
-            "	interface I<T:>",
-            "	class B<S:> implements I<S>",
-            "	init",
-            "		I<int> x = new B<int>",
+            "    interface I<T:>",
+            "    class B<S:> implements I<S>",
+            "    init",
+            "        I<int> x = new B<int>",
             "endpackage"
         );
     }
@@ -245,13 +245,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityFail1() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	function identity<A:>(A a) returns A",
-            "		return a",
-            "	init",
-            "		real x = identity(3.14)",
-            "		if x == 3.14",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    function identity<A:>(A a) returns A",
+            "        return a",
+            "    init",
+            "        real x = identity(3.14)",
+            "        if x == 3.14",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -260,12 +260,12 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void identityFail2() {
         testAssertErrorsLines(true, "Cannot assign C to real",
             "package test",
-            "	function identity<A:>(A a) returns A",
-            "		return a",
-            "	class C",
-            "		int y",
-            "	init",
-            "		real x = identity(new C())",
+            "    function identity<A:>(A a) returns A",
+            "        return a",
+            "    class C",
+            "        int y",
+            "    init",
+            "        real x = identity(new C())",
             "endpackage"
         );
     }
@@ -275,18 +275,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void cellExample() {
         testAssertErrorsLines(true, "Wrong parameter type",
             "package test",
-            "	native testSuccess()",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
-            "	class A",
-            "	class B",
-            "	init",
-            "		Cell<A> c = new Cell<A>()",
-            "		c.set(new B())",
+            "    native testSuccess()",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
+            "    class A",
+            "    class B",
+            "    init",
+            "        Cell<A> c = new Cell<A>()",
+            "        c.set(new B())",
             "endpackage"
         );
     }
@@ -295,20 +295,20 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void implicitConversions() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
+            "    native testSuccess()",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
             "",
-            "	tuple bla(int z, int y)",
-            "	init",
-            "		Cell<bla> c = new Cell<bla>()",
-            "		c.set(bla(5, 3))",
-            "		if c.get() == bla(5, 3)",
-            "			testSuccess()",
+            "    tuple bla(int z, int y)",
+            "    init",
+            "        Cell<bla> c = new Cell<bla>()",
+            "        c.set(bla(5, 3))",
+            "        if c.get() == bla(5, 3)",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -317,21 +317,21 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void implicitConversions2() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
+            "    native testSuccess()",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
             "",
-            "	tuple bla(int z, int y)",
-            "	init",
-            "		Cell<bla> c = new Cell<bla>()",
-            "		c.set(bla(5, 3))",
-            "		c.set(c.get())",
-            "		if c.get() == bla(5, 3)",
-            "			testSuccess()",
+            "    tuple bla(int z, int y)",
+            "    init",
+            "        Cell<bla> c = new Cell<bla>()",
+            "        c.set(bla(5, 3))",
+            "        c.set(c.get())",
+            "        if c.get() == bla(5, 3)",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -340,25 +340,25 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void implicitConversions3() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	public interface FoldClosure<T:, Q:>",
-            "		function apply(T t, Q q) returns Q",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
-            "		function fold<Q:>(Q start, FoldClosure<T,Q> f) returns Q",
-            "			return f.apply(elem, start)",
+            "    native testSuccess()",
+            "    public interface FoldClosure<T:, Q:>",
+            "        function apply(T t, Q q) returns Q",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
+            "        function fold<Q:>(Q start, FoldClosure<T,Q> f) returns Q",
+            "            return f.apply(elem, start)",
             "",
-            "	tuple bla(int z, int y)",
-            "	init",
-            "		Cell<bla> c = new Cell<bla>()",
-            "		c.set(bla(5, 3))",
-            "		let x = c.fold(2, (e, a) -> e.z + a)",
-            "		if x == 7",
-            "			testSuccess()",
+            "    tuple bla(int z, int y)",
+            "    init",
+            "        Cell<bla> c = new Cell<bla>()",
+            "        c.set(bla(5, 3))",
+            "        let x = c.fold(2, (e, a) -> e.z + a)",
+            "        if x == 7",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -390,24 +390,24 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "@extern native R2S(real r) returns string",
             "native println(string s)",
             "interface F<A:,R:>",
-            "	function apply(A a) returns R",
+            "    function apply(A a) returns R",
             "class Cell<T:>",
-            "	T elem",
-            "	construct(T t)",
-            "		this.elem = t",
-            "	function get() returns T",
-            "		return elem",
-            "	function map<R:>(F<T,R> f) returns Cell<R>",
-            "		return new Cell(f.apply(elem))",
+            "    T elem",
+            "    construct(T t)",
+            "        this.elem = t",
+            "    function get() returns T",
+            "        return elem",
+            "    function map<R:>(F<T,R> f) returns Cell<R>",
+            "        return new Cell(f.apply(elem))",
             "function real.assertEquals(real expected)",
-            "	if this == expected",
-            "		testSuccess()",
-            "	else",
-            "		println(R2S(this))",
+            "    if this == expected",
+            "        testSuccess()",
+            "    else",
+            "        println(R2S(this))",
             "init",
-            "	let a = new Cell(5)",
-            "	let b = a.map(i -> i*10.)",
-            "	b.get().assertEquals(50)"
+            "    let a = new Cell(5)",
+            "    let b = a.map(i -> i*10.)",
+            "    b.get().assertEquals(50)"
         );
     }
 
@@ -415,20 +415,20 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void implicitConversionsFail() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
+            "    native testSuccess()",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
             "",
-            "	tuple bla(int z, int y)",
-            "	init",
-            "		Cell<bla> c = new Cell<bla>()",
-            "		c.set(bla(3,4))",
-            "		if c.get() == bla(3,4)",
-            "			testSuccess()",
+            "    tuple bla(int z, int y)",
+            "    init",
+            "        Cell<bla> c = new Cell<bla>()",
+            "        c.set(bla(3,4))",
+            "        if c.get() == bla(3,4)",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -439,16 +439,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "type unit extends handle",
             "package test",
-            "	native testSuccess()",
-            "	class Cell<T:>",
-            "		T elem",
-            "		function set(T t)",
-            "			elem = t",
-            "		function get() returns T",
-            "			return elem",
-            "	init",
-            "		Cell<unit> c = new Cell<unit>()",
-            "		Cell<unit> c2 = c",
+            "    native testSuccess()",
+            "    class Cell<T:>",
+            "        T elem",
+            "        function set(T t)",
+            "            elem = t",
+            "        function get() returns T",
+            "            return elem",
+            "    init",
+            "        Cell<unit> c = new Cell<unit>()",
+            "        Cell<unit> c2 = c",
             "endpackage"
         );
     }
@@ -460,7 +460,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class L<T:>",
             "init",
-            "	L<effect> l = new L<effect>()"
+            "    L<effect> l = new L<effect>()"
         );
     }
 
@@ -472,12 +472,12 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
 
             "class List<T:>",
-            "	function get() returns T",
-            "		return 0 castTo T",
+            "    function get() returns T",
+            "        return 0 castTo T",
 
             "init",
-            "	List<effect> fxs = new List<effect>()",
-            "	let f = fxs.get()",
+            "    List<effect> fxs = new List<effect>()",
+            "    let f = fxs.get()",
             "endpackage");
     }
 
@@ -488,17 +488,17 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "class Cell<T:>",
-            "	T o",
+            "    T o",
             "class A",
-            "	function foo() returns int",
-            "		return 5",
+            "    function foo() returns int",
+            "        return 5",
             "class B extends A",
-            "	override function foo() returns int",
-            "		return 6",
+            "    override function foo() returns int",
+            "        return 6",
             "init",
-            "	Cell<A> c = new Cell<A>()",
-            "	c.o = new B()",
-            "	B b = c.o castTo B"
+            "    Cell<A> c = new Cell<A>()",
+            "    c.o = new B()",
+            "    B b = c.o castTo B"
         );
     }
 
@@ -508,18 +508,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "class Cell<T:>",
-            "	T o",
+            "    T o",
             "class A",
-            "	function foo() returns int",
-            "		return 5",
+            "    function foo() returns int",
+            "        return 5",
             "class B extends A",
-            "	override function foo() returns int",
-            "		return 6",
+            "    override function foo() returns int",
+            "        return 6",
             "init",
-            "	Cell<A> c = new Cell<A>()",
-            "	c.o = new B()",
-            "	if c.o.foo() == 6",
-            "		testSuccess()"
+            "    Cell<A> c = new Cell<A>()",
+            "    c.o = new B()",
+            "    if c.o.foo() == 6",
+            "        testSuccess()"
         );
     }
 
@@ -529,12 +529,12 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "class A<T:>",
-            "	function bla(T t)",
+            "    function bla(T t)",
             "class B extends A<C>",
             "class C",
             "init",
-            "	let b = new B",
-            "	b.bla(new C)"
+            "    let b = new B",
+            "    b.bla(new C)"
         );
     }
 
@@ -544,15 +544,15 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "interface I<S:,T:>",
-            "	function bla(T t, S s)",
-            "		skip",
+            "    function bla(T t, S s)",
+            "        skip",
             "class A<U:> implements I<U,D>",
             "class B extends A<C>",
             "class C",
             "class D",
             "init",
-            "	let b = new B",
-            "	b.bla(new D, new C)"
+            "    let b = new B",
+            "    b.bla(new D, new C)"
         );
     }
 
@@ -562,18 +562,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "native testSuccess()",
             "interface I<S:,T:>",
-            "	function bla(T t, S s)",
-            "		skip",
+            "    function bla(T t, S s)",
+            "        skip",
             "interface J<T:,S:> extends I<S,T>",
-            "	function foo()",
-            "		skip",
+            "    function foo()",
+            "        skip",
             "class A<U:> implements J<D,U>",
             "class B extends A<C>",
             "class C",
             "class D",
             "init",
-            "	let b = new B",
-            "	b.bla(new D, new C)"
+            "    let b = new B",
+            "    b.bla(new D, new C)"
         );
     }
 
@@ -582,10 +582,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "class A<T:>",
-            "	function bla(T a)",
+            "    function bla(T a)",
             "class B extends A<MyType>",
-            "	function do()",
-            "		bla(new MyType)",
+            "    function do()",
+            "        bla(new MyType)",
             "class MyType"
 
         );
@@ -596,10 +596,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "class A<T:>",
-            "	function bla(T a)",
+            "    function bla(T a)",
             "class B extends A<MyType>",
-            "	override function bla(MyType t)",
-            "		skip",
+            "    override function bla(MyType t)",
+            "        skip",
             "class MyType"
 
         );
@@ -611,13 +611,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "interface I<S:,T:>",
-            "	function bla(S s, T t)",
+            "    function bla(S s, T t)",
             "interface J<T:> extends I<int,T>",
-            "	function foo(T t)",
+            "    function foo(T t)",
             "class B implements J<MyType>",
-            "	override function bla(int s, MyType t)",
-            "		skip",
-            "	override function foo(MyType t)",
+            "    override function bla(int s, MyType t)",
+            "        skip",
+            "    override function foo(MyType t)",
             "class MyType"
 
         );
@@ -628,13 +628,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Parameter int s should have type MyType to override function bla",
             "package Test",
             "interface I<T:,S:>",
-            "	function bla(S s, T t)",
+            "    function bla(S s, T t)",
             "interface J<T:> extends I<int,T>",
-            "	function foo(T t)",
+            "    function foo(T t)",
             "class B implements J<MyType>",
-            "	override function bla(int s, MyType t)",
-            "		skip",
-            "	override function foo(MyType t)",
+            "    override function bla(int s, MyType t)",
+            "        skip",
+            "    override function foo(MyType t)",
             "class MyType"
 
         );
@@ -648,7 +648,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "class Blub<T:>",
             "function bla<T:>(Blub<T> t)",
             "init",
-            "	bla(new Blub<int>)"
+            "    bla(new Blub<int>)"
         );
     }
 
@@ -658,9 +658,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class Blub<T:>",
             "function Blub<T>.bla<T:>()",
-            "	skip",
+            "    skip",
             "init",
-            "	new Blub<int>.bla()"
+            "    new Blub<int>.bla()"
         );
     }
 
@@ -669,10 +669,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
             "package Test",
             "interface I<T:>",
-            "	function f() returns T",
+            "    function f() returns T",
             "class C<T:> implements I<T>",
-            "	function f() returns T",
-            "		return null"
+            "    function f() returns T",
+            "        return null"
         );
     }
 
@@ -681,10 +681,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "interface I<S:>",
-            "	function f(S t) returns S",
+            "    function f(S t) returns S",
             "class C<T:> implements I<T>",
-            "	function f(T t) returns T",
-            "		return t"
+            "    function f(T t) returns T",
+            "        return t"
         );
     }
 
@@ -693,9 +693,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "public class C<K:>",
-            "	C<K> x",
-            "	function foo()",
-            "		this.x.x = null"
+            "    C<K> x",
+            "    function foo()",
+            "        this.x.x = null"
         );
     }
 
@@ -704,10 +704,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(false,
             "package Test",
             "public class C<K:>",
-            "	C<K> x",
-            "	function foo()",
-            "		C<K> c = new C<K>",
-            "		c.x.x = null"
+            "    C<K> x",
+            "    function foo()",
+            "        C<K> c = new C<K>",
+            "        c.x.x = null"
         );
     }
 
@@ -717,10 +717,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class A",
             "public class C<K:>",
-            "	K x",
+            "    K x",
             "init",
-            "	C<C<C<A>>> c = null",
-            "	c.x.x.x = new A"
+            "    C<C<C<A>>> c = null",
+            "    c.x.x.x = new A"
         );
     }
 
@@ -730,10 +730,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class A",
             "public class C<K:>",
-            "	K x",
+            "    K x",
             "init",
-            "	C<C<C<A>>> c = null",
-            "	c.x.x = new A"
+            "    C<C<C<A>>> c = null",
+            "    c.x.x = new A"
         );
     }
 
@@ -743,10 +743,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class A",
             "public class C<K:>",
-            "	C<C<K>> x",
+            "    C<C<K>> x",
             "init",
-            "	C<A> c = null",
-            "	c.x.x.x = new C<C<C<C<A>>>>"
+            "    C<A> c = null",
+            "    c.x.x.x = new C<C<C<C<A>>>>"
         );
     }
 
@@ -756,10 +756,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class A",
             "public class C<K:>",
-            "	C<C<K>> x",
+            "    C<C<K>> x",
             "init",
-            "	C<A> c = null",
-            "	c.x.x.x = new C<C<C<C<C<A>>>>>"
+            "    C<A> c = null",
+            "    c.x.x.x = new C<C<C<C<C<A>>>>>"
         );
     }
 
@@ -769,10 +769,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package Test",
             "class A",
             "public class C<K:>",
-            "	C<C<K>> x",
+            "    C<C<K>> x",
             "init",
-            "	C<A> c = null",
-            "	c.x.x.x = new C<C<C<A>>>"
+            "    C<A> c = null",
+            "    c.x.x.x = new C<C<C<A>>>"
         );
     }
 
@@ -782,14 +782,14 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "interface Comparison<T:>",
-            "	function leq(T t, T u) returns bool",
+            "    function leq(T t, T u) returns bool",
             "class BoolComp implements Comparison<bool>",
-            "	override function leq(bool a, bool b) returns bool",
-            "		return not a or b",
+            "    override function leq(bool a, bool b) returns bool",
+            "        return not a or b",
             "Comparison<bool> bc = new BoolComp",
             "init",
-            "	if bc.leq(false, true)",
-            "		testSuccess()"
+            "    if bc.leq(false, true)",
+            "        testSuccess()"
         );
     }
 
@@ -799,15 +799,15 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class Comparison<T:>",
-            "	function leq(T t, T u) returns bool",
-            "		return true",
+            "    function leq(T t, T u) returns bool",
+            "        return true",
             "class BoolComp extends Comparison<bool>",
-            "	override function leq(bool a, bool b) returns bool",
-            "		return not a or b",
+            "    override function leq(bool a, bool b) returns bool",
+            "        return not a or b",
             "Comparison<bool> bc = new BoolComp",
             "init",
-            "	if bc.leq(false, true)",
-            "		testSuccess()"
+            "    if bc.leq(false, true)",
+            "        testSuccess()"
         );
     }
 
@@ -817,16 +817,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class Comparison<T:>",
-            "	function leq(T t, T u) returns bool",
-            "		return true",
+            "    function leq(T t, T u) returns bool",
+            "        return true",
             "class ComparisonX<U:> extends Comparison<U>",
             "class BoolComp extends ComparisonX<bool>",
-            "	override function leq(bool a, bool b) returns bool",
-            "		return not a or b",
+            "    override function leq(bool a, bool b) returns bool",
+            "        return not a or b",
             "ComparisonX<bool> bc = new BoolComp",
             "init",
-            "	if bc.leq(false, true)",
-            "		testSuccess()"
+            "    if bc.leq(false, true)",
+            "        testSuccess()"
         );
     }
 
@@ -836,11 +836,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "interface Comparison<T:>",
-            "	function leq(T t, T u) returns bool",
+            "    function leq(T t, T u) returns bool",
             "Comparison<bool> bc = (bool a, bool b) -> not a or b",
             "init",
-            "	if bc.leq(false, true)",
-            "		testSuccess()"
+            "    if bc.leq(false, true)",
+            "        testSuccess()"
         );
     }
 
@@ -851,22 +851,53 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	function iterator() returns Iterator<T>",
-            "		return new Iterator<T>()",
+            "    function iterator() returns Iterator<T>",
+            "        return new Iterator<T>()",
             "class Iterator<T:>",
-            "	private int i = 0",
-            "	function next() returns T",
-            "		i = i + 1",
-            "		return i castTo T",
-            "	function hasNext() returns boolean",
-            "		return i < 10",
-            "	function close()",
-            "		destroy this",
+            "    private int i = 0",
+            "    function next() returns T",
+            "        i = i + 1",
+            "        return i castTo T",
+            "    function hasNext() returns boolean",
+            "        return i < 10",
+            "    function close()",
+            "        destroy this",
             "init",
-            "	let c = new C<int>",
-            "	for i in c",
-            "		if i == 5",
-            "			testSuccess()"
+            "    let c = new C<int>",
+            "    for i in c",
+            "        if i == 5",
+            "            testSuccess()"
+        );
+    }
+
+    @Test
+    public void genericForIn2() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "class C<T:>",
+            "    T x",
+            "    construct(T x)",
+            "       this.x = x",
+            "    function iterator() returns Iterator<T>",
+            "        return new Iterator<T>(x)",
+            "class Iterator<T:>",
+            "    private int i = 0",
+            "    T x",
+            "    construct(T x)",
+            "       this.x = x",
+            "    function next() returns T",
+            "        i = i + 1",
+            "        return x",
+            "    function hasNext() returns boolean",
+            "        return i < 1",
+            "    function close()",
+            "        destroy this",
+            "init",
+            "    let c = new C<string>(\"42\")",
+            "    for i in c",
+            "        if i == \"42\"",
+            "            testSuccess()"
         );
     }
 
@@ -877,21 +908,21 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	function iterator() returns Iterator<T>",
-            "		return new Iterator<T>()",
+            "    function iterator() returns Iterator<T>",
+            "        return new Iterator<T>()",
             "class Iterator<T:>",
-            "	private int i = 0",
-            "	function next() returns T",
-            "		i = i + 1",
-            "		return i castTo T",
-            "	function hasNext() returns boolean",
-            "		return i < 10",
+            "    private int i = 0",
+            "    function next() returns T",
+            "        i = i + 1",
+            "        return i castTo T",
+            "    function hasNext() returns boolean",
+            "        return i < 10",
             "init",
-            "	let c = new C<int>",
-            "	let iter = c.iterator()",
-            "	for i from iter",
-            "		if i == 5",
-            "			testSuccess()"
+            "    let c = new C<int>",
+            "    let iter = c.iterator()",
+            "    for i from iter",
+            "        if i == 5",
+            "            testSuccess()"
         );
     }
 
@@ -901,16 +932,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	private T x",
-            "	construct(T x)",
-            "		this.x = x",
-            "	function foo(T t)",
-            "		foo(new C(t))",
-            "	function foo(C<T> t)",
-            "		testSuccess()",
+            "    private T x",
+            "    construct(T x)",
+            "        this.x = x",
+            "    function foo(T t)",
+            "        foo(new C(t))",
+            "    function foo(C<T> t)",
+            "        testSuccess()",
             "init",
-            "	let c = new C(1)",
-            "	c.foo(1)"
+            "    let c = new C(1)",
+            "    c.foo(1)"
         );
     }
 
@@ -920,18 +951,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	private T x",
-            "	construct(T x)",
-            "		this.x = x",
-            "	function foo(T t)",
-            "		foo(new C(t))",
-            "	function foo(C<T> t)",
-            "		testSuccess()",
-            "	function test()",
-            "		let c = new C(1)",
-            "		c.foo(1)",
+            "    private T x",
+            "    construct(T x)",
+            "        this.x = x",
+            "    function foo(T t)",
+            "        foo(new C(t))",
+            "    function foo(C<T> t)",
+            "        testSuccess()",
+            "    function test()",
+            "        let c = new C(1)",
+            "        c.foo(1)",
             "init",
-            "	new C(1).test()"
+            "    new C(1).test()"
         );
     }
 
@@ -941,13 +972,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "function id(int x) returns int",
-            "	return x",
+            "    return x",
             "class C<T:>",
-            "	var x = id(4)",
+            "    var x = id(4)",
             "init",
-            "	let x= new C<int>",
-            "	if x.x == 4",
-            "		testSuccess()"
+            "    let x= new C<int>",
+            "    if x.x == 4",
+            "        testSuccess()"
         );
     }
 
@@ -957,12 +988,12 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	function foo() returns int",
-            "		return 4",
+            "    function foo() returns int",
+            "        return 4",
             "init",
-            "	let x = new C<int>",
-            "	if x.foo() == 4",
-            "		testSuccess()"
+            "    let x = new C<int>",
+            "    if x.foo() == 4",
+            "        testSuccess()"
         );
     }
 
@@ -972,14 +1003,14 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class C<T:>",
-            "	function foo() returns int",
-            "		return bar()",
-            "	function bar() returns int",
-            "		return 4",
+            "    function foo() returns int",
+            "        return bar()",
+            "    function bar() returns int",
+            "        return 4",
             "init",
-            "	let x = new C<int>",
-            "	if x.foo() == 4",
-            "		testSuccess()"
+            "    let x = new C<int>",
+            "    if x.foo() == 4",
+            "        testSuccess()"
         );
     }
 
@@ -989,18 +1020,18 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class LinkedList<T:>",
-            "	T x",
+            "    T x",
             "public function LinkedList<string>.foo(string separator) returns string",
-            "	this.foo<string>(s -> s, separator) // Doesn't work",
-            "	this.foo2<string>(s -> s, separator) // Works",
-            "	return separator",
+            "    this.foo<string>(s -> s, separator) // Doesn't work",
+            "    this.foo2<string>(s -> s, separator) // Works",
+            "    return separator",
             "interface ToStringClosure<A:>",
-            "	function apply(A a) returns A",
+            "    function apply(A a) returns A",
             "public function LinkedList<T>.foo<T:>(ToStringClosure<T> cls, string separator)",
             "public function LinkedList<T>.foo2<T:>(ToStringClosure<T> cls, string separator)",
             "init",
-            "	let x = new LinkedList<string>",
-            "	x.foo(\"a\")"
+            "    let x = new LinkedList<string>",
+            "    x.foo(\"a\")"
         );
     }
 
@@ -1010,11 +1041,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "public function T.foo<T:>() returns T",
-            "	return this",
+            "    return this",
             "init",
-            "	let x = \"hello\".foo()",
-            "	if x == \"hello\"",
-            "		testSuccess()"
+            "    let x = \"hello\".foo()",
+            "    if x == \"hello\"",
+            "        testSuccess()"
         );
     }
 
@@ -1024,14 +1055,14 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "class LinkedList<T:>",
-            "	T x",
-            "	function foldl<Q:, S:>(Q startValue, FoldClosure<S, Q> predicate) returns Q",
-            "		return startValue",
+            "    T x",
+            "    function foldl<Q:, S:>(Q startValue, FoldClosure<S, Q> predicate) returns Q",
+            "        return startValue",
             "interface FoldClosure<X:, Y:>",
-            "	function run(X t, Y q) returns Y",
+            "    function run(X t, Y q) returns Y",
             "init",
-            "	let x = new LinkedList<int>",
-            "	x.foldl<int,int>(0, (x, y) -> x + y)"
+            "    let x = new LinkedList<int>",
+            "    x.foldl<int,int>(0, (x, y) -> x + y)"
         );
     }
 
@@ -1045,19 +1076,19 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "string array s",
             "int s_max = -1",
             "class LinkedList<T:>",
-            "	T x",
-            "	function foldl<Q:>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
-            "		return predicate.run(x, startValue)",
-            "	function toString() returns string",
-            "		let fold = foldl(\"[\", (i, q) -> q + I2S(i castTo int) + \",\")",
-            "		return fold + \"]\"",
+            "    T x",
+            "    function foldl<Q:>(Q startValue, FoldClosure<T, Q> predicate) returns Q",
+            "        return predicate.run(x, startValue)",
+            "    function toString() returns string",
+            "        let fold = foldl(\"[\", (i, q) -> q + I2S(i castTo int) + \",\")",
+            "        return fold + \"]\"",
             "interface FoldClosure<T:, Q:>",
-            "	function run(T t, Q q) returns Q",
+            "    function run(T t, Q q) returns Q",
             "init",
-            "	let x = new LinkedList<int>",
-            "	x.x = 5",
-            "	if x.toString() == \"[5,]\"",
-            "		testSuccess()"
+            "    let x = new LinkedList<int>",
+            "    x.x = 5",
+            "    if x.toString() == \"[5,]\"",
+            "        testSuccess()"
         );
     }
 
@@ -1067,13 +1098,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "abstract class A<T:>",
-            "	int someInt",
+            "    int someInt",
             "class B extends A<int>",
-            "	construct()",
-            "		someInt = 1",
+            "    construct()",
+            "        someInt = 1",
             "init",
-            "	if new B().someInt == 1",
-            "		testSuccess()"
+            "    if new B().someInt == 1",
+            "        testSuccess()"
         );
     }
 
@@ -1083,13 +1114,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "abstract class A<T:>",
-            "	int someInt",
+            "    int someInt",
             "class B<K:> extends A<K>",
-            "	construct()",
-            "		someInt = 1",
+            "    construct()",
+            "        someInt = 1",
             "init",
-            "	if new B<int>().someInt == 1",
-            "		testSuccess()"
+            "    if new B<int>().someInt == 1",
+            "        testSuccess()"
         );
     }
 
@@ -1100,13 +1131,13 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "abstract class A<T:>",
-            "	function someInt()",
-            "		testSuccess()",
+            "    function someInt()",
+            "        testSuccess()",
             "class B extends A<int>",
-            "	construct()",
-            "		someInt()",
+            "    construct()",
+            "        someInt()",
             "init",
-            "	new B()"
+            "    new B()"
         );
     }
 
@@ -1116,10 +1147,10 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "function foo<T:>(T t)",
-            "	if t == null",
-            "		testSuccess()",
+            "    if t == null",
+            "        testSuccess()",
             "init",
-            "	foo(null)"
+            "    foo(null)"
         );
     }
 
@@ -1128,9 +1159,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
             "package test",
             "function foo<T:>() returns T",
-            "	return null",
+            "    return null",
             "init",
-            "	let x = foo()"
+            "    let x = foo()"
         );
     }
 
@@ -1139,11 +1170,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
             "package test",
             "class C",
-            "	function foo<T:>() returns T",
-            "		return null",
+            "    function foo<T:>() returns T",
+            "        return null",
             "init",
-            "	let c = new C",
-            "	let x = c.foo()"
+            "    let c = new C",
+            "    let x = c.foo()"
         );
     }
 
@@ -1153,7 +1184,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "class C<T:>",
             "init",
-            "	let c = new C"
+            "    let c = new C"
         );
     }
 
@@ -1163,9 +1194,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
             "package test",
             "function foo<T:>() returns T",
-            "	return null",
+            "    return null",
             "init",
-            "	let x = foo<int, int>()"
+            "    let x = foo<int, int>()"
         );
     }
 
@@ -1174,11 +1205,11 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Cannot return null, expected expression of type T",
             "package test",
             "class C",
-            "	function foo<T:>() returns T",
-            "		return null",
+            "    function foo<T:>() returns T",
+            "        return null",
             "init",
-            "	let c = new C",
-            "	let x = c.foo<int, int>()"
+            "    let c = new C",
+            "    let x = c.foo<int, int>()"
         );
     }
 
@@ -1188,7 +1219,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "class C<T:>",
             "init",
-            "	let c = new C<int, int>"
+            "    let c = new C<int, int>"
         );
     }
 
@@ -1199,15 +1230,15 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native println(string s)",
             "interface F<A:,R:>",
-            "	function apply(A a) returns R",
+            "    function apply(A a) returns R",
             "function twice<X:>(F<X, X> f) returns F<X, X>",
-            "	return x -> f.apply(f.apply(x))", // line 7
+            "    return x -> f.apply(f.apply(x))", // line 7
             "init",
-            "	F<int, int> plus1 = x -> x + 1", // line 9
-            "	F<int, int> plus2 = twice(plus1)",
-//                "	F<string, string> shout = twice((string s) -> s + \"!\")", // line 11
-            "	if  plus2.apply(1) == 3",
-            "		testSuccess()"
+            "    F<int, int> plus1 = x -> x + 1", // line 9
+            "    F<int, int> plus2 = twice(plus1)",
+//                "    F<string, string> shout = twice((string s) -> s + \"!\")", // line 11
+            "    if  plus2.apply(1) == 3",
+            "        testSuccess()"
         );
     }
 
@@ -1218,16 +1249,16 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native println(string s)",
             "class B<T:>",
-            "	function id(T x) returns T",
-            "		return x",
+            "    function id(T x) returns T",
+            "        return x",
             "class A<X:, Y:> extends B<Y>",
-            "	override function id(Y y) returns Y",
-            "		return y",
+            "    override function id(Y y) returns Y",
+            "        return y",
             "init",
-            "	B<int> a = new A<int,int>",
-            "	B<int> b = new A<string, int>",
-            "	if a.id(4) == 4 and b.id(2) == 2",
-            "		testSuccess()"
+            "    B<int> a = new A<int,int>",
+            "    B<int> b = new A<string, int>",
+            "    if a.id(4) == 4 and b.id(2) == 2",
+            "        testSuccess()"
         );
     }
 
@@ -1235,17 +1266,17 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
     public void simpleCastTest() {
         testAssertOkLines(true,
             "package test",
-            "	native testSuccess()",
-            "	class A",
-            "	class B extends A",
-            "		int x",
-            "	function get() returns A",
-            "		let r = new B",
-            "		r.x = 5",
-            "		return r",
-            "	init",
-            "		if (get() castTo B).x == 5",
-            "			testSuccess()",
+            "    native testSuccess()",
+            "    class A",
+            "    class B extends A",
+            "        int x",
+            "    function get() returns A",
+            "        let r = new B",
+            "        r.x = 5",
+            "        return r",
+            "    init",
+            "        if (get() castTo B).x == 5",
+            "            testSuccess()",
             "endpackage"
         );
     }
@@ -1256,17 +1287,17 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "abstract class F<T:>",
-            "	abstract function get() returns T",
+            "    abstract function get() returns T",
             "class X<T:> extends F<T>",
-            "	T t",
-            "	construct(T t)",
-            "		this.t = t",
-            "	override function get() returns T",
-            "		return t",
+            "    T t",
+            "    construct(T t)",
+            "        this.t = t",
+            "    override function get() returns T",
+            "        return t",
             "init",
-            "	F<int> x = new X(42)",
-            "	if x.get() == 42",
-            "		testSuccess()"
+            "    F<int> x = new X(42)",
+            "    if x.get() == 42",
+            "        testSuccess()"
         );
     }
 
@@ -1313,7 +1344,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface ToIndex<T:>",
-            "	function toIndex(T x) returns int", // 5
+            "    function toIndex(T x) returns int", // 5
             "class A",
             "implements ToIndex<A>",
             "    function toIndex(A x) returns int",
@@ -1335,9 +1366,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface Plus<T:>",
-            "	function plus(T x, T y) returns T",
+            "    function plus(T x, T y) returns T",
             "interface Times<T:>",
-            "	function times(T x, T y) returns T",
+            "    function times(T x, T y) returns T",
             "implements Plus<int>",
             "    function plus(int x, int y) returns int",
             "        return x + y",
@@ -1358,7 +1389,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "package test",
             "native testSuccess()",
             "interface ToIndex<T>",
-            "	function toIndex(T elem) returns int",
+            "    function toIndex(T elem) returns int",
             "class A",
             "implements ToIndex<A>",
             "    function toIndex(A x) returns int",
@@ -1381,9 +1412,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface A<T:>",
-            "	function x(T x) returns int",
+            "    function x(T x) returns int",
             "interface B<T:> extends A<T>",
-            "	function y(T x) returns int",
+            "    function y(T x) returns int",
             "class C",
             "implements B<C>",
             "    function x(C x) returns int",
@@ -1406,9 +1437,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface A<T:>",
-            "	function x(T x) returns int",
+            "    function x(T x) returns int",
             "interface B<T:> extends A<T>",
-            "	function y(T x) returns int",
+            "    function y(T x) returns int",
             "class C",
             "implements A<C>",
             "    function x(C x) returns int",
@@ -1435,9 +1466,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface A<X:>",
-            "	function x(X x) returns int",
+            "    function x(X x) returns int",
             "interface B<Y:>",
-            "	function y(Y y) returns int",
+            "    function y(Y y) returns int",
             "class C",
             "implements A<C>",
             "    function x(C c) returns int",
@@ -1462,7 +1493,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native S2I(string s) returns int",
             "interface ToInt<X:>",
-            "	function toInt(X x) returns int",
+            "    function toInt(X x) returns int",
             "class C<T: ToInt>",
             "    int elem",
             "    function set(T e)",
@@ -1488,7 +1519,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native S2I(string s) returns int",
             "interface ToInt<X:>",
-            "	function toInt(X x) returns int",
+            "    function toInt(X x) returns int",
             "class C<T: ToInt>",
             "    int elem",
             "    function set(T e)",
@@ -1521,7 +1552,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native S2I(string s) returns int",
             "interface ToInt<X:>",
-            "	function toInt(X x) returns int",
+            "    function toInt(X x) returns int",
             "class C<T: ToInt>",
             "    int elem",
             "    function set(T e)",
@@ -1548,7 +1579,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native S2I(string s) returns int",
             "interface ToInt<X:>",
-            "	function toInt(X x) returns int",
+            "    function toInt(X x) returns int",
             "class C<T: ToInt>",
             "    int elem",
             "    function set(T e)",
@@ -1634,8 +1665,8 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "must implement the following functions",
             "package test",
             "interface Blub<T:>",
-            "	function foo(T x) returns int",
-            "	function bar(T x) returns int",
+            "    function foo(T x) returns int",
+            "    function bar(T x) returns int",
             "class A",
             "implements Blub<A>",
             "    function foo(A x) returns int",
@@ -1649,9 +1680,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertErrorsLines(false, "Type A does not satisfy constraint Y: Apfel<A>",
             "package test",
             "interface Apfel<T:>",
-            "	function a(T x) returns int",
+            "    function a(T x) returns int",
             "interface Birne<T:>",
-            "	function b(T x) returns int",
+            "    function b(T x) returns int",
             "class A",
             "implements Apfel<X> for X: Birne",
             "    function a(X t) returns int",
@@ -1673,8 +1704,8 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface AnyRef<T:>",
-            "	function toIndex(T x) returns int",
-            "	function fromIndex(int index) returns T",
+            "    function toIndex(T x) returns int",
+            "    function fromIndex(int index) returns T",
             "class A",
             "class Cell<T: AnyRef>",
             "    int x",
@@ -1698,9 +1729,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface ToIndex<T:>",
-            "	function toIndex(T x) returns int",
+            "    function toIndex(T x) returns int",
             "interface FromIndex<T:>",
-            "	function fromIndex(int index) returns T",
+            "    function fromIndex(int index) returns T",
             "class A",
             "class Cell<T: ToIndex and FromIndex>",
             "    int x",
@@ -1724,7 +1755,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testSuccess()",
             "native testFail(string s)",
             "interface Default<T:>",
-            "	function defaultValue() returns T",
+            "    function defaultValue() returns T",
             "class A",
             "function d<X: Default>() returns X",
             "    return X.defaultValue()",
@@ -1747,7 +1778,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native I2S(int i) returns string",
             "interface Show<T:>",
-            "	function toString(T t) returns string",
+            "    function toString(T t) returns string",
             "function T.toString<T: Show>() returns string",
             "    return T.toString(this)",
             "function int.toString() returns string",
@@ -1766,7 +1797,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "@extern native I2S(int i) returns string",
             "interface Show<T:>",
-            "	function toString(T t) returns string",
+            "    function toString(T t) returns string",
             "function T.toString<T: Show>() returns string",
             "    return T.toString(this)",
             "function int.toString() returns string",
@@ -1789,9 +1820,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
             "interface ToIndex<T:>",
-            "	function toIndex(T x) returns int",
+            "    function toIndex(T x) returns int",
             "interface FromIndex<T:>",
-            "	function fromIndex(int i) returns T",
+            "    function fromIndex(int i) returns T",
             "class A",
             "implements ConvertIndex<string>",
             "    function toIndex(string x) returns int",
@@ -1815,9 +1846,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
             "interface ToIndex<T:>",
-            "	function toIndex(T x) returns int",
+            "    function toIndex(T x) returns int",
             "interface FromIndex<T:>",
-            "	function fromIndex(int i) returns T",
+            "    function fromIndex(int i) returns T",
             "class A",
             "implements ConvertIndex<string>",
             "    function toIndex(string x) returns int",
@@ -1841,9 +1872,9 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "native testFail(string s)",
             "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
             "interface ToIndex<T:>",
-            "	function toIndex(T x) returns int",
+            "    function toIndex(T x) returns int",
             "interface FromIndex<T:>",
-            "	function fromIndex(int i) returns T",
+            "    function fromIndex(int i) returns T",
             "class A",
             "implements ConvertIndex<string>",
             "    function toIndex(string x) returns int",
@@ -1866,7 +1897,7 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
         testAssertOkLines(true,
             "package a",
             "public interface ToIndex<T:>",
-            "	function toIndex(T x) returns int",
+            "    function toIndex(T x) returns int",
             "public implements ToIndex<int>",
             "    function toIndex(int x) returns int",
             "        return x",
@@ -1882,6 +1913,66 @@ public class GenericsWithTypeclassesTests extends WurstScriptTest {
             "        testSuccess()",
             "init",
             "    foo(42)"
+        );
+    }
+
+
+    @Test
+    public void chainTypeClassesConvertIndex() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
+            "    function toIndex(T x) returns int",
+            "    function fromIndex(int i) returns T",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "interface FromIndex<T:>",
+            "    function fromIndex(int i) returns T",
+            "class A",
+            "implements ConvertIndex<string>",
+            "    function toIndex(string x) returns int",
+            "        return 42",
+            "    function fromIndex(int i) returns string",
+            "        return \"42\"",
+            "function foo<Q: ConvertIndex>(Q x) returns int",
+            "    return bar(x)",
+            "function bar<Q: ToIndex>(Q x) returns int",
+            "    return Q.toIndex(x)",
+            "init",
+            "    let a = new A",
+            "    if foo(\"x\") == 42 and foo(a) != 42",
+            "        testSuccess()"
+        );
+    }
+
+    @Test
+    public void subInterface() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "native testFail(string s)",
+            "interface ConvertIndex<T:> extends ToIndex<T>, FromIndex<T>",
+            "    function toIndex(T x) returns int",
+            "    function fromIndex(int i) returns T",
+            "interface ToIndex<T:>",
+            "    function toIndex(T x) returns int",
+            "interface FromIndex<T:>",
+            "    function fromIndex(int i) returns T",
+            "class A implements ConvertIndex<string>",
+            "    function toIndex(string x) returns int",
+            "        return 42",
+            "    function fromIndex(int i) returns string",
+            "        return \"42\"",
+            "function foo(ConvertIndex<string> c, string x) returns int",
+            "    return bar(c, x)",
+            "function bar(ToIndex<string> c, string x) returns int",
+            "    return c.toIndex(x)",
+            "init",
+            "    let a = new A",
+            "    if foo(a, \"x\") == 42",
+            "        testSuccess()"
         );
     }
 }
