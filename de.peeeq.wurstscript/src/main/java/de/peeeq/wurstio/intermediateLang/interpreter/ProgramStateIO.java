@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 
 public class ProgramStateIO extends ProgramState {
 
@@ -29,9 +30,9 @@ public class ProgramStateIO extends ProgramState {
     private final Map<String, ObjectDefinition> objDefinitions = Maps.newLinkedHashMap();
     private PrintStream outStream = System.err;
     private @Nullable WTS trigStrings = null;
-    private final @Nullable File mapFile;
+    private final Optional<File> mapFile;
 
-    public ProgramStateIO(@Nullable File mapFile, @Nullable MpqEditor mpqEditor, WurstGui gui, ImProg prog, boolean isCompiletime) {
+    public ProgramStateIO(Optional<File> mapFile, @Nullable MpqEditor mpqEditor, WurstGui gui, ImProg prog, boolean isCompiletime) {
         super(gui, prog, isCompiletime);
         this.mapFile = mapFile;
         this.mpqEditor = mpqEditor;
@@ -191,8 +192,8 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private void writeW3oFile() {
-        File objFile = new File(getObjectEditingOutputFolder(), "wurstCreatedObjects.w3o");
-        try (BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile, true)) {
+        Optional<File> objFile = getObjectEditingOutputFolder().map(fo -> new File(fo, "wurstCreatedObjects.w3o"));
+        try (BinaryDataOutputStream objFileStream = new BinaryDataOutputStream(objFile.get(), true)) {
             objFileStream.writeInt(1); // version
             for (ObjectFileType fileType : ObjectFileType.values()) {
                 ObjectFile dataStore = getDataStore(fileType);
@@ -210,12 +211,14 @@ public class ProgramStateIO extends ProgramState {
 
     private void writebackObjectFile(ObjectFile dataStore, ObjectFileType fileType, boolean inject) throws Error {
         try {
-            File folder = getObjectEditingOutputFolder();
+            Optional<File> folder = getObjectEditingOutputFolder();
 
             byte[] w3u = dataStore.writeToByteArray();
 
             // wurst exported objects
-            FileUtils.write(dataStore.exportToWurst(fileType), new File(folder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"));
+            FileUtils.write(
+                dataStore.exportToWurst(fileType),
+                new File(folder.get(), "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt"));
 
             if (inject) {
                 if (mpqEditor == null) {
@@ -232,15 +235,15 @@ public class ProgramStateIO extends ProgramState {
 
     }
 
-    private @Nullable File getObjectEditingOutputFolder() {
-        if (mapFile == null) {
+    private Optional<File> getObjectEditingOutputFolder() {
+        if (mapFile.isEmpty()) {
             File folder = new File("_build", "objectEditingOutput");
             folder.mkdirs();
-            return folder;
+            return Optional.of(folder);
         }
-        File folder = new File(mapFile.getParent(), "objectEditingOutput");
-        if (!folder.exists() && !folder.mkdirs()) {
-            WLogger.info("Could not create folder " + folder.getAbsoluteFile());
+        Optional<File> folder = mapFile.map(fi -> new File(fi.getParent(), "objectEditingOutput"));
+        if (folder.isEmpty() || (!folder.get().exists() && !folder.get().mkdirs())) {
+            WLogger.info("Could not create folder " + folder.map(fo -> fo.getAbsoluteFile()));
             return null;
         }
         return folder;

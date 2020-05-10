@@ -344,7 +344,9 @@ public class WurstValidator {
             cde.printStackTrace();
             Element element = cde.getElement();
             String attr = cde.getAttributeName().replaceFirst("^attr", "");
-            WLogger.info(Utils.printElementWithSource(element) + " depends on itself when evaluating attribute " + attr);
+            WLogger.info(Utils.printElementWithSource(Optional.of(element))
+                + " depends on itself when evaluating attribute "
+                + attr);
             WLogger.info(cde);
             throw new CompileError(element.attrSource(),
                     Utils.printElement(element) + " depends on itself when evaluating attribute " + attr);
@@ -712,7 +714,7 @@ public class WurstValidator {
     }
 
     private void checkExprNull(ExprNull e) {
-        if (!Utils.isJassCode(e) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
+        if (!Utils.isJassCode(Optional.of(e)) && e.attrExpectedTyp() instanceof WurstTypeUnknown) {
             e.addError(
                     "Cannot use 'null' constant here because " + "the compiler cannot infer which kind of null it is.");
         }
@@ -764,7 +766,7 @@ public class WurstValidator {
         WurstType leftType = s.getUpdatedExpr().attrTyp();
         WurstType rightType = s.getRight().attrTyp();
 
-        checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+        checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
 
         checkIfAssigningToConstant(s.getUpdatedExpr());
 
@@ -936,7 +938,7 @@ public class WurstValidator {
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
 
-            checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+            checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
         } else if (s.getInitialExpr() instanceof ArrayInitializer) {
             ArrayInitializer arInit = (ArrayInitializer) s.getInitialExpr();
             checkArrayInit(s, arInit);
@@ -977,7 +979,7 @@ public class WurstValidator {
             // (same convention as in Erlang)
             return;
         }
-        if (Utils.isJassCode(s)) {
+        if (Utils.isJassCode(Optional.of(s))) {
             return;
         }
         if (s.getParent() instanceof StmtForRange) {
@@ -994,7 +996,7 @@ public class WurstValidator {
         String varName = s.getName();
 
         if (!isValidVarnameStart(varName) // first letter not lower case
-                && !Utils.isJassCode(s) // not in jass code
+                && !Utils.isJassCode(Optional.of(s)) // not in jass code
                 && !varName.matches("[A-Z0-9_]+") // not a constant
         ) {
             s.addWarning("Variable names should start with a lower case character. (" + varName + ")");
@@ -1059,7 +1061,7 @@ public class WurstValidator {
             Expr initial = (Expr) s.getInitialExpr();
             WurstType leftType = s.attrTyp();
             WurstType rightType = initial.attrTyp();
-            checkAssignment(Utils.isJassCode(s), s, leftType, rightType);
+            checkAssignment(Utils.isJassCode(Optional.of(s)), s, leftType, rightType);
         } else if (s.getInitialExpr() instanceof ArrayInitializer) {
             checkArrayInit(s, (ArrayInitializer) s.getInitialExpr());
         }
@@ -1090,7 +1092,7 @@ public class WurstValidator {
     }
 
     private void checkFunctionName(FunctionDefinition f) {
-        if (!Utils.isJassCode(f)) {
+        if (!Utils.isJassCode(Optional.of(f))) {
             if (!isValidVarnameStart(f.getName())) {
                 f.addWarning("Function names should start with an lower case character.");
             }
@@ -1118,7 +1120,7 @@ public class WurstValidator {
             if (s.attrPreviousStatements().isEmpty()) {
                 if (s.attrListIndex() > 0 || !(stmts.getParent() instanceof TranslatedToImFunction
                         || stmts.getParent() instanceof ExprStatementsBlock)) {
-                    if (Utils.isJassCode(s)) {
+                    if (Utils.isJassCode(Optional.of(s))) {
                         // in jass this is just a warning, because
                         // the shitty code emitted by jasshelper sometimes
                         // contains unreachable code
@@ -1184,7 +1186,7 @@ public class WurstValidator {
                     && !f.getSource().getFile().endsWith("blizzard.j")
                     && !f.getSource().getFile().endsWith("war3map.j")
                     && !FileUtils.getWPosParent(f.getSource()).equals("jassdoc")) {
-                new DataflowAnomalyAnalysis(Utils.isJassCode(f)).execute(f);
+                new DataflowAnomalyAnalysis(Utils.isJassCode(Optional.of(f))).execute(f);
             }
         }
     }
@@ -1985,7 +1987,7 @@ public class WurstValidator {
                 if (funcs.size() > 1) {
                     StringBuilder alternatives = new StringBuilder();
                     for (NameLink nameLink : funcs) {
-                        alternatives.append("\n - ").append(Utils.printElementWithSource(nameLink.getDef()));
+                        alternatives.append("\n - ").append(Utils.printElementWithSource(Optional.of(nameLink.getDef())));
                     }
                     e.addError("Ambiguous function name: " + exFunc + ". Alternatives are: " + alternatives);
                     return;
@@ -2086,20 +2088,36 @@ public class WurstValidator {
                 return "Static method " + func1.getName() + " cannot override other methods.";
             }
             if (func2.isStatic()) {
-                return "Static " + Utils.printElementWithSource(func2.getDef()) + " cannot be overridden.";
+                return "Static " + Utils.printElementWithSource(Optional.of(func2.getDef())) + " cannot be overridden.";
             }
         } else {
             if (func1.isStatic() && !func2.isStatic()) {
-                return "Static method " + func1.getName() + " cannot override dynamic " + Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Static method "
+                    + func1.getName()
+                    + " cannot override dynamic "
+                    + Utils.printElementWithSource(Optional.of(func2.getDef()))
+                    + ".";
             } else if (!func1.isStatic() && func2.isStatic()) {
-                return "Method " + func1.getName() + " cannot override static " + Utils.printElementWithSource(func2.getDef()) + ".";
+                return "Method "
+                    + func1.getName()
+                    + " cannot override static "
+                    + Utils.printElementWithSource(Optional.of(func2.getDef()))
+                    + ".";
             }
         }
         if (func1.isVarargMethod() && !func2.isVarargMethod()) {
-            return "Vararg method " + func1.getName() + " cannot override non-vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+            return "Vararg method "
+                + func1.getName()
+                + " cannot override non-vararg method "
+                + Utils.printElementWithSource(Optional.of(func2.getDef()))
+                + ".";
         }
         if (!func1.isVarargMethod() && func2.isVarargMethod()) {
-            return "Non-vararg method " + func1.getName() + " cannot override vararg method " + Utils.printElementWithSource(func2.getDef()) + ".";
+            return "Non-vararg method "
+                + func1.getName()
+                + " cannot override vararg method "
+                + Utils.printElementWithSource(Optional.of(func2.getDef()))
+                + ".";
         }
         int paramCount2 = func2.getParameterTypes().size();
         int paramCount1 = func1.getParameterTypes().size();
@@ -2114,12 +2132,16 @@ public class WurstValidator {
             WurstType type2 = func2.getParameterType(i);
             if (!type1.isSupertypeOf(type2, func1.getDef())) {
                 return "Parameter " + type1 + " " + func1.getParameterName(i) + " should have type " + type2
-                        + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
+                        + " to override " + Utils.printElementWithSource(Optional.of(func2.getDef())) + ".";
             }
         }
         // covariant return types
         if (!func1.getReturnType().isSubtypeOf(func2.getReturnType(), func1.getDef())) {
-            return "Return type should be " + func2.getReturnType() + " to override " + Utils.printElementWithSource(func2.getDef()) + ".";
+            return "Return type should be "
+                + func2.getReturnType()
+                + " to override "
+                + Utils.printElementWithSource(Optional.of(func2.getDef()))
+                + ".";
         }
         // no error
         return null;
@@ -2148,7 +2170,7 @@ public class WurstValidator {
                 NameLink l1 = other.get(0);
                 for (int j = 1; j < other.size(); j++) {
                     other.get(j).getDef().addError("An element with name " + name + " already exists: "
-                            + Utils.printElementWithSource(l1.getDef()));
+                            + Utils.printElementWithSource(Optional.of(l1.getDef())));
                 }
             }
             if (funcs.size() <= 1) {
@@ -2160,9 +2182,9 @@ public class WurstValidator {
                     FuncLink f2 = funcs.get(j);
                     if (!distinctFunctions(f1, f2)) {
                         f1.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(f2.getDef()));
+                                "Function already defined : " + Utils.printElementWithSource(Optional.of(f2.getDef())));
                         f2.getDef().addError(
-                                "Function already defined : " + Utils.printElementWithSource(f1.getDef()));
+                                "Function already defined : " + Utils.printElementWithSource(Optional.of(f1.getDef())));
                     }
                 }
             }

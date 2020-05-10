@@ -6,77 +6,90 @@ import net.moonlightflower.wc3libs.port.GameVersion;
 import net.moonlightflower.wc3libs.port.NotFoundException;
 import net.moonlightflower.wc3libs.port.Orient;
 import net.moonlightflower.wc3libs.port.StdGameExeFinder;
-import net.moonlightflower.wc3libs.port.mac.MacGameVersionFinder;
+import net.moonlightflower.wc3libs.port.StdGameVersionFinder;
 import net.moonlightflower.wc3libs.port.win.WinGameExeFinder;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 public class W3Utils {
-    private static File gameExe;
+    private Optional<File> gameExe = Optional.empty();
 
-    private static GameVersion version = null;
+    private Optional<GameVersion> version = Optional.empty();
 
-    /**
-     * @return The wc3 patch version or -1 if none has been found
-     */
-    public static GameVersion getWc3PatchVersion() {
-        if (gameExe == null && Orient.isWindowsSystem()) {
-            try {
-                gameExe = new StdGameExeFinder().get();
-            } catch (NotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-        if (version == null && gameExe != null) {
-            try {
-                version = GameExe.getVersion(gameExe);
-                WLogger.info("Parsed game version: " + version);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return version;
+    /** Evaluates the game path and version by discovering the system environment. */
+    public W3Utils() {
+        discoverExePath();
+        discoverVersion();
     }
 
     /**
-     * Pass a custom directory here to attempt parsing patch level from.
-     *
-     * @return The wc3 patch version or -1 if none has been found
+     * Evaluates the game path and version, attempting to use the provided path if possible, before discovering the
+     * system environment.
      */
-    public static GameVersion parsePatchVersion(File wc3Path) {
+    public W3Utils(File wc3Path) {
+        if (!Orient.isWindowsSystem()) {
+            WLogger.warning("Game path configuration only works on windows");
+            discoverExePath();
+            discoverVersion();
+            return;
+        }
+
         try {
-            if (Orient.isWindowsSystem()) {
-                gameExe = WinGameExeFinder.fromDirIgnoreVersion(wc3Path);
-                WLogger.info("Game Executable: " + gameExe);
-            } else {
-                WLogger.warning("Game path configuration only works on windows");
-                throw new NotFoundException();
-            }
+            gameExe = Optional.ofNullable(WinGameExeFinder.fromDirIgnoreVersion(wc3Path));
         } catch (NotFoundException e) {
+            WLogger.severe(e);
+        }
+        WLogger.info("Game Executable from path: " + gameExe);
+
+        version = gameExe.flatMap(exe -> {
             try {
-                gameExe = new StdGameExeFinder().get();
-            } catch (NotFoundException ex) {
+                return Optional.ofNullable(GameExe.getVersion(exe));
+            } catch (IOException e) {
                 WLogger.severe(e);
             }
+
+            return Optional.empty();
+        });
+        WLogger.info("Parsed custom game version from executable: " + version);
+
+        if (gameExe.isEmpty()) {
+            WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
+            discoverExePath();
+            discoverVersion();
         }
-        if (gameExe != null) {
-            try {
-                if (Orient.isWindowsSystem()) {
-                    W3Utils.version = GameExe.getVersion(gameExe);
-                } else if (Orient.isMacSystem()) {
-                    W3Utils.version = new MacGameVersionFinder().get();
-                }
-                WLogger.info("Parsed custom game version: " + version);
-            } catch (IOException | NotFoundException e) {
-                WLogger.severe(e);
-            }
+    }
+
+    private void discoverExePath() {
+        try {
+            gameExe = Optional.ofNullable(new StdGameExeFinder().get());
+            WLogger.info("Parsed game path: " + gameExe);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
         }
+    }
+
+    private void discoverVersion() {
+        try {
+            version = Optional.ofNullable(new StdGameVersionFinder().get());
+            WLogger.info("Parsed game version: " + version);
+        } catch (NotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * @return The wc3 patch version or empty if none has been found
+     */
+    public Optional<GameVersion> getWc3PatchVersion() {
         return version;
     }
 
-
-    public static File getGameExe() {
+    /**
+     * @return The wc3 path or empty if none has been found
+     */
+    public Optional<File> getGameExe() {
         return gameExe;
     }
 }

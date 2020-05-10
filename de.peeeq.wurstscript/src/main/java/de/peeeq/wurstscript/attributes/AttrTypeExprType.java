@@ -1,9 +1,8 @@
 package de.peeeq.wurstscript.attributes;
 
+import java.util.Optional;
+
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.attributes.AttrConstantValue.ConstantValueCalculationException;
-import de.peeeq.wurstscript.intermediatelang.ILconst;
-import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
 
@@ -75,7 +74,7 @@ public class AttrTypeExprType {
 
     private static WurstType getBaseType(TypeExprSimple node) {
         final String typename = node.getTypeName();
-        final boolean isJassCode = Utils.isJassCode(node);
+        final boolean isJassCode = Utils.isJassCode(Optional.of(node));
         TypeDef t = node.attrTypeDef();
         if (t == null) {
             WurstType nativeType = NativeTypes.nativeType(typename, isJassCode);

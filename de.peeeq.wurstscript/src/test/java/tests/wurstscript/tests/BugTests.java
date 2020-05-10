@@ -11,8 +11,6 @@ import java.io.File;
 import java.io.IOException;
 
 public class BugTests extends WurstScriptTest {
-
-
     private static final String TEST_DIR = "./testscripts/concept/";
 
     @Test

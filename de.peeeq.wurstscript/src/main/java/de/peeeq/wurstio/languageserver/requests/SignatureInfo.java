@@ -13,6 +13,7 @@ import org.eclipse.lsp4j.TextDocumentPositionParams;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Optional;
 
 public class SignatureInfo extends UserRequest<SignatureHelp> {
 
@@ -31,27 +32,27 @@ public class SignatureInfo extends UserRequest<SignatureHelp> {
     @Override
 	public SignatureHelp execute(ModelManager modelManager) {
 		CompilationUnit cu = modelManager.getCompilationUnit(filename);
-		Element e = Utils.getAstElementAtPos(cu, line, column, false);
-		if (e instanceof StmtCall) {
-			StmtCall call = (StmtCall) e;
+		Optional<Element> e = Utils.getAstElementAtPos(cu, line, column, false);
+		if (e.get() instanceof StmtCall) {
+			StmtCall call = (StmtCall) e.get();
 			// TODO only when we are in parentheses
 			return forCall(call);
 		}
 
 
-		while (e != null) {
-			Element parent = e.getParent();
-			if (parent instanceof Arguments) {
-				Arguments args = (Arguments) parent;
-				if (parent.getParent() instanceof StmtCall) {
-					StmtCall call = (StmtCall) parent.getParent();
+		while (e.isPresent()) {
+			Optional<Element> parent = e.flatMap(el -> Optional.ofNullable(el.getParent()));
+			if (parent.isPresent() && parent.get() instanceof Arguments) {
+				Arguments args = (Arguments) parent.get();
+				if (parent.get().getParent() instanceof StmtCall) {
+					StmtCall call = (StmtCall) parent.get().getParent();
 					SignatureHelp info = forCall(call);
 					info.setActiveParameter(args.indexOf(e));
 					return info;
 				}
 				break;
-			} else if (parent instanceof StmtCall) {
-				StmtCall call = (StmtCall) parent;
+			} else if (parent.isPresent() && parent.get() instanceof StmtCall) {
+				StmtCall call = (StmtCall) parent.get();
 				return forCall(call);
 			}
 			e = parent;

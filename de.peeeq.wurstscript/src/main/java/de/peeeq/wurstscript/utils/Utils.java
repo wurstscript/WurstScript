@@ -68,15 +68,6 @@ public class Utils {
         return result;
 
     }
-    // }
-    // }
-    // p = p.postOrder();
-    // func.apply(p);
-    // while (p != null) {
-    // p = p.postOrderStart();
-    // func) {
-    // public static void visitPostOrder(SortPos p, Function<SortPos, Void>
-
 
 
     public static <T> void printSep(StringBuilder sb, String seperator, T[] args) {
@@ -143,12 +134,12 @@ public class Utils {
     /**
      * is a piece of code jass code?
      */
-    public static boolean isJassCode(@Nullable Element pos) {
-        while (pos != null) {
-            if (pos instanceof WPackage) {
+    public static boolean isJassCode(Optional<Element> pos) {
+        while (pos.isPresent()) {
+            if (pos.get() instanceof WPackage) {
                 return false; // code is inside package -> wurstscript code
             }
-            pos = pos.getParent();
+            pos = Optional.ofNullable(pos.get().getParent());
         }
         return true; // no package found -> jass code
     }
@@ -253,71 +244,58 @@ public class Utils {
     }
 
 
-    private static <T> void topSortHelperIgnoreCycles(List<T> result,
-                                                      Set<T> visitedItems,
-                                                      java.util.function.Function<T, ? extends Collection<T>> biggerItems, T item) {
-        if (visitedItems.contains(item)) {
-            return;
-        }
-        visitedItems.add(item);
-        for (T t : biggerItems.apply(item)) {
-            if (t == null)
-                throw new IllegalArgumentException();
-            topSortHelperIgnoreCycles(result, visitedItems, biggerItems, t);
-        }
-        result.add(item);
+    public static <T extends Element> String printElement(Optional<T> el) {
+        return el.map(e -> {
+            String type = makeReadableTypeName(e);
+            String name = "";
+            if (e instanceof ExprFunctionCall) {
+                ExprFunctionCall fc = (ExprFunctionCall) e;
+                return "function call " + fc.getFuncName() + "()";
+            } else if (e instanceof FuncDef) {
+                FuncDef fd = (FuncDef) e;
+                return "function " + fd.getName();
+            } else if (e instanceof OnDestroyDef) {
+                return "destroy function for "
+                        + e.attrNearestStructureDef().getName();
+            } else if (e instanceof ConstructorDef) {
+                return "constructor for " + e.attrNearestStructureDef().getName();
+            } else if (e instanceof LocalVarDef) {
+                LocalVarDef l = (LocalVarDef) e;
+                return "local variable " + l.getName();
+            } else if (e instanceof VarDef) {
+                VarDef l = (VarDef) e;
+                return "variable " + l.getName();
+            } else if (e instanceof AstElementWithNameId) {
+                name = ((AstElementWithNameId) e).getNameId().getName();
+            } else if (e instanceof WImport) {
+                WImport wImport = (WImport) e;
+                return "import " + wImport.getPackagename();
+            } else if (e instanceof TypeExprSimple) {
+                TypeExprSimple t = (TypeExprSimple) e;
+                name = t.getTypeName();
+                if (t.getTypeArgs().size() > 0) {
+                    name += "{";
+                    boolean first = true;
+                    StringBuilder builder = new StringBuilder();
+                    builder.append(name);
+                    for (TypeExpr ta : t.getTypeArgs()) {
+                        if (!first) {
+                            builder.append(", ");
+                        }
+                        builder.append(printElement(ta));
+                        first = false;
+                    }
+                    name = builder.toString();
+                    name += "}";
+                }
+                type = "type";
+            }
+            return type + " " + name;
+        }).orElse("null");
     }
 
-
     public static String printElement(@Nullable Element e) {
-        if (e == null) {
-            return "null";
-        }
-        String type = makeReadableTypeName(e);
-        String name = "";
-        if (e instanceof ExprFunctionCall) {
-            ExprFunctionCall fc = (ExprFunctionCall) e;
-            return "function call " + fc.getFuncName() + "()";
-        } else if (e instanceof FuncDef) {
-            FuncDef fd = (FuncDef) e;
-            return "function " + fd.getName();
-        } else if (e instanceof OnDestroyDef) {
-            return "destroy function for "
-                    + e.attrNearestStructureDef().getName();
-        } else if (e instanceof ConstructorDef) {
-            return "constructor for " + e.attrNearestStructureDef().getName();
-        } else if (e instanceof LocalVarDef) {
-            LocalVarDef l = (LocalVarDef) e;
-            return "local variable " + l.getName();
-        } else if (e instanceof VarDef) {
-            VarDef l = (VarDef) e;
-            return "variable " + l.getName();
-        } else if (e instanceof AstElementWithNameId) {
-            name = ((AstElementWithNameId) e).getNameId().getName();
-        } else if (e instanceof WImport) {
-            WImport wImport = (WImport) e;
-            return "import " + wImport.getPackagename();
-        } else if (e instanceof TypeExprSimple) {
-            TypeExprSimple t = (TypeExprSimple) e;
-            name = t.getTypeName();
-            if (t.getTypeArgs().size() > 0) {
-                name += "{";
-                boolean first = true;
-                StringBuilder builder = new StringBuilder();
-                builder.append(name);
-                for (TypeExpr ta : t.getTypeArgs()) {
-                    if (!first) {
-                        builder.append(", ");
-                    }
-                    builder.append(printElement(ta));
-                    first = false;
-                }
-                name = builder.toString();
-                name += "}";
-            }
-            type = "type";
-        }
-        return type + " " + name;
+        return printElement(Optional.ofNullable(e));
     }
 
     private static String makeReadableTypeName(Element e) {
@@ -362,56 +340,51 @@ public class Utils {
     }
 
 
-    public static Element getAstElementAtPos(Element elem,
+    public static Optional<Element> getAstElementAtPos(Element elem,
                                              int caretPosition, boolean usesMouse) {
         List<Element> betterResults = Lists.newArrayList();
         for (int i = 0; i < elem.size(); i++) {
-            Element e = elem.get(i);
-            if (elementContainsPos(e, caretPosition, usesMouse)) {
-                betterResults.add(getAstElementAtPos(e, caretPosition, usesMouse));
-            }
+            getAstElementAtPos(elem.get(i), caretPosition, usesMouse).map(el -> betterResults.add(el));
         }
         if (betterResults.size() == 0) {
             if (elem instanceof Identifier) {
-                return elem.getParent();
+                return Optional.ofNullable(elem.getParent());
             }
-            return elem;
+            return Optional.ofNullable(elem);
         } else {
             return bestResult(betterResults);
         }
     }
 
-    public static Element getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
-//		System.out.println("get element " + Utils.printElement(elem)
-//			+ "(" + elem.attrSource().getLeftPos() + " - " + elem.attrSource().getRightPos() + ")");
+    public static Optional<Element> getAstElementAtPos(Element elem, int line, int column, boolean usesMouse) {
         if (elem instanceof ModuleInstanciation) {
             // do not helicopter into module instantiations
-            return elem;
+            return Optional.of(elem);
         }
         List<Element> betterResults = Lists.newArrayList();
         for (int i = 0; i < elem.size(); i++) {
             Element e = elem.get(i);
             if (elementContainsPos(e, line, column, usesMouse) || e.attrSource().isArtificial()) {
-                betterResults.add(getAstElementAtPos(e, line, column, usesMouse));
+                getAstElementAtPos(e, line, column, usesMouse).map(el -> betterResults.add(el));
             }
         }
-        Element bestResult = bestResult(betterResults);
-        if (bestResult == null) {
+        Optional<Element> bestResult = bestResult(betterResults);
+        if (bestResult.isEmpty()) {
             if (elem instanceof Identifier) {
-                return elem.getParent();
+                return Optional.ofNullable(elem.getParent());
             }
-            return elem;
+            return Optional.of(elem);
         } else {
             return bestResult;
         }
     }
 
 
-    public static Element getAstElementAtPosIgnoringLists(Element elem,
+    public static Optional<Element> getAstElementAtPosIgnoringLists(Element elem,
                                                           int caretPosition, boolean usesMouse) {
-        Element r = getAstElementAtPos(elem, caretPosition, usesMouse);
-        while (r instanceof List<?>) {
-            r = r.getParent();
+        Optional<Element> r = getAstElementAtPos(elem, caretPosition, usesMouse);
+        while (r.isPresent() && r.get() instanceof List<?>) {
+            r = r.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return r;
     }
@@ -419,9 +392,9 @@ public class Utils {
     /**
      * return the element with the smallest size
      */
-    private static Element bestResult(List<Element> betterResults) {
+    private static Optional<Element> bestResult(List<Element> betterResults) {
         int minSize = Integer.MAX_VALUE;
-        Element min = null;
+        Optional<Element> min = Optional.empty();
         for (Element e : betterResults) {
             WPos source = e.attrSource();
             int size = source.isArtificial() ?
@@ -429,7 +402,7 @@ public class Utils {
                     : source.getRightPos() - source.getLeftPos();
             if (size < minSize) {
                 minSize = size;
-                min = e;
+                min = Optional.of(e);
             }
         }
         return min;
@@ -464,15 +437,15 @@ public class Utils {
         return source.getFile() + ", line " + source.getLine();
     }
 
-    public static boolean isEmptyCU(@Nullable CompilationUnit cu) {
-        return (cu == null)
-                || (cu.getJassDecls().size() + cu.getPackages().size() == 0);
+    public static boolean isEmptyCU(Optional<CompilationUnit> cu) {
+        return cu.isEmpty()
+                || (cu.get().getJassDecls().size() + cu.get().getPackages().size() == 0);
     }
 
-    public static String printElementWithSource(Element e) {
-        WPos src = e.attrSource();
-        return printElement(e) + " (" + src.getFile() + ":"
-                + src.getLine() + ")";
+    public static String printElementWithSource(Optional<Element> e) {
+        Optional<WPos> src = e.map(el -> el.attrSource());
+        return printElement(e) + " (" + src.map(sf -> sf.getFile()) + ":"
+                + src.map(sf -> sf.getLine()) + ")";
     }
 
     public static int[] copyArray(int[] ar) {
@@ -488,12 +461,12 @@ public class Utils {
         return s.substring(0, 1).toUpperCase() + s.substring(1);
     }
 
-    public static @Nullable VarDef getParentVarDef(@Nullable Element node) {
-        while (node != null) {
-            if (node instanceof VarDef) {
-                return (VarDef) node;
+    public static Optional<VarDef> getParentVarDef(Optional<Element> node) {
+        while (node.isPresent()) {
+            if (node.get() instanceof VarDef) {
+                return node.map(n -> (VarDef) n);
             }
-            node = node.getParent();
+            node = node.map(n -> n.getParent());
         }
         return null;
     }
@@ -580,21 +553,7 @@ public class Utils {
      * checks if b contains the first n characters of a as a substring
      */
     private static boolean containsPrefix(String b, String a, int n) {
-        // TODO performance
         return b.contains(a.substring(0, n));
-    }
-
-    private static double average(List<Integer> l) {
-        Preconditions.checkArgument(l.size() > 0);
-        return sum(l) * 1. / l.size();
-    }
-
-    private static int sum(List<Integer> l) {
-        int sum = 0;
-        for (int i : l) {
-            sum += i;
-        }
-        return sum;
     }
 
     public static <T> T getFirstAndOnly(Collection<T> c) {
@@ -644,7 +603,6 @@ public class Utils {
     }
 
     public static String escapeHtml(String s) {
-        // TODO could use apache commons library?
         s = s.replace("<", "&lt;");
         s = s.replace(">", "&gt;");
         return s;
@@ -696,9 +654,9 @@ public class Utils {
 
     public static String readWholeStream(BufferedReader r) throws IOException {
         StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = r.readLine()) != null) {
-            sb.append(line);
+        Optional<String> line;
+        while ((line = Optional.ofNullable(r.readLine())).isPresent()) {
+            line.map(l -> sb.append(l));
         }
         return sb.toString();
     }
@@ -709,12 +667,12 @@ public class Utils {
 
 
     @SuppressWarnings("unchecked")
-    public static <T extends Element> Optional<T> getNearestByType(@Nullable Element e, Class<T> clazz) {
-        while (e != null) {
-            if (clazz.isInstance(e)) {
-                return Optional.of((T) e);
+    public static <T extends Element> Optional<T> getNearestByType(Optional<Element> e, Class<T> clazz) {
+        while (e.isPresent()) {
+            if (clazz.isInstance(e.get())) {
+                return Optional.of((T) e.get());
             }
-            e = e.getParent();
+            e = e.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return Optional.empty();
     }
@@ -868,12 +826,12 @@ public class Utils {
         return result.toString();
     }
 
-    public static boolean elementContained(Element e, Element in) {
-        while (e != null) {
-            if (e == in) {
+    public static boolean elementContained(Optional<Element> e, Element in) {
+        while (e.isPresent()) {
+            if (e.get() == in) {
                 return true;
             }
-            e = e.getParent();
+            e = e.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return false;
     }
@@ -906,8 +864,9 @@ public class Utils {
      * see http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
      */
     public static String convertStreamToString(InputStream is) {
-        Scanner s = new Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
+        try(Scanner s = new Scanner(is).useDelimiter("\\A")) {
+            return s.hasNext() ? s.next() : "";
+        }
     }
 
     public static byte[] convertStreamToBytes(InputStream is) throws IOException {
@@ -944,21 +903,22 @@ public class Utils {
      */
     public static synchronized File getResourceFileF(String name) {
         try {
-            File f = resourceMap.get(name);
-            if (f != null && f.exists()) {
-                return f;
+            Optional<File> f = Optional.ofNullable(resourceMap.get(name));
+            if (f.isPresent() && f.get().exists()) {
+                return f.get();
             }
+
             String[] parts = splitFilename(name);
-            f = File.createTempFile(parts[0], parts[1]);
-            f.deleteOnExit();
+            File fi = File.createTempFile(parts[0], parts[1]);
+            fi.deleteOnExit();
             try (InputStream is = Pjass.class.getClassLoader().getResourceAsStream(name)) {
                 if (is == null) {
                     throw new RuntimeException("Could not find resource file " + name);
                 }
                 byte[] bytes = Utils.convertStreamToBytes(is);
-                Files.write(bytes, f);
-                resourceMap.put(name, f);
-                return f;
+                Files.write(bytes, fi);
+                resourceMap.put(name, fi);
+                return fi;
             }
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -978,12 +938,12 @@ public class Utils {
 
     public static String elementNameWithPath(AstElementWithNameId n) {
         StringBuilder result = new StringBuilder(n.getNameId().getName());
-        Element e = n.getParent();
-        while (e != null) {
-            if (e instanceof AstElementWithNameId) {
-                result.insert(0, ((AstElementWithNameId) e).getNameId().getName() + "_");
+        Optional<Element> e = Optional.ofNullable(n.getParent());
+        while (e.isPresent()) {
+            if (e.get() instanceof AstElementWithNameId) {
+                result.insert(0, ((AstElementWithNameId) e.get()).getNameId().getName() + "_");
             }
-            e = e.getParent();
+            e = e.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return result.toString();
     }
@@ -1088,10 +1048,10 @@ public class Utils {
             @Override
             public void run() {
                 try (BufferedReader input = new BufferedReader(new InputStreamReader(in))) {
-                    String line;
-                    while ((line = input.readLine()) != null) {
-                        onInput.accept(line);
-                        sb.append(line).append("\n");
+                    Optional<String> line;
+                    while ((line = Optional.ofNullable(input.readLine())).isPresent()) {
+                        onInput.accept(line.get());
+                        sb.append(line.get()).append("\n");
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);

@@ -77,8 +77,6 @@ public class CompilationProcess {
             return null;
         }
 
-        File mapFile = compiler.getMapFile();
-
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
                     () -> runTests(compiler.getImTranslator(), compiler));
@@ -142,7 +140,6 @@ public class CompilationProcess {
         if (runArgs.getOutFile() != null) {
             outputMapscript = new File(runArgs.getOutFile());
         } else {
-            //outputMapscript = File.createTempFile("outputMapscript", ".j");
             outputMapscript = new File("./temp/output.j");
         }
         outputMapscript.getParentFile().mkdirs();

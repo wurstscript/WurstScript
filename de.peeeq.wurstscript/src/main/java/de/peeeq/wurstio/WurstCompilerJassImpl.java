@@ -49,7 +49,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
     private WurstGui gui;
     private boolean hasCommonJ;
     private RunArgs runArgs;
-    private @Nullable File mapFile;
+    private Optional<File> mapFile = Optional.empty();
     private @Nullable File projectFolder;
     private ErrorHandler errorHandler;
     private @Nullable Map<String, File> libCache = null;
@@ -141,7 +141,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadFile(f);
             } else if (f.getName().equals("wurst.dependencies")) {
                 addDependencyFile(f);
-            } else if ((mapFile == null || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
+            } else if ((mapFile.isEmpty() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
                 loadFile(f);
             }
         }
@@ -178,7 +178,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         // search mapFile
         for (File file : files) {
             if (file.getName().endsWith(".w3x") || file.getName().endsWith(".w3m")) {
-                mapFile = file;
+                mapFile = Optional.ofNullable(file);
             } else if (file.isDirectory()) {
                 if (projectFolder != null && !file.getParent().equals(projectFolder.getAbsolutePath())) {
                     throw new RuntimeException("Cannot set projectFolder to " + file + " because it is already set to non parent " + projectFolder);
@@ -190,10 +190,10 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
 
         // import wurst folder if it exists
-        File l_mapFile = mapFile;
-        if (l_mapFile != null) {
+        Optional<File> l_mapFile = mapFile;
+        if (l_mapFile.isPresent()) {
             if (projectFolder == null) {
-                projectFolder = l_mapFile.getParentFile();
+                projectFolder = l_mapFile.get().getParentFile();
             }
             File relativeWurstDir = new File(projectFolder, "wurst");
             if (relativeWurstDir.exists()) {
@@ -626,7 +626,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     private CompilationUnit processMap(File file) {
         gui.sendProgress("Processing Map " + file.getName());
-        if (!file.equals(mapFile)) {
+        if (mapFile.isEmpty() || !file.equals(mapFile.get())) {
             // TODO check if file != mapFile is possible, would be strange
             // so this should definitely be done differently
             throw new Error("file: " + file + " is not the mapfile: " + mapFile);
@@ -747,7 +747,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         }
     }
 
-    public @Nullable File getMapFile() {
+    public Optional<File> getMapFile() {
         return mapFile;
     }
 
@@ -792,7 +792,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
         this.runArgs = runArgs;
     }
 
-    public void setMapFile(File mapFile) {
+    public void setMapFile(Optional<File> mapFile) {
         this.mapFile = mapFile;
     }
 

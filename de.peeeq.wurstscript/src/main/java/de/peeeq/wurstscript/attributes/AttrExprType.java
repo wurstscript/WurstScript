@@ -11,6 +11,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 
 /**
@@ -68,7 +69,7 @@ public class AttrExprType {
             return WurstTypeUnknown.instance();
         }
         if (varDef.getDef() instanceof VarDef) {
-            if (Utils.getParentVarDef(term) == varDef.getDef()) {
+            if (Utils.getParentVarDef(Optional.of(term)) == Optional.of((VarDef) varDef.getDef())) {
                 term.addError("Recursive variable definition is not allowed.");
                 return WurstTypeUnknown.instance();
             }
@@ -217,7 +218,7 @@ public class AttrExprType {
                     return WurstTypeBool.instance();
                 }
 
-                if (Utils.isJassCode(term)) {
+                if (Utils.isJassCode(Optional.of(term))) {
                     if (leftType.isSubtypeOf(WurstTypeReal.instance(), term) || leftType.isSubtypeOf(WurstTypeInt.instance(), term)) {
                         if (rightType.isSubtypeOf(WurstTypeReal.instance(), term) || rightType.isSubtypeOf(WurstTypeInt.instance(), term)) {
                             // in jass code it is allowed to compare reals and ints
@@ -278,7 +279,7 @@ public class AttrExprType {
                     return handleOperatorOverloading(term);
                 }
             case DIV_REAL:
-                if (Utils.isJassCode(term)) {
+                if (Utils.isJassCode(Optional.of(term))) {
                     return caseMathOperation(term);
                 } else if (bothTypesRealOrInt(term)) {
                     return WurstTypeReal.instance();

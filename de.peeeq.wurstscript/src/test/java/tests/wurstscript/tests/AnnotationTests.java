@@ -1,10 +1,6 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstio.jassinterpreter.DebugPrintError;
 import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.IOException;
 
 public class AnnotationTests extends WurstScriptTest {
 

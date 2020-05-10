@@ -33,6 +33,7 @@ de.peeeq.wurstscript/logs/*
 de.peeeq.wurstscript/test-output/*
 de.peeeq.wurstscript/junitTestResults/
 de.peeeq.wurstscript/version2.properties
+de.peeeq.wurstscript/.project
 
 WurstWeb/gwt-unitCache/*
 WurstWeb/war/WEB-INF/classes/*
@@ -56,3 +57,11 @@ Checksums/testmd5.txt
 downloads/
 WurstSetup/proguard.map
 de.peeeq.wurstscript/output.txt
+.vscode/
+*.trc
+*.dmp
+*.phd
+temp/
+test-output/
+javacore.*.txt
+_build/

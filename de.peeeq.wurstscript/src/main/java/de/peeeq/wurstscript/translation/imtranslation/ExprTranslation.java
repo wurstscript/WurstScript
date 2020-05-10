@@ -22,6 +22,7 @@ import io.vavr.control.Option;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static de.peeeq.wurstscript.jassIm.JassIm.*;
 
@@ -149,7 +150,7 @@ public class ExprTranslation {
             return ImFunctionCall(e, calledFunc, ImTypeArguments(), ImExprs(left, right), false, CallType.NORMAL);
         }
         if (op == WurstOperator.DIV_REAL) {
-            if (Utils.isJassCode(e)) {
+            if (Utils.isJassCode(Optional.of(e))) {
                 if (e.getLeft().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)
                         && e.getRight().attrTyp().isSubtypeOf(WurstTypeInt.instance(), e)) {
                     // in jass when we have int1 / int2 this actually means int1
