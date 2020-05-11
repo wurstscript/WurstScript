@@ -148,7 +148,7 @@ public class RunTests extends UserRequest<Object> {
             globalState = new ProgramState(gui, imProg, true);
         }
         if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, null, globalState);
+            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         }
 
