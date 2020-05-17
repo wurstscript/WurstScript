@@ -129,12 +129,12 @@ public class RunMap extends MapRequest {
                 if (path.length() > 0) {
                     // now start the map
                     File gameExe = w3data.getGameExe().get();
-                    if (w3data.getWc3PatchVersion().isEmpty()) {
+                    if (!w3data.getWc3PatchVersion().isPresent()) {
                         throw new RequestFailedException(MessageType.Error, wc3Path + " does not exist.");
                     }
                     List<String> cmd = Lists.newArrayList(gameExe.getAbsolutePath());
                     Optional<String> wc3RunArgs = configProvider.getWc3RunArgs();
-                    if (wc3RunArgs.isEmpty() || StringUtils.isBlank(wc3RunArgs.get())) {
+                    if (!wc3RunArgs.isPresent() || StringUtils.isBlank(wc3RunArgs.get())) {
                         if (w3data.getWc3PatchVersion().get().compareTo(VERSION_1_32) >= 0) {
                             cmd.add("-launch");
                         }
@@ -282,9 +282,9 @@ public class RunMap extends MapRequest {
     }
 
     private Optional<String> findMapDocumentPath(String testMapName, File myDocumentsFolder) {
-        Optional<String> documentPath = configProvider
-            .getMapDocumentPath()
-            .or(() -> Optional.of(myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III"));
+        Optional<String> documentPath = Optional.of(
+            configProvider.getMapDocumentPath().orElseGet(
+                () -> myDocumentsFolder.getAbsolutePath() + File.separator + "Warcraft III"));
 
         if (!new File(documentPath.get()).exists()) {
             WLogger.info("Warcraft folder " + documentPath + " does not exist.");

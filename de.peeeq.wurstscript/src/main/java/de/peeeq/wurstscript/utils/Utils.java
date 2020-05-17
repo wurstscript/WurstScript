@@ -369,7 +369,7 @@ public class Utils {
             }
         }
         Optional<Element> bestResult = bestResult(betterResults);
-        if (bestResult.isEmpty()) {
+        if (!bestResult.isPresent()) {
             if (elem instanceof Identifier) {
                 return Optional.ofNullable(elem.getParent());
             }
@@ -438,7 +438,7 @@ public class Utils {
     }
 
     public static boolean isEmptyCU(Optional<CompilationUnit> cu) {
-        return cu.isEmpty()
+        return !cu.isPresent()
                 || (cu.get().getJassDecls().size() + cu.get().getPackages().size() == 0);
     }
 

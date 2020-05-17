@@ -91,7 +91,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         File existingScript = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
-        if (mapCopy.isEmpty() || runArgs.isNoExtractMapScript()) {
+        if (!mapCopy.isPresent() || runArgs.isNoExtractMapScript()) {
             if (existingScript.exists()) {
                 modelManager.syncCompilationUnit(WFile.create(existingScript));
                 return;
@@ -172,7 +172,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 print("translating program to Lua ... ");
                 Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(compiler.transformProgToLua());
 
-                if (luaCode.isEmpty()) {
+                if (!luaCode.isPresent()) {
                     print("Could not compile project\n");
                     throw new RuntimeException("Could not compile project (error in LUA translation)");
                 }
@@ -191,7 +191,7 @@ public abstract class MapRequest extends UserRequest<Object> {
                 compiler.transformProgToJass();
 
                 Optional<JassProg> jassProg = Optional.ofNullable(compiler.getProg());
-                if (jassProg.isEmpty()) {
+                if (!jassProg.isPresent()) {
                     print("Could not compile project\n");
                     throw new RuntimeException("Could not compile project (error in JASS translation)");
                 }
@@ -363,7 +363,11 @@ public abstract class MapRequest extends UserRequest<Object> {
         File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
 
         Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
-        if (model.isEmpty() || model.get().stream().noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
+        if (!model.isPresent()
+                || model
+                    .get()
+                    .stream()
+                    .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
             println("We will try to start the map now, but it will probably fail. ");
@@ -374,7 +378,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     private W3Utils parseCustomPatchVersion() throws RequestFailedException {
         if (wc3Path.isPresent()) {
             W3Utils w3data = new W3Utils(new File(wc3Path.get()));
-            if (w3data.getWc3PatchVersion().isEmpty()) {
+            if (!w3data.getWc3PatchVersion().isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 

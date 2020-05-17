@@ -47,7 +47,7 @@ public class BuildMap extends MapRequest {
         WLogger.info("buildMap " + map + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
-            if (map.isEmpty()) {
+            if (!map.isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Map is null");
             }
             if (!map.get().exists()) {

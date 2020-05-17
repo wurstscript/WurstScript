@@ -81,7 +81,7 @@ public class WurstCommands {
         JsonObject options = (JsonObject) params.getArguments().get(0);
         Optional<String> mapPath = getString(options, "mappath");
         Optional<String> wc3Path = getString(options, "wc3path");
-        if (mapPath.isEmpty()) {
+        if (!mapPath.isPresent()) {
             throw new RuntimeException("No mappath given");
         }
 

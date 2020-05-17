@@ -32,8 +32,10 @@ import java.util.regex.Pattern
 mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.1.0"
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+allprojects {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
 
 jacoco {
     toolVersion = "0.8.5"
@@ -232,6 +234,3 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
-
-
-

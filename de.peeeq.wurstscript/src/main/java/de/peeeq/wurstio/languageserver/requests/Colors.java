@@ -36,7 +36,7 @@ public class Colors {
         public List<ColorInformation> execute(ModelManager modelManager) throws IOException {
             Optional<CompilationUnit> cu = Optional.ofNullable(
                 modelManager.getCompilationUnit(WFile.create(textDocument)));
-            if (cu.isEmpty()) {
+            if (!cu.isPresent()) {
                 return Collections.emptyList();
             }
 
@@ -103,12 +103,12 @@ public class Colors {
         public List<ColorPresentation> execute(ModelManager modelManager) {
             Optional<CompilationUnit> cu = Optional.ofNullable(
                 modelManager.getCompilationUnit(WFile.create(textDocument)));
-            if (cu.isEmpty()) {
+            if (!cu.isPresent()) {
                 return Collections.emptyList();
             }
             Optional<Element> elemAtPos = Utils.getAstElementAtPos(cu.get(), range.getStart().getLine() + 1,
                 range.getStart().getCharacter() + 2, false);
-            if (elemAtPos.isEmpty()) {
+            if (!elemAtPos.isPresent()) {
                 return Collections.emptyList();
             }
             Element elem = elemAtPos.get();

@@ -141,7 +141,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
                 loadFile(f);
             } else if (f.getName().equals("wurst.dependencies")) {
                 addDependencyFile(f);
-            } else if ((mapFile.isEmpty() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
+            } else if ((!mapFile.isPresent() || runArgs.isNoExtractMapScript()) && f.getName().equals("war3map.j")) {
                 loadFile(f);
             }
         }
@@ -626,7 +626,7 @@ public class WurstCompilerJassImpl implements WurstCompiler {
 
     private CompilationUnit processMap(File file) {
         gui.sendProgress("Processing Map " + file.getName());
-        if (mapFile.isEmpty() || !file.equals(mapFile.get())) {
+        if (!mapFile.isPresent() || !file.equals(mapFile.get())) {
             // TODO check if file != mapFile is possible, would be strange
             // so this should definitely be done differently
             throw new Error("file: " + file + " is not the mapfile: " + mapFile);

@@ -236,13 +236,13 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private Optional<File> getObjectEditingOutputFolder() {
-        if (mapFile.isEmpty()) {
+        if (!mapFile.isPresent()) {
             File folder = new File("_build", "objectEditingOutput");
             folder.mkdirs();
             return Optional.of(folder);
         }
         Optional<File> folder = mapFile.map(fi -> new File(fi.getParent(), "objectEditingOutput"));
-        if (folder.isEmpty() || (!folder.get().exists() && !folder.get().mkdirs())) {
+        if (!folder.isPresent() || (!folder.get().exists() && !folder.get().mkdirs())) {
             WLogger.info("Could not create folder " + folder.map(fo -> fo.getAbsoluteFile()));
             return Optional.empty();
         }

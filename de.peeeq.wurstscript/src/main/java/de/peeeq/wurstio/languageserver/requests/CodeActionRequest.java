@@ -66,7 +66,7 @@ public class CodeActionRequest extends UserRequest<List<Either<Command, CodeActi
 
 
         WLogger.info("Code action on element " + Utils.printElementWithSource(e));
-        if (e.isEmpty()) {
+        if (!e.isPresent()) {
             // TODO non simple TypeRef
 
             return Collections.emptyList();

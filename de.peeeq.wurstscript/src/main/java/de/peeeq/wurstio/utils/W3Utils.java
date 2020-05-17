@@ -54,7 +54,7 @@ public class W3Utils {
         });
         WLogger.info("Parsed custom game version from executable: " + version);
 
-        if (gameExe.isEmpty()) {
+        if (!gameExe.isPresent()) {
             WLogger.warning("The provided wc3 path wasn't suitable. Falling back to discovery.");
             discoverExePath();
             discoverVersion();

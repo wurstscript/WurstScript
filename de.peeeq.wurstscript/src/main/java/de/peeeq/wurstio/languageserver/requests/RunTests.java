@@ -331,7 +331,7 @@ public class RunTests extends UserRequest<Object> {
                 return testFunc;
             }
         }
-        if (filename.isEmpty() || maybeCu.isEmpty() || line < 0) {
+        if (!filename.isPresent() || !maybeCu.isPresent() || line < 0) {
             return Optional.empty();
         }
         Optional<Element> e = Utils.getAstElementAtPos(maybeCu.get(), line, column, false);
