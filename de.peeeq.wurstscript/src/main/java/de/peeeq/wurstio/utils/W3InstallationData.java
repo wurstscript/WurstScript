@@ -13,13 +13,13 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
-public class W3Utils {
+public class W3InstallationData {
     private Optional<File> gameExe = Optional.empty();
 
     private Optional<GameVersion> version = Optional.empty();
 
     /** Evaluates the game path and version by discovering the system environment. */
-    public W3Utils() {
+    public W3InstallationData() {
         discoverExePath();
         discoverVersion();
     }
@@ -28,7 +28,7 @@ public class W3Utils {
      * Evaluates the game path and version, attempting to use the provided path if possible, before discovering the
      * system environment.
      */
-    public W3Utils(File wc3Path) {
+    public W3InstallationData(File wc3Path) {
         if (!Orient.isWindowsSystem()) {
             WLogger.warning("Game path configuration only works on windows");
             discoverExePath();

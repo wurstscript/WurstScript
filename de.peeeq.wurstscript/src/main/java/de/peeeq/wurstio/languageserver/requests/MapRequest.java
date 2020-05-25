@@ -10,7 +10,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -53,7 +53,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
     protected final Optional<String> wc3Path;
-    protected final W3Utils w3data;
+    protected final W3InstallationData w3data;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -72,7 +72,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
-        this.w3data = parseCustomPatchVersion();
+        this.w3data = getBestW3InstallationData();
     }
 
     @Override
@@ -375,16 +375,16 @@ public abstract class MapRequest extends UserRequest<Object> {
         return compiledScript;
     }
 
-    private W3Utils parseCustomPatchVersion() throws RequestFailedException {
+    private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
         if (wc3Path.isPresent()) {
-            W3Utils w3data = new W3Utils(new File(wc3Path.get()));
+            W3InstallationData w3data = new W3InstallationData(new File(wc3Path.get()));
             if (!w3data.getWc3PatchVersion().isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
 
             return w3data;
         } else {
-            return new W3Utils();
+            return new W3InstallationData();
         }
     }
 }

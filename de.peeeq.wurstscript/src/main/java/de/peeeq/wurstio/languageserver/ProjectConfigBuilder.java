@@ -6,7 +6,7 @@ import de.peeeq.wurstio.Pjass;
 import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.RunArgs;
 import net.moonlightflower.wc3libs.bin.app.MapFlag;
 import net.moonlightflower.wc3libs.bin.app.MapHeader;
@@ -31,7 +31,7 @@ public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
 
     public static void apply(WurstProjectConfigData projectConfig, File targetMap, File compiledScript, File buildDir,
-            RunArgs runArgs, W3Utils w3data) throws IOException {
+            RunArgs runArgs, W3InstallationData w3data) throws IOException {
         if (projectConfig.getProjectName().isEmpty()) {
             throw new RequestFailedException(MessageType.Error, "wurst.build is missing projectName.");
         }
