@@ -368,8 +368,7 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    private class TestTimeOutException extends Throwable {
-        private static final long serialVersionUID = -7080085729129882874L;
+    private static class TestTimeOutException extends Throwable {
 
         @Override
         public String getMessage() {
