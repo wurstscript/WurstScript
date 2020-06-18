@@ -26,7 +26,7 @@ public class SmallHelpers {
     }
 
     public static boolean isModuleUseTypeArg(TypeExpr e) {
-        Optional<ModuleUse> mUse = Utils.getNearestByType(e, ModuleUse.class);
+        Optional<ModuleUse> mUse = Utils.getNearestByType(Optional.of(e), ModuleUse.class);
         return mUse.map(moduleUse -> moduleUse.isSubtreeOf(e)).orElse(false);
     }
 
@@ -39,7 +39,7 @@ public class SmallHelpers {
     }
 
     public static boolean isStructureDefTypeParam(TypeParamDef tp) {
-        Optional<StructureDef> sDef = Utils.getNearestByType(tp, StructureDef.class);
+        Optional<StructureDef> sDef = Utils.getNearestByType(Optional.of(tp), StructureDef.class);
         if (!sDef.isPresent()) {
             return false;
         }

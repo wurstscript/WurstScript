@@ -42,8 +42,6 @@ public class RealWorldExamples extends WurstScriptTest {
         boolean executeProg = false;
         boolean withStdLib = true;
         boolean executeTests = true;
-        //
-        //testScript(Iterable<File> inputFiles, Map<String, String> inputs, String name, boolean executeProg, boolean withStdLib, boolean executeTests) {
 
         new TestConfig(name)
                 .withStdLib(withStdLib)
@@ -54,18 +52,12 @@ public class RealWorldExamples extends WurstScriptTest {
                 .withInputs(inputs)
                 .run()
                 .getModel();
-        //super.testAssertOkFileWithStdLib(new File(BUG_DIR + "LinkedHashMap.wurst"), true);
     }
 
     @Test
     public void module() throws IOException {
         super.testAssertOkFileWithStdLib(new File(BUG_DIR + "module.wurst"), false);
     }
-
-//	@Test
-//	public void testCyclic() throws IOException {
-//		super.testAssertErrorFileWithStdLib(new File(BUG_DIR + "cyclic.wurst"), "cyclic dependency", true);
-//	}
 
     @Test
     public void testLists() throws IOException {
@@ -109,11 +101,6 @@ public class RealWorldExamples extends WurstScriptTest {
     public void frottyTupleBug() throws IOException {
         super.testAssertOkFileWithStdLib(new File(TEST_DIR + "tupleBug.wurst"), false);
     }
-
-//	@Test
-//	public void optimizer() throws IOException {
-//		super.testAssertOkFileWithStdLib(new File(TEST_DIR + "optimizer.wurst"), false);
-//	}
 
     @Test
     public void optimizerNew() throws IOException {

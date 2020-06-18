@@ -18,6 +18,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Optional;
 
 /**
  *
@@ -76,8 +77,6 @@ public class CompilationProcess {
         if (gui.getErrorCount() > 0) {
             return null;
         }
-
-        File mapFile = compiler.getMapFile();
 
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
@@ -142,7 +141,6 @@ public class CompilationProcess {
         if (runArgs.getOutFile() != null) {
             outputMapscript = new File(runArgs.getOutFile());
         } else {
-            //outputMapscript = File.createTempFile("outputMapscript", ".j");
             outputMapscript = new File("./temp/output.j");
         }
         outputMapscript.getParentFile().mkdirs();
@@ -159,13 +157,13 @@ public class CompilationProcess {
         // tests
         gui.sendProgress("Running tests");
         System.out.println("Running tests");
-        RunTests runTests = new RunTests(null, 0, 0, null) {
+        RunTests runTests = new RunTests(Optional.empty(), 0, 0, Optional.empty()) {
             @Override
             protected void print(String message) {
                 out.print(message);
             }
         };
-        runTests.runTests(translator, compiler.getImProg(), null, null);
+        runTests.runTests(translator, compiler.getImProg(), Optional.empty(), Optional.empty());
 
         for (RunTests.TestFailure e : runTests.getFailTests()) {
             gui.sendError(new CompileError(e.getFunction(), e.getMessage()));
@@ -179,6 +177,4 @@ public class CompilationProcess {
 
         System.out.println("Finished running tests");
     }
-
-
 }

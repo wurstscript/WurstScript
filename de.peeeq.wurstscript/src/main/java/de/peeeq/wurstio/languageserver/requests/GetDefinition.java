@@ -45,7 +45,7 @@ public class GetDefinition extends UserRequest<Either<List<? extends Location>, 
         if (cu == null) {
             return Collections.emptyList();
         }
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
+        Element e = Utils.getAstElementAtPos(cu, line, column, false).get();
         WLogger.info("get definition at: " + e.getClass().getSimpleName());
         if (e instanceof FuncRef) {
             FuncRef funcRef = (FuncRef) e;

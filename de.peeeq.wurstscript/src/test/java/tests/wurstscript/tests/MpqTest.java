@@ -8,6 +8,7 @@ import org.testng.annotations.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 public class MpqTest {
     private static final String TEST_W3X = "./testscripts/mpq/test_temp.w3x";
@@ -30,15 +31,15 @@ public class MpqTest {
 
     @Test
     public void test_insert() throws Exception {
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             if (edit.hasFile("test.txt")) {
                 edit.deleteFile("test.txt");
             }
         }
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             edit.insertFile("test.txt", new File("./testscripts/mpq/test.txt"));
         }
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             Assert.assertTrue(edit.hasFile("test.txt"));
         }
 
@@ -46,12 +47,12 @@ public class MpqTest {
 
     @Test
     public void test_extract() throws Exception {
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             if (!edit.hasFile("test.txt")) {
                 edit.insertFile("test.txt", new File("./testscripts/mpq/test.txt"));
             }
         }
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             byte[] f = edit.extractFile("war3map.j");
             Assert.assertTrue(f.length > 5);
         }
@@ -60,13 +61,13 @@ public class MpqTest {
 
     @Test
     public void test_delete() throws Exception {
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             edit.insertFile("test.txt", new File("./testscripts/mpq/test.txt"));
         }
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             edit.deleteFile("test.txt");
         }
-        try (MpqEditor edit = MpqEditorFactory.getEditor(new File(TEST_W3X))) {
+        try (MpqEditor edit = MpqEditorFactory.getEditor(Optional.of(new File(TEST_W3X)))) {
             Assert.assertFalse(edit.hasFile("test.txt"));
         }
     }

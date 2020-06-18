@@ -109,7 +109,7 @@ public class GetCompletions extends UserRequest<CompletionList> {
             searchMode = mode;
             List<CompletionItem> completions = Lists.newArrayList();
 
-            elem = Utils.getAstElementAtPos(cu, line, column + 1, false);
+            elem = Utils.getAstElementAtPos(cu, line, column + 1, false).get();
             WLogger.info("get completions at " + Utils.printElement(elem));
             expectedType = null;
             if (elem instanceof Expr) {
@@ -122,8 +122,6 @@ public class GetCompletions extends UserRequest<CompletionList> {
 
             dropBadCompletions(completions);
             removeDuplicates(completions);
-
-            //		Collections.sort(completions, c)
 
             if (completions.size() > 0) {
                 return completions;

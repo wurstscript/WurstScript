@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.WLogger;
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.services.LanguageClient;
 
-import java.io.FileNotFoundException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,7 +48,6 @@ public class LanguageWorker implements Runnable {
     private WFile rootPath;
 
     private final Object lock = new Object();
-    private int initRequestSequenceNr = -1;
     private BufferManager bufferManager = new BufferManager();
     private LanguageClient languageClient;
 
@@ -71,15 +69,6 @@ public class LanguageWorker implements Runnable {
     public void stop() {
         thread.interrupt();
     }
-
-
-//    public void handleRuntests(int sequenceNr, String filename, int line, int column) {
-//        synchronized (lock) {
-//            userRequests.add(new RunTests(sequenceNr, server, filename, line, column));
-//            lock.notifyAll();
-//        }
-//
-//    }
 
     abstract class PendingChange {
         private long time;
@@ -213,8 +202,6 @@ public class LanguageWorker implements Runnable {
             modelManager.buildProject();
 
             log("Finished building " + rootPath);
-            // TODO
-//            server.reply(initRequestSequenceNr, "done");
         } catch (Exception e) {
             WLogger.severe(e);
         }

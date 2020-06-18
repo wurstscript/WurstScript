@@ -77,7 +77,9 @@ public class CompiletimeFunctionRunner {
     }
 
 
-    public CompiletimeFunctionRunner(ImTranslator tr, ImProg imProg, File mapFile, MpqEditor mpqEditor, WurstGui gui, FunctionFlagToRun flag) {
+    public CompiletimeFunctionRunner(
+            ImTranslator tr, ImProg imProg, Optional<File> mapFile, MpqEditor mpqEditor, WurstGui gui,
+            FunctionFlagToRun flag) {
         Preconditions.checkNotNull(imProg);
         this.translator = tr;
         this.imProg = imProg;
@@ -92,8 +94,6 @@ public class CompiletimeFunctionRunner {
 
 
     public void run() {
-//		interpreter.executeFunction("main");
-//		interpreter.executeFunction("initGlobals");
         try {
             List<Either<ImCompiletimeExpr, ImFunction>> toExecute = new ArrayList<>();
             collectCompiletimeExpressions(toExecute);

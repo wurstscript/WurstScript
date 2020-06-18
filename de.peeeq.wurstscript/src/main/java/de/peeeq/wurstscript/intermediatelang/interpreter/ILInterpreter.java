@@ -19,6 +19,7 @@ import org.eclipse.jdt.annotation.Nullable;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ILInterpreter implements AbstractInterpreter {
@@ -26,14 +27,14 @@ public class ILInterpreter implements AbstractInterpreter {
     private final ProgramState globalState;
     private final TimerMockHandler timerMockHandler = new TimerMockHandler();
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, ProgramState globalState) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, ProgramState globalState) {
         this.prog = prog;
         this.globalState = globalState;
         globalState.addNativeProvider(new BuiltinFuncs(globalState));
         globalState.addNativeProvider(new NativeFunctions());
     }
 
-    public ILInterpreter(ImProg prog, WurstGui gui, @Nullable File mapFile, boolean isCompiletime) {
+    public ILInterpreter(ImProg prog, WurstGui gui, Optional<File> mapFile, boolean isCompiletime) {
         this(prog, gui, mapFile, new ProgramState(gui, prog, isCompiletime));
     }
 

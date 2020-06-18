@@ -10,7 +10,7 @@ import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.mpq.MpqEditorFactory;
-import de.peeeq.wurstio.utils.W3Utils;
+import de.peeeq.wurstio.utils.W3InstallationData;
 import de.peeeq.wurstscript.RunArgs;
 import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.CompilationUnit;
@@ -40,6 +40,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -47,11 +48,12 @@ import java.util.stream.Collectors;
 public abstract class MapRequest extends UserRequest<Object> {
     protected final ConfigProvider configProvider;
     protected final @Nullable
-    File map;
+    Optional<File> map;
     protected final List<String> compileArgs;
     protected final WFile workspaceRoot;
     protected final RunArgs runArgs;
-    @Nullable protected final String wc3Path;
+    protected final Optional<String> wc3Path;
+    protected final W3InstallationData w3data;
 
     /**
      * makes the compilation slower, but more safe by discarding results from the editor and working on a copy of the model
@@ -62,13 +64,15 @@ public abstract class MapRequest extends UserRequest<Object> {
         QuickAndDirty, KindOfSafe
     }
 
-    public MapRequest(ConfigProvider configProvider, @Nullable File map, List<String> compileArgs, WFile workspaceRoot, String wc3Path) {
+    public MapRequest(ConfigProvider configProvider, Optional<File> map, List<String> compileArgs, WFile workspaceRoot,
+            Optional<String> wc3Path) {
         this.configProvider = configProvider;
         this.map = map;
         this.compileArgs = compileArgs;
         this.workspaceRoot = workspaceRoot;
         this.runArgs = new RunArgs(compileArgs);
         this.wc3Path = wc3Path;
+        this.w3data = getBestW3InstallationData();
     }
 
     @Override
@@ -82,11 +86,12 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
     }
 
-    protected void processMapScript(RunArgs runArgs, WurstGui gui, ModelManager modelManager, File mapCopy) throws Exception {
+    protected void processMapScript(
+            RunArgs runArgs, WurstGui gui, ModelManager modelManager, Optional<File> mapCopy) throws Exception {
         File existingScript = new File(new File(workspaceRoot.getFile(), "wurst"), "war3map.j");
         // If runargs are no extract, either use existing or throw error
         // Otherwise try loading from map, if map was saved with wurst, try existing script, otherwise error
-        if (mapCopy == null || runArgs.isNoExtractMapScript()) {
+        if (!mapCopy.isPresent() || runArgs.isNoExtractMapScript()) {
             if (existingScript.exists()) {
                 modelManager.syncCompilationUnit(WFile.create(existingScript));
                 return;
@@ -97,7 +102,7 @@ public abstract class MapRequest extends UserRequest<Object> {
         }
         WLogger.info("extracting mapscript");
         byte[] extractedScript = null;
-        try (MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
+        try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
             if (mpqEditor.hasFile("war3map.j")) {
                 extractedScript = mpqEditor.extractFile("war3map.j");
             }
@@ -135,9 +140,8 @@ public abstract class MapRequest extends UserRequest<Object> {
         modelManager.syncCompilationUnit(WFile.create(existingScript));
     }
 
-    protected File compileMap(File projectFolder, WurstGui gui, File mapCopy, RunArgs runArgs, WurstModel model) {
+    protected File compileMap(File projectFolder, WurstGui gui, Optional<File> mapCopy, RunArgs runArgs, WurstModel model) {
         try (@Nullable MpqEditor mpqEditor = MpqEditorFactory.getEditor(mapCopy)) {
-            //WurstGui gui = new WurstGuiLogger();
             if (mpqEditor != null && !mpqEditor.canWrite()) {
                 WLogger.severe("The supplied map is invalid/corrupted/protected and Wurst cannot write to it.\n" +
                     "Please supply a valid .w3x input map that can be opened in the world editor.");
@@ -166,15 +170,15 @@ public abstract class MapRequest extends UserRequest<Object> {
 
             if (runArgs.isLua()) {
                 print("translating program to Lua ... ");
-                LuaCompilationUnit luaCode = compiler.transformProgToLua();
+                Optional<LuaCompilationUnit> luaCode = Optional.ofNullable(compiler.transformProgToLua());
 
-                if (luaCode == null) {
+                if (!luaCode.isPresent()) {
                     print("Could not compile project\n");
                     throw new RuntimeException("Could not compile project (error in LUA translation)");
                 }
 
                 StringBuilder sb = new StringBuilder();
-                luaCode.print(sb, 0);
+                luaCode.get().print(sb, 0);
 
                 String compiledMapScript = sb.toString();
                 File buildDir = getBuildDir();
@@ -186,14 +190,14 @@ public abstract class MapRequest extends UserRequest<Object> {
                 print("translating program to jass ... ");
                 compiler.transformProgToJass();
 
-                JassProg jassProg = compiler.getProg();
-                if (jassProg == null) {
+                Optional<JassProg> jassProg = Optional.ofNullable(compiler.getProg());
+                if (!jassProg.isPresent()) {
                     print("Could not compile project\n");
                     throw new RuntimeException("Could not compile project (error in JASS translation)");
                 }
 
                 gui.sendProgress("Printing program");
-                JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg);
+                JassPrinter printer = new JassPrinter(!runArgs.isOptimize(), jassProg.get());
                 String compiledMapScript = printer.printProg();
                 File buildDir = getBuildDir();
                 File outFile = new File(buildDir, "compiled.j.txt");
@@ -240,7 +244,7 @@ public abstract class MapRequest extends UserRequest<Object> {
 
         ProcessBuilder pb = new ProcessBuilder(configProvider.getJhcrExe(), "init", commonJ.getName(), blizzardJ.getName(), mapScript.getName());
         pb.directory(buildDir);
-        Utils.ExecResult result = Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
+        Utils.exec(pb, Duration.ofSeconds(30), System.err::println);
         return new File(buildDir, "jhcr_war3map.j");
     }
 
@@ -310,7 +314,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     }
 
 
-    protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, @Nullable File mapCopy) throws Exception {
+    protected File compileScript(WurstGui gui, ModelManager modelManager, List<String> compileArgs, Optional<File> mapCopy) throws Exception {
         RunArgs runArgs = new RunArgs(compileArgs);
         print("Compile Script : ");
         for (File dep : modelManager.getDependencyWurstFiles()) {
@@ -344,24 +348,26 @@ public abstract class MapRequest extends UserRequest<Object> {
         return compileMap(modelManager.getProjectPath(), gui, mapCopy, runArgs, model);
     }
 
-    protected File compileScript(ModelManager modelManager, WurstGui gui, @Nullable File testMap) throws Exception {
-        if (testMap != null && testMap.exists()) {
-            boolean deleteOk = testMap.delete();
+    protected File compileScript(ModelManager modelManager, WurstGui gui, Optional<File> testMap) throws Exception {
+        if (testMap.isPresent() && testMap.get().exists()) {
+            boolean deleteOk = testMap.get().delete();
             if (!deleteOk) {
                 throw new RequestFailedException(MessageType.Error, "Could not delete old mapfile: " + testMap);
             }
         }
-        if (map != null) {
-            Files.copy(map, testMap);
+        if (map.isPresent() && testMap.isPresent()) {
+            Files.copy(map.get(), testMap.get());
         }
-
-        parseCustomPatchVersion();
 
         // first compile the script:
         File compiledScript = compileScript(gui, modelManager, compileArgs, testMap);
 
-        WurstModel model = modelManager.getModel();
-        if (model == null || model.stream().noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
+        Optional<WurstModel> model = Optional.ofNullable(modelManager.getModel());
+        if (!model.isPresent()
+                || model
+                    .get()
+                    .stream()
+                    .noneMatch((CompilationUnit cu) -> cu.getCuInfo().getFile().endsWith("war3map.j"))) {
             println("No 'war3map.j' file could be found inside the map nor inside the wurst folder");
             println("If you compile the map with WurstPack once, this file should be in your wurst-folder. ");
             println("We will try to start the map now, but it will probably fail. ");
@@ -369,12 +375,16 @@ public abstract class MapRequest extends UserRequest<Object> {
         return compiledScript;
     }
 
-    private void parseCustomPatchVersion() {
-        if (wc3Path != null) {
-            W3Utils.parsePatchVersion(new File(wc3Path));
-            if (W3Utils.getWc3PatchVersion() == null) {
+    private W3InstallationData getBestW3InstallationData() throws RequestFailedException {
+        if (wc3Path.isPresent()) {
+            W3InstallationData w3data = new W3InstallationData(new File(wc3Path.get()));
+            if (!w3data.getWc3PatchVersion().isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Could not find Warcraft III installation at specified path: " + wc3Path);
             }
+
+            return w3data;
+        } else {
+            return new W3InstallationData();
         }
     }
 }

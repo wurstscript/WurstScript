@@ -640,13 +640,6 @@ public class ModelManagerImpl implements ModelManager {
         return result;
     }
 
-    private Collection<String> providedPackages(Collection<CompilationUnit> result) {
-        return result.stream()
-                .flatMap(cu -> cu.getPackages().stream())
-                .map(WPackage::getName)
-                .collect(Collectors.toSet());
-    }
-
     private void addImportingPackages(Collection<String> providedPackages, WurstModel model2, Set<CompilationUnit> result) {
         nextCu:
         for (CompilationUnit compilationUnit : model2) {

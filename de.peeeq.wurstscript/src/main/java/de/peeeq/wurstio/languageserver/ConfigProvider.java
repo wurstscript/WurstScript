@@ -12,6 +12,7 @@ import org.eclipse.lsp4j.services.LanguageClient;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -54,16 +55,15 @@ public class ConfigProvider {
     public String getJhcrExe() {
         return getConfig("jhcrExe", "jhcr.exe");
     }
-    
-    public String getWc3RunArgs() {
-        return getConfig("wc3RunArgs", null);
+
+    public Optional<String> getWc3RunArgs() {
+        return Optional.ofNullable(getConfig("wc3RunArgs", null));
     }
 
     /**
      * The path where to put maps before running them
      */
-    public String getMapDocumentPath() {
-        return getConfig("mapDocumentPath", null);
+    public Optional<String> getMapDocumentPath() {
+        return Optional.ofNullable(getConfig("mapDocumentPath", null));
     }
 }
-

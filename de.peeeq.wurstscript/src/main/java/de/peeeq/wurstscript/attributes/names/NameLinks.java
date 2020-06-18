@@ -207,7 +207,7 @@ public class NameLinks {
             }
             WPackage importedPackage = imp.attrImportedPackage();
             if (importedPackage == null) {
-                WLogger.info("could not resolve import: " + Utils.printElementWithSource(imp));
+                WLogger.info("could not resolve import: " + Utils.printElementWithSource(Optional.of(imp)));
                 continue;
             }
             if (p.getName().equals("WurstREPL")) {

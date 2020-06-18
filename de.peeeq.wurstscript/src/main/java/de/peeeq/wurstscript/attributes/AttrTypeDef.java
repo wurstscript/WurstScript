@@ -3,6 +3,9 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.types.*;
 import de.peeeq.wurstscript.utils.Utils;
+
+import java.util.Optional;
+
 import org.eclipse.jdt.annotation.Nullable;
 
 
@@ -34,7 +37,7 @@ public class AttrTypeDef {
             return r;
         }
 
-        WurstType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(node));
+        WurstType nativeType = NativeTypes.nativeType(typeName, Utils.isJassCode(Optional.of(node)));
         if (nativeType != null) {
             return null; // native types have no definitionPos
         }

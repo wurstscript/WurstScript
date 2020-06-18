@@ -11,13 +11,13 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.gui.WurstGui;
 import org.eclipse.lsp4j.MessageType;
-import org.jetbrains.annotations.Nullable;
 import systems.crigges.jmpq3.JMpqEditor;
 import systems.crigges.jmpq3.MPQOpenOption;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
 
@@ -26,7 +26,8 @@ import static de.peeeq.wurstio.languageserver.ProjectConfigBuilder.FILE_NAME;
  */
 public class BuildMap extends MapRequest {
 
-    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, @Nullable String wc3Path, File map, List<String> compileArgs) {
+    public BuildMap(ConfigProvider configProvider, WFile workspaceRoot, Optional<String> wc3Path, Optional<File> map,
+            List<String> compileArgs) {
         super(configProvider, map, compileArgs, workspaceRoot, wc3Path);
     }
 
@@ -46,11 +47,11 @@ public class BuildMap extends MapRequest {
         WLogger.info("buildMap " + map + " " + compileArgs);
         WurstGui gui = new WurstGuiImpl(workspaceRoot.getFile().getAbsolutePath());
         try {
-            if (map == null) {
+            if (!map.isPresent()) {
                 throw new RequestFailedException(MessageType.Error, "Map is null");
             }
-            if (!map.exists()) {
-                throw new RequestFailedException(MessageType.Error, map.getAbsolutePath() + " does not exist.");
+            if (!map.get().exists()) {
+                throw new RequestFailedException(MessageType.Error, map.get().getAbsolutePath() + " does not exist.");
             }
 
             gui.sendProgress("Copying map");
@@ -58,13 +59,14 @@ public class BuildMap extends MapRequest {
             // first we copy in same location to ensure validity
             File buildDir = getBuildDir();
             String fileName = projectConfig.getBuildMapData().getFileName();
-            File targetMap = new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x");
+            Optional<File> targetMap = Optional.of(
+                new File(buildDir, fileName.isEmpty() ? projectConfig.getProjectName() + ".w3x" : fileName + ".w3x"));
             File compiledScript = compileScript(modelManager, gui, targetMap);
 
             gui.sendProgress("Applying Map Config...");
-            ProjectConfigBuilder.apply(projectConfig, targetMap, compiledScript, buildDir, runArgs);
+            ProjectConfigBuilder.apply(projectConfig, targetMap.get(), compiledScript, buildDir, runArgs, w3data);
 
-            JMpqEditor finalizer = new JMpqEditor(targetMap, MPQOpenOption.FORCE_V0);
+            JMpqEditor finalizer = new JMpqEditor(targetMap.get(), MPQOpenOption.FORCE_V0);
             finalizer.close();
 
             gui.sendProgress("Done.");
@@ -81,6 +83,4 @@ public class BuildMap extends MapRequest {
         }
         return "ok"; // TODO
     }
-
-
 }

@@ -2,7 +2,6 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
@@ -15,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,10 +66,10 @@ public class WurstCommands {
 
     private static CompletableFuture<Object> testMap(WurstLanguageServer server, ExecuteCommandParams params) {
         JsonObject options = (JsonObject) params.getArguments().get(0);
-        String filename = getString(options, "filename");
+        Optional<String> filename = getString(options, "filename");
         int line = options.has("line") ? options.get("line").getAsInt() : -1;
         int column = options.has("column") ? options.get("column").getAsInt() : -1;
-        String testName = getString(options, "testName");
+        Optional<String> testName = getString(options, "testName");
         return server.worker().handle(new RunTests(filename, line, column, testName));
     }
 
@@ -79,13 +79,13 @@ public class WurstCommands {
             throw new RuntimeException("Missing arguments");
         }
         JsonObject options = (JsonObject) params.getArguments().get(0);
-        String mapPath = getString(options, "mappath");
-        String wc3Path = getString(options, "wc3path");
-        if (mapPath == null) {
+        Optional<String> mapPath = getString(options, "mappath");
+        Optional<String> wc3Path = getString(options, "wc3path");
+        if (!mapPath.isPresent()) {
             throw new RuntimeException("No mappath given");
         }
 
-        File map = new File(mapPath);
+        Optional<File> map = mapPath.map(path -> new File(path));
         List<String> compileArgs = getCompileArgs(workspaceRoot);
         return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
@@ -97,20 +97,21 @@ public class WurstCommands {
         }
         JsonObject options = (JsonObject) params.getArguments().get(0);
         String key = "mappath";
-        String mapPath = getString(options, key);
-        String wc3Path = getString(options, "wc3path");
+        Optional<String> mapPath = getString(options, key);
+        Optional<String> wc3Path = getString(options, "wc3path");
 
-        File map = mapPath == null ? null : new File(mapPath);
+        Optional<File> map = mapPath.map(mp -> new File(mp));
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
         return server.worker().handle(new RunMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
-    private static String getString(JsonObject options, String key) {
-        JsonElement jsonElement = options.get(key);
-        if (jsonElement == null) {
-            return null;
+    private static Optional<String> getString(JsonObject options, String key) {
+        try {
+            return Optional.ofNullable(options.get(key)).map(jsonElement -> jsonElement.getAsString());
+        } catch (ClassCastException | IllegalStateException e) {
+            WLogger.warning("Invalid configuration", e);
+            return Optional.empty();
         }
-        return jsonElement.getAsString();
     }
 
     private static final List<String> defaultArgs = ImmutableList.of("-runcompiletimefunctions", "-injectobjects", "-stacktraces");

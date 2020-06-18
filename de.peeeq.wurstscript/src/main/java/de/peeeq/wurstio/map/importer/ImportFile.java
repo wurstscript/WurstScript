@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.LinkedList;
+import java.util.Optional;
 
 public class ImportFile {
     private static final String DEFAULT_IMPORT_PATH = "war3mapImported\\";
@@ -42,7 +43,7 @@ public class ImportFile {
     }
 
     private static void extractImportsFrom(File importDirectory, File tempMap, RunArgs runArgs) throws Exception {
-        try (MpqEditor editor = MpqEditorFactory.getEditor(tempMap)) {
+        try (MpqEditor editor = MpqEditorFactory.getEditor(Optional.of(tempMap))) {
             LinkedList<String> failed = extractImportedFiles(editor, importDirectory);
 
             if (failed.isEmpty()) {

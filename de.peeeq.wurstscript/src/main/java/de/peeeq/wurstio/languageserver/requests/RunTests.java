@@ -37,10 +37,10 @@ import static de.peeeq.wurstio.CompiletimeFunctionRunner.FunctionFlagToRun.Compi
  */
 public class RunTests extends UserRequest<Object> {
 
-    private final WFile filename;
+    private final Optional<WFile> filename;
     private final int line;
     private final int column;
-    private final String testName;
+    private final Optional<String> testName;
 
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
@@ -83,8 +83,8 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public RunTests(String filename, int line, int column, String testName) {
-        this.filename = filename == null ? null : WFile.create(filename);
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName) {
+        this.filename = filename.map(fname -> WFile.create(fname));
         this.line = line;
         this.column = column;
         this.testName = testName;
@@ -100,9 +100,9 @@ public class RunTests extends UserRequest<Object> {
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);
         println("Running unit tests..\n");
 
-        CompilationUnit cu = filename == null ? null : modelManager.getCompilationUnit(filename);
+        Optional<CompilationUnit> cu = filename.map(fname -> modelManager.getCompilationUnit(fname));
         WLogger.info("test.cu = " + Utils.printElement(cu));
-        FuncDef funcToTest = getFunctionToTest(cu);
+        Optional<FuncDef> funcToTest = getFunctionToTest(cu);
         WLogger.info("test.funcToTest = " + Utils.printElement(funcToTest));
 
 
@@ -137,17 +137,18 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    public TestResult runTests(ImTranslator translator, ImProg imProg, @Nullable FuncDef funcToTest, @Nullable CompilationUnit cu) {
+    public TestResult runTests(ImTranslator translator, ImProg imProg, Optional<FuncDef> funcToTest, Optional<CompilationUnit> cu) {
         WurstGui gui = new TestGui();
 
-        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, null, null, gui, CompiletimeFunctions);
+        CompiletimeFunctionRunner cfr = new CompiletimeFunctionRunner(translator, imProg, Optional.empty(), null, gui,
+            CompiletimeFunctions);
         ILInterpreter interpreter = cfr.getInterpreter();
         ProgramState globalState = cfr.getGlobalState();
         if (globalState == null) {
             globalState = new ProgramState(gui, imProg, true);
         }
         if (interpreter == null) {
-            interpreter = new ILInterpreter(imProg, gui, null, globalState);
+            interpreter = new ILInterpreter(imProg, gui, Optional.empty(), globalState);
             interpreter.addNativeProvider(new ReflectionNativeProvider(interpreter));
         }
 
@@ -171,10 +172,10 @@ public class RunTests extends UserRequest<Object> {
             if (f.hasFlag(FunctionFlagEnum.IS_TEST)) {
                 Element trace = f.attrTrace();
 
-                if (cu != null && !Utils.elementContained(trace, cu)) {
+                if (cu.isPresent() && !Utils.elementContained(Optional.of(trace), cu.get())) {
                     continue;
                 }
-                if (funcToTest != null && trace != funcToTest) {
+                if (funcToTest.isPresent() && trace != funcToTest.get()) {
                     continue;
                 }
 
@@ -309,12 +310,13 @@ public class RunTests extends UserRequest<Object> {
     }
 
 
-    private FuncDef getFunctionToTest(CompilationUnit cu) {
-        if (testName != null) {
-            int dotPos = testName.indexOf(".");
-            String packageName = testName.substring(0, dotPos);
-            String funcName = testName.substring(dotPos+1);
-            Optional<FuncDef> testFunc = cu.getPackages()
+    private Optional<FuncDef> getFunctionToTest(Optional<CompilationUnit> maybeCu) {
+        if (testName.isPresent()) {
+            int dotPos = testName.get().indexOf(".");
+            String packageName = testName.get().substring(0, dotPos);
+            String funcName = testName.get().substring(dotPos+1);
+            Optional<FuncDef> testFunc = maybeCu.flatMap(cu ->
+                cu.getPackages()
                 .stream()
                 .filter(p -> p.getName().equals(packageName))
                 .flatMap(p -> p.getElements().stream())
@@ -322,21 +324,22 @@ public class RunTests extends UserRequest<Object> {
                 .map(e -> (FuncDef) e)
                 .filter(f -> f.hasAnnotation("@test"))
                 .filter(f -> f.getName().equals(funcName))
-                .findFirst();
+                .findFirst()
+            );
 
             if (testFunc.isPresent()) {
-                return testFunc.get();
+                return testFunc;
             }
         }
-        if (filename == null || cu == null || line < 0) {
-            return null;
+        if (!filename.isPresent() || !maybeCu.isPresent() || line < 0) {
+            return Optional.empty();
         }
-        Element e = Utils.getAstElementAtPos(cu, line, column, false);
-        while (e != null) {
-            if (e instanceof FuncDef) {
-                return (FuncDef) e;
+        Optional<Element> e = Utils.getAstElementAtPos(maybeCu.get(), line, column, false);
+        while (e.isPresent()) {
+            if (e.get() instanceof FuncDef) {
+                return e.map(el -> (FuncDef) el);
             }
-            e = e.getParent();
+            e = e.flatMap(el -> Optional.ofNullable(el.getParent()));
         }
         return null;
     }
@@ -365,8 +368,7 @@ public class RunTests extends UserRequest<Object> {
 
     }
 
-    private class TestTimeOutException extends Throwable {
-
+    private static class TestTimeOutException extends Throwable {
 
         @Override
         public String getMessage() {
@@ -377,7 +379,6 @@ public class RunTests extends UserRequest<Object> {
         public String toString() {
             return super.toString();
         }
-
     }
 
 

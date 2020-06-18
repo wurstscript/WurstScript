@@ -145,9 +145,11 @@ public class ImTranslator {
             throw t;
         } catch (Throwable t) {
             WLogger.severe(t);
-            throw new RuntimeException("There was a Wurst bug in the translation of " + Utils.printElementWithSource(lasttranslatedThing) + ": " + t
-                    .getMessage() +
-                    "\nPlease open a ticket with source code and the error log.", t);
+            throw new RuntimeException("There was a Wurst bug in the translation of "
+                    + Utils.printElementWithSource(Optional.of(lasttranslatedThing))
+                    + ": "
+                    + t.getMessage()
+                    + "\nPlease open a ticket with source code and the error log.", t);
         }
     }
 
@@ -1077,7 +1079,10 @@ public class ImTranslator {
                 }
             }
             if (funcNameLink == null) {
-                throw new Error("Could not find " + Utils.printElementWithSource(func) + " in " + Utils.printElementWithSource(c));
+                throw new Error("Could not find "
+                    + Utils.printElementWithSource(Optional.of(func))
+                    + " in "
+                    + Utils.printElementWithSource(Optional.of(c)));
             }
             for (NameLink nameLink : c.attrNameLinks().get(func.getName())) {
                 NameDef nameDef = nameLink.getDef();
