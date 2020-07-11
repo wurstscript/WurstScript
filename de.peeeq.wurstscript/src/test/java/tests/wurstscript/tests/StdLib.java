@@ -1,13 +1,9 @@
 package tests.wurstscript.tests;
 
-import de.peeeq.wurstscript.WLogger;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Constants;
+import de.peeeq.wurstscript.utils.Utils;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * Helper class to download the standard library, which is required by some test
@@ -35,52 +31,44 @@ public class StdLib {
 
     @Test
     public void download() {
-        assert(downloadStandardlib());
+        downloadStandardlib();
     }
 
-    public synchronized static boolean downloadStandardlib() {
+    public synchronized static void downloadStandardlib() {
         if (isInitialized) {
-            return true;
+            return;
         }
-
         try {
+
+
             if (!stdLibFolder.exists()) {
                 tempFolder.mkdirs();
-                try (Git git = Git
-                        .cloneRepository()
-                        .setDirectory(stdLibFolder)
-                        .setURI(gitRepo)
-                        .call()) {
-                    git.checkout().setName(Constants.MASTER).call();
-                };
+                Utils.exec(tempFolder, "git", "clone", gitRepo, stdLibFolder.getName());
             }
 
-            try (Git git = Git.open(stdLibFolder)) {
-                String head = git.getRepository().resolve(Constants.HEAD).getName();
-                if (!head.equals(version)) {
-                    System.out.println("Wrong version '" + head + "', executing git pull to get '" + version + "'");
-
-                    git.checkout().setName(Constants.MASTER).call();
-                    git.pull().call();
-                    git.checkout().setName(version).setForceRefUpdate(true).call();
-                }
+            String revision = Utils.exec(stdLibFolder, "git", "rev-parse", "HEAD").trim();
+            if (!revision.equals(version)) {
+                System.out.println("Wrong version '" + revision + "', executing git pull to get '" + version + "'");
+                Utils.exec(stdLibFolder, "git", "checkout", "master");
+                Utils.exec(stdLibFolder, "git", "pull");
+                Utils.exec(stdLibFolder, "git", "checkout", version, "-f");
             }
 
             // reset all possible changes
-            Git.open(stdLibFolder).clean().setForce(true).setCleanDirectories(true).setIgnore(false).call();
-            Git.open(stdLibFolder).checkout().setName(version).call();
+            Utils.exec(stdLibFolder, "git", "clean", "-fdx");
+            Utils.exec(stdLibFolder, "git", "checkout", ".");
+            Utils.exec(stdLibFolder, "git", "checkout", version);
 
             isInitialized = true;
-        } catch (IOException | GitAPIException e) {
-            WLogger.severe(e.getStackTrace().toString());
-            return false;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-
-        return true;
     }
 
     public static String getLib() {
         downloadStandardlib();
         return stdLibFolder.getPath();
     }
+
+
 }
