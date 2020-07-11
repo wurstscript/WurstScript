@@ -5,7 +5,6 @@ buildscript {
     dependencies {
         classpath 'de.undercouch:gradle-download-task:3.2.0'
         classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:1.0.2'
-        classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
     }
 }
 
@@ -20,10 +19,6 @@ plugins {
 }
 
 import de.undercouch.gradle.tasks.download.Download
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.internal.storage.file.FileRepository
-import org.eclipse.jgit.lib.Constants
-import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -32,10 +27,8 @@ import java.util.regex.Pattern
 mainClassName = "de.peeeq.wurstio.Main"
 version = "1.8.1.0"
 
-allprojects {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-}
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 jacoco {
     toolVersion = "0.8.5"
@@ -112,7 +105,7 @@ dependencies {
     compile 'com.github.inwc3:jmpq3:1.7.14'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:fd4b2fd5aa'
+    compile 'com.github.inwc3:wc3libs:257fcbd610'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:e038293d07'
@@ -163,11 +156,23 @@ task versionInfoFile {
     String gitRevision = "unknown-version"
     String gitRevisionlong = "unknown-version"
 
-    Git git = Git.open(new File(rootProject.projectDir, '..'))
-    ObjectId head = git.getRepository().resolve(Constants.HEAD)
+    new ByteArrayOutputStream().withStream { os ->
+        def result = exec {
+            executable = 'git'
+            args = ['describe', '--tags', '--always']
+            standardOutput = os
+        }
+        gitRevision = os.toString().trim()
+    }
 
-    gitRevision = head.abbreviate(8).name()
-    gitRevisionlong = head.getName()
+    new ByteArrayOutputStream().withStream { os ->
+        def result = exec {
+            executable = 'git'
+            args = ['describe', '--tags', '--always', '--abbrev=0']
+            standardOutput = os
+        }
+        gitRevisionlong = os.toString().trim()
+    }
 
     String wurstVersion = "${version}-${gitRevision}"
     inputs.property("wurstVersion", wurstVersion)
@@ -220,6 +225,11 @@ clean.doFirst {
     delete genDir
 }
 
+//task wrapper(type: Wrapper) {
+//    gradleVersion = '2.12'
+//}
+
+
 
 apply plugin: 'de.undercouch.download'
 
@@ -234,3 +244,6 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
+
+
+
