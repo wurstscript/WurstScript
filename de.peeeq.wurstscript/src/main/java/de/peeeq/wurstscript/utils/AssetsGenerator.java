@@ -94,7 +94,7 @@ public class AssetsGenerator {
     enum Type {
         MODEL((String s) -> s.endsWith(".mdx") | s.endsWith(".mdl")),
         ICON((String s) -> s.endsWith(".blp") && s.contains("BTN")),
-        TEXTURE((String s) -> s.endsWith(".blp")),
+        TEXTURE((String s) -> s.endsWith(".blp") | s.endsWith(".dds")),
         SOUND((String s) -> s.endsWith(".mp3") | s.endsWith(".wav"));
 
         Checker checker;
