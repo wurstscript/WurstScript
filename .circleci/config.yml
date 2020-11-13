@@ -47,5 +47,5 @@ jobs:
       # report tests results
       - run: ./gradlew jacocoTestReport
       
-      - run: coveralls/upload
+      - coveralls/upload
 
