@@ -477,7 +477,7 @@ public class ExprTranslation {
             calledFunc = calledFunc.attrRealFuncDef();
         }
 
-        if (calledFunc == e.attrNearestFuncDef()) {
+        if (leftExpr instanceof ExprThis && calledFunc == e.attrNearestFuncDef()) {
             // recursive self calls are bound statically
             // this is different to other objectoriented languages but it is
             // necessary

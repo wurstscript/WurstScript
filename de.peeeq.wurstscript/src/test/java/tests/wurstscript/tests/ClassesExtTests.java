@@ -905,4 +905,34 @@ public class ClassesExtTests extends WurstScriptTest {
         );
     }
 
+
+    @Test
+    public void testRecursiveMemberDispatch() {
+        testAssertOkLines(true,
+            "package test",
+            "native testSuccess()",
+            "public class Base",
+            "    Base next",
+            "    function clear()",
+            "        if next != null",
+            "            next.clear()",
+            "",
+            "public class SubClassA extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "public class SubClassB extends Base",
+            "    override function clear()",
+            "        super.clear()",
+            "        testSuccess()",
+            "init",
+            "    let suba = new SubClassA()",
+            "    let subb = new SubClassB()",
+            "    suba.next = subb",
+            "    suba.clear()",
+            "endpackage"
+        );
+    }
+
+
+
 }
