@@ -244,6 +244,3 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
-
-
-
