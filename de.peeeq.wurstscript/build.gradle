@@ -105,7 +105,7 @@ dependencies {
     compile 'com.github.inwc3:jmpq3:1.7.14'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:fd4b2fd5aa'
+    compile 'com.github.inwc3:wc3libs:f29e038ced'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:e038293d07'
@@ -244,6 +244,3 @@ task downloadAndUnzipFile(dependsOn: downloadZipFile, type: Copy) {
 }
 
 apply from: 'deploy.gradle'
-
-
-
