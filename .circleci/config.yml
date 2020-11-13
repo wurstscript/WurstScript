@@ -3,8 +3,6 @@
 # Check https://circleci.com/docs/2.0/language-java/ for more details
 #
 version: 2.1
-orbs:
-  coveralls: coveralls/coveralls@1.0.6
 jobs:
   build:
     docker:
@@ -45,7 +43,5 @@ jobs:
       - run: ./gradlew test --info
 
       # report tests results
-      - run: ./gradlew jacocoTestReport
+      - run: ./gradlew jacocoTestReport coveralls
       
-      - coveralls/upload
-
