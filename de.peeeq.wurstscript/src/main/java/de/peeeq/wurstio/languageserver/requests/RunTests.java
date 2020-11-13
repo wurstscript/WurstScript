@@ -41,6 +41,7 @@ public class RunTests extends UserRequest<Object> {
     private final int line;
     private final int column;
     private final Optional<String> testName;
+    private final int timeoutSeconds;
 
     private List<ImFunction> successTests = Lists.newArrayList();
     private List<TestFailure> failTests = Lists.newArrayList();
@@ -84,10 +85,15 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName) {
+        this(filename, line, column, testName, 20);
+    }
+
+    public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds) {
         this.filename = filename.map(fname -> WFile.create(fname));
         this.line = line;
         this.column = column;
         this.testName = testName;
+        this.timeoutSeconds = timeoutSeconds;
     }
 
 
@@ -199,7 +205,7 @@ public class RunTests extends UserRequest<Object> {
                     service = Executors.newSingleThreadScheduledExecutor();
                     service.execute(future);
                     try {
-                        future.get(20, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
+                        future.get(timeoutSeconds, TimeUnit.SECONDS); // Wait 20 seconds for test to complete
                     } catch (TimeoutException ex) {
                         future.cancel(true);
                         throw new TestTimeOutException();
