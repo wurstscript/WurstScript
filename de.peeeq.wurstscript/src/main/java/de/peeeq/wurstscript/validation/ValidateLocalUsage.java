@@ -2,6 +2,7 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
+import de.peeeq.wurstscript.types.WurstTypeClosure;
 
 import java.util.*;
 
@@ -27,7 +28,9 @@ public class ValidateLocalUsage {
             public void visit(LocalVarDef varDef) {
                 super.visit(varDef);
                 if (!varDef.attrIsConstant() && !(varDef.getParent() instanceof LoopStatement)) {
-                    locals.add(varDef);
+                    if (!(varDef.getInitialExpr() instanceof ExprClosure)) {
+                        locals.add(varDef);
+                    }
                 }
             }
         });
