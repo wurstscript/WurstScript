@@ -18,7 +18,7 @@ For a formal description of all features, visit the [Manual](https://wurstscript
 ##  Reporting Bugs
 
 Please report any bugs your encounter with our [Issue Tracker](https://github.com/wurstscript/WurstScript/issues).
-Include as much information as possible, ideally with logs. 
+Include as much information as possible, ideally with logs.
 Logfiles are located in your home folder under `~/.wurst/logs`.
 Find the last modified file and pastebin it's contents.
 
@@ -47,35 +47,30 @@ The source for the wurstscript website can be found here: https://github.com/wur
 
 Simply run the appropriate gradle task using the provided gradle wrapper.
 
-```gradle
+```bash
 ./gradlew compileJava
 ```
 
 For deploying .jars and .zips see tasks in **deploy.gradle**
 
-```gradle
+```bash
 ./gradlew create_zip_wurstpack_compiler
 ```
 
 To update your compiler installation use
 
-```gradle
+```bash
 ./gradlew make_for_userdir
 ```
 
 ### Import into IDE
 
-You can import the compiler project into any IDE that provides a gradle plugin, like IntelliJ IDEA or Eclipse.
+You can import the compiler project into any IDE that provides a gradle plugin.
+For IntelliJ IDEA, you can simply execute `./gradlew openIdea`.
 To run the Test Suite, execute `AllTests.xml` with TestNG.
 
-### Updating the version number
+### Publishing a new release
 
-- Change the version in `de.peeeq.wurstscript/version.properties`.
-- Run gradle task `:versionInfoFile`
+[Jenkins](http://peeeq.de/hudson/job/Wurst/) auto-releases versions as `major.minor.patch.hotfix-jenkins-Wurst-buildNumber` - e.g. `1.8.1.0-jenkins-Wurst-1248`.
 
-
-
-
-
-
-	
+The version string can be updated in [build.gradle](https://github.com/wurstscript/WurstScript/blob/master/de.peeeq.wurstscript/build.gradle#L28).
