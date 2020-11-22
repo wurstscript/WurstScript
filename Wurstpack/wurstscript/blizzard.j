@@ -2531,6 +2531,11 @@ function SetMusicVolumeBJ takes real volumePercent returns nothing
 endfunction
 
 //===========================================================================
+function SetThematicMusicVolumeBJ takes real volumePercent returns nothing
+    call SetThematicMusicVolume(PercentToInt(volumePercent, 127))
+endfunction
+
+//===========================================================================
 function GetSoundDurationBJ takes sound soundHandle returns real
     if (soundHandle == null) then
         return bj_NOTHING_SOUND_DURATION
