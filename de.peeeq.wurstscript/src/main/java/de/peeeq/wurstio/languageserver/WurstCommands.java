@@ -69,7 +69,7 @@ public class WurstCommands {
         Optional<String> filename = getString(options, "filename");
         int line = options.has("line") ? options.get("line").getAsInt() : -1;
         int column = options.has("column") ? options.get("column").getAsInt() : -1;
-        int testTimeout = options.has("testTimeout") ? options.get("testTimeout").getAsInt() : -1;
+        int testTimeout = options.has("testTimeout") ? options.get("testTimeout").getAsInt() : 20;
         Optional<String> testName = getString(options, "testName");
 
         return server.worker().handle(new RunTests(filename, line, column, testName, testTimeout));

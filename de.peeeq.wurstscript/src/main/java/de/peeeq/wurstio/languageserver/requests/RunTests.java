@@ -238,7 +238,7 @@ public class RunTests extends UserRequest<Object> {
                     println("\t" + failure.getMessageWithStackFrame());
                 } catch (TestTimeOutException e) {
                     failTests.add(new TestFailure(f, interpreter.getStackFrames(), e.getMessage()));
-                    println("\tFAILED - TIMEOUT (This test did not complete in 20 seconds, it might contain an endless loop)");
+                    println("\tFAILED - TIMEOUT (This test did not complete in " + timeoutSeconds + " seconds, it might contain an endless loop)");
                     println(interpreter.getStackFrames().toString());
                 } catch (InterpreterException e) {
                     TestFailure failure = new TestFailure(f, interpreter.getStackFrames(), e.getMessage());
