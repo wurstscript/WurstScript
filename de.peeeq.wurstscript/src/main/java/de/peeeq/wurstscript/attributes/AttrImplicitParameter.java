@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import de.peeeq.wurstscript.types.WurstType;
 import org.eclipse.jdt.annotation.Nullable;
-import org.jetbrains.annotations.NotNull;
 
 public class AttrImplicitParameter {
 

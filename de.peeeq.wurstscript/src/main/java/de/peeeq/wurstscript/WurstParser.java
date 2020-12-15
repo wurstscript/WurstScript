@@ -274,6 +274,6 @@ public class WurstParser {
         new SyntacticSugar().removeSyntacticSugar(root, hasCommonJ);
     }
 
-    class TooManyErrorsException extends RuntimeException {
+    static class TooManyErrorsException extends RuntimeException {
     }
 }

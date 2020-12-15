@@ -1,8 +1,6 @@
 package de.peeeq.wurstscript.intermediatelang;
 
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
-import de.peeeq.wurstscript.types.WurstType;
-import de.peeeq.wurstscript.types.WurstTypeString;
 
 import java.util.Map;
 import java.util.TreeMap;

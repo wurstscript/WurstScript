@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.intermediatelang.ILconst;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.HashMap;
 

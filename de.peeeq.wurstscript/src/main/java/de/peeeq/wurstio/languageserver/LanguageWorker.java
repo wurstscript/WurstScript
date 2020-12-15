@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class LanguageWorker implements Runnable {
 
-    private class Workitem {
+    private static class Workitem {
         private String description;
         private Runnable runnable;
 

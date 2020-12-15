@@ -73,8 +73,7 @@ public class EliminateClasses {
         for (Map.Entry<ImVar, List<ImExpr>> entry : prog.getGlobalInits().entrySet()) {
             ImExprs exprs = JassIm.ImExprs();
             List<ImExpr> value = entry.getValue();
-            for (int i = 0, valueSize = value.size(); i < valueSize; i++) {
-                ImExpr e = value.get(i);
+            for (ImExpr e : value) {
                 List<ImExpr> newValues = new ArrayList<>();
                 if (e.getParent() == null) {
                     exprs.add(e);

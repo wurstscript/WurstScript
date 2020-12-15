@@ -7,7 +7,6 @@ import de.peeeq.wurstscript.WLogger;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.types.CallSignature;
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeNamedScope;
 import de.peeeq.wurstscript.utils.Utils;

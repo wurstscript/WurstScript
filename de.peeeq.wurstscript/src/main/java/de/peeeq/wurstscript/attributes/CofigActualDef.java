@@ -6,8 +6,6 @@ import de.peeeq.wurstscript.attributes.names.FuncLink;
 import de.peeeq.wurstscript.attributes.names.NameLink;
 import org.eclipse.jdt.annotation.Nullable;
 
-import java.util.Collection;
-
 public class CofigActualDef {
 
     public static NameDef calculate(NameDef d) {

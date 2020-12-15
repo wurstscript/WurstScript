@@ -89,7 +89,7 @@ public class RunTests extends UserRequest<Object> {
     }
 
     public RunTests(Optional<String> filename, int line, int column, Optional<String> testName, int timeoutSeconds) {
-        this.filename = filename.map(fname -> WFile.create(fname));
+        this.filename = filename.map(WFile::create);
         this.line = line;
         this.column = column;
         this.testName = testName;
@@ -106,7 +106,7 @@ public class RunTests extends UserRequest<Object> {
         WLogger.info("Starting tests " + filename + ", " + line + ", " + column);
         println("Running unit tests..\n");
 
-        Optional<CompilationUnit> cu = filename.map(fname -> modelManager.getCompilationUnit(fname));
+        Optional<CompilationUnit> cu = filename.map(modelManager::getCompilationUnit);
         WLogger.info("test.cu = " + Utils.printElement(cu));
         Optional<FuncDef> funcToTest = getFunctionToTest(cu);
         WLogger.info("test.funcToTest = " + Utils.printElement(funcToTest));

@@ -5,7 +5,6 @@ import de.peeeq.wurstscript.jassIm.ImFunction;
 import de.peeeq.wurstscript.jassIm.ImStmt;
 import de.peeeq.wurstscript.jassIm.ImVar;
 import de.peeeq.wurstscript.types.WurstTypeClass;
-import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.List;
 
@@ -79,10 +78,6 @@ public class TLDTranslation {
 
     public static void translate(FuncDef funcDef, ImTranslator translator) {
         ImFunction f = translator.getFuncFor(funcDef);
-
-        if (funcDef.attrIsCompiletime()) {
-            translator.addCompiletimeFunc(f);
-        }
 
         // body
         List<ImStmt> stmts = translator.translateStatements(f, funcDef.getBody());

@@ -1143,7 +1143,7 @@ public class ImTranslator {
             }
             e = e.getParent();
         }
-        return "construct_" + names.stream().collect(Collectors.joining("_"));
+        return "construct_" + String.join("_", names);
     }
 
 
@@ -1249,12 +1249,6 @@ public class ImTranslator {
         for (ModuleInstanciation mi : c.getModuleInstanciations()) {
             classesAdd(result, mi);
         }
-    }
-
-    private List<ImFunction> compiletimeFuncs = Lists.newArrayList();
-
-    public void addCompiletimeFunc(ImFunction f) {
-        compiletimeFuncs.add(f);
     }
 
     public int getEnumMemberId(EnumMember enumMember) {

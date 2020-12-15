@@ -6,7 +6,6 @@ import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
 import de.peeeq.wurstscript.intermediatelang.IlConstHandle;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 import de.peeeq.wurstscript.jassinterpreter.TestFailException;
 import de.peeeq.wurstscript.jassinterpreter.TestSuccessException;
 

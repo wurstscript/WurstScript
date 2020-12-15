@@ -2,6 +2,7 @@ package de.peeeq.wurstio.languageserver;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import de.peeeq.wurstio.languageserver.requests.*;
 import de.peeeq.wurstscript.WLogger;
@@ -87,7 +88,7 @@ public class WurstCommands {
             throw new RuntimeException("No mappath given");
         }
 
-        Optional<File> map = mapPath.map(path -> new File(path));
+        Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot);
         return server.worker().handle(new BuildMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
@@ -102,14 +103,14 @@ public class WurstCommands {
         Optional<String> mapPath = getString(options, key);
         Optional<String> wc3Path = getString(options, "wc3path");
 
-        Optional<File> map = mapPath.map(mp -> new File(mp));
+        Optional<File> map = mapPath.map(File::new);
         List<String> compileArgs = getCompileArgs(workspaceRoot, additionalArgs);
         return server.worker().handle(new RunMap(server.getConfigProvider(), workspaceRoot, wc3Path, map, compileArgs)).thenApply(x -> x);
     }
 
     private static Optional<String> getString(JsonObject options, String key) {
         try {
-            return Optional.ofNullable(options.get(key)).map(jsonElement -> jsonElement.getAsString());
+            return Optional.ofNullable(options.get(key)).map(JsonElement::getAsString);
         } catch (ClassCastException | IllegalStateException e) {
             WLogger.warning("Invalid configuration", e);
             return Optional.empty();

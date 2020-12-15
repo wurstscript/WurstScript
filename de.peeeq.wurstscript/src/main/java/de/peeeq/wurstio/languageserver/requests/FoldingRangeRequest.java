@@ -4,17 +4,13 @@ import de.peeeq.wurstio.languageserver.Convert;
 import de.peeeq.wurstio.languageserver.ModelManager;
 import de.peeeq.wurstio.languageserver.WFile;
 import de.peeeq.wurstscript.ast.*;
-import de.peeeq.wurstscript.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.*;
 import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  *

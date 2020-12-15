@@ -243,7 +243,7 @@ public class ProgramStateIO extends ProgramState {
         }
         Optional<File> folder = mapFile.map(fi -> new File(fi.getParent(), "objectEditingOutput"));
         if (!folder.isPresent() || (!folder.get().exists() && !folder.get().mkdirs())) {
-            WLogger.info("Could not create folder " + folder.map(fo -> fo.getAbsoluteFile()));
+            WLogger.info("Could not create folder " + folder.map(File::getAbsoluteFile));
             return Optional.empty();
         }
         return folder;

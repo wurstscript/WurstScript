@@ -3,7 +3,6 @@ package de.peeeq.wurstio.jassinterpreter.providers;
 import de.peeeq.wurstio.jassinterpreter.mocks.EffectMock;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 public class EffectProvider extends Provider {
     public EffectProvider(AbstractInterpreter interpreter) {

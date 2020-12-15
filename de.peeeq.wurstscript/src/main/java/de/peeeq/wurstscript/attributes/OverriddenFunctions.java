@@ -3,13 +3,7 @@ package de.peeeq.wurstscript.attributes;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.DefLink;
 import de.peeeq.wurstscript.attributes.names.FuncLink;
-import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.attributes.names.VarLink;
-import de.peeeq.wurstscript.types.WurstTypeModuleInstanciation;
 import de.peeeq.wurstscript.validation.WurstValidator;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class OverriddenFunctions {
 

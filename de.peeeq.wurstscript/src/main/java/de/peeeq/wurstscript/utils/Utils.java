@@ -344,7 +344,7 @@ public class Utils {
                                              int caretPosition, boolean usesMouse) {
         List<Element> betterResults = Lists.newArrayList();
         for (int i = 0; i < elem.size(); i++) {
-            getAstElementAtPos(elem.get(i), caretPosition, usesMouse).map(el -> betterResults.add(el));
+            getAstElementAtPos(elem.get(i), caretPosition, usesMouse).map(betterResults::add);
         }
         if (betterResults.size() == 0) {
             if (elem instanceof Identifier) {
@@ -365,7 +365,7 @@ public class Utils {
         for (int i = 0; i < elem.size(); i++) {
             Element e = elem.get(i);
             if (elementContainsPos(e, line, column, usesMouse) || e.attrSource().isArtificial()) {
-                getAstElementAtPos(e, line, column, usesMouse).map(el -> betterResults.add(el));
+                getAstElementAtPos(e, line, column, usesMouse).map(betterResults::add);
             }
         }
         Optional<Element> bestResult = bestResult(betterResults);
@@ -443,9 +443,9 @@ public class Utils {
     }
 
     public static String printElementWithSource(Optional<Element> e) {
-        Optional<WPos> src = e.map(el -> el.attrSource());
-        return printElement(e) + " (" + src.map(sf -> sf.getFile()) + ":"
-                + src.map(sf -> sf.getLine()) + ")";
+        Optional<WPos> src = e.map(Element::attrSource);
+        return printElement(e) + " (" + src.map(WPos::getFile) + ":"
+                + src.map(WPos::getLine) + ")";
     }
 
     public static int[] copyArray(int[] ar) {
@@ -466,7 +466,7 @@ public class Utils {
             if (node.get() instanceof VarDef) {
                 return node.map(n -> (VarDef) n);
             }
-            node = node.map(n -> n.getParent());
+            node = node.map(Element::getParent);
         }
         return null;
     }
@@ -656,7 +656,7 @@ public class Utils {
         StringBuilder sb = new StringBuilder();
         Optional<String> line;
         while ((line = Optional.ofNullable(r.readLine())).isPresent()) {
-            line.map(l -> sb.append(l));
+            line.map(sb::append);
         }
         return sb.toString();
     }
@@ -888,7 +888,7 @@ public class Utils {
      * join lines
      */
     public static String string(String... lines) {
-        return Arrays.stream(lines).collect(Collectors.joining("\n")) + "\n";
+        return String.join("\n", lines) + "\n";
     }
 
     /**

@@ -12,9 +12,7 @@ import de.peeeq.wurstscript.utils.Utils;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 public class ReflectionNativeProvider implements NativesProvider {
     private HashMap<String, NativeJassFunction> methodMap = new HashMap<>();

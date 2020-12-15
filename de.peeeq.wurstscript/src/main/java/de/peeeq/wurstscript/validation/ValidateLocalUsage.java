@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.validation;
 
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.types.WurstTypeClosure;
 
 import java.util.*;
 

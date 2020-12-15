@@ -4,7 +4,6 @@ import com.google.common.collect.ArrayListMultimap;
 import de.peeeq.wurstio.jassinterpreter.Implements;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
-import de.peeeq.wurstscript.intermediatelang.interpreter.ILInterpreter;
 
 import java.util.Objects;
 
