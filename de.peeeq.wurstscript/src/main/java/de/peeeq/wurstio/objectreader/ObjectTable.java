@@ -1,13 +1,16 @@
 package de.peeeq.wurstio.objectreader;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ObjectTable {
 
-    private List<ObjectDefinition> objectDefinitions = Lists.newArrayList();
+    private Map<Integer, ObjectDefinition> objectDefinitions = new HashMap<>();
     private ObjectFileType fileType;
 
     public ObjectTable(ObjectFileType fileType2) {
@@ -15,7 +18,7 @@ public class ObjectTable {
     }
 
     public void add(ObjectDefinition objDef) {
-        objectDefinitions.add(objDef);
+        objectDefinitions.put(objDef.getNewObjectId(), objDef);
     }
 
     static ObjectTable readFromStream(BinaryDataInputStream in, ObjectFileType fileType) throws IOException {
@@ -33,7 +36,7 @@ public class ObjectTable {
     }
 
 
-    public List<ObjectDefinition> getObjectDefinitions() {
+    public Map<Integer, ObjectDefinition>  getObjectDefinitions() {
         return objectDefinitions;
     }
 
@@ -42,21 +45,21 @@ public class ObjectTable {
         // write number of objects
         out.writeInt(objectDefinitions.size());
 
-        for (ObjectDefinition od : objectDefinitions) {
+        for (ObjectDefinition od : objectDefinitions.values()) {
             od.writeToStream(out, fileType);
         }
 
     }
 
     public void prettyPrint(StringBuilder sb) {
-        for (ObjectDefinition od : objectDefinitions) {
+        for (ObjectDefinition od : objectDefinitions.values()) {
             od.prettyPrint(sb);
         }
 
     }
 
     public void exportToWurst(Appendable out) throws IOException {
-        for (ObjectDefinition od : objectDefinitions) {
+        for (ObjectDefinition od : objectDefinitions.values()) {
             od.exportToWurst(out);
         }
 

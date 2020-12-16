@@ -28,10 +28,9 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
         ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
         ObjectTable modifiedTable = unitStore.getModifiedTable();
-        for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
-            if (od.getNewObjectId() == newUnitId.getVal()) {
-                globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
-            }
+
+        if (modifiedTable.getObjectDefinitions().containsKey(newUnitId.getVal())) {
+            globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
         }
         ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
         // mark object with special field

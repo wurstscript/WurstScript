@@ -123,12 +123,10 @@ public class ProgramStateIO extends ProgramState {
     private void replaceTrigStrings(ObjectFile dataStore) {
         replaceTrigStringsInTable(dataStore.getOrigTable());
         replaceTrigStringsInTable(dataStore.getModifiedTable());
-
-
     }
 
     private void replaceTrigStringsInTable(ObjectTable modifiedTable) {
-        for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
+        for (ObjectDefinition od : modifiedTable.getObjectDefinitions().values()) {
             for (ObjectModification<?> mod : od.getModifications()) {
                 if (mod instanceof ObjectModificationString) {
                     ObjectModificationString modS = (ObjectModificationString) mod;
@@ -147,9 +145,9 @@ public class ProgramStateIO extends ProgramState {
     }
 
     private void deleteWurstObjects(ObjectFile unitStore) {
-        Iterator<ObjectDefinition> it = unitStore.getModifiedTable().getObjectDefinitions().iterator();
+        Iterator<Map.Entry<Integer, ObjectDefinition>> it = unitStore.getModifiedTable().getObjectDefinitions().entrySet().iterator();
         while (it.hasNext()) {
-            ObjectDefinition od = it.next();
+            ObjectDefinition od = it.next().getValue();
             for (ObjectModification<?> om : od.getModifications()) {
                 if (om.getModificationId().equals("wurs") && om instanceof ObjectModificationInt) {
                     ObjectModificationInt om2 = (ObjectModificationInt) om;
@@ -242,7 +240,7 @@ public class ProgramStateIO extends ProgramState {
             return Optional.of(folder);
         }
         Optional<File> folder = mapFile.map(fi -> new File(fi.getParent(), "objectEditingOutput"));
-        if (!folder.isPresent() || (!folder.get().exists() && !folder.get().mkdirs())) {
+        if (!folder.get().exists() && !folder.get().mkdirs()) {
             WLogger.info("Could not create folder " + folder.map(File::getAbsoluteFile));
             return Optional.empty();
         }
