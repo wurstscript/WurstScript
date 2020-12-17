@@ -58,12 +58,6 @@ public class ModelManagerImpl implements ModelManager {
 
     private WurstModel newModel(CompilationUnit cu, WurstGui gui) {
         try {
-            Path jassdoc = getBuildDir().toPath().resolve("dependencies").resolve("jassdoc");
-            if (jassdoc.toFile().exists()) {
-                List<CompilationUnit> jassdocCUs = getJassdocCUs(jassdoc, gui);
-                jassdocCUs.add(cu);
-                return Ast.WurstModel(jassdocCUs);
-            }
             CompilationUnit commonJ = compileFromJar(gui, "common.j");
             CompilationUnit blizzardJ = compileFromJar(gui, "blizzard.j");
             return Ast.WurstModel(blizzardJ, commonJ, cu);

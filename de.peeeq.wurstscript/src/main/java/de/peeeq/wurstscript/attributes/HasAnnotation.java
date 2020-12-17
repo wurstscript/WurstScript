@@ -17,11 +17,13 @@ public class HasAnnotation {
 
     public static boolean hasAnnotation(NameDef e, String annotation) {
         String norm = normalizeAnnotation(annotation);
-        for (Modifier m : e.getModifiers()) {
-            if (m instanceof Annotation) {
-                Annotation a = (Annotation) m;
-                if (normalizeAnnotation(a.getAnnotationType()).equals(norm)) {
-                    return true;
+        if (e.getModifiers().size() > 0) {
+            for (Modifier m : e.getModifiers()) {
+                if (m instanceof Annotation) {
+                    Annotation a = (Annotation) m;
+                    if (normalizeAnnotation(a.getAnnotationType()).equals(norm)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -30,11 +32,13 @@ public class HasAnnotation {
 
     public static Annotation getAnnotation(NameDef e, String annotation) {
         String norm = normalizeAnnotation(annotation);
-        for (Modifier m : e.getModifiers()) {
-            if (m instanceof Annotation) {
-                Annotation a = (Annotation) m;
-                if (normalizeAnnotation(a.getAnnotationType()).equals(norm)) {
-                    return a;
+        if (e.getModifiers().size() > 0) {
+            for (Modifier m : e.getModifiers()) {
+                if (m instanceof Annotation) {
+                    Annotation a = (Annotation) m;
+                    if (normalizeAnnotation(a.getAnnotationType()).equals(norm)) {
+                        return a;
+                    }
                 }
             }
         }

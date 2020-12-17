@@ -835,7 +835,7 @@ public class ImTranslator {
 
     private boolean isBJ(WPos source) {
         String f = source.getFile().toLowerCase();
-        return f.endsWith("blizzard.j") || f.endsWith("common.j") || FileUtils.getWPosParent(source).equals("jassdoc");
+        return f.endsWith("blizzard.j") || f.endsWith("common.j");
     }
 
     public ImFunction getInitFuncFor(WPackage p) {
