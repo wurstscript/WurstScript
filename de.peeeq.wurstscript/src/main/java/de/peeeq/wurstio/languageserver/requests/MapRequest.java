@@ -257,7 +257,7 @@ public abstract class MapRequest extends UserRequest<Object> {
     private void purgeUnimportedFiles(WurstModel model) {
 
         Set<CompilationUnit> imported = model.stream()
-            .filter(cu -> isInWurstFolder(cu.getCuInfo().getFile()) || cu.getCuInfo().getFile().endsWith(".j")).distinct().collect(Collectors.toSet());
+            .filter(cu -> isInWurstFolder(cu.getCuInfo().getFile()) || cu.getCuInfo().getFile().endsWith(".j")).collect(Collectors.toSet());
         addImports(imported, imported);
 
         model.removeIf(cu -> !imported.contains(cu));

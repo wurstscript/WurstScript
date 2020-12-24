@@ -1184,8 +1184,7 @@ public class WurstValidator {
 
             if (!f.getSource().getFile().endsWith("common.j")
                     && !f.getSource().getFile().endsWith("blizzard.j")
-                    && !f.getSource().getFile().endsWith("war3map.j")
-                    && !FileUtils.getWPosParent(f.getSource()).equals("jassdoc")) {
+                    && !f.getSource().getFile().endsWith("war3map.j")) {
                 new DataflowAnomalyAnalysis(Utils.isJassCode(Optional.of(f))).execute(f);
             }
         }

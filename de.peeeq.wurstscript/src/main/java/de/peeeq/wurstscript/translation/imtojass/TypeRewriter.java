@@ -1,6 +1,5 @@
 package de.peeeq.wurstscript.translation.imtojass;
 
-import com.google.common.collect.ImmutableList;
 import de.peeeq.wurstscript.jassIm.*;
 
 import java.util.List;

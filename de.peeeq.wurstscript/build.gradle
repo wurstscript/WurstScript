@@ -74,7 +74,7 @@ repositories {
 dependencies {
 
     // Antlr parsing library
-    antlr "org.antlr:antlr4:4.7"
+    antlr "org.antlr:antlr4:4.9"
 
     // tool for generating AST-classes
     compileOnly 'com.github.peterzeller:abstractsyntaxgen:3510802026'
@@ -84,13 +84,13 @@ dependencies {
     testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
 
     // Google guava
-    compile 'com.google.guava:guava:26.0-jre'
+    compile 'com.google.guava:guava:30.0-jre'
 
     // Better functional data structures:
     compile 'io.vavr:vavr:1.0.0-alpha-3'
 
     // Support for the vscode language server protocol
-    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.7.0'
+    compile group: 'org.eclipse.lsp4j', name: 'org.eclipse.lsp4j', version: '0.10.0'
 
     // @Nullable annotations
     compile group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.annotation', version: '2.1.0'
@@ -111,7 +111,7 @@ dependencies {
     compile 'com.github.inwc3:wc3libs:f29e038ced'
 
     // The setup tool for wurst.build handling
-    compile 'com.github.wurstscript:wurstsetup:e038293d07'
+    compile 'com.github.wurstscript:wurstsetup:376ce9a330'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'

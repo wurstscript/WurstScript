@@ -8,7 +8,6 @@ import de.peeeq.wurstscript.jassIm.ImClassType;
 import de.peeeq.wurstscript.jassIm.ImVar;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ILconstObject extends ILconstAbstract {
     private final ImClassType classType;

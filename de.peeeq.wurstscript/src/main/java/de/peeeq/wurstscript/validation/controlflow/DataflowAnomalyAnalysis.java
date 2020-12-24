@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.immutablecollections.ImmutableList;
 import de.peeeq.wurstscript.ast.*;
 import de.peeeq.wurstscript.attributes.names.NameLink;
-import de.peeeq.wurstscript.jassIm.ImArrayType;
 import de.peeeq.wurstscript.types.WurstTypeArray;
 import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
@@ -312,10 +311,10 @@ public class DataflowAnomalyAnalysis extends ForwardMethod<VarStates, AstElement
 //			ImmutableSet<WStatement> unreadWrites = incoming.getUnreadWrites(n);
 //			for (WStatement wr : unreadWrites) {
 //				Element parent = s.getParent();
-//				if (isNested(wr, parent)) {				
+//				if (isNested(wr, parent)) {
 ////					s.addError("Assigning to " + Utils.printElement(n) + " overrides previous assignment in line " + wr.attrSource().getLine());
 //				}
-//			} 
+//			}
             if (isLocalVarDef(n)) {
                 LocalVarDef lv = (LocalVarDef) n;
                 return incoming.addWrite(lv, s);

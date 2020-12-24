@@ -58,7 +58,7 @@ public class RunArgs {
                 .toArray(String[]::new));
     }
 
-    private class RunOption {
+    private static class RunOption {
 
         final String name;
         final String descr;
@@ -180,7 +180,7 @@ public class RunArgs {
     }
 
     public RunArgs(List<String> runArgs) {
-        this(runArgs.toArray(new String[runArgs.size()]));
+        this(runArgs.toArray(new String[0]));
     }
 
     public void printHelpAndExit() {

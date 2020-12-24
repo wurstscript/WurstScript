@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.jassinterpreter.providers;
 
-import de.peeeq.wurstio.jassinterpreter.mocks.RectMock;
 import de.peeeq.wurstscript.intermediatelang.*;
 import de.peeeq.wurstscript.intermediatelang.interpreter.AbstractInterpreter;
 

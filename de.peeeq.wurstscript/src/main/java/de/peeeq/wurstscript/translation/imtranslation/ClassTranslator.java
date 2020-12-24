@@ -348,17 +348,14 @@ public class ClassTranslator {
     private void createNewFunc(ConstructorDef constr) {
         ConstructorDef trace = constr;
         ImFunction f = translator.getConstructNewFunc(constr);
-        Map<ImVar, ImVar> varReplacements = Maps.newLinkedHashMap();
 
         for (WParameter p : constr.getParameters()) {
             ImVar imP = ImVar(p, p.attrTyp().imTranslateType(translator), p.getName(), false);
-            varReplacements.put(translator.getVarFor(p), imP);
             f.getParameters().add(imP);
         }
 
 
         ImVar thisVar = JassIm.ImVar(constr, imClassType(), "this", false);
-        varReplacements.put(translator.getThisVar(constr), thisVar);
         f.getLocals().add(thisVar);
 
         // allocate class

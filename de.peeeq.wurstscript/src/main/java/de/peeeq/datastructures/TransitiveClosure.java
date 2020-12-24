@@ -1,7 +1,6 @@
 package de.peeeq.datastructures;
 
 import com.google.common.collect.Multimap;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.*;
 import java.util.stream.Collectors;

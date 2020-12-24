@@ -82,8 +82,7 @@ public abstract class OverloadingResolver<F extends Element, C> {
         String alts = funcs.stream()
                 .map((F f) -> {
                     if (f instanceof FunctionDefinition) {
-                        FunctionDefinition functionDefinition = (FunctionDefinition) f;
-                        FunctionDefinition func = functionDefinition;
+                        FunctionDefinition func = (FunctionDefinition) f;
                         return "function " + func.getName() + " defined in " +
                                 "  line " + func.getSource().getLine();
                     }

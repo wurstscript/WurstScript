@@ -1,7 +1,5 @@
 package de.peeeq.datastructures;
 
-import de.peeeq.wurstio.jassinterpreter.JassArray;
-
 import java.util.List;
 import java.util.function.Function;
 

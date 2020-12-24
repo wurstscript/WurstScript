@@ -5,28 +5,22 @@ import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.types.TypesHelper;
 
 public interface AssertProperty {
-    AssertProperty FLAT = new AssertProperty() {
-        @Override
-        public void check(Element e) {
-            if (e instanceof ImStatementExpr) {
-                throw new Error("contains statementExpr " + e);
-            }
+    AssertProperty FLAT = e -> {
+        if (e instanceof ImStatementExpr) {
+            throw new Error("contains statementExpr " + e);
         }
     };
 
-    AssertProperty NOTUPLES = new AssertProperty() {
-        @Override
-        public void check(Element e) {
-            if (e instanceof ImTupleExpr
-                    || e instanceof ImTupleSelection
-            ) {
-                throw new Error("contains tuple exprs " + e);
-            }
-            if (e instanceof ImVar) {
-                ImVar v = (ImVar) e;
-                if (TypesHelper.typeContainsTuples(v.getType())) {
-                    throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
-                }
+    AssertProperty NOTUPLES = e -> {
+        if (e instanceof ImTupleExpr
+                || e instanceof ImTupleSelection
+        ) {
+            throw new Error("contains tuple exprs " + e);
+        }
+        if (e instanceof ImVar) {
+            ImVar v = (ImVar) e;
+            if (TypesHelper.typeContainsTuples(v.getType())) {
+                throw new Error("contains tuple var: " + v + " in\n" + v.getParent().getParent());
             }
         }
     };

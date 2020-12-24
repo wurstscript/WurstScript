@@ -1,6 +1,5 @@
 package de.peeeq.wurstio.hotdoc;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.Lists;
 import de.peeeq.wurstio.WurstCompilerJassImpl;
 import de.peeeq.wurstio.utils.FileUtils;
@@ -23,8 +22,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
-
-import static com.google.common.io.Files.asCharSink;
 
 public class HotdocGenerator {
 

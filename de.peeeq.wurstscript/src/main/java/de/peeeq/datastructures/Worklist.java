@@ -3,7 +3,6 @@ package de.peeeq.datastructures;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 
 /**
  * A queue with efficient lookup using a hashset.

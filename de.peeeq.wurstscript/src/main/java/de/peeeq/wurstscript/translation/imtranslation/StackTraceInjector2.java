@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstio.TimeTaker;
 import de.peeeq.wurstscript.WurstOperator;
-import de.peeeq.wurstscript.ast.FuncDef;
 import de.peeeq.wurstscript.ast.FunctionDefinition;
 import de.peeeq.wurstscript.ast.NameDef;
 import de.peeeq.wurstscript.ast.WurstModel;
@@ -16,7 +15,6 @@ import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.types.TypesHelper;
-import de.peeeq.wurstscript.utils.Utils;
 import org.eclipse.jdt.annotation.Nullable;
 
 import java.util.*;
@@ -362,7 +360,7 @@ public class StackTraceInjector2 {
             ImStmt stmt;
             de.peeeq.wurstscript.ast.Element frTrace = fr.attrTrace();
 
-            String msg = "";
+            String msg;
             if (fr instanceof ImFuncRef) {
                 msg = "via function reference";
             } else {

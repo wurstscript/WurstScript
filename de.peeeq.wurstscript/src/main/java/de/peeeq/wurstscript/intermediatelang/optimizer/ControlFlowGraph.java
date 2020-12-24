@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 
 public class ControlFlowGraph {
 
-    class Node {
+    static class Node {
         private @Nullable ImStmt stmt;
         private @Nullable String name = null;
         private final List<Node> predecessors = new ArrayList<>();

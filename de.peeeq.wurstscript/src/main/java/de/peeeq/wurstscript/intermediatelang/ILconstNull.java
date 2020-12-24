@@ -2,7 +2,6 @@ package de.peeeq.wurstscript.intermediatelang;
 
 import de.peeeq.wurstscript.types.WurstType;
 import de.peeeq.wurstscript.types.WurstTypeInfer;
-import org.eclipse.jdt.annotation.Nullable;
 
 public class ILconstNull extends ILconstAbstract implements ILconstAddable {
 

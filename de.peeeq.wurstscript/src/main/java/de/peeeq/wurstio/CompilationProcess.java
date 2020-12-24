@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /**
  *
@@ -55,7 +56,7 @@ public class CompilationProcess {
             compiler.loadFiles(file);
         }
         WurstModel model = timeTaker.measure("parse files",
-                () -> compiler.parseFiles());
+            compiler::parseFiles);
 
         if (gui.getErrorCount() > 0) {
             return null;
@@ -84,10 +85,10 @@ public class CompilationProcess {
         }
 
         timeTaker.measure("Run compiletime functions",
-                () -> compiler.runCompiletime());
+            compiler::runCompiletime);
 
         JassProg jassProg = timeTaker.measure("Transform program to Jass",
-                () -> compiler.transformProgToJass());
+            compiler::transformProgToJass);
 
         if (jassProg == null || gui.getErrorCount() > 0) {
             return null;
@@ -100,7 +101,7 @@ public class CompilationProcess {
 
         JassPrinter printer = new JassPrinter(withSpace, jassProg);
         CharSequence mapScript = timeTaker.measure("Print Jass",
-                () -> printer.printProg());
+            (Supplier<String>) printer::printProg);
 
         // output to file
         File outputMapscript = timeTaker.measure("Print Jass",

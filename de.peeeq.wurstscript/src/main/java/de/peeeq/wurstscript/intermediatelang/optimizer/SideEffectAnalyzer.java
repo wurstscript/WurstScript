@@ -5,7 +5,6 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import de.peeeq.datastructures.TransitiveClosure;
 import de.peeeq.wurstscript.jassIm.*;
-import de.peeeq.wurstscript.utils.Utils;
 
 import java.util.Collection;
 import java.util.LinkedHashSet;

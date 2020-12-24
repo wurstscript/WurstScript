@@ -1,12 +1,9 @@
 package de.peeeq.wurstio.intermediateLang.interpreter;
 
 
-import com.google.common.base.Preconditions;
 import de.peeeq.wurstio.jassinterpreter.InterpreterException;
 import de.peeeq.wurstio.jassinterpreter.ReflectionBasedNativeProvider;
 import de.peeeq.wurstio.objectreader.*;
-import de.peeeq.wurstscript.ast.Element;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.ILconstInt;
 import de.peeeq.wurstscript.intermediatelang.ILconstReal;
 import de.peeeq.wurstscript.intermediatelang.ILconstString;
@@ -31,10 +28,9 @@ public class CompiletimeNatives extends ReflectionBasedNativeProvider implements
     public ILconstTuple createObjectDefinition(ILconstString fileType, ILconstInt newUnitId, ILconstInt deriveFrom) {
         ObjectFile unitStore = globalState.getDataStore(fileType.getVal());
         ObjectTable modifiedTable = unitStore.getModifiedTable();
-        for (ObjectDefinition od : modifiedTable.getObjectDefinitions()) {
-            if (od.getNewObjectId() == newUnitId.getVal()) {
-                globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
-            }
+
+        if (modifiedTable.getObjectDefinitions().containsKey(newUnitId.getVal())) {
+            globalState.compilationError("Object definition with id " + ObjectHelper.objectIdIntToString(newUnitId.getVal()) + " already exists.");
         }
         ObjectDefinition objDef = new ObjectDefinition(modifiedTable, deriveFrom.getVal(), newUnitId.getVal());
         // mark object with special field

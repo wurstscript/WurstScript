@@ -18,7 +18,7 @@ public class MultiArrayEliminator {
     private ImTranslator translator;
     private final boolean generateStacktraces;
 
-    private class GetSetPair {
+    private static class GetSetPair {
         ImFunction getter;
         ImFunction setter;
 

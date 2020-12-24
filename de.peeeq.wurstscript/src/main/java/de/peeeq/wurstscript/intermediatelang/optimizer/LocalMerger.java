@@ -1,27 +1,18 @@
 package de.peeeq.wurstscript.intermediatelang.optimizer;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import de.peeeq.datastructures.Worklist;
-import de.peeeq.wurstscript.attributes.CompileError;
 import de.peeeq.wurstscript.intermediatelang.optimizer.ControlFlowGraph.Node;
 import de.peeeq.wurstscript.jassIm.*;
 import de.peeeq.wurstscript.translation.imoptimizer.OptimizerPass;
-import de.peeeq.wurstscript.translation.imtranslation.GetAForB;
-import de.peeeq.wurstscript.translation.imtranslation.ImPrinter;
 import de.peeeq.wurstscript.translation.imtranslation.ImTranslator;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * merges local variable, if they have disjoint live-spans

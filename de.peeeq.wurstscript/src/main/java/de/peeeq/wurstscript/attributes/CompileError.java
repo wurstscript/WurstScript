@@ -1,7 +1,6 @@
 package de.peeeq.wurstscript.attributes;
 
 import de.peeeq.wurstscript.jassIm.Element;
-import de.peeeq.wurstscript.jassIm.ImTypeVarRef;
 import de.peeeq.wurstscript.parser.WPos;
 import de.peeeq.wurstscript.utils.LineOffsets;
 import org.eclipse.jdt.annotation.Nullable;
