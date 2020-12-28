@@ -108,7 +108,7 @@ dependencies {
     compile 'com.github.inwc3:jmpq3:1.7.14'
 
     // Water's wc3 libs
-    compile 'com.github.inwc3:wc3libs:f29e038ced'
+    compile 'com.github.inwc3:wc3libs:86f3db6854'
 
     // The setup tool for wurst.build handling
     compile 'com.github.wurstscript:wurstsetup:376ce9a330'
