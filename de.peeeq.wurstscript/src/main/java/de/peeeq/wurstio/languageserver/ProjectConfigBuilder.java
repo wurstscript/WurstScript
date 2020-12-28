@@ -14,6 +14,7 @@ import net.moonlightflower.wc3libs.bin.app.W3I;
 import net.moonlightflower.wc3libs.bin.app.W3I.Force;
 import net.moonlightflower.wc3libs.bin.app.W3I.Player;
 import net.moonlightflower.wc3libs.dataTypes.app.Controller;
+import net.moonlightflower.wc3libs.dataTypes.app.LoadingScreenBackground;
 import net.moonlightflower.wc3libs.port.GameVersion;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.lsp4j.MessageType;
@@ -144,7 +145,10 @@ public class ProjectConfigBuilder {
     }
 
     private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
-        w3I.setLoadingScreenModel(loadingScreen.getModel());
+        if (StringUtils.isNotBlank(loadingScreen.getModel())) {
+            w3I.setLoadingScreenModel(loadingScreen.getModel());
+        }
+        w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreen.getBackground()));
         w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
         w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
         w3I.getLoadingScreen().setText(loadingScreen.getText());

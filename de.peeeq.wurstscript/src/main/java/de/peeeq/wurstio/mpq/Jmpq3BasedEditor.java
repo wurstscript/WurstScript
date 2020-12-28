@@ -12,12 +12,9 @@ import java.io.IOException;
 
 class Jmpq3BasedEditor implements MpqEditor {
 
-    private JMpqEditor editor;
+    private final JMpqEditor editor;
 
     private JMpqEditor getEditor() {
-        if (editor == null) {
-            throw new RuntimeException("editor already closed");
-        }
         return editor;
     }
 
@@ -56,13 +53,10 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     public void close() throws IOException {
-        if (editor != null) {
-            try {
-                editor.close();
-            } catch (JMpqException e) {
-                throw new IOException(e);
-            }
-            editor = null;
+        try {
+            editor.close();
+        } catch (JMpqException e) {
+            throw new IOException(e);
         }
     }
 
@@ -78,9 +72,7 @@ class Jmpq3BasedEditor implements MpqEditor {
 
     @Override
     protected void finalize() throws Throwable {
-        if (editor != null) {
-            WLogger.severe("JMPQ editor not closed normally");
-            editor.close();
-        }
+        WLogger.severe("JMPQ editor not closed normally");
+        editor.close();
     }
 }
