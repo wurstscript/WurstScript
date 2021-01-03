@@ -146,9 +146,11 @@ public class ProjectConfigBuilder {
 
     private static void applyLoadingScreen(W3I w3I, WurstProjectBuildLoadingScreenData loadingScreen) {
         if (StringUtils.isNotBlank(loadingScreen.getModel())) {
-            w3I.setLoadingScreenModel(loadingScreen.getModel());
+            w3I.getLoadingScreen().setBackground(new LoadingScreenBackground.CustomBackground(new File(loadingScreen.getModel())));
+        } else {
+            w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreen.getBackground()));
         }
-        w3I.getLoadingScreen().setBackground(LoadingScreenBackground.PresetBackground.findByName(loadingScreen.getBackground()));
+
         w3I.getLoadingScreen().setTitle(loadingScreen.getTitle());
         w3I.getLoadingScreen().setSubtitle(loadingScreen.getSubTitle());
         w3I.getLoadingScreen().setText(loadingScreen.getText());
