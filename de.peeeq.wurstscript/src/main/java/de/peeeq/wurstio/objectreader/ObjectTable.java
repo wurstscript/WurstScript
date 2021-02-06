@@ -4,13 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class ObjectTable {
 
-    private LinkedHashMap<Integer, ObjectDefinition> objectDefinitions = new HashMap<>();
+    private LinkedHashMap<Integer, ObjectDefinition> objectDefinitions = new LinkedHashMap<>();
     private ObjectFileType fileType;
 
     public ObjectTable(ObjectFileType fileType2) {
@@ -40,7 +38,7 @@ public class ObjectTable {
     }
 
 
-    public Map<Integer, ObjectDefinition>  getObjectDefinitions() {
+    public LinkedHashMap<Integer, ObjectDefinition> getObjectDefinitions() {
         return objectDefinitions;
     }
 
