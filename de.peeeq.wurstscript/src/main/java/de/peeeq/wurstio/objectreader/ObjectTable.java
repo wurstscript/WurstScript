@@ -18,7 +18,11 @@ public class ObjectTable {
     }
 
     public void add(ObjectDefinition objDef) {
-        objectDefinitions.put(objDef.getNewObjectId(), objDef);
+        int objId = objDef.getNewObjectId();
+        if (objId == 0) {
+            objId = objDef.getOrigObjectId();
+        }
+        objectDefinitions.put(objId, objDef);
     }
 
     static ObjectTable readFromStream(BinaryDataInputStream in, ObjectFileType fileType) throws IOException {
