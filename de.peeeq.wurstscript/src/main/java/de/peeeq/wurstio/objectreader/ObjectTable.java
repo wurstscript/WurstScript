@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class ObjectTable {
 
-    private Map<Integer, ObjectDefinition> objectDefinitions = new HashMap<>();
+    private LinkedHashMap<Integer, ObjectDefinition> objectDefinitions = new HashMap<>();
     private ObjectFileType fileType;
 
     public ObjectTable(ObjectFileType fileType2) {
