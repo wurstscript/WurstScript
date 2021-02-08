@@ -4,13 +4,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class ObjectTable {
 
-    private Map<Integer, ObjectDefinition> objectDefinitions = new HashMap<>();
+    private LinkedHashMap<Integer, ObjectDefinition> objectDefinitions = new LinkedHashMap<>();
     private ObjectFileType fileType;
 
     public ObjectTable(ObjectFileType fileType2) {
@@ -18,7 +16,11 @@ public class ObjectTable {
     }
 
     public void add(ObjectDefinition objDef) {
-        objectDefinitions.put(objDef.getNewObjectId(), objDef);
+        int objId = objDef.getNewObjectId();
+        if (objId == 0) {
+            objId = objDef.getOrigObjectId();
+        }
+        objectDefinitions.put(objId, objDef);
     }
 
     static ObjectTable readFromStream(BinaryDataInputStream in, ObjectFileType fileType) throws IOException {
@@ -36,7 +38,7 @@ public class ObjectTable {
     }
 
 
-    public Map<Integer, ObjectDefinition>  getObjectDefinitions() {
+    public LinkedHashMap<Integer, ObjectDefinition> getObjectDefinitions() {
         return objectDefinitions;
     }
 
