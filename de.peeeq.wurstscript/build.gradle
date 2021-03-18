@@ -5,6 +5,7 @@ buildscript {
     dependencies {
         classpath 'de.undercouch:gradle-download-task:3.2.0'
         classpath 'org.kt3k.gradle.plugin:coveralls-gradle-plugin:1.0.2'
+        classpath 'org.eclipse.jgit:org.eclipse.jgit:5.7.+'
     }
 }
 
@@ -19,6 +20,10 @@ plugins {
 }
 
 import de.undercouch.gradle.tasks.download.Download
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.ObjectId
 
 import java.util.regex.Matcher
 import java.util.regex.Pattern
@@ -159,25 +164,15 @@ task versionInfoFile {
     String gitRevision = "unknown-version"
     String gitRevisionlong = "unknown-version"
 
-    new ByteArrayOutputStream().withStream { os ->
-        def result = exec {
-            executable = 'git'
-            args = ['describe', '--tags', '--always']
-            standardOutput = os
-        }
-        gitRevision = os.toString().trim()
-    }
+    Git git = Git.open(new File(rootProject.projectDir, '..'))
+    ObjectId head = git.getRepository().resolve(Constants.HEAD)
 
-    new ByteArrayOutputStream().withStream { os ->
-        def result = exec {
-            executable = 'git'
-            args = ['describe', '--tags', '--always', '--abbrev=0']
-            standardOutput = os
-        }
-        gitRevisionlong = os.toString().trim()
-    }
+    gitRevision = head.abbreviate(8).name()
+    gitRevisionlong = head.getName()
 
-    String wurstVersion = "${version}-${gitRevision}"
+    String tag = git.describe().setTarget(head).setAlways(true).setTags(true).call()
+
+    String wurstVersion = "${version}-${tag}"
     inputs.property("wurstVersion", wurstVersion)
 
     def dir = new File('./src-gen/de/peeeq/wurstscript/')
@@ -227,11 +222,6 @@ test {
 clean.doFirst {
     delete genDir
 }
-
-//task wrapper(type: Wrapper) {
-//    gradleVersion = '2.12'
-//}
-
 
 
 apply plugin: 'de.undercouch.download'
